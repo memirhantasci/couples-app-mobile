@@ -102,6 +102,8 @@ function RootLayoutNav() {
       <Stack.Screen name="(setup)" />
       {/* Main app */}
       <Stack.Screen name="(tabs)" />
+      {/* Modals */}
+      <Stack.Screen name="add-memory" options={{ presentation: 'modal' }} />
     </Stack>
   );
 }
