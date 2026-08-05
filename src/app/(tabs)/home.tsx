@@ -7,6 +7,8 @@ import { useQuery } from "@tanstack/react-query";
 import { dayjs, daysSince, getLoveMeter, dayOfYear, todayString, getTodayHitap } from "@/lib/date";
 import { getQuoteForDay } from "@/lib/quotes";
 import { decrypt, deterministicDecrypt } from "@/utils/crypto";
+import { Menu } from "lucide-react-native";
+import { useRouter } from "expo-router";
 
 import { LoveMeter } from "@/components/home/LoveMeter";
 import { MoodSelector } from "@/components/home/MoodSelector";
@@ -16,6 +18,7 @@ import { PendingLettersCard } from "@/components/home/PendingLettersCard";
 
 export default function HomeScreen() {
   const { session } = useAuth();
+  const router = useRouter();
   
   // Queries
   const today = todayString();
@@ -108,11 +111,16 @@ export default function HomeScreen() {
         
         {/* HERO CARD */}
         <View style={styles.heroCard}>
-          <View style={{ flex: 1, justifyContent: "center" }}>
-            <Text style={styles.dateLabel}>{dateStr}</Text>
-            <Text style={styles.greetingTitle}>
-              Günaydın,{"\n"}{hitap} <Text style={{ fontSize: 20 }}>❤️</Text>
-            </Text>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", flex: 1 }}>
+            <View style={{ flex: 1, justifyContent: "center" }}>
+              <Text style={styles.dateLabel}>{dateStr}</Text>
+              <Text style={styles.greetingTitle}>
+                Günaydın,{"\n"}{hitap} <Text style={{ fontSize: 20 }}>❤️</Text>
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, marginRight: -8, marginTop: -8 }}>
+              <Menu color="#fff" size={24} />
+            </TouchableOpacity>
           </View>
           
           <View style={{ flexDirection: "row", gap: 8 }}>

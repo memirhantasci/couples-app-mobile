@@ -102,7 +102,10 @@ function RootLayoutNav() {
       <Stack.Screen name="(setup)" />
       {/* Main app */}
       <Stack.Screen name="(tabs)" />
+      {/* Sub screens */}
+      <Stack.Screen name="memories" />
       {/* Modals */}
+      <Stack.Screen name="menu" options={{ presentation: 'modal' }} />
       <Stack.Screen name="add-memory" options={{ presentation: 'modal' }} />
     </Stack>
   );

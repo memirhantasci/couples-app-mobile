@@ -46,13 +46,6 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="memories"
-        options={{
-          title: "Özel Günler",
-          tabBarIcon: ({ color, size }) => <Heart color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
         name="medicine"
         options={{
           title: "Özel Alan",
