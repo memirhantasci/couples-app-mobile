@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Couples App",
-    "slug": "couples-app-mobile",
+    "slug": "emirhan",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -28,7 +28,8 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
         "android.permission.POST_NOTIFICATIONS"
-      ]
+      ],
+      "package": "com.memirhantasci.couplesapp"
     },
     "web": {
       "output": "static",
@@ -60,8 +61,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "BURAYA_EAS_PROJECT_ID_GIRILECEK"
+        "projectId": "41ae72c5-4b30-4fd6-92f5-4191dd8c0b4c"
       }
-    }
+    },
+    "owner": "memirhantascis-team"
   }
 }
