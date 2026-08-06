@@ -5,18 +5,18 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs } from "@/lib/date";
-import { Trash2, Plus, Pencil } from "lucide-react-native";
+import { Plus, Trash2, Pencil, Menu, ChevronLeft } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
 export default function MemoriesScreen() {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isEditMode, setIsEditMode] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  const coupleId = session?.user?.user_metadata?.couple_id || session?.couple_id;
+  const coupleId = profile?.coupleId || null;
 
   const { data: memories, isLoading } = useQuery({
     queryKey: ["memories", coupleId],
@@ -58,7 +58,7 @@ export default function MemoriesScreen() {
 
   const handleEdit = (memory: any) => {
     router.push({
-      pathname: "/add-memory",
+      pathname: "/(tabs)/add-memory",
       params: { 
         id: memory.id, 
         title: memory.title, 
@@ -77,13 +77,21 @@ export default function MemoriesScreen() {
         
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Özel Günler ❤️</Text>
-          <TouchableOpacity 
-            style={styles.editBtn}
-            onPress={() => setIsEditMode(!isEditMode)}
-          >
-            <Text style={styles.editBtnText}>{isEditMode ? "Bitti" : "Düzenle"}</Text>
+          <TouchableOpacity onPress={() => router.back()} style={{ padding: 8, marginLeft: -8 }}>
+            <ChevronLeft color="#fff" size={28} />
           </TouchableOpacity>
+          <Text style={[styles.title, { flex: 1, textAlign: "center" }]} numberOfLines={1}>Özel Günler ❤️</Text>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <TouchableOpacity 
+              style={[styles.editBtn, { marginRight: 8 }]}
+              onPress={() => setIsEditMode(!isEditMode)}
+            >
+              <Text style={styles.editBtnText}>{isEditMode ? "Bitti" : "Düzenle"}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, marginRight: -8 }}>
+              <Menu color="#fff" size={24} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {isLoading ? (
@@ -156,7 +164,7 @@ export default function MemoriesScreen() {
           <Animated.View entering={FadeInUp.duration(250)} style={styles.addBtnContainer}>
             <TouchableOpacity 
               style={styles.addBtn}
-              onPress={() => router.push("/add-memory")}
+              onPress={() => router.push("/(tabs)/add-memory")}
               activeOpacity={0.8}
             >
               <Plus size={18} color="#fff" strokeWidth={2.5} />
@@ -178,20 +186,20 @@ const styles = StyleSheet.create({
     minHeight: "100%",
   },
   header: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 24,
   },
   title: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: "700",
     color: "#fff",
-    marginBottom: 12,
   },
   editBtn: {
-    alignSelf: "flex-end",
     backgroundColor: "#311822",
-    paddingVertical: 10,
-    paddingHorizontal: 24,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 20,
   },
   editBtnText: {

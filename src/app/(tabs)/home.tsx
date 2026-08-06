@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, ScrollView, ActivityIndicator, StyleSheet, RefreshControl } from "react-native";
+import { View, Text, ScrollView, ActivityIndicator, StyleSheet, RefreshControl, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -7,8 +7,8 @@ import { useQuery } from "@tanstack/react-query";
 import { dayjs, daysSince, getLoveMeter, dayOfYear, todayString, getTodayHitap } from "@/lib/date";
 import { getQuoteForDay } from "@/lib/quotes";
 import { decrypt, deterministicDecrypt } from "@/utils/crypto";
-import { Menu } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 import { LoveMeter } from "@/components/home/LoveMeter";
 import { MoodSelector } from "@/components/home/MoodSelector";
@@ -17,57 +17,64 @@ import { MeetingCountdown } from "@/components/home/MeetingCountdown";
 import { PendingLettersCard } from "@/components/home/PendingLettersCard";
 
 export default function HomeScreen() {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const router = useRouter();
   
   // Queries
   const today = todayString();
   const doy = dayOfYear();
   
-  const coupleId = session?.user?.user_metadata?.couple_id || session?.couple_id;
-  const userId = session?.user?.id;
+  const coupleId = profile?.coupleId || null;
+  const userId = session?.user?.id ? parseInt(session.user.id, 10) : null;
 
   // React Query for Dashboard Data
   const { data: dashboardData, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["home_dashboard", coupleId, userId, today],
-    enabled: !!coupleId && !!userId,
+    enabled: !!userId,
     queryFn: async () => {
       const [moodRes, noteRes, meetingRes, lettersRes] = await Promise.all([
         supabase
           .from("moods")
           .select("mood_type")
-          .eq("couple_id", coupleId)
           .eq("user_id", userId)
           .eq("date", today)
-          .single(),
+          .maybeSingle(),
         supabase
           .from("daily_notes")
           .select("content")
-          .eq("couple_id", coupleId)
           .eq("user_id", userId)
           .eq("date", today)
-          .single(),
-        supabase
+          .maybeSingle(),
+        coupleId ? supabase
           .from("meetings")
           .select("id, meeting_datetime, title")
           .eq("couple_id", coupleId)
           .eq("is_active", true)
+          .gte("meeting_datetime", dayjs().subtract(3, "hour").toISOString())
           .order("meeting_datetime", { ascending: true })
-          .limit(1)
-          .single(),
-        supabase
+          .limit(5) : Promise.resolve({ data: [] }),
+        coupleId ? supabase
           .from("letters")
           .select("id, unlock_date, sender:users!letters_sender_id_fkey(username, display_name)")
           .eq("couple_id", coupleId)
           .eq("receiver_id", userId)
           .gt("unlock_date", today)
-          .order("unlock_date", { ascending: true })
+          .order("unlock_date", { ascending: true }) : Promise.resolve({ data: [] })
       ]);
+
+      let activeMeeting = null;
+      if (meetingRes.data && Array.isArray(meetingRes.data)) {
+        const now = dayjs();
+        const futureMeeting = meetingRes.data.find(m => dayjs(m.meeting_datetime).isAfter(now));
+        activeMeeting = futureMeeting || meetingRes.data[meetingRes.data.length - 1] || null;
+      } else if (meetingRes.data) {
+        activeMeeting = meetingRes.data;
+      }
 
       return {
         currentMood: moodRes.data?.mood_type || null,
         currentNote: noteRes.data?.content ? decrypt(noteRes.data.content) : null,
-        activeMeeting: meetingRes.data || null,
+        activeMeeting,
         pendingLetters: (lettersRes.data || []).map(l => ({
           ...l,
           sender: { 
@@ -88,8 +95,8 @@ export default function HomeScreen() {
   }
 
   // Calculate Hero metrics
-  const meetDate = session?.meet_date;
-  const relDate = session?.relationship_start_date;
+  const meetDate = profile?.meetDate;
+  const relDate = profile?.relationshipStartDate;
   
   const daysSinceMeeting = meetDate ? daysSince(dayjs(meetDate)) : 0;
   const daysSinceTogether = relDate ? daysSince(dayjs(relDate)) : 0;
@@ -101,8 +108,9 @@ export default function HomeScreen() {
 
   return (
     <LinearGradient colors={["#080811", "#0A0A0C", "#080811"]} style={{ flex: 1 }}>
+      <PageHeader title="" showBack={false} />
       <ScrollView 
-        contentContainerStyle={{ padding: 20, paddingTop: 60, paddingBottom: 120 }}
+        contentContainerStyle={{ padding: 20, paddingTop: 10, paddingBottom: 120 }}
         refreshControl={
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#E8002D" />
         }
@@ -118,9 +126,6 @@ export default function HomeScreen() {
                 Günaydın,{"\n"}{hitap} <Text style={{ fontSize: 20 }}>❤️</Text>
               </Text>
             </View>
-            <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, marginRight: -8, marginTop: -8 }}>
-              <Menu color="#fff" size={24} />
-            </TouchableOpacity>
           </View>
           
           <View style={{ flexDirection: "row", gap: 8 }}>

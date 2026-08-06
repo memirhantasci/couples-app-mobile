@@ -5,14 +5,17 @@ import { useAuth } from "@/context/AuthContext";
 import { todayString } from "@/lib/date";
 import { encrypt } from "@/utils/crypto";
 import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
+import { BookOpen } from "lucide-react-native";
 
 interface DailyNoteCardProps {
   existingNote?: string | null;
 }
 
 export function DailyNoteCard({ existingNote }: DailyNoteCardProps) {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const [content, setContent] = useState(existingNote || "");
   const [saved, setSaved] = useState(!!existingNote);
@@ -21,23 +24,18 @@ export function DailyNoteCard({ existingNote }: DailyNoteCardProps) {
   async function handleSave() {
     if (saved || !content.trim() || !session?.user?.id) return;
     setSubmitting(true);
-    
-    const coupleId = session?.user?.user_metadata?.couple_id || session?.couple_id;
+
+    const coupleId = profile?.coupleId ? parseInt(String(profile.coupleId), 10) : null;
     const today = todayString();
-
     const encryptedContent = encrypt(content.trim());
+    const userId = parseInt(session.user.id, 10);
 
-    const { error } = await supabase
-      .from("daily_notes")
-      .upsert(
-        {
-          couple_id: coupleId,
-          user_id: session.user.id,
-          date: today,
-          content: encryptedContent,
-        },
-        { onConflict: "couple_id,user_id,date" }
-      );
+    const { error } = await supabase.rpc("save_daily_note", {
+      p_user_id:   userId,
+      p_date:      today,
+      p_content:   encryptedContent,
+      p_couple_id: coupleId,
+    });
 
     setSubmitting(false);
 
@@ -45,7 +43,8 @@ export function DailyNoteCard({ existingNote }: DailyNoteCardProps) {
       setSaved(true);
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
     } else {
-      console.error("Note save error:", error);
+      console.error("Note save error:", JSON.stringify(error, null, 2));
+      alert("Not kaydedilemedi: " + (error?.message || "Bilinmeyen hata"));
     }
   }
 
@@ -57,6 +56,15 @@ export function DailyNoteCard({ existingNote }: DailyNoteCardProps) {
         <View style={styles.savedBox}>
           <Text style={styles.savedContent}>{content}</Text>
           <Text style={styles.footerText}>Yarın yeni bir not yazabilirsin 🌙</Text>
+          <TouchableOpacity
+            onPress={() => router.push("/(tabs)/daily-notes" as any)}
+            style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 }}
+          >
+            <BookOpen size={13} color="#E8002D" />
+            <Text style={{ fontSize: 12, color: "#E8002D", fontWeight: "600" }}>
+              Geçmiş Notlarımı Gör
+            </Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <View style={{ gap: 12 }}>

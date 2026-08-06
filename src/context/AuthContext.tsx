@@ -5,7 +5,7 @@ import React, {
   useState,
   useCallback,
 } from "react";
-import { Session } from "@supabase/supabase-js";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -19,13 +19,11 @@ export interface CoupleProfile {
 }
 
 interface AuthContextValue {
-  /** Supabase raw session (null = logged out) */
-  session: Session | null;
-  /** null while the first session check hasn't finished */
+  session: { user: { id: string } } | null;
   isLoading: boolean;
-  /** Couple-level profile info, refreshable after pairing */
   profile: CoupleProfile | null;
   refreshProfile: () => Promise<void>;
+  signIn: (userId: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -36,6 +34,7 @@ const AuthContext = createContext<AuthContextValue>({
   isLoading: true,
   profile: null,
   refreshProfile: async () => {},
+  signIn: async () => {},
   signOut: async () => {},
 });
 
@@ -76,60 +75,65 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
 // ─── Provider ────────────────────────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<{ user: { id: string } } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<CoupleProfile | null>(null);
 
+  useEffect(() => {
+    // Initial session check from AsyncStorage
+    AsyncStorage.getItem("custom_session_userid").then(async (userId) => {
+      if (userId && userId !== "undefined") {
+        setSession({ user: { id: userId } });
+        const p = await fetchProfile(userId);
+        setProfile(p);
+      } else {
+        await AsyncStorage.removeItem("custom_session_userid");
+      }
+      setIsLoading(false);
+    });
+  }, []);
+
   const refreshProfile = useCallback(async () => {
-    const {
-      data: { session: currentSession },
-    } = await supabase.auth.getSession();
-    if (!currentSession?.user) {
+    const userId = await AsyncStorage.getItem("custom_session_userid");
+    if (!userId || userId === "undefined") {
       setProfile(null);
       return;
     }
-    const p = await fetchProfile(currentSession.user.id);
+    const p = await fetchProfile(userId);
+    setProfile(p);
+  }, []);
+
+  const signIn = useCallback(async (userId: string) => {
+    if (!userId || userId === "undefined") return;
+    await AsyncStorage.setItem("custom_session_userid", userId);
+    setSession({ user: { id: userId } });
+    const p = await fetchProfile(userId);
     setProfile(p);
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    await AsyncStorage.removeItem("custom_session_userid");
     setSession(null);
     setProfile(null);
   }, []);
 
   useEffect(() => {
-    // Initial session check
-    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
-      setSession(s);
-      if (s?.user) {
-        const p = await fetchProfile(s.user.id);
+    // Initial session check from AsyncStorage
+    AsyncStorage.getItem("custom_session_userid").then(async (userId) => {
+      if (userId && userId !== "undefined" && userId.trim() !== "") {
+        setSession({ user: { id: userId } });
+        const p = await fetchProfile(userId);
         setProfile(p);
+      } else if (userId === "undefined") {
+        await AsyncStorage.removeItem("custom_session_userid");
       }
       setIsLoading(false);
     });
-
-    // Listen for auth changes (login, logout, token refresh)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, s) => {
-      setSession(s);
-      if (s?.user) {
-        const p = await fetchProfile(s.user.id);
-        setProfile(p);
-      } else {
-        setProfile(null);
-      }
-      // Ensure loading is cleared after first auth event
-      setIsLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
   }, []);
 
   return (
     <AuthContext.Provider
-      value={{ session, isLoading, profile, refreshProfile, signOut }}
+      value={{ session, isLoading, profile, refreshProfile, signIn, signOut }}
     >
       {children}
     </AuthContext.Provider>

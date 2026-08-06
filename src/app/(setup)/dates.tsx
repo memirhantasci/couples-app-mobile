@@ -82,7 +82,7 @@ export default function DatesScreen() {
     const { data: user, error: userError } = await supabase
       .from("users")
       .select("couple_id")
-      .eq("auth_id", userId)
+      .eq("id", parseInt(userId, 10))
       .single();
 
     if (userError || !user?.couple_id) {

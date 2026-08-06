@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router";
 import { BlurView } from "expo-blur";
 import { StyleSheet, View } from "react-native";
-import { Home, CalendarHeart, Pill, Heart, Image as ImageIcon } from "lucide-react-native";
+import { Home, CalendarHeart, Pill, Heart, Settings } from "lucide-react-native";
 
 export default function TabsLayout() {
   return (
@@ -39,6 +39,13 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="medicine"
+        options={{
+          title: "İlaçlar",
+          tabBarIcon: ({ color, size }) => <Pill color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
         name="calendar"
         options={{
           title: "Takvim",
@@ -46,19 +53,26 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="medicine"
+        name="letters"
         options={{
-          title: "Özel Alan",
-          tabBarIcon: ({ color, size }) => <Pill color={color} size={size} />,
+          title: "Mektuplar",
+          tabBarIcon: ({ color, size }) => <Heart color={color} size={size} />,
         }}
       />
       <Tabs.Screen
-        name="photos"
+        name="profile"
         options={{
-          title: "Medya",
-          tabBarIcon: ({ color, size }) => <ImageIcon color={color} size={size} />,
+          title: "Ayarlar",
+          tabBarIcon: ({ color, size }) => <Settings color={color} size={size} />,
         }}
       />
+      <Tabs.Screen name="meetings" options={{ href: null }} />
+      <Tabs.Screen name="memories" options={{ href: null }} />
+      <Tabs.Screen name="add-memory" options={{ href: null }} />
+      <Tabs.Screen name="daily-notes" options={{ href: null }} />
+      <Tabs.Screen name="period-tracker" options={{ href: null }} />
+      <Tabs.Screen name="photos" options={{ href: null }} />
+      <Tabs.Screen name="add-photo" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -2,10 +2,24 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { X, Heart, Settings, FileClock } from "lucide-react-native";
+import { X, Heart, Settings, FileClock, Home, Pill, CalendarHeart, Mail, Activity, Image as ImageIcon, UploadCloud, LogOut, BookOpen } from "lucide-react-native";
+import { useAuth } from "@/context/AuthContext";
 
 export default function MenuScreen() {
   const router = useRouter();
+  const { signOut } = useAuth();
+
+  const handleRoute = (path: string) => {
+    router.back();
+    setTimeout(() => {
+      router.push(path as any);
+    }, 100);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.replace("/(auth)/login" as any);
+  };
 
   return (
     <LinearGradient colors={["#1c1c1e", "#0A0A0C"]} style={{ flex: 1 }}>
@@ -19,25 +33,59 @@ export default function MenuScreen() {
         </View>
 
         <ScrollView contentContainerStyle={styles.content}>
-          <TouchableOpacity style={styles.menuItem} onPress={() => { router.back(); router.push("/memories"); }}>
-            <View style={[styles.iconBox, { backgroundColor: "rgba(255,45,85,0.12)" }]}>
-              <Heart color="#FF2D55" size={20} />
-            </View>
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleRoute("/(tabs)/home")}>
+            <Home color="#fff" size={20} />
+            <Text style={styles.menuText}>Ana Sayfa</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleRoute("/(tabs)/medicine")}>
+            <Pill color="#fff" size={20} />
+            <Text style={styles.menuText}>İlaçlar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleRoute("/(tabs)/memories")}>
+            <Heart color="#fff" size={20} />
             <Text style={styles.menuText}>Özel Günler</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem} onPress={() => { router.back(); /* TODO: route to daily notes history */ }}>
-            <View style={[styles.iconBox, { backgroundColor: "rgba(232,0,45,0.12)" }]}>
-              <FileClock color="#E8002D" size={20} />
-            </View>
-            <Text style={styles.menuText}>Geçmiş Günlük Notlar</Text>
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleRoute("/(tabs)/calendar")}>
+            <CalendarHeart color="#fff" size={20} />
+            <Text style={styles.menuText}>Takvim</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem} onPress={() => { router.back(); /* TODO: route to settings */ }}>
-            <View style={[styles.iconBox, { backgroundColor: "rgba(255,255,255,0.1)" }]}>
-              <Settings color="#fff" size={20} />
-            </View>
-            <Text style={styles.menuText}>Ayarlar</Text>
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleRoute("/(tabs)/daily-notes")}>
+            <BookOpen color="#fff" size={20} />
+            <Text style={styles.menuText}>Günlüğüm</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleRoute("/(tabs)/letters")}>
+            <Mail color="#fff" size={20} />
+            <Text style={styles.menuText}>Mektuplar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleRoute("/(tabs)/period-tracker")}>
+            <Activity color="#fff" size={20} />
+            <Text style={styles.menuText}>Regl Takvimi</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleRoute("/(tabs)/meetings")}>
+            <CalendarHeart color="#fff" size={20} />
+            <Text style={styles.menuText}>Buluşmalar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleRoute("/(tabs)/photos")}>
+            <ImageIcon color="#fff" size={20} />
+            <Text style={styles.menuText}>Fotoğraflar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleRoute("/(tabs)/add-photo")}>
+            <UploadCloud color="#fff" size={20} />
+            <Text style={styles.menuText}>Fotoğraf Yükle</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} onPress={handleSignOut}>
+            <LogOut color="#E8002D" size={20} />
+            <Text style={[styles.menuText, { color: "#E8002D" }]}>Çıkış Yap</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

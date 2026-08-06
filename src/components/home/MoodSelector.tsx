@@ -20,7 +20,7 @@ interface MoodSelectorProps {
 }
 
 export function MoodSelector({ currentMood, moodLocked = false }: MoodSelectorProps) {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const queryClient = useQueryClient();
   
   const [selected, setSelected] = useState<string | null>(currentMood || null);
@@ -31,20 +31,40 @@ export function MoodSelector({ currentMood, moodLocked = false }: MoodSelectorPr
     if (locked || loading || !session?.user?.id) return;
     setLoading(true);
     
-    const coupleId = session?.user?.user_metadata?.couple_id || session?.couple_id;
+    const coupleId = profile?.coupleId || null;
     const today = todayString();
 
-    const { error } = await supabase
+    const userId = parseInt(session.user.id, 10);
+    const { data: existing } = await supabase
       .from("moods")
-      .upsert(
-        {
-          couple_id: coupleId,
-          user_id: session.user.id,
-          date: today,
-          mood_type: emoji,
-        },
-        { onConflict: "couple_id,user_id,date" }
-      );
+      .select("id")
+      .eq("user_id", userId)
+      .eq("date", today)
+      .maybeSingle();
+
+    let error;
+    if (existing) {
+      const payload: any = { mood_type: emoji };
+      if (coupleId) payload.couple_id = coupleId;
+
+      const res = await supabase
+        .from("moods")
+        .update(payload)
+        .eq("id", existing.id);
+      error = res.error;
+    } else {
+      const payload: any = {
+        user_id: userId,
+        date: today,
+        mood_type: emoji,
+      };
+      if (coupleId) payload.couple_id = coupleId;
+
+      const res = await supabase
+        .from("moods")
+        .insert(payload);
+      error = res.error;
+    }
 
     setLoading(false);
     
@@ -54,8 +74,8 @@ export function MoodSelector({ currentMood, moodLocked = false }: MoodSelectorPr
       // Invalidate query to refresh dashboard data seamlessly
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
     } else {
-      // toast or alert
-      console.error("Mood error:", error);
+      console.error("Mood error:", JSON.stringify(error, null, 2));
+      alert("Ruh hali kaydedilemedi: " + (error?.message || "Bilinmeyen hata"));
     }
   }
 

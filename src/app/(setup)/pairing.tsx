@@ -31,7 +31,7 @@ async function fetchPairingStatus(userId: string): Promise<PairingStatus> {
   const { data: user, error: userError } = await supabase
     .from("users")
     .select("couple_id")
-    .eq("auth_id", userId)
+    .eq("id", parseInt(userId, 10))
     .single();
 
   if (userError || !user?.couple_id) {
@@ -129,7 +129,7 @@ export default function PairingScreen() {
 
     const { data, error } = await supabase.rpc("join_couple_by_code_uuid", {
       p_code: code,
-      p_user_id: userId,
+      p_user_id: parseInt(userId, 10),
     });
 
     if (error) {

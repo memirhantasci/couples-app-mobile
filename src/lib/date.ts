@@ -72,7 +72,7 @@ export function getTodayHitap(): string {
 }
 
 export function getCountdown(targetDate: string | Date) {
-  const target = dayjs.tz(targetDate, "Europe/Istanbul");
+  const target = dayjs(targetDate).tz("Europe/Istanbul");
   const now = dayjs().tz("Europe/Istanbul");
   const diff = target.diff(now, "second");
 

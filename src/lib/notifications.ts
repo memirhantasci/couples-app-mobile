@@ -78,7 +78,7 @@ export async function registerForPushNotifications(
     }
   } catch (err) {
     // Never crash the app — just log
-    console.error("[Push] Registration failed silently:", err);
+    console.log("[Push] Registration failed silently:", err);
   }
 }
 

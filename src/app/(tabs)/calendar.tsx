@@ -7,7 +7,8 @@ import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
 import { decrypt, deterministicDecrypt, encrypt } from "@/utils/crypto";
-import { X, Calendar as CalendarIcon, Save, Trash2, MapPin } from "lucide-react-native";
+import { ChevronRight, Heart, FileText, Frown, Smile, Meh, AlertCircle, Sparkles, Droplet, Pill, Menu, ChevronLeft, X, Calendar as CalendarIcon, Save, Trash2, MapPin } from "lucide-react-native";
+import { useRouter } from "expo-router";
 
 LocaleConfig.locales['tr'] = {
   monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
@@ -19,8 +20,9 @@ LocaleConfig.locales['tr'] = {
 LocaleConfig.defaultLocale = 'tr';
 
 export default function CalendarScreen() {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const queryClient = useQueryClient();
+  const router = useRouter();
   const today = todayString();
 
   const [selectedDate, setSelectedDate] = useState<string>(today);
@@ -28,14 +30,13 @@ export default function CalendarScreen() {
   const [noteText, setNoteText] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const coupleId = session?.user?.user_metadata?.couple_id || session?.couple_id;
-  const userId = session?.user?.id;
-  const username = session?.user?.user_metadata?.username; // We might need this for me/partner logic
+  const coupleId = profile?.coupleId || null;
+  const userId = session?.user?.id ? parseInt(session.user.id, 10) : null;
 
   // Fetch Data
   const { data, isLoading } = useQuery({
     queryKey: ["calendar_data", coupleId],
-    enabled: !!coupleId,
+    enabled: !!coupleId || !!userId,
     queryFn: async () => {
       const threeMonthsAgo = dayjs().subtract(1, "month").startOf("month").format("YYYY-MM-DD");
       const twoMonthsLater = dayjs().add(2, "month").endOf("month").format("YYYY-MM-DD");
@@ -143,27 +144,28 @@ export default function CalendarScreen() {
   }
 
   async function handleSaveNote() {
-    if (!noteText.trim() || !userId || !coupleId) return;
+    if (!noteText.trim() || !userId) return;
     setSaving(true);
-    
-    // In web we use FormData and server actions, here we use direct Supabase call for parity
-    // Wait, in web it's plain text, not encrypted for calendar notes?
-    // Looking at CalendarView.tsx web code, it passes plain noteText. It's not encrypted in DB there, wait, let me check.
-    // Yes, calendar_notes in web is NOT encrypted, only daily_notes is.
-    // I will store it as plain text to match web.
 
-    const { error } = await supabase
-      .from("calendar_notes")
-      .upsert(
-        {
-          id: todayNote?.id, // if undefined, it inserts
-          couple_id: coupleId,
-          user_id: userId,
-          date: today,
-          note: noteText.trim(),
-        },
-        { onConflict: "id" }
-      );
+    let error;
+    if (todayNote?.id) {
+      const res = await supabase
+        .from("calendar_notes")
+        .update({ note: noteText.trim() })
+        .eq("id", todayNote.id);
+      error = res.error;
+    } else {
+      const payload: any = {
+        user_id: userId,
+        date: today,
+        note: noteText.trim(),
+      };
+      if (coupleId) payload.couple_id = coupleId;
+      const res = await supabase
+        .from("calendar_notes")
+        .insert(payload);
+      error = res.error;
+    }
 
     setSaving(false);
     if (!error) {
@@ -274,9 +276,19 @@ export default function CalendarScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 60, paddingBottom: 120 }}>
         
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Takvim</Text>
-          <Text style={styles.subtitle}>Notlar, ruh halleri ve anılar</Text>
+        <View style={[styles.header, { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }]}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <TouchableOpacity onPress={() => router.back()} style={{ padding: 8, marginLeft: -8, marginRight: 8 }}>
+              <ChevronLeft color="#fff" size={28} />
+            </TouchableOpacity>
+            <View>
+              <Text style={styles.title}>Takvim</Text>
+              <Text style={styles.subtitle}>Notlar, ruh halleri ve anılar</Text>
+            </View>
+          </View>
+          <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, marginRight: -8, marginTop: -8 }}>
+            <Menu color="#fff" size={24} />
+          </TouchableOpacity>
         </View>
 
         {/* Calendar View */}

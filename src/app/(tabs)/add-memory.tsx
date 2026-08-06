@@ -7,14 +7,14 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useQueryClient } from "@tanstack/react-query";
 import { decode } from "base64-arraybuffer";
-import { X, ImagePlus, Save } from "lucide-react-native";
+import { Image as ImageIcon, X, Save, Menu, ImagePlus } from "lucide-react-native";
 import { dayjs, todayString } from "@/lib/date";
 
 export default function AddMemoryScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const queryClient = useQueryClient();
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
 
   const isEditing = !!params.id;
 
@@ -25,11 +25,11 @@ export default function AddMemoryScreen() {
   const [localImage, setLocalImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const coupleId = session?.user?.user_metadata?.couple_id || session?.couple_id;
+  const coupleId = profile?.coupleId || null;
 
   async function pickImage() {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 0.8,
       base64: true, // We need base64 to upload easily to Supabase from React Native
@@ -72,16 +72,30 @@ export default function AddMemoryScreen() {
         finalImageUrl = publicUrlData.publicUrl;
       }
 
-      // Upsert to database
-      const { error } = await supabase.from("memories").upsert({
-        id: isEditing ? Number(params.id) : undefined,
-        couple_id: coupleId,
-        date: date,
-        title: title.trim(),
-        description: description.trim() || null,
-        image_url: finalImageUrl || null,
-        is_default: false,
-      });
+      // Save to database
+      let error;
+      if (isEditing) {
+        const res = await supabase.from("memories")
+          .update({
+            date: date,
+            title: title.trim(),
+            description: description.trim() || null,
+            image_url: finalImageUrl || null,
+          })
+          .eq("id", Number(params.id));
+        error = res.error;
+      } else {
+        const payload: any = {
+          date: date,
+          title: title.trim(),
+          description: description.trim() || null,
+          image_url: finalImageUrl || null,
+          is_default: false,
+        };
+        if (coupleId) payload.couple_id = coupleId;
+        const res = await supabase.from("memories").insert(payload);
+        error = res.error;
+      }
 
       if (error) throw error;
 
@@ -103,7 +117,9 @@ export default function AddMemoryScreen() {
             <X color="#fff" size={24} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{isEditing ? "Anıyı Düzenle" : "Yeni Anı Ekle"}</Text>
-          <View style={{ width: 24 }} />
+          <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, marginRight: -8 }}>
+            <Menu color="#fff" size={24} />
+          </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={styles.content}>
