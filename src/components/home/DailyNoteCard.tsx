@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { todayString } from "@/lib/date";
@@ -9,6 +16,11 @@ import { logger } from "@/utils/logger";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { BookOpen } from "lucide-react-native";
+
+// ─── Tema Sabitleri ─────────────────────────────────────────────────────────
+const PINK = "#ff4d6d";
+const CARD_BG = "#231218";
+const BORDER = "rgba(255,255,255,0.07)";
 
 interface DailyNoteCardProps {
   existingNote?: string | null;
@@ -35,9 +47,9 @@ export function DailyNoteCard({ existingNote }: DailyNoteCardProps) {
     const userId = parseInt(session.user.id, 10);
 
     const { error } = await supabase.rpc("save_daily_note", {
-      p_user_id:   userId,
-      p_date:      today,
-      p_content:   encryptedContent,
+      p_user_id: userId,
+      p_date: today,
+      p_content: encryptedContent,
       p_couple_id: coupleId,
     });
 
@@ -62,12 +74,10 @@ export function DailyNoteCard({ existingNote }: DailyNoteCardProps) {
           <Text style={styles.footerText}>Yarın yeni bir not yazabilirsin 🌙</Text>
           <TouchableOpacity
             onPress={() => router.push("/(tabs)/daily-notes" as any)}
-            style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 }}
+            style={styles.historyBtn}
           >
-            <BookOpen size={13} color="#E8002D" />
-            <Text style={{ fontSize: 12, color: "#E8002D", fontWeight: "600" }}>
-              Geçmiş Notlarımı Gör
-            </Text>
+            <BookOpen size={12} color={PINK} />
+            <Text style={styles.historyBtnText}>Geçmiş Notlarımı Gör</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -76,14 +86,14 @@ export function DailyNoteCard({ existingNote }: DailyNoteCardProps) {
             value={content}
             onChangeText={setContent}
             placeholder="Bugün nasıldı? Ne hissediyorsun?..."
-            placeholderTextColor="rgba(255,255,255,0.4)"
+            placeholderTextColor="rgba(255,255,255,0.25)"
             multiline
             numberOfLines={4}
             maxLength={2000}
             style={styles.input}
           />
           <TouchableOpacity
-            style={[styles.saveBtn, (submitting || !content.trim()) && { opacity: 0.7 }]}
+            style={[styles.saveBtn, (submitting || !content.trim()) && { opacity: 0.6 }]}
             onPress={handleSave}
             disabled={submitting || !content.trim()}
           >
@@ -101,15 +111,15 @@ export function DailyNoteCard({ existingNote }: DailyNoteCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#181a20",
+    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: BORDER,
     borderRadius: 20,
-    padding: 20,
-    marginBottom: 12,
+    padding: 18,
+    marginBottom: 14,
   },
   title: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "700",
     color: "#fff",
     marginBottom: 14,
@@ -117,8 +127,8 @@ const styles = StyleSheet.create({
   savedBox: {
     backgroundColor: "rgba(255,255,255,0.03)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-    borderRadius: 12,
+    borderColor: BORDER,
+    borderRadius: 14,
     padding: 14,
   },
   savedContent: {
@@ -129,14 +139,25 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 11,
     color: "rgba(255,255,255,0.3)",
-    marginTop: 12,
+    marginTop: 10,
+  },
+  historyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 10,
+  },
+  historyBtnText: {
+    fontSize: 12,
+    color: PINK,
+    fontWeight: "600",
   },
   input: {
     width: "100%",
     backgroundColor: "rgba(255,255,255,0.03)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-    borderRadius: 12,
+    borderColor: BORDER,
+    borderRadius: 14,
     color: "rgba(255,255,255,0.85)",
     fontSize: 14,
     lineHeight: 22,
@@ -148,13 +169,14 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#D84257",
-    borderRadius: 12,
-    padding: 13,
+    backgroundColor: PINK,
+    borderRadius: 50, // pill shape
+    paddingVertical: 15,
   },
   saveBtnText: {
     fontWeight: "700",
-    fontSize: 14,
+    fontSize: 15,
     color: "#fff",
+    letterSpacing: 0.3,
   },
 });

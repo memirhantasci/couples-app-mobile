@@ -4,6 +4,12 @@ import { getCountdown, dayjs } from "@/lib/date";
 import { MapPin, X, Navigation } from "lucide-react-native";
 import Animated, { FadeInUp } from "react-native-reanimated";
 
+// ─── Tema Sabitleri ─────────────────────────────────────────────────────────
+const PINK = "#ff4d6d";
+const CARD_BG = "#231218";
+const UNIT_BG = "#1e0e14";
+const BORDER = "rgba(255,255,255,0.07)";
+
 interface Meeting {
   id: number;
   title: string;
@@ -20,7 +26,7 @@ interface CountdownProps {
 export function MeetingCountdown({ meeting }: CountdownProps) {
   const targetDate = meeting.meeting_datetime;
   const title = meeting.title || "Buluşma";
-  
+
   const [countdown, setCountdown] = useState(getCountdown(targetDate));
   const [showModal, setShowModal] = useState(false);
 
@@ -38,10 +44,12 @@ export function MeetingCountdown({ meeting }: CountdownProps) {
     }
   };
 
+  const formattedDate = dayjs(targetDate).tz("Europe/Istanbul").format("D MMMM");
+
   if (countdown.isPast) {
     return (
-      <TouchableOpacity 
-        style={[styles.card, { alignItems: "center" }]} 
+      <TouchableOpacity
+        style={[styles.card, { alignItems: "center" }]}
         activeOpacity={0.8}
         onPress={() => setShowModal(true)}
       >
@@ -50,41 +58,44 @@ export function MeetingCountdown({ meeting }: CountdownProps) {
         <Text style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginTop: 4 }}>
           Buluşma gerçekleşti!
         </Text>
-        <MeetingModal 
-          visible={showModal} 
-          onClose={() => setShowModal(false)} 
-          meeting={meeting} 
-          openDirections={openDirections} 
+        <MeetingModal
+          visible={showModal}
+          onClose={() => setShowModal(false)}
+          meeting={meeting}
+          openDirections={openDirections}
         />
       </TouchableOpacity>
     );
   }
 
   const units = [
-    { label: "Gün", value: countdown.days },
-    { label: "Saat", value: countdown.hours },
-    { label: "Dakika", value: countdown.minutes },
-    { label: "Saniye", value: countdown.seconds },
+    { label: "GÜN", value: countdown.days },
+    { label: "SAAT", value: countdown.hours },
+    { label: "DAKİKA", value: countdown.minutes },
+    { label: "SANİYE", value: countdown.seconds },
   ];
 
-  const formattedDate = dayjs(targetDate).tz("Europe/Istanbul").format("D MMMM dddd, HH:mm");
-
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.card}
-      activeOpacity={0.8}
+      activeOpacity={0.9}
       onPress={() => setShowModal(true)}
     >
+      {/* Başlık Satırı */}
       <View style={styles.titleRow}>
-        <View style={styles.iconBox}>
-          <MapPin size={15} color="#D84257" />
+        <View style={styles.iconCircle}>
+          <MapPin size={13} color={PINK} />
         </View>
-        <View>
-          <Text style={styles.titleText}>{title}</Text>
-          <Text style={styles.dateText}>{formattedDate}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.sectionLabel}>Sıradaki Buluşma</Text>
+          {meeting.location_name && (
+            <Text style={styles.locationText}>{meeting.location_name}</Text>
+          )}
         </View>
+        <Text style={styles.dateChip}>{formattedDate}</Text>
       </View>
 
+      {/* Geri Sayım Kutuları */}
       <View style={styles.grid}>
         {units.map((unit, i) => (
           <View key={unit.label} style={styles.unitBox}>
@@ -99,20 +110,32 @@ export function MeetingCountdown({ meeting }: CountdownProps) {
           </View>
         ))}
       </View>
-      
-      <MeetingModal 
-        visible={showModal} 
-        onClose={() => setShowModal(false)} 
-        meeting={meeting} 
-        openDirections={openDirections} 
+
+      <MeetingModal
+        visible={showModal}
+        onClose={() => setShowModal(false)}
+        meeting={meeting}
+        openDirections={openDirections}
       />
     </TouchableOpacity>
   );
 }
 
-function MeetingModal({ visible, onClose, meeting, openDirections }: { visible: boolean; onClose: () => void; meeting: Meeting; openDirections: () => void }) {
-  const formattedDate = dayjs(meeting.meeting_datetime).locale("tr").format("DD MMMM YYYY, dddd - HH:mm");
-  
+function MeetingModal({
+  visible,
+  onClose,
+  meeting,
+  openDirections,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  meeting: Meeting;
+  openDirections: () => void;
+}) {
+  const formattedDate = dayjs(meeting.meeting_datetime)
+    .locale("tr")
+    .format("DD MMMM YYYY, dddd - HH:mm");
+
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.modalOverlay}>
@@ -123,33 +146,32 @@ function MeetingModal({ visible, onClose, meeting, openDirections }: { visible: 
               <X color="rgba(255,255,255,0.5)" size={24} />
             </TouchableOpacity>
           </View>
-          
+
           <View style={{ gap: 16 }}>
             <View>
               <Text style={styles.detailLabel}>Başlık</Text>
               <Text style={styles.detailValue}>{meeting.title || "Buluşma"}</Text>
             </View>
-            
+
             <View>
               <Text style={styles.detailLabel}>Tarih & Saat</Text>
               <Text style={styles.detailValue}>{formattedDate}</Text>
             </View>
-            
+
             {meeting.location_name && (
               <View>
                 <Text style={styles.detailLabel}>Konum</Text>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
-                  <MapPin color="#ffd700" size={16} />
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}
+                >
+                  <MapPin color={PINK} size={16} />
                   <Text style={styles.detailValue}>{meeting.location_name}</Text>
                 </View>
               </View>
             )}
-            
+
             {meeting.latitude && meeting.longitude && (
-              <TouchableOpacity
-                style={styles.directionsBtn}
-                onPress={openDirections}
-              >
+              <TouchableOpacity style={styles.directionsBtn} onPress={openDirections}>
                 <Navigation color="#fff" size={18} />
                 <Text style={styles.directionsBtnText}>Yol Tarifi Al</Text>
               </TouchableOpacity>
@@ -163,36 +185,41 @@ function MeetingModal({ visible, onClose, meeting, openDirections }: { visible: 
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#181a20",
+    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: BORDER,
     borderRadius: 20,
-    padding: 20,
-    marginBottom: 12,
+    padding: 18,
+    marginBottom: 14,
   },
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginBottom: 14,
+    marginBottom: 16,
   },
-  iconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+  iconCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(216,66,87,0.12)",
+    backgroundColor: "rgba(255,77,109,0.12)",
   },
-  titleText: {
-    fontSize: 14,
+  sectionLabel: {
+    fontSize: 13,
     fontWeight: "600",
     color: "#fff",
   },
-  dateText: {
+  locationText: {
     fontSize: 11,
-    color: "rgba(255,255,255,0.45)",
-    marginTop: 2,
+    color: "rgba(255,255,255,0.4)",
+    marginTop: 1,
+  },
+  dateChip: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.5)",
+    fontWeight: "500",
   },
   grid: {
     flexDirection: "row",
@@ -202,25 +229,26 @@ const styles = StyleSheet.create({
   unitBox: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: UNIT_BG,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: BORDER,
   },
   unitValue: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "700",
-    color: "#D84257",
+    color: "#fff",
     fontVariant: ["tabular-nums"],
+    lineHeight: 26,
   },
   unitLabel: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: "600",
     textTransform: "uppercase",
     letterSpacing: 0.5,
-    color: "rgba(255,255,255,0.4)",
-    marginTop: 4,
+    color: "rgba(255,255,255,0.35)",
+    marginTop: 5,
   },
   modalOverlay: {
     flex: 1,
@@ -229,11 +257,11 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
-    backgroundColor: "#1c1c1e",
+    backgroundColor: "#231218",
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: BORDER,
   },
   modalHeader: {
     flexDirection: "row",
@@ -247,14 +275,17 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   detailLabel: {
-    color: "rgba(255,255,255,0.5)",
-    fontSize: 13,
+    color: "rgba(255,255,255,0.45)",
+    fontSize: 12,
     marginBottom: 4,
     fontWeight: "500",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   detailValue: {
     color: "#fff",
     fontSize: 15,
+    fontWeight: "500",
   },
   directionsBtn: {
     flexDirection: "row",
@@ -263,12 +294,12 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: "#22c55e",
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 14,
     marginTop: 12,
   },
   directionsBtnText: {
     color: "#fff",
     fontSize: 15,
     fontWeight: "700",
-  }
+  },
 });

@@ -1,93 +1,108 @@
 import React, { useEffect } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, withDelay } from "react-native-reanimated";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  Easing,
+  withDelay,
+} from "react-native-reanimated";
+
+const PINK = "#ff4d6d";
+const CARD_BG = "#231218";
+const BORDER = "rgba(255,255,255,0.07)";
 
 interface LoveMeterProps {
-  value: number; // 80-100
+  value: number; // 0-100
 }
 
 export function LoveMeter({ value }: LoveMeterProps) {
   const widthVal = useSharedValue(0);
-  const opacityVal = useSharedValue(0);
 
   useEffect(() => {
-    widthVal.value = withDelay(300, withTiming(value, { duration: 1500, easing: Easing.out(Easing.ease) }));
-    opacityVal.value = withDelay(1200, withTiming(1, { duration: 500 }));
+    widthVal.value = withDelay(
+      300,
+      withTiming(value, { duration: 1400, easing: Easing.out(Easing.cubic) })
+    );
   }, [value]);
 
   const animatedWidthStyle = useAnimatedStyle(() => ({
-    width: `${widthVal.value}%`,
-  }));
-
-  const animatedTextStyle = useAnimatedStyle(() => ({
-    opacity: opacityVal.value,
+    width: `${widthVal.value}%` as any,
   }));
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>Aşk Ölçer</Text>
+      {/* Başlık + yüzde */}
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Aşk Ölçer</Text>
+        <Text style={styles.percentLabel}>{value}%</Text>
+      </View>
 
-      <View style={styles.barContainer}>
-        <Animated.View style={[styles.barFillContainer, animatedWidthStyle]}>
+      {/* Progress Bar */}
+      <View style={styles.track}>
+        <Animated.View style={[styles.fillWrapper, animatedWidthStyle]}>
           <LinearGradient
-            colors={["#E8002D", "#D8A030"]}
+            colors={[PINK, "#ff8fa3"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={styles.gradientFill}
-          >
-            <Animated.Text style={[styles.percentageText, animatedTextStyle]}>
-              {value}%
-            </Animated.Text>
-          </LinearGradient>
+            style={styles.fill}
+          />
         </Animated.View>
       </View>
 
-      <Text style={styles.subtitle}>Bugün için ölçüldü 🤝</Text>
+      {/* Alt açıklama */}
+      <Text style={styles.subtitle}>
+        Bugün için ölçüldü 💝 · Harika bir uyum!
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#181a20",
+    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: BORDER,
     borderRadius: 20,
-    padding: 20,
+    padding: 18,
+    marginBottom: 14,
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
   title: {
     fontSize: 15,
     fontWeight: "700",
     color: "#fff",
-    marginBottom: 14,
   },
-  barContainer: {
-    height: 32,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.05)",
+  percentLabel: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: PINK,
+  },
+  track: {
+    height: 10,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.06)",
     overflow: "hidden",
+    marginBottom: 10,
   },
-  barFillContainer: {
+  fillWrapper: {
     height: "100%",
-    borderRadius: 20,
+    borderRadius: 10,
     overflow: "hidden",
   },
-  gradientFill: {
+  fill: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "flex-end",
-    paddingRight: 14,
-  },
-  percentageText: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: "rgba(255,255,255,0.9)",
+    borderRadius: 10,
   },
   subtitle: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.45)",
-    marginTop: 10,
+    fontSize: 11,
+    color: "rgba(255,255,255,0.35)",
+    fontWeight: "400",
   },
 });

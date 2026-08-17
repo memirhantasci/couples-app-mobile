@@ -1,15 +1,30 @@
-import React , { useCallback } from "react";
-import { View, Text, ScrollView, ActivityIndicator, StyleSheet, RefreshControl, TouchableOpacity } from "react-native";
+import React, { useCallback } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  RefreshControl,
+  TouchableOpacity,
+} from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
-import { dayjs, daysSince, getLoveMeter, dayOfYear, todayString, getTodayHitap } from "@/lib/date";
+import {
+  dayjs,
+  daysSince,
+  getLoveMeter,
+  dayOfYear,
+  todayString,
+  getTodayHitap,
+} from "@/lib/date";
 import { getQuoteForDay } from "@/lib/quotes";
 import { decrypt, deterministicDecrypt } from "@/utils/crypto";
 import { useRouter } from "expo-router";
-import { PageHeader } from "@/components/ui/PageHeader";
+import { AlignJustify, Star } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LoveMeter } from "@/components/home/LoveMeter";
 import { MoodSelector } from "@/components/home/MoodSelector";
@@ -17,18 +32,22 @@ import { DailyNoteCard } from "@/components/home/DailyNoteCard";
 import { MeetingCountdown } from "@/components/home/MeetingCountdown";
 import { PendingLettersCard } from "@/components/home/PendingLettersCard";
 
+// ─── Tema Sabitleri ─────────────────────────────────────────────────────────
+const PINK = "#ff4d6d";
+const CARD_BG = "#231218";
+const BORDER = "rgba(255,255,255,0.07)";
+
 export default function HomeScreen() {
   const { session, profile } = useAuth();
   const router = useRouter();
-  
-  // Queries
+  const insets = useSafeAreaInsets();
+
   const today = todayString();
   const doy = dayOfYear();
-  
+
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? parseInt(session.user.id, 10) : null;
 
-  // React Query for Dashboard Data
   const { data: dashboardData, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["home_dashboard", coupleId, userId, today],
     enabled: !!userId,
@@ -46,28 +65,37 @@ export default function HomeScreen() {
           .eq("user_id", userId)
           .eq("date", today)
           .maybeSingle(),
-        coupleId ? supabase
-          .from("meetings")
-          .select("id, meeting_datetime, title")
-          .eq("couple_id", coupleId)
-          .eq("is_active", true)
-          .gte("meeting_datetime", dayjs().subtract(3, "hour").toISOString())
-          .order("meeting_datetime", { ascending: true })
-          .limit(5) : Promise.resolve({ data: [] }),
-        coupleId ? supabase
-          .from("letters")
-          .select("id, unlock_date, sender:users!letters_sender_id_fkey(username, display_name)")
-          .eq("couple_id", coupleId)
-          .eq("receiver_id", userId)
-          .gt("unlock_date", today)
-          .order("unlock_date", { ascending: true }) : Promise.resolve({ data: [] })
+        coupleId
+          ? supabase
+              .from("meetings")
+              .select("id, meeting_datetime, title")
+              .eq("couple_id", coupleId)
+              .eq("is_active", true)
+              .gte("meeting_datetime", dayjs().subtract(3, "hour").toISOString())
+              .order("meeting_datetime", { ascending: true })
+              .limit(5)
+          : Promise.resolve({ data: [] }),
+        coupleId
+          ? supabase
+              .from("letters")
+              .select(
+                "id, unlock_date, sender:users!letters_sender_id_fkey(username, display_name)"
+              )
+              .eq("couple_id", coupleId)
+              .eq("receiver_id", userId)
+              .gt("unlock_date", today)
+              .order("unlock_date", { ascending: true })
+          : Promise.resolve({ data: [] }),
       ]);
 
       let activeMeeting = null;
       if (meetingRes.data && Array.isArray(meetingRes.data)) {
         const now = dayjs();
-        const futureMeeting = meetingRes.data.find(m => dayjs(m.meeting_datetime).isAfter(now));
-        activeMeeting = futureMeeting || meetingRes.data[meetingRes.data.length - 1] || null;
+        const futureMeeting = meetingRes.data.find((m) =>
+          dayjs(m.meeting_datetime).isAfter(now)
+        );
+        activeMeeting =
+          futureMeeting || meetingRes.data[meetingRes.data.length - 1] || null;
       } else if (meetingRes.data) {
         activeMeeting = meetingRes.data;
       }
@@ -76,182 +104,210 @@ export default function HomeScreen() {
         currentMood: moodRes.data?.mood_type || null,
         currentNote: noteRes.data?.content ? decrypt(noteRes.data.content) : null,
         activeMeeting,
-        pendingLetters: (lettersRes.data || []).map(l => {
+        pendingLetters: (lettersRes.data || []).map((l) => {
           const senderObj = Array.isArray(l.sender) ? l.sender[0] : l.sender;
           return {
             ...l,
-            sender: senderObj ? { 
-              ...senderObj, 
-              username: senderObj.username ? deterministicDecrypt(senderObj.username) || senderObj.username : ""
-            } : undefined
+            sender: senderObj
+              ? {
+                  ...senderObj,
+                  username: senderObj.username
+                    ? deterministicDecrypt(senderObj.username) || senderObj.username
+                    : "",
+                }
+              : undefined,
           };
-        })
+        }),
       };
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
   });
 
   if (!session || (!dashboardData && isLoading)) {
     return (
-      <ScreenBackground style={{ padding: 20, paddingTop: 40 }}>
-        <Skeleton height={150} borderRadius={24} style={{ marginBottom: 20 }} />
-        <Skeleton height={100} borderRadius={20} style={{ marginBottom: 20 }} />
-        <Skeleton height={120} borderRadius={24} style={{ marginBottom: 20 }} />
-        <Skeleton height={120} borderRadius={24} style={{ marginBottom: 20 }} />
+      <ScreenBackground style={{ paddingTop: insets.top + 20, paddingHorizontal: 20 }}>
+        <Skeleton height={80} borderRadius={16} style={{ marginBottom: 16 }} />
+        <Skeleton height={100} borderRadius={20} style={{ marginBottom: 14 }} />
+        <Skeleton height={90} borderRadius={20} style={{ marginBottom: 14 }} />
+        <Skeleton height={140} borderRadius={20} style={{ marginBottom: 14 }} />
+        <Skeleton height={120} borderRadius={20} style={{ marginBottom: 14 }} />
       </ScreenBackground>
     );
   }
 
-  // Calculate Hero metrics
+  // ─── Hesaplanan Veriler ─────────────────────────────────────────────────
   const meetDate = profile?.meetDate;
   const relDate = profile?.relationshipStartDate;
-  
+
   const daysSinceMeeting = meetDate ? daysSince(dayjs(meetDate)) : 0;
   const daysSinceTogether = relDate ? daysSince(dayjs(relDate)) : 0;
-  
-  const hitap = getTodayHitap();
+
+  const name = profile?.displayName || "Tatlım";
   const quote = getQuoteForDay(doy);
   const loveMeter = getLoveMeter();
-  const dateStr = dayjs().format("DD MMMM dddd").toUpperCase();
-
-
+  const dateLabel = dayjs().format("D MMMM dddd");
 
   return (
     <ScreenBackground>
-      <PageHeader title="" showBack={false} />
-      <ScrollView 
-        contentContainerStyle={{ padding: 20, paddingTop: 10, paddingBottom: 120 }}
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top + 16 },
+        ]}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#E8002D" />
+          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={PINK} />
         }
         showsVerticalScrollIndicator={false}
       >
-        
-        {/* HERO CARD */}
-        <View style={styles.heroCard}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", flex: 1 }}>
-            <View style={{ flex: 1, justifyContent: "center" }}>
-              <Text style={styles.dateLabel}>{dateStr}</Text>
-              <Text style={styles.greetingTitle}>
-                Günaydın,{"\n"}{hitap} <Text style={{ fontSize: 20 }}>❤️</Text>
-              </Text>
+        {/* ── HEADER ─────────────────────────────────────────────────── */}
+        <View style={styles.headerRow}>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Text style={styles.greetingText}>Günaydın, {name} </Text>
+              <Text style={{ fontSize: 20 }}>❤️</Text>
             </View>
+            <Text style={styles.dateLabel}>{dateLabel}</Text>
           </View>
-          
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <View style={styles.counterBox}>
-              <Text style={styles.counterValue}>{daysSinceMeeting}</Text>
-              <Text style={styles.counterLabel}>gün tanışalı 🤝</Text>
-            </View>
-            <View style={[styles.counterBox, { borderColor: "#D84257", backgroundColor: "rgba(216,66,87,0.06)" }]}>
-              <Text style={styles.counterValue}>{daysSinceTogether}</Text>
-              <Text style={styles.counterLabel}>gün sevgili ❤️</Text>
-            </View>
+          <TouchableOpacity onPress={() => router.push("/menu")} style={styles.menuBtn}>
+            <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
+          </TouchableOpacity>
+        </View>
+
+        {/* ── COUNTER PILLS ──────────────────────────────────────────── */}
+        <View style={styles.pillRow}>
+          <View style={styles.pill}>
+            <Text style={styles.pillValue}>{daysSinceMeeting}</Text>
+            <Text style={styles.pillLabel}> gün tanışalı 🤝</Text>
+          </View>
+          <View style={[styles.pill, styles.pillPink]}>
+            <Text style={[styles.pillValue, { color: PINK }]}>{daysSinceTogether}</Text>
+            <Text style={styles.pillLabel}> gün sevgili ❤️</Text>
           </View>
         </View>
 
-        {/* QUOTE OF THE DAY */}
+        {/* ── GÜNÜN SÖZÜ ─────────────────────────────────────────────── */}
         <View style={styles.quoteCard}>
-          <Text style={styles.quoteTitle}>Günün Sözü</Text>
+          <View style={styles.quoteHeaderRow}>
+            <Star size={13} color="#f59e0b" fill="#f59e0b" />
+            <Text style={styles.quoteTitle}>GÜNÜN SÖZÜ</Text>
+          </View>
           <Text style={styles.quoteText}>"{quote}"</Text>
         </View>
 
-        {/* LOVE METER */}
+        {/* ── AŞK ÖLÇER ──────────────────────────────────────────────── */}
         <LoveMeter value={loveMeter} />
 
-        {/* MEETING COUNTDOWN */}
+        {/* ── BULUŞMA GERİ SAYIMI ─────────────────────────────────────── */}
         {dashboardData?.activeMeeting && (
-          <MeetingCountdown 
-            meeting={dashboardData.activeMeeting} 
-          />
+          <MeetingCountdown meeting={dashboardData.activeMeeting} />
         )}
 
-        {/* MOOD SELECTOR */}
-        <MoodSelector 
-          currentMood={dashboardData?.currentMood} 
-          moodLocked={!!dashboardData?.currentMood} 
+        {/* ── MOD SEÇİMİ ─────────────────────────────────────────────── */}
+        <MoodSelector
+          currentMood={dashboardData?.currentMood}
+          moodLocked={!!dashboardData?.currentMood}
         />
 
-        {/* DAILY NOTE */}
+        {/* ── GÜNLÜK NOT ─────────────────────────────────────────────── */}
         <DailyNoteCard existingNote={dashboardData?.currentNote} />
 
-        {/* PENDING LETTERS */}
+        {/* ── BEKLEYEN MEKTUPLAR ─────────────────────────────────────── */}
         <PendingLettersCard letters={dashboardData?.pendingLetters || []} />
-
       </ScrollView>
     </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  heroCard: {
-    backgroundColor: "#181a20",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    borderRadius: 20,
-    padding: 20,
+  scrollContent: {
+    paddingHorizontal: 18,
+    paddingBottom: 120,
+  },
+
+  // ─── Header ────────────────────────────────────────────────────────────
+  headerRow: {
     flexDirection: "row",
-    alignItems: "stretch",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-    gap: 12,
-    marginBottom: 12,
+    marginBottom: 16,
+  },
+  greetingText: {
+    fontSize: 26,
+    fontWeight: "700",
+    color: "#ffffff",
+    fontStyle: "italic",
+    letterSpacing: -0.3,
   },
   dateLabel: {
-    fontSize: 10,
-    fontWeight: "500",
-    letterSpacing: 1.5,
-    textTransform: "uppercase",
-    color: "rgba(255,255,255,0.45)",
-    marginBottom: 6,
+    fontSize: 13,
+    color: "rgba(255,255,255,0.4)",
+    marginTop: 4,
+    fontWeight: "400",
   },
-  greetingTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    lineHeight: 28,
-    color: "#fff",
-  },
-  counterBox: {
-    borderWidth: 2,
-    borderColor: "#C4A15A",
-    backgroundColor: "rgba(196,161,90,0.06)",
-    borderRadius: 14,
-    minWidth: 78,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  counterValue: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#fff",
-    lineHeight: 24,
-  },
-  counterLabel: {
-    fontSize: 9,
-    fontWeight: "500",
-    color: "rgba(255,255,255,0.6)",
-    textAlign: "center",
+  menuBtn: {
+    padding: 6,
     marginTop: 4,
   },
-  quoteCard: {
-    backgroundColor: "#181a20",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 12,
+
+  // ─── Counter Pills ─────────────────────────────────────────────────────
+  pillRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 14,
   },
-  quoteTitle: {
+  pill: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: CARD_BG,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 50,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+  },
+  pillPink: {
+    borderColor: "rgba(255,77,109,0.25)",
+    backgroundColor: "rgba(255,77,109,0.06)",
+  },
+  pillValue: {
     fontSize: 15,
     fontWeight: "700",
     color: "#fff",
-    marginBottom: 8,
+  },
+  pillLabel: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.55)",
+    fontWeight: "400",
+  },
+
+  // ─── Quote Card ────────────────────────────────────────────────────────
+  quoteCard: {
+    backgroundColor: CARD_BG,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 14,
+  },
+  quoteHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 10,
+  },
+  quoteTitle: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#f59e0b",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
   },
   quoteText: {
-    fontSize: 13,
-    lineHeight: 19.5, // 1.5
-    color: "rgba(255,255,255,0.65)",
+    fontSize: 14,
+    lineHeight: 22,
+    color: "rgba(255,255,255,0.75)",
     fontStyle: "italic",
-  }
+  },
 });

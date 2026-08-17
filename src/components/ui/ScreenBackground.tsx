@@ -9,8 +9,8 @@ interface ScreenBackgroundProps {
 }
 
 export function ScreenBackground({ children, style, colors }: ScreenBackgroundProps) {
-  // Premium karanlık tema (Dark Mode) varsayılan arka planı
-  const defaultColors = ["#080811", "#0A0A0C", "#080811"] as const;
+  // Koyu bordo-siyah arka plan
+  const defaultColors = ["#1a0e12", "#160b0f", "#1a0e12"] as const;
   
   return (
     <LinearGradient colors={colors || defaultColors} style={[{ flex: 1 }, style]}>

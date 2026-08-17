@@ -1,11 +1,22 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { todayString } from "@/lib/date";
 import { useQueryClient } from "@tanstack/react-query";
 import { sendPushNotification } from "@/lib/notifications";
 import { logger } from "@/utils/logger";
+
+// ─── Tema Sabitleri ─────────────────────────────────────────────────────────
+const PINK = "#ff4d6d";
+const CARD_BG = "#231218";
+const BORDER = "rgba(255,255,255,0.07)";
 
 const MOODS = [
   { emoji: "😍", label: "Çok Mutlu" },
@@ -24,7 +35,7 @@ interface MoodSelectorProps {
 export function MoodSelector({ currentMood, moodLocked = false }: MoodSelectorProps) {
   const { session, profile } = useAuth();
   const queryClient = useQueryClient();
-  
+
   const [selected, setSelected] = useState<string | null>(currentMood || null);
   const [locked, setLocked] = useState(moodLocked || !!currentMood);
   const [loading, setLoading] = useState(false);
@@ -37,11 +48,11 @@ export function MoodSelector({ currentMood, moodLocked = false }: MoodSelectorPr
   async function handleMoodSelect(emoji: string) {
     if (locked || loading || !session?.user?.id) return;
     setLoading(true);
-    
+
     const coupleId = profile?.coupleId || null;
     const today = todayString();
-
     const userId = parseInt(session.user.id, 10);
+
     const { data: existing } = await supabase
       .from("moods")
       .select("id")
@@ -53,36 +64,24 @@ export function MoodSelector({ currentMood, moodLocked = false }: MoodSelectorPr
     if (existing) {
       const payload: any = { mood_type: emoji };
       if (coupleId) payload.couple_id = coupleId;
-
-      const res = await supabase
-        .from("moods")
-        .update(payload)
-        .eq("id", existing.id);
+      const res = await supabase.from("moods").update(payload).eq("id", existing.id);
       error = res.error;
     } else {
-      const payload: any = {
-        user_id: userId,
-        date: today,
-        mood_type: emoji,
-      };
+      const payload: any = { user_id: userId, date: today, mood_type: emoji };
       if (coupleId) payload.couple_id = coupleId;
-
-      const res = await supabase
-        .from("moods")
-        .insert(payload);
+      const res = await supabase.from("moods").insert(payload);
       error = res.error;
     }
 
     setLoading(false);
-    
+
     if (!error) {
       setSelected(emoji);
       setLocked(true);
-      // Invalidate query to refresh dashboard and calendar data seamlessly
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
 
-      // Send push notification to partner (non-blocking)
+      // Push — non-blocking
       if (coupleId) {
         supabase
           .from("users")
@@ -92,7 +91,7 @@ export function MoodSelector({ currentMood, moodLocked = false }: MoodSelectorPr
           .maybeSingle()
           .then(({ data: partnerData }) => {
             if (partnerData) {
-              const moodLabel = MOODS.find(m => m.emoji === emoji)?.label || "güncelledi";
+              const moodLabel = MOODS.find((m) => m.emoji === emoji)?.label || "güncelledi";
               const myName = profile?.displayName || "Partnerin";
               sendPushNotification(
                 partnerData.id.toString(),
@@ -100,7 +99,7 @@ export function MoodSelector({ currentMood, moodLocked = false }: MoodSelectorPr
                 `${myName} bugün kendini ${moodLabel} ${emoji} hissediyor.`
               );
             }
-          }, err => logger.log("Push error:", err));
+          }, (err) => logger.log("Push error:", err));
       }
     } else {
       logger.error("Mood error:", JSON.stringify(error, null, 2));
@@ -124,17 +123,19 @@ export function MoodSelector({ currentMood, moodLocked = false }: MoodSelectorPr
               style={[
                 styles.moodBtn,
                 isSelected ? styles.moodBtnSelected : styles.moodBtnNormal,
-                (locked && !isSelected) && { opacity: 0.35 }
+                locked && !isSelected && { opacity: 0.3 },
               ]}
             >
               <Text style={styles.emoji}>{mood.emoji}</Text>
-              <Text style={styles.label}>{mood.label}</Text>
+              <Text style={[styles.label, isSelected && styles.labelSelected]}>
+                {mood.label}
+              </Text>
             </TouchableOpacity>
           );
         })}
       </View>
 
-      {loading && <ActivityIndicator color="#D84257" style={{ marginTop: 10 }} />}
+      {loading && <ActivityIndicator color={PINK} style={{ marginTop: 10 }} />}
 
       {locked && selected && (
         <Text style={styles.savedText}>Bugün için kaydedildi 💛</Text>
@@ -145,15 +146,15 @@ export function MoodSelector({ currentMood, moodLocked = false }: MoodSelectorPr
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#181a20",
+    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: BORDER,
     borderRadius: 20,
-    padding: 20,
-    marginBottom: 12,
+    padding: 18,
+    marginBottom: 14,
   },
   title: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "700",
     color: "#fff",
     marginBottom: 14,
@@ -161,40 +162,42 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     gap: 6,
-    width: "100%",
   },
   moodBtn: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 10,
-    paddingHorizontal: 4,
-    borderRadius: 12,
-    borderWidth: 1,
+    paddingHorizontal: 2,
+    borderRadius: 14,
+    borderWidth: 2,
   },
   moodBtnNormal: {
     borderColor: "rgba(255,255,255,0.06)",
-    backgroundColor: "rgba(255,255,255,0.03)",
+    backgroundColor: "rgba(255,255,255,0.02)",
   },
   moodBtnSelected: {
-    borderColor: "#D84257",
-    backgroundColor: "rgba(216,66,87,0.1)",
-    borderWidth: 2,
+    borderColor: PINK,
+    backgroundColor: "rgba(255,77,109,0.1)",
   },
   emoji: {
-    fontSize: 24,
-    marginBottom: 4,
+    fontSize: 22,
+    marginBottom: 5,
   },
   label: {
     fontSize: 9,
-    color: "rgba(255,255,255,0.6)",
+    color: "rgba(255,255,255,0.45)",
     fontWeight: "500",
     textAlign: "center",
+  },
+  labelSelected: {
+    color: PINK,
+    fontWeight: "700",
   },
   savedText: {
     fontSize: 11,
     color: "rgba(255,255,255,0.3)",
     textAlign: "center",
-    marginTop: 10,
+    marginTop: 12,
   },
 });
