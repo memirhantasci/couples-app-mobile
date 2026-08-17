@@ -41,3 +41,17 @@ example
 # generated native folders
 /ios
 /android
+
+# ─── Güvenlik: Hassas Dosyalar (GİT'E GÖNDERİLMEMELİ) ────────────────────────
+# Google servis hesabı ve Firebase yapılandırma dosyaları
+google-service-account.json
+google-services.json
+GoogleService-Info.plist
+
+# Ortam değişkenleri (tüm .env dosyaları)
+.env
+.env.*
+!.env.example
+
+# Expo yerel yapılandırma
+eas.json

@@ -4,6 +4,8 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { todayString } from "@/lib/date";
 import { useQueryClient } from "@tanstack/react-query";
+import { sendPushNotification } from "@/lib/notifications";
+import { logger } from "@/utils/logger";
 
 const MOODS = [
   { emoji: "😍", label: "Çok Mutlu" },
@@ -26,6 +28,11 @@ export function MoodSelector({ currentMood, moodLocked = false }: MoodSelectorPr
   const [selected, setSelected] = useState<string | null>(currentMood || null);
   const [locked, setLocked] = useState(moodLocked || !!currentMood);
   const [loading, setLoading] = useState(false);
+
+  React.useEffect(() => {
+    setSelected(currentMood || null);
+    setLocked(moodLocked || !!currentMood);
+  }, [currentMood, moodLocked]);
 
   async function handleMoodSelect(emoji: string) {
     if (locked || loading || !session?.user?.id) return;
@@ -71,10 +78,32 @@ export function MoodSelector({ currentMood, moodLocked = false }: MoodSelectorPr
     if (!error) {
       setSelected(emoji);
       setLocked(true);
-      // Invalidate query to refresh dashboard data seamlessly
+      // Invalidate query to refresh dashboard and calendar data seamlessly
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
+
+      // Send push notification to partner (non-blocking)
+      if (coupleId) {
+        supabase
+          .from("users")
+          .select("id")
+          .eq("couple_id", coupleId)
+          .neq("id", userId)
+          .maybeSingle()
+          .then(({ data: partnerData }) => {
+            if (partnerData) {
+              const moodLabel = MOODS.find(m => m.emoji === emoji)?.label || "güncelledi";
+              const myName = profile?.displayName || "Partnerin";
+              sendPushNotification(
+                partnerData.id.toString(),
+                "Mod Güncellemesi 💭",
+                `${myName} bugün kendini ${moodLabel} ${emoji} hissediyor.`
+              );
+            }
+          }, err => logger.log("Push error:", err));
+      }
     } else {
-      console.error("Mood error:", JSON.stringify(error, null, 2));
+      logger.error("Mood error:", JSON.stringify(error, null, 2));
       alert("Ruh hali kaydedilemedi: " + (error?.message || "Bilinmeyen hata"));
     }
   }

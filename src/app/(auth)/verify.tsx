@@ -9,6 +9,7 @@ import {
   Platform,
   Alert,
 } from "react-native";
+import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, router } from "expo-router";
 import { supabase } from "@/lib/supabase";
@@ -133,7 +134,7 @@ export default function VerifyScreen() {
   async function routeUser(userId: string) {
     const { data: userData } = await supabase
       .from("users")
-      .select("couple_id, couples(meet_date, relationship_start_date)")
+      .select("display_name, couple_id, couples(meet_date, relationship_start_date)")
       .eq("id", userId)
       .single();
 
@@ -147,6 +148,7 @@ export default function VerifyScreen() {
       relationshipStartDate: couple?.relationship_start_date ?? null,
       isPaired: !!userData?.couple_id,
       hasDates: !!(couple?.meet_date && couple?.relationship_start_date),
+      displayName: userData?.display_name ?? null,
     });
   }
 
@@ -184,7 +186,7 @@ export default function VerifyScreen() {
 
   // ── Render: Manual OTP form ───────────────────────────────────────────────
   return (
-    <LinearGradient colors={["#080811", "#0A0A0C", "#080811"]} style={{ flex: 1 }}>
+    <ScreenBackground colors={["#080811", "#0A0A0C", "#080811"]}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -335,6 +337,6 @@ export default function VerifyScreen() {
           )}
         </View>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </ScreenBackground>
   );
 }

@@ -1,6 +1,7 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput, Platform } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import React, { useCallback,  useState } from "react";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput, Platform, KeyboardAvoidingView } from "react-native";
+import { ScreenBackground } from "@/components/ui/ScreenBackground";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Pill, Trophy, Check, X, Plus, Save, ChevronLeft, Menu, Settings, Trash2, User, Users, Edit2 } from "lucide-react-native";
@@ -23,6 +24,7 @@ export default function MedicineScreen() {
 
   // Form State
   const [medName, setMedName] = useState("");
+  const [medError, setMedError] = useState(false);
   const [medStartDate, setMedStartDate] = useState(new Date());
   const [medEndDate, setMedEndDate] = useState(new Date());
   const [medFrequency, setMedFrequency] = useState<1 | 2 | 3>(1);
@@ -77,6 +79,7 @@ export default function MedicineScreen() {
         historicalLogs: historicalLogsRes.data || [],
       };
     },
+    staleTime: 1000 * 60 * 5,
   });
 
   const updateLogMutation = useMutation({
@@ -144,7 +147,8 @@ export default function MedicineScreen() {
   };
 
   const handleAddMedicine = async () => {
-    if (!medName) {
+    if (!medName.trim()) {
+      setMedError(true);
       Alert.alert("Hata", "Lütfen ilaç adını girin.");
       return;
     }
@@ -229,7 +233,9 @@ export default function MedicineScreen() {
     setMedEndDate(new Date());
     setMedFrequency(1);
     setMedTimes([new Date()]);
+    setMedError(false);
     setEditingMedicineId(null);
+    queryClient.invalidateQueries({ queryKey: ["medicine_data"] });
   };
 
   const handleEditMedicine = (med: any) => {
@@ -302,8 +308,10 @@ export default function MedicineScreen() {
   const now = new Date();
   const currentTimeStr = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
+
+
   return (
-    <LinearGradient colors={["#0c0c0c", "#000000"]} style={styles.container}>
+    <ScreenBackground style={styles.container}>
       <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* Header */}
@@ -343,7 +351,10 @@ export default function MedicineScreen() {
             </Text>
             
             {isLoading ? (
-              <ActivityIndicator color="#E8002D" style={{ marginTop: 20 }} />
+              <View style={{ gap: 16, marginTop: 20 }}>
+                <Skeleton height={140} borderRadius={16} />
+                <Skeleton height={140} borderRadius={16} />
+              </View>
             ) : filteredMedicines.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={{ fontSize: 40 }}>💊</Text>
@@ -438,8 +449,9 @@ export default function MedicineScreen() {
 
       {/* İLAÇ YÖNETİMİ MODALI */}
       <Modal visible={showManagerModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
             <TouchableOpacity onPress={() => setShowManagerModal(false)} style={styles.closeModalBtn}>
               <X color="rgba(255,255,255,0.5)" size={24} />
             </TouchableOpacity>
@@ -507,8 +519,17 @@ export default function MedicineScreen() {
                 </View>
 
                 <View style={styles.formGroup}>
-                  <Text style={styles.label}>İlaç Adı</Text>
-                  <TextInput style={styles.input} placeholder="Örn: Parol" placeholderTextColor="rgba(255,255,255,0.3)" value={medName} onChangeText={setMedName} />
+                  <Text style={[styles.label, medError && { color: "red" }]}>İlaç Adı</Text>
+                  <TextInput 
+                    style={[styles.input, medError && { borderColor: "red" }]} 
+                    placeholder="Örn: Parol" 
+                    placeholderTextColor="rgba(255,255,255,0.3)" 
+                    value={medName} 
+                    onChangeText={(text) => {
+                      setMedName(text);
+                      setMedError(false);
+                    }} 
+                  />
                 </View>
 
                 <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
@@ -584,6 +605,7 @@ export default function MedicineScreen() {
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* DateTime Picker */}
@@ -609,7 +631,7 @@ export default function MedicineScreen() {
           }}
         />
       )}
-    </LinearGradient>
+    </ScreenBackground>
   );
 }
 

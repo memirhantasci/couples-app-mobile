@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useRouter } from "expo-router";
 import { X, Heart, Settings, FileClock, Home, Pill, CalendarHeart, Mail, Activity, Image as ImageIcon, UploadCloud, LogOut, BookOpen } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
@@ -22,7 +22,7 @@ export default function MenuScreen() {
   };
 
   return (
-    <LinearGradient colors={["#1c1c1e", "#0A0A0C"]} style={{ flex: 1 }}>
+    <ScreenBackground colors={["#1c1c1e", "#0A0A0C", "#1c1c1e"]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
@@ -89,7 +89,7 @@ export default function MenuScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </ScreenBackground>
   );
 }
 

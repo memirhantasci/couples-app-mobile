@@ -1,13 +1,16 @@
-import React, { useState } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Image as RNImage, ActivityIndicator } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import React, { useCallback,  useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, FlatList } from "react-native";
+import { Image } from "expo-image";
+import { ScreenBackground } from "@/components/ui/ScreenBackground";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs } from "@/lib/date";
 import { Plus, Trash2, Pencil, Menu, ChevronLeft } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function MemoriesScreen() {
   const { session, profile } = useAuth();
@@ -15,22 +18,40 @@ export default function MemoriesScreen() {
   const queryClient = useQueryClient();
   const [isEditMode, setIsEditMode] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const insets = useSafeAreaInsets();
 
   const coupleId = profile?.coupleId || null;
+  const PAGE_SIZE = 15;
 
-  const { data: memories, isLoading } = useQuery({
+  const {
+    data,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch
+  } = useInfiniteQuery({
     queryKey: ["memories", coupleId],
     enabled: !!coupleId,
-    queryFn: async () => {
+    initialPageParam: 0,
+    queryFn: async ({ pageParam = 0 }) => {
       const { data, error } = await supabase
         .from("memories")
         .select("id, date, title, description, image_url, is_default")
         .eq("couple_id", coupleId)
-        .order("date", { ascending: true });
+        .order("date", { ascending: false })
+        .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
+      
       if (error) throw error;
       return data || [];
-    }
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === PAGE_SIZE ? allPages.length : undefined;
+    },
+    staleTime: 1000 * 60 * 5,
   });
+
+  const memories = data ? data.pages.flat() : [];
 
   const handleDelete = (id: number) => {
     Alert.alert(
@@ -71,12 +92,59 @@ export default function MemoriesScreen() {
 
   if (!session) return <View style={{ flex: 1, backgroundColor: "#080811" }} />;
 
+
+
+  const renderMemory = ({ item: memory, index }: { item: any, index: number }) => {
+    const d = dayjs(memory.date);
+    const canManage = isEditMode && !memory.is_default;
+    
+    return (
+      <Animated.View 
+        key={memory.id}
+        entering={FadeInDown.delay(index * 60).duration(350)}
+        style={styles.memoryRow}
+      >
+        <View style={styles.dateCircle}>
+          <Text style={styles.dateDay}>{d.format("DD")}</Text>
+          <Text style={styles.dateMonth}>{d.format("MMM")}</Text>
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle} numberOfLines={1}>{memory.title}</Text>
+              <Text style={styles.cardYear}>{d.format("YYYY")}</Text>
+            </View>
+            
+            {canManage && (
+              <Animated.View entering={FadeInUp.duration(150)} style={styles.actionsBox}>
+                <TouchableOpacity onPress={() => handleEdit(memory)} style={styles.actionBtn}>
+                  <Pencil size={18} color="#fff" strokeWidth={2.5} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDelete(memory.id)} style={styles.actionBtn} disabled={deletingId === memory.id}>
+                  {deletingId === memory.id ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Trash2 size={18} color="#fff" strokeWidth={2.5} />
+                  )}
+                </TouchableOpacity>
+              </Animated.View>
+            )}
+          </View>
+
+          {memory.image_url && (
+            <View style={styles.imageBox}>
+              <Image source={{ uri: memory.image_url }} style={styles.image} contentFit="cover" />
+            </View>
+          )}
+        </View>
+      </Animated.View>
+    );
+  };
+
   return (
-    <LinearGradient colors={["#080811", "#0A0A0C", "#080811"]} style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={styles.container}>
-        
-        {/* Header */}
-        <View style={styles.header}>
+    <ScreenBackground>
+        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
           <TouchableOpacity onPress={() => router.back()} style={{ padding: 8, marginLeft: -8 }}>
             <ChevronLeft color="#fff" size={28} />
           </TouchableOpacity>
@@ -95,7 +163,10 @@ export default function MemoriesScreen() {
         </View>
 
         {isLoading ? (
-          <ActivityIndicator color="#E8002D" style={{ marginTop: 40 }} />
+          <View style={{ gap: 16, marginTop: 40, paddingHorizontal: 20 }}>
+            <Skeleton height={150} borderRadius={16} />
+            <Skeleton height={150} borderRadius={16} />
+          </View>
         ) : memories?.length === 0 ? (
           <View style={styles.emptyBox}>
             <Text style={{ fontSize: 48 }}>📸</Text>
@@ -106,57 +177,20 @@ export default function MemoriesScreen() {
             {/* Vertical glowing line */}
             <View style={styles.timelineLine} />
 
-            <View style={{ flex: 1 }}>
-              {memories?.map((memory, index) => {
-                const d = dayjs(memory.date);
-                const canManage = isEditMode && !memory.is_default;
-                
-                return (
-                  <Animated.View 
-                    key={memory.id}
-                    entering={FadeInDown.delay(index * 60).duration(350)}
-                    style={styles.memoryRow}
-                  >
-                    {/* Date Circle */}
-                    <View style={styles.dateCircle}>
-                      <Text style={styles.dateDay}>{d.format("DD")}</Text>
-                      <Text style={styles.dateMonth}>{d.format("MMM")}</Text>
-                    </View>
-
-                    {/* Card */}
-                    <View style={styles.card}>
-                      <View style={styles.cardHeader}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.cardTitle} numberOfLines={1}>{memory.title}</Text>
-                          <Text style={styles.cardYear}>{d.format("YYYY")}</Text>
-                        </View>
-                        
-                        {canManage && (
-                          <Animated.View entering={FadeInUp.duration(150)} style={styles.actionsBox}>
-                            <TouchableOpacity onPress={() => handleEdit(memory)} style={styles.actionBtn}>
-                              <Pencil size={18} color="#fff" strokeWidth={2.5} />
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={() => handleDelete(memory.id)} style={styles.actionBtn} disabled={deletingId === memory.id}>
-                              {deletingId === memory.id ? (
-                                <ActivityIndicator size="small" color="#fff" />
-                              ) : (
-                                <Trash2 size={18} color="#fff" strokeWidth={2.5} />
-                              )}
-                            </TouchableOpacity>
-                          </Animated.View>
-                        )}
-                      </View>
-
-                      {memory.image_url && (
-                        <View style={styles.imageBox}>
-                          <RNImage source={{ uri: memory.image_url }} style={styles.image} />
-                        </View>
-                      )}
-                    </View>
-                  </Animated.View>
-                );
-              })}
-            </View>
+            <FlatList
+              data={memories}
+              keyExtractor={item => item.id.toString()}
+              renderItem={renderMemory}
+              contentContainerStyle={{ paddingBottom: 150 }}
+              showsVerticalScrollIndicator={false}
+              onEndReached={() => {
+                if (hasNextPage && !isFetchingNextPage) {
+                  fetchNextPage();
+                }
+              }}
+              onEndReachedThreshold={0.5}
+              ListFooterComponent={isFetchingNextPage ? <ActivityIndicator color="#E8002D" style={{ margin: 20 }} /> : null}
+            />
           </View>
         )}
 
@@ -173,23 +207,17 @@ export default function MemoriesScreen() {
           </Animated.View>
         )}
 
-      </ScrollView>
-    </LinearGradient>
+    </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-    paddingTop: 60,
-    paddingBottom: 120,
-    minHeight: "100%",
-  },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 24,
+    marginBottom: 10,
+    paddingHorizontal: 20,
   },
   title: {
     fontSize: 22,
@@ -212,6 +240,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 40,
     marginTop: 20,
+    marginHorizontal: 20,
     borderRadius: 20,
     backgroundColor: "rgba(255,255,255,0.03)",
     borderWidth: 1,
@@ -227,10 +256,11 @@ const styles = StyleSheet.create({
     flex: 1,
     position: "relative",
     paddingVertical: 8,
+    paddingHorizontal: 16,
   },
   timelineLine: {
     position: "absolute",
-    left: 23,
+    left: 40,
     top: 0,
     bottom: 0,
     width: 2,
@@ -244,112 +274,108 @@ const styles = StyleSheet.create({
   },
   memoryRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-    paddingVertical: 12,
+    marginBottom: 24,
+    alignItems: "flex-start",
+    zIndex: 1,
   },
   dateCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#0A0A0C",
-    borderWidth: 2,
-    borderColor: "#FF2D55",
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#FF2D55",
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 10,
+    marginRight: 16,
+    borderWidth: 3,
+    borderColor: "#080811",
     shadowColor: "#FF2D55",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.6,
+    shadowRadius: 6,
+    elevation: 8,
   },
   dateDay: {
-    fontSize: 14,
-    fontWeight: "bold",
     color: "#fff",
-    lineHeight: 16,
+    fontSize: 18,
+    fontWeight: "800",
+    lineHeight: 20,
   },
   dateMonth: {
-    fontSize: 11,
-    fontWeight: "500",
     color: "#fff",
-    lineHeight: 14,
+    fontSize: 11,
+    fontWeight: "600",
+    textTransform: "uppercase",
   },
   card: {
     flex: 1,
-    minHeight: 90,
+    backgroundColor: "rgba(255,255,255,0.04)",
     borderRadius: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: "#1C1C1E", // Will use gradient ideally, but solid for now
+    padding: 14,
     borderWidth: 1,
-    borderColor: "#FF2D55",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 5,
-    overflow: "hidden",
+    borderColor: "rgba(255,255,255,0.08)",
   },
   cardHeader: {
     flexDirection: "row",
-    alignItems: "flex-start",
     justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
   },
   cardTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
     color: "#fff",
-    marginBottom: 4,
+    fontSize: 16,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
   cardYear: {
-    fontSize: 14,
+    color: "rgba(255,255,255,0.4)",
+    fontSize: 12,
+    marginTop: 2,
     fontWeight: "500",
-    color: "rgba(255,255,255,0.9)",
   },
   actionsBox: {
     flexDirection: "row",
-    gap: 16,
-    marginLeft: 8,
+    gap: 8,
   },
   actionBtn: {
-    padding: 4,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    padding: 8,
+    borderRadius: 12,
   },
   imageBox: {
-    height: 160,
+    marginTop: 10,
     borderRadius: 12,
     overflow: "hidden",
-    marginTop: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
   },
   image: {
     width: "100%",
-    height: "100%",
+    height: 180,
     resizeMode: "cover",
   },
   addBtnContainer: {
-    alignItems: "center",
-    marginTop: 16,
-    marginBottom: 24,
+    position: "absolute",
+    bottom: 40,
+    left: 20,
+    right: 20,
   },
   addBtn: {
+    backgroundColor: "#FF2D55",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 14,
     gap: 8,
-    backgroundColor: "#FF3B30",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowColor: "#FF2D55",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 8,
   },
   addBtnText: {
-    fontSize: 14,
-    fontWeight: "600",
     color: "#fff",
-  }
+    fontSize: 16,
+    fontWeight: "700",
+  },
 });

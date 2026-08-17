@@ -1,14 +1,17 @@
-import React, { useState, useMemo } from "react";
+import React, { useCallback,  useState, useMemo } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Modal } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { ScreenBackground } from "@/components/ui/ScreenBackground";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
 import { deterministicDecrypt } from "@/utils/crypto";
+import { logger } from "@/utils/logger";
 import { Calendar, LocaleConfig } from "react-native-calendars";
 import { X, Check, ChevronLeft, Menu } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 LocaleConfig.locales['tr'] = {
   monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
@@ -24,12 +27,13 @@ export default function PeriodTrackerScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const today = todayString();
+  const insets = useSafeAreaInsets();
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? parseInt(session.user.id, 10) : null;
   
   // Checking if the current user is Female
-  const { data: userData } = useQuery({
+  const { data: userData , refetch: refetch_0} = useQuery({
     queryKey: ["user_gender", userId],
     enabled: !!userId,
     queryFn: async () => {
@@ -39,12 +43,13 @@ export default function PeriodTrackerScreen() {
         .eq("id", userId)
         .single();
       return data;
-    }
+    },
+    staleTime: 1000 * 60 * 5,
   });
 
   const isFemale = userData?.gender === "female";
 
-  const { data: logs, isLoading } = useQuery({
+  const { data: logs, isLoading , refetch: refetch_1} = useQuery({
     queryKey: ["period_logs", userId],
     enabled: !!userId,
     queryFn: async () => {
@@ -54,7 +59,8 @@ export default function PeriodTrackerScreen() {
         .eq("user_id", userId)
         .order("date", { ascending: false });
       return data || [];
-    }
+    },
+    staleTime: 1000 * 60 * 5,
   });
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -121,16 +127,18 @@ export default function PeriodTrackerScreen() {
       queryClient.invalidateQueries({ queryKey: ["period_logs"] });
       setSelectedDate(null);
     } catch (error: any) {
-      console.error(error);
+      logger.error("Period save error:", error);
       Alert.alert("Hata", "İşlem sırasında bir hata oluştu.");
     } finally {
       setLoading(false);
     }
   }
 
+
+
   return (
-    <LinearGradient colors={["#0a0a0f", "#0A0A0C", "#080811"]} style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={styles.container}>
+    <ScreenBackground>
+      <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 10 }]}>
         
         {/* Header */}
         <View style={styles.header}>
@@ -144,7 +152,10 @@ export default function PeriodTrackerScreen() {
         </View>
 
         {isLoading ? (
-          <ActivityIndicator color="#E8002D" style={{ marginTop: 40 }} />
+          <View style={{ gap: 16, marginTop: 40, paddingHorizontal: 20 }}>
+            <Skeleton height={350} borderRadius={20} />
+            <Skeleton height={100} borderRadius={16} />
+          </View>
         ) : (
           <>
             {/* Calendar View */}
@@ -254,14 +265,13 @@ export default function PeriodTrackerScreen() {
           </View>
         </View>
       </Modal>
-    </LinearGradient>
+    </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     padding: 16,
-    paddingTop: 60,
     paddingBottom: 120,
   },
   header: {

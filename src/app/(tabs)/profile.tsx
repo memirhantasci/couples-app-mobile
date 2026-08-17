@@ -8,9 +8,11 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  KeyboardAvoidingView
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { router, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -77,7 +79,7 @@ function SectionCard({
             {title}
           </Text>
         </View>
-        <View style={{ color: "rgba(255,255,255,0.4)" }}>
+        <View>
           {open ? (
             <ChevronUp size={18} color="rgba(255,255,255,0.4)" />
           ) : (
@@ -110,16 +112,18 @@ function Field({
   onChange,
   placeholder,
   multiline,
+  error,
 }: {
   label: string;
   value: string;
   onChange: (t: string) => void;
   placeholder?: string;
   multiline?: boolean;
+  error?: boolean;
 }) {
   return (
     <View style={{ marginTop: 16 }}>
-      <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, marginBottom: 6 }}>
+      <Text style={{ color: error ? "#FF4D6A" : "rgba(255,255,255,0.6)", fontSize: 13, marginBottom: 6 }}>
         {label}
       </Text>
       <TextInput
@@ -131,7 +135,7 @@ function Field({
         style={{
           backgroundColor: "rgba(255,255,255,0.07)",
           borderWidth: 1,
-          borderColor: "rgba(255,255,255,0.12)",
+          borderColor: error ? "red" : "rgba(255,255,255,0.12)",
           borderRadius: 14,
           paddingHorizontal: 16,
           paddingVertical: 13,
@@ -190,8 +194,10 @@ export default function ProfileScreen() {
   const { session, signOut } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
 
   const [displayName, setDisplayName] = useState("");
+  const [nameError, setNameError] = useState(false);
   const [gender, setGender] = useState<"male" | "female">("female");
   const [meetDate, setMeetDate] = useState("");
   const [relStartDate, setRelStartDate] = useState("");
@@ -241,6 +247,7 @@ export default function ProfileScreen() {
   async function handleUpdateProfile() {
     if (!session?.user?.id) return;
     if (displayName.trim().length < 2) {
+      setNameError(true);
       Alert.alert("Hata", "İsim en az 2 karakter olmalı.");
       return;
     }
@@ -347,11 +354,12 @@ export default function ProfileScreen() {
   }
 
   return (
-    <LinearGradient colors={["#080811", "#0A0A0C", "#080811"]} style={{ flex: 1 }}>
-      <ScrollView
-        contentContainerStyle={{ padding: 20, paddingTop: Platform.OS === "ios" ? 60 : 40, paddingBottom: 100 }}
-        showsVerticalScrollIndicator={false}
-      >
+    <ScreenBackground>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={{ padding: 20, paddingTop: insets.top + 10, paddingBottom: 100 }}
+          showsVerticalScrollIndicator={false}
+        >
         {/* Başlık */}
         <View style={{ marginBottom: 24, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
           <View>
@@ -394,8 +402,12 @@ export default function ProfileScreen() {
           <Field
             label="Görünen İsim"
             value={displayName}
-            onChange={setDisplayName}
+            onChange={(val) => {
+              setDisplayName(val);
+              setNameError(false);
+            }}
             placeholder="Adın"
+            error={nameError}
           />
           <View style={{ marginTop: 16 }}>
             <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, marginBottom: 8 }}>
@@ -516,7 +528,8 @@ export default function ProfileScreen() {
             )}
           </TouchableOpacity>
         </SectionCard>
-      </ScrollView>
-    </LinearGradient>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </ScreenBackground>
   );
 }

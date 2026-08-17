@@ -7,6 +7,7 @@ import {
   Platform,
 } from "react-native";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
+import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { supabase } from "@/lib/supabase";
@@ -134,7 +135,7 @@ export default function DatesScreen() {
   }
 
   return (
-    <LinearGradient colors={["#080811", "#0A0A0C", "#080811"]} style={{ flex: 1 }}>
+    <ScreenBackground colors={["#080811", "#0A0A0C", "#080811"]}>
       {/* Background blobs */}
       <View
         style={{
@@ -300,6 +301,6 @@ export default function DatesScreen() {
           )}
         </TouchableOpacity>
       </View>
-    </LinearGradient>
+    </ScreenBackground>
   );
 }

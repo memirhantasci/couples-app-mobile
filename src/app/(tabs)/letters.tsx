@@ -1,25 +1,32 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, Alert, KeyboardAvoidingView, Platform } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { View, Text, SectionList, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, Alert, KeyboardAvoidingView, Platform } from "react-native";
+import { ScreenBackground } from "@/components/ui/ScreenBackground";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
 import { encrypt, decrypt, deterministicDecrypt } from "@/utils/crypto";
 import { Lock, ChevronRight, FileEdit, LockKeyhole } from "lucide-react-native";
+import { sanitize, sanitizeStrict } from "@/utils/sanitize";
+import { logger } from "@/utils/logger";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function LettersScreen() {
   const { session, profile } = useAuth();
   const queryClient = useQueryClient();
   const today = todayString();
+  const insets = useSafeAreaInsets();
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? parseInt(session.user.id, 10) : null;
 
+  const [letterLimit, setLetterLimit] = useState(15);
+
   // --- Mektupları Getir ---
   const { data, isLoading } = useQuery({
-    queryKey: ["letters_data", coupleId, userId],
+    queryKey: ["letters_data", coupleId, userId, letterLimit],
     enabled: !!coupleId && !!userId,
     queryFn: async () => {
       const [receivedRes, sentRes] = await Promise.all([
@@ -55,7 +62,8 @@ export default function LettersScreen() {
           }
         })),
       };
-    }
+    },
+    staleTime: 1000 * 60 * 5,
   });
 
   // --- Alıcı Kullanıcıları Getir ---
@@ -83,12 +91,16 @@ export default function LettersScreen() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [loadingForm, setLoadingForm] = useState(false);
+  const [errors, setErrors] = useState({ receiver: false, title: false, content: false });
 
   const receivedLetters = data?.received || [];
   const sentLetters = data?.sent || [];
 
   const handleSave = async () => {
-    if (!receiverId || !title.trim() || !content.trim()) {
+    const newErrors = { receiver: !receiverId, title: !title.trim(), content: !content.trim() };
+    setErrors(newErrors);
+
+    if (newErrors.receiver || newErrors.title || newErrors.content) {
       Alert.alert("Eksik Bilgi", "Lütfen tüm alanları doldur.");
       return;
     }
@@ -96,11 +108,20 @@ export default function LettersScreen() {
     setLoadingForm(true);
 
     try {
+      const cleanTitle = sanitizeStrict(title.trim());
+      const cleanContent = sanitize(content.trim());
+
+      if (!cleanTitle || !cleanContent) {
+        Alert.alert("Hata", "Geçersiz içerik tespit edildi.");
+        setLoadingForm(false);
+        return;
+      }
+
       const { error } = await supabase.rpc("save_letter", {
         p_sender_id:   userId,
         p_receiver_id: parseInt(receiverId, 10),
-        p_title:       title.trim(),
-        p_content:     encrypt(content.trim()),
+        p_title:       cleanTitle,
+        p_content:     encrypt(cleanContent),
         p_unlock_date: unlockDate,
         p_couple_id:   coupleId ? parseInt(String(coupleId), 10) : null,
       });
@@ -117,8 +138,8 @@ export default function LettersScreen() {
       setUnlockDate(todayString());
       
     } catch (error: any) {
-      console.error(error);
-      Alert.alert("Hata", "Mektup mühürlenirken bir hata oluştu.");
+      logger.error("Letter save error:", error);
+      Alert.alert("Hata", "Mektup mührlenirken bir hata oluştu.");
     } finally {
       setLoadingForm(false);
     }
@@ -177,51 +198,42 @@ export default function LettersScreen() {
   if (!session) return <View style={{ flex: 1, backgroundColor: "#0a0a0f" }} />;
 
   return (
-    <LinearGradient colors={["#0a0a0f", "#0A0A0C", "#080811"]} style={{ flex: 1 }}>
+    <ScreenBackground>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.container}>
+        <View style={[styles.container, { paddingTop: insets.top + 10, paddingBottom: 0, flex: 1 }]}>
           
           <PageHeader title="MEKTUPLAR 💌" />
 
           {isLoading ? (
-            <ActivityIndicator color="#E8002D" style={{ marginTop: 40 }} />
+            <View style={{ marginTop: 40, gap: 24 }}>
+              <Skeleton height={200} borderRadius={16} />
+              <Skeleton height={200} borderRadius={16} />
+            </View>
           ) : (
-            <View style={{ gap: 24 }}>
-              
-              {/* --- Gelen Mektuplar --- */}
-              <View style={styles.cardBox}>
-                <View style={styles.cardTitleBox}>
-                  <Text style={{ fontSize: 18 }}>✉️</Text>
-                  <Text style={styles.cardTitle}>Gelen Mektuplar</Text>
+            <SectionList
+              sections={[
+                { title: "Gelen Mektuplar", icon: "✉️", data: receivedLetters, type: "received" },
+                { title: "Gönderdiğim Mektuplar", icon: "➤", data: sentLetters, type: "sent" }
+              ]}
+              keyExtractor={(item, index) => item.id.toString()}
+              showsVerticalScrollIndicator={false}
+              renderSectionHeader={({ section }) => (
+                <View style={[styles.cardTitleBox, { marginTop: section.type === "received" ? 24 : 16 }]}>
+                  <Text style={{ fontSize: 18 }}>{section.icon}</Text>
+                  <Text style={styles.cardTitle}>{section.title}</Text>
                 </View>
-                
-                {receivedLetters.length === 0 ? (
-                  <Text style={styles.emptyText}>Henüz sana yazılmış bir mektup yok.</Text>
-                ) : (
-                  <View style={{ gap: 12 }}>
-                    {receivedLetters.map((l: any) => renderLetterItem(l, "received"))}
-                  </View>
-                )}
-              </View>
-
-              {/* --- Gönderdiğim Mektuplar --- */}
-              <View style={styles.cardBox}>
-                <View style={styles.cardTitleBox}>
-                  <Text style={{ fontSize: 18 }}>➤</Text>
-                  <Text style={styles.cardTitle}>Gönderdiğim Mektuplar</Text>
-                </View>
-                
-                {sentLetters.length === 0 ? (
-                  <Text style={styles.emptyText}>Henüz kimseye mektup göndermedin.</Text>
-                ) : (
-                  <View style={{ gap: 12 }}>
-                    {sentLetters.map((l: any) => renderLetterItem(l, "sent"))}
-                  </View>
-                )}
-              </View>
-
-              {/* --- YENİ MEKTUP YAZ FORMU --- */}
-              <View style={styles.formBox}>
+              )}
+              renderItem={({ item, section }) => renderLetterItem(item, section.type as "received" | "sent")}
+              renderSectionFooter={({ section }) => (
+                section.data.length === 0 ? (
+                  <Text style={[styles.emptyText, { marginBottom: 16 }]}>
+                    {section.type === "received" ? "Henüz sana yazılmış bir mektup yok." : "Henüz kimseye mektup göndermedin."}
+                  </Text>
+                ) : <View style={{ height: 16 }} />
+              )}
+              ListFooterComponent={
+                <View style={styles.formBox}>
+                  {/* --- YENİ MEKTUP YAZ FORMU --- */}
                 <View style={[styles.cardTitleBox, { marginBottom: 20 }]}>
                   <View style={styles.iconBox}>
                     <FileEdit color="#c8922a" size={16} />
@@ -230,14 +242,17 @@ export default function LettersScreen() {
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>KİME</Text>
-                  {users && users.length > 0 ? (
-                    <View style={styles.usersBox}>
+                  <Text style={[styles.label, errors.receiver && { color: "red" }]}>ALICI KİM?</Text>
+                  {users ? (
+                    <View style={styles.usersRow}>
                       {users.map(u => (
                         <TouchableOpacity
                           key={u.id}
                           style={[styles.userBtn, receiverId === String(u.id) && styles.userBtnSelected]}
-                          onPress={() => setReceiverId(String(u.id))}
+                          onPress={() => {
+                            setReceiverId(String(u.id));
+                            setErrors(prev => ({ ...prev, receiver: false }));
+                          }}
                         >
                           <Text style={[styles.userBtnText, receiverId === String(u.id) && styles.userBtnTextSelected]}>
                             {u.display_name || u.username}
@@ -265,22 +280,28 @@ export default function LettersScreen() {
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>MEKTUP BAŞLIĞI</Text>
+                  <Text style={[styles.label, errors.title && { color: "red" }]}>MEKTUP BAŞLIĞI</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, errors.title && { borderColor: "red" }]}
                     value={title}
-                    onChangeText={setTitle}
+                    onChangeText={(text) => {
+                      setTitle(text);
+                      setErrors(prev => ({ ...prev, title: false }));
+                    }}
                     placeholder="Gelecekteki Bize..."
                     placeholderTextColor="rgba(255,255,255,0.4)"
                   />
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>MEKTUP İÇERİĞİ</Text>
+                  <Text style={[styles.label, errors.content && { color: "red" }]}>MEKTUP İÇERİĞİ</Text>
                   <TextInput
-                    style={[styles.input, styles.textArea]}
+                    style={[styles.input, styles.textArea, errors.content && { borderColor: "red" }]}
                     value={content}
-                    onChangeText={setContent}
+                    onChangeText={(text) => {
+                      setContent(text);
+                      setErrors(prev => ({ ...prev, content: false }));
+                    }}
                     placeholder="Yüreğinden geçenleri dök..."
                     placeholderTextColor="rgba(255,255,255,0.4)"
                     multiline
@@ -302,29 +323,35 @@ export default function LettersScreen() {
                   )}
                 </TouchableOpacity>
 
-              </View>
-
-            </View>
+                </View>
+              }
+            />
           )}
-
-        </ScrollView>
+        </View>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     padding: 16,
-    paddingTop: 60,
     paddingBottom: 120, // Alt bar için boşluk
   },
-  cardBox: {
-    backgroundColor: "#141418",
+  loadMoreBtn: {
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.07)",
-    borderRadius: 16,
-    padding: 18,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  loadMoreText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
   },
   formBox: {
     backgroundColor: "transparent",
@@ -408,7 +435,7 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.75)",
     lineHeight: 22,
   },
-
+  
   /* Form Styles */
   inputGroup: {
     marginBottom: 16,
@@ -426,7 +453,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     marginBottom: 8,
   },
-  usersBox: {
+  usersRow: {
     flexDirection: "row",
     gap: 12,
   },

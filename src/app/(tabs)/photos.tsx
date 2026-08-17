@@ -1,11 +1,14 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import React, { useCallback,  useState } from "react";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { Image } from "expo-image";
+import { ScreenBackground } from "@/components/ui/ScreenBackground";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import { decode } from "base64-arraybuffer";
 import { ChevronLeft, Plus, Image as ImageIcon, Trash2, Calendar, Menu } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
@@ -15,26 +18,44 @@ export default function PhotosScreen() {
   const router = useRouter();
   const { session, profile } = useAuth();
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? parseInt(session.user.id, 10) : null;
 
-  // Fotoğrafları çek
-  const { data: photos, isLoading } = useQuery({
+  const PAGE_SIZE = 20;
+
+  // Fotoğrafları sayfalama (pagination) ile çek
+  const {
+    data,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch
+  } = useInfiniteQuery({
     queryKey: ["photo_archive", coupleId],
     enabled: !!coupleId,
-    queryFn: async () => {
+    initialPageParam: 0,
+    queryFn: async ({ pageParam = 0 }) => {
       const { data, error } = await supabase
         .from("photo_archive")
         .select("id, image_url, taken_date, user_id")
         .eq("couple_id", coupleId)
         .order("taken_date", { ascending: false })
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
 
       if (error) throw error;
       return data || [];
     },
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === PAGE_SIZE ? allPages.length : undefined;
+    },
+    staleTime: 1000 * 60 * 5,
   });
+
+  const photos = data ? data.pages.flat() : [];
 
   // Fotoğraf Yükle sayfasına yönlendir
   const goToUpload = () => {
@@ -65,7 +86,7 @@ export default function PhotosScreen() {
     const isMine = item.user_id === userId;
     return (
       <View style={styles.photoWrapper}>
-        <Image source={{ uri: item.image_url }} style={styles.photo} />
+        <Image source={{ uri: item.image_url }} style={styles.photo} contentFit="cover" />
         {isMine && (
           <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item.id)}>
             <Trash2 color="#fff" size={16} />
@@ -77,9 +98,11 @@ export default function PhotosScreen() {
 
   if (!session) return <View style={{ flex: 1, backgroundColor: "#0a0a0f" }} />;
 
+
+
   return (
-    <LinearGradient colors={["#0a0a0f", "#0A0A0C", "#080811"]} style={{ flex: 1 }}>
-      <View style={styles.header}>
+    <ScreenBackground>
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <ChevronLeft color="#fff" size={28} />
         </TouchableOpacity>
@@ -90,8 +113,11 @@ export default function PhotosScreen() {
       </View>
 
       {isLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color="#E8002D" size="large" />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', padding: 10, justifyContent: 'space-between' }}>
+          <Skeleton height={200} borderRadius={16} style={{ width: '48%', marginBottom: 10 }} />
+          <Skeleton height={200} borderRadius={16} style={{ width: '48%', marginBottom: 10 }} />
+          <Skeleton height={200} borderRadius={16} style={{ width: '48%', marginBottom: 10 }} />
+          <Skeleton height={200} borderRadius={16} style={{ width: '48%', marginBottom: 10 }} />
         </View>
       ) : photos && photos.length > 0 ? (
         <FlatList
@@ -100,6 +126,13 @@ export default function PhotosScreen() {
           numColumns={2}
           contentContainerStyle={{ padding: 10, paddingBottom: 130 }}
           renderItem={renderPhoto}
+          onEndReached={() => {
+            if (hasNextPage && !isFetchingNextPage) {
+              fetchNextPage();
+            }
+          }}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={isFetchingNextPage ? <ActivityIndicator color="#E8002D" style={{ margin: 20 }} /> : null}
         />
       ) : (
         <View style={styles.emptyBox}>
@@ -116,7 +149,7 @@ export default function PhotosScreen() {
         <Plus color="#fff" size={20} />
         <Text style={{ color: "#fff", fontWeight: "700", marginLeft: 6 }}>Fotoğraf Yükle</Text>
       </TouchableOpacity>
-    </LinearGradient>
+    </ScreenBackground>
   );
 }
 
@@ -125,19 +158,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
   backBtn: {
-    marginRight: 15,
+    padding: 5,
+    marginLeft: -5,
   },
   title: {
+    fontSize: 20,
+    fontWeight: "700",
     color: "#fff",
-    fontSize: 24,
-    fontWeight: "800",
-    flex: 1,
-    textAlign: "center",
   },
   center: {
     flex: 1,

@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Modal,
 } from "react-native";
+import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { supabase } from "@/lib/supabase";
@@ -18,6 +19,7 @@ import { registerForPushNotifications } from "@/lib/notifications";
 import { useAuth } from "@/context/AuthContext";
 import { encrypt, decrypt, deterministicEncrypt } from "@/utils/crypto";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { logger } from "@/utils/logger";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -150,6 +152,31 @@ export default function LoginScreen() {
   const [showPushModal, setShowPushModal] = useState(false);
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
 
+  // ── Brute Force Koruması ────────────────────────────────────────────────────
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null);
+
+  const MAX_ATTEMPTS = 5;
+  const LOCKOUT_SECONDS = 30;
+
+  function isLockedOut(): boolean {
+    if (!lockedUntil) return false;
+    if (Date.now() < lockedUntil) return true;
+    // Kilit süresi doldu, sıfırla
+    setLockedUntil(null);
+    setLoginAttempts(0);
+    return false;
+  }
+
+  function registerFailedAttempt() {
+    const newAttempts = loginAttempts + 1;
+    setLoginAttempts(newAttempts);
+    if (newAttempts >= MAX_ATTEMPTS) {
+      setLockedUntil(Date.now() + LOCKOUT_SECONDS * 1000);
+      setErrorMsg(`Çok fazla başarısız deneme. ${LOCKOUT_SECONDS} saniye bekle.`);
+    }
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   function clearErrors() {
@@ -160,7 +187,7 @@ export default function LoginScreen() {
   async function finishNavigation(userId: string) {
     const { data: userData } = await supabase
       .from("users")
-      .select("couple_id, couples(meet_date, relationship_start_date)")
+      .select("display_name, couple_id, couples(meet_date, relationship_start_date)")
       .eq("id", userId)
       .single();
 
@@ -174,6 +201,7 @@ export default function LoginScreen() {
       relationshipStartDate: couple?.relationship_start_date ?? null,
       isPaired: !!userData?.couple_id,
       hasDates: !!(couple?.meet_date && couple?.relationship_start_date),
+      displayName: userData?.display_name ?? null,
     });
   }
 
@@ -194,6 +222,14 @@ export default function LoginScreen() {
 
   async function handleLogin() {
     clearErrors();
+
+    // Brute force kilidi kontrol et
+    if (isLockedOut()) {
+      const remaining = Math.ceil(((lockedUntil ?? 0) - Date.now()) / 1000);
+      setErrorMsg(`Çok fazla başarısız deneme. ${remaining} saniye bekle.`);
+      return;
+    }
+
     if (!loginUsername.trim()) {
       setErrorMsg("Kullanıcı adı gerekli.");
       return;
@@ -214,6 +250,7 @@ export default function LoginScreen() {
         .single();
 
       if (error || !user) {
+        registerFailedAttempt();
         setErrorMsg("Kullanıcı adı veya şifre hatalı.");
         setIsLoading(false);
         return;
@@ -227,13 +264,22 @@ export default function LoginScreen() {
       }
 
       if (!isPasswordValid) {
+        registerFailedAttempt();
         setErrorMsg("Kullanıcı adı veya şifre hatalı.");
         setIsLoading(false);
         return;
       }
 
       // Check device verification
-      const deviceId = await getOrCreateDeviceId();
+      let deviceId = await getOrCreateDeviceId();
+      const lastUserId = await AsyncStorage.getItem("last_user_id");
+      
+      if (lastUserId && lastUserId !== user.id.toString()) {
+        deviceId = generateUUID();
+        await AsyncStorage.setItem("device_id", deviceId);
+      }
+      await AsyncStorage.setItem("last_user_id", user.id.toString());
+
       const { data: deviceAuth } = await supabase
         .from("device_authorizations")
         .select("*")
@@ -251,7 +297,7 @@ export default function LoginScreen() {
           code: otpCode,
           expires_at: expiresAt.toISOString(),
         });
-        if (otpError) console.error("OTP INSERT ERROR:", otpError);
+        if (otpError) logger.error("OTP INSERT ERROR:", otpError);
         
         if (!deviceAuth) {
            const { error: deviceError } = await supabase.from("device_authorizations").insert({
@@ -260,11 +306,12 @@ export default function LoginScreen() {
              device_name: "Mobile Device",
              is_authorized: false
            });
-           if (deviceError) console.error("DEVICE INSERT ERROR:", deviceError);
+           if (deviceError) logger.error("DEVICE INSERT ERROR:", deviceError);
         }
         
+        // Mail sistemi aktif edilene kadar test amaçlı OTP loglanıyor:
         console.log("-----------------------------------------");
-        console.log("OTP CODE (MOBILE LOGIN):", otpCode);
+        console.log("🔑 OTP CODE (MOBILE LOGIN):", otpCode);
         console.log("-----------------------------------------");
         
         router.push({
@@ -365,6 +412,7 @@ export default function LoginScreen() {
         return;
       }
 
+      await AsyncStorage.setItem("last_user_id", newUser[0].id.toString());
       await signIn(newUser[0].id.toString());
       setPendingUserId(newUser[0].id.toString());
       setShowPushModal(true);
@@ -398,7 +446,7 @@ export default function LoginScreen() {
 
   return (
     <>
-      <LinearGradient colors={["#080811", "#0A0A0C", "#080811"]} style={{ flex: 1 }}>
+      <ScreenBackground colors={["#080811", "#0A0A0C", "#080811"]}>
         {/* Background glow */}
         <View
           style={{
@@ -664,7 +712,7 @@ export default function LoginScreen() {
             <View style={{ height: 40 }} />
           </ScrollView>
         </KeyboardAvoidingView>
-      </LinearGradient>
+      </ScreenBackground>
 
       <PushPermissionModal
         visible={showPushModal}

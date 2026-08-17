@@ -1,11 +1,14 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image as RNImage, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { Image } from "expo-image";
+import { ScreenBackground } from "@/components/ui/ScreenBackground";
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import { useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useQueryClient } from "@tanstack/react-query";
+import { logger } from "@/utils/logger";
 import { decode } from "base64-arraybuffer";
 import { Image as ImageIcon, X, Save, Menu, ImagePlus } from "lucide-react-native";
 import { dayjs, todayString } from "@/lib/date";
@@ -24,6 +27,21 @@ export default function AddMemoryScreen() {
   const [imageUrl, setImageUrl] = useState(params.image_url as string || "");
   const [localImage, setLocalImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({ title: false, date: false });
+  useFocusEffect(
+    useCallback(() => {
+      // Ekran her odaklandığında formu temizle (eğer yeni ekleme modundaysa)
+      if (!isEditing) {
+        setTitle("");
+        setDate(todayString());
+        setDescription("");
+        setImageUrl("");
+        setLocalImage(null);
+        setErrors({ title: false, date: false });
+        setLoading(false);
+      }
+    }, [isEditing])
+  );
 
   const coupleId = profile?.coupleId || null;
 
@@ -41,7 +59,13 @@ export default function AddMemoryScreen() {
   }
 
   async function handleSave() {
-    if (!title.trim() || !date.trim()) {
+    const newErrors = {
+      title: !title.trim(),
+      date: !date.trim(),
+    };
+    setErrors(newErrors);
+
+    if (newErrors.title || newErrors.date) {
       Alert.alert("Eksik Bilgi", "Lütfen bir başlık ve tarih girin.");
       return;
     }
@@ -102,7 +126,7 @@ export default function AddMemoryScreen() {
       queryClient.invalidateQueries({ queryKey: ["memories"] });
       router.back();
     } catch (error: any) {
-      console.error(error);
+      logger.error("Memory save error:", error);
       Alert.alert("Hata", "Anı kaydedilirken bir hata oluştu.");
     } finally {
       setLoading(false);
@@ -110,7 +134,7 @@ export default function AddMemoryScreen() {
   }
 
   return (
-    <LinearGradient colors={["#1c1c1e", "#0A0A0C"]} style={{ flex: 1 }}>
+    <ScreenBackground colors={["#1c1c1e", "#0A0A0C", "#1c1c1e"]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
@@ -124,22 +148,28 @@ export default function AddMemoryScreen() {
 
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Başlık</Text>
+            <Text style={[styles.label, errors.title && { color: "red" }]}>Başlık</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errors.title && { borderColor: "red" }]}
               value={title}
-              onChangeText={setTitle}
+              onChangeText={(text) => {
+                setTitle(text);
+                setErrors(prev => ({ ...prev, title: false }));
+              }}
               placeholder="Örn: İlk Buluşmamız"
               placeholderTextColor="rgba(255,255,255,0.4)"
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Tarih (YYYY-AA-GG)</Text>
+            <Text style={[styles.label, errors.date && { color: "red" }]}>Tarih (YYYY-AA-GG)</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errors.date && { borderColor: "red" }]}
               value={date}
-              onChangeText={setDate}
+              onChangeText={(text) => {
+                setDate(text);
+                setErrors(prev => ({ ...prev, date: false }));
+              }}
               placeholder="2023-05-14"
               placeholderTextColor="rgba(255,255,255,0.4)"
             />
@@ -161,9 +191,9 @@ export default function AddMemoryScreen() {
             <Text style={styles.label}>Fotoğraf (İsteğe bağlı)</Text>
             <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
               {localImage ? (
-                <RNImage source={{ uri: localImage.uri }} style={styles.previewImg} />
+                <Image source={{ uri: localImage.uri }} style={styles.previewImg} contentFit="cover" />
               ) : imageUrl ? (
-                <RNImage source={{ uri: imageUrl }} style={styles.previewImg} />
+                <Image source={{ uri: imageUrl }} style={styles.previewImg} contentFit="cover" />
               ) : (
                 <View style={styles.imagePlaceholder}>
                   <ImagePlus color="rgba(255,255,255,0.4)" size={32} />
@@ -189,7 +219,7 @@ export default function AddMemoryScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </ScreenBackground>
   );
 }
 

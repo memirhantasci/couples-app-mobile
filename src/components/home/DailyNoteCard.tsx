@@ -4,6 +4,8 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { todayString } from "@/lib/date";
 import { encrypt } from "@/utils/crypto";
+import { sanitize } from "@/utils/sanitize";
+import { logger } from "@/utils/logger";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { BookOpen } from "lucide-react-native";
@@ -27,7 +29,9 @@ export function DailyNoteCard({ existingNote }: DailyNoteCardProps) {
 
     const coupleId = profile?.coupleId ? parseInt(String(profile.coupleId), 10) : null;
     const today = todayString();
-    const encryptedContent = encrypt(content.trim());
+    const cleanContent = sanitize(content.trim());
+    if (!cleanContent) return;
+    const encryptedContent = encrypt(cleanContent);
     const userId = parseInt(session.user.id, 10);
 
     const { error } = await supabase.rpc("save_daily_note", {
@@ -43,7 +47,7 @@ export function DailyNoteCard({ existingNote }: DailyNoteCardProps) {
       setSaved(true);
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
     } else {
-      console.error("Note save error:", JSON.stringify(error, null, 2));
+      logger.error("Note save error:", JSON.stringify(error, null, 2));
       alert("Not kaydedilemedi: " + (error?.message || "Bilinmeyen hata"));
     }
   }

@@ -1,6 +1,7 @@
-import React from "react";
+import React , { useCallback } from "react";
 import { View, Text, ScrollView, ActivityIndicator, StyleSheet, RefreshControl, TouchableOpacity } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { ScreenBackground } from "@/components/ui/ScreenBackground";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
@@ -75,22 +76,29 @@ export default function HomeScreen() {
         currentMood: moodRes.data?.mood_type || null,
         currentNote: noteRes.data?.content ? decrypt(noteRes.data.content) : null,
         activeMeeting,
-        pendingLetters: (lettersRes.data || []).map(l => ({
-          ...l,
-          sender: { 
-            ...l.sender, 
-            username: l.sender?.username ? deterministicDecrypt(l.sender.username) || l.sender.username : null 
-          }
-        }))
+        pendingLetters: (lettersRes.data || []).map(l => {
+          const senderObj = Array.isArray(l.sender) ? l.sender[0] : l.sender;
+          return {
+            ...l,
+            sender: senderObj ? { 
+              ...senderObj, 
+              username: senderObj.username ? deterministicDecrypt(senderObj.username) || senderObj.username : ""
+            } : undefined
+          };
+        })
       };
-    }
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   if (!session || (!dashboardData && isLoading)) {
     return (
-      <View style={{ flex: 1, backgroundColor: "#080811", justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator color="#E8002D" size="large" />
-      </View>
+      <ScreenBackground style={{ padding: 20, paddingTop: 40 }}>
+        <Skeleton height={150} borderRadius={24} style={{ marginBottom: 20 }} />
+        <Skeleton height={100} borderRadius={20} style={{ marginBottom: 20 }} />
+        <Skeleton height={120} borderRadius={24} style={{ marginBottom: 20 }} />
+        <Skeleton height={120} borderRadius={24} style={{ marginBottom: 20 }} />
+      </ScreenBackground>
     );
   }
 
@@ -106,8 +114,10 @@ export default function HomeScreen() {
   const loveMeter = getLoveMeter();
   const dateStr = dayjs().format("DD MMMM dddd").toUpperCase();
 
+
+
   return (
-    <LinearGradient colors={["#080811", "#0A0A0C", "#080811"]} style={{ flex: 1 }}>
+    <ScreenBackground>
       <PageHeader title="" showBack={false} />
       <ScrollView 
         contentContainerStyle={{ padding: 20, paddingTop: 10, paddingBottom: 120 }}
@@ -152,8 +162,7 @@ export default function HomeScreen() {
         {/* MEETING COUNTDOWN */}
         {dashboardData?.activeMeeting && (
           <MeetingCountdown 
-            targetDate={dashboardData.activeMeeting.meeting_datetime} 
-            title={dashboardData.activeMeeting.title || "Buluşma"} 
+            meeting={dashboardData.activeMeeting} 
           />
         )}
 
@@ -170,7 +179,7 @@ export default function HomeScreen() {
         <PendingLettersCard letters={dashboardData?.pendingLetters || []} />
 
       </ScrollView>
-    </LinearGradient>
+    </ScreenBackground>
   );
 }
 

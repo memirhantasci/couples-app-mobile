@@ -1,6 +1,8 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, Modal, KeyboardAvoidingView, Platform, Image as RNImage } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import React, { useCallback,  useState, useMemo, useEffect } from "react";
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, Modal, KeyboardAvoidingView, Platform } from "react-native";
+import { Image } from "expo-image";
+import { ScreenBackground } from "@/components/ui/ScreenBackground";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { Calendar, LocaleConfig } from "react-native-calendars";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -9,6 +11,7 @@ import { dayjs, todayString } from "@/lib/date";
 import { decrypt, deterministicDecrypt, encrypt } from "@/utils/crypto";
 import { ChevronRight, Heart, FileText, Frown, Smile, Meh, AlertCircle, Sparkles, Droplet, Pill, Menu, ChevronLeft, X, Calendar as CalendarIcon, Save, Trash2, MapPin } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 LocaleConfig.locales['tr'] = {
   monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
@@ -24,6 +27,7 @@ export default function CalendarScreen() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const today = todayString();
+  const insets = useSafeAreaInsets();
 
   const [selectedDate, setSelectedDate] = useState<string>(today);
   const [showTodayModal, setShowTodayModal] = useState(false);
@@ -34,7 +38,7 @@ export default function CalendarScreen() {
   const userId = session?.user?.id ? parseInt(session.user.id, 10) : null;
 
   // Fetch Data
-  const { data, isLoading } = useQuery({
+  const { data, isLoading , refetch} = useQuery({
     queryKey: ["calendar_data", coupleId],
     enabled: !!coupleId || !!userId,
     queryFn: async () => {
@@ -79,7 +83,8 @@ export default function CalendarScreen() {
           uploader: Array.isArray(p.uploader) ? p.uploader[0] : p.uploader,
         })),
       };
-    }
+    },
+    staleTime: 1000 * 60 * 5,
   });
 
   // Calculate markedDates
@@ -205,7 +210,7 @@ export default function CalendarScreen() {
               const uploaderName = photo.uploader?.display_name || deterministicDecrypt(photo.uploader?.username) || photo.uploader?.username || "?";
               return (
                 <View key={photo.id} style={styles.photoCard}>
-                  <RNImage source={{ uri: photo.image_url }} style={styles.photoImg} />
+                  <Image source={{ uri: photo.image_url }} style={styles.photoImg} contentFit="cover" />
                   {(photo.title || photo.description) && (
                     <View style={styles.photoCaptionBox}>
                       {!!photo.title && <Text style={styles.photoTitle}>{photo.title}</Text>}
@@ -271,9 +276,11 @@ export default function CalendarScreen() {
     return <View style={{ flex: 1, backgroundColor: "#080811" }} />;
   }
 
+
+
   return (
-    <LinearGradient colors={["#080811", "#0A0A0C", "#080811"]} style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 60, paddingBottom: 120 }}>
+    <ScreenBackground>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: insets.top + 10, paddingBottom: 120 }}>
         
         {/* Header */}
         <View style={[styles.header, { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }]}>
@@ -345,7 +352,10 @@ export default function CalendarScreen() {
             </View>
             
             {isLoading ? (
-              <ActivityIndicator color="#E8002D" style={{ marginTop: 20 }} />
+              <View style={{ marginTop: 20, gap: 12 }}>
+                <Skeleton height={100} borderRadius={16} />
+                <Skeleton height={60} borderRadius={16} />
+              </View>
             ) : (
               renderSelectedDayDetails()
             )}
@@ -409,7 +419,7 @@ export default function CalendarScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-    </LinearGradient>
+    </ScreenBackground>
   );
 }
 

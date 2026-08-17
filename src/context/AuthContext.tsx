@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
+import { registerForPushNotifications } from "@/lib/notifications";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -16,6 +17,7 @@ export interface CoupleProfile {
   relationshipStartDate: string | null;
   isPaired: boolean;
   hasDates: boolean;
+  displayName: string | null;
 }
 
 interface AuthContextValue {
@@ -47,7 +49,7 @@ export function useAuth() {
 async function fetchProfile(userId: string): Promise<CoupleProfile> {
   const { data } = await supabase
     .from("users")
-    .select("couple_id, couples(meet_date, relationship_start_date)")
+    .select("display_name, couple_id, couples(meet_date, relationship_start_date)")
     .eq("id", userId)
     .single();
 
@@ -58,6 +60,7 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
       relationshipStartDate: null,
       isPaired: false,
       hasDates: false,
+      displayName: null,
     };
   }
 
@@ -69,6 +72,7 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
     relationshipStartDate: couple?.relationship_start_date ?? null,
     isPaired: !!data.couple_id,
     hasDates: !!(couple?.meet_date && couple?.relationship_start_date),
+    displayName: data.display_name ?? null,
   };
 }
 
@@ -86,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession({ user: { id: userId } });
         const p = await fetchProfile(userId);
         setProfile(p);
+        registerForPushNotifications(userId).catch(() => {});
       } else {
         await AsyncStorage.removeItem("custom_session_userid");
       }

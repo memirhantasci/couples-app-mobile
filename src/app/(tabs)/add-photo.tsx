@@ -1,12 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { 
   View, Text, StyleSheet, TextInput, TouchableOpacity, 
-  ScrollView, Image, ActivityIndicator, Alert, KeyboardAvoidingView, Platform
+  ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
+import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import * as ImagePicker from "expo-image-picker";
 import { decode } from "base64-arraybuffer";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Image as ImageIcon, Camera, Check, X, Calendar as CalendarIcon, Clock, Menu, Calendar, CheckCircle, AlertCircle, UploadCloud, ArrowUp } from "lucide-react-native";
 
@@ -14,12 +15,15 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { dayjs, todayString } from "@/lib/date";
 import { deterministicDecrypt } from "@/utils/crypto";
+import { logger } from "@/utils/logger";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function AddPhotoScreen() {
   const router = useRouter();
   const { session, profile } = useAuth();
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? parseInt(session.user.id, 10) : null;
@@ -31,6 +35,7 @@ export default function AddPhotoScreen() {
   const [description, setDescription] = useState("");
   const [exifStatus, setExifStatus] = useState<"idle" | "loading" | "found" | "not_found">("idle");
   const [uploading, setUploading] = useState(false);
+  const [errors, setErrors] = useState({ photo: false, description: false });
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -72,6 +77,7 @@ export default function AddPhotoScreen() {
       const asset = result.assets[0];
       setLocalImage(asset);
       setExifStatus("loading");
+      setErrors(prev => ({ ...prev, photo: false }));
 
       // EXIF parse from Expo ImagePicker
       setTimeout(() => {
@@ -102,21 +108,34 @@ export default function AddPhotoScreen() {
       }, 500);
 
     } catch (error) {
-      console.error(error);
+      logger.error("Photo upload error:", error);
       Alert.alert("Hata", "Fotoğraf seçilirken bir hata oluştu.");
     }
   };
 
   const handleSave = async () => {
-    if (!localImage || !takenDate) {
-      Alert.alert("Eksik", "Lütfen bir fotoğraf seçin ve tarih girin.");
+    const newErrors = {
+      photo: !localImage,
+      description: !description.trim()
+    };
+    setErrors(newErrors);
+
+    if (newErrors.photo) {
+      Alert.alert("Eksik", "Lütfen bir fotoğraf seçin.");
       return;
     }
 
-    if (!description.trim()) {
+    if (!takenDate) {
+      Alert.alert("Eksik", "Lütfen bir tarih girin.");
+      return;
+    }
+
+    if (newErrors.description) {
       Alert.alert("Eksik", "Lütfen bir açıklama girin.");
       return;
     }
+
+    if (!localImage) return;
 
     setUploading(true);
 
@@ -161,7 +180,7 @@ export default function AddPhotoScreen() {
         { text: "Tamam", onPress: () => router.back() }
       ]);
     } catch (error: any) {
-      console.error(error);
+      logger.error("Photo delete error:", error);
       Alert.alert("Hata", error.message || "Kaydetme sırasında bir sorun oluştu.");
     } finally {
       setUploading(false);
@@ -187,14 +206,28 @@ export default function AddPhotoScreen() {
     }
   };
 
+  useFocusEffect(
+    useCallback(() => {
+      // Ekran her odaklandığında formu temizle
+      setLocalImage(null);
+      setTitle("");
+      setDescription("");
+      setExifStatus("idle");
+      setTakenDate("");
+      setTakenTime("");
+      setErrors({ photo: false, description: false });
+      setUploading(false);
+    }, [])
+  );
+
   if (!session) return <View style={{ flex: 1, backgroundColor: "#0c0c0c" }} />;
 
   return (
-    <LinearGradient colors={["#1a1114", "#0c0c0c", "#1a1114"]} style={{ flex: 1 }}>
+    <ScreenBackground>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         
         {/* HEADER */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <ChevronLeft color="#fff" size={28} />
           </TouchableOpacity>
@@ -214,13 +247,13 @@ export default function AddPhotoScreen() {
 
           {/* Dotted Upload Box */}
           <TouchableOpacity 
-            style={[styles.uploadBox, localImage ? styles.uploadBoxHasImage : {}]} 
+            style={[styles.uploadBox, localImage ? styles.uploadBoxHasImage : {}, errors.photo && { borderColor: "red" }]} 
             onPress={handlePickImage}
             activeOpacity={0.8}
           >
             {localImage ? (
               <View style={{ width: "100%", alignItems: "center" }}>
-                <Image source={{ uri: localImage.uri }} style={styles.previewImage} />
+                <Image source={{ uri: localImage.uri }} style={styles.previewImage} contentFit="cover" />
                 <View style={styles.changeBadge}>
                   <Text style={styles.changeBadgeText}>Değiştir</Text>
                 </View>
@@ -330,11 +363,14 @@ export default function AddPhotoScreen() {
               </View>
 
               <View>
-                <Text style={styles.fieldLabel}>Açıklama *</Text>
+                <Text style={[styles.fieldLabel, errors.description && { color: "red" }]}>Açıklama *</Text>
                 <TextInput
-                  style={[styles.input, { height: 100, textAlignVertical: "top" }]}
+                  style={[styles.input, { height: 100, textAlignVertical: "top" }, errors.description && { borderColor: "red" }]}
                   value={description}
-                  onChangeText={setDescription}
+                  onChangeText={(text) => {
+                    setDescription(text);
+                    setErrors(prev => ({ ...prev, description: false }));
+                  }}
                   placeholder="Bu anı anlatın... Neredeydiniz, ne hissettiniz?"
                   placeholderTextColor="rgba(255,255,255,0.3)"
                   multiline
@@ -364,7 +400,7 @@ export default function AddPhotoScreen() {
 
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </ScreenBackground>
   );
 }
 
@@ -372,7 +408,6 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: Platform.OS === "ios" ? 60 : 40,
     paddingHorizontal: 20,
     paddingBottom: 15,
   },

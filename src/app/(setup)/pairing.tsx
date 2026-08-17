@@ -6,10 +6,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Share,
+  KeyboardAvoidingView,
+  Platform,
   Alert,
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
-import { LinearGradient } from "expo-linear-gradient";
+import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useLocalSearchParams, router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -158,8 +160,9 @@ export default function PairingScreen() {
   }
 
   return (
-    <LinearGradient colors={["#080811", "#0A0A0C", "#080811"]} style={{ flex: 1 }}>
-      {/* Red glow */}
+    <ScreenBackground colors={["#080811", "#0A0A0C", "#080811"]}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+        {/* Red glow */}
       <View
         style={{
           position: "absolute",
@@ -330,6 +333,7 @@ export default function PairingScreen() {
           )}
         </TouchableOpacity>
       </View>
-    </LinearGradient>
+      </KeyboardAvoidingView>
+    </ScreenBackground>
   );
 }

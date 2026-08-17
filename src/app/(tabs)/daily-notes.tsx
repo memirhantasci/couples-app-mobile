@@ -2,16 +2,18 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
   Platform,
   Alert,
   Modal,
-  TextInput
+  TextInput,
+  KeyboardAvoidingView
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { ScreenBackground } from "@/components/ui/ScreenBackground";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -39,6 +41,7 @@ export default function DailyNotesScreen() {
   const [editingNote, setEditingNote] = useState<DailyNote | null>(null);
   const [editContent, setEditContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editError, setEditError] = useState(false);
 
   const {
     data: notes = [],
@@ -89,7 +92,11 @@ export default function DailyNotesScreen() {
   };
 
   const handleUpdate = async () => {
-    if (!editingNote || !editContent) return;
+    if (!editingNote) return;
+    if (!editContent.trim()) {
+      setEditError(true);
+      return;
+    }
     setIsSubmitting(true);
     try {
       const encrypted = encrypt(editContent);
@@ -103,6 +110,7 @@ export default function DailyNotesScreen() {
       queryClient.invalidateQueries({ queryKey: ["daily_notes_history", userId] });
       setEditingNote(null);
       setEditContent("");
+      setEditError(false);
     } catch (e: any) {
       Alert.alert("Hata", "Günlük güncellenemedi.");
     } finally {
@@ -112,14 +120,15 @@ export default function DailyNotesScreen() {
 
   if (isLoading) {
     return (
-      <LinearGradient colors={["#080811", "#0A0A0C", "#080811"]} style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator color="#E8002D" size="large" />
-      </LinearGradient>
+      <ScreenBackground style={{ padding: 20, paddingTop: 120 }}>
+        <Skeleton height={200} borderRadius={16} style={{ marginBottom: 20 }} />
+        <Skeleton height={200} borderRadius={16} style={{ marginBottom: 20 }} />
+      </ScreenBackground>
     );
   }
 
   return (
-    <LinearGradient colors={["#0c0c0c", "#120508", "#0c0c0c"]} style={{ flex: 1 }}>
+    <ScreenBackground>
       
       {/* HEADER */}
       <View style={{
@@ -149,7 +158,9 @@ export default function DailyNotesScreen() {
         </View>
       </View>
 
-      <ScrollView
+      <FlatList
+        data={notes}
+        keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={{
           paddingTop: 10,
           paddingHorizontal: 20,
@@ -163,68 +174,69 @@ export default function DailyNotesScreen() {
             tintColor="#E8002D"
           />
         }
-      >
-        {/* ─── TITLE ─── */}
-        <View style={{ marginBottom: 28, alignItems: "center" }}>
-          <View
-            style={{
-              width: 52,
-              height: 52,
-              borderRadius: 16,
-              backgroundColor: "rgba(232,0,45,0.12)",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 12,
-            }}
-          >
-            <BookOpen size={24} color="#E8002D" />
-          </View>
-          <Text
-            style={{
-              fontSize: 26,
-              fontWeight: "800",
-              color: "#fff",
-              textAlign: "center",
-              letterSpacing: 0.5,
-            }}
-          >
-            GÜNLÜĞÜM 📓
-          </Text>
-          <Text
-            style={{
-              color: "rgba(255,255,255,0.35)",
-              fontSize: 14,
-              marginTop: 6,
-              textAlign: "center",
-            }}
-          >
-            Sadece senin görebildiğin notların
-          </Text>
-        </View>
+        ListHeaderComponent={
+          <>
+            {/* ─── TITLE ─── */}
+            <View style={{ marginBottom: 28, alignItems: "center" }}>
+              <View
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 16,
+                  backgroundColor: "rgba(232,0,45,0.12)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 12,
+                }}
+              >
+                <BookOpen size={24} color="#E8002D" />
+              </View>
+              <Text
+                style={{
+                  fontSize: 26,
+                  fontWeight: "800",
+                  color: "#fff",
+                  textAlign: "center",
+                  letterSpacing: 0.5,
+                }}
+              >
+                GÜNLÜĞÜM 📓
+              </Text>
+              <Text
+                style={{
+                  color: "rgba(255,255,255,0.35)",
+                  fontSize: 14,
+                  marginTop: 6,
+                  textAlign: "center",
+                }}
+              >
+                Sadece senin görebildiğin notların
+              </Text>
+            </View>
 
-        {/* ─── Empty State ─── */}
-        {notes.length === 0 && (
-          <View
-            style={{
-              alignItems: "center",
-              justifyContent: "center",
-              paddingVertical: 80,
-              borderRadius: 20,
-              backgroundColor: "rgba(255,255,255,0.03)",
-              borderWidth: 1,
-              borderColor: "rgba(255,255,255,0.06)",
-              borderStyle: "dashed",
-            }}
-          >
-            <Text style={{ fontSize: 48, marginBottom: 16 }}>📓</Text>
-            <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>
-              Henüz günlüğüne hiçbir şey yazmadın.
-            </Text>
-          </View>
-        )}
-
-        {/* ─── Timeline ─── */}
-        {notes.map((note, index) => {
+            {/* ─── Empty State ─── */}
+            {notes.length === 0 && (
+              <View
+                style={{
+                  alignItems: "center",
+                  justifyContent: "center",
+                  paddingVertical: 80,
+                  borderRadius: 20,
+                  backgroundColor: "rgba(255,255,255,0.03)",
+                  borderWidth: 1,
+                  borderColor: "rgba(255,255,255,0.06)",
+                  borderStyle: "dashed",
+                }}
+              >
+                <Text style={{ fontSize: 48, marginBottom: 16 }}>📓</Text>
+                <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>
+                  Henüz günlüğüne hiçbir şey yazmadın.
+                </Text>
+              </View>
+            )}
+          </>
+        }
+        renderItem={({ item: note, index }) => {
           const dateObj = dayjs(note.date);
           const day = dateObj.format("D");
           const monthYear = dateObj.format("MMMM YYYY").toUpperCase();
@@ -318,6 +330,7 @@ export default function DailyNotesScreen() {
                       onPress={() => {
                         setEditingNote(note);
                         setEditContent(note.content);
+                        setEditError(false);
                       }}
                       style={{ padding: 6, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 8 }}
                     >
@@ -344,13 +357,14 @@ export default function DailyNotesScreen() {
               </View>
             </View>
           );
-        })}
-      </ScrollView>
+        }}
+      />
 
       {/* DÜZENLEME MODALI */}
       <Modal visible={!!editingNote} animationType="slide" transparent>
-        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.8)", justifyContent: "center", padding: 20 }}>
-          <View style={{ backgroundColor: "#1c1c1e", borderRadius: 20, padding: 20, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" }}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.8)", justifyContent: "center", padding: 20 }}>
+            <View style={{ backgroundColor: "#1c1c1e", borderRadius: 20, padding: 20, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" }}>
             <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700", marginBottom: 16 }}>Günlüğü Düzenle</Text>
             <TextInput
               style={{
@@ -362,11 +376,14 @@ export default function DailyNotesScreen() {
                 minHeight: 120,
                 textAlignVertical: "top",
                 borderWidth: 1,
-                borderColor: "rgba(255,255,255,0.1)",
+                borderColor: editError ? "red" : "rgba(255,255,255,0.1)",
               }}
               multiline
               value={editContent}
-              onChangeText={setEditContent}
+              onChangeText={(text) => {
+                setEditContent(text);
+                setEditError(false);
+              }}
               placeholder="Günlüğünüz..."
               placeholderTextColor="rgba(255,255,255,0.3)"
             />
@@ -387,9 +404,10 @@ export default function DailyNotesScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
-    </LinearGradient>
+    </ScreenBackground>
   );
 }

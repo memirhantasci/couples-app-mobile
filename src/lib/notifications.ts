@@ -1,8 +1,10 @@
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
+import * as Application from "expo-application";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { supabase } from "@/lib/supabase";
+import { logger } from "@/utils/logger";
 
 /**
  * Saves or updates a push token in Supabase for the given user.
@@ -39,7 +41,7 @@ export async function registerForPushNotifications(
 ): Promise<void> {
   // Only real devices can get push tokens
   if (!Device.isDevice) {
-    console.log("[Push] Skipping — not a real device.");
+    logger.log("[Push] Skipping — not a real device.");
     return;
   }
 
@@ -54,8 +56,8 @@ export async function registerForPushNotifications(
     }
 
     if (finalStatus !== "granted") {
-      console.log("[Push] Permission denied by user.");
-      return; // Non-blocking — user said no, that's fine
+      logger.log("[Push] Permission denied by user.");
+      return;
     }
 
     const projectId =
@@ -63,22 +65,33 @@ export async function registerForPushNotifications(
       Constants.easConfig?.projectId;
 
     if (!projectId) {
-      console.warn(
-        "[Push] No EAS projectId found in app.json. Push token cannot be fetched."
-      );
+      console.warn("[Push] No EAS projectId found.");
       return;
     }
 
-    const { data: tokenData } = await Notifications.getExpoPushTokenAsync({
-      projectId,
-    });
+    // Expo Go on Android uses host.exp.exponent as package name
+    // We must pass the applicationId explicitly so it uses Expo's own Firebase project
+    const applicationId =
+      Platform.OS === "android"
+        ? Application.applicationId
+        : undefined;
+
+    const isExpoGo = applicationId === "host.exp.exponent";
+
+    const tokenOptions: any = { projectId };
+    // For Expo Go, do NOT pass applicationId — let Expo handle it internally
+    if (!isExpoGo && applicationId) {
+      tokenOptions.applicationId = applicationId;
+    }
+
+    const { data: tokenData } = await Notifications.getExpoPushTokenAsync(tokenOptions);
 
     if (tokenData) {
       await savePushToken(userId, tokenData);
+      logger.log("[Push] Token registered:", tokenData);
     }
   } catch (err) {
-    // Never crash the app — just log
-    console.log("[Push] Registration failed silently:", err);
+    logger.log("[Push] Registration failed silently:", err);
   }
 }
 
@@ -91,5 +104,38 @@ export function configureAndroidNotificationChannel() {
       vibrationPattern: [0, 250, 250, 250],
       lightColor: "#E8002D",
     });
+  }
+}
+
+export async function sendPushNotification(userId: string, title: string, body: string, data?: any) {
+  try {
+    const { data: tokens } = await supabase
+      .from("push_tokens")
+      .select("token")
+      .eq("user_id", userId);
+
+    if (!tokens || tokens.length === 0) return;
+
+    for (const t of tokens) {
+      const message = {
+        to: t.token,
+        sound: "default",
+        title,
+        body,
+        data: data || {},
+      };
+
+      await fetch("https://exp.host/--/api/v2/push/send", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Accept-encoding": "gzip, deflate",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(message),
+      });
+    }
+  } catch (error) {
+    logger.log("[Push] Error sending push:", error);
   }
 }

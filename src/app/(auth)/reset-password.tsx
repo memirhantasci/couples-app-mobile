@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams } from "expo-router";
 import { supabase } from "@/lib/supabase";
@@ -56,7 +57,7 @@ export default function ResetPasswordScreen() {
   }
 
   return (
-    <LinearGradient colors={["#080811", "#0A0A0C"]} style={{ flex: 1 }}>
+    <ScreenBackground colors={["#080811", "#0A0A0C", "#080811"]}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -134,6 +135,6 @@ export default function ResetPasswordScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </ScreenBackground>
   );
 }

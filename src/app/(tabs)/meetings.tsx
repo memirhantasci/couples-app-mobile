@@ -1,19 +1,24 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert, Platform, Modal } from "react-native";
+import React, { useCallback,  useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert, Platform, Modal, Linking, KeyboardAvoidingView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { ScreenBackground } from "@/components/ui/ScreenBackground";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, CalendarDays, Plus, Trash2, Edit2, X, Heart, Menu } from "lucide-react-native";
+import { ChevronLeft, CalendarDays, Plus, Trash2, Edit2, X, Heart, Menu, MapPin, Navigation } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { dayjs } from "@/lib/date";
+import { MapPickerModal } from "@/components/MapPickerModal";
 
 export default function MeetingsScreen() {
   const router = useRouter();
   const { session, profile } = useAuth();
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
   const coupleId = profile?.coupleId;
   const userId = session?.user?.id ? parseInt(session.user.id, 10) : null;
 
@@ -23,10 +28,16 @@ export default function MeetingsScreen() {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingMeetingId, setEditingMeetingId] = useState<number | null>(null);
-  
-  const [showAddModal, setShowAddModal] = useState(false);
 
-  const { data: meetings, isLoading } = useQuery({
+  const [locationName, setLocationName] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [titleError, setTitleError] = useState(false);
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
+
+  const { data: meetings, isLoading , refetch} = useQuery({
     queryKey: ["meetings", coupleId],
     enabled: !!coupleId,
     queryFn: async () => {
@@ -39,6 +50,7 @@ export default function MeetingsScreen() {
       if (error) throw error;
       return data || [];
     },
+    staleTime: 1000 * 60 * 5,
   });
 
   const onDateChange = (event: any, selectedDate?: Date) => {
@@ -67,23 +79,34 @@ export default function MeetingsScreen() {
       return;
     }
 
+    if (!title.trim()) {
+      setTitleError(true);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const utcDateTime = dayjs(meetingDate).toISOString();
-      
+
       if (editingMeetingId) {
         const { error } = await supabase.from("meetings").update({
           meeting_datetime: utcDateTime,
           title: title || "Buluşma",
+          location_name: locationName.trim() || null,
+          latitude: latitude,
+          longitude: longitude,
         }).eq("id", editingMeetingId).eq("user_id", userId);
-        
+
         if (error) throw error;
         Alert.alert("Başarılı", "Buluşma başarıyla güncellendi!");
       } else {
         const { error } = await supabase.from("meetings").insert({
           meeting_datetime: utcDateTime,
           title: title || "Buluşma",
+          location_name: locationName.trim() || null,
+          latitude: latitude,
+          longitude: longitude,
           is_active: true,
           couple_id: coupleId,
           user_id: userId,
@@ -92,10 +115,14 @@ export default function MeetingsScreen() {
         if (error) throw error;
         Alert.alert("Başarılı", "Buluşma başarıyla planlandı!");
       }
-      
+
       setTitle("");
       setMeetingDate(new Date());
+      setLocationName("");
+      setLatitude(null);
+      setLongitude(null);
       setEditingMeetingId(null);
+      setTitleError(false);
       setShowAddModal(false);
       queryClient.invalidateQueries({ queryKey: ["meetings", coupleId] });
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
@@ -114,6 +141,9 @@ export default function MeetingsScreen() {
     setEditingMeetingId(m.id);
     setTitle(m.title);
     setMeetingDate(new Date(m.meeting_datetime));
+    setLocationName(m.location_name || "");
+    setLatitude(m.latitude || null);
+    setLongitude(m.longitude || null);
     setShowAddModal(true);
   };
 
@@ -125,18 +155,18 @@ export default function MeetingsScreen() {
 
     Alert.alert("Buluşmayı İptal Et", "Bu buluşmayı iptal etmek istediğinize emin misiniz?", [
       { text: "Vazgeç", style: "cancel" },
-      { 
-        text: "İptal Et", 
-        style: "destructive", 
+      {
+        text: "İptal Et",
+        style: "destructive",
         onPress: async () => {
           const { error } = await supabase
             .from("meetings")
             .update({ is_active: false })
             .eq("id", m.id)
             .eq("user_id", userId);
-          
+
           if (error) {
-             Alert.alert("Hata", "Sadece oluşturan kişi silebilir.");
+            Alert.alert("Hata", "Sadece oluşturan kişi silebilir.");
           } else {
             queryClient.invalidateQueries({ queryKey: ["meetings", coupleId] });
             queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
@@ -147,13 +177,15 @@ export default function MeetingsScreen() {
   };
 
   const now = new Date();
-  
+
   const activeMeetings = meetings?.filter(m => new Date(m.meeting_datetime) >= now) || [];
   const pastMeetings = meetings?.filter(m => new Date(m.meeting_datetime) < now) || [];
 
+
+
   return (
-    <LinearGradient colors={["#1a1114", "#0c0c0c", "#1a1114"]} style={{ flex: 1 }}>
-      <View style={styles.header}>
+    <ScreenBackground>
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <ChevronLeft color="#fff" size={28} />
         </TouchableOpacity>
@@ -164,23 +196,26 @@ export default function MeetingsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.container}>
-        
+
         {/* AKTİF BULUŞMALAR */}
         <View style={{ gap: 16 }}>
           <Text style={styles.sectionTitle}>Aktif Buluşmalar</Text>
 
           {isLoading ? (
-            <ActivityIndicator color="#D32F2F" />
+            <View style={{ gap: 12 }}>
+              <Skeleton height={140} borderRadius={16} />
+              <Skeleton height={140} borderRadius={16} />
+            </View>
           ) : activeMeetings.length > 0 ? (
             <View style={{ gap: 12 }}>
               {activeMeetings.map((m) => {
                 const isCreator = m.user_id === userId;
 
                 return (
-                  <View 
-                    key={m.id} 
+                  <View
+                    key={m.id}
                     style={[
-                      styles.meetingItem, 
+                      styles.meetingItem,
                       { opacity: m.is_active ? 1 : 0.5 }
                     ]}
                   >
@@ -192,6 +227,27 @@ export default function MeetingsScreen() {
                       <Text style={styles.meetingDate}>
                         {dayjs(m.meeting_datetime).locale("tr").format("DD MMMM YYYY, dddd - HH:mm")}
                       </Text>
+                      {m.location_name && (
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 }}>
+                          <MapPin color="#ffd700" size={14} />
+                          <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>{m.location_name}</Text>
+                        </View>
+                      )}
+                      {m.latitude && m.longitude && (
+                        <TouchableOpacity
+                          style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 12, backgroundColor: 'rgba(34, 197, 94, 0.1)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(34, 197, 94, 0.3)' }}
+                          onPress={() => {
+                            const url = Platform.select({
+                              ios: `maps://app?daddr=${m.latitude},${m.longitude}`,
+                              android: `google.navigation:q=${m.latitude},${m.longitude}`
+                            }) || `https://www.google.com/maps/dir/?api=1&destination=${m.latitude},${m.longitude}`;
+                            Linking.openURL(url);
+                          }}
+                        >
+                          <Navigation color="#22c55e" size={14} />
+                          <Text style={{ color: "#22c55e", fontSize: 13, fontWeight: "600" }}>Yol Tarifi Al</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
 
                     {isCreator && m.is_active && (
@@ -223,19 +279,23 @@ export default function MeetingsScreen() {
             </View>
           )}
 
-          <TouchableOpacity 
-            style={styles.addMeetingBtn} 
+          <TouchableOpacity
+            style={styles.addMeetingBtn}
             onPress={() => {
               setEditingMeetingId(null);
               setTitle("");
+              setLocationName("");
+              setLatitude(null);
+              setLongitude(null);
               setMeetingDate(new Date());
+              setTitleError(false);
               setShowAddModal(true);
             }}
           >
-            <LinearGradient 
-              colors={["#b8860b", "#ffd700", "#b8860b"]} 
-              start={{ x: 0, y: 0 }} 
-              end={{ x: 1, y: 0 }} 
+            <LinearGradient
+              colors={["#b8860b", "#ffd700", "#b8860b"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
               style={styles.addMeetingBtnGradient}
             >
               <Plus color="#1a1114" size={22} />
@@ -250,10 +310,10 @@ export default function MeetingsScreen() {
             <Text style={styles.sectionTitle}>Geçmiş Buluşmalar</Text>
             <View style={{ gap: 12 }}>
               {pastMeetings.map((m) => (
-                <View 
-                  key={m.id} 
+                <View
+                  key={m.id}
                   style={[
-                    styles.meetingItem, 
+                    styles.meetingItem,
                     { opacity: 0.6, backgroundColor: "rgba(255,255,255,0.02)" }
                   ]}
                 >
@@ -266,6 +326,12 @@ export default function MeetingsScreen() {
                     <Text style={styles.meetingDate}>
                       {dayjs(m.meeting_datetime).locale("tr").format("DD MMMM YYYY, dddd - HH:mm")}
                     </Text>
+                    {m.location_name && (
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 }}>
+                        <MapPin color="#ffd700" size={14} />
+                        <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>{m.location_name}</Text>
+                      </View>
+                    )}
                   </View>
                 </View>
               ))}
@@ -277,8 +343,9 @@ export default function MeetingsScreen() {
 
       {/* YENİ/DÜZENLE BULUŞMA MODALI */}
       <Modal visible={showAddModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{editingMeetingId ? "Buluşmayı Düzenle" : "Yeni Buluşma Planla"}</Text>
               <TouchableOpacity onPress={() => setShowAddModal(false)} style={{ padding: 4 }}>
@@ -288,11 +355,14 @@ export default function MeetingsScreen() {
 
             <Text style={styles.label}>Başlık</Text>
             <TextInput
-              style={styles.inputRed}
+              style={[styles.inputRed, titleError && { borderColor: "red" }]}
               placeholder="Akşam Yemeği 🍕"
               placeholderTextColor="rgba(255,255,255,0.3)"
               value={title}
-              onChangeText={setTitle}
+              onChangeText={(text) => {
+                setTitle(text);
+                setTitleError(false);
+              }}
             />
 
             <Text style={styles.label}>Tarih & Saat</Text>
@@ -306,6 +376,20 @@ export default function MeetingsScreen() {
               </TouchableOpacity>
               <CalendarDays color="#ffd700" size={20} style={{ position: "absolute", right: 14 }} />
             </View>
+
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <Text style={styles.label}>Konum (İsteğe Bağlı)</Text>
+              <TouchableOpacity onPress={() => setShowMapModal(true)} style={{ marginTop: 12 }}>
+                <Text style={{ color: "#ffd700", fontSize: 13, fontWeight: "600" }}>Haritadan Seç</Text>
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.inputRed}
+              placeholder="Kadıköy Moda Sahili"
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              value={locationName}
+              onChangeText={setLocationName}
+            />
 
             {showDatePicker && (
               <DateTimePicker
@@ -327,15 +411,15 @@ export default function MeetingsScreen() {
               />
             )}
 
-            <TouchableOpacity 
-              style={styles.submitBtnContainer} 
-              onPress={handleSave} 
+            <TouchableOpacity
+              style={styles.submitBtnContainer}
+              onPress={handleSave}
               disabled={isSubmitting}
             >
-              <LinearGradient 
-                colors={["#b8860b", "#ffd700", "#b8860b"]} 
-                start={{ x: 0, y: 0 }} 
-                end={{ x: 1, y: 0 }} 
+              <LinearGradient
+                colors={["#b8860b", "#ffd700", "#b8860b"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
                 style={styles.submitBtnGradient}
               >
                 {isSubmitting ? (
@@ -350,9 +434,21 @@ export default function MeetingsScreen() {
             </TouchableOpacity>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
-    </LinearGradient>
+      <MapPickerModal 
+        visible={showMapModal} 
+        onClose={() => setShowMapModal(false)}
+        initialLocation={latitude && longitude ? { latitude, longitude } : undefined}
+        onSelectLocation={(loc) => {
+          setLatitude(loc.latitude);
+          setLongitude(loc.longitude);
+          if (!locationName) setLocationName(loc.locationName || "");
+        }}
+      />
+
+    </ScreenBackground>
   );
 }
 
@@ -361,7 +457,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: Platform.OS === "ios" ? 60 : 40,
     paddingHorizontal: 20,
     paddingBottom: 15,
   },

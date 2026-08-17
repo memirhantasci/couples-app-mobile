@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, StyleSheet } from "react-native";
+import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, router } from "expo-router";
 import { supabase } from "@/lib/supabase";
@@ -47,7 +48,7 @@ export default function VerifyDeviceScreen() {
   };
 
   return (
-    <LinearGradient colors={["#080811", "#0A0A0C", "#080811"]} style={{ flex: 1 }}>
+    <ScreenBackground colors={["#080811", "#0A0A0C", "#080811"]}>
       <KeyboardAvoidingView 
         behavior={Platform.OS === "ios" ? "padding" : "height"} 
         style={{ flex: 1 }}
@@ -91,7 +92,7 @@ export default function VerifyDeviceScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </ScreenBackground>
   );
 }
 

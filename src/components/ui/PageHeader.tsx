@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { ChevronLeft, Menu } from "lucide-react-native";
+import { useAuth } from "@/context/AuthContext";
 
 interface PageHeaderProps {
   title?: string;
@@ -11,6 +12,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ title = "", showBack = true, showMenu = true }: PageHeaderProps) {
   const router = useRouter();
+  const { profile } = useAuth();
 
   return (
     <View style={styles.headerContainer}>
@@ -26,9 +28,10 @@ export function PageHeader({ title = "", showBack = true, showMenu = true }: Pag
         {title ? <Text style={styles.title} numberOfLines={1}>{title}</Text> : null}
       </View>
 
-      <View style={styles.side}>
+      <View style={styles.sideRight}>
         {showMenu && (
-          <TouchableOpacity onPress={() => router.push("/menu")} style={[styles.iconBtn, { alignItems: "flex-end" }]}>
+          <TouchableOpacity onPress={() => router.push("/menu")} style={[styles.iconBtn, { alignItems: "center", flexDirection: "row", justifyContent: "flex-end", gap: 8 }]}>
+            {profile?.displayName && <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, fontWeight: "600" }}>{profile.displayName}</Text>}
             <Menu color="#fff" size={24} />
           </TouchableOpacity>
         )}
@@ -49,11 +52,17 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   side: {
-    width: 50,
+    flex: 1,
     justifyContent: "center",
+    alignItems: "flex-start",
+  },
+  sideRight: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "flex-end",
   },
   center: {
-    flex: 1,
+    flex: 2,
     alignItems: "center",
     justifyContent: "center",
   },

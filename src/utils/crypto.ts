@@ -1,10 +1,23 @@
 import crypto from 'react-native-quick-crypto';
 import Constants from 'expo-constants';
 import { Buffer } from '@craftzdog/react-native-buffer';
+import { logger } from '@/utils/logger';
 
-// Fallback logic, same as web
-const ENCRYPTION_KEY = Constants.expoConfig?.extra?.encryptionKey || "couples-website-secret-key-12345";
-const key = crypto.scryptSync(ENCRYPTION_KEY, "salt", 32);
+// Şifreleme anahtarı — üretimde EAS Secret olarak tanımlanmalı.
+// Fallback YOKTUR: anahtar eksikse uygulama başlamaz, böylece
+// zayıf/bilinen bir anahtarla çalışma riski ortadan kalkar.
+const ENCRYPTION_KEY = Constants.expoConfig?.extra?.encryptionKey;
+if (!ENCRYPTION_KEY) {
+  // Development ortamında uyarı, production'da hata fırlat
+  if (__DEV__) {
+    logger.warn(
+      "[SECURITY] ENCRYPTION_KEY bulunamadı! app.json extra.encryptionKey tanımlayın."
+    );
+  } else {
+    throw new Error("[SECURITY] Encryption key is not configured.");
+  }
+}
+const key = crypto.scryptSync(ENCRYPTION_KEY ?? "dev-only-fallback", "salt", 32);
 
 const ALGORITHM = "aes-256-cbc";
 
@@ -31,12 +44,12 @@ export function decrypt(text: string): string {
 
     const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
     
-    let decrypted = decipher.update(encryptedText, undefined, "utf8");
-    decrypted += decipher.final("utf8");
+    let decrypted = decipher.update(encryptedText).toString("utf8");
+    decrypted += decipher.final().toString("utf8");
     
     return decrypted;
   } catch (err) {
-    console.error("Decryption error:", err);
+    logger.error("Decryption error:", err);
     return "";
   }
 }
@@ -61,12 +74,12 @@ export function deterministicDecrypt(text: string): string {
     const encryptedText = Buffer.from(text.substring(4), "hex");
     const decipher = crypto.createDecipheriv(ALGORITHM, key, STATIC_IV);
     
-    let decrypted = decipher.update(encryptedText, undefined, "utf8");
-    decrypted += decipher.final("utf8");
+    let decrypted = decipher.update(encryptedText).toString("utf8");
+    decrypted += decipher.final().toString("utf8");
     
     return decrypted;
   } catch (err) {
-    console.error("Deterministic decryption error:", err);
+    logger.error("Deterministic decryption error:", err);
     return "";
   }
 }
