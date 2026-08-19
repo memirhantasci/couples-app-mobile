@@ -3,12 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Modal, Linking } from "react-
 import { getCountdown, dayjs } from "@/lib/date";
 import { MapPin, X, Navigation } from "lucide-react-native";
 import Animated, { FadeInUp } from "react-native-reanimated";
-
-// ─── Tema Sabitleri ─────────────────────────────────────────────────────────
-const PINK = "#ff4d6d";
-const CARD_BG = "#231218";
-const UNIT_BG = "#1e0e14";
-const BORDER = "rgba(255,255,255,0.07)";
+import { AppTheme } from "@/lib/theme";
 
 interface Meeting {
   id: number;
@@ -21,9 +16,10 @@ interface Meeting {
 
 interface CountdownProps {
   meeting: Meeting;
+  theme: AppTheme;
 }
 
-export function MeetingCountdown({ meeting }: CountdownProps) {
+export function MeetingCountdown({ meeting, theme }: CountdownProps) {
   const targetDate = meeting.meeting_datetime;
   const title = meeting.title || "Buluşma";
 
@@ -54,8 +50,8 @@ export function MeetingCountdown({ meeting }: CountdownProps) {
         onPress={() => setShowModal(true)}
       >
         <Text style={{ fontSize: 28, marginBottom: 8 }}>🎉</Text>
-        <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff" }}>{title}</Text>
-        <Text style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginTop: 4 }}>
+        <Text style={{ fontSize: 16, fontFamily: "PlayfairDisplay_400Regular_Italic", color: "#fff" }}>{title}</Text>
+        <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.45)", marginTop: 4 }}>
           Buluşma gerçekleşti!
         </Text>
         <MeetingModal
@@ -63,6 +59,7 @@ export function MeetingCountdown({ meeting }: CountdownProps) {
           onClose={() => setShowModal(false)}
           meeting={meeting}
           openDirections={openDirections}
+          theme={theme}
         />
       </TouchableOpacity>
     );
@@ -83,8 +80,8 @@ export function MeetingCountdown({ meeting }: CountdownProps) {
     >
       {/* Başlık Satırı */}
       <View style={styles.titleRow}>
-        <View style={styles.iconCircle}>
-          <MapPin size={13} color={PINK} />
+        <View style={[styles.iconCircle, { backgroundColor: `${theme.accent}20` }]}>
+          <MapPin size={13} color={theme.accent} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.sectionLabel}>Sıradaki Buluşma</Text>
@@ -98,7 +95,7 @@ export function MeetingCountdown({ meeting }: CountdownProps) {
       {/* Geri Sayım Kutuları */}
       <View style={styles.grid}>
         {units.map((unit, i) => (
-          <View key={unit.label} style={styles.unitBox}>
+          <View key={unit.label} style={[styles.unitBox, { backgroundColor: theme.unitBg }]}>
             <Animated.Text
               key={`${unit.value}-${i}`}
               entering={FadeInUp.duration(200)}
@@ -116,6 +113,7 @@ export function MeetingCountdown({ meeting }: CountdownProps) {
         onClose={() => setShowModal(false)}
         meeting={meeting}
         openDirections={openDirections}
+        theme={theme}
       />
     </TouchableOpacity>
   );
@@ -126,11 +124,13 @@ function MeetingModal({
   onClose,
   meeting,
   openDirections,
+  theme,
 }: {
   visible: boolean;
   onClose: () => void;
   meeting: Meeting;
   openDirections: () => void;
+  theme: AppTheme;
 }) {
   const formattedDate = dayjs(meeting.meeting_datetime)
     .locale("tr")
@@ -139,7 +139,7 @@ function MeetingModal({
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <View style={[styles.modalContent, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Buluşma Detayları</Text>
             <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>
@@ -164,14 +164,17 @@ function MeetingModal({
                 <View
                   style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}
                 >
-                  <MapPin color={PINK} size={16} />
+                  <MapPin color={theme.accent} size={16} />
                   <Text style={styles.detailValue}>{meeting.location_name}</Text>
                 </View>
               </View>
             )}
 
             {meeting.latitude && meeting.longitude && (
-              <TouchableOpacity style={styles.directionsBtn} onPress={openDirections}>
+              <TouchableOpacity
+                style={[styles.directionsBtn, { backgroundColor: "#22c55e" }]}
+                onPress={openDirections}
+              >
                 <Navigation color="#fff" size={18} />
                 <Text style={styles.directionsBtnText}>Yol Tarifi Al</Text>
               </TouchableOpacity>
@@ -185,12 +188,11 @@ function MeetingModal({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: CARD_BG,
-    borderWidth: 1,
-    borderColor: BORDER,
+    borderWidth: 0,
     borderRadius: 20,
-    padding: 18,
-    marginBottom: 14,
+    padding: 20,
+    marginBottom: 18,
+    backgroundColor: "#4A152B",
   },
   titleRow: {
     flexDirection: "row",
@@ -204,22 +206,22 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,77,109,0.12)",
   },
   sectionLabel: {
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 16,
+    fontFamily: "PlayfairDisplay_400Regular_Italic",
     color: "#fff",
   },
   locationText: {
     fontSize: 11,
-    color: "rgba(255,255,255,0.4)",
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.6)",
     marginTop: 1,
   },
   dateChip: {
     fontSize: 12,
     color: "rgba(255,255,255,0.5)",
-    fontWeight: "500",
+    fontFamily: "Inter_500Medium",
   },
   grid: {
     flexDirection: "row",
@@ -229,26 +231,24 @@ const styles = StyleSheet.create({
   unitBox: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: UNIT_BG,
-    borderWidth: 1,
-    borderColor: BORDER,
+    borderWidth: 0,
   },
   unitValue: {
-    fontSize: 24,
-    fontWeight: "700",
+    fontSize: 26,
+    fontFamily: "PlayfairDisplay_400Regular",
     color: "#fff",
     fontVariant: ["tabular-nums"],
-    lineHeight: 26,
+    lineHeight: 28,
   },
   unitLabel: {
-    fontSize: 8,
-    fontWeight: "600",
+    fontSize: 9,
+    fontFamily: "Inter_600SemiBold",
     textTransform: "uppercase",
     letterSpacing: 0.5,
-    color: "rgba(255,255,255,0.35)",
-    marginTop: 5,
+    color: "rgba(255,255,255,0.45)",
+    marginTop: 6,
   },
   modalOverlay: {
     flex: 1,
@@ -257,11 +257,9 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
-    backgroundColor: "#231218",
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: BORDER,
   },
   modalHeader: {
     flexDirection: "row",
@@ -292,7 +290,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#22c55e",
     paddingVertical: 14,
     borderRadius: 14,
     marginTop: 12,

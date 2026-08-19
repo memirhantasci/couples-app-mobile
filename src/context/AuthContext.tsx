@@ -10,6 +10,7 @@ export interface CoupleProfile {
   isPaired: boolean;
   hasDates: boolean;
   displayName: string | null;
+  gender: string | null;
 }
 
 interface AuthContextValue {
@@ -35,7 +36,7 @@ export function useAuth() {
 async function fetchProfile(userId: string): Promise<CoupleProfile> {
   const { data: user } = await supabase
     .from("users")
-    .select("display_name, couple_id")
+    .select("display_name, gender, couple_id")
     .eq("id", userId)
     .single();
 
@@ -47,6 +48,7 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
       isPaired: false,
       hasDates: false,
       displayName: null,
+      gender: null,
     };
   }
 
@@ -69,6 +71,7 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
     isPaired: !!user.couple_id,
     hasDates: !!(couple?.meet_date && couple?.relationship_start_date),
     displayName: user.display_name ?? null,
+    gender: user.gender ?? null,
   };
 }
 

@@ -20,8 +20,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { encrypt, decrypt } from "@/utils/crypto";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
-import { ChevronLeft, Edit3, Trash2, BookOpen, Menu, Check } from "lucide-react-native";
+import { ChevronLeft, Edit3, Trash2, Menu, Check } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import { getTheme } from "@/lib/theme";
 
 dayjs.locale("tr");
 
@@ -36,6 +37,7 @@ export default function DailyNotesScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const userId = session?.user?.id ? session.user.id : null;
+  const theme = getTheme(profile?.gender);
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingNote, setEditingNote] = useState<DailyNote | null>(null);
@@ -137,26 +139,38 @@ export default function DailyNotesScreen() {
         justifyContent: "space-between",
         paddingTop: Platform.OS === "ios" ? 60 : 40,
         paddingHorizontal: 20,
-        paddingBottom: 15,
+        paddingBottom: 5,
       }}>
-        <TouchableOpacity onPress={() => router.back()} style={{ padding: 5, marginLeft: -5 }}>
-          <ChevronLeft color="#fff" size={28} />
-        </TouchableOpacity>
+        <Text
+          style={{
+            fontSize: 34,
+            fontFamily: "PlayfairDisplay_400Regular_Italic",
+            color: "#fff",
+          }}
+        >
+          Günlüğüm 📓
+        </Text>
         
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <TouchableOpacity 
-            style={{ backgroundColor: "#311822", paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20 }}
-            onPress={() => setIsEditMode(!isEditMode)}
-          >
-            <Text style={{ color: "#E8002D", fontWeight: "700", fontSize: 13 }}>
-              {isEditMode ? "Bitti" : "Düzenle"}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 5, marginRight: -5 }}>
-            <Menu color="#fff" size={24} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity 
+          style={{ backgroundColor: theme.cardBg, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 20 }}
+          onPress={() => setIsEditMode(!isEditMode)}
+        >
+          <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
+            {isEditMode ? "Bitti" : "Düzenle"}
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      <Text
+        style={{
+          color: "rgba(255,255,255,0.6)",
+          fontSize: 14,
+          paddingHorizontal: 20,
+          marginBottom: 20,
+        }}
+      >
+        Sadece senin görebildiğin notların
+      </Text>
 
       <FlatList
         data={notes}
@@ -176,62 +190,67 @@ export default function DailyNotesScreen() {
         }
         ListHeaderComponent={
           <>
-            {/* ─── TITLE ─── */}
-            <View style={{ marginBottom: 28, alignItems: "center" }}>
-              <View
+            {/* ─── Add Note Button (When Not Empty) ─── */}
+            {notes.length > 0 && (
+              <TouchableOpacity
+                activeOpacity={0.8}
                 style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 16,
-                  backgroundColor: "rgba(232,0,45,0.12)",
+                  backgroundColor: theme.accent,
+                  paddingVertical: 14,
+                  borderRadius: 20,
                   alignItems: "center",
+                  flexDirection: "row",
                   justifyContent: "center",
-                  marginBottom: 12,
+                  gap: 8,
+                  marginBottom: 24,
                 }}
+                onPress={() => router.push("/(tabs)/add-daily-note")}
               >
-                <BookOpen size={24} color="#E8002D" />
-              </View>
-              <Text
-                style={{
-                  fontSize: 26,
-                  fontWeight: "800",
-                  color: "#fff",
-                  textAlign: "center",
-                  letterSpacing: 0.5,
-                }}
-              >
-                GÜNLÜĞÜM 📓
-              </Text>
-              <Text
-                style={{
-                  color: "rgba(255,255,255,0.35)",
-                  fontSize: 14,
-                  marginTop: 6,
-                  textAlign: "center",
-                }}
-              >
-                Sadece senin görebildiğin notların
-              </Text>
-            </View>
+                <Text style={{ color: "#fff", fontSize: 15, fontWeight: "600" }}>
+                  ⊕ Yeni Sayfa Ekle ✍️
+                </Text>
+              </TouchableOpacity>
+            )}
 
             {/* ─── Empty State ─── */}
             {notes.length === 0 && (
-              <View
-                style={{
-                  alignItems: "center",
-                  justifyContent: "center",
-                  paddingVertical: 80,
-                  borderRadius: 20,
-                  backgroundColor: "rgba(255,255,255,0.03)",
-                  borderWidth: 1,
-                  borderColor: "rgba(255,255,255,0.06)",
-                  borderStyle: "dashed",
-                }}
-              >
-                <Text style={{ fontSize: 48, marginBottom: 16 }}>📓</Text>
-                <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>
-                  Henüz günlüğüne hiçbir şey yazmadın.
-                </Text>
+              <View style={{ gap: 20 }}>
+                <View
+                  style={{
+                    alignItems: "center",
+                    justifyContent: "center",
+                    paddingVertical: 50,
+                    paddingHorizontal: 20,
+                    borderRadius: 24,
+                    backgroundColor: theme.cardBg,
+                  }}
+                >
+                  <Text style={{ fontSize: 36, marginBottom: 20 }}>📓</Text>
+                  <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700", marginBottom: 12, textAlign: "center" }}>
+                    Henüz günlüğüne hiçbir şey yazmadın.
+                  </Text>
+                  <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, textAlign: "center", lineHeight: 20, paddingHorizontal: 10 }}>
+                    Bugün hissettiklerini ya da sevgilinle geçirdiğin güzel bir anı buraya kaydederek başlayabilirsin.
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={{
+                    backgroundColor: theme.accent,
+                    paddingVertical: 16,
+                    borderRadius: 30,
+                    alignItems: "center",
+                    flexDirection: "row",
+                    justifyContent: "center",
+                    gap: 8,
+                  }}
+                  onPress={() => router.push("/(tabs)/add-daily-note")}
+                >
+                  <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}>
+                    ⊕ İlk Sayfayı Yaz ✍️
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
           </>

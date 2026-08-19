@@ -1,6 +1,8 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StyleProp, ViewStyle } from 'react-native';
+import { useAuth } from '@/context/AuthContext';
+import { getTheme } from '@/lib/theme';
 
 interface ScreenBackgroundProps {
   children: React.ReactNode;
@@ -9,11 +11,12 @@ interface ScreenBackgroundProps {
 }
 
 export function ScreenBackground({ children, style, colors }: ScreenBackgroundProps) {
-  // Koyu bordo-siyah arka plan
-  const defaultColors = ["#1a0e12", "#160b0f", "#1a0e12"] as const;
+  const { profile } = useAuth();
+  const theme = getTheme(profile?.gender);
+  const backgroundColors = colors ?? theme.bgGradient;
 
   return (
-    <LinearGradient colors={colors || defaultColors} style={[{ flex: 1 }, style]}>
+    <LinearGradient colors={backgroundColors} style={[{ flex: 1 }, style]}>
       {children}
     </LinearGradient>
   );

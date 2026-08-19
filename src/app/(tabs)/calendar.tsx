@@ -12,12 +12,13 @@ import { decrypt, deterministicDecrypt, encrypt } from "@/utils/crypto";
 import { ChevronRight, Heart, FileText, Frown, Smile, Meh, AlertCircle, Sparkles, Droplet, Pill, Menu, ChevronLeft, X, Calendar as CalendarIcon, Save, Trash2, MapPin } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { getTheme } from "@/lib/theme";
 
 LocaleConfig.locales['tr'] = {
   monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
   monthNamesShort: ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'],
   dayNames: ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'],
-  dayNamesShort: ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'],
+  dayNamesShort: ['Pz','Pt','Sa','Ça','Pe','Cu','Ct'],
   today: 'Bugün'
 };
 LocaleConfig.defaultLocale = 'tr';
@@ -30,10 +31,12 @@ export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
 
   const [selectedDate, setSelectedDate] = useState<string>(today);
+  const [currentMonth, setCurrentMonth] = useState<string>(today);
   const [showTodayModal, setShowTodayModal] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const theme = getTheme(profile?.gender);
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
 
@@ -48,7 +51,7 @@ export default function CalendarScreen() {
       const [notesRes, moodsRes, photosRes, usersRes] = await Promise.all([
         supabase
           .from("calendar_notes")
-          .select("id, date, note, user_id")
+          .select("id, date, note, user_id, created_at")
           .eq("couple_id", coupleId)
           .gte("date", threeMonthsAgo)
           .lte("date", twoMonthsLater),
@@ -67,7 +70,7 @@ export default function CalendarScreen() {
           .order("taken_time", { ascending: false }),
         supabase
           .from("users")
-          .select("id, username, display_name")
+          .select("*")
           .eq("couple_id", coupleId),
       ]);
 
@@ -91,6 +94,7 @@ export default function CalendarScreen() {
           description: p.description ? decrypt(p.description) : null,
           uploader: userMap[p.user_id],
         })),
+        users: usersRes.data || [],
       };
     },
     staleTime: 1000 * 60 * 5,
@@ -157,6 +161,14 @@ export default function CalendarScreen() {
     }
   }
 
+  const handlePrevMonth = () => {
+    setCurrentMonth(prev => dayjs(prev).subtract(1, "month").format("YYYY-MM-DD"));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentMonth(prev => dayjs(prev).add(1, "month").format("YYYY-MM-DD"));
+  };
+
   async function handleSaveNote() {
     if (!noteText.trim() || !userId) return;
     setSaving(true);
@@ -203,6 +215,34 @@ export default function CalendarScreen() {
     }
   }
 
+  const getAuthorName = (itemUserId: string | undefined | null) => {
+    if (!itemUserId) return "İsimsiz";
+    
+    // Check if the item belongs to current user
+    if (itemUserId === userId) {
+      const myUserObj = data?.users?.find(u => u.id === userId);
+      let name = myUserObj?.display_name || myUserObj?.first_name || myUserObj?.full_name || myUserObj?.name || profile?.displayName;
+      if (!name && myUserObj?.username) {
+        name = deterministicDecrypt(myUserObj.username) || myUserObj.username;
+      }
+      return name || "Sen";
+    }
+    
+    // Otherwise it belongs to partner
+    const partnerObj = data?.users?.find(u => u.id !== userId);
+    let pName = partnerObj?.display_name || partnerObj?.first_name || partnerObj?.full_name || partnerObj?.name;
+    if (!pName && partnerObj?.username) {
+      pName = deterministicDecrypt(partnerObj.username) || partnerObj.username;
+    }
+    return pName || "Partnerin";
+  };
+
+  const getAuthorAvatar = (itemUserId: string | undefined | null) => {
+    if (!itemUserId) return null;
+    const userObj = data?.users?.find(u => u.id === itemUserId);
+    return userObj?.avatar_url || null;
+  };
+
   const renderSelectedDayDetails = () => {
     if (selectedDayNotes.length === 0 && selectedDayMoods.length === 0 && selectedDayPhotos.length === 0) {
       return (
@@ -214,23 +254,34 @@ export default function CalendarScreen() {
       <View style={{ gap: 16 }}>
         {/* Photos */}
         {selectedDayPhotos.length > 0 && (
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: 16 }}>
             {selectedDayPhotos.map(photo => {
-              const uploaderName = photo.uploader?.display_name || deterministicDecrypt(photo.uploader?.username) || photo.uploader?.username || "?";
+              const uploaderName = getAuthorName(photo.user_id);
+              const avatarUrl = getAuthorAvatar(photo.user_id);
+
               return (
-                <View key={photo.id} style={styles.photoCard}>
+                <View key={photo.id} style={[styles.photoCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBg }]}>
                   <Image source={{ uri: photo.image_url }} style={styles.photoImg} contentFit="cover" />
-                  {(photo.title || photo.description) && (
-                    <View style={styles.photoCaptionBox}>
-                      {!!photo.title && <Text style={styles.photoTitle}>{photo.title}</Text>}
-                      {!!photo.description && <Text style={styles.photoDesc}>{photo.description}</Text>}
-                    </View>
-                  )}
+                  
+                  <View style={styles.photoCaptionBox}>
+                    {!!photo.title && <Text style={styles.photoTitle}>{photo.title}</Text>}
+                    {!!photo.description && <Text style={styles.photoDesc}>{photo.description}</Text>}
+                  </View>
+
                   <View style={styles.photoMeta}>
-                    <Text style={styles.photoMetaText}>👤 {uploaderName}</Text>
-                    {!!photo.taken_time && (
-                      <Text style={styles.photoMetaText}>🕐 {photo.taken_time.substring(0,5)}</Text>
-                    )}
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      {avatarUrl ? (
+                        <Image source={{ uri: avatarUrl }} style={styles.avatarImg} contentFit="cover" />
+                      ) : (
+                        <View style={[styles.avatarFallback, { backgroundColor: theme.unitBg }]}>
+                          <Text style={styles.avatarFallbackText}>{uploaderName.substring(0,1).toUpperCase()}</Text>
+                        </View>
+                      )}
+                      <Text style={styles.photoMetaTextBold}>{uploaderName}</Text>
+                    </View>
+                    <Text style={styles.photoMetaTextTime}>
+                      {!!photo.taken_time ? photo.taken_time.substring(0,5) : ""}
+                    </Text>
                   </View>
                 </View>
               );
@@ -246,11 +297,17 @@ export default function CalendarScreen() {
             </View>
             <View style={{ gap: 10 }}>
               {selectedDayNotes.map(note => {
-                const authorName = note.user?.display_name || deterministicDecrypt(note.user?.username) || note.user?.username || "?";
+                const authorName = getAuthorName(note.user_id);
+
                 return (
-                  <View key={note.id} style={styles.noteBox}>
+                  <View key={note.id} style={[styles.noteBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBg }]}>
                     <Text style={styles.noteText}>{note.note}</Text>
-                    <Text style={styles.noteAuthor}>— {authorName}</Text>
+                    <View style={styles.noteMeta}>
+                      <Text style={styles.noteAuthor}>— {authorName}</Text>
+                      {!!note.created_at && (
+                        <Text style={styles.noteTime}>{dayjs(note.created_at).format("HH:mm")}</Text>
+                      )}
+                    </View>
                   </View>
                 );
               })}
@@ -266,9 +323,10 @@ export default function CalendarScreen() {
             </View>
             <View style={{ gap: 8 }}>
               {selectedDayMoods.map((m, i) => {
-                const authorName = m.user?.display_name || deterministicDecrypt(m.user?.username) || m.user?.username || "?";
+                const authorName = getAuthorName(m.user_id);
+
                 return (
-                  <View key={i} style={styles.moodBox}>
+                  <View key={i} style={[styles.moodBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBg }]}>
                     <Text style={{ fontSize: 24 }}>{m.mood_type}</Text>
                     <Text style={styles.moodAuthor}>{authorName}</Text>
                   </View>
@@ -292,77 +350,104 @@ export default function CalendarScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingTop: insets.top + 10, paddingBottom: 120 }}>
         
         {/* Header */}
-        <View style={[styles.header, { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }]}>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <TouchableOpacity onPress={() => router.back()} style={{ padding: 8, marginLeft: -8, marginRight: 8 }}>
-              <ChevronLeft color="#fff" size={28} />
-            </TouchableOpacity>
-            <View>
-              <Text style={styles.title}>Takvim</Text>
-              <Text style={styles.subtitle}>Notlar, ruh halleri ve anılar</Text>
-            </View>
-          </View>
-          <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, marginRight: -8, marginTop: -8 }}>
-            <Menu color="#fff" size={24} />
+        <View style={styles.header}>
+          <Text style={styles.title}>Takvim</Text>
+          <Text style={styles.subtitle}>Notlar, ruh halleri ve anılar</Text>
+        </View>
+
+        {/* Custom Month Navigator (Outside the dark card!) */}
+        <View style={styles.customMonthNav}>
+          <TouchableOpacity onPress={handlePrevMonth} style={styles.arrowCircle}>
+            <ChevronLeft color="#fff" size={20} />
+          </TouchableOpacity>
+          <Text style={styles.customMonthText}>
+            {dayjs(currentMonth).format("MMMM YYYY")}
+          </Text>
+          <TouchableOpacity onPress={handleNextMonth} style={styles.arrowCircle}>
+            <ChevronRight color="#fff" size={20} />
           </TouchableOpacity>
         </View>
 
         {/* Calendar View */}
-        <View style={styles.calendarContainer}>
+        <View style={[styles.calendarContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBg }]}>
           <Calendar
-            current={today}
+            current={currentMonth}
+            key={currentMonth} // Force re-render to update the month immediately
+            firstDay={1}
             onDayPress={onDayPress}
             markedDates={markedDates}
             markingType={'multi-dot'}
+            renderArrow={(direction: string) => (
+              <View style={styles.arrowCircle}>
+                {direction === 'left' ? <ChevronLeft color="#fff" size={16} /> : <ChevronRight color="#fff" size={16} />}
+              </View>
+            )}
             theme={{
               calendarBackground: 'transparent',
               textSectionTitleColor: 'rgba(255,255,255,0.4)',
-              selectedDayBackgroundColor: '#E8002D',
+              selectedDayBackgroundColor: theme.accent,
               selectedDayTextColor: '#ffffff',
-              todayTextColor: '#E8002D',
+              todayTextColor: theme.accent,
               dayTextColor: 'rgba(255,255,255,0.85)',
               textDisabledColor: 'rgba(255,255,255,0.2)',
-              dotColor: '#E8002D',
+              dotColor: theme.accent,
               selectedDotColor: '#ffffff',
-              arrowColor: 'rgba(255,255,255,0.7)',
               monthTextColor: '#ffffff',
-              textMonthFontWeight: 'bold',
-              textDayFontSize: 14,
-              textMonthFontSize: 17,
+              textMonthFontFamily: 'PlayfairDisplay_400Regular_Italic',
+              textMonthFontSize: 22,
+              textDayFontSize: 13,
               textDayHeaderFontSize: 11,
-              textDayHeaderFontWeight: '600'
+              textDayHeaderFontWeight: '600',
+              'stylesheet.calendar.header': {
+                header: {
+                  display: 'none', // Completely hide the internal month title & arrows!
+                },
+              },
+              'stylesheet.day.multiDot': {
+                base: {
+                  width: 32,
+                  height: 32, // Square for selection like mockup
+                  alignItems: 'center',
+                  paddingTop: 4,
+                  borderRadius: 12, // Squircle
+                },
+                today: {
+                  backgroundColor: 'transparent'
+                },
+                selected: {
+                  backgroundColor: theme.accent,
+                  borderRadius: 12,
+                }
+              }
             }}
           />
+
+          {/* Legend Inside Calendar Card */}
+          <View style={styles.legendRow}>
+            {[
+              { color: "#E8002D", label: "Notlar" },
+              { color: "#FFD700", label: "E. Ruh Hali" },
+              { color: "#22c55e", label: "Fotoğraflar" },
+              { color: "#64b4ff", label: "O. Ruh Hali" },
+            ].map(item => (
+              <View key={item.label} style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: item.color }]} />
+                <Text style={styles.legendText}>{item.label}</Text>
+              </View>
+            ))}
+          </View>
         </View>
 
-        {/* Legend */}
-        <View style={styles.legendRow}>
-          {[
-            { color: "#E8002D", label: "Notlar" },
-            { color: "#FFD700", label: "E. Ruh Hali" },
-            { color: "#22c55e", label: "Fotoğraflar" },
-            { color: "#64b4ff", label: "O. Ruh Hali" },
-          ].map(item => (
-            <View key={item.label} style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: item.color }]} />
-              <Text style={styles.legendText}>{item.label}</Text>
-            </View>
-          ))}
-        </View>
+
 
         {/* Selected Day Details */}
         {selectedDate && (
-          <View style={styles.detailsCard}>
-            <View style={styles.detailsHeader}>
-              <Text style={styles.detailsTitle}>Günün Anıları</Text>
-              <Text style={styles.detailsDate}>
-                {dayjs(selectedDate).format("DD MMMM YYYY")}
-              </Text>
-            </View>
+          <View style={{ marginTop: 10 }}>
+            <Text style={styles.detailsTitle}>Günün Anıları</Text>
             
             {isLoading ? (
-              <View style={{ marginTop: 20, gap: 12 }}>
-                <Skeleton height={100} borderRadius={16} />
+              <View style={[styles.detailsCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBg }]}>
+                <Skeleton height={150} borderRadius={16} />
                 <Skeleton height={60} borderRadius={16} />
               </View>
             ) : (
@@ -434,17 +519,38 @@ export default function CalendarScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    marginBottom: 16,
+    marginBottom: 30,
+    alignItems: "center",
+  },
+  customMonthNav: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+    paddingHorizontal: 10,
+  },
+  customMonthText: {
+    fontSize: 24,
+    fontFamily: "PlayfairDisplay_400Regular_Italic",
+    color: "#fff",
   },
   title: {
-    fontSize: 28,
-    fontWeight: "800",
+    fontSize: 32,
+    fontFamily: "PlayfairDisplay_400Regular_Italic",
     color: "#fff",
   },
   subtitle: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.4)",
+    fontSize: 13,
+    color: "rgba(255,255,255,0.6)",
     marginTop: 4,
+  },
+  arrowCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   calendarContainer: {
     backgroundColor: "#181a20",
@@ -454,6 +560,7 @@ const styles = StyleSheet.create({
     padding: 8,
     paddingBottom: 12,
     marginBottom: 16,
+    overflow: "visible",
   },
   legendRow: {
     flexDirection: "row",
@@ -491,9 +598,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   detailsTitle: {
-    fontSize: 17,
-    fontWeight: "700",
+    fontSize: 24,
+    fontFamily: "PlayfairDisplay_400Regular_Italic",
     color: "#fff",
+    marginBottom: 16,
   },
   detailsDate: {
     fontSize: 12,
@@ -530,8 +638,17 @@ const styles = StyleSheet.create({
   },
   noteAuthor: {
     fontSize: 11,
-    color: "#E8002D",
+    color: "#E8002D", // or we can leave it
     fontWeight: "600",
+  },
+  noteTime: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.4)",
+  },
+  noteMeta: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginTop: 8,
   },
   moodBox: {
@@ -551,40 +668,62 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   photoCard: {
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.03)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
   },
   photoImg: {
     width: "100%",
-    aspectRatio: 16/9,
+    height: 180,
   },
   photoCaptionBox: {
-    paddingTop: 12,
-    paddingHorizontal: 14,
-    paddingBottom: 4,
+    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
   },
   photoTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "700",
-    color: "rgba(255,255,255,0.9)",
+    color: "#fff",
   },
   photoDesc: {
     fontSize: 13,
-    color: "rgba(255,255,255,0.7)",
-    marginTop: 4,
+    color: "rgba(255,255,255,0.6)",
+    marginTop: 6,
+    lineHeight: 18,
   },
   photoMeta: {
     paddingTop: 8,
-    paddingHorizontal: 14,
-    paddingBottom: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
   },
-  photoMetaText: {
-    fontSize: 11,
+  avatarImg: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  avatarFallback: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarFallbackText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  photoMetaTextBold: {
+    fontSize: 13,
+    color: "#fff",
+    fontWeight: "600",
+  },
+  photoMetaTextTime: {
+    fontSize: 12,
     color: "rgba(255,255,255,0.4)",
   },
   // Modal Styles

@@ -10,6 +10,20 @@ import { supabase } from "@/lib/supabase";
 import { configureAndroidNotificationChannel } from "@/lib/notifications";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 
+import { 
+  useFonts,
+  PlayfairDisplay_400Regular,
+  PlayfairDisplay_400Regular_Italic,
+  PlayfairDisplay_700Bold,
+  PlayfairDisplay_700Bold_Italic
+} from '@expo-google-fonts/playfair-display';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold
+} from '@expo-google-fonts/inter';
+
 SplashScreen.preventAutoHideAsync();
 
 // Configure Android notification channel on startup
@@ -32,12 +46,23 @@ function RootLayoutNav() {
   // Enforce role-based routing
   useProtectedRoute();
 
-  // Hide splash once auth state is resolved
+  const [fontsLoaded] = useFonts({
+    PlayfairDisplay_400Regular,
+    PlayfairDisplay_400Regular_Italic,
+    PlayfairDisplay_700Bold,
+    PlayfairDisplay_700Bold_Italic,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
+
+  // Hide splash once auth state is resolved and fonts are loaded
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && fontsLoaded) {
       SplashScreen.hideAsync();
     }
-  }, [isLoading]);
+  }, [isLoading, fontsLoaded]);
 
   // ── Deep link listener ────────────────────────────────────────────────────
   // Handles both cold-start URLs (app was closed) and foreground URLs (app open)
@@ -90,7 +115,7 @@ function RootLayoutNav() {
   }
 
   // ── Loading splash ────────────────────────────────────────────────────────
-  if (isLoading) {
+  if (isLoading || !fontsLoaded) {
     return (
       <View className="flex-1 items-center justify-center bg-surface">
         <ActivityIndicator color="#E8002D" size="large" />

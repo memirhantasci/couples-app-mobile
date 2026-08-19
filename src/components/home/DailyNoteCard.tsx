@@ -16,17 +16,14 @@ import { logger } from "@/utils/logger";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { BookOpen } from "lucide-react-native";
-
-// ─── Tema Sabitleri ─────────────────────────────────────────────────────────
-const PINK = "#ff4d6d";
-const CARD_BG = "#231218";
-const BORDER = "rgba(255,255,255,0.07)";
+import { AppTheme } from "@/lib/theme";
 
 interface DailyNoteCardProps {
   existingNote?: string | null;
+  theme: AppTheme;
 }
 
-export function DailyNoteCard({ existingNote }: DailyNoteCardProps) {
+export function DailyNoteCard({ existingNote, theme }: DailyNoteCardProps) {
   const { session, profile } = useAuth();
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -44,7 +41,6 @@ export function DailyNoteCard({ existingNote }: DailyNoteCardProps) {
     const cleanContent = sanitize(content.trim());
     if (!cleanContent) return;
     const encryptedContent = encrypt(cleanContent);
-    const userId = session.user.id;
 
     const { error } = await supabase.rpc("save_daily_note", {
       p_date: today,
@@ -68,15 +64,15 @@ export function DailyNoteCard({ existingNote }: DailyNoteCardProps) {
       <Text style={styles.title}>Günlük Notum</Text>
 
       {saved ? (
-        <View style={styles.savedBox}>
+        <View style={[styles.savedBox, { borderColor: theme.cardBorder }]}>
           <Text style={styles.savedContent}>{content}</Text>
           <Text style={styles.footerText}>Yarın yeni bir not yazabilirsin 🌙</Text>
           <TouchableOpacity
             onPress={() => router.push("/(tabs)/daily-notes" as any)}
             style={styles.historyBtn}
           >
-            <BookOpen size={12} color={PINK} />
-            <Text style={styles.historyBtnText}>Geçmiş Notlarımı Gör</Text>
+            <BookOpen size={12} color={theme.accent} />
+            <Text style={[styles.historyBtnText, { color: theme.accent }]}>Geçmiş Notlarımı Gör</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -89,10 +85,14 @@ export function DailyNoteCard({ existingNote }: DailyNoteCardProps) {
             multiline
             numberOfLines={4}
             maxLength={4500}
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}
           />
           <TouchableOpacity
-            style={[styles.saveBtn, (submitting || !content.trim()) && { opacity: 0.6 }]}
+            style={[
+              styles.saveBtn,
+              { backgroundColor: theme.accent },
+              (submitting || !content.trim()) && { opacity: 0.6 },
+            ]}
             onPress={handleSave}
             disabled={submitting || !content.trim()}
           >
@@ -110,70 +110,67 @@ export function DailyNoteCard({ existingNote }: DailyNoteCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: CARD_BG,
-    borderWidth: 1,
-    borderColor: BORDER,
+    borderWidth: 0,
     borderRadius: 20,
-    padding: 18,
-    marginBottom: 14,
+    padding: 20,
+    marginBottom: 18,
+    backgroundColor: "#4A152B",
   },
   title: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 18,
+    fontFamily: "PlayfairDisplay_400Regular_Italic",
     color: "#fff",
-    marginBottom: 14,
+    marginBottom: 16,
   },
   savedBox: {
-    backgroundColor: "rgba(255,255,255,0.03)",
+    backgroundColor: "rgba(255,255,255,0.04)",
     borderWidth: 1,
-    borderColor: BORDER,
     borderRadius: 14,
     padding: 14,
   },
   savedContent: {
     fontSize: 14,
     lineHeight: 22,
-    color: "rgba(255,255,255,0.8)",
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.9)",
   },
   footerText: {
     fontSize: 11,
-    color: "rgba(255,255,255,0.3)",
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.4)",
     marginTop: 10,
   },
   historyBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    marginTop: 10,
+    marginTop: 12,
   },
   historyBtnText: {
     fontSize: 12,
-    color: PINK,
-    fontWeight: "600",
+    fontFamily: "Inter_600SemiBold",
   },
   input: {
     width: "100%",
-    backgroundColor: "rgba(255,255,255,0.03)",
-    borderWidth: 1,
-    borderColor: BORDER,
+    borderWidth: 0,
     borderRadius: 14,
-    color: "rgba(255,255,255,0.85)",
+    color: "rgba(255,255,255,0.9)",
+    fontFamily: "Inter_400Regular",
     fontSize: 14,
     lineHeight: 22,
-    padding: 14,
-    minHeight: 100,
+    padding: 16,
+    minHeight: 110,
     textAlignVertical: "top",
   },
   saveBtn: {
     width: "100%",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: PINK,
-    borderRadius: 50, // pill shape
-    paddingVertical: 15,
+    borderRadius: 50,
+    paddingVertical: 16,
   },
   saveBtnText: {
-    fontWeight: "700",
+    fontFamily: "Inter_600SemiBold",
     fontSize: 15,
     color: "#fff",
     letterSpacing: 0.3,

@@ -8,16 +8,14 @@ import Animated, {
   Easing,
   withDelay,
 } from "react-native-reanimated";
-
-const PINK = "#ff4d6d";
-const CARD_BG = "#231218";
-const BORDER = "rgba(255,255,255,0.07)";
+import { AppTheme } from "@/lib/theme";
 
 interface LoveMeterProps {
   value: number; // 0-100
+  theme: AppTheme;
 }
 
-export function LoveMeter({ value }: LoveMeterProps) {
+export function LoveMeter({ value, theme }: LoveMeterProps) {
   const widthVal = useSharedValue(0);
 
   useEffect(() => {
@@ -36,14 +34,14 @@ export function LoveMeter({ value }: LoveMeterProps) {
       {/* Başlık + yüzde */}
       <View style={styles.headerRow}>
         <Text style={styles.title}>Aşk Ölçer</Text>
-        <Text style={styles.percentLabel}>{value}%</Text>
+        <Text style={[styles.percentLabel, { color: theme.accent }]}>{value}%</Text>
       </View>
 
       {/* Progress Bar */}
       <View style={styles.track}>
         <Animated.View style={[styles.fillWrapper, animatedWidthStyle]}>
           <LinearGradient
-            colors={[PINK, "#ff8fa3"]}
+            colors={[theme.accent, theme.accentLight]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.fill}
@@ -61,12 +59,11 @@ export function LoveMeter({ value }: LoveMeterProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: CARD_BG,
-    borderWidth: 1,
-    borderColor: BORDER,
+    borderWidth: 0, // No border as per screenshot
     borderRadius: 20,
-    padding: 18,
-    marginBottom: 14,
+    padding: 20,
+    marginBottom: 18,
+    backgroundColor: "#4A152B", // Explicit card bg
   },
   headerRow: {
     flexDirection: "row",
@@ -75,19 +72,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   title: {
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: 16,
+    fontFamily: "PlayfairDisplay_400Regular_Italic",
     color: "#fff",
   },
   percentLabel: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: PINK,
+    fontSize: 32,
+    fontFamily: "PlayfairDisplay_400Regular_Italic",
   },
   track: {
-    height: 10,
+    height: 8,
     borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: "rgba(255,255,255,0.08)",
     overflow: "hidden",
     marginBottom: 10,
   },
@@ -102,7 +98,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 11,
-    color: "rgba(255,255,255,0.35)",
-    fontWeight: "400",
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.40)",
   },
 });

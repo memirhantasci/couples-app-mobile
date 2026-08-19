@@ -12,11 +12,7 @@ import { todayString } from "@/lib/date";
 import { useQueryClient } from "@tanstack/react-query";
 import { sendPushNotification } from "@/lib/notifications";
 import { logger } from "@/utils/logger";
-
-// ─── Tema Sabitleri ─────────────────────────────────────────────────────────
-const PINK = "#ff4d6d";
-const CARD_BG = "#231218";
-const BORDER = "rgba(255,255,255,0.07)";
+import { AppTheme } from "@/lib/theme";
 
 const MOODS = [
   { emoji: "😍", label: "Çok Mutlu" },
@@ -30,9 +26,10 @@ const MOODS = [
 interface MoodSelectorProps {
   currentMood?: string | null;
   moodLocked?: boolean;
+  theme: AppTheme;
 }
 
-export function MoodSelector({ currentMood, moodLocked = false }: MoodSelectorProps) {
+export function MoodSelector({ currentMood, moodLocked = false, theme }: MoodSelectorProps) {
   const { session, profile } = useAuth();
   const queryClient = useQueryClient();
 
@@ -81,7 +78,6 @@ export function MoodSelector({ currentMood, moodLocked = false }: MoodSelectorPr
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
 
-      // Push — non-blocking
       if (coupleId) {
         supabase
           .from("users")
@@ -122,12 +118,14 @@ export function MoodSelector({ currentMood, moodLocked = false }: MoodSelectorPr
               activeOpacity={0.7}
               style={[
                 styles.moodBtn,
-                isSelected ? styles.moodBtnSelected : styles.moodBtnNormal,
+                isSelected
+                  ? { backgroundColor: theme.accent }
+                  : { backgroundColor: "rgba(0,0,0,0.2)" },
                 locked && !isSelected && { opacity: 0.3 },
               ]}
             >
               <Text style={styles.emoji}>{mood.emoji}</Text>
-              <Text style={[styles.label, isSelected && styles.labelSelected]}>
+              <Text style={[styles.label, isSelected && { color: "#fff", fontFamily: "Inter_600SemiBold" }]}>
                 {mood.label}
               </Text>
             </TouchableOpacity>
@@ -135,7 +133,7 @@ export function MoodSelector({ currentMood, moodLocked = false }: MoodSelectorPr
         })}
       </View>
 
-      {loading && <ActivityIndicator color={PINK} style={{ marginTop: 10 }} />}
+      {loading && <ActivityIndicator color={theme.accent} style={{ marginTop: 10 }} />}
 
       {locked && selected && (
         <Text style={styles.savedText}>Bugün için kaydedildi 💛</Text>
@@ -146,18 +144,17 @@ export function MoodSelector({ currentMood, moodLocked = false }: MoodSelectorPr
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: CARD_BG,
-    borderWidth: 1,
-    borderColor: BORDER,
+    borderWidth: 0,
     borderRadius: 20,
-    padding: 18,
-    marginBottom: 14,
+    padding: 20,
+    marginBottom: 18,
+    backgroundColor: "#4A152B",
   },
   title: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 18,
+    fontFamily: "PlayfairDisplay_400Regular_Italic",
     color: "#fff",
-    marginBottom: 14,
+    marginBottom: 16,
   },
   row: {
     flexDirection: "row",
@@ -167,37 +164,26 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 2,
     borderRadius: 14,
-    borderWidth: 2,
-  },
-  moodBtnNormal: {
-    borderColor: "rgba(255,255,255,0.06)",
-    backgroundColor: "rgba(255,255,255,0.02)",
-  },
-  moodBtnSelected: {
-    borderColor: PINK,
-    backgroundColor: "rgba(255,77,109,0.1)",
+    borderWidth: 0, // removed border for cleaner square look as per screenshot
   },
   emoji: {
     fontSize: 22,
     marginBottom: 5,
   },
   label: {
-    fontSize: 9,
-    color: "rgba(255,255,255,0.45)",
-    fontWeight: "500",
+    fontSize: 10,
+    fontFamily: "Inter_500Medium",
+    color: "rgba(255,255,255,0.6)",
     textAlign: "center",
-  },
-  labelSelected: {
-    color: PINK,
-    fontWeight: "700",
   },
   savedText: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.3)",
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.4)",
     textAlign: "center",
-    marginTop: 12,
+    marginTop: 14,
   },
 });

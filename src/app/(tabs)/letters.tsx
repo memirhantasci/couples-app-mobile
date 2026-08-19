@@ -7,10 +7,10 @@ import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
 import { encrypt, decrypt, deterministicDecrypt } from "@/utils/crypto";
-import { Lock, ChevronRight, FileEdit, LockKeyhole, Calendar as CalendarIcon } from "lucide-react-native";
+import { Lock, ChevronRight, FileEdit, LockKeyhole, Calendar as CalendarIcon, XCircle, ChevronDown } from "lucide-react-native";
 import { sanitize, sanitizeStrict } from "@/utils/sanitize";
 import { logger } from "@/utils/logger";
-import { PageHeader } from "@/components/ui/PageHeader";
+import { getTheme } from "@/lib/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
@@ -22,6 +22,7 @@ export default function LettersScreen() {
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
+  const theme = getTheme(profile?.gender);
 
   const [letterLimit, setLetterLimit] = useState(15);
 
@@ -174,42 +175,48 @@ export default function LettersScreen() {
       ? (letter.sender?.display_name || letter.sender?.username || "Bilinmeyen")
       : (letter.receiver?.display_name || letter.receiver?.username || "Bilinmeyen");
 
-    const dateStr = dayjs(letter.created_at).format("DD.MM.YYYY HH:mm");
+    let relativeDate = dayjs(letter.created_at).format("DD.MM.YYYY");
+    if (dayjs(letter.created_at).isSame(dayjs(), 'day')) relativeDate = "Bugün";
 
     return (
-      <View key={letter.id} style={styles.letterContainer}>
+      <View key={letter.id} style={[styles.letterContainer, { backgroundColor: theme.cardBg }]}>
         <TouchableOpacity
           activeOpacity={canOpen ? 0.7 : 1}
           onPress={() => canOpen && setOpenLetterId(isOpen ? null : letter.id)}
-          style={[styles.letterHeader, !canOpen && { opacity: 0.6 }]}
+          style={{ opacity: (!canOpen && type === "received") ? 0.8 : 1 }}
         >
-          <View>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <Text style={styles.letterDate}>{dateStr}</Text>
-              {isLockedDate && (
-                <View style={styles.lockedBadge}>
-                  <Lock size={12} color="#E8002D" />
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <View style={styles.lockedBadge}>
+              {isLockedDate ? (
+                <>
+                  <XCircle size={14} color="#E8002D" />
                   <Text style={styles.lockedText}>
-                    {type === "received" ? `Kilitli (Açılış: ${unlockDateObj.format("DD.MM.YYYY")})` : `Alıcıya Kilitli (${unlockDateObj.format("DD.MM.YYYY")})`}
+                    Kilitli (Açılış: {unlockDateObj.format("DD.MM.YYYY")})
                   </Text>
-                </View>
+                </>
+              ) : (
+                <Text style={[styles.lockedText, { color: "#4ade80" }]}>Açık</Text>
               )}
             </View>
-            <Text style={styles.letterPerson}>
-              {type === "received" ? "Gönderen:" : "Alıcı:"} <Text style={{ color: "#c8922a", fontWeight: "600" }}>{personName}</Text>
-            </Text>
+            <Text style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>{relativeDate}</Text>
           </View>
-          {canOpen && (
-            <ChevronRight size={20} color="rgba(255,255,255,0.3)" style={{ transform: [{ rotate: isOpen ? "90deg" : "0deg" }] }} />
+          
+          <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15, marginBottom: 4 }}>
+            {letter.title || "İsimsiz Mektup"}
+          </Text>
+          
+          {!isOpen && (
+            <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }} numberOfLines={1}>
+              {(!canOpen && type === "received") ? "Bu mektubun içeriği henüz kilitli..." : (letter.content || "İçerik yok...")}
+            </Text>
+          )}
+
+          {canOpen && isOpen && (
+            <View style={styles.letterBody}>
+              <Text style={styles.letterContent}>{letter.content}</Text>
+            </View>
           )}
         </TouchableOpacity>
-
-        {canOpen && isOpen && (
-          <View style={styles.letterBody}>
-            <Text style={styles.letterTitle}>{letter.title}</Text>
-            <Text style={styles.letterContent}>{letter.content}</Text>
-          </View>
-        )}
       </View>
     );
   };
@@ -219,9 +226,13 @@ export default function LettersScreen() {
   return (
     <ScreenBackground>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        <View style={[styles.container, { paddingTop: insets.top + 10, paddingBottom: 0, flex: 1 }]}>
+        <View style={[styles.container, { paddingTop: insets.top + 20, paddingBottom: 0, flex: 1 }]}>
           
-          <PageHeader title="MEKTUPLAR 💌" />
+          <View style={{ alignItems: "center", marginBottom: 30 }}>
+            <Text style={{ fontSize: 34, fontFamily: "PlayfairDisplay_400Regular_Italic", color: "#fff" }}>
+              Mektuplar 💌
+            </Text>
+          </View>
 
           {isLoading ? (
             <View style={{ marginTop: 40, gap: 24 }}>
@@ -237,52 +248,62 @@ export default function LettersScreen() {
               keyExtractor={(item, index) => item.id.toString()}
               showsVerticalScrollIndicator={false}
               renderSectionHeader={({ section }) => (
-                <View style={[styles.cardTitleBox, { marginTop: section.type === "received" ? 24 : 16 }]}>
-                  <Text style={{ fontSize: 18 }}>{section.icon}</Text>
-                  <Text style={styles.cardTitle}>{section.title}</Text>
+                <View style={{ marginBottom: 12, marginTop: section.type === "received" ? 0 : 20 }}>
+                  <Text style={{ fontSize: 12, fontWeight: "600", color: "rgba(255,255,255,0.4)", letterSpacing: 0.5 }}>
+                    {section.type === "received" ? "GELEN MEKTUPLAR" : "GÖNDERDİĞİM MEKTUPLAR"}
+                  </Text>
                 </View>
               )}
               renderItem={({ item, section }) => renderLetterItem(item, section.type as "received" | "sent")}
               renderSectionFooter={({ section }) => (
                 section.data.length === 0 ? (
-                  <Text style={[styles.emptyText, { marginBottom: 16 }]}>
-                    {section.type === "received" ? "Henüz sana yazılmış bir mektup yok." : "Henüz kimseye mektup göndermedin."}
-                  </Text>
-                ) : <View style={{ height: 16 }} />
-              )}
-              ListFooterComponent={
-                <View style={styles.formBox}>
-                  {/* --- YENİ MEKTUP YAZ FORMU --- */}
-                <View style={[styles.cardTitleBox, { marginBottom: 20 }]}>
-                  <View style={styles.iconBox}>
-                    <FileEdit color="#c8922a" size={16} />
+                  <View style={[styles.letterContainer, { backgroundColor: theme.cardBg, paddingVertical: 20, alignItems: "center" }]}>
+                    <Text style={[styles.emptyText, { marginBottom: 0 }]}>
+                      {section.type === "received" ? "Henüz sana yazılmış bir mektup yok." : "Henüz kimseye mektup göndermedin."}
+                    </Text>
                   </View>
-                  <Text style={[styles.cardTitle, { color: "#c8922a" }]}>Yeni Mektup Yaz</Text>
-                </View>
+                ) : null
+              )}
+              ListFooterComponent={() => (
+                <View style={[styles.formBox, { backgroundColor: theme.cardBg, borderColor: 'transparent' }]}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 24 }}>
+                    <Text style={{ fontSize: 18 }}>✍️</Text>
+                    <Text style={{ fontSize: 24, fontFamily: "PlayfairDisplay_400Regular_Italic", color: "#fff" }}>
+                      Yeni Mektup Yaz
+                    </Text>
+                  </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.label, errors.receiver && { color: "red" }]}>ALICI KİM?</Text>
-                  {users ? (
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.label, errors.receiver && { color: "red" }]}>KİME</Text>
                     <View style={styles.usersRow}>
-                      {users.map(u => (
-                        <TouchableOpacity
-                          key={u.id}
-                          style={[styles.userBtn, receiverId === String(u.id) && styles.userBtnSelected]}
-                          onPress={() => {
-                            setReceiverId(String(u.id));
-                            setErrors(prev => ({ ...prev, receiver: false }));
-                          }}
-                        >
-                          <Text style={[styles.userBtnText, receiverId === String(u.id) && styles.userBtnTextSelected]}>
-                            {u.display_name || u.username}
-                          </Text>
+                      {users?.map((u) => {
+                        const isSelected = receiverId === String(u.id);
+                        return (
+                          <TouchableOpacity
+                            key={u.id}
+                            style={[
+                              styles.input,
+                              { flex: 1, paddingVertical: 12, alignItems: "center" },
+                              isSelected && { borderColor: "#c8922a", backgroundColor: "rgba(200,146,42,0.1)" }
+                            ]}
+                            onPress={() => {
+                              setReceiverId(String(u.id));
+                              setErrors(prev => ({ ...prev, receiver: false }));
+                            }}
+                          >
+                            <Text style={[styles.userBtnText, isSelected && { color: "#c8922a", fontWeight: "bold" }]}>
+                              {u.display_name || u.username}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                      {(!users || users.length === 0) && (
+                        <TouchableOpacity style={[styles.input, { flex: 1, paddingVertical: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }]}>
+                          <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>Kullanıcı Seçiniz</Text>
                         </TouchableOpacity>
-                      ))}
+                      )}
                     </View>
-                  ) : (
-                    <ActivityIndicator color="#c8922a" style={{ alignSelf: "flex-start" }} />
-                  )}
-                </View>
+                  </View>
 
                 <View style={styles.inputGroup}>
                   <View style={styles.labelRow}>
@@ -359,7 +380,7 @@ export default function LettersScreen() {
                 </TouchableOpacity>
 
                 </View>
-              }
+              )}
             />
           )}
         </View>
@@ -420,15 +441,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   letterContainer: {
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.05)",
-    paddingBottom: 8,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
   },
   letterHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 8,
   },
   letterDate: {
     fontSize: 12,
@@ -437,11 +457,11 @@ const styles = StyleSheet.create({
   lockedBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
   },
   lockedText: {
     color: "#E8002D",
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "600",
   },
   letterPerson: {
@@ -450,14 +470,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   letterBody: {
-    marginTop: 8,
-    marginBottom: 8,
-    backgroundColor: "rgba(255,255,255,0.02)",
-    borderLeftWidth: 2,
-    borderLeftColor: "#c8922a",
-    padding: 16,
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.05)",
   },
   letterTitle: {
     fontSize: 15,
@@ -513,9 +529,9 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   input: {
-    backgroundColor: "#1a1a1e",
+    backgroundColor: "#151515",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: "rgba(255,255,255,0.03)",
     borderRadius: 12,
     color: "#fff",
     fontSize: 14,
@@ -532,7 +548,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#c8922a",
+    backgroundColor: "#fdb765",
     paddingVertical: 16,
     borderRadius: 16,
     marginTop: 10,

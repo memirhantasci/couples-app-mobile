@@ -4,6 +4,8 @@
   "version": "1.0.0",
   "dependencies": {
     "@craftzdog/react-native-buffer": "^6.1.2",
+    "@expo-google-fonts/inter": "^0.4.2",
+    "@expo-google-fonts/playfair-display": "^0.4.2",
     "@expo/ui": "~57.0.9",
     "@react-native-async-storage/async-storage": "^3.1.1",
     "@react-native-community/datetimepicker": "9.1.0",

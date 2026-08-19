@@ -2,12 +2,16 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useRouter } from "expo-router";
-import { X, Heart, Settings, FileClock, Home, Pill, CalendarHeart, Mail, Activity, Image as ImageIcon, UploadCloud, LogOut, BookOpen } from "lucide-react-native";
+import { X, Heart, Settings, Home, Pill, CalendarHeart, Droplet, MapPin, LogOut, ChevronRight, User, BookOpen, Mail } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
+import { getTheme } from "@/lib/theme";
+import { dayjs, daysSince } from "@/lib/date";
+import { supabase } from "@/lib/supabase";
+import { useQuery } from "@tanstack/react-query";
 
 export default function MenuScreen() {
   const router = useRouter();
-  const { signOut } = useAuth();
+  const { profile, session, signOut } = useAuth();
 
   const handleRoute = (path: string) => {
     router.back();
@@ -21,71 +25,111 @@ export default function MenuScreen() {
     router.replace("/(auth)/login" as any);
   };
 
+  const theme = getTheme(profile?.gender);
+  
+  const relDate = profile?.relationshipStartDate;
+  const daysSinceTogether = relDate ? daysSince(dayjs(relDate)) : 0;
+  
+  const coupleId = profile?.coupleId;
+  const currentUserId = session?.user?.id;
+
+  const { data: partnerName } = useQuery({
+    queryKey: ["partner_name", coupleId],
+    enabled: !!coupleId && !!currentUserId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("users")
+        .select("display_name")
+        .eq("couple_id", coupleId)
+        .neq("id", currentUserId)
+        .maybeSingle();
+      return data?.display_name || "Partner";
+    },
+    staleTime: 1000 * 60 * 60,
+  });
+
+  const displayName = profile?.displayName || "Kullanıcı";
+
   return (
-    <ScreenBackground colors={["#1c1c1e", "#0A0A0C", "#1c1c1e"]}>
+    <ScreenBackground>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
-            <X color="#fff" size={24} />
-          </TouchableOpacity>
           <Text style={styles.headerTitle}>Menü</Text>
-          <View style={{ width: 24 }} />
+          <TouchableOpacity onPress={() => router.back()} style={[styles.closeBtn, { backgroundColor: theme.cardBg }]}>
+            <X color="#fff" size={20} />
+          </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={styles.content}>
-          <TouchableOpacity style={styles.menuItem} onPress={() => handleRoute("/(tabs)/home")}>
+          {/* Profile Card */}
+          <View style={[styles.profileCard, { backgroundColor: theme.cardBg }]}>
+            <View style={styles.avatarCircle}>
+              <User color="rgba(255,255,255,0.8)" size={32} />
+            </View>
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>{displayName}</Text>
+              <Text style={styles.profileSubtitle}>{displayName} & {partnerName || "Partner"} • {daysSinceTogether} Gündür ❤️</Text>
+            </View>
+          </View>
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/(tabs)/home")}>
             <Home color="#fff" size={20} />
             <Text style={styles.menuText}>Ana Sayfa</Text>
+            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem} onPress={() => handleRoute("/(tabs)/medicine")}>
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/(tabs)/medicine")}>
             <Pill color="#fff" size={20} />
             <Text style={styles.menuText}>İlaçlar</Text>
+            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem} onPress={() => handleRoute("/(tabs)/memories")}>
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/(tabs)/memories")}>
             <Heart color="#fff" size={20} />
             <Text style={styles.menuText}>Özel Günler</Text>
+            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem} onPress={() => handleRoute("/(tabs)/calendar")}>
-            <CalendarHeart color="#fff" size={20} />
-            <Text style={styles.menuText}>Takvim</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => handleRoute("/(tabs)/daily-notes")}>
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/(tabs)/daily-notes")}>
             <BookOpen color="#fff" size={20} />
             <Text style={styles.menuText}>Günlüğüm</Text>
+            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem} onPress={() => handleRoute("/(tabs)/letters")}>
-            <Mail color="#fff" size={20} />
-            <Text style={styles.menuText}>Mektuplar</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => handleRoute("/(tabs)/period-tracker")}>
-            <Activity color="#fff" size={20} />
-            <Text style={styles.menuText}>Regl Takvimi</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => handleRoute("/(tabs)/meetings")}>
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/(tabs)/calendar")}>
             <CalendarHeart color="#fff" size={20} />
+            <Text style={styles.menuText}>Takvim</Text>
+            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/(tabs)/letters")}>
+            <View style={styles.iconCircle}>
+              <X color="#fff" size={14} strokeWidth={3} />
+            </View>
+            <Text style={styles.menuText}>Mektuplar</Text>
+            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/profile")}>
+            <Settings color="#fff" size={20} />
+            <Text style={styles.menuText}>Ayarlar</Text>
+            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/(tabs)/period-tracker")}>
+            <Droplet color="#fff" size={20} />
+            <Text style={styles.menuText}>Regl Takvimi</Text>
+            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/(tabs)/meetings")}>
+            <MapPin color="#fff" size={20} />
             <Text style={styles.menuText}>Buluşmalar</Text>
+            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem} onPress={() => handleRoute("/(tabs)/photos")}>
-            <ImageIcon color="#fff" size={20} />
-            <Text style={styles.menuText}>Fotoğraflar</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => handleRoute("/(tabs)/add-photo")}>
-            <UploadCloud color="#fff" size={20} />
-            <Text style={styles.menuText}>Fotoğraf Yükle</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem} onPress={handleSignOut}>
-            <LogOut color="#E8002D" size={20} />
-            <Text style={[styles.menuText, { color: "#E8002D" }]}>Çıkış Yap</Text>
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={handleSignOut}>
+            <LogOut color={theme.accent} size={20} />
+            <Text style={[styles.menuText, { color: theme.accent }]}>Çıkış Yap</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -101,41 +145,73 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.05)",
   },
   closeBtn: {
-    padding: 4,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.3)",
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 28,
+    fontFamily: "PlayfairDisplay_400Regular_Italic",
     color: "#fff",
   },
   content: {
     padding: 20,
+    paddingBottom: 100,
     gap: 12,
+  },
+  profileCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 20,
+    marginBottom: 8,
+    gap: 14,
+  },
+  avatarCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  profileInfo: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  profileName: {
+    fontSize: 16,
+    fontFamily: "Inter_600SemiBold",
+    color: "#fff",
+    marginBottom: 2,
+  },
+  profileSubtitle: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.6)",
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.03)",
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-    gap: 16,
+    padding: 18,
+    borderRadius: 18,
+    gap: 14,
   },
-  iconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+  iconCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
   },
   menuText: {
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 15,
+    fontFamily: "Inter_500Medium",
   }
 });

@@ -1,11 +1,11 @@
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
-import isBetween from "dayjs/plugin/isBetween";
-import duration from "dayjs/plugin/duration";
-import relativeTime from "dayjs/plugin/relativeTime";
 import dayOfYearPlugin from "dayjs/plugin/dayOfYear";
-import utc from "dayjs/plugin/utc";
+import duration from "dayjs/plugin/duration";
+import isBetween from "dayjs/plugin/isBetween";
+import relativeTime from "dayjs/plugin/relativeTime";
 import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
 
 dayjs.extend(isBetween);
 dayjs.extend(duration);

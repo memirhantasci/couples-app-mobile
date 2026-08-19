@@ -1,44 +1,42 @@
+import React from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  RefreshControl,
+  TouchableOpacity,
+} from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
+import { useQuery } from "@tanstack/react-query";
 import {
   dayjs,
-  dayOfYear,
   daysSince,
   getLoveMeter,
-  todayString
+  dayOfYear,
+  todayString,
 } from "@/lib/date";
 import { getQuoteForDay } from "@/lib/quotes";
-import { supabase } from "@/lib/supabase";
 import { decrypt, deterministicDecrypt } from "@/utils/crypto";
-import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { AlignJustify, Star } from "lucide-react-native";
-import {
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { AlignJustify } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { getTheme } from "@/lib/theme";
 
-import { DailyNoteCard } from "@/components/home/DailyNoteCard";
 import { LoveMeter } from "@/components/home/LoveMeter";
-import { MeetingCountdown } from "@/components/home/MeetingCountdown";
 import { MoodSelector } from "@/components/home/MoodSelector";
+import { DailyNoteCard } from "@/components/home/DailyNoteCard";
+import { MeetingCountdown } from "@/components/home/MeetingCountdown";
 import { PendingLettersCard } from "@/components/home/PendingLettersCard";
-
-// ─── Tema Sabitleri ─────────────────────────────────────────────────────────
-const PINK = "#ff4d6d";
-const CARD_BG = "#231218";
-const BORDER = "rgba(255,255,255,0.07)";
 
 export default function HomeScreen() {
   const { session, profile } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const theme = getTheme(profile?.gender);
 
   const today = todayString();
   const doy = dayOfYear();
@@ -66,7 +64,7 @@ export default function HomeScreen() {
         coupleId
           ? supabase
             .from("meetings")
-            .select("id, meeting_datetime, title")
+            .select("id, meeting_datetime, title, location_name, latitude, longitude")
             .eq("couple_id", coupleId)
             .eq("is_active", true)
             .gte("meeting_datetime", dayjs().subtract(3, "hour").toISOString())
@@ -142,13 +140,10 @@ export default function HomeScreen() {
     );
   }
 
-  // ─── Hesaplanan Veriler ─────────────────────────────────────────────────
   const meetDate = profile?.meetDate;
   const relDate = profile?.relationshipStartDate;
-
   const daysSinceMeeting = meetDate ? daysSince(dayjs(meetDate)) : 0;
   const daysSinceTogether = relDate ? daysSince(dayjs(relDate)) : 0;
-
   const name = profile?.displayName || "Tatlım";
   const quote = getQuoteForDay(doy);
   const loveMeter = getLoveMeter();
@@ -162,7 +157,11 @@ export default function HomeScreen() {
           { paddingTop: insets.top + 16 },
         ]}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={PINK} />
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={refetch}
+            tintColor={theme.accent}
+          />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -186,8 +185,8 @@ export default function HomeScreen() {
             <Text style={styles.pillValue}>{daysSinceMeeting}</Text>
             <Text style={styles.pillLabel}> gün tanışalı 🤝</Text>
           </View>
-          <View style={[styles.pill, styles.pillPink]}>
-            <Text style={[styles.pillValue, { color: PINK }]}>{daysSinceTogether}</Text>
+          <View style={styles.pill}>
+            <Text style={styles.pillValue}>{daysSinceTogether}</Text>
             <Text style={styles.pillLabel}> gün sevgili ❤️</Text>
           </View>
         </View>
@@ -195,31 +194,32 @@ export default function HomeScreen() {
         {/* ── GÜNÜN SÖZÜ ─────────────────────────────────────────────── */}
         <View style={styles.quoteCard}>
           <View style={styles.quoteHeaderRow}>
-            <Star size={13} color="#f59e0b" fill="#f59e0b" />
-            <Text style={styles.quoteTitle}>GÜNÜN SÖZÜ</Text>
+            <Text style={styles.quoteStarIcon}>⭐</Text>
+            <Text style={[styles.quoteTitle, { color: theme.accentLight }]}>GÜNÜN SÖZÜ</Text>
           </View>
           <Text style={styles.quoteText}>"{quote}"</Text>
         </View>
 
         {/* ── AŞK ÖLÇER ──────────────────────────────────────────────── */}
-        <LoveMeter value={loveMeter} />
+        <LoveMeter value={loveMeter} theme={theme} />
 
         {/* ── BULUŞMA GERİ SAYIMI ─────────────────────────────────────── */}
         {dashboardData?.activeMeeting && (
-          <MeetingCountdown meeting={dashboardData.activeMeeting} />
+          <MeetingCountdown meeting={dashboardData.activeMeeting} theme={theme} />
         )}
 
         {/* ── MOD SEÇİMİ ─────────────────────────────────────────────── */}
         <MoodSelector
           currentMood={dashboardData?.currentMood}
           moodLocked={!!dashboardData?.currentMood}
+          theme={theme}
         />
 
         {/* ── GÜNLÜK NOT ─────────────────────────────────────────────── */}
-        <DailyNoteCard existingNote={dashboardData?.currentNote} />
+        <DailyNoteCard existingNote={dashboardData?.currentNote} theme={theme} />
 
         {/* ── BEKLEYEN MEKTUPLAR ─────────────────────────────────────── */}
-        <PendingLettersCard letters={dashboardData?.pendingLetters || []} />
+        <PendingLettersCard letters={dashboardData?.pendingLetters || []} theme={theme} />
       </ScrollView>
     </ScreenBackground>
   );
@@ -236,85 +236,81 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: 20,
   },
   greetingText: {
-    fontSize: 26,
-    fontWeight: "700",
+    fontSize: 28,
+    fontFamily: "PlayfairDisplay_400Regular_Italic",
     color: "#ffffff",
-    fontStyle: "italic",
-    letterSpacing: -0.3,
   },
   dateLabel: {
     fontSize: 13,
-    color: "rgba(255,255,255,0.4)",
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.7)",
     marginTop: 4,
-    fontWeight: "400",
   },
   menuBtn: {
-    padding: 6,
+    padding: 8,
+    borderRadius: 20,
     marginTop: 4,
+    backgroundColor: "#4A152B", // Dark burgundy as requested
   },
 
   // ─── Counter Pills ─────────────────────────────────────────────────────
   pillRow: {
     flexDirection: "row",
-    gap: 10,
-    marginBottom: 14,
+    gap: 12,
+    marginBottom: 18,
   },
   pill: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: CARD_BG,
-    borderWidth: 1,
-    borderColor: BORDER,
     borderRadius: 50,
-    paddingVertical: 11,
+    paddingVertical: 12,
     paddingHorizontal: 14,
-  },
-  pillPink: {
-    borderColor: "rgba(255,77,109,0.25)",
-    backgroundColor: "rgba(255,77,109,0.06)",
+    backgroundColor: "#4A152B", // Always dark burgundy
+    borderWidth: 0, // No border according to screenshot
   },
   pillValue: {
     fontSize: 15,
-    fontWeight: "700",
+    fontFamily: "Inter_600SemiBold",
     color: "#fff",
   },
   pillLabel: {
     fontSize: 13,
-    color: "rgba(255,255,255,0.55)",
-    fontWeight: "400",
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.75)",
   },
 
   // ─── Quote Card ────────────────────────────────────────────────────────
   quoteCard: {
-    backgroundColor: CARD_BG,
-    borderWidth: 1,
-    borderColor: BORDER,
     borderRadius: 20,
-    padding: 18,
-    marginBottom: 14,
+    padding: 20,
+    marginBottom: 18,
+    backgroundColor: "#4A152B", // Explicit card bg
+    borderWidth: 0,
   },
   quoteHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginBottom: 10,
+    marginBottom: 12,
+  },
+  quoteStarIcon: {
+    fontSize: 12,
   },
   quoteTitle: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#f59e0b",
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
     letterSpacing: 1.2,
     textTransform: "uppercase",
   },
   quoteText: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: "rgba(255,255,255,0.75)",
-    fontStyle: "italic",
+    fontSize: 16,
+    lineHeight: 24,
+    fontFamily: "PlayfairDisplay_400Regular_Italic",
+    color: "rgba(255,255,255,0.9)",
   },
 });

@@ -10,14 +10,19 @@ import { supabase } from "@/lib/supabase";
 import { useQueryClient } from "@tanstack/react-query";
 import { logger } from "@/utils/logger";
 import { decode } from "base64-arraybuffer";
-import { Image as ImageIcon, X, Save, Menu, ImagePlus } from "lucide-react-native";
-import { dayjs, todayString } from "@/lib/date";
+import { Image as ImageIcon, X, Save, Menu, ImagePlus, ChevronLeft } from "lucide-react-native";
+import { dayjs, todayString, formatDateTR } from "@/lib/date";
+import { getTheme } from "@/lib/theme";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 export default function AddMemoryScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const queryClient = useQueryClient();
   const { session, profile } = useAuth();
+  const insets = useSafeAreaInsets();
+  const theme = getTheme(profile?.gender);
 
   const isEditing = !!params.id;
 
@@ -28,6 +33,7 @@ export default function AddMemoryScreen() {
   const [localImage, setLocalImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({ title: false, date: false });
+  const [showDatePicker, setShowDatePicker] = useState(false);
   useFocusEffect(
     useCallback(() => {
       // Ekran her odaklandığında formu temizle (eğer yeni ekleme modundaysa)
@@ -130,7 +136,7 @@ export default function AddMemoryScreen() {
       if (error) throw error;
 
       queryClient.invalidateQueries({ queryKey: ["memories"] });
-      router.back();
+      router.replace("/(tabs)/memories");
     } catch (error: any) {
       logger.error("Memory save error:", error);
       Alert.alert("Hata", "Anı kaydedilirken bir hata oluştu.");
@@ -140,23 +146,21 @@ export default function AddMemoryScreen() {
   }
 
   return (
-    <ScreenBackground colors={["#1c1c1e", "#0A0A0C", "#1c1c1e"]}>
+    <ScreenBackground>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
-            <X color="#fff" size={24} />
+        <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+          <TouchableOpacity onPress={() => router.replace("/(tabs)/memories")} style={{ padding: 8, marginLeft: -8 }}>
+            <ChevronLeft color="#fff" size={28} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{isEditing ? "Anıyı Düzenle" : "Yeni Anı Ekle"}</Text>
-          <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, marginRight: -8 }}>
-            <Menu color="#fff" size={24} />
-          </TouchableOpacity>
+          <View style={{ width: 28 }} />
         </View>
 
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.inputGroup}>
             <Text style={[styles.label, errors.title && { color: "red" }]}>Başlık</Text>
             <TextInput
-              style={[styles.input, errors.title && { borderColor: "red" }]}
+              style={[styles.input, { backgroundColor: theme.unitBg }, errors.title && { borderColor: "red" }]}
               value={title}
               onChangeText={(text) => {
                 setTitle(text);
@@ -168,23 +172,36 @@ export default function AddMemoryScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, errors.date && { color: "red" }]}>Tarih (YYYY-AA-GG)</Text>
-            <TextInput
-              style={[styles.input, errors.date && { borderColor: "red" }]}
-              value={date}
-              onChangeText={(text) => {
-                setDate(text);
-                setErrors(prev => ({ ...prev, date: false }));
-              }}
-              placeholder="2023-05-14"
-              placeholderTextColor="rgba(255,255,255,0.4)"
-            />
+            <Text style={[styles.label, errors.date && { color: "red" }]}>Tarih</Text>
+            <TouchableOpacity
+              style={[styles.input, { backgroundColor: theme.unitBg }, errors.date && { borderColor: "red" }]}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Text style={{ color: date ? "#fff" : "rgba(255,255,255,0.4)" }}>
+                {date ? formatDateTR(date) : "Tarih Seçin"}
+              </Text>
+            </TouchableOpacity>
+
+            {showDatePicker && (
+              <DateTimePicker
+                value={date ? new Date(date) : new Date()}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setShowDatePicker(false);
+                  if (event.type === "set" && selectedDate) {
+                    setDate(dayjs(selectedDate).format("YYYY-MM-DD"));
+                    setErrors(prev => ({ ...prev, date: false }));
+                  }
+                }}
+              />
+            )}
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Açıklama (İsteğe bağlı)</Text>
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[styles.input, styles.textArea, { backgroundColor: theme.unitBg }]}
               value={description}
               onChangeText={setDescription}
               placeholder="O güne dair hatırlamak istediklerin..."
@@ -195,7 +212,7 @@ export default function AddMemoryScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Fotoğraf (İsteğe bağlı)</Text>
-            <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
+            <TouchableOpacity style={[styles.imagePicker, { backgroundColor: theme.unitBg }]} onPress={pickImage}>
               {localImage ? (
                 <Image source={{ uri: localImage.uri }} style={styles.previewImg} contentFit="cover" />
               ) : imageUrl ? (
@@ -210,7 +227,7 @@ export default function AddMemoryScreen() {
           </View>
 
           <TouchableOpacity 
-            style={[styles.saveBtn, loading && { opacity: 0.7 }]} 
+            style={[styles.saveBtn, { backgroundColor: theme.accent }, loading && { opacity: 0.7 }]} 
             onPress={handleSave}
             disabled={loading}
           >
@@ -235,17 +252,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 60,
     paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.05)",
-  },
-  closeBtn: {
-    padding: 4,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 28,
+    fontFamily: "PlayfairDisplay_400Regular_Italic",
     color: "#fff",
   },
   content: {
@@ -259,27 +270,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "rgba(255,255,255,0.7)",
     marginBottom: 8,
-    fontWeight: "500",
+    fontFamily: "Inter_500Medium",
   },
   input: {
-    backgroundColor: "rgba(255,255,255,0.03)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    borderRadius: 12,
+    borderRadius: 16,
     color: "#fff",
     fontSize: 15,
     paddingHorizontal: 16,
     paddingVertical: 14,
+    fontFamily: "Inter_400Regular",
   },
   textArea: {
     minHeight: 100,
     textAlignVertical: "top",
   },
   imagePicker: {
-    backgroundColor: "rgba(255,255,255,0.03)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: "hidden",
     height: 180,
   },
@@ -292,6 +298,7 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.4)",
     marginTop: 8,
     fontSize: 13,
+    fontFamily: "Inter_400Regular",
   },
   previewImg: {
     width: "100%",
@@ -303,19 +310,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#FF2D55",
-    paddingVertical: 16,
-    borderRadius: 16,
+    paddingVertical: 18,
+    borderRadius: 20,
     marginTop: 10,
-    shadowColor: "#FF2D55",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
   },
   saveBtnText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "bold",
+    fontFamily: "Inter_700Bold",
   }
 });
