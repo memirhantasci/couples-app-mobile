@@ -39,15 +39,14 @@ export function DailyNoteCard({ existingNote }: DailyNoteCardProps) {
     if (saved || !content.trim() || !session?.user?.id) return;
     setSubmitting(true);
 
-    const coupleId = profile?.coupleId ? parseInt(String(profile.coupleId), 10) : null;
+    const coupleId = profile?.coupleId ?? null;
     const today = todayString();
     const cleanContent = sanitize(content.trim());
     if (!cleanContent) return;
     const encryptedContent = encrypt(cleanContent);
-    const userId = parseInt(session.user.id, 10);
+    const userId = session.user.id;
 
     const { error } = await supabase.rpc("save_daily_note", {
-      p_user_id: userId,
       p_date: today,
       p_content: encryptedContent,
       p_couple_id: coupleId,
@@ -89,7 +88,7 @@ export function DailyNoteCard({ existingNote }: DailyNoteCardProps) {
             placeholderTextColor="rgba(255,255,255,0.25)"
             multiline
             numberOfLines={4}
-            maxLength={2000}
+            maxLength={4500}
             style={styles.input}
           />
           <TouchableOpacity

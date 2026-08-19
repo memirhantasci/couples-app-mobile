@@ -21,7 +21,7 @@ export default function PhotosScreen() {
   const insets = useSafeAreaInsets();
 
   const coupleId = profile?.coupleId || null;
-  const userId = session?.user?.id ? parseInt(session.user.id, 10) : null;
+  const userId = session?.user?.id ? session.user.id : null;
 
   const PAGE_SIZE = 20;
 

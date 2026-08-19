@@ -12,7 +12,7 @@ export default function VerifyDeviceScreen() {
   const { userId, deviceId } = useLocalSearchParams<{ userId: string; deviceId: string }>();
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { refreshProfile } = useAuth();
 
   const handleVerify = async () => {
     if (code.length !== 6) {
@@ -25,7 +25,7 @@ export default function VerifyDeviceScreen() {
       // Verify OTP and update device authorization atomically using RPC
       // This bypasses any RLS issues since we are unauthenticated at this step
       const { data: success, error: rpcError } = await supabase.rpc("verify_device_otp", {
-        p_user_id: parseInt(userId),
+        p_user_id: userId,
         p_device_id: deviceId,
         p_code: code,
       });
@@ -36,8 +36,8 @@ export default function VerifyDeviceScreen() {
         return;
       }
 
-      // Sign in and redirect to home
-      await signIn(userId);
+      // Refresh profile and redirect to home
+      await refreshProfile();
       router.replace("/(tabs)/home");
 
     } catch (e: any) {

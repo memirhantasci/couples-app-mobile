@@ -1,18 +1,10 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useCallback,
-} from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { supabase } from "@/lib/supabase";
 import { registerForPushNotifications } from "@/lib/notifications";
-
-// ─── Types ───────────────────────────────────────────────────────────────────
+import { supabase } from "@/lib/supabase";
+import { Session } from "@supabase/supabase-js";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 export interface CoupleProfile {
-  coupleId: string | null;
+  coupleId: number | null;   // integer — DB'de INTEGER tipinde
   meetDate: string | null;
   relationshipStartDate: string | null;
   isPaired: boolean;
@@ -21,39 +13,33 @@ export interface CoupleProfile {
 }
 
 interface AuthContextValue {
-  session: { user: { id: string } } | null;
+  session: Session | null;
   isLoading: boolean;
   profile: CoupleProfile | null;
   refreshProfile: () => Promise<void>;
-  signIn: (userId: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
-
-// ─── Context ─────────────────────────────────────────────────────────────────
 
 const AuthContext = createContext<AuthContextValue>({
   session: null,
   isLoading: true,
   profile: null,
-  refreshProfile: async () => {},
-  signIn: async () => {},
-  signOut: async () => {},
+  refreshProfile: async () => { },
+  signOut: async () => { },
 });
 
 export function useAuth() {
   return useContext(AuthContext);
 }
 
-// ─── Helper: fetch couple profile ────────────────────────────────────────────
-
 async function fetchProfile(userId: string): Promise<CoupleProfile> {
-  const { data } = await supabase
+  const { data: user } = await supabase
     .from("users")
-    .select("display_name, couple_id, couples(meet_date, relationship_start_date)")
+    .select("display_name, couple_id")
     .eq("id", userId)
     .single();
 
-  if (!data) {
+  if (!user) {
     return {
       coupleId: null,
       meetDate: null,
@@ -64,82 +50,72 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
     };
   }
 
-  const couple = Array.isArray(data.couples) ? data.couples[0] : data.couples;
+  let couple: any = null;
+  if (user.couple_id) {
+    const { data: cData } = await supabase
+      .from("couples")
+      .select("meet_date, relationship_start_date")
+      .eq("id", user.couple_id)
+      .single();
+    if (cData) {
+      couple = cData;
+    }
+  }
 
   return {
-    coupleId: data.couple_id ?? null,
+    coupleId: user.couple_id ? parseInt(String(user.couple_id), 10) : null,
     meetDate: couple?.meet_date ?? null,
     relationshipStartDate: couple?.relationship_start_date ?? null,
-    isPaired: !!data.couple_id,
+    isPaired: !!user.couple_id,
     hasDates: !!(couple?.meet_date && couple?.relationship_start_date),
-    displayName: data.display_name ?? null,
+    displayName: user.display_name ?? null,
   };
 }
 
-// ─── Provider ────────────────────────────────────────────────────────────────
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<{ user: { id: string } } | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<CoupleProfile | null>(null);
 
   useEffect(() => {
-    // Initial session check from AsyncStorage
-    AsyncStorage.getItem("custom_session_userid").then(async (userId) => {
-      if (userId && userId !== "undefined") {
-        setSession({ user: { id: userId } });
-        const p = await fetchProfile(userId);
-        setProfile(p);
-        registerForPushNotifications(userId).catch(() => {});
-      } else {
-        await AsyncStorage.removeItem("custom_session_userid");
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session?.user) {
+        fetchProfile(session.user.id).then(setProfile);
+        registerForPushNotifications(session.user.id).catch(() => { });
       }
       setIsLoading(false);
     });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session?.user) {
+        fetchProfile(session.user.id).then(setProfile);
+        registerForPushNotifications(session.user.id).catch(() => { });
+      } else {
+        setProfile(null);
+      }
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const refreshProfile = useCallback(async () => {
-    const userId = await AsyncStorage.getItem("custom_session_userid");
-    if (!userId || userId === "undefined") {
+    if (!session?.user?.id) {
       setProfile(null);
       return;
     }
-    const p = await fetchProfile(userId);
+    const p = await fetchProfile(session.user.id);
     setProfile(p);
-  }, []);
-
-  const signIn = useCallback(async (userId: string) => {
-    if (!userId || userId === "undefined") return;
-    await AsyncStorage.setItem("custom_session_userid", userId);
-    setSession({ user: { id: userId } });
-    const p = await fetchProfile(userId);
-    setProfile(p);
-  }, []);
+  }, [session]);
 
   const signOut = useCallback(async () => {
-    await AsyncStorage.removeItem("custom_session_userid");
-    setSession(null);
-    setProfile(null);
-  }, []);
-
-  useEffect(() => {
-    // Initial session check from AsyncStorage
-    AsyncStorage.getItem("custom_session_userid").then(async (userId) => {
-      if (userId && userId !== "undefined" && userId.trim() !== "") {
-        setSession({ user: { id: userId } });
-        const p = await fetchProfile(userId);
-        setProfile(p);
-      } else if (userId === "undefined") {
-        await AsyncStorage.removeItem("custom_session_userid");
-      }
-      setIsLoading(false);
-    });
+    await supabase.auth.signOut();
   }, []);
 
   return (
-    <AuthContext.Provider
-      value={{ session, isLoading, profile, refreshProfile, signIn, signOut }}
-    >
+    <AuthContext.Provider value={{ session, isLoading, profile, refreshProfile, signOut }}>
       {children}
     </AuthContext.Provider>
   );

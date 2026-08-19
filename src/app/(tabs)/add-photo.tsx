@@ -26,7 +26,7 @@ export default function AddPhotoScreen() {
   const insets = useSafeAreaInsets();
 
   const coupleId = profile?.coupleId || null;
-  const userId = session?.user?.id ? parseInt(session.user.id, 10) : null;
+  const userId = session?.user?.id ? session.user.id : null;
 
   const [localImage, setLocalImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [takenDate, setTakenDate] = useState("");
@@ -67,7 +67,7 @@ export default function AddPhotoScreen() {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        quality: 0.8,
+        quality: 0.6,
         base64: true,
         exif: true, // EXIF verilerini çek
       });
@@ -137,6 +137,11 @@ export default function AddPhotoScreen() {
 
     if (!localImage) return;
 
+    if (localImage.fileSize && localImage.fileSize > 5 * 1024 * 1024) {
+       Alert.alert("Dosya Çok Büyük", "Lütfen 5 MB'dan daha küçük bir fotoğraf seçin.");
+       return;
+    }
+
     setUploading(true);
 
     try {
@@ -181,7 +186,7 @@ export default function AddPhotoScreen() {
       ]);
     } catch (error: any) {
       logger.error("Photo delete error:", error);
-      Alert.alert("Hata", error.message || "Kaydetme sırasında bir sorun oluştu.");
+      Alert.alert("Hata", "Kaydetme sırasında bir sorun oluştu.");
     } finally {
       setUploading(false);
     }

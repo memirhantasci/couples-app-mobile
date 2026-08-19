@@ -35,7 +35,7 @@ export default function CalendarScreen() {
   const [saving, setSaving] = useState(false);
 
   const coupleId = profile?.coupleId || null;
-  const userId = session?.user?.id ? parseInt(session.user.id, 10) : null;
+  const userId = session?.user?.id ? session.user.id : null;
 
   // Fetch Data
   const { data, isLoading , refetch} = useQuery({
@@ -45,42 +45,51 @@ export default function CalendarScreen() {
       const threeMonthsAgo = dayjs().subtract(1, "month").startOf("month").format("YYYY-MM-DD");
       const twoMonthsLater = dayjs().add(2, "month").endOf("month").format("YYYY-MM-DD");
 
-      const [notesRes, moodsRes, photosRes] = await Promise.all([
+      const [notesRes, moodsRes, photosRes, usersRes] = await Promise.all([
         supabase
           .from("calendar_notes")
-          .select("id, date, note, user_id, user:users(username, display_name)")
+          .select("id, date, note, user_id")
           .eq("couple_id", coupleId)
           .gte("date", threeMonthsAgo)
           .lte("date", twoMonthsLater),
         supabase
           .from("moods")
-          .select("date, mood_type, user_id, user:users(username, display_name)")
+          .select("date, mood_type, user_id")
           .eq("couple_id", coupleId)
           .gte("date", threeMonthsAgo)
           .lte("date", twoMonthsLater),
         supabase
           .from("photo_archive")
-          .select("id, user_id, image_url, title, description, taken_date, taken_time, uploader:users(username, display_name)")
+          .select("id, user_id, image_url, title, description, taken_date, taken_time")
           .eq("couple_id", coupleId)
           .gte("taken_date", threeMonthsAgo)
           .lte("taken_date", twoMonthsLater)
           .order("taken_time", { ascending: false }),
+        supabase
+          .from("users")
+          .select("id, username, display_name")
+          .eq("couple_id", coupleId),
       ]);
+
+      const userMap = (usersRes.data || []).reduce((acc: any, u: any) => {
+        acc[u.id] = u;
+        return acc;
+      }, {});
 
       return {
         notes: (notesRes.data || []).map(n => ({
           ...n,
-          user: Array.isArray(n.user) ? n.user[0] : n.user,
+          user: userMap[n.user_id],
         })),
         moods: (moodsRes.data || []).map(m => ({
           ...m,
-          user: Array.isArray(m.user) ? m.user[0] : m.user,
+          user: userMap[m.user_id],
         })),
         photos: (photosRes.data || []).map(p => ({
           ...p,
           title: p.title ? decrypt(p.title) : null,
           description: p.description ? decrypt(p.description) : null,
-          uploader: Array.isArray(p.uploader) ? p.uploader[0] : p.uploader,
+          uploader: userMap[p.user_id],
         })),
       };
     },

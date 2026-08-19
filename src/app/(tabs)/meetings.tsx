@@ -20,7 +20,7 @@ export default function MeetingsScreen() {
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const coupleId = profile?.coupleId;
-  const userId = session?.user?.id ? parseInt(session.user.id, 10) : null;
+  const userId = session?.user?.id ? session.user.id : null;
 
   const [title, setTitle] = useState("");
   const [meetingDate, setMeetingDate] = useState<Date>(new Date());
@@ -127,7 +127,7 @@ export default function MeetingsScreen() {
       queryClient.invalidateQueries({ queryKey: ["meetings", coupleId] });
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
     } catch (error: any) {
-      Alert.alert("Hata", error.message || "İşlem gerçekleştirilemedi.");
+      Alert.alert("Hata", "İşlem gerçekleştirilemedi. Lütfen daha sonra tekrar deneyin.");
     } finally {
       setIsSubmitting(false);
     }

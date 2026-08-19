@@ -131,8 +131,7 @@ function PushPermissionModal({
 type Mode = "login" | "register";
 
 export default function LoginScreen() {
-  const { signIn } = useAuth();
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<"login" | "register">("login");
 
   // Login fields
   const [loginUsername, setLoginUsername] = useState("");
@@ -149,20 +148,16 @@ export default function LoginScreen() {
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [showPushModal, setShowPushModal] = useState(false);
-  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
 
   // ── Brute Force Koruması ────────────────────────────────────────────────────
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
-
   const MAX_ATTEMPTS = 5;
   const LOCKOUT_SECONDS = 30;
 
   function isLockedOut(): boolean {
     if (!lockedUntil) return false;
     if (Date.now() < lockedUntil) return true;
-    // Kilit süresi doldu, sıfırla
     setLockedUntil(null);
     setLoginAttempts(0);
     return false;
@@ -177,53 +172,15 @@ export default function LoginScreen() {
     }
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
   function clearErrors() {
     setErrorMsg("");
     setSuccessMsg("");
   }
 
-  async function finishNavigation(userId: string) {
-    const { data: userData } = await supabase
-      .from("users")
-      .select("display_name, couple_id, couples(meet_date, relationship_start_date)")
-      .eq("id", userId)
-      .single();
-
-    const couple = Array.isArray(userData?.couples)
-      ? userData?.couples[0]
-      : userData?.couples;
-
-    navigateAfterAuth({
-      coupleId: userData?.couple_id ?? null,
-      meetDate: couple?.meet_date ?? null,
-      relationshipStartDate: couple?.relationship_start_date ?? null,
-      isPaired: !!userData?.couple_id,
-      hasDates: !!(couple?.meet_date && couple?.relationship_start_date),
-      displayName: userData?.display_name ?? null,
-    });
-  }
-
-  async function handlePushAllow() {
-    setShowPushModal(false);
-    if (pendingUserId) {
-      await registerForPushNotifications(pendingUserId);
-    }
-    if (pendingUserId) await finishNavigation(pendingUserId);
-  }
-
-  async function handlePushSkip() {
-    setShowPushModal(false);
-    if (pendingUserId) await finishNavigation(pendingUserId);
-  }
-
   // ── Login Handler ──────────────────────────────────────────────────────────
-
   async function handleLogin() {
     clearErrors();
 
-    // Brute force kilidi kontrol et
     if (isLockedOut()) {
       const remaining = Math.ceil(((lockedUntil ?? 0) - Date.now()) / 1000);
       setErrorMsg(`Çok fazla başarısız deneme. ${remaining} saniye bekle.`);
@@ -231,7 +188,7 @@ export default function LoginScreen() {
     }
 
     if (!loginUsername.trim()) {
-      setErrorMsg("Kullanıcı adı gerekli.");
+      setErrorMsg("Kullanıcı adı veya e-posta gerekli.");
       return;
     }
     if (!loginPassword.trim()) {
@@ -241,29 +198,40 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
-      const encryptedUsername = deterministicEncrypt(loginUsername.trim().toLowerCase());
+      let emailToUse = loginUsername.trim().toLowerCase();
       
-      const { data: user, error } = await supabase
-        .from("users")
-        .select("id, password")
-        .eq("username", encryptedUsername)
-        .single();
-
-      if (error || !user) {
-        registerFailedAttempt();
-        setErrorMsg("Kullanıcı adı veya şifre hatalı.");
-        setIsLoading(false);
-        return;
+      // Eğer içinde @ yoksa, username girilmiştir. RPC ile e-postayı bulalım.
+      if (!emailToUse.includes("@")) {
+        const { data: emailData, error: emailError } = await supabase.rpc("get_email_by_username", {
+          p_username: emailToUse
+        });
+        
+        if (emailError) {
+          if (emailError.message.includes('TOO_MANY_REQUESTS')) {
+            setErrorMsg("Çok fazla deneme yaptınız. Lütfen 5 dakika bekleyin.");
+          } else {
+            registerFailedAttempt();
+            setErrorMsg("Kullanıcı bulunamadı.");
+          }
+          setIsLoading(false);
+          return;
+        }
+        
+        if (!emailData) {
+          registerFailedAttempt();
+          setErrorMsg("Kullanıcı bulunamadı.");
+          setIsLoading(false);
+          return;
+        }
+        emailToUse = emailData;
       }
 
-      let isPasswordValid = false;
-      if (user.password.startsWith("enc:")) {
-        isPasswordValid = decrypt(user.password) === loginPassword.trim();
-      } else {
-        isPasswordValid = user.password === loginPassword.trim();
-      }
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: emailToUse,
+        password: loginPassword.trim()
+      });
 
-      if (!isPasswordValid) {
+      if (error) {
         registerFailedAttempt();
         setErrorMsg("Kullanıcı adı veya şifre hatalı.");
         setIsLoading(false);
@@ -271,61 +239,57 @@ export default function LoginScreen() {
       }
 
       // Check device verification
-      let deviceId = await getOrCreateDeviceId();
-      const lastUserId = await AsyncStorage.getItem("last_user_id");
-      
-      if (lastUserId && lastUserId !== user.id.toString()) {
-        deviceId = generateUUID();
-        await AsyncStorage.setItem("device_id", deviceId);
-      }
-      await AsyncStorage.setItem("last_user_id", user.id.toString());
-
-      const { data: deviceAuth } = await supabase
-        .from("device_authorizations")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("device_id", deviceId)
-        .maybeSingle();
-
-      if (!deviceAuth || !deviceAuth.is_authorized) {
-        // Device not verified, need OTP
-        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+      if (data?.user) {
+        let deviceId = await getOrCreateDeviceId();
+        const lastUserId = await AsyncStorage.getItem("last_user_id");
         
-        const { error: otpError } = await supabase.from("otp_codes").insert({
-          user_id: user.id,
-          code: otpCode,
-          expires_at: expiresAt.toISOString(),
-        });
-        if (otpError) logger.error("OTP INSERT ERROR:", otpError);
-        
-        if (!deviceAuth) {
-           const { error: deviceError } = await supabase.from("device_authorizations").insert({
-             user_id: user.id,
-             device_id: deviceId,
-             device_name: "Mobile Device",
-             is_authorized: false
-           });
-           if (deviceError) logger.error("DEVICE INSERT ERROR:", deviceError);
+        if (lastUserId && lastUserId !== data.user.id) {
+          deviceId = generateUUID();
+          await AsyncStorage.setItem("device_id", deviceId);
         }
-        
-        // Mail sistemi aktif edilene kadar test amaçlı OTP loglanıyor:
-        console.log("-----------------------------------------");
-        console.log("🔑 OTP CODE (MOBILE LOGIN):", otpCode);
-        console.log("-----------------------------------------");
-        
-        router.push({
-          pathname: "/(auth)/verify-device",
-          params: { userId: user.id.toString(), deviceId }
-        });
-        setIsLoading(false);
-        return;
-      }
+        await AsyncStorage.setItem("last_user_id", data.user.id);
 
-      await signIn(user.id.toString());
-      setPendingUserId(user.id.toString());
-      setShowPushModal(true);
+        const { data: deviceAuth } = await supabase
+          .from("device_authorizations")
+          .select("*")
+          .eq("user_id", data.user.id)
+          .eq("device_id", deviceId)
+          .maybeSingle();
+
+        if (!deviceAuth || !deviceAuth.is_authorized) {
+          // Device not verified, need OTP
+          const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+          const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+          
+          await supabase.from("otp_codes").insert({
+            user_id: data.user.id,
+            code: otpCode,
+            expires_at: expiresAt.toISOString(),
+          });
+          
+          if (!deviceAuth) {
+            await supabase.from("device_authorizations").insert({
+              user_id: data.user.id,
+              device_id: deviceId,
+              device_name: "Mobile Device",
+              is_authorized: false
+            });
+          }
+          
+          console.log("🔑 OTP CODE (MOBILE LOGIN):", otpCode);
+          
+          router.push({
+            pathname: "/(auth)/verify-device",
+            params: { userId: data.user.id, deviceId }
+          });
+          setIsLoading(false);
+          return;
+        }
+      }
+      
+      // useProtectedRoute will handle navigation automatically upon session change
     } catch (e: any) {
+      logger.error("Login error:", e);
       setErrorMsg("Beklenmedik bir hata oluştu.");
     } finally {
       setIsLoading(false);
@@ -333,7 +297,6 @@ export default function LoginScreen() {
   }
 
   // ── Register Handler ───────────────────────────────────────────────────────
-
   async function handleRegister() {
     clearErrors();
     if (!regDisplayName.trim()) {
@@ -352,71 +315,63 @@ export default function LoginScreen() {
       setErrorMsg("Şifre gerekli.");
       return;
     }
+    
+    // Kullanıcı Adı Validasyonu (Sadece harf, rakam, alt çizgi ve Türkçe karakterler)
+    const usernameRegex = /^[a-zA-Z0-9_çğışöüÇĞIŞÖÜ]{3,30}$/;
+    if (!usernameRegex.test(regUsername.trim())) {
+      setErrorMsg("Kullanıcı adı 3-30 karakter olmalı ve boşluk veya özel karakter içermemelidir (Türkçe harfler serbest).");
+      return;
+    }
 
     setIsLoading(true);
     try {
-      const encryptedUsername = deterministicEncrypt(regUsername.trim().toLowerCase());
+      // Önce username müsait mi kontrol et
+      const { data: existingUser } = await supabase.rpc("get_email_by_username", {
+        p_username: regUsername.trim().toLowerCase()
+      });
 
-      const { data: existing } = await supabase
-        .from("users")
-        .select("id")
-        .eq("username", encryptedUsername)
-        .single();
-
-      if (existing) {
+      if (existingUser) {
         setErrorMsg("Bu kullanıcı adı zaten alınmış.");
         setIsLoading(false);
         return;
       }
 
-      let coupleIdToAssign = null;
-      if (regPairingCode) {
-        const { data: coupleFound } = await supabase
-          .from("couples")
-          .select("id")
-          .eq("pairing_code", regPairingCode.trim().toUpperCase())
-          .single();
-        if (!coupleFound) {
-          setErrorMsg("Girdiğiniz eşleşme kodu geçersiz.");
-          setIsLoading(false);
-          return;
+      const { data, error } = await supabase.auth.signUp({
+        email: regEmail.trim().toLowerCase(),
+        password: regPassword.trim(),
+        options: {
+          data: {
+            username: regUsername.trim().toLowerCase(),
+            display_name: regDisplayName.trim(),
+            gender: regGender
+          }
         }
-        coupleIdToAssign = coupleFound.id;
-      } else {
-        const generatedCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-        const { data: newCouple } = await supabase
-          .from("couples")
-          .insert({ pairing_code: generatedCode })
-          .select("id")
-          .single();
-        if (newCouple) coupleIdToAssign = newCouple.id;
-      }
+      });
 
-      const hashedPassword = encrypt(regPassword.trim());
-      const { data: newUser, error: insertError } = await supabase
-        .from("users")
-        .insert({
-          display_name: regDisplayName.trim(),
-          username: encryptedUsername,
-          email: deterministicEncrypt(regEmail.trim().toLowerCase()),
-          password: hashedPassword,
-          role: "USER",
-          gender: regGender,
-          couple_id: coupleIdToAssign
-        })
-        .select("id");
-
-      if (insertError || !newUser || newUser.length === 0) {
-        setErrorMsg("Kayıt olurken bir hata oluştu: " + (insertError?.message || ""));
+      if (error) {
+        setErrorMsg("Kayıt olurken bir hata oluştu: " + error.message);
         setIsLoading(false);
         return;
       }
 
-      await AsyncStorage.setItem("last_user_id", newUser[0].id.toString());
-      await signIn(newUser[0].id.toString());
-      setPendingUserId(newUser[0].id.toString());
-      setShowPushModal(true);
+      if (data?.user) {
+        await AsyncStorage.setItem("last_user_id", data.user.id);
+        
+        // Eşleşme kodu girilmişse RPC ile katıl
+        if (regPairingCode) {
+          const { error: coupleError } = await supabase.rpc("join_couple_by_code_uuid", {
+            p_code: regPairingCode.trim().toUpperCase()
+          });
+          if (coupleError) {
+             console.log("Pairing error during register:", coupleError);
+             // We don't block login if pairing fails, they can do it on the setup screen.
+          }
+        }
+      }
+      
+      // useProtectedRoute will handle navigation automatically upon session change
     } catch (e: any) {
+      logger.error("Register error:", e);
       setErrorMsg("Beklenmedik bir hata oluştu.");
     } finally {
       setIsLoading(false);
@@ -538,11 +493,11 @@ export default function LoginScreen() {
             {/* ── LOGIN FORM ── */}
             {mode === "login" && (
               <>
-                <Text style={labelStyle}>Kullanıcı Adı</Text>
+                <Text style={labelStyle}>E-Posta veya Kullanıcı Adı</Text>
                 <TextInput
                   value={loginUsername}
                   onChangeText={setLoginUsername}
-                  placeholder="kullaniciadi"
+                  placeholder="E-posta veya kullanıcı adı"
                   placeholderTextColor="rgba(255,255,255,0.3)"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -558,6 +513,15 @@ export default function LoginScreen() {
                   secureTextEntry
                   style={inputStyle}
                 />
+
+                <TouchableOpacity 
+                  onPress={() => router.push("/(auth)/forgot-password")}
+                  style={{ alignSelf: "flex-end", marginBottom: 16 }}
+                >
+                  <Text style={{ color: "#ff4d6d", fontSize: 14, fontWeight: "600" }}>
+                    Şifremi Unuttum?
+                  </Text>
+                </TouchableOpacity>
               </>
             )}
 
@@ -714,11 +678,7 @@ export default function LoginScreen() {
         </KeyboardAvoidingView>
       </ScreenBackground>
 
-      <PushPermissionModal
-        visible={showPushModal}
-        onAllow={handlePushAllow}
-        onSkip={handlePushSkip}
-      />
     </>
   );
 }
+

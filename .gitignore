@@ -43,10 +43,9 @@ example
 /android
 
 # ─── Güvenlik: Hassas Dosyalar (GİT'E GÖNDERİLMEMELİ) ────────────────────────
-# Google servis hesabı ve Firebase yapılandırma dosyaları
+# Google servis hesabı (GİT'E GÖNDERİLMEMELİ)
 google-service-account.json
-google-services.json
-GoogleService-Info.plist
+
 
 # Ortam değişkenleri (tüm .env dosyaları)
 .env

@@ -1,35 +1,33 @@
-import React, { useCallback } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  RefreshControl,
-  TouchableOpacity,
-} from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabase";
-import { useQuery } from "@tanstack/react-query";
 import {
   dayjs,
+  dayOfYear,
   daysSince,
   getLoveMeter,
-  dayOfYear,
-  todayString,
-  getTodayHitap,
+  todayString
 } from "@/lib/date";
 import { getQuoteForDay } from "@/lib/quotes";
+import { supabase } from "@/lib/supabase";
 import { decrypt, deterministicDecrypt } from "@/utils/crypto";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { AlignJustify, Star } from "lucide-react-native";
+import {
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { LoveMeter } from "@/components/home/LoveMeter";
-import { MoodSelector } from "@/components/home/MoodSelector";
 import { DailyNoteCard } from "@/components/home/DailyNoteCard";
+import { LoveMeter } from "@/components/home/LoveMeter";
 import { MeetingCountdown } from "@/components/home/MeetingCountdown";
+import { MoodSelector } from "@/components/home/MoodSelector";
 import { PendingLettersCard } from "@/components/home/PendingLettersCard";
 
 // ─── Tema Sabitleri ─────────────────────────────────────────────────────────
@@ -46,13 +44,13 @@ export default function HomeScreen() {
   const doy = dayOfYear();
 
   const coupleId = profile?.coupleId || null;
-  const userId = session?.user?.id ? parseInt(session.user.id, 10) : null;
+  const userId = session?.user?.id ? session.user.id : null;
 
   const { data: dashboardData, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["home_dashboard", coupleId, userId, today],
     enabled: !!userId,
     queryFn: async () => {
-      const [moodRes, noteRes, meetingRes, lettersRes] = await Promise.all([
+      const [moodRes, noteRes, meetingRes, lettersRes, usersRes] = await Promise.all([
         supabase
           .from("moods")
           .select("mood_type")
@@ -67,24 +65,28 @@ export default function HomeScreen() {
           .maybeSingle(),
         coupleId
           ? supabase
-              .from("meetings")
-              .select("id, meeting_datetime, title")
-              .eq("couple_id", coupleId)
-              .eq("is_active", true)
-              .gte("meeting_datetime", dayjs().subtract(3, "hour").toISOString())
-              .order("meeting_datetime", { ascending: true })
-              .limit(5)
+            .from("meetings")
+            .select("id, meeting_datetime, title")
+            .eq("couple_id", coupleId)
+            .eq("is_active", true)
+            .gte("meeting_datetime", dayjs().subtract(3, "hour").toISOString())
+            .order("meeting_datetime", { ascending: true })
+            .limit(5)
           : Promise.resolve({ data: [] }),
         coupleId
           ? supabase
-              .from("letters")
-              .select(
-                "id, unlock_date, sender:users!letters_sender_id_fkey(username, display_name)"
-              )
-              .eq("couple_id", coupleId)
-              .eq("receiver_id", userId)
-              .gt("unlock_date", today)
-              .order("unlock_date", { ascending: true })
+            .from("letters")
+            .select("id, unlock_date, sender_id")
+            .eq("couple_id", coupleId)
+            .eq("receiver_id", userId)
+            .gt("unlock_date", today)
+            .order("unlock_date", { ascending: true })
+          : Promise.resolve({ data: [] }),
+        coupleId
+          ? supabase
+            .from("users")
+            .select("id, username, display_name")
+            .eq("couple_id", coupleId)
           : Promise.resolve({ data: [] }),
       ]);
 
@@ -100,21 +102,26 @@ export default function HomeScreen() {
         activeMeeting = meetingRes.data;
       }
 
+      const userMap = (usersRes.data || []).reduce((acc: any, u: any) => {
+        acc[u.id] = u;
+        return acc;
+      }, {});
+
       return {
         currentMood: moodRes.data?.mood_type || null,
         currentNote: noteRes.data?.content ? decrypt(noteRes.data.content) : null,
         activeMeeting,
-        pendingLetters: (lettersRes.data || []).map((l) => {
-          const senderObj = Array.isArray(l.sender) ? l.sender[0] : l.sender;
+        pendingLetters: (lettersRes.data || []).map((l: any) => {
+          const senderObj = userMap[l.sender_id];
           return {
             ...l,
             sender: senderObj
               ? {
-                  ...senderObj,
-                  username: senderObj.username
-                    ? deterministicDecrypt(senderObj.username) || senderObj.username
-                    : "",
-                }
+                ...senderObj,
+                username: senderObj.username
+                  ? deterministicDecrypt(senderObj.username) || senderObj.username
+                  : "",
+              }
               : undefined,
           };
         }),

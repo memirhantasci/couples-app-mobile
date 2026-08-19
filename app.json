@@ -11,9 +11,6 @@
     "ios": {
       "icon": "./assets/expo.icon",
       "supportsTablet": false,
-      "config": {
-        "googleMapsApiKey": "AIzaSyCvzS2L3koIafWrSCAjopH0Y_eilLj4v0E"
-      },
       "infoPlist": {
         "NSUserNotificationsUsageDescription": "Partnerinden mektup geldiğinde veya özel bir günün yaklaştığında seni haberdar etmek için bildirim göndermek istiyoruz.",
         "NSCameraUsageDescription": "Anılarına fotoğraf ekleyebilmek için kameraya erişmemiz gerekiyor.",
@@ -28,11 +25,6 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyCvzS2L3koIafWrSCAjopH0Y_eilLj4v0E"
-        }
-      },
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",

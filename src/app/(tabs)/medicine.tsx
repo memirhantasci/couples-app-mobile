@@ -16,7 +16,7 @@ export default function MedicineScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const coupleId = profile?.coupleId;
-  const userId = session?.user?.id ? parseInt(session.user.id, 10) : null;
+  const userId = session?.user?.id ? session.user.id : null;
 
   const todayStr = todayString();
   const [loadingSlot, setLoadingSlot] = useState<string | null>(null);
@@ -86,11 +86,10 @@ export default function MedicineScreen() {
     mutationFn: async ({ medicineId, status, timeSlot }: { medicineId: number; status: string; timeSlot: string }) => {
       const safeTimeSlot = (timeSlot && timeSlot.trim() !== "") ? timeSlot.trim() : "08:00";
       const safeUserId = userId;
-      const safeCoupleId = coupleId ? parseInt(String(coupleId), 10) : null;
+      const safeCoupleId = coupleId ?? null;
 
       // Use RPC to atomically upsert — avoids all PostgREST DEFAULT issues
       const { error } = await supabase.rpc("log_medicine_dose", {
-        p_user_id: safeUserId,
         p_medicine_id: medicineId,
         p_date: todayStr,
         p_time: safeTimeSlot,
@@ -132,7 +131,7 @@ export default function MedicineScreen() {
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
     },
     onError: (error, newLog, context: any) => {
-      Alert.alert("Hata", "İşlem başarısız: " + error.message);
+      Alert.alert("Hata", "İşlem başarısız oldu. Lütfen tekrar deneyin.");
       if (context?.previousData) {
         queryClient.setQueryData(["medicine_data", coupleId], context.previousData);
       }

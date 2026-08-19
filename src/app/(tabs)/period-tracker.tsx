@@ -30,7 +30,7 @@ export default function PeriodTrackerScreen() {
   const insets = useSafeAreaInsets();
 
   const coupleId = profile?.coupleId || null;
-  const userId = session?.user?.id ? parseInt(session.user.id, 10) : null;
+  const userId = session?.user?.id ? session.user.id : null;
   
   // Checking if the current user is Female
   const { data: userData , refetch: refetch_0} = useQuery({
@@ -119,7 +119,6 @@ export default function PeriodTrackerScreen() {
     try {
       // RPC to bypass PostgREST identity DEFAULT issue
       const { error } = await supabase.rpc("toggle_period_log", {
-        p_user_id: userId,
         p_date: selectedDate
       });
       if (error) throw error;

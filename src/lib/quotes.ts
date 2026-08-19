@@ -290,6 +290,9 @@ export const ROMANTIC_QUOTES: string[] = [
   "Seni seviyorum; bu kelimeler az kalsa da, his sonsuz.",
 ];
 
+/**
+ * Returns the quote for a given day-of-year index
+ */
 export function getQuoteForDay(dayOfYear: number): string {
   const index = (dayOfYear - 1) % ROMANTIC_QUOTES.length;
   return ROMANTIC_QUOTES[index];

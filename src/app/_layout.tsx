@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { configureAndroidNotificationChannel } from "@/lib/notifications";
+import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -27,6 +28,9 @@ const queryClient = new QueryClient({
 
 function RootLayoutNav() {
   const { session, isLoading, profile } = useAuth();
+
+  // Enforce role-based routing
+  useProtectedRoute();
 
   // Hide splash once auth state is resolved
   useEffect(() => {

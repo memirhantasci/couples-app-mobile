@@ -33,18 +33,46 @@ async function fetchPairingStatus(userId: string): Promise<PairingStatus> {
   const { data: user, error: userError } = await supabase
     .from("users")
     .select("couple_id")
-    .eq("id", parseInt(userId, 10))
+    .eq("id", userId)
     .single();
 
-  if (userError || !user?.couple_id) {
+  if (userError) {
     return { pairingCode: null, memberCount: 0, isPaired: false, hasDates: false };
+  }
+
+  let coupleId = user?.couple_id;
+
+  // Eğer kullanıcının henüz bir çift hesabı yoksa, otomatik olarak oluştur!
+  if (!coupleId) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+
+    const { data: newCouple, error: insertError } = await supabase
+      .from("couples")
+      .insert({ pairing_code: code })
+      .select("id")
+      .single();
+
+    if (!insertError && newCouple) {
+      await supabase
+        .from("users")
+        .update({ couple_id: newCouple.id })
+        .eq("id", userId);
+      
+      coupleId = newCouple.id;
+    } else {
+      return { pairingCode: null, memberCount: 0, isPaired: false, hasDates: false };
+    }
   }
 
   // Get couple details — always fresh from DB, never cached boolean
   const { data: couple, error: coupleError } = await supabase
     .from("couples")
     .select("pairing_code, member_count, is_paired, meet_date, relationship_start_date")
-    .eq("id", user.couple_id)
+    .eq("id", coupleId)
     .single();
 
   if (coupleError || !couple) {
@@ -89,16 +117,14 @@ export default function PairingScreen() {
   });
 
   // ── Auto-navigate when partner has joined
+  const { refreshProfile } = useAuth();
+
   useEffect(() => {
     if (!status) return;
     if (status.isPaired) {
-      if (status.hasDates) {
-        router.replace("/(tabs)/home");
-      } else {
-        router.replace("/(setup)/dates");
-      }
+      refreshProfile();
     }
-  }, [status]);
+  }, [status, refreshProfile]);
 
   // ── Copy pairing code to clipboard
   async function handleCopy() {
@@ -131,7 +157,6 @@ export default function PairingScreen() {
 
     const { data, error } = await supabase.rpc("join_couple_by_code_uuid", {
       p_code: code,
-      p_user_id: parseInt(userId, 10),
     });
 
     if (error) {
@@ -146,7 +171,7 @@ export default function PairingScreen() {
     setIsSubmitting(false);
 
     if (isPaired) {
-      router.replace("/(setup)/dates");
+      await refreshProfile();
     }
   }
 

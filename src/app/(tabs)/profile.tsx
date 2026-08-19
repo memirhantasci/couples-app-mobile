@@ -212,7 +212,7 @@ export default function ProfileScreen() {
   // Verileri yükle
   React.useEffect(() => {
     if (!session?.user?.id || dataLoaded) return;
-    const uid = parseInt(session.user.id, 10);
+    const uid = session.user.id;
     (async () => {
       const { data: userData } = await supabase
         .from("users")
@@ -252,7 +252,7 @@ export default function ProfileScreen() {
       return;
     }
     setProfileLoading(true);
-    const uid = parseInt(session.user.id, 10);
+    const uid = session.user.id;
     const { error } = await supabase
       .from("users")
       .update({ display_name: displayName.trim(), gender })
@@ -260,7 +260,7 @@ export default function ProfileScreen() {
     setProfileLoading(false);
 
     if (error) {
-      Alert.alert("Hata", "Profil güncellenemedi: " + error.message);
+      Alert.alert("Hata", "Profil güncellenemedi. Lütfen tekrar deneyin.");
     } else {
       queryClient.invalidateQueries({ queryKey: ["user_gender"] });
       Alert.alert("Başarılı 🎉", "Profilin güncellendi!");
@@ -282,7 +282,7 @@ export default function ProfileScreen() {
     setDatesLoading(false);
 
     if (error) {
-      Alert.alert("Hata", "Tarihler güncellenemedi: " + error.message);
+      Alert.alert("Hata", "Tarihler güncellenemedi. Lütfen tekrar deneyin.");
     } else {
       Alert.alert("Başarılı 💕", "İlişki tarihleri güncellendi!");
     }
@@ -337,7 +337,7 @@ export default function ProfileScreen() {
             setDeleteLoading(false);
 
             if (error) {
-              Alert.alert("Hata", "İşlem gerçekleştirilemedi: " + error.message);
+              Alert.alert("Hata", "İşlem gerçekleştirilemedi. Lütfen tekrar deneyin.");
               return;
             }
 

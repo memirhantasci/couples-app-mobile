@@ -35,7 +35,7 @@ export default function DailyNotesScreen() {
   const { session, profile } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const userId = session?.user?.id ? parseInt(session.user.id, 10) : null;
+  const userId = session?.user?.id ? session.user.id : null;
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingNote, setEditingNote] = useState<DailyNote | null>(null);

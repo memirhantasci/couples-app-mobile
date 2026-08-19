@@ -134,13 +134,21 @@ export default function VerifyScreen() {
   async function routeUser(userId: string) {
     const { data: userData } = await supabase
       .from("users")
-      .select("display_name, couple_id, couples(meet_date, relationship_start_date)")
+      .select("display_name, couple_id")
       .eq("id", userId)
       .single();
 
-    const couple = Array.isArray(userData?.couples)
-      ? userData?.couples[0]
-      : userData?.couples;
+    let couple: any = null;
+    if (userData?.couple_id) {
+      const { data: cData } = await supabase
+        .from("couples")
+        .select("meet_date, relationship_start_date")
+        .eq("id", userData.couple_id)
+        .single();
+      if (cData) {
+        couple = cData;
+      }
+    }
 
     navigateAfterAuth({
       coupleId: userData?.couple_id ?? null,

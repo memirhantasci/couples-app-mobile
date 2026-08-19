@@ -51,7 +51,7 @@ export function MoodSelector({ currentMood, moodLocked = false }: MoodSelectorPr
 
     const coupleId = profile?.coupleId || null;
     const today = todayString();
-    const userId = parseInt(session.user.id, 10);
+    const userId = session.user.id;
 
     const { data: existing } = await supabase
       .from("moods")

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, SectionList, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, Alert, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, SectionList, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, Alert, KeyboardAvoidingView, Platform, Modal } from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
@@ -7,11 +7,12 @@ import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
 import { encrypt, decrypt, deterministicDecrypt } from "@/utils/crypto";
-import { Lock, ChevronRight, FileEdit, LockKeyhole } from "lucide-react-native";
+import { Lock, ChevronRight, FileEdit, LockKeyhole, Calendar as CalendarIcon } from "lucide-react-native";
 import { sanitize, sanitizeStrict } from "@/utils/sanitize";
 import { logger } from "@/utils/logger";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 export default function LettersScreen() {
   const { session, profile } = useAuth();
@@ -20,7 +21,7 @@ export default function LettersScreen() {
   const insets = useSafeAreaInsets();
 
   const coupleId = profile?.coupleId || null;
-  const userId = session?.user?.id ? parseInt(session.user.id, 10) : null;
+  const userId = session?.user?.id ? session.user.id : null;
 
   const [letterLimit, setLetterLimit] = useState(15);
 
@@ -29,38 +30,53 @@ export default function LettersScreen() {
     queryKey: ["letters_data", coupleId, userId, letterLimit],
     enabled: !!coupleId && !!userId,
     queryFn: async () => {
-      const [receivedRes, sentRes] = await Promise.all([
+      const [receivedRes, sentRes, usersRes] = await Promise.all([
         supabase
           .from("letters")
-          .select("*, sender:users!letters_sender_id_fkey(username, display_name)")
+          .select("*")
           .eq("couple_id", coupleId)
           .eq("receiver_id", userId)
           .order("created_at", { ascending: false }),
         supabase
           .from("letters")
-          .select("*, receiver:users!letters_receiver_id_fkey(username, display_name)")
+          .select("*")
           .eq("couple_id", coupleId)
           .eq("sender_id", userId)
           .order("created_at", { ascending: false }),
+        supabase
+          .from("users")
+          .select("id, username, display_name")
+          .eq("couple_id", coupleId),
       ]);
 
+      const userMap = (usersRes.data || []).reduce((acc: any, u: any) => {
+        acc[u.id] = u;
+        return acc;
+      }, {});
+
       return {
-        received: (receivedRes.data || []).map((l: any) => ({
-          ...l,
-          content: l.content ? decrypt(l.content) : "",
-          sender: { 
-            ...l.sender, 
-            username: l.sender?.username ? (deterministicDecrypt(l.sender.username) || l.sender.username) : "Bilinmeyen" 
-          }
-        })),
-        sent: (sentRes.data || []).map((l: any) => ({
-          ...l,
-          content: l.content ? decrypt(l.content) : "",
-          receiver: { 
-            ...l.receiver, 
-            username: l.receiver?.username ? (deterministicDecrypt(l.receiver.username) || l.receiver.username) : "Bilinmeyen" 
-          }
-        })),
+        received: (receivedRes.data || []).map((l: any) => {
+          const senderObj = userMap[l.sender_id];
+          return {
+            ...l,
+            content: l.content ? decrypt(l.content) : "",
+            sender: senderObj ? { 
+              ...senderObj, 
+              username: senderObj.username ? (deterministicDecrypt(senderObj.username) || senderObj.username) : "Bilinmeyen" 
+            } : null
+          };
+        }),
+        sent: (sentRes.data || []).map((l: any) => {
+          const receiverObj = userMap[l.receiver_id];
+          return {
+            ...l,
+            content: l.content ? decrypt(l.content) : "",
+            receiver: receiverObj ? { 
+              ...receiverObj, 
+              username: receiverObj.username ? (deterministicDecrypt(receiverObj.username) || receiverObj.username) : "Bilinmeyen" 
+            } : null
+          };
+        }),
       };
     },
     staleTime: 1000 * 60 * 5,
@@ -88,6 +104,7 @@ export default function LettersScreen() {
   // --- Form State ---
   const [receiverId, setReceiverId] = useState("");
   const [unlockDate, setUnlockDate] = useState(todayString());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [loadingForm, setLoadingForm] = useState(false);
@@ -118,12 +135,11 @@ export default function LettersScreen() {
       }
 
       const { error } = await supabase.rpc("save_letter", {
-        p_sender_id:   userId,
-        p_receiver_id: parseInt(receiverId, 10),
+        p_receiver_id: receiverId,
         p_title:       cleanTitle,
         p_content:     encrypt(cleanContent),
         p_unlock_date: unlockDate,
-        p_couple_id:   coupleId ? parseInt(String(coupleId), 10) : null,
+        p_couple_id:   coupleId ?? null,
       });
 
       if (error) throw error;
@@ -146,8 +162,11 @@ export default function LettersScreen() {
   };
 
   const renderLetterItem = (letter: any, type: "received" | "sent") => {
-    const unlockDateObj = dayjs(letter.unlock_date);
-    const isLockedDate = unlockDateObj.isAfter(dayjs(today).startOf("day"));
+    const now = new Date();
+    const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const unlockDateStr = letter.unlock_date.substring(0, 10);
+    const isLockedDate = unlockDateStr > localToday;
+    const unlockDateObj = dayjs(unlockDateStr);
     const canOpen = type === "sent" || !isLockedDate;
     const isOpen = openLetterId === letter.id;
 
@@ -270,13 +289,29 @@ export default function LettersScreen() {
                     <Text style={styles.label}>AÇILIŞ TARİHİ (KİLİT)</Text>
                     <LockKeyhole size={14} color="rgba(255,255,255,0.35)" />
                   </View>
-                  <TextInput
-                    style={styles.input}
-                    value={unlockDate}
-                    onChangeText={setUnlockDate}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor="rgba(255,255,255,0.4)"
-                  />
+                  <TouchableOpacity
+                    style={[styles.input, { flexDirection: "row", alignItems: "center", justifyContent: "space-between" }]}
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 14 }}>
+                      {dayjs(unlockDate).format("DD MMMM YYYY")}
+                    </Text>
+                    <CalendarIcon size={16} color="#c8922a" />
+                  </TouchableOpacity>
+                  {showDatePicker && (
+                    <DateTimePicker
+                      value={new Date(unlockDate)}
+                      mode="date"
+                      display={Platform.OS === "ios" ? "spinner" : "default"}
+                      minimumDate={new Date()}
+                      onChange={(_, selectedDate) => {
+                        setShowDatePicker(Platform.OS === "ios");
+                        if (selectedDate) {
+                          setUnlockDate(dayjs(selectedDate).format("YYYY-MM-DD"));
+                        }
+                      }}
+                    />
+                  )}
                 </View>
 
                 <View style={styles.inputGroup}>

@@ -44,7 +44,7 @@ export function MeetingCountdown({ meeting }: CountdownProps) {
     }
   };
 
-  const formattedDate = dayjs(targetDate).tz("Europe/Istanbul").format("D MMMM");
+  const formattedDate = dayjs(targetDate).format("D MMMM");
 
   if (countdown.isPast) {
     return (

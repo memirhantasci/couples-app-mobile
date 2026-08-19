@@ -49,7 +49,7 @@ export default function AddMemoryScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
-      quality: 0.8,
+      quality: 0.6,
       base64: true, // We need base64 to upload easily to Supabase from React Native
     });
 
@@ -77,6 +77,12 @@ export default function AddMemoryScreen() {
 
       // Upload image if a new one was selected
       if (localImage && localImage.base64) {
+        if (localImage.fileSize && localImage.fileSize > 5 * 1024 * 1024) {
+           Alert.alert("Dosya Çok Büyük", "Lütfen 5 MB'dan daha küçük bir fotoğraf seçin.");
+           setLoading(false);
+           return;
+        }
+
         const fileExt = localImage.uri.split('.').pop() || 'jpg';
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `${coupleId}/${fileName}`;
