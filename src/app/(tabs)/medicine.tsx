@@ -391,7 +391,7 @@ export default function MedicineScreen() {
                 <Skeleton height={140} borderRadius={16} />
               </View>
             ) : filteredMedicines.length === 0 ? (
-              <View style={styles.emptyState}>
+              <View style={[styles.emptyState, { backgroundColor: theme.cardBg, borderColor: theme.cardBg, borderStyle: "solid" }]}>
                 <Text style={{ fontSize: 40 }}>💊</Text>
                 <Text style={styles.emptyText}>
                   {activeTab === "partner" ? "Sevgilinin aktif ilacı yok" : "Bugün için aktif ilaç yok"}
@@ -519,7 +519,7 @@ export default function MedicineScreen() {
               ))
             )}
 
-            <TouchableOpacity style={[styles.addBtn, { borderColor: theme.accent }]} onPress={() => setShowManagerModal(true)}>
+            <TouchableOpacity style={[styles.addBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBg }]} onPress={() => setShowManagerModal(true)}>
               <Settings color={theme.accent} size={18} />
               <Text style={[styles.addBtnText, { color: theme.accent }]}>İlaç Yönetimi</Text>
             </TouchableOpacity>

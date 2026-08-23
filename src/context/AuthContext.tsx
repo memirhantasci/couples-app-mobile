@@ -35,13 +35,18 @@ export function useAuth() {
 }
 
 async function fetchProfile(userId: string): Promise<CoupleProfile> {
-  const { data: user } = await supabase
+  const { data: user, error } = await supabase
     .from("users")
-    .select("display_name, gender, couple_id")
+    .select(`
+      display_name, 
+      gender, 
+      couple_id,
+      couples!users_couple_id_fkey(meet_date, relationship_start_date, member_count)
+    `)
     .eq("id", userId)
     .single();
 
-  if (!user) {
+  if (error || !user) {
     return {
       coupleId: null,
       meetDate: null,
@@ -53,24 +58,15 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
     };
   }
 
-  let couple: any = null;
-  if (user.couple_id) {
-    const { data: cData } = await supabase
-      .from("couples")
-      .select("meet_date, relationship_start_date, member_count")
-      .eq("id", user.couple_id)
-      .single();
-    if (cData) {
-      couple = cData;
-    }
-  }
+  // Handle both possible shapes from Supabase join (array or object depending on relation type)
+  const coupleObj = Array.isArray(user.couples) ? user.couples[0] : user.couples;
 
   return {
     coupleId: user.couple_id ? parseInt(String(user.couple_id), 10) : null,
-    meetDate: couple?.meet_date ?? null,
-    relationshipStartDate: couple?.relationship_start_date ?? null,
-    isPaired: !!(user.couple_id && couple?.member_count >= 2),
-    hasDates: !!(couple?.meet_date && couple?.relationship_start_date),
+    meetDate: coupleObj?.meet_date ?? null,
+    relationshipStartDate: coupleObj?.relationship_start_date ?? null,
+    isPaired: !!(user.couple_id && coupleObj?.member_count >= 2),
+    hasDates: !!(coupleObj?.meet_date && coupleObj?.relationship_start_date),
     displayName: user.display_name ? decrypt(user.display_name) : null,
     gender: user.gender ?? null,
   };
@@ -84,28 +80,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session?.user) {
-        setIsLoading(true);
-        fetchProfile(session.user.id).then((p) => {
-          setProfile(p);
-          setIsLoading(false);
-        });
-        registerForPushNotifications(session.user.id).catch(() => { });
-      } else {
-        setIsLoading(false);
-      }
+      if (!session) setIsLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session?.user) {
-        setIsLoading(true);
-        fetchProfile(session.user.id).then((p) => {
-          setProfile(p);
-          setIsLoading(false);
-        });
-        registerForPushNotifications(session.user.id).catch(() => { });
-      } else {
+      if (!session) {
         setProfile(null);
         setIsLoading(false);
       }
@@ -113,6 +93,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      setIsLoading(true);
+      fetchProfile(session.user.id)
+        .then((p) => {
+          setProfile(p);
+          setIsLoading(false);
+        })
+        .catch((err) => {
+          console.error("fetchProfile error:", err);
+          setIsLoading(false);
+        });
+      
+      registerForPushNotifications(session.user.id).catch(() => {});
+    }
+  }, [session?.user?.id]);
 
   const refreshProfile = useCallback(async () => {
     if (!session?.user?.id) {
