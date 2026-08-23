@@ -24,7 +24,7 @@ export function PendingLettersCard({ letters, theme }: { letters: PendingLetter[
   if (pendingLetters.length === 0) return null;
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: theme.cardBg }]}>
       {/* Başlık + Tümünü Gör */}
       <View style={styles.headerRow}>
         <Text style={styles.title}>Bekleyen Mektuplar</Text>
@@ -74,9 +74,8 @@ const styles = StyleSheet.create({
   card: {
     borderWidth: 0,
     borderRadius: 20,
-    padding: 20,
+    padding: 16,
     marginBottom: 18,
-    backgroundColor: "#4A152B",
   },
   headerRow: {
     flexDirection: "row",

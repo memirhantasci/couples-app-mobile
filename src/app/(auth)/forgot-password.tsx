@@ -10,10 +10,11 @@ import {
   ScrollView,
 } from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { deterministicEncrypt } from "@/utils/crypto";
-import { ArrowLeft } from "lucide-react-native";
+import { ArrowLeft, Lock } from "lucide-react-native";
 
 export default function ForgotPasswordScreen() {
   const [username, setUsername] = useState("");
@@ -71,49 +72,94 @@ export default function ForgotPasswordScreen() {
 
   return (
     <ScreenBackground colors={["#080811", "#0A0A0C", "#080811"]}>
-      {/* Background glow similar to login */}
-      <View
-        style={{
-          position: "absolute",
-          top: -80,
-          left: -80,
-          width: 280,
-          height: 280,
-          borderRadius: 140,
-          backgroundColor: "rgba(232, 0, 45, 0.15)",
-        }}
-      />
-
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 60 }}>
-          <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: 30 }}>
-            <ArrowLeft color="#fff" size={28} />
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 60, paddingBottom: 60 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Back Button */}
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 21,
+              backgroundColor: "rgba(255,255,255,0.07)",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 48,
+            }}
+          >
+            <ArrowLeft color="#fff" size={22} />
           </TouchableOpacity>
 
-          <Text style={{ color: "#fff", fontSize: 32, fontWeight: "800", marginBottom: 12, letterSpacing: -0.5 }}>
+          {/* Lock Icon */}
+          <View style={{ alignItems: "center", marginBottom: 36 }}>
+            <View
+              style={{
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+                backgroundColor: "rgba(255,255,255,0.06)",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Lock color="rgba(255,255,255,0.85)" size={34} />
+            </View>
+          </View>
+
+          {/* Title & Subtitle */}
+          <Text
+            style={{
+              color: "#FFFFFF",
+              fontSize: 30,
+              fontWeight: "800",
+              textAlign: "center",
+              marginBottom: 12,
+              letterSpacing: -0.5,
+            }}
+          >
             Şifreni mi Unuttun?
           </Text>
-          <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 15, lineHeight: 22, marginBottom: 40 }}>
-            Endişelenme, hesabını bulup şifreni sıfırlamana yardımcı olacağız. Lütfen kullanıcı adını gir.
+          <Text
+            style={{
+              color: "rgba(255,255,255,0.55)",
+              fontSize: 15,
+              lineHeight: 22,
+              textAlign: "center",
+              marginBottom: 40,
+              paddingHorizontal: 8,
+            }}
+          >
+            Endişelenme, sana yardımcı olacağız. E-posta adresini girerek başlayabilirsin.
           </Text>
 
-          <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, marginBottom: 6, marginLeft: 2 }}>
+          {/* Input */}
+          <Text
+            style={{
+              color: "rgba(255,255,255,0.6)",
+              fontSize: 13,
+              marginBottom: 8,
+              marginLeft: 2,
+            }}
+          >
             Kullanıcı Adı
           </Text>
           <TextInput
             value={username}
             onChangeText={setUsername}
-            placeholder="kullaniciadi"
-            placeholderTextColor="rgba(255,255,255,0.3)"
+            placeholder="ornek@kullanici.com"
+            placeholderTextColor="rgba(255,255,255,0.25)"
             autoCapitalize="none"
             autoCorrect={false}
             style={{
-              backgroundColor: "rgba(255,255,255,0.07)",
+              backgroundColor: "rgba(255,255,255,0.06)",
               borderWidth: 1,
-              borderColor: "rgba(255,255,255,0.12)",
+              borderColor: "rgba(255,255,255,0.1)",
               borderRadius: 16,
               paddingHorizontal: 18,
               paddingVertical: 16,
@@ -123,37 +169,55 @@ export default function ForgotPasswordScreen() {
             }}
           />
 
+          {/* Error */}
           {!!errorMsg && (
-            <View style={{ backgroundColor: "rgba(232,0,45,0.12)", borderWidth: 1, borderColor: "rgba(232,0,45,0.3)", borderRadius: 14, padding: 14, marginBottom: 16 }}>
+            <View
+              style={{
+                backgroundColor: "rgba(232,0,45,0.1)",
+                borderWidth: 1,
+                borderColor: "rgba(232,0,45,0.3)",
+                borderRadius: 14,
+                padding: 14,
+                marginBottom: 16,
+              }}
+            >
               <Text style={{ color: "#FF4D6A", fontSize: 14, textAlign: "center" }}>
                 {errorMsg}
               </Text>
             </View>
           )}
 
+          <View style={{ height: 12 }} />
+
+          {/* CTA Button */}
           <TouchableOpacity
             onPress={handleSend}
             disabled={isLoading}
-            style={{
-              backgroundColor: isLoading ? "rgba(232,0,45,0.5)" : "#E8002D",
-              paddingVertical: 18,
-              borderRadius: 18,
-              alignItems: "center",
-              marginTop: 10,
-              shadowColor: "#E8002D",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.4,
-              shadowRadius: 12,
-              elevation: 8,
-            }}
+            style={{ borderRadius: 30, overflow: "hidden", opacity: isLoading ? 0.7 : 1 }}
+            activeOpacity={0.85}
           >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={{ color: "#fff", fontWeight: "800", fontSize: 17 }}>
-                Devam Et
-              </Text>
-            )}
+            <LinearGradient
+              colors={["#E8002D", "#C0006B"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{
+                paddingVertical: 18,
+                alignItems: "center",
+                borderRadius: 30,
+                shadowColor: "#E8002D",
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.45,
+                shadowRadius: 14,
+              }}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 17 }}>
+                  Kod Gönder
+                </Text>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

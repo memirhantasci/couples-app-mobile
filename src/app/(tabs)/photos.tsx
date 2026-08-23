@@ -6,19 +6,21 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import { decode } from "base64-arraybuffer";
-import { ChevronLeft, Plus, Image as ImageIcon, Trash2, Calendar, Menu } from "lucide-react-native";
+import { ChevronLeft, Plus, Image as ImageIcon, Trash2, Calendar, Menu, AlignJustify, Camera } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { dayjs, todayString } from "@/lib/date";
+import { getTheme } from "@/lib/theme";
 
 export default function PhotosScreen() {
   const router = useRouter();
   const { session, profile } = useAuth();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
+  const theme = getTheme(profile?.gender);
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
@@ -85,13 +87,16 @@ export default function PhotosScreen() {
   const renderPhoto = ({ item }: { item: any }) => {
     const isMine = item.user_id === userId;
     return (
-      <View style={styles.photoWrapper}>
+      <View style={[styles.photoWrapper, { backgroundColor: theme.cardBg }]}>
+        <View style={styles.photoHeader}>
+          <Text style={styles.photoDate}>{dayjs(item.taken_date).locale("tr").format("DD MMMM YYYY")}</Text>
+          {isMine && (
+            <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item.id)}>
+              <Trash2 color="#fff" size={16} />
+            </TouchableOpacity>
+          )}
+        </View>
         <Image source={{ uri: item.image_url }} style={styles.photo} contentFit="cover" />
-        {isMine && (
-          <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item.id)}>
-            <Trash2 color="#fff" size={16} />
-          </TouchableOpacity>
-        )}
       </View>
     );
   };
@@ -102,14 +107,21 @@ export default function PhotosScreen() {
 
   return (
     <ScreenBackground>
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <ChevronLeft color="#fff" size={28} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Ortak Galeri 📸</Text>
-        <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8 }}>
-          <Menu color="#fff" size={24} />
-        </TouchableOpacity>
+      <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, paddingTop: insets.top + 16, paddingHorizontal: 20 }}>
+        <View style={{ width: 40 }} />
+        <View style={{ flex: 1, alignItems: "center" }}>
+          <Text style={{ fontSize: 28, fontFamily: "PlayfairDisplay_400Regular_Italic", color: "#fff" }}>
+            Ortak Galeri 📸
+          </Text>
+        </View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <TouchableOpacity onPress={goToUpload} style={{ padding: 8, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", backgroundColor: theme.cardBg }}>
+            <Camera color="rgba(255,255,255,0.7)" size={20} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.05)" }}>
+            <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {isLoading ? (
@@ -123,7 +135,7 @@ export default function PhotosScreen() {
         <FlatList
           data={photos}
           keyExtractor={(item) => item.id.toString()}
-          numColumns={2}
+          numColumns={1}
           contentContainerStyle={{ padding: 10, paddingBottom: 130 }}
           renderItem={renderPhoto}
           onEndReached={() => {
@@ -141,14 +153,6 @@ export default function PhotosScreen() {
         </View>
       )}
 
-      {/* Floating Add Button */}
-      <TouchableOpacity 
-        style={styles.fab} 
-        onPress={goToUpload}
-      >
-        <Plus color="#fff" size={20} />
-        <Text style={{ color: "#fff", fontWeight: "700", marginLeft: 6 }}>Fotoğraf Yükle</Text>
-      </TouchableOpacity>
     </ScreenBackground>
   );
 }
@@ -166,8 +170,8 @@ const styles = StyleSheet.create({
     marginLeft: -5,
   },
   title: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 28,
+    fontFamily: "PlayfairDisplay_400Regular_Italic",
     color: "#fff",
   },
   center: {
@@ -176,21 +180,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   photoWrapper: {
-    flex: 1,
-    margin: 5,
-    borderRadius: 12,
+    marginBottom: 20,
+    borderRadius: 16,
     overflow: "hidden",
-    position: "relative",
-    backgroundColor: "rgba(255,255,255,0.05)",
+    padding: 16,
+    paddingBottom: 20,
+  },
+  photoHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  photoDate: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 13,
   },
   photo: {
     width: "100%",
     aspectRatio: 1,
+    borderRadius: 12,
   },
   deleteBtn: {
-    position: "absolute",
-    top: 8,
-    right: 8,
     backgroundColor: "rgba(0,0,0,0.6)",
     padding: 6,
     borderRadius: 20,
@@ -199,18 +210,15 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 110,
     right: 20,
-    height: 50,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    borderRadius: 25,
-    backgroundColor: "#E8002D",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#E8002D",
+    elevation: 8,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 5,
   },
   emptyBox: {
     flex: 1,

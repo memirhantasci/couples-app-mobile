@@ -6,6 +6,8 @@ import {
   StyleSheet,
   RefreshControl,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -101,7 +103,10 @@ export default function HomeScreen() {
       }
 
       const userMap = (usersRes.data || []).reduce((acc: any, u: any) => {
-        acc[u.id] = u;
+        acc[u.id] = {
+          ...u,
+          display_name: u.display_name ? decrypt(u.display_name) : null,
+        };
         return acc;
       }, {});
 
@@ -151,76 +156,83 @@ export default function HomeScreen() {
 
   return (
     <ScreenBackground>
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingTop: insets.top + 16 },
-        ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
-            tintColor={theme.accent}
-          />
-        }
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"} 
+        style={{ flex: 1 }}
       >
-        {/* ── HEADER ─────────────────────────────────────────────────── */}
-        <View style={styles.headerRow}>
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={styles.greetingText}>Günaydın, {name} </Text>
-              <Text style={{ fontSize: 20 }}>❤️</Text>
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: insets.top + 16 },
+          ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={refetch}
+              tintColor={theme.accent}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        >
+          {/* ── HEADER ─────────────────────────────────────────────────── */}
+          <View style={styles.headerRow}>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={styles.greetingText}>Günaydın, {name} </Text>
+                <Text style={{ fontSize: 20 }}>❤️</Text>
+              </View>
+              <Text style={styles.dateLabel}>{dateLabel}</Text>
             </View>
-            <Text style={styles.dateLabel}>{dateLabel}</Text>
+            <TouchableOpacity onPress={() => router.push("/menu")} style={[styles.menuBtn, { backgroundColor: "rgba(255,255,255,0.05)" }]}>
+              <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={() => router.push("/menu")} style={styles.menuBtn}>
-            <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
-          </TouchableOpacity>
-        </View>
 
-        {/* ── COUNTER PILLS ──────────────────────────────────────────── */}
-        <View style={styles.pillRow}>
-          <View style={styles.pill}>
-            <Text style={styles.pillValue}>{daysSinceMeeting}</Text>
-            <Text style={styles.pillLabel}> gün tanışalı 🤝</Text>
+          {/* ── COUNTER PILLS ──────────────────────────────────────────── */}
+          <View style={[styles.pillCard, { backgroundColor: theme.cardBg }]}>
+            <View style={styles.pillRow}>
+              <View style={styles.pill}>
+                <Text style={styles.pillValue}>{daysSinceMeeting}</Text>
+                <Text style={styles.pillLabel}> gün tanışalı 🤝</Text>
+              </View>
+              <View style={styles.pill}>
+                <Text style={styles.pillValue}>{daysSinceTogether}</Text>
+                <Text style={styles.pillLabel}> gün sevgili ❤️</Text>
+              </View>
+            </View>
           </View>
-          <View style={styles.pill}>
-            <Text style={styles.pillValue}>{daysSinceTogether}</Text>
-            <Text style={styles.pillLabel}> gün sevgili ❤️</Text>
+
+          {/* ── GÜNÜN SÖZÜ ─────────────────────────────────────────────── */}
+          <View style={[styles.quoteCard, { backgroundColor: theme.cardBg }]}>
+            <View style={styles.quoteHeaderRow}>
+              <Text style={styles.quoteStarIcon}>⭐</Text>
+              <Text style={[styles.quoteTitle, { color: theme.accentLight }]}>GÜNÜN SÖZÜ</Text>
+            </View>
+            <Text style={styles.quoteText}>"{quote}"</Text>
           </View>
-        </View>
 
-        {/* ── GÜNÜN SÖZÜ ─────────────────────────────────────────────── */}
-        <View style={styles.quoteCard}>
-          <View style={styles.quoteHeaderRow}>
-            <Text style={styles.quoteStarIcon}>⭐</Text>
-            <Text style={[styles.quoteTitle, { color: theme.accentLight }]}>GÜNÜN SÖZÜ</Text>
-          </View>
-          <Text style={styles.quoteText}>"{quote}"</Text>
-        </View>
+          {/* ── AŞK ÖLÇER ──────────────────────────────────────────────── */}
+          <LoveMeter value={loveMeter} theme={theme} />
 
-        {/* ── AŞK ÖLÇER ──────────────────────────────────────────────── */}
-        <LoveMeter value={loveMeter} theme={theme} />
+          {/* ── BULUŞMA GERİ SAYIMI ─────────────────────────────────────── */}
+          {dashboardData?.activeMeeting && (
+            <MeetingCountdown meeting={dashboardData.activeMeeting} theme={theme} />
+          )}
 
-        {/* ── BULUŞMA GERİ SAYIMI ─────────────────────────────────────── */}
-        {dashboardData?.activeMeeting && (
-          <MeetingCountdown meeting={dashboardData.activeMeeting} theme={theme} />
-        )}
+          {/* ── MOD SEÇİMİ ─────────────────────────────────────────────── */}
+          <MoodSelector
+            currentMood={dashboardData?.currentMood}
+            moodLocked={!!dashboardData?.currentMood}
+            theme={theme}
+          />
 
-        {/* ── MOD SEÇİMİ ─────────────────────────────────────────────── */}
-        <MoodSelector
-          currentMood={dashboardData?.currentMood}
-          moodLocked={!!dashboardData?.currentMood}
-          theme={theme}
-        />
+          {/* ── GÜNLÜK NOT ─────────────────────────────────────────────── */}
+          <DailyNoteCard existingNote={dashboardData?.currentNote} theme={theme} />
 
-        {/* ── GÜNLÜK NOT ─────────────────────────────────────────────── */}
-        <DailyNoteCard existingNote={dashboardData?.currentNote} theme={theme} />
-
-        {/* ── BEKLEYEN MEKTUPLAR ─────────────────────────────────────── */}
-        <PendingLettersCard letters={dashboardData?.pendingLetters || []} theme={theme} />
-      </ScrollView>
+          {/* ── BEKLEYEN MEKTUPLAR ─────────────────────────────────────── */}
+          <PendingLettersCard letters={dashboardData?.pendingLetters || []} theme={theme} />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ScreenBackground>
   );
 }
@@ -252,15 +264,21 @@ const styles = StyleSheet.create({
   menuBtn: {
     padding: 8,
     borderRadius: 20,
-    marginTop: 4,
-    backgroundColor: "#4A152B", // Dark burgundy as requested
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   // ─── Counter Pills ─────────────────────────────────────────────────────
+  pillCard: {
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 18,
+  },
   pillRow: {
     flexDirection: "row",
     gap: 12,
-    marginBottom: 18,
   },
   pill: {
     flex: 1,
@@ -270,8 +288,9 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    backgroundColor: "#4A152B", // Always dark burgundy
-    borderWidth: 0, // No border according to screenshot
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
   },
   pillValue: {
     fontSize: 15,
@@ -289,7 +308,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     marginBottom: 18,
-    backgroundColor: "#4A152B", // Explicit card bg
     borderWidth: 0,
   },
   quoteHeaderRow: {

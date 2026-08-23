@@ -1,17 +1,17 @@
-import React, { useCallback,  useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert, Platform, Modal, Linking, KeyboardAvoidingView } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert, Platform, Linking } from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, CalendarDays, Plus, Trash2, Edit2, X, Heart, Menu, MapPin, Navigation } from "lucide-react-native";
+import { Trash2, MapPin, AlignJustify, Edit2 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { dayjs } from "@/lib/date";
+import { getTheme } from "@/lib/theme";
 import { MapPickerModal } from "@/components/MapPickerModal";
 
 export default function MeetingsScreen() {
@@ -19,6 +19,8 @@ export default function MeetingsScreen() {
   const { session, profile } = useAuth();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
+  const theme = getTheme(profile?.gender);
+  
   const coupleId = profile?.coupleId;
   const userId = session?.user?.id ? session.user.id : null;
 
@@ -27,17 +29,15 @@ export default function MeetingsScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingMeetingId, setEditingMeetingId] = useState<number | null>(null);
 
   const [locationName, setLocationName] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
-  const [titleError, setTitleError] = useState(false);
-
-  const [showAddModal, setShowAddModal] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
+  
+  const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
 
-  const { data: meetings, isLoading , refetch} = useQuery({
+  const { data: meetings, isLoading } = useQuery({
     queryKey: ["meetings", coupleId],
     enabled: !!coupleId,
     queryFn: async () => {
@@ -71,6 +71,24 @@ export default function MeetingsScreen() {
     }
   };
 
+  const handleEdit = (m: any) => {
+    setEditingMeetingId(m.id);
+    setTitle(m.title);
+    setMeetingDate(new Date(m.meeting_datetime));
+    setLocationName(m.location_name || "");
+    setLatitude(m.latitude || null);
+    setLongitude(m.longitude || null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMeetingId(null);
+    setTitle("");
+    setMeetingDate(new Date());
+    setLocationName("");
+    setLatitude(null);
+    setLongitude(null);
+  };
+
   const handleSave = async () => {
     if (!coupleId || !userId) return;
 
@@ -80,7 +98,7 @@ export default function MeetingsScreen() {
     }
 
     if (!title.trim()) {
-      setTitleError(true);
+      Alert.alert("Hata", "Lütfen bir başlık girin.");
       return;
     }
 
@@ -96,8 +114,8 @@ export default function MeetingsScreen() {
           location_name: locationName.trim() || null,
           latitude: latitude,
           longitude: longitude,
-        }).eq("id", editingMeetingId).eq("user_id", userId);
-
+        }).eq("id", editingMeetingId);
+        
         if (error) throw error;
         Alert.alert("Başarılı", "Buluşma başarıyla güncellendi!");
       } else {
@@ -116,14 +134,7 @@ export default function MeetingsScreen() {
         Alert.alert("Başarılı", "Buluşma başarıyla planlandı!");
       }
 
-      setTitle("");
-      setMeetingDate(new Date());
-      setLocationName("");
-      setLatitude(null);
-      setLongitude(null);
-      setEditingMeetingId(null);
-      setTitleError(false);
-      setShowAddModal(false);
+      handleCancelEdit();
       queryClient.invalidateQueries({ queryKey: ["meetings", coupleId] });
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
     } catch (error: any) {
@@ -133,40 +144,20 @@ export default function MeetingsScreen() {
     }
   };
 
-  const handleEdit = (m: any) => {
-    if (m.user_id && m.user_id !== userId) {
-      Alert.alert("Yetkisiz", "Bu buluşmayı yalnızca oluşturan kişi düzenleyebilir.");
-      return;
-    }
-    setEditingMeetingId(m.id);
-    setTitle(m.title);
-    setMeetingDate(new Date(m.meeting_datetime));
-    setLocationName(m.location_name || "");
-    setLatitude(m.latitude || null);
-    setLongitude(m.longitude || null);
-    setShowAddModal(true);
-  };
-
-  const handleCancel = (m: any) => {
-    if (m.user_id && m.user_id !== userId) {
-      Alert.alert("Yetkisiz", "Bu buluşmayı yalnızca oluşturan kişi silebilir.");
-      return;
-    }
-
-    Alert.alert("Buluşmayı İptal Et", "Bu buluşmayı iptal etmek istediğinize emin misiniz?", [
+  const handleDelete = (m: any) => {
+    Alert.alert("Buluşmayı Sil", "Bu buluşmayı silmek istediğinize emin misiniz?", [
       { text: "Vazgeç", style: "cancel" },
       {
-        text: "İptal Et",
+        text: "Sil",
         style: "destructive",
         onPress: async () => {
           const { error } = await supabase
             .from("meetings")
-            .update({ is_active: false })
-            .eq("id", m.id)
-            .eq("user_id", userId);
+            .delete()
+            .eq("id", m.id);
 
           if (error) {
-            Alert.alert("Hata", "Sadece oluşturan kişi silebilir.");
+            Alert.alert("Hata", "Silinemedi.");
           } else {
             queryClient.invalidateQueries({ queryKey: ["meetings", coupleId] });
             queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
@@ -177,265 +168,202 @@ export default function MeetingsScreen() {
   };
 
   const now = new Date();
-
-  const activeMeetings = meetings?.filter(m => new Date(m.meeting_datetime) >= now) || [];
-  const pastMeetings = meetings?.filter(m => new Date(m.meeting_datetime) < now) || [];
-
-
+  const activeMeetings = meetings?.filter(m => new Date(m.meeting_datetime) >= now && m.is_active) || [];
+  const pastMeetings = meetings?.filter(m => new Date(m.meeting_datetime) < now || !m.is_active) || [];
 
   return (
     <ScreenBackground>
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <ChevronLeft color="#fff" size={28} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Buluşmalar</Text>
-        <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, marginRight: -8 }}>
-          <Menu color="#fff" size={24} />
+      <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, paddingTop: insets.top + 16, paddingHorizontal: 20 }}>
+        <View style={{ width: 40 }} />
+        <View style={{ flex: 1, alignItems: "center" }}>
+          <Text style={{ fontSize: 28, fontFamily: "PlayfairDisplay_400Regular_Italic", color: "#fff" }}>
+            Buluşmalar 📍
+          </Text>
+        </View>
+        <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.05)" }}>
+          <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.container}>
-
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        
         {/* AKTİF BULUŞMALAR */}
-        <View style={{ gap: 16 }}>
-          <Text style={styles.sectionTitle}>Aktif Buluşmalar</Text>
+        <View style={{ gap: 12 }}>
+          <Text style={styles.sectionTitle}>AKTİF BULUŞMALAR</Text>
 
           {isLoading ? (
-            <View style={{ gap: 12 }}>
-              <Skeleton height={140} borderRadius={16} />
-              <Skeleton height={140} borderRadius={16} />
-            </View>
+            <Skeleton height={140} borderRadius={16} />
           ) : activeMeetings.length > 0 ? (
-            <View style={{ gap: 12 }}>
-              {activeMeetings.map((m) => {
-                const isCreator = m.user_id === userId;
-
-                return (
-                  <View
-                    key={m.id}
-                    style={[
-                      styles.meetingItem,
-                      { opacity: m.is_active ? 1 : 0.5 }
-                    ]}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                        <Text style={styles.meetingTitle}>{m.title}</Text>
-                        {!m.is_active && <View style={[styles.badge, { backgroundColor: "rgba(239, 68, 68, 0.2)" }]}><Text style={[styles.badgeText, { color: "#ef4444" }]}>İptal Edildi</Text></View>}
-                      </View>
-                      <Text style={styles.meetingDate}>
-                        {dayjs(m.meeting_datetime).locale("tr").format("DD MMMM YYYY, dddd - HH:mm")}
-                      </Text>
-                      {m.location_name && (
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 }}>
-                          <MapPin color="#ffd700" size={14} />
-                          <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>{m.location_name}</Text>
-                        </View>
-                      )}
-                      {m.latitude && m.longitude && (
-                        <TouchableOpacity
-                          style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 12, backgroundColor: 'rgba(34, 197, 94, 0.1)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(34, 197, 94, 0.3)' }}
-                          onPress={() => {
-                            const url = Platform.select({
-                              ios: `maps://app?daddr=${m.latitude},${m.longitude}`,
-                              android: `google.navigation:q=${m.latitude},${m.longitude}`
-                            }) || `https://www.google.com/maps/dir/?api=1&destination=${m.latitude},${m.longitude}`;
-                            Linking.openURL(url);
-                          }}
-                        >
-                          <Navigation color="#22c55e" size={14} />
-                          <Text style={{ color: "#22c55e", fontSize: 13, fontWeight: "600" }}>Yol Tarifi Al</Text>
-                        </TouchableOpacity>
+            activeMeetings.map((m) => {
+              return (
+                <View key={m.id} style={[styles.meetingCard, { backgroundColor: theme.cardBg }]}>
+                  <View style={styles.meetingHeader}>
+                    <Text style={styles.meetingTitle}>{m.title}</Text>
+                    <View style={{ flexDirection: "row", gap: 12 }}>
+                      {m.user_id === userId && (
+                        <>
+                          <TouchableOpacity onPress={() => handleEdit(m)}>
+                            <Edit2 color="rgba(255,255,255,0.7)" size={20} />
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={() => handleDelete(m)}>
+                            <Trash2 color="#ef4444" size={20} />
+                          </TouchableOpacity>
+                        </>
                       )}
                     </View>
-
-                    {isCreator && m.is_active && (
-                      <View style={{ flexDirection: "row", gap: 8 }}>
-                        <TouchableOpacity onPress={() => handleEdit(m)} style={[styles.deleteBtn, { backgroundColor: "rgba(255,255,255,0.1)" }]}>
-                          <Edit2 color="#fff" size={20} />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => handleCancel(m)} style={styles.deleteBtn}>
-                          <Trash2 color="#ef4444" size={20} />
-                        </TouchableOpacity>
-                      </View>
-                    )}
                   </View>
-                );
-              })}
-            </View>
-          ) : (
-            <View style={styles.emptyCard}>
-              <View style={styles.emptyIconContainer}>
-                <View style={styles.calendarIconBox}>
-                  <View style={styles.calendarTopBar} />
-                  <Text style={styles.calendarDots}>...</Text>
-                </View>
-                <View style={styles.heartIconWrapper}>
-                  <Heart size={20} color="#ffd700" fill="#ffd700" />
-                </View>
-              </View>
-              <Text style={styles.emptyText}>Henüz aktif bir buluşma planlanmadı.</Text>
-            </View>
-          )}
+                  <Text style={styles.meetingDate}>
+                    {dayjs(m.meeting_datetime).locale("tr").format("D MMMM YYYY, dddd - HH:mm")}
+                  </Text>
+                  
+                  {m.location_name ? (
+                    <View style={styles.locationRow}>
+                      <MapPin color="rgba(255,255,255,0.6)" size={14} />
+                      <Text style={styles.locationText}>Seçili Konum: {m.location_name}</Text>
+                    </View>
+                  ) : null}
 
-          <TouchableOpacity
-            style={styles.addMeetingBtn}
-            onPress={() => {
-              setEditingMeetingId(null);
-              setTitle("");
-              setLocationName("");
-              setLatitude(null);
-              setLongitude(null);
-              setMeetingDate(new Date());
-              setTitleError(false);
-              setShowAddModal(true);
-            }}
-          >
-            <LinearGradient
-              colors={["#b8860b", "#ffd700", "#b8860b"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.addMeetingBtnGradient}
-            >
-              <Plus color="#1a1114" size={22} />
-              <Text style={styles.addMeetingBtnText}>Buluşma Ekle</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+                  {(m.latitude && m.longitude) || m.location_name ? (
+                    <TouchableOpacity
+                      style={styles.directionsBtn}
+                      onPress={() => {
+                        if (m.latitude && m.longitude) {
+                          const url = Platform.select({
+                            ios: `maps://app?daddr=${m.latitude},${m.longitude}`,
+                            android: `google.navigation:q=${m.latitude},${m.longitude}`
+                          }) || `https://www.google.com/maps/dir/?api=1&destination=${m.latitude},${m.longitude}`;
+                          Linking.openURL(url);
+                        }
+                      }}
+                    >
+                      <Text style={styles.directionsBtnText}>Yol Tarifi Al 🗺️</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              );
+            })
+          ) : null}
+
+
         </View>
 
-        {/* GEÇMİŞ BULUŞMALAR */}
-        {pastMeetings.length > 0 && (
-          <View style={{ gap: 16, marginTop: 20 }}>
-            <Text style={styles.sectionTitle}>Geçmiş Buluşmalar</Text>
-            <View style={{ gap: 12 }}>
-              {pastMeetings.map((m) => (
-                <View
-                  key={m.id}
-                  style={[
-                    styles.meetingItem,
-                    { opacity: 0.6, backgroundColor: "rgba(255,255,255,0.02)" }
-                  ]}
-                >
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                      <Text style={styles.meetingTitle}>{m.title}</Text>
-                      <View style={styles.badge}><Text style={styles.badgeText}>Geçmiş</Text></View>
-                      {!m.is_active && <View style={[styles.badge, { backgroundColor: "rgba(239, 68, 68, 0.2)" }]}><Text style={[styles.badgeText, { color: "#ef4444" }]}>İptal Edildi</Text></View>}
-                    </View>
-                    <Text style={styles.meetingDate}>
-                      {dayjs(m.meeting_datetime).locale("tr").format("DD MMMM YYYY, dddd - HH:mm")}
-                    </Text>
-                    {m.location_name && (
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 }}>
-                        <MapPin color="#ffd700" size={14} />
-                        <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>{m.location_name}</Text>
-                      </View>
-                    )}
-                  </View>
+        {/* YENİ BULUŞMA PLANLA (Form inline) */}
+        <View style={[styles.planCard, { backgroundColor: theme.cardBg }]}>
+          <View style={styles.planCardHeader}>
+            <View style={styles.planCardHeaderLine} />
+            <Text style={styles.planCardTitle}>{editingMeetingId ? "Buluşmayı Düzenle" : "Yeni Buluşma Planla"}</Text>
+          </View>
+
+          <Text style={styles.label}>Başlık</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: theme.inputBg }]}
+            placeholder="Buluşma adını girin..."
+            placeholderTextColor="rgba(255,255,255,0.3)"
+            value={title}
+            onChangeText={setTitle}
+          />
+
+          <View style={styles.row}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <Text style={styles.label}>Tarih & Saat</Text>
+              <TouchableOpacity style={[styles.input, { backgroundColor: theme.inputBg, flexDirection: 'row', alignItems: 'center' }]} onPress={() => setShowDatePicker(true)}>
+                <View style={{ marginRight: 8 }}>
+                  <Text style={{ fontSize: 16 }}>🗓️</Text>
                 </View>
-              ))}
+                <Text style={styles.inputText}>{dayjs(meetingDate).format("DD.MM.YYYY")}</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.label}>Saat</Text>
+              <TouchableOpacity style={[styles.input, { backgroundColor: theme.inputBg, justifyContent: 'center' }]} onPress={() => setShowTimePicker(true)}>
+                <Text style={styles.inputText}>{dayjs(meetingDate).format("HH:mm")}</Text>
+              </TouchableOpacity>
             </View>
           </View>
-        )}
 
-      </ScrollView>
-
-      {/* YENİ/DÜZENLE BULUŞMA MODALI */}
-      <Modal visible={showAddModal} animationType="slide" transparent>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{editingMeetingId ? "Buluşmayı Düzenle" : "Yeni Buluşma Planla"}</Text>
-              <TouchableOpacity onPress={() => setShowAddModal(false)} style={{ padding: 4 }}>
-                <X color="rgba(255,255,255,0.5)" size={24} />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.label}>Başlık</Text>
+          <Text style={styles.label}>Konum (İsteğe Bağlı)</Text>
+          <View style={styles.locationInputWrapper}>
             <TextInput
-              style={[styles.inputRed, titleError && { borderColor: "red" }]}
-              placeholder="Akşam Yemeği 🍕"
-              placeholderTextColor="rgba(255,255,255,0.3)"
-              value={title}
-              onChangeText={(text) => {
-                setTitle(text);
-                setTitleError(false);
-              }}
-            />
-
-            <Text style={styles.label}>Tarih & Saat</Text>
-            <View style={styles.dateTimeContainer}>
-              <TouchableOpacity style={styles.dateBtn} onPress={() => setShowDatePicker(true)}>
-                <Text style={styles.dateBtnText}>{dayjs(meetingDate).format("DD.MM.YYYY")}</Text>
-              </TouchableOpacity>
-              <Text style={{ color: "rgba(255,255,255,0.3)" }}>-</Text>
-              <TouchableOpacity style={styles.timeBtn} onPress={() => setShowTimePicker(true)}>
-                <Text style={styles.dateBtnText}>{dayjs(meetingDate).format("HH:mm")}</Text>
-              </TouchableOpacity>
-              <CalendarDays color="#ffd700" size={20} style={{ position: "absolute", right: 14 }} />
-            </View>
-
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <Text style={styles.label}>Konum (İsteğe Bağlı)</Text>
-              <TouchableOpacity onPress={() => setShowMapModal(true)} style={{ marginTop: 12 }}>
-                <Text style={{ color: "#ffd700", fontSize: 13, fontWeight: "600" }}>Haritadan Seç</Text>
-              </TouchableOpacity>
-            </View>
-            <TextInput
-              style={styles.inputRed}
-              placeholder="Kadıköy Moda Sahili"
+              style={[styles.input, { backgroundColor: theme.inputBg, paddingRight: 80 }]}
+              placeholder="Konum arayın..."
               placeholderTextColor="rgba(255,255,255,0.3)"
               value={locationName}
               onChangeText={setLocationName}
             />
-
-            {showDatePicker && (
-              <DateTimePicker
-                value={meetingDate}
-                mode="date"
-                display="default"
-                onChange={onDateChange}
-                minimumDate={new Date()}
-              />
-            )}
-
-            {showTimePicker && (
-              <DateTimePicker
-                value={meetingDate}
-                mode="time"
-                is24Hour={true}
-                display="default"
-                onChange={onTimeChange}
-              />
-            )}
-
-            <TouchableOpacity
-              style={styles.submitBtnContainer}
-              onPress={handleSave}
-              disabled={isSubmitting}
-            >
-              <LinearGradient
-                colors={["#b8860b", "#ffd700", "#b8860b"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.submitBtnGradient}
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator color="#1a1114" />
-                ) : (
-                  <>
-                    <Plus color="#1a1114" size={20} />
-                    <Text style={styles.submitBtnText}>{editingMeetingId ? "Güncelle" : "Planla"}</Text>
-                  </>
-                )}
-              </LinearGradient>
+            <TouchableOpacity style={[styles.mapSelectBtn, { backgroundColor: theme.unitBg }]} onPress={() => setShowMapModal(true)}>
+              <Text style={styles.mapSelectBtnText}>Harita</Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity
+            style={[styles.submitBtn, { backgroundColor: theme.accent }]}
+            onPress={handleSave}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.submitBtnText}>{editingMeetingId ? "Güncelle" : "+ Planla"}</Text>
+            )}
+          </TouchableOpacity>
+          
+          {editingMeetingId && (
+            <TouchableOpacity
+              style={{ paddingVertical: 14, alignItems: "center", marginTop: 4 }}
+              onPress={handleCancelEdit}
+              disabled={isSubmitting}
+            >
+              <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 15, fontWeight: "600" }}>İptal Et</Text>
+            </TouchableOpacity>
+          )}
         </View>
-        </KeyboardAvoidingView>
-      </Modal>
+
+        {/* GEÇMİŞ BULUŞMALAR */}
+        {pastMeetings.length > 0 && (
+          <View style={{ gap: 12, marginTop: 20 }}>
+            <Text style={styles.sectionTitle}>GEÇMİŞ BULUŞMALAR</Text>
+            {pastMeetings.map((m) => {
+              const isCreator = m.user_id === userId;
+              return (
+                <View key={m.id} style={[styles.meetingCard, { backgroundColor: theme.cardBg, opacity: 0.7 }]}>
+                  <View style={styles.meetingHeader}>
+                    <Text style={styles.meetingTitle}>{m.title}</Text>
+                  </View>
+                  <Text style={styles.meetingDate}>
+                    {dayjs(m.meeting_datetime).locale("tr").format("D MMMM YYYY, dddd - HH:mm")}
+                  </Text>
+                  
+                  {m.location_name ? (
+                    <View style={styles.locationRow}>
+                      <MapPin color="rgba(255,255,255,0.6)" size={14} />
+                      <Text style={styles.locationText}>Konum: {m.location_name}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        {showDatePicker && (
+          <DateTimePicker
+            value={meetingDate}
+            mode="date"
+            display="default"
+            onChange={onDateChange}
+            minimumDate={new Date()}
+          />
+        )}
+        {showTimePicker && (
+          <DateTimePicker
+            value={meetingDate}
+            mode="time"
+            is24Hour={true}
+            display="default"
+            onChange={onTimeChange}
+          />
+        )}
+      </ScrollView>
 
       <MapPickerModal 
         visible={showMapModal} 
@@ -447,7 +375,6 @@ export default function MeetingsScreen() {
           if (!locationName) setLocationName(loc.locationName || "");
         }}
       />
-
     </ScreenBackground>
   );
 }
@@ -460,214 +387,147 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 15,
   },
-  backBtn: {
-    padding: 5,
-    marginLeft: -5,
+  menuBtn: {
+    padding: 8,
+    borderRadius: 20,
   },
   headerTitle: {
     color: "#fff",
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 28,
+    fontFamily: "PlayfairDisplay_400Regular_Italic",
+    textAlign: "center",
   },
   container: {
-    padding: 20,
+    padding: 16,
     gap: 20,
     paddingBottom: 110,
   },
   sectionTitle: {
-    color: "#fff",
-    fontSize: 18,
+    color: "rgba(255,255,255,0.4)",
+    fontSize: 12,
     fontWeight: "700",
     marginBottom: 4,
+    letterSpacing: 1,
   },
-  meetingItem: {
-    backgroundColor: "rgba(255,255,255,0.05)",
+  meetingCard: {
+    borderRadius: 20,
     padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    marginBottom: 16,
+  },
+  meetingHeader: {
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
   },
   meetingTitle: {
     color: "#fff",
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "700",
-  },
-  badge: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  badgeText: {
-    color: "rgba(255,255,255,0.5)",
-    fontSize: 10,
-    fontWeight: "700",
-    textTransform: "uppercase",
   },
   meetingDate: {
     color: "rgba(255,255,255,0.6)",
     fontSize: 13,
     marginTop: 6,
   },
-  deleteBtn: {
-    padding: 10,
-    backgroundColor: "rgba(239, 68, 68, 0.1)",
-    borderRadius: 10,
-  },
-  emptyCard: {
-    backgroundColor: "rgba(255,255,255,0.03)",
-    borderWidth: 1,
-    borderColor: "rgba(255,215,0,0.3)",
-    borderRadius: 20,
-    padding: 30,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyIconContainer: {
-    marginBottom: 16,
-    position: "relative",
-  },
-  calendarIconBox: {
-    width: 44,
-    height: 44,
-    borderWidth: 2,
-    borderColor: "#ffd700",
-    borderRadius: 10,
-    alignItems: "center",
-    overflow: "hidden",
-  },
-  calendarTopBar: {
-    width: "100%",
-    height: 12,
-    backgroundColor: "#ffd700",
-  },
-  calendarDots: {
-    color: "#ffd700",
-    fontSize: 20,
-    fontWeight: "900",
-    lineHeight: 20,
-    marginTop: 2,
-  },
-  heartIconWrapper: {
-    position: "absolute",
-    top: -10,
-    right: -10,
-  },
-  emptyText: {
-    color: "rgba(255,255,255,0.6)",
-    textAlign: "center",
-    fontSize: 15,
-  },
-  addMeetingBtn: {
-    marginTop: 10,
-    shadowColor: "#ffd700",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  addMeetingBtnGradient: {
+  locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-    borderRadius: 16,
-    gap: 8,
+    gap: 6,
+    marginTop: 10,
   },
-  addMeetingBtnText: {
-    color: "#1a1114",
-    fontSize: 16,
+  locationText: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 13,
+  },
+  directionsBtn: {
+    backgroundColor: "#4ADE80",
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginTop: 16,
+  },
+  directionsBtnText: {
+    color: "#1c1c1e",
+    fontSize: 15,
     fontWeight: "700",
   },
-  // MODAL
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.85)",
-    justifyContent: "center",
+  addMeetingBtn: {
+    borderRadius: 20,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  addMeetingBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  planCard: {
+    borderRadius: 20,
     padding: 20,
+    marginTop: 10,
   },
-  modalContent: {
-    backgroundColor: "#1c1c1e",
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  planCardHeader: {
     alignItems: "center",
     marginBottom: 20,
   },
-  modalTitle: {
+  planCardHeaderLine: {
+    width: 40,
+    height: 4,
+    backgroundColor: "rgba(255,255,255,0.3)",
+    borderRadius: 2,
+    marginBottom: 12,
+  },
+  planCardTitle: {
     color: "#fff",
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 22,
+    fontFamily: "PlayfairDisplay_400Regular_Italic",
+    textAlign: "left",
+    alignSelf: "flex-start",
   },
   label: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 14,
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 13,
     marginBottom: 8,
-    marginTop: 12,
-    fontWeight: "500",
+    marginTop: 16,
   },
-  inputRed: {
-    backgroundColor: "#2c2c2e",
-    borderWidth: 1,
-    borderColor: "#ef4444",
+  input: {
     borderRadius: 12,
     padding: 16,
     color: "#fff",
     fontSize: 15,
-    shadowColor: "#ef4444",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
   },
-  dateTimeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#2c2c2e",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    borderRadius: 12,
-    paddingLeft: 16,
-    paddingRight: 40, // space for icon
-  },
-  dateBtn: {
-    paddingVertical: 16,
-    paddingRight: 10,
-  },
-  timeBtn: {
-    paddingVertical: 16,
-    paddingLeft: 10,
-    flex: 1,
-  },
-  dateBtnText: {
+  inputText: {
     color: "#fff",
     fontSize: 15,
   },
-  submitBtnContainer: {
-    marginTop: 24,
-    shadowColor: "#ffd700",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  submitBtnGradient: {
+  row: {
     flexDirection: "row",
-    alignItems: "center",
+  },
+  locationInputWrapper: {
+    position: "relative",
     justifyContent: "center",
-    padding: 16,
-    borderRadius: 14,
-    gap: 8,
+  },
+  mapSelectBtn: {
+    position: "absolute",
+    right: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  mapSelectBtnText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  submitBtn: {
+    borderRadius: 20,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginTop: 24,
   },
   submitBtnText: {
-    color: "#1a1114",
+    color: "#fff",
     fontSize: 16,
-    fontWeight: "700",
-  }
+    fontWeight: "600",
+  },
 });

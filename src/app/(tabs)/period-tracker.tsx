@@ -9,9 +9,10 @@ import { dayjs, todayString } from "@/lib/date";
 import { deterministicDecrypt } from "@/utils/crypto";
 import { logger } from "@/utils/logger";
 import { Calendar, LocaleConfig } from "react-native-calendars";
-import { X, Check, ChevronLeft, Menu } from "lucide-react-native";
+import { X, Check, ChevronLeft, Menu, AlignJustify } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { getTheme } from "@/lib/theme";
 
 LocaleConfig.locales['tr'] = {
   monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
@@ -28,6 +29,7 @@ export default function PeriodTrackerScreen() {
   const queryClient = useQueryClient();
   const today = todayString();
   const insets = useSafeAreaInsets();
+  const theme = getTheme(profile?.gender);
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
@@ -137,16 +139,18 @@ export default function PeriodTrackerScreen() {
 
   return (
     <ScreenBackground>
-      <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 10 }]}>
+      <ScrollView contentContainerStyle={[styles.container, { paddingBottom: 100 }]}>
         
         {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <ChevronLeft color="#fff" size={28} />
-          </TouchableOpacity>
-          <Text style={styles.title}>REGL TAKVİMİ 🩸</Text>
-          <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, marginRight: -8 }}>
-            <Menu color="#fff" size={24} />
+        <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, paddingTop: insets.top + 16, paddingHorizontal: 20 }}>
+          <View style={{ width: 40 }} />
+          <View style={{ flex: 1, alignItems: "center" }}>
+            <Text style={{ fontSize: 28, fontFamily: "PlayfairDisplay_400Regular_Italic", color: "#fff" }}>
+              Regl Takvimi 🩸
+            </Text>
+          </View>
+          <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.05)" }}>
+            <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
           </TouchableOpacity>
         </View>
 
@@ -158,7 +162,7 @@ export default function PeriodTrackerScreen() {
         ) : (
           <>
             {/* Calendar View */}
-            <View style={styles.calendarContainer}>
+            <View style={[styles.calendarContainer, { backgroundColor: "#0f1a2e" }]}>
               <Calendar
                 current={today}
                 onDayPress={handleDateClick}
@@ -167,10 +171,12 @@ export default function PeriodTrackerScreen() {
                 theme={{
                   calendarBackground: 'transparent',
                   textSectionTitleColor: 'rgba(255,255,255,0.4)',
-                  todayTextColor: '#E8002D',
+                  todayTextColor: theme.accent,
+                  selectedDayBackgroundColor: theme.accent,
+                  selectedDayTextColor: '#fff',
                   dayTextColor: 'rgba(255,255,255,0.85)',
                   textDisabledColor: 'rgba(255,255,255,0.2)',
-                  arrowColor: 'rgba(255,255,255,0.7)',
+                  arrowColor: theme.accent,
                   monthTextColor: '#ffffff',
                   textMonthFontWeight: 'bold',
                   textDayFontSize: 14,
@@ -192,17 +198,17 @@ export default function PeriodTrackerScreen() {
                   {logs.map(log => {
                     const logDate = dayjs(log.date);
                     return (
-                      <View key={log.id} style={styles.logCard}>
+                      <View key={log.id} style={[styles.logCard, { backgroundColor: theme.cardBg, borderWidth: 1, borderColor: theme.accent + '30' }]}>
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                          <View style={styles.dropIconBox}>
+                          <View style={[styles.dropIconBox, { backgroundColor: theme.accent + '20', borderColor: theme.accent + '50' }]}>
                             <Text style={{ fontSize: 20 }}>🩸</Text>
                           </View>
                           <View>
                             <Text style={styles.logDateText}>{logDate.format("DD MMMM YYYY")}</Text>
-                            <Text style={styles.logDayText}>{logDate.format("dddd")}</Text>
+                            <Text style={[styles.logDayText, { color: theme.accent }]}>{logDate.format("dddd")}</Text>
                           </View>
                         </View>
-                        <Text style={styles.logMonthText}>{logDate.format("MMMM")}</Text>
+                        <Text style={[styles.logMonthText, { color: theme.accent }]}>{logDate.format("MMMM")}</Text>
                       </View>
                     );
                   })}
@@ -241,7 +247,7 @@ export default function PeriodTrackerScreen() {
               </TouchableOpacity>
               
               <TouchableOpacity
-                style={[styles.modalActionBtn, loading && { opacity: 0.7 }]}
+                style={[styles.modalActionBtn, { backgroundColor: theme.accent }, loading && { opacity: 0.7 }]}
                 disabled={loading}
                 onPress={handleToggle}
               >
@@ -286,11 +292,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#E8002D",
+    color: "#fff",
     letterSpacing: 1,
   },
   calendarContainer: {
-    backgroundColor: "#1c1c1e",
+    backgroundColor: "rgba(255,255,255,0.06)",
     borderRadius: 20,
     padding: 8,
     marginBottom: 28,
@@ -336,7 +342,7 @@ const styles = StyleSheet.create({
   },
   logDayText: {
     fontSize: 13,
-    color: "#E8002D",
+    color: "rgba(255,255,255,0.6)",
     fontWeight: "500",
   },
   logMonthText: {
@@ -366,11 +372,11 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: "#B5001F",
+    backgroundColor: "#1a3a5c",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
-    shadowColor: "#E8002D",
+    shadowColor: "#4A90D9",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 10,
@@ -416,7 +422,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: "#E8002D",
+    backgroundColor: "#4A90D9",
   },
   modalActionBtnText: {
     color: "#fff",

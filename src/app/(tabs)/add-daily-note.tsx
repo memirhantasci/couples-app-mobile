@@ -42,7 +42,7 @@ export default function AddDailyNoteScreen() {
       if (error) throw error;
 
       queryClient.invalidateQueries({ queryKey: ["daily_notes_history", session.user.id] });
-      router.back();
+      router.replace("/(tabs)/daily-notes");
     } catch (error) {
       console.error(error);
       Alert.alert("Hata", "Günlük kaydedilirken bir hata oluştu.");
@@ -64,7 +64,7 @@ export default function AddDailyNoteScreen() {
           paddingHorizontal: 20,
           paddingBottom: 20,
         }}>
-          <TouchableOpacity onPress={() => router.back()} style={{ padding: 5, marginLeft: -5 }}>
+          <TouchableOpacity onPress={() => router.replace("/(tabs)/daily-notes")} style={{ padding: 5, marginLeft: -5 }}>
             <ChevronLeft color="#fff" size={28} />
           </TouchableOpacity>
           <Text style={{ color: "#fff", fontSize: 18, fontWeight: "600" }}>Yeni Sayfa 📓</Text>

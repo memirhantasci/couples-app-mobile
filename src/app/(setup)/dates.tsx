@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Platform,
+  ScrollView,
 } from "react-native";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
@@ -12,16 +13,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-
-// ─── Date Picker Notu ─────────────────────────────────────────────────────────
-// react-native-date-picker → Expo Go'da (development build olmadan) çalışmıyor.
-// Bu yüzden @react-native-community/datetimepicker kullandık.
-// Bu paket Expo Go'da sorunsuz çalışır, iOS ve Android'in native date picker
-// arayüzünü kullanır. Üretim (production) build'de de aynı şekilde çalışır.
-// ─────────────────────────────────────────────────────────────────────────────
+import { Calendar, ChevronRight, Heart, Sparkles } from "lucide-react-native";
 
 function formatDate(date: Date): string {
-  // ISO 8601 formatında YYYY-MM-DD — web projesiyle birebir aynı
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
@@ -29,20 +23,18 @@ function formatDate(date: Date): string {
 }
 
 function displayDate(date: Date): string {
-  return date.toLocaleDateString("tr-TR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${day}.${month}.${year}`; // Matching mockup 14.02.2024
 }
 
 export default function DatesScreen() {
   const { session, refreshProfile } = useAuth();
   const userId = session?.user?.id;
 
-  // State
-  const [meetDate, setMeetDate] = useState(new Date(2020, 0, 1));
-  const [relDate, setRelDate] = useState(new Date(2020, 0, 1));
+  const [meetDate, setMeetDate] = useState(new Date(2024, 1, 14));
+  const [relDate, setRelDate] = useState(new Date(2024, 4, 1));
   const [showMeetPicker, setShowMeetPicker] = useState(false);
   const [showRelPicker, setShowRelPicker] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,7 +46,6 @@ export default function DatesScreen() {
     setShowMeetPicker(Platform.OS === "ios");
     if (selected) {
       setMeetDate(selected);
-      // Ensure relDate >= meetDate
       if (selected > relDate) setRelDate(selected);
     }
   }
@@ -65,7 +56,6 @@ export default function DatesScreen() {
   }
 
   async function handleSave() {
-    // Validation (web'deki setup.ts ile aynı kurallar)
     if (meetDate > today || relDate > today) {
       setError("Gelecek bir tarih seçemezsiniz.");
       return;
@@ -79,7 +69,6 @@ export default function DatesScreen() {
     setIsLoading(true);
     setError("");
 
-    // Get couple_id
     const { data: user, error: userError } = await supabase
       .from("users")
       .select("couple_id")
@@ -92,9 +81,6 @@ export default function DatesScreen() {
       return;
     }
 
-    // ── Race condition koruması (web'deki setup.ts ile birebir aynı mantık):
-    // Güncel veriyi çek. Eğer partner tarih kaydettiyse, biz kaydetmiyoruz,
-    // direkt home'a yönlendiriyoruz — partner'ın verisi ezilmez.
     const { data: couple, error: coupleError } = await supabase
       .from("couples")
       .select("meet_date, relationship_start_date")
@@ -107,19 +93,17 @@ export default function DatesScreen() {
       return;
     }
 
-    // Eğer partner zaten tarihleri kaydetmişse → direkt home'a yönlendir
     if (couple.meet_date && couple.relationship_start_date) {
       await refreshProfile();
       router.replace("/(tabs)/home");
       return;
     }
 
-    // Tarihleri kaydet (WHERE koşulumuz SQL'de yoktur ama application seviyesinde kontrol ettik)
     const { error: updateError } = await supabase
       .from("couples")
       .update({
-        meet_date: formatDate(meetDate),           // YYYY-MM-DD — web ile aynı format
-        relationship_start_date: formatDate(relDate), // YYYY-MM-DD
+        meet_date: formatDate(meetDate),
+        relationship_start_date: formatDate(relDate),
       })
       .eq("id", user.couple_id);
 
@@ -135,137 +119,148 @@ export default function DatesScreen() {
   }
 
   return (
-    <ScreenBackground colors={["#080811", "#0A0A0C", "#080811"]}>
-      {/* Background blobs */}
-      <View
-        style={{
-          position: "absolute",
-          top: -80,
-          left: -80,
-          width: 280,
-          height: 280,
-          borderRadius: 140,
-          backgroundColor: "rgba(232, 0, 45, 0.15)",
-        }}
-      />
-      <View
-        style={{
-          position: "absolute",
-          bottom: -40,
-          right: -60,
-          width: 240,
-          height: 240,
-          borderRadius: 120,
-          backgroundColor: "rgba(245, 200, 66, 0.08)",
-        }}
-      />
-
-      <View style={{ flex: 1, justifyContent: "center", padding: 24 }}>
+    <ScreenBackground colors={["#0A0A10", "#0D0D14", "#0A0A10"]}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 80, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
+        
         {/* Header */}
-        <View style={{ alignItems: "center", marginBottom: 36 }}>
-          <Text style={{ fontSize: 52, marginBottom: 14 }}>🗓️</Text>
-          <Text style={{ color: "#FFFFFF", fontSize: 26, fontWeight: "800", marginBottom: 8 }}>
-            Tarihleri Belirleyin
+        <View style={{ alignItems: "center", marginBottom: 40 }}>
+          <View
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: "rgba(255,255,255,0.03)",
+              borderWidth: 1,
+              borderColor: "#FF4D6A",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 20,
+            }}
+          >
+            <Calendar color="#FF4D6A" size={32} />
+          </View>
+
+          <Text
+            style={{
+              color: "#FFFFFF",
+              fontSize: 34,
+              fontFamily: "PlayfairDisplay_400Regular_Italic",
+              textAlign: "center",
+              marginBottom: 12,
+            }}
+          >
+            İlişki Tarihleriniz
           </Text>
           <Text
             style={{
               color: "rgba(255,255,255,0.6)",
               fontSize: 14,
               textAlign: "center",
-              lineHeight: 20,
             }}
           >
-            Birlikte geçirdiğiniz o güzel günlerin{"\n"}sayısını tutabilmemiz için tarihlere ihtiyacımız var.
+            Bu özel günleri birlikte sayalım ve asla unutmayalım.
           </Text>
         </View>
 
         {/* Meet Date Picker */}
-        <View
+        <TouchableOpacity
+          onPress={() => setShowMeetPicker(true)}
+          activeOpacity={0.8}
           style={{
-            backgroundColor: "rgba(255,255,255,0.06)",
+            backgroundColor: "rgba(255,255,255,0.02)",
             borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.12)",
+            borderColor: "rgba(255,255,255,0.06)",
             borderRadius: 20,
-            padding: 20,
+            padding: 16,
+            flexDirection: "row",
+            alignItems: "center",
             marginBottom: 16,
           }}
         >
-          <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginBottom: 8 }}>
-            Tanışma Tarihi
-          </Text>
-          <TouchableOpacity
-            onPress={() => setShowMeetPicker(true)}
-            style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
+          <View
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              backgroundColor: "rgba(0,0,0,0.3)",
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: 16,
+            }}
           >
-            <Text style={{ color: "#FFFFFF", fontSize: 18, fontWeight: "600" }}>
+            <Sparkles color="#FF4D6A" size={22} />
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "700", marginBottom: 2 }}>
+              Tanışma Tarihi
+            </Text>
+            <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
+              İlk buluştuğunuz o eşsiz an
+            </Text>
+          </View>
+
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Text style={{ color: "#FFFFFF", fontSize: 15, fontWeight: "600", letterSpacing: 1 }}>
               {displayDate(meetDate)}
             </Text>
-            <Text style={{ fontSize: 20 }}>📅</Text>
-          </TouchableOpacity>
+            <ChevronRight color="rgba(255,255,255,0.3)" size={20} />
+          </View>
+        </TouchableOpacity>
 
-          {showMeetPicker && (
-            <DateTimePicker
-              value={meetDate}
-              mode="date"
-              display={Platform.OS === "ios" ? "spinner" : "default"}
-              onChange={onMeetDateChange}
-              maximumDate={relDate < today ? relDate : today}
-              locale="tr-TR"
-            />
-          )}
-          {Platform.OS === "android" && (
-            <TouchableOpacity
-              onPress={() => setShowMeetPicker(true)}
-              style={{ position: "absolute", inset: 0 }}
-            />
-          )}
-        </View>
-
-        {/* Relationship Start Date Picker */}
-        <View
+        {/* Relationship Date Picker */}
+        <TouchableOpacity
+          onPress={() => setShowRelPicker(true)}
+          activeOpacity={0.8}
           style={{
-            backgroundColor: "rgba(255,255,255,0.06)",
+            backgroundColor: "rgba(255,255,255,0.02)",
             borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.12)",
+            borderColor: "rgba(255,255,255,0.06)",
             borderRadius: 20,
-            padding: 20,
-            marginBottom: 32,
+            padding: 16,
+            flexDirection: "row",
+            alignItems: "center",
+            marginBottom: 40,
           }}
         >
-          <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginBottom: 8 }}>
-            Sevgili Olma Tarihi
-          </Text>
-          <TouchableOpacity
-            onPress={() => setShowRelPicker(true)}
-            style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
+          <View
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              backgroundColor: "rgba(0,0,0,0.3)",
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: 16,
+            }}
           >
-            <Text style={{ color: "#FFFFFF", fontSize: 18, fontWeight: "600" }}>
+            <Heart color="#FF4D6A" size={22} />
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "700", marginBottom: 2 }}>
+              Sevgili Olma Tarihi
+            </Text>
+            <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
+              Birlikteliğinizin resmi başlangıcı
+            </Text>
+          </View>
+
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Text style={{ color: "#FFFFFF", fontSize: 15, fontWeight: "600", letterSpacing: 1 }}>
               {displayDate(relDate)}
             </Text>
-            <Text style={{ fontSize: 20 }}>💕</Text>
-          </TouchableOpacity>
+            <ChevronRight color="rgba(255,255,255,0.3)" size={20} />
+          </View>
+        </TouchableOpacity>
 
-          {showRelPicker && (
-            <DateTimePicker
-              value={relDate}
-              mode="date"
-              display={Platform.OS === "ios" ? "spinner" : "default"}
-              onChange={onRelDateChange}
-              minimumDate={meetDate}
-              maximumDate={today}
-              locale="tr-TR"
-            />
-          )}
-        </View>
-
-        {/* Error */}
         {!!error && (
           <View
             style={{
-              backgroundColor: "rgba(232,0,45,0.12)",
+              backgroundColor: "rgba(232,0,45,0.1)",
               borderWidth: 1,
               borderColor: "rgba(232,0,45,0.3)",
-              borderRadius: 14,
+              borderRadius: 12,
               padding: 14,
               marginBottom: 16,
             }}
@@ -276,31 +271,59 @@ export default function DatesScreen() {
           </View>
         )}
 
-        {/* Save Button */}
         <TouchableOpacity
           onPress={handleSave}
           disabled={isLoading}
-          style={{
-            backgroundColor: isLoading ? "rgba(232,0,45,0.5)" : "#E8002D",
-            paddingVertical: 18,
-            borderRadius: 18,
-            alignItems: "center",
-            shadowColor: "#E8002D",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.4,
-            shadowRadius: 12,
-            elevation: 8,
-          }}
+          activeOpacity={0.85}
+          style={{ borderRadius: 30, overflow: "hidden", opacity: isLoading ? 0.7 : 1 }}
         >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={{ color: "#fff", fontWeight: "800", fontSize: 17 }}>
-              Kaydet ve Başla ✨
-            </Text>
-          )}
+          <LinearGradient
+            colors={["#FF4D6A", "#9B4DFF"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{
+              paddingVertical: 18,
+              alignItems: "center",
+              borderRadius: 30,
+              shadowColor: "#9B4DFF",
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.4,
+              shadowRadius: 14,
+            }}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 17 }}>
+                Başla & Kaydet
+              </Text>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
-      </View>
+
+      </ScrollView>
+
+      {/* Keep picker components offscreen but rendered */}
+      {showMeetPicker && (
+        <DateTimePicker
+          value={meetDate}
+          mode="date"
+          display={Platform.OS === "ios" ? "spinner" : "default"}
+          onChange={onMeetDateChange}
+          maximumDate={relDate < today ? relDate : today}
+          locale="tr-TR"
+        />
+      )}
+      {showRelPicker && (
+        <DateTimePicker
+          value={relDate}
+          mode="date"
+          display={Platform.OS === "ios" ? "spinner" : "default"}
+          onChange={onRelDateChange}
+          maximumDate={today}
+          locale="tr-TR"
+        />
+      )}
     </ScreenBackground>
   );
 }

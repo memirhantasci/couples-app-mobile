@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs } from "@/lib/date";
-import { Plus, Trash2, Pencil, Menu, ChevronLeft, PlusCircle } from "lucide-react-native";
+import { Plus, Trash2, Pencil, Menu, ChevronLeft, PlusCircle, AlignJustify } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -187,22 +187,28 @@ export default function MemoriesScreen() {
 
   return (
     <ScreenBackground>
-      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <View>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+        <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
+          <View style={{ flex: 1 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <Text style={styles.title}>Özel Günler</Text>
               <Text style={{ fontSize: 24 }}>❤️</Text>
             </View>
-            <Text style={styles.subtitle}>En tatlı anılarımızın milatları</Text>
+            <Text style={[styles.subtitle, { marginTop: 4 }]}>En tatlı anılarımızın milatları</Text>
           </View>
           
-          <TouchableOpacity 
-            style={[styles.editBtn, { backgroundColor: theme.cardBg }]}
-            onPress={() => setIsEditMode(!isEditMode)}
-          >
-            <Text style={styles.editBtnText}>{isEditMode ? "Bitti" : "Düzenle"}</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <TouchableOpacity 
+              style={[styles.editBtn, { backgroundColor: theme.cardBg }]}
+              onPress={() => setIsEditMode(!isEditMode)}
+            >
+              <Text style={styles.editBtnText}>{isEditMode ? "Bitti" : "Düzenle"}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
+              <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 

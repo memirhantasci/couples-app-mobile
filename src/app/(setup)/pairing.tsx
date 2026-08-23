@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,14 +8,15 @@ import {
   Share,
   KeyboardAvoidingView,
   Platform,
-  Alert,
+  ScrollView,
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
-import { useLocalSearchParams, router } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { Link, Clipboard as ClipboardIcon, Share as ShareIcon, LogOut } from "lucide-react-native";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -29,7 +30,6 @@ type PairingStatus = {
 // ─── RPC Helpers ─────────────────────────────────────────────────────────────
 
 async function fetchPairingStatus(userId: string): Promise<PairingStatus> {
-  // Get user's couple_id
   const { data: user, error: userError } = await supabase
     .from("users")
     .select("couple_id")
@@ -42,7 +42,6 @@ async function fetchPairingStatus(userId: string): Promise<PairingStatus> {
 
   let coupleId = user?.couple_id;
 
-  // Eğer kullanıcının henüz bir çift hesabı yoksa, otomatik olarak oluştur!
   if (!coupleId) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let code = '';
@@ -68,7 +67,6 @@ async function fetchPairingStatus(userId: string): Promise<PairingStatus> {
     }
   }
 
-  // Get couple details — always fresh from DB, never cached boolean
   const { data: couple, error: coupleError } = await supabase
     .from("couples")
     .select("pairing_code, member_count, is_paired, meet_date, relationship_start_date")
@@ -98,7 +96,7 @@ function translatePairingError(msg: string): string {
 // ─── Pairing Screen ──────────────────────────────────────────────────────────
 
 export default function PairingScreen() {
-  const { session } = useAuth();
+  const { session, refreshProfile, signOut } = useAuth();
   const userId = session?.user?.id;
   const params = useLocalSearchParams<{ code?: string }>();
 
@@ -107,18 +105,14 @@ export default function PairingScreen() {
   const [submitError, setSubmitError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  // ── Poll pairing status every 4 seconds (web'deki setInterval mantığının RQ karşılığı)
   const { data: status, isLoading } = useQuery<PairingStatus>({
     queryKey: ["pairing-status", userId],
     queryFn: () => fetchPairingStatus(userId!),
     enabled: !!userId,
-    refetchInterval: 4000, // Her 4 saniyede otomatik yenile
+    refetchInterval: 4000,
     refetchIntervalInBackground: false,
   });
-
-  // ── Auto-navigate when partner has joined
-  const { refreshProfile } = useAuth();
-
+    
   useEffect(() => {
     if (!status) return;
     if (status.isPaired) {
@@ -126,7 +120,6 @@ export default function PairingScreen() {
     }
   }, [status, refreshProfile]);
 
-  // ── Copy pairing code to clipboard
   async function handleCopy() {
     if (!status?.pairingCode) return;
     await Clipboard.setStringAsync(status.pairingCode);
@@ -134,7 +127,6 @@ export default function PairingScreen() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  // ── Share pairing code via native share sheet
   async function handleShare() {
     if (!status?.pairingCode) return;
     await Share.share({
@@ -142,7 +134,6 @@ export default function PairingScreen() {
     });
   }
 
-  // ── Submit partner's code
   async function handleSubmit() {
     const code = inputCode.trim().toUpperCase();
     if (code.length < 4) {
@@ -178,186 +169,244 @@ export default function PairingScreen() {
   // ─────────────────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: "#080811", alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator color="#E8002D" size="large" />
+      <View style={{ flex: 1, backgroundColor: "#0A0A10", alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator color="#FF4D6A" size="large" />
       </View>
     );
   }
 
   return (
-    <ScreenBackground colors={["#080811", "#0A0A0C", "#080811"]}>
+    <ScreenBackground colors={["#0A0A10", "#0D0D14", "#0A0A10"]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        {/* Red glow */}
-      <View
-        style={{
-          position: "absolute",
-          top: -60,
-          right: -60,
-          width: 240,
-          height: 240,
-          borderRadius: 120,
-          backgroundColor: "rgba(232, 0, 45, 0.12)",
-        }}
-      />
-
-      <View style={{ flex: 1, justifyContent: "center", padding: 24 }}>
-        {/* Header */}
-        <View style={{ alignItems: "center", marginBottom: 36 }}>
-          <Text style={{ fontSize: 52, marginBottom: 14 }}>💑</Text>
-          <Text style={{ color: "#FFFFFF", fontSize: 26, fontWeight: "800", marginBottom: 8 }}>
-            Eşleşme Bekleniyor
-          </Text>
-          <Text
-            style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, textAlign: "center", lineHeight: 20 }}
-          >
-            Sevgilinin seninle eşleşebilmesi için bu kodu ona gönder:
-          </Text>
-        </View>
-
-        {/* Your Code Card */}
-        <View
-          style={{
-            borderWidth: 1.5,
-            borderColor: "rgba(245, 200, 66, 0.4)",
-            borderStyle: "dashed",
-            borderRadius: 20,
-            padding: 20,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 16,
-            marginBottom: 16,
-            backgroundColor: "rgba(245,200,66,0.05)",
-          }}
-        >
-          <Text
-            style={{
-              color: "#F5C842",
-              fontSize: 32,
-              fontWeight: "800",
-              letterSpacing: 6,
-            }}
-          >
-            {status?.pairingCode ?? "------"}
-          </Text>
-          <TouchableOpacity onPress={handleCopy} style={{ padding: 8 }}>
-            <Text style={{ fontSize: 22 }}>{copied ? "✅" : "📋"}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Share Button */}
-        <TouchableOpacity
-          onPress={handleShare}
-          style={{
-            backgroundColor: "rgba(245,200,66,0.12)",
-            borderWidth: 1,
-            borderColor: "rgba(245,200,66,0.3)",
-            borderRadius: 14,
-            paddingVertical: 14,
-            alignItems: "center",
-            marginBottom: 32,
-          }}
-        >
-          <Text style={{ color: "#F5C842", fontWeight: "700", fontSize: 15 }}>
-            📤 Kodu Paylaş
-          </Text>
-        </TouchableOpacity>
-
-        {/* Polling indicator */}
-        <View
-          style={{ flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center", marginBottom: 32 }}
-        >
-          <View
-            style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#4ADE80" }}
-          />
-          <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
-            Sevgilinin eşleşmesini bekliyorsun...
-          </Text>
-        </View>
-
-        {/* Divider */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 24 }}>
-          <View style={{ flex: 1, height: 1, backgroundColor: "rgba(255,255,255,0.1)" }} />
-          <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>veya</Text>
-          <View style={{ flex: 1, height: 1, backgroundColor: "rgba(255,255,255,0.1)" }} />
-        </View>
-
-        {/* Enter partner's code */}
-        <Text
-          style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, marginBottom: 12, textAlign: "center" }}
-        >
-          Sevgilinin kodu sende mi? Buraya gir:
-        </Text>
-
-        <TextInput
-          value={inputCode}
-          onChangeText={(t) => {
-            setInputCode(t.toUpperCase());
-            if (submitError) setSubmitError("");
-          }}
-          placeholder="Örn: A8F4T1"
-          placeholderTextColor="rgba(245,200,66,0.3)"
-          maxLength={6}
-          autoCapitalize="characters"
-          autoCorrect={false}
-          style={{
-            borderWidth: 1.5,
-            borderColor: "rgba(245,200,66,0.4)",
-            borderStyle: "dashed",
-            borderRadius: 16,
-            paddingVertical: 16,
-            paddingHorizontal: 20,
-            color: "#F5C842",
-            fontSize: 22,
-            fontWeight: "700",
-            letterSpacing: 6,
-            textAlign: "center",
-            backgroundColor: "rgba(0,0,0,0.25)",
-            marginBottom: 12,
-          }}
-        />
-
-        {!!submitError && (
-          <View
-            style={{
-              backgroundColor: "rgba(232,0,45,0.12)",
-              borderWidth: 1,
-              borderColor: "rgba(232,0,45,0.3)",
-              borderRadius: 12,
-              padding: 12,
-              marginBottom: 12,
-            }}
-          >
-            <Text style={{ color: "#FF4D6A", fontSize: 14, textAlign: "center" }}>
-              ⚠️ {submitError}
+        <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 60, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
+          
+          {/* Header */}
+          <View style={{ marginBottom: 40 }}>
+            <Text
+              style={{
+                color: "#FFFFFF",
+                fontSize: 34,
+                fontFamily: "PlayfairDisplay_400Regular_Italic",
+                marginBottom: 8,
+              }}
+            >
+              Eşleşme Kodu
+            </Text>
+            <Text
+              style={{
+                color: "rgba(255,255,255,0.6)",
+                fontSize: 15,
+                lineHeight: 22,
+              }}
+            >
+              Partnerinle bağlanmak için kodunu paylaş veya onun kodunu gir.
             </Text>
           </View>
-        )}
 
-        <TouchableOpacity
-          onPress={handleSubmit}
-          disabled={isSubmitting || inputCode.length < 4}
-          style={{
-            backgroundColor: inputCode.length < 4 ? "rgba(232,0,45,0.3)" : "#E8002D",
-            paddingVertical: 18,
-            borderRadius: 18,
-            alignItems: "center",
-            shadowColor: "#E8002D",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.4,
-            shadowRadius: 12,
-            elevation: 8,
-          }}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={{ color: "#fff", fontWeight: "800", fontSize: 17 }}>
-              Eşleşmeyi Tamamla
+          {/* Your Code Card */}
+          <View
+            style={{
+              borderWidth: 1,
+              borderColor: "rgba(255, 77, 106, 0.2)",
+              borderRadius: 24,
+              padding: 24,
+              backgroundColor: "rgba(255,255,255,0.02)",
+              marginBottom: 24,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 20 }}>
+              <Link color="#FF4D6A" size={18} />
+              <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: "600", letterSpacing: 1 }}>
+                SENİN KODUN
+              </Text>
+            </View>
+
+            <View
+              style={{
+                backgroundColor: "rgba(0,0,0,0.3)",
+                borderRadius: 16,
+                paddingVertical: 20,
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 20,
+              }}
+            >
+              <Text
+                style={{
+                  color: "#FFFFFF",
+                  fontSize: 36,
+                  fontWeight: "800",
+                  letterSpacing: 4,
+                }}
+              >
+                {status?.pairingCode ?? "------"}
+              </Text>
+            </View>
+
+            <View style={{ flexDirection: "row", gap: 12, marginBottom: 24 }}>
+              <TouchableOpacity
+                onPress={handleCopy}
+                style={{
+                  flex: 1,
+                  backgroundColor: "rgba(255,255,255,0.06)",
+                  borderRadius: 20,
+                  paddingVertical: 14,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
+              >
+                <Text style={{ fontSize: 16 }}>{copied ? "✅" : "📋"}</Text>
+                <Text style={{ color: "#FFFFFF", fontWeight: "600", fontSize: 14 }}>
+                  {copied ? "Kopyalandı" : "Kopyala"}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleShare}
+                style={{
+                  flex: 1,
+                  backgroundColor: "rgba(255,255,255,0.06)",
+                  borderRadius: 20,
+                  paddingVertical: 14,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
+              >
+                <Text style={{ fontSize: 16 }}>📤</Text>
+                <Text style={{ color: "#FFFFFF", fontWeight: "600", fontSize: 14 }}>
+                  Paylaş
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center" }}
+            >
+              <View
+                style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#FF4D6A" }}
+              />
+              <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>
+                Partnerin bekleniyor...
+              </Text>
+            </View>
+          </View>
+
+          {/* Enter partner's code Card */}
+          <View
+            style={{
+              borderWidth: 1,
+              borderColor: "rgba(255,255,255,0.08)",
+              borderRadius: 24,
+              padding: 24,
+              backgroundColor: "rgba(255,255,255,0.02)",
+            }}
+          >
+            <Text
+              style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "700", marginBottom: 6 }}
+            >
+              Partnerinin Kodunu Gir
             </Text>
-          )}
-        </TouchableOpacity>
-      </View>
+            <Text
+              style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginBottom: 20 }}
+            >
+              Onun oluşturduğu 6 haneli kodu buraya yaz.
+            </Text>
+
+            <TextInput
+              value={inputCode}
+              onChangeText={(t) => {
+                setInputCode(t.toUpperCase());
+                if (submitError) setSubmitError("");
+              }}
+              placeholder="XXXXXX"
+              placeholderTextColor="rgba(255,255,255,0.2)"
+              maxLength={6}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              style={{
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.1)",
+                borderRadius: 16,
+                paddingVertical: 16,
+                paddingHorizontal: 20,
+                color: "#FFFFFF",
+                fontSize: 18,
+                letterSpacing: 4,
+                backgroundColor: "rgba(0,0,0,0.3)",
+                marginBottom: 20,
+              }}
+            />
+
+            {!!submitError && (
+              <View
+                style={{
+                  backgroundColor: "rgba(232,0,45,0.1)",
+                  borderWidth: 1,
+                  borderColor: "rgba(232,0,45,0.3)",
+                  borderRadius: 12,
+                  padding: 12,
+                  marginBottom: 16,
+                }}
+              >
+                <Text style={{ color: "#FF4D6A", fontSize: 14, textAlign: "center" }}>
+                  {submitError}
+                </Text>
+              </View>
+            )}
+
+            <TouchableOpacity
+              onPress={handleSubmit}
+              disabled={isSubmitting || inputCode.length < 4}
+              style={{
+                backgroundColor: inputCode.length < 4 ? "rgba(77,156,255,0.5)" : "#4D9CFF",
+                paddingVertical: 18,
+                borderRadius: 30,
+                alignItems: "center",
+                shadowColor: "#4D9CFF",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 10,
+              }}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 17 }}>
+                  Eşleş
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+          
+          <TouchableOpacity
+            onPress={async () => {
+              try {
+                await signOut();
+              } catch (e) {
+                console.error(e);
+              }
+            }}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              marginTop: 16,
+              marginBottom: 40,
+              padding: 16,
+            }}
+          >
+            <LogOut color="rgba(255,255,255,0.5)" size={18} />
+            <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, fontWeight: "600" }}>
+              Giriş Ekranına Dön
+            </Text>
+          </TouchableOpacity>
+
+        </ScrollView>
       </KeyboardAvoidingView>
     </ScreenBackground>
   );

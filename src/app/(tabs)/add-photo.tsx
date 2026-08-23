@@ -1,19 +1,22 @@
 import React, { useState, useCallback } from "react";
 import { 
   View, Text, StyleSheet, TextInput, TouchableOpacity, 
-  ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform
+  ActivityIndicator, Alert, Platform
 } from "react-native";
 import { Image } from "expo-image";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+
 import * as ImagePicker from "expo-image-picker";
 import { decode } from "base64-arraybuffer";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Image as ImageIcon, Camera, Check, X, Calendar as CalendarIcon, Clock, Menu, Calendar, CheckCircle, AlertCircle, UploadCloud, ArrowUp } from "lucide-react-native";
+import { ChevronLeft, Image as ImageIcon, Camera, Check, X, Calendar as CalendarIcon, Clock, Menu, Calendar, CheckCircle, AlertCircle, UploadCloud, ArrowUp , AlignJustify} from "lucide-react-native";
 
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { dayjs, todayString } from "@/lib/date";
+import { getTheme } from "@/lib/theme";
 import { deterministicDecrypt } from "@/utils/crypto";
 import { logger } from "@/utils/logger";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -24,6 +27,7 @@ export default function AddPhotoScreen() {
   const { session, profile } = useAuth();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
+  const theme = getTheme(profile?.gender);
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
@@ -40,36 +44,13 @@ export default function AddPhotoScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
 
-  // Sol üst köşede isimleri göstermek için partner ve kendi adımızı çekelim
-  const { data: coupleNames } = useQuery({
-    queryKey: ["couple_names", coupleId],
-    enabled: !!coupleId,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("users")
-        .select("id, display_name, username")
-        .eq("couple_id", coupleId);
-      
-      if (!data) return "Sen & Partnerin";
-
-      let myName = "";
-      let partnerName = "";
-      data.forEach((u) => {
-        const name = u.display_name || deterministicDecrypt(u.username) || u.username;
-        if (u.id === userId) myName = name;
-        else partnerName = name;
-      });
-      return `${myName || "Sen"} & ${partnerName || "Partnerin"}`;
-    }
-  });
-
   const handlePickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         quality: 0.6,
         base64: true,
-        exif: true, // EXIF verilerini çek
+        exif: true,
       });
 
       if (result.canceled || !result.assets[0]?.base64) return;
@@ -79,18 +60,16 @@ export default function AddPhotoScreen() {
       setExifStatus("loading");
       setErrors(prev => ({ ...prev, photo: false }));
 
-      // EXIF parse from Expo ImagePicker
       setTimeout(() => {
         let foundDate = false;
         
         if (asset.exif && asset.exif.DateTimeOriginal) {
-          // Format: "YYYY:MM:DD HH:MM:SS"
           const parts = asset.exif.DateTimeOriginal.split(" ");
           if (parts.length === 2) {
             const dateParts = parts[0].split(":");
             if (dateParts.length === 3) {
               const formattedDate = `${dateParts[0]}-${dateParts[1]}-${dateParts[2]}`;
-              const formattedTime = parts[1].substring(0, 5); // Sadece HH:MM
+              const formattedTime = parts[1].substring(0, 5);
               setTakenDate(formattedDate);
               setTakenTime(formattedTime);
               setExifStatus("found");
@@ -100,7 +79,6 @@ export default function AddPhotoScreen() {
         }
 
         if (!foundDate) {
-          // Fallback to today
           setTakenDate(todayString());
           setTakenTime(dayjs().format("HH:mm"));
           setExifStatus("not_found");
@@ -149,7 +127,6 @@ export default function AddPhotoScreen() {
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `${coupleId}/${fileName}`;
 
-      // Upload to Storage
       const { error: uploadError } = await supabase.storage
         .from("photos")
         .upload(filePath, decode(localImage.base64!), {
@@ -158,11 +135,9 @@ export default function AddPhotoScreen() {
 
       if (uploadError) throw new Error("Fotoğraf yüklenemedi: " + uploadError.message);
 
-      // Get Public URL
       const { data: publicUrlData } = supabase.storage.from("photos").getPublicUrl(filePath);
       const imageUrl = publicUrlData.publicUrl;
 
-      // Save to DB
       const { error: dbError } = await supabase.from("photo_archive").insert({
         couple_id: coupleId,
         user_id: userId,
@@ -213,7 +188,6 @@ export default function AddPhotoScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      // Ekran her odaklandığında formu temizle
       setLocalImage(null);
       setTitle("");
       setDescription("");
@@ -229,27 +203,31 @@ export default function AddPhotoScreen() {
 
   return (
     <ScreenBackground>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        
+      <View style={{ flex: 1 }}>
         {/* HEADER */}
-        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <ChevronLeft color="#fff" size={28} />
-          </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, paddingTop: insets.top + 16, paddingHorizontal: 20 }}>
+          <View style={{ width: 40 }} />
           <View style={{ flex: 1, alignItems: "center" }}>
-            <Text style={styles.namesText}>❤️ {coupleNames || "Sen & Partnerin"} ❤️</Text>
+            <Text style={{ fontSize: 28, fontFamily: "PlayfairDisplay_400Regular_Italic", color: "#fff" }}>
+              Fotoğraf Yükle
+            </Text>
+            <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.7)", marginTop: 4 }}>
+              Bu anıyı arşive ekle 📸
+            </Text>
           </View>
-          <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, marginRight: -8 }}>
-            <Menu color="#fff" size={24} />
+          <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.05)" }}>
+            <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <KeyboardAwareScrollView 
+          contentContainerStyle={styles.container} 
+          showsVerticalScrollIndicator={false} 
+          keyboardShouldPersistTaps="handled"
+          enableOnAndroid={true}
+          extraScrollHeight={80}
+        >
           
-          <Text style={styles.pageTitle}>FOTOĞRAF YÜKLE 📸</Text>
-          
-          <Text style={styles.sectionLabel}>Bu anıyı arşive ekle 📸</Text>
-
           {/* Dotted Upload Box */}
           <TouchableOpacity 
             style={[styles.uploadBox, localImage ? styles.uploadBoxHasImage : {}, errors.photo && { borderColor: "red" }]} 
@@ -259,18 +237,18 @@ export default function AddPhotoScreen() {
             {localImage ? (
               <View style={{ width: "100%", alignItems: "center" }}>
                 <Image source={{ uri: localImage.uri }} style={styles.previewImage} contentFit="cover" />
-                <View style={styles.changeBadge}>
+                <TouchableOpacity style={styles.changeBadgeOut} onPress={handlePickImage}>
                   <Text style={styles.changeBadgeText}>Değiştir</Text>
-                </View>
+                </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.uploadPlaceholder}>
-                <View style={styles.iconBox}>
+                <View style={[styles.iconBox, { backgroundColor: theme.accent }]}>
                   <ImageIcon color="#fff" size={28} />
                 </View>
                 <Text style={styles.uploadTitle}>Fotoğraf Seç</Text>
                 <Text style={styles.uploadSub}>Galerinizden bir fotoğraf seçin</Text>
-                <View style={styles.uploadBtn}>
+                <View style={[styles.uploadBtn, { backgroundColor: theme.accent }]}>
                   <ArrowUp color="#fff" size={14} style={{ marginRight: 4 }} />
                   <Text style={styles.uploadBtnText}>Galeriyi Aç</Text>
                 </View>
@@ -287,22 +265,19 @@ export default function AddPhotoScreen() {
           )}
 
           {exifStatus === "found" && (
-            <View style={[styles.alertBox, { backgroundColor: "rgba(34,197,94,0.1)", borderColor: "rgba(34,197,94,0.3)" }]}>
-              <CheckCircle color="#22c55e" size={20} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.alertText, { color: "#22c55e", fontWeight: "700" }]}>Çekim bilgileri bulundu</Text>
-                <Text style={[styles.alertText, { color: "rgba(34,197,94,0.8)", fontSize: 12, marginTop: 2 }]}>
-                  {dayjs(takenDate).format("DD.MM.YYYY")} {takenTime && `saat ${takenTime}`} — İsterseniz düzenleyebilirsiniz.
-                </Text>
-              </View>
+            <View style={[styles.alertBox, { borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.15)", borderRadius: 8 }]}>
+              <Check color="#22c55e" size={16} />
+              <Text style={[styles.alertText, { color: "#22c55e" }]}>
+                Çekim bilgileri bulundu: {dayjs(takenDate).locale("tr").format("D MMMM YYYY")}, {takenTime}
+              </Text>
             </View>
           )}
 
           {exifStatus === "not_found" && (
-            <View style={[styles.alertBox, { backgroundColor: "rgba(245,158,11,0.1)", borderColor: "rgba(245,158,11,0.3)" }]}>
-              <AlertCircle color="#f59e0b" size={20} />
+            <View style={[styles.alertBox, { borderColor: "#f59e0b", backgroundColor: "rgba(245,158,11,0.1)", borderRadius: 8 }]}>
+              <AlertCircle color="#f59e0b" size={16} />
               <Text style={[styles.alertText, { color: "#f59e0b", flex: 1 }]}>
-                Fotoğrafın kesin çekim tarihi bulunamadı ancak dosya tarihinden tahmin edildi. Lütfen doğruluğunu kontrol edin.
+                Çekim bilgileri bulunamadı, dosya tarihi eklendi.
               </Text>
             </View>
           )}
@@ -383,28 +358,25 @@ export default function AddPhotoScreen() {
               </View>
 
               <Text style={styles.infoText}>
-                Yüklenen fotoğraflar kalıcı olarak saklanır ve silinemez. Her iki kullanıcı da tüm fotoğrafları görebilir.
+                * Yüklenen fotoğraflar ortak arşivinizde kalıcı olarak saklanır.
               </Text>
 
               <TouchableOpacity 
-                style={styles.saveBtn} 
+                style={[styles.saveBtn, { backgroundColor: theme.accent }]} 
                 onPress={handleSave}
                 disabled={uploading}
               >
                 {uploading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <>
-                    <UploadCloud color="#fff" size={20} />
-                    <Text style={styles.saveBtnText}>Fotoğrafı Kaydet</Text>
-                  </>
+                  <Text style={styles.saveBtnText}>Arşive Ekle 💾</Text>
                 )}
               </TouchableOpacity>
 
             </View>
 
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAwareScrollView>
+      </View>
     </ScreenBackground>
   );
 }
@@ -414,56 +386,44 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingBottom: 15,
-  },
-  backBtn: {
-    zIndex: 10,
-    padding: 5,
-  },
-  namesText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
+    paddingBottom: 10,
   },
   container: {
     paddingHorizontal: 20,
     paddingBottom: 40,
   },
   pageTitle: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: "#D32F2F",
+    fontSize: 28,
+    fontFamily: "PlayfairDisplay_400Regular_Italic",
+    color: "#fff",
     textAlign: "center",
-    letterSpacing: 1,
-    marginTop: 10,
-    marginBottom: 24,
   },
   sectionLabel: {
     color: "rgba(255,255,255,0.6)",
-    fontSize: 14,
-    marginBottom: 10,
+    fontSize: 12,
+    textAlign: "center",
   },
   uploadBox: {
-    borderWidth: 2,
-    borderColor: "#D32F2F",
-    borderStyle: "dashed",
-    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "rgba(255,255,255,0.03)",
+    borderRadius: 16,
     minHeight: 180,
     padding: 20,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
+    marginTop: 16,
   },
   uploadBoxHasImage: {
-    borderColor: "rgba(232,0,45,0.5)",
-    backgroundColor: "rgba(232,0,45,0.05)",
-    borderStyle: "solid",
+    borderColor: "transparent",
+    backgroundColor: "rgba(255,255,255,0.03)",
+    padding: 10,
   },
   uploadPlaceholder: {
     alignItems: "center",
   },
   iconBox: {
-    backgroundColor: "#D32F2F",
     padding: 12,
     borderRadius: 8,
     marginBottom: 12,
@@ -482,7 +442,6 @@ const styles = StyleSheet.create({
   uploadBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#D32F2F",
     paddingVertical: 8,
     paddingHorizontal: 24,
     borderRadius: 6,
@@ -494,32 +453,29 @@ const styles = StyleSheet.create({
   },
   previewImage: {
     width: "100%",
-    height: 250,
-    borderRadius: 8,
-    resizeMode: "contain",
+    height: 180,
+    borderRadius: 12,
   },
-  changeBadge: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+  changeBadgeOut: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
   changeBadgeText: {
     color: "#fff",
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 13,
   },
   alertBox: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     borderWidth: 1,
     padding: 12,
     borderRadius: 10,
     marginBottom: 16,
-    gap: 10,
+    gap: 8,
   },
   alertText: {
     fontSize: 13,
@@ -535,29 +491,27 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   input: {
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "rgba(255,255,255,0.03)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
-    borderRadius: 10,
-    paddingHorizontal: 16,
+    borderColor: "rgba(255,255,255,0.05)",
+    borderRadius: 8,
+    paddingHorizontal: 14,
     paddingVertical: 14,
     color: "#fff",
-    fontSize: 15,
+    fontSize: 14,
   },
   infoText: {
     color: "rgba(255,255,255,0.4)",
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 11,
+    textAlign: "center",
     marginVertical: 10,
   },
   saveBtn: {
-    backgroundColor: "#D32F2F",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 16,
-    borderRadius: 10,
-    gap: 8,
+    borderRadius: 20,
     marginTop: 5,
   },
   saveBtnText: {

@@ -131,16 +131,16 @@ function RootLayoutNav() {
       <Stack.Screen name="(setup)" />
       {/* Main app */}
       <Stack.Screen name="(tabs)" />
-      {/* Sub screens */}
-      <Stack.Screen name="memories" />
-      <Stack.Screen name="daily-notes" />
-      <Stack.Screen name="photos" />
-      <Stack.Screen name="period-tracker" />
+      {/* Sub screens (commented out until created) */}
+      {/* <Stack.Screen name="memories" /> */}
+      {/* <Stack.Screen name="daily-notes" /> */}
+      {/* <Stack.Screen name="photos" /> */}
+      {/* <Stack.Screen name="period-tracker" /> */}
       <Stack.Screen name="explore" />
       {/* Modals */}
+      {/* <Stack.Screen name="add-memory" options={{ presentation: "modal" }} /> */}
+      {/* <Stack.Screen name="write-letter" options={{ presentation: "modal" }} /> */}
       <Stack.Screen name="menu" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="add-memory" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="write-letter" options={{ presentation: 'modal' }} />
     </Stack>
   );
 }

@@ -45,7 +45,7 @@ export function MeetingCountdown({ meeting, theme }: CountdownProps) {
   if (countdown.isPast) {
     return (
       <TouchableOpacity
-        style={[styles.card, { alignItems: "center" }]}
+        style={[styles.card, { alignItems: "center", backgroundColor: theme.cardBg }]}
         activeOpacity={0.8}
         onPress={() => setShowModal(true)}
       >
@@ -74,7 +74,7 @@ export function MeetingCountdown({ meeting, theme }: CountdownProps) {
 
   return (
     <TouchableOpacity
-      style={styles.card}
+      style={[styles.card, { backgroundColor: theme.cardBg }]}
       activeOpacity={0.9}
       onPress={() => setShowModal(true)}
     >
@@ -192,7 +192,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     marginBottom: 18,
-    backgroundColor: "#4A152B",
   },
   titleRow: {
     flexDirection: "row",

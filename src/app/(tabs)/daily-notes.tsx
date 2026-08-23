@@ -20,7 +20,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { encrypt, decrypt } from "@/utils/crypto";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
-import { ChevronLeft, Edit3, Trash2, Menu, Check } from "lucide-react-native";
+import { ChevronLeft, Edit3, Trash2, Menu, Check, AlignJustify } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { getTheme } from "@/lib/theme";
 
@@ -38,6 +39,7 @@ export default function DailyNotesScreen() {
   const queryClient = useQueryClient();
   const userId = session?.user?.id ? session.user.id : null;
   const theme = getTheme(profile?.gender);
+  const insets = useSafeAreaInsets();
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingNote, setEditingNote] = useState<DailyNote | null>(null);
@@ -133,44 +135,31 @@ export default function DailyNotesScreen() {
     <ScreenBackground>
       
       {/* HEADER */}
-      <View style={{
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingTop: Platform.OS === "ios" ? 60 : 40,
-        paddingHorizontal: 20,
-        paddingBottom: 5,
-      }}>
-        <Text
-          style={{
-            fontSize: 34,
-            fontFamily: "PlayfairDisplay_400Regular_Italic",
-            color: "#fff",
-          }}
-        >
-          Günlüğüm 📓
-        </Text>
-        
-        <TouchableOpacity 
-          style={{ backgroundColor: theme.cardBg, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 20 }}
-          onPress={() => setIsEditMode(!isEditMode)}
-        >
-          <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
-            {isEditMode ? "Bitti" : "Düzenle"}
+      <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, paddingTop: insets.top + 16, paddingHorizontal: 20 }}>
+        <View style={{ flex: 1 }}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Text style={{ fontSize: 28, fontFamily: "PlayfairDisplay_400Regular_Italic", color: "#fff" }}>
+              Günlüğüm 📓
+            </Text>
+          </View>
+          <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.7)", marginTop: 4 }}>
+            Sadece senin görebildiğin notların
           </Text>
-        </TouchableOpacity>
+        </View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <TouchableOpacity 
+            style={{ backgroundColor: theme.cardBg, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20 }}
+            onPress={() => setIsEditMode(!isEditMode)}
+          >
+            <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
+              {isEditMode ? "Bitti" : "Düzenle"}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.05)" }}>
+            <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
+          </TouchableOpacity>
+        </View>
       </View>
-
-      <Text
-        style={{
-          color: "rgba(255,255,255,0.6)",
-          fontSize: 14,
-          paddingHorizontal: 20,
-          marginBottom: 20,
-        }}
-      >
-        Sadece senin görebildiğin notların
-      </Text>
 
       <FlatList
         data={notes}

@@ -2,9 +2,10 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useRouter } from "expo-router";
-import { X, Heart, Settings, Home, Pill, CalendarHeart, Droplet, MapPin, LogOut, ChevronRight, User, BookOpen, Mail } from "lucide-react-native";
+import { X, Heart, Settings, Home, Pill, CalendarHeart, Droplet, MapPin, LogOut, ChevronRight, User, BookOpen, Mail, Image as ImageIcon, Camera } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 import { getTheme } from "@/lib/theme";
+import { decrypt } from "@/utils/crypto";
 import { dayjs, daysSince } from "@/lib/date";
 import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
@@ -21,8 +22,10 @@ export default function MenuScreen() {
   };
 
   const handleSignOut = async () => {
-    await signOut();
     router.replace("/(auth)/login" as any);
+    setTimeout(() => {
+      signOut();
+    }, 100);
   };
 
   const theme = getTheme(profile?.gender);
@@ -43,7 +46,7 @@ export default function MenuScreen() {
         .eq("couple_id", coupleId)
         .neq("id", currentUserId)
         .maybeSingle();
-      return data?.display_name || "Partner";
+      return data?.display_name ? decrypt(data.display_name) : "Partner";
     },
     staleTime: 1000 * 60 * 60,
   });
@@ -86,6 +89,18 @@ export default function MenuScreen() {
           <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/(tabs)/memories")}>
             <Heart color="#fff" size={20} />
             <Text style={styles.menuText}>Özel Günler</Text>
+            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/(tabs)/photos")}>
+            <ImageIcon color="#fff" size={20} />
+            <Text style={styles.menuText}>Ortak Galeri</Text>
+            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/(tabs)/add-photo")}>
+            <Camera color="#fff" size={20} />
+            <Text style={styles.menuText}>Fotoğraf Yükle</Text>
             <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
           </TouchableOpacity>
 

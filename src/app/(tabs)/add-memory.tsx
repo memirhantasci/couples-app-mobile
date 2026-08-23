@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { Image } from "expo-image";
@@ -10,7 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { useQueryClient } from "@tanstack/react-query";
 import { logger } from "@/utils/logger";
 import { decode } from "base64-arraybuffer";
-import { Image as ImageIcon, X, Save, Menu, ImagePlus, ChevronLeft } from "lucide-react-native";
+import { Image as ImageIcon, X, Save, Menu, ImagePlus, ChevronLeft , AlignJustify} from "lucide-react-native";
 import { dayjs, todayString, formatDateTR } from "@/lib/date";
 import { getTheme } from "@/lib/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -147,6 +148,11 @@ export default function AddMemoryScreen() {
 
   return (
     <ScreenBackground>
+
+        <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, backgroundColor: "rgba(0,0,0,0.3)", borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", position: "absolute", top: 40, right: 20, zIndex: 50 }}>
+          <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
+        </TouchableOpacity>
+
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
           <TouchableOpacity onPress={() => router.replace("/(tabs)/memories")} style={{ padding: 8, marginLeft: -8 }}>

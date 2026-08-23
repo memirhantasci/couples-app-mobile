@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ScrollView,
 } from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { LinearGradient } from "expo-linear-gradient";
@@ -15,8 +16,20 @@ import { useLocalSearchParams, router } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { navigateAfterAuth } from "@/lib/navigate";
 import { registerForPushNotifications } from "@/lib/notifications";
+import { ArrowLeft, Mail } from "lucide-react-native";
+import { decrypt } from "@/utils/crypto";
 
 const OTP_LENGTH = 6;
+
+function maskEmail(email: string) {
+  if (!email) return "";
+  const [localPart, domain] = email.split("@");
+  if (!domain) return email;
+  if (localPart.length <= 2) return `${localPart}***@${domain}`;
+  const firstLetter = localPart[0];
+  const lastLetter = localPart[localPart.length - 1];
+  return `${firstLetter}***${lastLetter}@${domain}`;
+}
 
 export default function VerifyScreen() {
   const params = useLocalSearchParams<{
@@ -29,6 +42,7 @@ export default function VerifyScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [autoVerified, setAutoVerified] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState<number>(0);
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
   // ── Path B: Deep link auto-verify ────────────────────────────────────────
@@ -58,7 +72,6 @@ export default function VerifyScreen() {
     }
 
     if (data.user) {
-      // Register push token silently after successful verification
       await registerForPushNotifications(data.user.id).catch(() => {});
       await routeUser(data.user.id);
     }
@@ -67,19 +80,17 @@ export default function VerifyScreen() {
   // ── Path A: Manual OTP input ──────────────────────────────────────────────
 
   function handleDigitChange(value: string, index: number) {
-    // Only allow single digit
     const digit = value.replace(/[^0-9]/g, "").slice(-1);
     const newDigits = [...digits];
     newDigits[index] = digit;
     setDigits(newDigits);
     setErrorMsg("");
 
-    // Auto-advance focus
     if (digit && index < OTP_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
+      setFocusedIndex(index + 1);
     }
 
-    // Auto-submit when all digits filled
     if (digit && index === OTP_LENGTH - 1) {
       const code = [...newDigits.slice(0, -1), digit].join("");
       if (code.length === OTP_LENGTH) {
@@ -91,6 +102,7 @@ export default function VerifyScreen() {
   function handleKeyPress(key: string, index: number) {
     if (key === "Backspace" && !digits[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
+      setFocusedIndex(index - 1);
     }
   }
 
@@ -119,9 +131,9 @@ export default function VerifyScreen() {
 
     if (error) {
       setErrorMsg("Kod hatalı veya süresi dolmuş. Lütfen tekrar dene.");
-      // Clear digits for retry
       setDigits(Array(OTP_LENGTH).fill(""));
       inputRefs.current[0]?.focus();
+      setFocusedIndex(0);
       return;
     }
 
@@ -156,7 +168,7 @@ export default function VerifyScreen() {
       relationshipStartDate: couple?.relationship_start_date ?? null,
       isPaired: !!userData?.couple_id,
       hasDates: !!(couple?.meet_date && couple?.relationship_start_date),
-      displayName: userData?.display_name ?? null,
+      displayName: userData?.display_name ? decrypt(userData.display_name) : null,
     });
   }
 
@@ -176,13 +188,12 @@ export default function VerifyScreen() {
     }
   }
 
-  // ── Render: Auto-verify in progress ──────────────────────────────────────
   if (autoVerified && isLoading) {
     return (
       <View
         style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#080811" }}
       >
-        <ActivityIndicator color="#E8002D" size="large" />
+        <ActivityIndicator color="#FF4D6A" size="large" />
         <Text
           style={{ color: "rgba(255,255,255,0.6)", marginTop: 16, fontSize: 15 }}
         >
@@ -192,88 +203,99 @@ export default function VerifyScreen() {
     );
   }
 
-  // ── Render: Manual OTP form ───────────────────────────────────────────────
   return (
     <ScreenBackground colors={["#080811", "#0A0A0C", "#080811"]}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <View style={{ flex: 1, justifyContent: "center", padding: 28 }}>
-          {/* Header */}
-          <View style={{ alignItems: "center", marginBottom: 40 }}>
-            <Text style={{ fontSize: 48, marginBottom: 16 }}>📬</Text>
+        <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 60, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
+          
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 21,
+              backgroundColor: "rgba(255,255,255,0.04)",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 48,
+            }}
+          >
+            <ArrowLeft color="#fff" size={22} />
+          </TouchableOpacity>
+
+          <View style={{ alignItems: "center", marginBottom: 36 }}>
+            <View
+              style={{
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+                backgroundColor: "rgba(255,255,255,0.03)",
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.05)",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 20,
+              }}
+            >
+              <Mail color="#FF4D6A" size={32} />
+            </View>
+
             <Text
               style={{
                 color: "#FFFFFF",
-                fontSize: 26,
-                fontWeight: "800",
+                fontSize: 32,
+                fontFamily: "PlayfairDisplay_400Regular_Italic",
                 textAlign: "center",
-                marginBottom: 10,
+                marginBottom: 8,
               }}
             >
               E-postanı Doğrula
             </Text>
-            {params.email ? (
-              <Text
-                style={{
-                  color: "rgba(255,255,255,0.6)",
-                  fontSize: 15,
-                  textAlign: "center",
-                  lineHeight: 22,
-                }}
-              >
-                <Text style={{ color: "#E8002D" }}>{params.email}</Text>{" "}
-                adresine gönderilen 6 haneli kodu gir.{"\n"}Ya da e-postadaki
-                bağlantıya tıkla, otomatik doğrulanırsın.
-              </Text>
-            ) : (
-              <Text
-                style={{
-                  color: "rgba(255,255,255,0.6)",
-                  fontSize: 15,
-                  textAlign: "center",
-                }}
-              >
-                E-postanı kontrol et ve bağlantıya tıkla.
-              </Text>
-            )}
+            
+            <Text
+              style={{
+                color: "rgba(255,255,255,0.6)",
+                fontSize: 15,
+                textAlign: "center",
+              }}
+            >
+              {params.email ? `${maskEmail(params.email)} adresine kod gönderdik` : "E-posta adresine kod gönderdik"}
+            </Text>
           </View>
 
-          {/* OTP Boxes */}
           <View
             style={{
               flexDirection: "row",
               justifyContent: "center",
-              gap: 10,
-              marginBottom: 28,
+              gap: 8,
+              marginBottom: 40,
             }}
           >
-            {digits.map((digit, i) => (
+            {digits.map((digit, index) => (
               <TextInput
-                key={i}
-                ref={(ref) => {
-                  inputRefs.current[i] = ref;
-                }}
+                key={index}
+                ref={(el) => (inputRefs.current[index] = el)}
                 value={digit}
-                onChangeText={(v) => handleDigitChange(v, i)}
-                onKeyPress={({ nativeEvent: { key } }) =>
-                  handleKeyPress(key, i)
+                onChangeText={(val) => handleDigitChange(val, index)}
+                onKeyPress={({ nativeEvent }) =>
+                  handleKeyPress(nativeEvent.key, index)
                 }
-                maxLength={1}
+                onFocus={() => setFocusedIndex(index)}
                 keyboardType="number-pad"
-                selectTextOnFocus
+                maxLength={1}
                 style={{
                   width: 48,
-                  height: 58,
-                  backgroundColor: "rgba(255,255,255,0.07)",
+                  height: 56,
+                  borderRadius: 12,
+                  backgroundColor: "rgba(255,255,255,0.04)",
                   borderWidth: 1.5,
-                  borderColor: digit
-                    ? "#E8002D"
-                    : "rgba(255,255,255,0.15)",
-                  borderRadius: 14,
+                  borderColor:
+                    focusedIndex === index || digit ? "#FF4D6A" : "rgba(255,255,255,0.08)",
                   color: "#FFFFFF",
-                  fontSize: 24,
+                  fontSize: 22,
                   fontWeight: "700",
                   textAlign: "center",
                 }}
@@ -281,69 +303,54 @@ export default function VerifyScreen() {
             ))}
           </View>
 
-          {/* Error */}
           {!!errorMsg && (
-            <View
-              style={{
-                backgroundColor: "rgba(232,0,45,0.12)",
-                borderWidth: 1,
-                borderColor: "rgba(232,0,45,0.3)",
-                borderRadius: 14,
-                padding: 14,
-                marginBottom: 16,
-              }}
-            >
-              <Text
-                style={{
-                  color: "#FF4D6A",
-                  fontSize: 14,
-                  textAlign: "center",
-                }}
-              >
-                {errorMsg}
-              </Text>
-            </View>
+            <Text style={{ color: "#FF4D6A", textAlign: "center", marginBottom: 20, fontSize: 14 }}>
+              {errorMsg}
+            </Text>
           )}
 
-          {/* Submit */}
           <TouchableOpacity
             onPress={() => handleManualVerify()}
-            disabled={isLoading || digits.join("").length < OTP_LENGTH}
-            style={{
-              backgroundColor:
-                digits.join("").length < OTP_LENGTH
-                  ? "rgba(232,0,45,0.3)"
-                  : "#E8002D",
-              paddingVertical: 18,
-              borderRadius: 18,
-              alignItems: "center",
-              marginBottom: 16,
-            }}
+            disabled={isLoading}
+            style={{ borderRadius: 30, overflow: "hidden", marginBottom: 24, opacity: isLoading ? 0.7 : 1 }}
+            activeOpacity={0.85}
           >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text
-                style={{ color: "#fff", fontWeight: "800", fontSize: 17 }}
-              >
-                Doğrula
-              </Text>
-            )}
+            <LinearGradient
+              colors={["#FF4D6A", "#FF4D6A"]} // Mockup shows solid looking pink/red, let's use the exact color from mockup or similar gradient
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{
+                paddingVertical: 18,
+                alignItems: "center",
+                borderRadius: 30,
+                shadowColor: "#FF4D6A",
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.4,
+                shadowRadius: 14,
+              }}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 17 }}>
+                  Doğrula
+                </Text>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
 
-          {/* Resend */}
-          {params.email && (
-            <TouchableOpacity
-              onPress={handleResend}
-              style={{ alignItems: "center" }}
-            >
-              <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>
-                Kodu almadım —{" "}
-                <Text style={{ color: "#E8002D" }}>Tekrar gönder</Text>
+          <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center" }}>
+            <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>
+              Kod gelmedi mi?{" "}
+            </Text>
+            <TouchableOpacity onPress={handleResend} disabled={isLoading}>
+              <Text style={{ color: "#FF4D6A", fontSize: 14, fontWeight: "600" }}>
+                Tekrar Gönder
               </Text>
             </TouchableOpacity>
-          )}
-        </View>
+          </View>
+
+        </ScrollView>
       </KeyboardAvoidingView>
     </ScreenBackground>
   );

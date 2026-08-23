@@ -60,7 +60,7 @@ export function DailyNoteCard({ existingNote, theme }: DailyNoteCardProps) {
   }
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: theme.cardBg }]}>
       <Text style={styles.title}>Günlük Notum</Text>
 
       {saved ? (
@@ -114,7 +114,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     marginBottom: 18,
-    backgroundColor: "#4A152B",
   },
   title: {
     fontSize: 18,

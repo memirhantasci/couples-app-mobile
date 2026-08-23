@@ -16,6 +16,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
+import { getTheme, AppTheme } from "@/lib/theme";
+import { encrypt, decrypt } from "@/utils/crypto";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import {
   User,
   CalendarHeart,
@@ -26,6 +29,7 @@ import {
   CheckCircle,
   AlertTriangle,
   Menu,
+  AlignJustify
 } from "lucide-react-native";
 
 // ─── Section Card ─────────────────────────────────────────────────────────────
@@ -34,11 +38,13 @@ function SectionCard({
   title,
   icon,
   children,
+  theme,
   defaultOpen = true,
 }: {
   title: string;
   icon: React.ReactNode;
   children: React.ReactNode;
+  theme: AppTheme;
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -47,9 +53,9 @@ function SectionCard({
       style={{
         borderRadius: 20,
         overflow: "hidden",
-        backgroundColor: "rgba(255,255,255,0.04)",
+        backgroundColor: theme.cardBg,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: "rgba(255,255,255,0.05)",
         marginBottom: 12,
       }}
     >
@@ -68,7 +74,7 @@ function SectionCard({
               width: 36,
               height: 36,
               borderRadius: 12,
-              backgroundColor: "rgba(232,0,45,0.12)",
+              backgroundColor: theme.pillAccentBg,
               alignItems: "center",
               justifyContent: "center",
             }}
@@ -113,6 +119,7 @@ function Field({
   placeholder,
   multiline,
   error,
+  theme,
 }: {
   label: string;
   value: string;
@@ -120,6 +127,7 @@ function Field({
   placeholder?: string;
   multiline?: boolean;
   error?: boolean;
+  theme: AppTheme;
 }) {
   return (
     <View style={{ marginTop: 16 }}>
@@ -133,9 +141,9 @@ function Field({
         placeholderTextColor="rgba(255,255,255,0.3)"
         multiline={multiline}
         style={{
-          backgroundColor: "rgba(255,255,255,0.07)",
+          backgroundColor: theme.inputBg,
           borderWidth: 1,
-          borderColor: error ? "red" : "rgba(255,255,255,0.12)",
+          borderColor: error ? "red" : "rgba(255,255,255,0.1)",
           borderRadius: 14,
           paddingHorizontal: 16,
           paddingVertical: 13,
@@ -155,10 +163,12 @@ function SaveButton({
   onPress,
   loading,
   label = "Kaydet",
+  theme,
 }: {
   onPress: () => void;
   loading?: boolean;
   label?: string;
+  theme: AppTheme;
 }) {
   return (
     <TouchableOpacity
@@ -166,11 +176,11 @@ function SaveButton({
       disabled={loading}
       style={{
         marginTop: 18,
-        backgroundColor: loading ? "rgba(232,0,45,0.5)" : "#E8002D",
+        backgroundColor: loading ? theme.pillAccentBg : theme.accent,
         paddingVertical: 14,
         borderRadius: 16,
         alignItems: "center",
-        shadowColor: "#E8002D",
+        shadowColor: theme.accent,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 10,
@@ -180,7 +190,7 @@ function SaveButton({
       {loading ? (
         <ActivityIndicator color="#fff" />
       ) : (
-        <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>
+        <Text style={{ color: loading ? theme.accent : "#fff", fontWeight: "700", fontSize: 15 }}>
           {label}
         </Text>
       )}
@@ -191,10 +201,11 @@ function SaveButton({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
-  const { session, signOut } = useAuth();
+  const { session, signOut, profile } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
+  const theme = getTheme(profile?.gender);
 
   const [displayName, setDisplayName] = useState("");
   const [nameError, setNameError] = useState(false);
@@ -203,6 +214,9 @@ export default function ProfileScreen() {
   const [relStartDate, setRelStartDate] = useState("");
   const [coupleId, setCoupleId] = useState<string | null>(null);
   const [deletionDate, setDeletionDate] = useState<string | null>(null);
+
+  const [showMeetDatePicker, setShowMeetDatePicker] = useState(false);
+  const [showRelDatePicker, setShowRelDatePicker] = useState(false);
 
   const [profileLoading, setProfileLoading] = useState(false);
   const [datesLoading, setDatesLoading] = useState(false);
@@ -221,7 +235,7 @@ export default function ProfileScreen() {
         .single();
 
       if (userData) {
-        setDisplayName(userData.display_name ?? "");
+        setDisplayName(userData.display_name ? decrypt(userData.display_name) : "");
         setGender((userData.gender as "male" | "female") ?? "female");
         setCoupleId(userData.couple_id ?? null);
 
@@ -252,11 +266,10 @@ export default function ProfileScreen() {
       return;
     }
     setProfileLoading(true);
-    const uid = session.user.id;
     const { error } = await supabase
       .from("users")
-      .update({ display_name: displayName.trim(), gender })
-      .eq("id", uid);
+      .update({ display_name: encrypt(displayName.trim()), gender })
+      .eq("id", session.user.id);
     setProfileLoading(false);
 
     if (error) {
@@ -345,8 +358,10 @@ export default function ProfileScreen() {
             if (session?.user?.id) {
               await supabase.from("push_tokens").delete().eq("user_id", session.user.id);
             }
-            await signOut();
             router.replace("/(auth)/login");
+            setTimeout(() => {
+              signOut();
+            }, 100);
           },
         },
       ]
@@ -357,21 +372,22 @@ export default function ProfileScreen() {
     <ScreenBackground>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView
-          contentContainerStyle={{ padding: 20, paddingTop: insets.top + 10, paddingBottom: 100 }}
+          contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
         >
         {/* Başlık */}
-        <View style={{ marginBottom: 24, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <View>
-            <Text style={{ color: "#fff", fontSize: 28, fontWeight: "800", letterSpacing: -0.5 }}>
+        <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, paddingTop: insets.top + 16, paddingHorizontal: 20 }}>
+          <View style={{ width: 40 }} />
+          <View style={{ flex: 1, alignItems: "center" }}>
+            <Text style={{ color: "#fff", fontSize: 28, fontFamily: "PlayfairDisplay_400Regular_Italic" }}>
               Ayarlar ⚙️
             </Text>
-            <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, marginTop: 4 }}>
+            <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 4 }}>
               Profil ve hesap bilgilerini yönet
             </Text>
           </View>
-          <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, marginRight: -8, marginTop: -8 }}>
-            <Menu color="#fff" size={24} />
+          <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.05)" }}>
+            <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
           </TouchableOpacity>
         </View>
 
@@ -398,8 +414,9 @@ export default function ProfileScreen() {
         )}
 
         {/* Kişisel Bilgiler */}
-        <SectionCard title="Kişisel Bilgiler" icon={<User size={18} color="#E8002D" />}>
+        <SectionCard title="Kişisel Bilgiler" icon={<User size={18} color={theme.accent} />} theme={theme}>
           <Field
+            theme={theme}
             label="Görünen İsim"
             value={displayName}
             onChange={(val) => {
@@ -423,14 +440,14 @@ export default function ProfileScreen() {
                     paddingVertical: 12,
                     borderRadius: 14,
                     borderWidth: 1,
-                    borderColor: gender === g ? "#E8002D" : "rgba(255,255,255,0.12)",
-                    backgroundColor: gender === g ? "rgba(232,0,45,0.15)" : "rgba(255,255,255,0.05)",
+                    borderColor: gender === g ? theme.accent : "rgba(255,255,255,0.12)",
+                    backgroundColor: gender === g ? theme.pillAccentBg : "rgba(255,255,255,0.02)",
                     alignItems: "center",
                   }}
                 >
                   <Text
                     style={{
-                      color: gender === g ? "#E8002D" : "rgba(255,255,255,0.5)",
+                      color: gender === g ? theme.accent : "rgba(255,255,255,0.5)",
                       fontWeight: "600",
                       fontSize: 14,
                     }}
@@ -441,30 +458,78 @@ export default function ProfileScreen() {
               ))}
             </View>
           </View>
-          <SaveButton onPress={handleUpdateProfile} loading={profileLoading} label="Değişiklikleri Kaydet" />
+          <SaveButton theme={theme} onPress={handleUpdateProfile} loading={profileLoading} label="Değişiklikleri Kaydet" />
         </SectionCard>
 
         {/* İlişki Tarihleri */}
         {coupleId && (
-          <SectionCard title="İlişki Tarihleri" icon={<CalendarHeart size={18} color="#E8002D" />} defaultOpen={false}>
-            <Field
-              label="Tanışma Tarihi (YYYY-AA-GG)"
-              value={meetDate}
-              onChange={setMeetDate}
-              placeholder="2023-06-15"
-            />
-            <Field
-              label="Sevgili Olma Tarihi (YYYY-AA-GG)"
-              value={relStartDate}
-              onChange={setRelStartDate}
-              placeholder="2023-07-01"
-            />
-            <SaveButton onPress={handleUpdateDates} loading={datesLoading} label="Tarihleri Güncelle" />
+          <SectionCard title="İlişki Tarihleri" icon={<CalendarHeart size={18} color={theme.accent} />} theme={theme} defaultOpen={false}>
+            <View style={{ marginTop: 16 }}>
+              <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, marginBottom: 6 }}>Tanışma Tarihi</Text>
+              <TouchableOpacity
+                onPress={() => setShowMeetDatePicker(true)}
+                style={{
+                  backgroundColor: theme.inputBg, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)",
+                  borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13
+                }}
+              >
+                <Text style={{ color: meetDate ? "#fff" : "rgba(255,255,255,0.3)", fontSize: 15 }}>
+                  {meetDate || "Seçiniz"}
+                </Text>
+              </TouchableOpacity>
+              {showMeetDatePicker && (
+                <DateTimePicker
+                  value={meetDate ? new Date(meetDate) : new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowMeetDatePicker(Platform.OS === 'ios');
+                    if (selectedDate) {
+                      const offset = selectedDate.getTimezoneOffset();
+                      const adjustedDate = new Date(selectedDate.getTime() - (offset*60*1000));
+                      setMeetDate(adjustedDate.toISOString().split('T')[0]);
+                    }
+                  }}
+                />
+              )}
+            </View>
+
+            <View style={{ marginTop: 16 }}>
+              <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, marginBottom: 6 }}>Sevgili Olma Tarihi</Text>
+              <TouchableOpacity
+                onPress={() => setShowRelDatePicker(true)}
+                style={{
+                  backgroundColor: theme.inputBg, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)",
+                  borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13
+                }}
+              >
+                <Text style={{ color: relStartDate ? "#fff" : "rgba(255,255,255,0.3)", fontSize: 15 }}>
+                  {relStartDate || "Seçiniz"}
+                </Text>
+              </TouchableOpacity>
+              {showRelDatePicker && (
+                <DateTimePicker
+                  value={relStartDate ? new Date(relStartDate) : new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowRelDatePicker(Platform.OS === 'ios');
+                    if (selectedDate) {
+                      const offset = selectedDate.getTimezoneOffset();
+                      const adjustedDate = new Date(selectedDate.getTime() - (offset*60*1000));
+                      setRelStartDate(adjustedDate.toISOString().split('T')[0]);
+                    }
+                  }}
+                />
+              )}
+            </View>
+
+            <SaveButton theme={theme} onPress={handleUpdateDates} loading={datesLoading} label="Tarihleri Güncelle" />
           </SectionCard>
         )}
 
         {/* Oturum / Çıkış */}
-        <SectionCard title="Oturum" icon={<LogOut size={18} color="#E8002D" />} defaultOpen={false}>
+        <SectionCard title="Oturum" icon={<LogOut size={18} color={theme.accent} />} theme={theme} defaultOpen={false}>
           <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, lineHeight: 20, marginTop: 12 }}>
             Hesabından güvenli bir şekilde çıkış yapar. Bildirim jetonun temizlenir.
           </Text>
@@ -474,20 +539,20 @@ export default function ProfileScreen() {
               marginTop: 16,
               paddingVertical: 14,
               borderRadius: 16,
-              backgroundColor: "rgba(255,255,255,0.07)",
+              backgroundColor: "rgba(255,255,255,0.05)",
               borderWidth: 1,
-              borderColor: "rgba(255,255,255,0.12)",
+              borderColor: "rgba(255,255,255,0.1)",
               alignItems: "center",
             }}
           >
-            <Text style={{ color: "rgba(255,255,255,0.7)", fontWeight: "700", fontSize: 15 }}>
+            <Text style={{ color: "rgba(255,255,255,0.8)", fontWeight: "700", fontSize: 15 }}>
               Çıkış Yap
             </Text>
           </TouchableOpacity>
         </SectionCard>
 
         {/* Tehlike Bölgesi */}
-        <SectionCard title="Tehlike Bölgesi" icon={<Trash2 size={18} color="#E8002D" />} defaultOpen={false}>
+        <SectionCard title="Tehlike Bölgesi" icon={<Trash2 size={18} color="#FF4D6A" />} theme={theme} defaultOpen={false}>
           <View
             style={{
               backgroundColor: "rgba(232,0,45,0.06)",

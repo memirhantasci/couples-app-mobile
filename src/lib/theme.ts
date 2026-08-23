@@ -27,37 +27,46 @@ export interface AppTheme {
 // Aksiyonlar: #FF4081
 
 export const FEMALE_THEME: AppTheme = {
-  bgGradient: ["#B86B7D", "#A3586A", "#B86B7D"] as const,
+  bgGradient: ["#CA3F7A", "#B83067", "#CA3F7A"] as const,
   cardBg: "#4A152B",
   cardBorder: "rgba(255,255,255,0.05)",
-  unitBg: "#330d1d", // biraz daha koyu mürdüm
-  accent: "#FF4081",
+  unitBg: "#330d1d",
+  accent: "#FF5C77",
   accentLight: "#FF80AB",
-  pillAccentBorder: "rgba(255,64,129,0.3)",
-  pillAccentBg: "rgba(255,64,129,0.12)",
-  inputBg: "#1a0812", // neredeyse siyah/koyu gri istendi
+  pillAccentBorder: "rgba(255,92,119,0.3)",
+  pillAccentBg: "rgba(255,92,119,0.12)",
+  inputBg: "#1c1c1e",
   headerBg: "transparent",
 };
 
 export const MALE_THEME: AppTheme = {
-  bgGradient: ["#1a0812", "#0d0407", "#1a0812"] as const,
-  cardBg: "#231218",
+  bgGradient: ["#0B111A", "#060A10", "#0B111A"] as const,
+  cardBg: "#1A2235",
   cardBorder: "rgba(255,255,255,0.07)",
-  unitBg: "#1e0e14",
-  accent: "#ff4d6d",
-  accentLight: "#ff8fa3",
-  pillAccentBorder: "rgba(255,77,109,0.25)",
-  pillAccentBg: "rgba(255,77,109,0.06)",
-  inputBg: "rgba(255,255,255,0.03)",
+  unitBg: "#0f172a",
+  accent: "#4D9CFF",
+  accentLight: "#93c5fd",
+  pillAccentBorder: "rgba(77,156,255,0.25)",
+  pillAccentBg: "rgba(77,156,255,0.06)",
+  inputBg: "#121A28",
   headerBg: "transparent",
 };
 
 export const DEFAULT_THEME = FEMALE_THEME;
 
+let lastTheme: AppTheme = FEMALE_THEME;
+
 export function getTheme(gender: string | null | undefined): AppTheme {
-  if (!gender) return FEMALE_THEME;
+  if (!gender) return lastTheme;
   const g = gender.toLowerCase();
-  if (g === "female" || g === "kadın" || g === "kadin") return FEMALE_THEME;
-  if (g === "male" || g === "erkek") return MALE_THEME;
+  if (g === "female" || g === "kadın" || g === "kadin") {
+    lastTheme = FEMALE_THEME;
+    return FEMALE_THEME;
+  }
+  if (g === "male" || g === "erkek") {
+    lastTheme = MALE_THEME;
+    return MALE_THEME;
+  }
+  lastTheme = FEMALE_THEME;
   return FEMALE_THEME;
 }

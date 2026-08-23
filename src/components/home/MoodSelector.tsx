@@ -104,7 +104,7 @@ export function MoodSelector({ currentMood, moodLocked = false, theme }: MoodSel
   }
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: theme.cardBg }]}>
       <Text style={styles.title}>Bugün nasılsın?</Text>
 
       <View style={styles.row}>
@@ -119,13 +119,13 @@ export function MoodSelector({ currentMood, moodLocked = false, theme }: MoodSel
               style={[
                 styles.moodBtn,
                 isSelected
-                  ? { backgroundColor: theme.accent }
-                  : { backgroundColor: "rgba(0,0,0,0.2)" },
+                  ? { backgroundColor: "rgba(77,156,255,0.1)", borderColor: theme.accent, borderWidth: 1 }
+                  : { backgroundColor: "transparent", borderColor: "rgba(255,255,255,0.1)", borderWidth: 1 },
                 locked && !isSelected && { opacity: 0.3 },
               ]}
             >
               <Text style={styles.emoji}>{mood.emoji}</Text>
-              <Text style={[styles.label, isSelected && { color: "#fff", fontFamily: "Inter_600SemiBold" }]}>
+              <Text style={[styles.label, isSelected && { color: theme.accent, fontFamily: "Inter_600SemiBold" }]}>
                 {mood.label}
               </Text>
             </TouchableOpacity>
@@ -144,11 +144,9 @@ export function MoodSelector({ currentMood, moodLocked = false, theme }: MoodSel
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 0,
     borderRadius: 20,
     padding: 20,
-    marginBottom: 18,
-    backgroundColor: "#4A152B",
+    marginBottom: 24,
   },
   title: {
     fontSize: 18,
@@ -163,15 +161,12 @@ const styles = StyleSheet.create({
   moodBtn: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
     paddingVertical: 12,
-    paddingHorizontal: 2,
-    borderRadius: 14,
-    borderWidth: 0, // removed border for cleaner square look as per screenshot
+    borderRadius: 12,
   },
   emoji: {
     fontSize: 22,
-    marginBottom: 5,
+    marginBottom: 4,
   },
   label: {
     fontSize: 10,

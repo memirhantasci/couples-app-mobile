@@ -30,7 +30,7 @@ export function LoveMeter({ value, theme }: LoveMeterProps) {
   }));
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: theme.cardBg }]}>
       {/* Başlık + yüzde */}
       <View style={styles.headerRow}>
         <Text style={styles.title}>Aşk Ölçer</Text>
@@ -59,11 +59,10 @@ export function LoveMeter({ value, theme }: LoveMeterProps) {
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 0, // No border as per screenshot
+    borderWidth: 0,
     borderRadius: 20,
     padding: 20,
     marginBottom: 18,
-    backgroundColor: "#4A152B", // Explicit card bg
   },
   headerRow: {
     flexDirection: "row",

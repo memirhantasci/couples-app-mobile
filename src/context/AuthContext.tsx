@@ -2,6 +2,7 @@ import { registerForPushNotifications } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { decrypt } from "@/utils/crypto";
 
 export interface CoupleProfile {
   coupleId: number | null;   // integer — DB'de INTEGER tipinde
@@ -56,7 +57,7 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
   if (user.couple_id) {
     const { data: cData } = await supabase
       .from("couples")
-      .select("meet_date, relationship_start_date")
+      .select("meet_date, relationship_start_date, member_count")
       .eq("id", user.couple_id)
       .single();
     if (cData) {
@@ -68,9 +69,9 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
     coupleId: user.couple_id ? parseInt(String(user.couple_id), 10) : null,
     meetDate: couple?.meet_date ?? null,
     relationshipStartDate: couple?.relationship_start_date ?? null,
-    isPaired: !!user.couple_id,
+    isPaired: !!(user.couple_id && couple?.member_count >= 2),
     hasDates: !!(couple?.meet_date && couple?.relationship_start_date),
-    displayName: user.display_name ?? null,
+    displayName: user.display_name ? decrypt(user.display_name) : null,
     gender: user.gender ?? null,
   };
 }
@@ -84,21 +85,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user) {
-        fetchProfile(session.user.id).then(setProfile);
+        setIsLoading(true);
+        fetchProfile(session.user.id).then((p) => {
+          setProfile(p);
+          setIsLoading(false);
+        });
         registerForPushNotifications(session.user.id).catch(() => { });
+      } else {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session?.user) {
-        fetchProfile(session.user.id).then(setProfile);
+        setIsLoading(true);
+        fetchProfile(session.user.id).then((p) => {
+          setProfile(p);
+          setIsLoading(false);
+        });
         registerForPushNotifications(session.user.id).catch(() => { });
       } else {
         setProfile(null);
+        setIsLoading(false);
       }
-      setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();

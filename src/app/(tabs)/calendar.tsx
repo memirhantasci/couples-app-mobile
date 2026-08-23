@@ -9,7 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
 import { decrypt, deterministicDecrypt, encrypt } from "@/utils/crypto";
-import { ChevronRight, Heart, FileText, Frown, Smile, Meh, AlertCircle, Sparkles, Droplet, Pill, Menu, ChevronLeft, X, Calendar as CalendarIcon, Save, Trash2, MapPin } from "lucide-react-native";
+import { ChevronRight, Heart, FileText, Frown, Smile, Meh, AlertCircle, Sparkles, Droplet, Pill, Menu, ChevronLeft, X, Calendar as CalendarIcon, Save, Trash2, MapPin, AlignJustify } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getTheme } from "@/lib/theme";
@@ -27,8 +27,8 @@ export default function CalendarScreen() {
   const { session, profile } = useAuth();
   const queryClient = useQueryClient();
   const router = useRouter();
-  const today = todayString();
   const insets = useSafeAreaInsets();
+  const today = todayString();
 
   const [selectedDate, setSelectedDate] = useState<string>(today);
   const [currentMonth, setCurrentMonth] = useState<string>(today);
@@ -75,7 +75,10 @@ export default function CalendarScreen() {
       ]);
 
       const userMap = (usersRes.data || []).reduce((acc: any, u: any) => {
-        acc[u.id] = u;
+        acc[u.id] = {
+          ...u,
+          display_name: u.display_name ? decrypt(u.display_name) : null,
+        };
         return acc;
       }, {});
 
@@ -94,7 +97,7 @@ export default function CalendarScreen() {
           description: p.description ? decrypt(p.description) : null,
           uploader: userMap[p.user_id],
         })),
-        users: usersRes.data || [],
+        users: Object.values(userMap),
       };
     },
     staleTime: 1000 * 60 * 5,
@@ -347,12 +350,17 @@ export default function CalendarScreen() {
 
   return (
     <ScreenBackground>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: insets.top + 10, paddingBottom: 120 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: insets.top + 16, paddingBottom: 120 }}>
         
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Takvim</Text>
-          <Text style={styles.subtitle}>Notlar, ruh halleri ve anılar</Text>
+        <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
+          <View style={{ flex: 1, alignItems: "center" }}>
+            <Text style={styles.title}>Takvim</Text>
+            <Text style={styles.subtitle}>Notlar, ruh halleri ve anılar</Text>
+          </View>
+          <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.05)" }}>
+            <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
+          </TouchableOpacity>
         </View>
 
         {/* Custom Month Navigator (Outside the dark card!) */}

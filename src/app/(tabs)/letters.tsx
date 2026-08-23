@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useRouter } from "expo-router";
 import { View, Text, SectionList, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, Alert, KeyboardAvoidingView, Platform, Modal } from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -7,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
 import { encrypt, decrypt, deterministicDecrypt } from "@/utils/crypto";
-import { Lock, ChevronRight, FileEdit, LockKeyhole, Calendar as CalendarIcon, XCircle, ChevronDown } from "lucide-react-native";
+import { Lock, ChevronRight, FileEdit, LockKeyhole, Calendar as CalendarIcon, XCircle, ChevronDown, AlignJustify } from "lucide-react-native";
 import { sanitize, sanitizeStrict } from "@/utils/sanitize";
 import { logger } from "@/utils/logger";
 import { getTheme } from "@/lib/theme";
@@ -15,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 export default function LettersScreen() {
+  const router = useRouter();
   const { session, profile } = useAuth();
   const queryClient = useQueryClient();
   const today = todayString();
@@ -51,7 +53,10 @@ export default function LettersScreen() {
       ]);
 
       const userMap = (usersRes.data || []).reduce((acc: any, u: any) => {
-        acc[u.id] = u;
+        acc[u.id] = {
+          ...u,
+          display_name: u.display_name ? decrypt(u.display_name) : null,
+        };
         return acc;
       }, {});
 
@@ -95,7 +100,8 @@ export default function LettersScreen() {
         .eq("couple_id", coupleId);
       return (data || []).map(u => ({
         ...u,
-        username: deterministicDecrypt(u.username) || u.username
+        username: deterministicDecrypt(u.username) || u.username,
+        display_name: u.display_name ? decrypt(u.display_name) : null
       })).filter(u => u.id !== userId && u.id !== Number(userId));
     }
   });
@@ -205,8 +211,12 @@ export default function LettersScreen() {
             {letter.title || "İsimsiz Mektup"}
           </Text>
           
+          <Text style={styles.letterPerson}>
+            {type === "received" ? `Kimden: ${personName}` : `Kime: ${personName}`}
+          </Text>
+
           {!isOpen && (
-            <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }} numberOfLines={1}>
+            <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginTop: 4 }} numberOfLines={1}>
               {(!canOpen && type === "received") ? "Bu mektubun içeriği henüz kilitli..." : (letter.content || "İçerik yok...")}
             </Text>
           )}
@@ -226,12 +236,19 @@ export default function LettersScreen() {
   return (
     <ScreenBackground>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        <View style={[styles.container, { paddingTop: insets.top + 20, paddingBottom: 0, flex: 1 }]}>
+        <View style={{ flex: 1, paddingHorizontal: 20 }}>
           
-          <View style={{ alignItems: "center", marginBottom: 30 }}>
-            <Text style={{ fontSize: 34, fontFamily: "PlayfairDisplay_400Regular_Italic", color: "#fff" }}>
-              Mektuplar 💌
-            </Text>
+          <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, paddingTop: insets.top + 16 }}>
+            <View style={{ width: 40 }} />
+            <View style={{ flex: 1, alignItems: "center" }}>
+              <Text style={{ fontSize: 28, fontFamily: "PlayfairDisplay_400Regular_Italic", color: "#fff" }}>
+                Mektuplar
+              </Text>
+              <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.7)", marginTop: 4 }}>Geleceğe mesajlar 💌</Text>
+            </View>
+            <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.05)" }}>
+              <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
+            </TouchableOpacity>
           </View>
 
           {isLoading ? (
@@ -247,6 +264,7 @@ export default function LettersScreen() {
               ]}
               keyExtractor={(item, index) => item.id.toString()}
               showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 150 }}
               renderSectionHeader={({ section }) => (
                 <View style={{ marginBottom: 12, marginTop: section.type === "received" ? 0 : 20 }}>
                   <Text style={{ fontSize: 12, fontWeight: "600", color: "rgba(255,255,255,0.4)", letterSpacing: 0.5 }}>

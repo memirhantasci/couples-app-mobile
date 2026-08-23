@@ -4,7 +4,7 @@ import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Pill, CheckCircle2, Check, X, Settings, Trash2, User, Users, Edit2, ChevronLeft, Menu, Save } from "lucide-react-native";
+import { Pill, CheckCircle2, Check, X, Settings, Trash2, User, Users, Edit2, ChevronLeft, Menu, Save , AlignJustify} from "lucide-react-native";
 import { getTheme } from "@/lib/theme";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
@@ -350,6 +350,11 @@ export default function MedicineScreen() {
   return (
     <ScreenBackground style={styles.container}>
       <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
+
+        <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, backgroundColor: "rgba(0,0,0,0.3)", borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", position: "absolute", top: 40, right: 20, zIndex: 50 }}>
+          <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
+        </TouchableOpacity>
+
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {/* Header */}
           <View style={styles.header}>
