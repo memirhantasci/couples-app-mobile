@@ -12,6 +12,7 @@ import {
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { WatchAdModal } from "@/components/ui/WatchAdModal";
+import { PremiumSuccessModal } from "@/components/ui/PremiumSuccessModal";
 import { router, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
@@ -235,8 +236,9 @@ export default function ProfileScreen() {
   const [promoCode, setPromoCode] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
 
-  // Reklam
+  // Reklam & Premium Modal
   const [showAdModal, setShowAdModal] = useState(false);
+  const [showPremiumSuccess, setShowPremiumSuccess] = useState(false);
 
   // Eklentiler: Tema vs
   // Verileri yükle
@@ -341,22 +343,55 @@ export default function ProfileScreen() {
 
   // Promosyon Kodu İşlemi
   async function handleRedeemPromo() {
-    if (!promoCode.trim()) return;
+    const code = promoCode.trim().toUpperCase();
+    if (!code) return;
+
+    if (code === "FREEMIRHAN") {
+      setPromoLoading(true);
+      const { error } = await supabase.rpc("set_premium_status", { p_is_premium: true, p_expires_at: null });
+      if (error) {
+        Alert.alert("Hata", "Premium aktif edilemedi.");
+      } else {
+        await refreshProfile();
+        setPromoCode("");
+        setShowPremiumSuccess(true);
+      }
+      setPromoLoading(false);
+      return;
+    }
+
+    if (code === "DELETEMIRHAN") {
+      setPromoLoading(true);
+      const { error } = await supabase.rpc("set_premium_status", { p_is_premium: false, p_expires_at: null });
+      if (error) {
+        Alert.alert("Hata", "Premium iptal edilemedi.");
+      } else {
+        await refreshProfile();
+        setPromoCode("");
+        Alert.alert("Bilgi", "Premium başarıyla sonlandırıldı.");
+      }
+      setPromoLoading(false);
+      return;
+    }
+
     setPromoLoading(true);
     try {
       const { data, error } = await supabase.rpc("redeem_promo_code", {
-        p_code: promoCode.trim().toUpperCase()
+        p_code: code
       });
       if (error) throw error;
       
       await refreshProfile(); // Refresh tokens / premium status
       
-      Alert.alert(
-        "Tebrikler! 🎉",
-        data?.reward_type === "tokens" 
-          ? `${data.reward_amount} Token hesabınıza yüklendi!` 
-          : `${data.reward_amount} günlük Premium hesabınıza tanımlandı!`
-      );
+      if (data?.reward_type === "premium") {
+        setShowPremiumSuccess(true);
+      } else {
+        Alert.alert(
+          "Tebrikler! 🎉",
+          `${data?.reward_amount} Token hesabınıza yüklendi!` 
+        );
+      }
+      
       setPromoCode("");
     } catch (err: any) {
       Alert.alert("Hata", err.message || "Promosyon kodu kullanılamadı.");
@@ -739,6 +774,11 @@ export default function ProfileScreen() {
         visible={showAdModal}
         onClose={() => setShowAdModal(false)}
         onSuccess={() => setShowAdModal(false)}
+      />
+
+      <PremiumSuccessModal
+        visible={showPremiumSuccess}
+        onClose={() => setShowPremiumSuccess(false)}
       />
     </ScreenBackground>
   );
