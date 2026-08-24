@@ -47,23 +47,28 @@ ALTER TABLE public.promo_redemptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.token_transactions ENABLE ROW LEVEL SECURITY;
 
 -- Promo kodları herkes okuyabilir (kod geçerliliği kontrol etmek için)
+DROP POLICY IF EXISTS "promo_codes_read" ON public.promo_codes;
 CREATE POLICY "promo_codes_read" ON public.promo_codes
   FOR SELECT TO authenticated USING (true);
 
 -- Promo redemptions: Kullanıcı sadece kendi çiftinin kullanımlarını görebilir
+DROP POLICY IF EXISTS "promo_redemptions_select" ON public.promo_redemptions;
 CREATE POLICY "promo_redemptions_select" ON public.promo_redemptions
   FOR SELECT TO authenticated
   USING (couple_id IN (SELECT couple_id FROM public.users WHERE id = auth.uid()));
 
+DROP POLICY IF EXISTS "promo_redemptions_insert" ON public.promo_redemptions;
 CREATE POLICY "promo_redemptions_insert" ON public.promo_redemptions
   FOR INSERT TO authenticated
   WITH CHECK (couple_id IN (SELECT couple_id FROM public.users WHERE id = auth.uid()));
 
 -- Token transactions: Kullanıcı sadece kendi işlemlerini görebilir
+DROP POLICY IF EXISTS "token_transactions_select" ON public.token_transactions;
 CREATE POLICY "token_transactions_select" ON public.token_transactions
   FOR SELECT TO authenticated
   USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "token_transactions_insert" ON public.token_transactions;
 CREATE POLICY "token_transactions_insert" ON public.token_transactions
   FOR INSERT TO authenticated
   WITH CHECK (user_id = auth.uid());
