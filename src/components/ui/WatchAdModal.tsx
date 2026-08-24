@@ -18,6 +18,7 @@ interface WatchAdModalProps {
 export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps) {
   const { profile, refetchProfile } = useAuth();
   const theme = getTheme(profile?.gender);
+  const [rewarding, setRewarding] = useState(false);
   
   const { isLoaded, isClosed, load, show, error, isEarnedReward } = useRewardedAd(adUnitId, {
     requestNonPersonalizedAdsOnly: true,

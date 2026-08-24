@@ -201,6 +201,10 @@ export default function LoginScreen() {
           return;
         }
 
+        // Prevent useProtectedRoute from redirecting to home by signing out.
+        // The user will sign back in fully upon verifying the OTP in verify-device.tsx
+        await supabase.auth.signOut();
+
         setSuccessMsg("Yeni cihaz algılandı. Doğrulama kodu gönderildi.");
         setTimeout(() => {
           router.push({
