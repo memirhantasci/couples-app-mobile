@@ -12,6 +12,11 @@ const API_KEYS = {
 export class RevenueCatService {
   static async initialize() {
     try {
+      if (API_KEYS.apple.includes("xxxx") || API_KEYS.google.includes("xxxx")) {
+        logger.warn("RevenueCat API keys are not configured. Skipping initialization.");
+        return;
+      }
+
       Purchases.setLogLevel(LOG_LEVEL.DEBUG);
 
       if (Platform.OS === 'ios') {

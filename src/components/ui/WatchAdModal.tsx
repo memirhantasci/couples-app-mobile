@@ -1,18 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, Modal, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import { X, PlayCircle, Coins } from "lucide-react-native";
-import { RewardedAd, RewardedAdEventType, TestIds } from "react-native-google-mobile-ads";
+import { useRewardedAd, TestIds } from "react-native-google-mobile-ads";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { getTheme } from "@/lib/theme";
 import { logger } from "@/utils/logger";
 
 const adUnitId = __DEV__ ? TestIds.REWARDED : "ca-app-pub-xxxxxxxxxxxxxxxx/yyyyyyyyyy";
-
-// Create rewarded ad instance outside component to avoid recreation issues
-const rewarded = RewardedAd.createForAdRequest(adUnitId, {
-  requestNonPersonalizedAdsOnly: true,
-});
 
 interface WatchAdModalProps {
   visible: boolean;
@@ -24,57 +19,33 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
   const { profile, refetchProfile } = useAuth();
   const theme = getTheme(profile?.gender);
   
-  const [loaded, setLoaded] = useState(false);
-  const [loadingAd, setLoadingAd] = useState(false);
-  const [rewarding, setRewarding] = useState(false);
+  const { isLoaded, isClosed, load, show, error, isEarnedReward } = useRewardedAd(adUnitId, {
+    requestNonPersonalizedAdsOnly: true,
+  });
 
   useEffect(() => {
-    let unsubscribeLoaded: () => void;
-    let unsubscribeEarned: () => void;
-    let unsubscribeClosed: () => void;
-    let unsubscribeError: () => void;
-
-    if (visible) {
-      setLoadingAd(true);
-      
-      // Load ad
-      rewarded.load();
-
-      unsubscribeLoaded = rewarded.addAdEventListener(RewardedAdEventType.LOADED, () => {
-        setLoaded(true);
-        setLoadingAd(false);
-      });
-
-      unsubscribeEarned = rewarded.addAdEventListener(
-        RewardedAdEventType.EARNED_REWARD,
-        async (reward) => {
-          console.log("User earned reward of ", reward);
-          await handleEarnReward();
-        }
-      );
-
-      unsubscribeClosed = rewarded.addAdEventListener(RewardedAdEventType.CLOSED, () => {
-        setLoaded(false);
-        rewarded.load(); // preload next
-      });
-
-      // Temporary error handler
-      // @ts-ignore
-      unsubscribeError = rewarded.addAdEventListener("error", (error: any) => {
-        logger.error("Ad error:", error);
-        setLoadingAd(false);
-        setLoaded(false);
-        Alert.alert("Hata", "Reklam yüklenirken bir hata oluştu.");
-      });
+    if (visible && !isLoaded) {
+      load();
     }
+  }, [visible, isLoaded, load]);
 
-    return () => {
-      if (unsubscribeLoaded) unsubscribeLoaded();
-      if (unsubscribeEarned) unsubscribeEarned();
-      if (unsubscribeClosed) unsubscribeClosed();
-      if (unsubscribeError) unsubscribeError();
-    };
-  }, [visible]);
+  useEffect(() => {
+    if (error) {
+      logger.error("Ad error:", error);
+      Alert.alert("Hata", "Reklam yüklenirken bir hata oluştu.");
+    }
+  }, [error]);
+
+  useEffect(() => {
+    if (isClosed) {
+      if (isEarnedReward) {
+        handleEarnReward();
+      } else {
+        // If they closed before finishing, we just reload for next time
+        load();
+      }
+    }
+  }, [isClosed, isEarnedReward, load]);
 
   const handleEarnReward = async () => {
     setRewarding(true);
@@ -98,8 +69,8 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
   };
 
   const showAd = () => {
-    if (loaded) {
-      rewarded.show();
+    if (isLoaded) {
+      show();
     }
   };
 
@@ -124,14 +95,14 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
             style={[
               styles.actionBtn, 
               { backgroundColor: theme.accent },
-              (!loaded || rewarding) && { opacity: 0.6 }
+              (!isLoaded || rewarding) && { opacity: 0.6 }
             ]} 
             onPress={showAd}
-            disabled={!loaded || rewarding}
+            disabled={!isLoaded || rewarding}
           >
             {rewarding ? (
               <ActivityIndicator color="#fff" />
-            ) : loadingAd && !loaded ? (
+            ) : !isLoaded ? (
               <>
                 <ActivityIndicator color="#fff" size="small" />
                 <Text style={styles.actionBtnText}>Yükleniyor...</Text>
