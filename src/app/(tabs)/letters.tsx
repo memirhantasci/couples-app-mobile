@@ -167,6 +167,7 @@ export default function LettersScreen() {
 
       if (error) throw error;
 
+      await refreshProfile();
       queryClient.invalidateQueries({ queryKey: ["letters_data"] });
       Alert.alert("Başarılı", "Mektup başarıyla mühürlendi! 💌");
       
