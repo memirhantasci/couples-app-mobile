@@ -16,7 +16,7 @@ interface WatchAdModalProps {
 }
 
 export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps) {
-  const { profile, refetchProfile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const theme = getTheme(profile?.gender);
   const [rewarding, setRewarding] = useState(false);
   
@@ -58,7 +58,7 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
       
       if (error) throw error;
       
-      await refetchProfile();
+      await refreshProfile();
       Alert.alert("Tebrikler!", "25 Token kazandınız.");
       onSuccess();
     } catch (error: any) {

@@ -34,7 +34,7 @@ export default function LettersScreen() {
   const [isSpendingToken, setIsSpendingToken] = useState(false);
   const isPremium = profile?.isPremium ?? false;
   const tokenBalance = profile?.tokenBalance ?? 0;
-  const { refetchProfile } = useAuth();
+  const { refreshProfile } = useAuth();
 
   // --- Mektupları Getir ---
   const { data, isLoading } = useQuery({
