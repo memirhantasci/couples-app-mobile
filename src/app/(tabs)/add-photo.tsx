@@ -19,6 +19,7 @@ import { dayjs, todayString } from "@/lib/date";
 import { getTheme } from "@/lib/theme";
 import { deterministicDecrypt } from "@/utils/crypto";
 import { logger } from "@/utils/logger";
+import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -31,6 +32,8 @@ export default function AddPhotoScreen() {
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
+  const isPremium = profile?.isPremium ?? false;
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const [localImage, setLocalImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [takenDate, setTakenDate] = useState("");
@@ -361,21 +364,38 @@ export default function AddPhotoScreen() {
                 * Yüklenen fotoğraflar ortak arşivinizde kalıcı olarak saklanır.
               </Text>
 
-              <TouchableOpacity 
-                style={[styles.saveBtn, { backgroundColor: theme.accent }]} 
-                onPress={handleSave}
-                disabled={uploading}
-              >
-                {uploading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.saveBtnText}>Arşive Ekle 💾</Text>
-                )}
-              </TouchableOpacity>
+              {!isPremium ? (
+                <TouchableOpacity 
+                  style={[styles.saveBtn, { backgroundColor: "rgba(255,255,255,0.05)", borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" }]} 
+                  onPress={() => setShowPaywall(true)}
+                >
+                  <Text style={[styles.saveBtnText, { color: theme.accent }]}>Premium Özellik 🔒</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity 
+                  style={[styles.saveBtn, { backgroundColor: theme.accent }]} 
+                  onPress={handleSave}
+                  disabled={uploading}
+                >
+                  {uploading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.saveBtnText}>Arşive Ekle 💾</Text>
+                  )}
+                </TouchableOpacity>
+              )}
 
             </View>
 
         </KeyboardAwareScrollView>
+        
+        <PremiumPaywall
+          visible={showPaywall}
+          onClose={() => setShowPaywall(false)}
+          featureName="Fotoğraf Yükle"
+          featureDescription="Ortak galeriye dilediğiniz kadar fotoğraf yükleyin."
+          gender={profile?.gender}
+        />
       </View>
     </ScreenBackground>
   );
@@ -390,7 +410,7 @@ const styles = StyleSheet.create({
   },
   container: {
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   pageTitle: {
     fontSize: 28,

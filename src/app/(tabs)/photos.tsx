@@ -62,12 +62,7 @@ export default function PhotosScreen() {
 
   const photos = data ? data.pages.flat() : [];
 
-  // Fotoğraf Yükle sayfasına yönlendir
   const goToUpload = () => {
-    if (!isPremium) {
-      setShowPaywall(true);
-      return;
-    }
     router.push("/(tabs)/add-photo");
   };
 
