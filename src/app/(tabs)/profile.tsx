@@ -31,7 +31,8 @@ import {
   CheckCircle,
   AlertTriangle,
   Menu,
-  AlignJustify
+  AlignJustify,
+  Wallet
 } from "lucide-react-native";
 
 // ─── Section Card ─────────────────────────────────────────────────────────────
@@ -426,6 +427,22 @@ export default function ProfileScreen() {
             <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
           </TouchableOpacity>
         </View>
+
+        {/* Cüzdan ve Premium */}
+        <SectionCard title="Cüzdanım" icon={<Wallet size={18} color={theme.accent} />} theme={theme}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 15 }}>Mevcut Token:</Text>
+            <Text style={{ color: "#c8922a", fontWeight: "700", fontSize: 18 }}>🪙 {profile?.tokenBalance ?? 0}</Text>
+          </View>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 15 }}>Premium Durumu:</Text>
+            {profile?.isPremium ? (
+              <Text style={{ color: "#4ade80", fontWeight: "700", fontSize: 15 }}>Aktif (Sınırsız)</Text>
+            ) : (
+              <Text style={{ color: "rgba(255,255,255,0.4)", fontWeight: "600", fontSize: 15 }}>Aktif Değil</Text>
+            )}
+          </View>
+        </SectionCard>
 
         {/* Silinme Uyarısı */}
         {deletionDate && (
