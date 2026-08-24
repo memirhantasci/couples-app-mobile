@@ -1,6 +1,7 @@
 import { registerForPushNotifications } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
+import { RevenueCatService } from "@/lib/revenuecat";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { decrypt } from "@/utils/crypto";
 
@@ -89,6 +90,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<CoupleProfile | null>(null);
 
   useEffect(() => {
+    RevenueCatService.initialize();
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (!session) setIsLoading(false);
@@ -99,6 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!session) {
         setProfile(null);
         setIsLoading(false);
+        RevenueCatService.logOut();
       }
     });
 
@@ -109,8 +113,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (session?.user?.id) {
       setIsLoading(true);
       fetchProfile(session.user.id)
-        .then((p) => {
+        .then(async (p) => {
           setProfile(p);
+          // Login to RevenueCat to sync premium status
+          await RevenueCatService.logIn(session.user.id);
+          // If the login synced something, we might want to refresh profile, but let's do it seamlessly:
+          // In reality, set_premium_status will trigger a realtime change if they use it, but for now we just log in.
           setIsLoading(false);
         })
         .catch((err) => {

@@ -23,16 +23,19 @@ import {
 } from "@/lib/date";
 import { getQuoteForDay } from "@/lib/quotes";
 import { decrypt, deterministicDecrypt } from "@/utils/crypto";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { AlignJustify } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getTheme } from "@/lib/theme";
+import { useCallback } from "react";
 
 import { LoveMeter } from "@/components/home/LoveMeter";
 import { MoodSelector } from "@/components/home/MoodSelector";
 import { DailyNoteCard } from "@/components/home/DailyNoteCard";
 import { MeetingCountdown } from "@/components/home/MeetingCountdown";
 import { PendingLettersCard } from "@/components/home/PendingLettersCard";
+import { BannerAd } from "@/components/ui/BannerAd";
+import { useInterstitialAd } from "@/hooks/useInterstitialAd";
 
 export default function HomeScreen() {
   const { session, profile } = useAuth();
@@ -45,6 +48,14 @@ export default function HomeScreen() {
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
+
+  const { showAdIfReady } = useInterstitialAd();
+
+  useFocusEffect(
+    useCallback(() => {
+      showAdIfReady();
+    }, [showAdIfReady])
+  );
 
   const { data: dashboardData, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["home_dashboard", coupleId, userId, today],
@@ -233,6 +244,7 @@ export default function HomeScreen() {
           <PendingLettersCard letters={dashboardData?.pendingLetters || []} theme={theme} />
         </ScrollView>
       </KeyboardAvoidingView>
+      <BannerAd />
     </ScreenBackground>
   );
 }

@@ -10,6 +10,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Crown, Lock, Sparkles, X, Zap } from "lucide-react-native";
 import { getTheme, AppTheme } from "@/lib/theme";
+import { useRouter } from "expo-router";
 
 const { width } = Dimensions.get("window");
 
@@ -37,6 +38,7 @@ export function PremiumPaywall({
   onWatchAd,
 }: PremiumPaywallProps) {
   const theme = getTheme(gender);
+  const router = useRouter();
 
   const features = [
     "💌 Sınırsız Mektup Yaz",
@@ -86,7 +88,10 @@ export function PremiumPaywall({
           {/* CTA Button */}
           <TouchableOpacity
             style={[styles.ctaBtn, { backgroundColor: theme.accent }]}
-            onPress={onClose} // İleride RevenueCat satın alma ekranını açacak
+            onPress={() => {
+              onClose();
+              router.push("/paywall");
+            }}
             activeOpacity={0.8}
           >
             <Crown color="#fff" size={20} />
