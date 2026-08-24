@@ -131,7 +131,21 @@ export default function PhotosScreen() {
         </View>
       </View>
 
-      {isLoading ? (
+      {!isPremium ? (
+        <View style={styles.premiumOverlay}>
+          <Text style={{ fontSize: 48, marginBottom: 16 }}>🔒</Text>
+          <Text style={styles.premiumTitle}>Premium Özellik</Text>
+          <Text style={styles.premiumDesc}>
+            Ortak Galeri'ye erişmek ve anılarınızı saklamak için Premium'a geçmelisiniz.
+          </Text>
+          <TouchableOpacity 
+            style={[styles.premiumBtn, { backgroundColor: theme.accent }]}
+            onPress={() => setShowPaywall(true)}
+          >
+            <Text style={styles.premiumBtnText}>Detayları Gör</Text>
+          </TouchableOpacity>
+        </View>
+      ) : isLoading ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', padding: 10, justifyContent: 'space-between' }}>
           <Skeleton height={200} borderRadius={16} style={{ width: '48%', marginBottom: 10 }} />
           <Skeleton height={200} borderRadius={16} style={{ width: '48%', marginBottom: 10 }} />
@@ -248,4 +262,33 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 22,
   },
+  premiumOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 40,
+  },
+  premiumTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 8,
+  },
+  premiumDesc: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.5)",
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  premiumBtn: {
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 24,
+  },
+  premiumBtnText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 15,
+  }
 });
