@@ -207,7 +207,7 @@ function SaveButton({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
-  const { session, signOut, profile } = useAuth();
+  const { session, signOut, profile, refreshProfile } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
