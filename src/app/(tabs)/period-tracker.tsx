@@ -309,8 +309,6 @@ export default function PeriodTrackerScreen() {
           </View>
         </View>
       </Modal>
-        </>
-        )}
     </ScreenBackground>
   );
 }
