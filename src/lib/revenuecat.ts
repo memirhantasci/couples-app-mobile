@@ -43,6 +43,16 @@ export class RevenueCatService {
     }
   }
 
+  static async presentCodeRedemptionSheet() {
+    if (Platform.OS === 'ios') {
+      try {
+        await Purchases.presentCodeRedemptionSheet();
+      } catch (e) {
+        logger.error("Error presenting code redemption sheet", e);
+      }
+    }
+  }
+
   static async getOfferings() {
     try {
       const offerings = await Purchases.getOfferings();

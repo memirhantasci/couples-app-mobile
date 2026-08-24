@@ -14,7 +14,6 @@ import { logger } from "@/utils/logger";
 import { getTheme } from "@/lib/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { WatchAdModal } from "@/components/ui/WatchAdModal";
 

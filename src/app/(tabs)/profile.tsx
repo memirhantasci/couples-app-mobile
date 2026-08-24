@@ -19,8 +19,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getTheme, AppTheme } from "@/lib/theme";
 import { encrypt, decrypt } from "@/utils/crypto";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { RevenueCatService } from "@/lib/revenuecat";
 import {
   User,
+  Gift,
   CalendarHeart,
   LogOut,
   Trash2,
@@ -223,6 +225,14 @@ export default function ProfileScreen() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
 
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+
+  // Promosyon Kodu
+  const [promoCode, setPromoCode] = useState("");
+  const [promoLoading, setPromoLoading] = useState(false);
+
+  // Eklentiler: Tema vs
   // Verileri yükle
   React.useEffect(() => {
     if (!session?.user?.id || dataLoaded) return;
@@ -321,6 +331,32 @@ export default function ProfileScreen() {
         },
       },
     ]);
+  }
+
+  // Promosyon Kodu İşlemi
+  async function handleRedeemPromo() {
+    if (!promoCode.trim()) return;
+    setPromoLoading(true);
+    try {
+      const { data, error } = await supabase.rpc("redeem_promo_code", {
+        p_code: promoCode.trim().toUpperCase()
+      });
+      if (error) throw error;
+      
+      await refreshProfile(); // Refresh tokens / premium status
+      
+      Alert.alert(
+        "Tebrikler! 🎉",
+        data?.reward_type === "tokens" 
+          ? `${data.reward_amount} Token hesabınıza yüklendi!` 
+          : `${data.reward_amount} günlük Premium hesabınıza tanımlandı!`
+      );
+      setPromoCode("");
+    } catch (err: any) {
+      Alert.alert("Hata", err.message || "Promosyon kodu kullanılamadı.");
+    } finally {
+      setPromoLoading(false);
+    }
   }
 
   // Hesap Silme
@@ -549,6 +585,66 @@ export default function ProfileScreen() {
               Çıkış Yap
             </Text>
           </TouchableOpacity>
+        </SectionCard>
+
+        {/* Promosyon Kodları */}
+        <SectionCard title="Promosyon Kodları" icon={<Gift size={18} color={theme.accent} />} theme={theme} defaultOpen={false}>
+          <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, marginBottom: 16 }}>
+            Özel bir indirim veya hediye kodunuz varsa buradan kullanabilirsiniz.
+          </Text>
+          
+          <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
+            <TextInput
+              style={{
+                flex: 1,
+                backgroundColor: "rgba(255,255,255,0.05)",
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.1)",
+                borderRadius: 14,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                color: "#fff",
+                fontSize: 15,
+                textTransform: "uppercase"
+              }}
+              placeholder="HEDİYE KODU"
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              value={promoCode}
+              onChangeText={setPromoCode}
+              autoCapitalize="characters"
+            />
+            <TouchableOpacity
+              onPress={handleRedeemPromo}
+              disabled={promoLoading || !promoCode.trim()}
+              style={{
+                backgroundColor: theme.accent,
+                borderRadius: 14,
+                paddingHorizontal: 20,
+                justifyContent: "center",
+                opacity: (!promoCode.trim() || promoLoading) ? 0.6 : 1
+              }}
+            >
+              {promoLoading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: "#fff", fontWeight: "700" }}>Kullan</Text>}
+            </TouchableOpacity>
+          </View>
+
+          {Platform.OS === 'ios' && (
+            <TouchableOpacity
+              onPress={() => RevenueCatService.presentCodeRedemptionSheet()}
+              style={{
+                paddingVertical: 12,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.1)",
+                alignItems: "center",
+                backgroundColor: "rgba(255,255,255,0.03)"
+              }}
+            >
+              <Text style={{ color: "rgba(255,255,255,0.7)", fontWeight: "600", fontSize: 13 }}>
+                App Store Kodu Kullan (İndirimler İçin)
+              </Text>
+            </TouchableOpacity>
+          )}
         </SectionCard>
 
         {/* Tehlike Bölgesi */}
