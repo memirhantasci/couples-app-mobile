@@ -10,6 +10,8 @@ const API_KEYS = {
 };
 
 export class RevenueCatService {
+  static isInitialized = false;
+
   static async initialize() {
     try {
       if (API_KEYS.apple.includes("xxxx") || API_KEYS.google.includes("xxxx")) {
@@ -24,12 +26,14 @@ export class RevenueCatService {
       } else if (Platform.OS === 'android') {
         Purchases.configure({ apiKey: API_KEYS.google });
       }
+      this.isInitialized = true;
     } catch (e) {
       logger.error("Error initializing RevenueCat", e);
     }
   }
 
   static async logIn(userId: string) {
+    if (!this.isInitialized) return null;
     try {
       const { customerInfo } = await Purchases.logIn(userId);
       await this.syncPremiumStatus(customerInfo);
@@ -41,6 +45,7 @@ export class RevenueCatService {
   }
 
   static async logOut() {
+    if (!this.isInitialized) return;
     try {
       await Purchases.logOut();
     } catch (e) {
@@ -49,6 +54,7 @@ export class RevenueCatService {
   }
 
   static async presentCodeRedemptionSheet() {
+    if (!this.isInitialized) return;
     if (Platform.OS === 'ios') {
       try {
         await Purchases.presentCodeRedemptionSheet();
@@ -59,6 +65,7 @@ export class RevenueCatService {
   }
 
   static async getOfferings() {
+    if (!this.isInitialized) return [];
     try {
       const offerings = await Purchases.getOfferings();
       if (offerings.current !== null) {
@@ -72,6 +79,7 @@ export class RevenueCatService {
   }
 
   static async purchasePackage(rcPackage: PurchasesPackage) {
+    if (!this.isInitialized) return null;
     try {
       const { customerInfo } = await Purchases.purchasePackage(rcPackage);
       await this.syncPremiumStatus(customerInfo);
@@ -86,6 +94,7 @@ export class RevenueCatService {
   }
 
   static async restorePurchases() {
+    if (!this.isInitialized) return null;
     try {
       const customerInfo = await Purchases.restorePurchases();
       await this.syncPremiumStatus(customerInfo);
@@ -97,6 +106,7 @@ export class RevenueCatService {
   }
 
   static async getCustomerInfo() {
+    if (!this.isInitialized) return null;
     try {
       const customerInfo = await Purchases.getCustomerInfo();
       return customerInfo;
