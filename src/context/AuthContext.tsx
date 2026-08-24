@@ -139,6 +139,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(p);
   }, [session]);
 
+  // Realtime listener for database changes (e.g. premium status, token balance)
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    const channel = supabase.channel('profile_changes');
+
+    // Listen to changes on the user's row
+    channel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'users', filter: `id=eq.${session.user.id}` },
+      () => refreshProfile()
+    );
+
+    // Listen to changes on the couple's row
+    if (profile?.coupleId) {
+      channel.on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'couples', filter: `id=eq.${profile.coupleId}` },
+        () => refreshProfile()
+      );
+    }
+
+    channel.subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [session?.user?.id, profile?.coupleId, refreshProfile]);
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
   }, []);
