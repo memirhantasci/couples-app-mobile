@@ -52,14 +52,14 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
     setRewarding(true);
     try {
       const { error } = await supabase.rpc("earn_tokens", {
-        p_amount: 50,
+        p_amount: 25,
         p_reason: "ad_reward"
       });
       
       if (error) throw error;
       
       await refetchProfile();
-      Alert.alert("Tebrikler!", "50 Token kazandınız.");
+      Alert.alert("Tebrikler!", "25 Token kazandınız.");
       onSuccess();
     } catch (error: any) {
       logger.error("Earn token error:", error);
@@ -89,7 +89,7 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
           
           <Text style={styles.title}>Token Kazan</Text>
           <Text style={styles.desc}>
-            Kısa bir reklam izleyerek 50 Token kazanabilirsin.
+            Kısa bir reklam izleyerek 25 Token kazanabilirsin.
           </Text>
 
           <TouchableOpacity 
@@ -111,7 +111,7 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
             ) : (
               <>
                 <PlayCircle color="#fff" size={20} />
-                <Text style={styles.actionBtnText}>Reklamı İzle (+50)</Text>
+                <Text style={styles.actionBtnText}>Reklamı İzle (+25)</Text>
               </>
             )}
           </TouchableOpacity>

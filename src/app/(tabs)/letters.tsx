@@ -149,6 +149,14 @@ export default function LettersScreen() {
         return;
       }
 
+      if (!isPremium) {
+        const { error: spendError } = await supabase.rpc("spend_tokens", {
+          p_amount: 100,
+          p_reason: "letter_spend"
+        });
+        if (spendError) throw spendError;
+      }
+
       const { error } = await supabase.rpc("save_letter", {
         p_receiver_id: receiverId,
         p_title:       cleanTitle,
@@ -173,6 +181,21 @@ export default function LettersScreen() {
       Alert.alert("Hata", "Mektup mührlenirken bir hata oluştu.");
     } finally {
       setLoadingForm(false);
+    }
+  };
+
+  const confirmAndSave = () => {
+    if (!isPremium) {
+      Alert.alert(
+        "Token Kullanımı",
+        "Bu mektubu göndermek için 100 token kullanılacaktır. Onaylıyor musunuz?",
+        [
+          { text: "İptal", style: "cancel" },
+          { text: "Onayla", onPress: () => handleSave() }
+        ]
+      );
+    } else {
+      handleSave();
     }
   };
 
@@ -300,7 +323,7 @@ export default function LettersScreen() {
                   </View>
 
                   {/* Premium Guard */}
-                  {!isPremium && tokenBalance < 50 ? (
+                  {!isPremium && tokenBalance < 100 ? (
                     <TouchableOpacity
                       onPress={() => setShowPaywall(true)}
                       activeOpacity={0.7}
@@ -318,7 +341,7 @@ export default function LettersScreen() {
                         Premium Özellik
                       </Text>
                       <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginTop: 6, textAlign: "center", paddingHorizontal: 20 }}>
-                        Mektup yazmak için Premium'a geç veya 50 token harca
+                        Mektup yazmak için Premium'a geç veya 100 token harca
                       </Text>
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 14, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: `${theme.accent}15` }}>
                         <Text style={{ color: theme.accent, fontWeight: "700", fontSize: 13 }}>Detayları Gör →</Text>
@@ -420,7 +443,7 @@ export default function LettersScreen() {
 
                 <TouchableOpacity 
                   style={[styles.saveBtn, loadingForm && { opacity: 0.7 }]} 
-                  onPress={handleSave}
+                  onPress={confirmAndSave}
                   disabled={loadingForm}
                 >
                   {loadingForm ? (
@@ -449,30 +472,6 @@ export default function LettersScreen() {
         featureName="Mektup Yaz"
         featureDescription="Sevdiğine zamanda yolculuğa çıkan mektuplar yaz."
         gender={profile?.gender}
-        tokenOption={{
-          cost: 50,
-          currentBalance: tokenBalance,
-          onUseTokens: async () => {
-            if (isSpendingToken) return;
-            setIsSpendingToken(true);
-            try {
-              const { error } = await supabase.rpc("spend_tokens", {
-                p_amount: 50,
-                p_reason: "letter_spend"
-              });
-              if (error) throw error;
-              await refetchProfile();
-              setShowPaywall(false);
-              Alert.alert("Başarılı", "50 Token harcandı. Şimdi mektubunu yazabilirsin!");
-              // Since tokenBalance increases, the UI will automatically re-render and unlock the form
-            } catch (err: any) {
-              logger.error("Spend token error:", err);
-              Alert.alert("Hata", "Token harcanırken bir sorun oluştu.");
-            } finally {
-              setIsSpendingToken(false);
-            }
-          },
-        }}
         onWatchAd={() => {
           setShowPaywall(false);
           setShowAdModal(true);
