@@ -7,10 +7,11 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  Platform,
-  KeyboardAvoidingView
+  Platform
 } from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { WatchAdModal } from "@/components/ui/WatchAdModal";
 import { router, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
@@ -32,7 +33,8 @@ import {
   AlertTriangle,
   Menu,
   AlignJustify,
-  Wallet
+  Wallet,
+  PlayCircle
 } from "lucide-react-native";
 
 // ─── Section Card ─────────────────────────────────────────────────────────────
@@ -233,6 +235,9 @@ export default function ProfileScreen() {
   const [promoCode, setPromoCode] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
 
+  // Reklam
+  const [showAdModal, setShowAdModal] = useState(false);
+
   // Eklentiler: Tema vs
   // Verileri yükle
   React.useEffect(() => {
@@ -407,11 +412,12 @@ export default function ProfileScreen() {
 
   return (
     <ScreenBackground>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        <ScrollView
-          contentContainerStyle={{ paddingBottom: 100 }}
-          showsVerticalScrollIndicator={false}
-        >
+      <KeyboardAwareScrollView 
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+        enableOnAndroid={true}
+        extraScrollHeight={60}
+      >
         {/* Başlık */}
         <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, paddingTop: insets.top + 16, paddingHorizontal: 20 }}>
           <View style={{ width: 40 }} />
@@ -442,6 +448,27 @@ export default function ProfileScreen() {
               <Text style={{ color: "rgba(255,255,255,0.4)", fontWeight: "600", fontSize: 15 }}>Aktif Değil</Text>
             )}
           </View>
+          
+          <TouchableOpacity
+            onPress={() => setShowAdModal(true)}
+            style={{
+              marginTop: 16,
+              backgroundColor: "rgba(255, 215, 0, 0.1)",
+              borderWidth: 1,
+              borderColor: "rgba(255, 215, 0, 0.3)",
+              borderRadius: 14,
+              paddingVertical: 12,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8
+            }}
+          >
+            <PlayCircle color="#FFD700" size={18} />
+            <Text style={{ color: "#FFD700", fontWeight: "700", fontSize: 14 }}>
+              Reklam İzle & Token Kazan
+            </Text>
+          </TouchableOpacity>
         </SectionCard>
 
         {/* Silinme Uyarısı */}
@@ -706,8 +733,13 @@ export default function ProfileScreen() {
             )}
           </TouchableOpacity>
         </SectionCard>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+
+      <WatchAdModal
+        visible={showAdModal}
+        onClose={() => setShowAdModal(false)}
+        onSuccess={() => setShowAdModal(false)}
+      />
     </ScreenBackground>
   );
 }
