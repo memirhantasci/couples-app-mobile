@@ -14,6 +14,9 @@ import { logger } from "@/utils/logger";
 import { getTheme } from "@/lib/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
+import { WatchAdModal } from "@/components/ui/WatchAdModal";
 
 export default function LettersScreen() {
   const router = useRouter();
@@ -27,6 +30,12 @@ export default function LettersScreen() {
   const theme = getTheme(profile?.gender);
 
   const [letterLimit, setLetterLimit] = useState(15);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [showAdModal, setShowAdModal] = useState(false);
+  const [isSpendingToken, setIsSpendingToken] = useState(false);
+  const isPremium = profile?.isPremium ?? false;
+  const tokenBalance = profile?.tokenBalance ?? 0;
+  const { refetchProfile } = useAuth();
 
   // --- Mektupları Getir ---
   const { data, isLoading } = useQuery({
@@ -291,6 +300,34 @@ export default function LettersScreen() {
                     </Text>
                   </View>
 
+                  {/* Premium Guard */}
+                  {!isPremium && tokenBalance < 50 ? (
+                    <TouchableOpacity
+                      onPress={() => setShowPaywall(true)}
+                      activeOpacity={0.7}
+                      style={{
+                        alignItems: "center",
+                        paddingVertical: 30,
+                        borderRadius: 16,
+                        backgroundColor: "rgba(255,255,255,0.03)",
+                        borderWidth: 1,
+                        borderColor: "rgba(255,255,255,0.06)",
+                      }}
+                    >
+                      <Lock color={theme.accent} size={32} />
+                      <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16, marginTop: 12 }}>
+                        Premium Özellik
+                      </Text>
+                      <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginTop: 6, textAlign: "center", paddingHorizontal: 20 }}>
+                        Mektup yazmak için Premium'a geç veya 50 token harca
+                      </Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 14, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: `${theme.accent}15` }}>
+                        <Text style={{ color: theme.accent, fontWeight: "700", fontSize: 13 }}>Detayları Gör →</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ) : (
+                  <View>
+
                   <View style={styles.inputGroup}>
                     <Text style={[styles.label, errors.receiver && { color: "red" }]}>KİME</Text>
                     <View style={styles.usersRow}>
@@ -398,11 +435,57 @@ export default function LettersScreen() {
                 </TouchableOpacity>
 
                 </View>
+                  )}
+              </View>
               )}
             />
           )}
         </View>
       </KeyboardAvoidingView>
+
+      {/* Premium Paywall Modal */}
+      <PremiumPaywall
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        featureName="Mektup Yaz"
+        featureDescription="Sevdiğine zamanda yolculuğa çıkan mektuplar yaz."
+        gender={profile?.gender}
+        tokenOption={{
+          cost: 50,
+          currentBalance: tokenBalance,
+          onUseTokens: async () => {
+            if (isSpendingToken) return;
+            setIsSpendingToken(true);
+            try {
+              const { error } = await supabase.rpc("spend_tokens", {
+                p_amount: 50,
+                p_reason: "letter_spend"
+              });
+              if (error) throw error;
+              await refetchProfile();
+              setShowPaywall(false);
+              Alert.alert("Başarılı", "50 Token harcandı. Şimdi mektubunu yazabilirsin!");
+              // Since tokenBalance increases, the UI will automatically re-render and unlock the form
+            } catch (err: any) {
+              logger.error("Spend token error:", err);
+              Alert.alert("Hata", "Token harcanırken bir sorun oluştu.");
+            } finally {
+              setIsSpendingToken(false);
+            }
+          },
+        }}
+        onWatchAd={() => {
+          setShowPaywall(false);
+          setShowAdModal(true);
+        }}
+      />
+
+      <WatchAdModal
+        visible={showAdModal}
+        onClose={() => setShowAdModal(false)}
+        onSuccess={() => setShowAdModal(false)}
+      />
+
     </ScreenBackground>
   );
 }

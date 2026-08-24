@@ -13,6 +13,8 @@ import { ChevronRight, Heart, FileText, Frown, Smile, Meh, AlertCircle, Sparkles
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getTheme } from "@/lib/theme";
+import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
+import { Lock } from "lucide-react-native";
 
 LocaleConfig.locales['tr'] = {
   monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
@@ -39,6 +41,8 @@ export default function CalendarScreen() {
   const theme = getTheme(profile?.gender);
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
+  const isPremium = profile?.isPremium ?? false;
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // Fetch Data
   const { data, isLoading , refetch} = useQuery({
@@ -117,7 +121,7 @@ export default function CalendarScreen() {
       }
     };
 
-    data.notes.forEach(n => addDot(n.date, "#E8002D", "note"));
+    data.notes.forEach(n => addDot(n.date, theme.accent, "note"));
     data.moods.forEach(m => {
       const isMe = m.user_id === userId;
       addDot(m.date, isMe ? "#FFD700" : "#64b4ff", isMe ? "my-mood" : "partner-mood");
@@ -128,7 +132,7 @@ export default function CalendarScreen() {
     if (selectedDate) {
       if (!marks[selectedDate]) marks[selectedDate] = {};
       marks[selectedDate].selected = true;
-      marks[selectedDate].selectedColor = "#E8002D";
+      marks[selectedDate].selectedColor = theme.accent;
     }
 
     return marks;
@@ -258,8 +262,23 @@ export default function CalendarScreen() {
         {/* Photos */}
         {selectedDayPhotos.length > 0 && (
           <View style={{ gap: 16 }}>
-            {selectedDayPhotos.map(photo => {
-              const uploaderName = getAuthorName(photo.user_id);
+            {!isPremium ? (
+              <TouchableOpacity
+                onPress={() => setShowPaywall(true)}
+                activeOpacity={0.8}
+                style={[styles.photoCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBg, height: 180, justifyContent: "center", alignItems: "center" }]}
+              >
+                <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.05)", justifyContent: "center", alignItems: "center", marginBottom: 12 }}>
+                  <Lock color={theme.accent} size={24} />
+                </View>
+                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16, marginBottom: 4 }}>Fotoğraflar Gizli</Text>
+                <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, textAlign: "center", paddingHorizontal: 20 }}>
+                  Takvimdeki fotoğrafları görmek için Premium'a geç.
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              selectedDayPhotos.map(photo => {
+                const uploaderName = getAuthorName(photo.user_id);
               const avatarUrl = getAuthorAvatar(photo.user_id);
 
               return (
@@ -288,14 +307,15 @@ export default function CalendarScreen() {
                   </View>
                 </View>
               );
-            })}
+            })
+            )}
           </View>
         )}
 
         {/* Notes */}
         {selectedDayNotes.length > 0 && (
           <View>
-            <View style={[styles.sectionHeader, { borderLeftColor: "#E8002D" }]}>
+            <View style={[styles.sectionHeader, { borderLeftColor: theme.accent }]}>
               <Text style={styles.sectionHeaderText}>GÜNLÜK ÖZET</Text>
             </View>
             <View style={{ gap: 10 }}>
@@ -433,7 +453,7 @@ export default function CalendarScreen() {
           {/* Legend Inside Calendar Card */}
           <View style={styles.legendRow}>
             {[
-              { color: "#E8002D", label: "Notlar" },
+              { color: theme.accent, label: "Notlar" },
               { color: "#FFD700", label: "E. Ruh Hali" },
               { color: "#22c55e", label: "Fotoğraflar" },
               { color: "#64b4ff", label: "O. Ruh Hali" },
@@ -472,43 +492,49 @@ export default function CalendarScreen() {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.modalOverlay}
         >
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: theme.cardBg, borderColor: "rgba(255,255,255,0.05)" }]}>
             <TouchableOpacity style={styles.closeBtn} onPress={() => setShowTodayModal(false)}>
-              <X color="rgba(255,255,255,0.5)" size={20} />
+              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.05)", justifyContent: 'center', alignItems: 'center' }}>
+                <X color="rgba(255,255,255,0.6)" size={18} />
+              </View>
             </TouchableOpacity>
 
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <CalendarIcon color="#E8002D" size={20} />
-              <Text style={styles.modalTitle}>Bugün</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8, marginTop: 4 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: `${theme.accent}15`, justifyContent: 'center', alignItems: 'center' }}>
+                <CalendarIcon color={theme.accent} size={18} />
+              </View>
+              <View>
+                <Text style={styles.modalTitle}>Günün Notu</Text>
+                <Text style={styles.modalSubtitle}>
+                  {dayjs(today).format("DD MMMM YYYY, dddd")}
+                </Text>
+              </View>
             </View>
-            <Text style={styles.modalSubtitle}>
-              {dayjs(today).format("DD MMMM YYYY, dddd")}
-            </Text>
 
             <TextInput
               value={noteText}
               onChangeText={setNoteText}
-              placeholder="Bu güne dair bir not bırak..."
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholder="Bugün nasıl geçti? Özel bir şey var mı?"
+              placeholderTextColor="rgba(255,255,255,0.3)"
               multiline
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: "rgba(0,0,0,0.2)", borderColor: "rgba(255,255,255,0.03)" }]}
               autoFocus
             />
 
-            <View style={{ flexDirection: "row", gap: 10, marginTop: 14 }}>
+            <View style={{ flexDirection: "row", gap: 12, marginTop: 20 }}>
               {todayNote && (
                 <TouchableOpacity 
                   onPress={handleDeleteNote} 
                   disabled={saving}
-                  style={styles.deleteBtn}
+                  style={[styles.deleteBtn, { backgroundColor: "rgba(255,59,48,0.1)", borderColor: "transparent" }]}
                 >
-                  <Trash2 color="rgba(255,100,100,0.8)" size={18} />
+                  <Trash2 color="#FF3B30" size={20} />
                 </TouchableOpacity>
               )}
               <TouchableOpacity 
                 onPress={handleSaveNote}
                 disabled={saving || !noteText.trim()}
-                style={[styles.saveBtn, (saving || !noteText.trim()) && { opacity: 0.5 }]}
+                style={[styles.saveBtn, { backgroundColor: theme.accent }, (saving || !noteText.trim()) && { opacity: 0.5 }]}
               >
                 <Save color="#fff" size={18} />
                 <Text style={styles.saveBtnText}>
@@ -520,6 +546,14 @@ export default function CalendarScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <PremiumPaywall
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        featureName="Takvim Fotoğrafları"
+        featureDescription="Geçmiş günlerdeki fotoğrafları görüntülemek için Premium'a geçin."
+        gender={profile?.gender}
+      />
 
     </ScreenBackground>
   );

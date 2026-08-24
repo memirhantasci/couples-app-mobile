@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { dayjs, todayString } from "@/lib/date";
 import { getTheme } from "@/lib/theme";
+import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 
 export default function PhotosScreen() {
   const router = useRouter();
@@ -24,6 +25,8 @@ export default function PhotosScreen() {
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
+  const isPremium = profile?.isPremium ?? false;
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const PAGE_SIZE = 20;
 
@@ -61,6 +64,10 @@ export default function PhotosScreen() {
 
   // Fotoğraf Yükle sayfasına yönlendir
   const goToUpload = () => {
+    if (!isPremium) {
+      setShowPaywall(true);
+      return;
+    }
     router.push("/(tabs)/add-photo");
   };
 
@@ -152,6 +159,15 @@ export default function PhotosScreen() {
           <Text style={styles.emptyText}>Henüz hiç fotoğraf yüklemediniz.</Text>
         </View>
       )}
+
+      {/* Premium Paywall */}
+      <PremiumPaywall
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        featureName="Fotoğraf Galerisi"
+        featureDescription="Fotoğraflarınızı birlikte yükleyin, düzenleyin ve saklayın."
+        gender={profile?.gender}
+      />
 
     </ScreenBackground>
   );

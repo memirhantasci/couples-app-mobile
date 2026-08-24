@@ -12,6 +12,8 @@ export interface CoupleProfile {
   hasDates: boolean;
   displayName: string | null;
   gender: string | null;
+  isPremium: boolean;
+  tokenBalance: number;
 }
 
 interface AuthContextValue {
@@ -41,7 +43,8 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
       display_name, 
       gender, 
       couple_id,
-      couples!users_couple_id_fkey(meet_date, relationship_start_date, member_count)
+      token_balance,
+      couples!users_couple_id_fkey(meet_date, relationship_start_date, member_count, is_premium, premium_expires_at)
     `)
     .eq("id", userId)
     .single();
@@ -55,11 +58,17 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
       hasDates: false,
       displayName: null,
       gender: null,
+      isPremium: false,
+      tokenBalance: 0,
     };
   }
 
   // Handle both possible shapes from Supabase join (array or object depending on relation type)
   const coupleObj = Array.isArray(user.couples) ? user.couples[0] : user.couples;
+
+  // Premium durumunu kontrol et (süresi dolmuş mu?)
+  const premiumExpiresAt = coupleObj?.premium_expires_at;
+  const isPremiumActive = !!(coupleObj?.is_premium && (!premiumExpiresAt || new Date(premiumExpiresAt) > new Date()));
 
   return {
     coupleId: user.couple_id ? parseInt(String(user.couple_id), 10) : null,
@@ -69,6 +78,8 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
     hasDates: !!(coupleObj?.meet_date && coupleObj?.relationship_start_date),
     displayName: user.display_name ? decrypt(user.display_name) : null,
     gender: user.gender ?? null,
+    isPremium: isPremiumActive,
+    tokenBalance: user.token_balance ?? 0,
   };
 }
 

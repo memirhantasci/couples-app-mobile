@@ -9,10 +9,11 @@ import { dayjs, todayString } from "@/lib/date";
 import { deterministicDecrypt } from "@/utils/crypto";
 import { logger } from "@/utils/logger";
 import { Calendar, LocaleConfig } from "react-native-calendars";
-import { X, Check, ChevronLeft, Menu, AlignJustify } from "lucide-react-native";
+import { X, Check, ChevronLeft, Menu, AlignJustify, Lock, Crown } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getTheme } from "@/lib/theme";
+import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 
 LocaleConfig.locales['tr'] = {
   monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
@@ -50,6 +51,11 @@ export default function PeriodTrackerScreen() {
   });
 
   const isFemale = userData?.gender === "female";
+  const isPremium = profile?.isPremium ?? false;
+  const [showPaywall, setShowPaywall] = useState(false);
+
+  // Erkek ve premium değilse, sayfa tamamen kilitli
+  const isMaleLocked = !isFemale && !isPremium;
 
   const { data: logs, isLoading , refetch: refetch_1} = useQuery({
     queryKey: ["period_logs", userId],
@@ -153,6 +159,38 @@ export default function PeriodTrackerScreen() {
             <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
           </TouchableOpacity>
         </View>
+
+        {/* Male Premium Lock */}
+        {isMaleLocked ? (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 30, paddingVertical: 60 }}>
+            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(200,0,30,0.1)", justifyContent: "center", alignItems: "center", marginBottom: 20 }}>
+              <Lock color="#E8002D" size={36} />
+            </View>
+            <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800", textAlign: "center", marginBottom: 10 }}>
+              Premium Özellik
+            </Text>
+            <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, textAlign: "center", lineHeight: 22, marginBottom: 24 }}>
+              Partnerinin regl döngüsünü takip etmek için Premium'a geçmen gerekiyor.
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowPaywall(true)}
+              activeOpacity={0.8}
+              style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 16, backgroundColor: "#E8002D" }}
+            >
+              <Crown color="#fff" size={18} />
+              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Premium'a Geç</Text>
+            </TouchableOpacity>
+
+            <PremiumPaywall
+              visible={showPaywall}
+              onClose={() => setShowPaywall(false)}
+              featureName="Regl Takvimi"
+              featureDescription="Partnerinin döngüsünü takip et, beraber planlayın."
+              gender={profile?.gender}
+            />
+          </View>
+        ) : (
+        <>
 
         {isLoading ? (
           <View style={{ gap: 16, marginTop: 40, paddingHorizontal: 20 }}>
@@ -270,6 +308,8 @@ export default function PeriodTrackerScreen() {
           </View>
         </View>
       </Modal>
+        </>
+        )}
     </ScreenBackground>
   );
 }

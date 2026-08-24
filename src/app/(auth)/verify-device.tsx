@@ -16,6 +16,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { ArrowLeft, ShieldAlert } from "lucide-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const OTP_LENGTH = 6;
 
@@ -75,13 +76,20 @@ export default function VerifyDeviceScreen() {
     setErrorMsg("");
     
     try {
-      const { data: success, error: rpcError } = await supabase.rpc("verify_device_otp", {
-        p_user_id: userId,
-        p_device_id: deviceId,
-        p_code: code,
+      if (!email) {
+        setErrorMsg("E-posta adresi bulunamadı.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Verify the OTP using Supabase's native auth system
+      const { data, error: otpError } = await supabase.auth.verifyOtp({
+        email,
+        token: code,
+        type: "email",
       });
 
-      if (rpcError || !success) {
+      if (otpError || !data.session) {
         setErrorMsg("Geçersiz veya süresi dolmuş kod.");
         setIsLoading(false);
         setDigits(Array(OTP_LENGTH).fill(""));
@@ -90,6 +98,28 @@ export default function VerifyDeviceScreen() {
         return;
       }
 
+      // If successful, register the device
+      const { error: insertError } = await supabase
+        .from("device_authorizations")
+        .upsert({
+          user_id: userId,
+          device_id: deviceId,
+          device_name: Platform.OS, // Basic device info
+          is_authorized: true,
+        }, { onConflict: "user_id, device_id" }) // Upsert in case it was added before
+        .select();
+
+      if (insertError) {
+         // Fallback if upsert fails, try simple insert (schema dependent)
+         await supabase.from("device_authorizations").insert({
+           user_id: userId,
+           device_id: deviceId,
+           device_name: Platform.OS,
+           is_authorized: true,
+         });
+      }
+
+      await AsyncStorage.setItem("last_user_id", userId);
       await refreshProfile();
       router.replace("/(tabs)/home");
     } catch (e: any) {

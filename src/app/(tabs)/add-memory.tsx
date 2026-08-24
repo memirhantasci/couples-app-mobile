@@ -16,6 +16,7 @@ import { dayjs, todayString, formatDateTR } from "@/lib/date";
 import { getTheme } from "@/lib/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 
 export default function AddMemoryScreen() {
   const router = useRouter();
@@ -35,6 +36,8 @@ export default function AddMemoryScreen() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({ title: false, date: false });
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const isPremium = profile?.isPremium ?? false;
   useFocusEffect(
     useCallback(() => {
       // Ekran her odaklandığında formu temizle (eğer yeni ekleme modundaysa)
@@ -53,6 +56,10 @@ export default function AddMemoryScreen() {
   const coupleId = profile?.coupleId || null;
 
   async function pickImage() {
+    if (!isPremium) {
+      setShowPaywall(true);
+      return;
+    }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
@@ -248,6 +255,14 @@ export default function AddMemoryScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <PremiumPaywall
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        featureName="Fotoğraflı Özel Gün"
+        featureDescription="Özel günlerinize fotoğraf eklemek için Premium'a geçmeniz gerekmektedir."
+        gender={profile?.gender}
+      />
     </ScreenBackground>
   );
 }

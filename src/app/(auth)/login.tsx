@@ -167,8 +167,49 @@ export default function LoginScreen() {
         return;
       }
 
-      // Device verification (Temporarily bypassed because DB tables aren't created yet)
+      // --- Device Verification ---
       const userId = data.user.id;
+      
+      // 1. Get or generate a persistent device ID for this installation
+      let deviceId = await AsyncStorage.getItem("device_id");
+      if (!deviceId) {
+        deviceId = generateUUID();
+        await AsyncStorage.setItem("device_id", deviceId);
+      }
+
+      // 2. Check last logged in user on this device
+      const lastUserId = await AsyncStorage.getItem("last_user_id");
+
+      // 3. Check if this device is authorized for this user
+      const { data: auths, error: authError } = await supabase
+        .from("device_authorizations")
+        .select("is_authorized")
+        .eq("user_id", userId)
+        .eq("device_id", deviceId)
+        .maybeSingle();
+
+      // If the account on the device changed, or it's not authorized, force OTP
+      if (lastUserId !== userId || authError || !auths || !auths.is_authorized) {
+        // Send OTP email
+        const { error: otpError } = await supabase.auth.signInWithOtp({
+          email: emailToUse,
+        });
+
+        if (otpError) {
+          setErrorMsg("Cihaz doğrulama kodu gönderilemedi.");
+          setIsLoading(false);
+          return;
+        }
+
+        setSuccessMsg("Yeni cihaz algılandı. Doğrulama kodu gönderildi.");
+        setTimeout(() => {
+          router.push({
+            pathname: "/(auth)/verify-device",
+            params: { userId, deviceId, email: emailToUse },
+          });
+        }, 1500);
+        return;
+      }
 
       setLoginAttempts(0);
       setLockedUntil(null);
