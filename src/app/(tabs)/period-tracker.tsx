@@ -255,7 +255,8 @@ export default function PeriodTrackerScreen() {
             </View>
           </>
         )}
-
+        </>
+        )}
       </ScrollView>
 
       {/* Modal */}
