@@ -290,7 +290,7 @@ export default function LettersScreen() {
                   </View>
                 ) : null
               )}
-              ListFooterComponent={() => (
+              ListFooterComponent={
                 <View style={[styles.formBox, { backgroundColor: theme.cardBg, borderColor: 'transparent' }]}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 24 }}>
                     <Text style={{ fontSize: 18 }}>✍️</Text>
@@ -436,7 +436,7 @@ export default function LettersScreen() {
                 </View>
                   )}
               </View>
-              )}
+              }
             />
           )}
         </View>
