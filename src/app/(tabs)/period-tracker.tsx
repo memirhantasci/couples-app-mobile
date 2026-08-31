@@ -137,16 +137,27 @@ export default function PeriodTrackerScreen() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.rpc("toggle_period_log", {
-        p_date: selectedDate
-      });
-      if (error) throw error;
+      if (isAdding) {
+        const { error } = await supabase.from("period_logs").insert({
+          user_id: userId,
+          date: selectedDate,
+          type: "period",
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("period_logs")
+          .delete()
+          .eq("user_id", userId)
+          .eq("date", selectedDate);
+        if (error) throw error;
+      }
 
       queryClient.invalidateQueries({ queryKey: ["period_logs"] });
       setSelectedDate(null);
     } catch (error: any) {
       logger.error("Period save error:", error);
-      Alert.alert("Hata", "İşlem sırasında bir hata oluştu.");
+      Alert.alert("Hata", error?.message || "İşlem sırasında bir hata oluştu.");
     } finally {
       setLoading(false);
     }
