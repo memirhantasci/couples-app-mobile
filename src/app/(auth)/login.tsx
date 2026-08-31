@@ -416,8 +416,9 @@ export default function LoginScreen() {
               <Text
                 style={{
                   color: "#FFFFFF",
-                  fontSize: 30,
-                  fontFamily: "PlayfairDisplay_400Regular_Italic",
+                  fontSize: 28,
+                  fontFamily: "Inter_700Bold",
+                  letterSpacing: -0.5,
                   marginBottom: 8,
                 }}
               >

@@ -4,6 +4,7 @@ import { Session } from "@supabase/supabase-js";
 import { RevenueCatService } from "@/lib/revenuecat";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { decrypt } from "@/utils/crypto";
+import { setAdLoggingOut } from "@/hooks/useInterstitialAd";
 
 export interface CoupleProfile {
   coupleId: number | null;   // integer — DB'de INTEGER tipinde
@@ -103,6 +104,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(null);
         setIsLoading(false);
         RevenueCatService.logOut();
+      } else {
+        setAdLoggingOut(false);
       }
     });
 
@@ -169,6 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [session?.user?.id, profile?.coupleId, refreshProfile]);
 
   const signOut = useCallback(async () => {
+    setAdLoggingOut(true);
     await supabase.auth.signOut();
   }, []);
 

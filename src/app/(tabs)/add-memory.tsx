@@ -277,8 +277,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
-    fontFamily: "PlayfairDisplay_400Regular_Italic",
+    fontFamily: "Inter_700Bold",
     color: "#fff",
+    letterSpacing: -0.5,
   },
   content: {
     padding: 20,

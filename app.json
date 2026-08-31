@@ -14,7 +14,8 @@
       "infoPlist": {
         "NSUserNotificationsUsageDescription": "Partnerinden mektup geldiğinde veya özel bir günün yaklaştığında seni haberdar etmek için bildirim göndermek istiyoruz.",
         "NSCameraUsageDescription": "Anılarına fotoğraf ekleyebilmek için kameraya erişmemiz gerekiyor.",
-        "NSPhotoLibraryUsageDescription": "Anılarına fotoğraf ekleyebilmek için fotoğraf kütüphanesine erişmemiz gerekiyor."
+        "NSPhotoLibraryUsageDescription": "Anılarına fotoğraf ekleyebilmek için fotoğraf kütüphanesine erişmemiz gerekiyor.",
+        "NSLocationWhenInUseUsageDescription": "Buluşma noktası seçerken mevcut konumunuzu haritada gösterebilmek için konum erişimi gereklidir."
       }
     },
     "android": {
@@ -28,7 +29,9 @@
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
-        "android.permission.POST_NOTIFICATIONS"
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
       ],
       "package": "com.memirhantasci.couplesapp",
       "googleServicesFile": "./google-services.json"

@@ -185,8 +185,9 @@ export default function PairingScreen() {
             <Text
               style={{
                 color: "#FFFFFF",
-                fontSize: 34,
-                fontFamily: "PlayfairDisplay_400Regular_Italic",
+                fontSize: 30,
+                fontFamily: "Inter_700Bold",
+                letterSpacing: -0.5,
                 marginBottom: 8,
               }}
             >

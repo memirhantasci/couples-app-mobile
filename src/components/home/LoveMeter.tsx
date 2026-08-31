@@ -72,12 +72,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontFamily: "PlayfairDisplay_400Regular_Italic",
+    fontFamily: "Inter_700Bold",
     color: "#fff",
   },
   percentLabel: {
     fontSize: 32,
-    fontFamily: "PlayfairDisplay_400Regular_Italic",
+    fontFamily: "Inter_700Bold",
   },
   track: {
     height: 8,

@@ -1,30 +1,40 @@
-import React, { useCallback,  useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput, Platform, KeyboardAvoidingView } from "react-native";
+import React, { useState } from "react";
+import { 
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, 
+  ActivityIndicator, Alert, Modal, TextInput, Platform 
+} from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Pill, CheckCircle2, Check, X, Settings, Trash2, User, Users, Edit2, ChevronLeft, Menu, Save , AlignJustify} from "lucide-react-native";
+import { 
+  Pill, CheckCircle2, Check, X, Settings, Trash2, 
+  Edit2, ChevronLeft, AlignJustify, Plus, Clock, 
+  Calendar, AlertCircle, Sparkles, ChevronRight
+} from "lucide-react-native";
 import { getTheme } from "@/lib/theme";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { dayjs, todayString } from "@/lib/date";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 const getRelativeDateLabel = (dateStr: string) => {
   const d = dayjs(dateStr);
   if (d.isSame(dayjs(), "day")) return "Bugün";
   if (d.isSame(dayjs().subtract(1, "day"), "day")) return "Dün";
-  return d.format("D MMM");
+  return d.locale("tr").format("D MMMM");
 };
 
 export default function MedicineScreen() {
   const { profile, session } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
   const coupleId = profile?.coupleId;
   const userId = session?.user?.id ? session.user.id : null;
+  const theme = getTheme(profile?.gender);
 
   const todayStr = todayString();
   const [loadingSlot, setLoadingSlot] = useState<string | null>(null);
@@ -50,7 +60,7 @@ export default function MedicineScreen() {
 
   const fourteenDaysAgo = dayjs().subtract(14, "day").format("YYYY-MM-DD");
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["medicine_data", coupleId],
     enabled: !!coupleId && !!userId,
     queryFn: async () => {
@@ -60,8 +70,6 @@ export default function MedicineScreen() {
           .select("id, name, time, times, start_date, end_date, is_active, user_id")
           .eq("couple_id", coupleId)
           .eq("is_active", true)
-          .lte("start_date", todayStr)
-          .gte("end_date", todayStr)
           .order("time"),
         supabase
           .from("medicine_logs")
@@ -93,10 +101,8 @@ export default function MedicineScreen() {
   const updateLogMutation = useMutation({
     mutationFn: async ({ medicineId, status, timeSlot }: { medicineId: number; status: string; timeSlot: string }) => {
       const safeTimeSlot = (timeSlot && timeSlot.trim() !== "") ? timeSlot.trim() : "08:00";
-      const safeUserId = userId;
       const safeCoupleId = coupleId ?? null;
 
-      // Use RPC to atomically upsert — avoids all PostgREST DEFAULT issues
       const { error } = await supabase.rpc("log_medicine_dose", {
         p_medicine_id: medicineId,
         p_date: todayStr,
@@ -109,7 +115,6 @@ export default function MedicineScreen() {
     },
     onMutate: async ({ medicineId, status, timeSlot }) => {
       setLoadingSlot(`${medicineId}_${timeSlot}`);
-      
       await queryClient.cancelQueries({ queryKey: ["medicine_data", coupleId] });
       const previousData = queryClient.getQueryData(["medicine_data", coupleId]);
       
@@ -117,35 +122,31 @@ export default function MedicineScreen() {
         if (!old) return old;
         const newLogs = [...old.todayLogs];
         const idx = newLogs.findIndex((l: any) => l.medicine_id === medicineId && l.time === timeSlot && l.user_id === userId);
-        
         if (idx >= 0) {
           newLogs[idx] = { ...newLogs[idx], status };
         } else {
           newLogs.push({
             medicine_id: medicineId,
-            status,
             date: todayStr,
             time: timeSlot,
-            user_id: userId
+            status,
+            user_id: userId,
           });
         }
         return { ...old, todayLogs: newLogs };
       });
-      
+
       return { previousData };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["medicine_data"] });
-      queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
-    },
-    onError: (error, newLog, context: any) => {
-      Alert.alert("Hata", "İşlem başarısız oldu. Lütfen tekrar deneyin.");
+    onError: (err, variables, context) => {
       if (context?.previousData) {
         queryClient.setQueryData(["medicine_data", coupleId], context.previousData);
       }
+      Alert.alert("Hata", "Durum güncellenirken bir sorun oluştu.");
     },
     onSettled: () => {
       setLoadingSlot(null);
+      queryClient.invalidateQueries({ queryKey: ["medicine_data", coupleId] });
     },
   });
 
@@ -153,84 +154,75 @@ export default function MedicineScreen() {
     updateLogMutation.mutate({ medicineId, status, timeSlot });
   };
 
-  const handleAddMedicine = async () => {
+  const handleFrequencyChange = (freq: 1 | 2 | 3) => {
+    setMedFrequency(freq);
+    const newTimes: Date[] = [];
+    const defaults = ["09:00", "14:00", "20:00"];
+    for (let i = 0; i < freq; i++) {
+      const d = new Date();
+      const [h, m] = defaults[i].split(":");
+      d.setHours(parseInt(h, 10));
+      d.setMinutes(parseInt(m, 10));
+      newTimes.push(medTimes[i] || d);
+    }
+    setMedTimes(newTimes);
+  };
+
+  const handleSaveMedicine = async () => {
     if (!medName.trim()) {
       setMedError(true);
-      Alert.alert("Hata", "Lütfen ilaç adını girin.");
       return;
     }
-
-    const now = new Date();
-    const formattedStart = dayjs(medStartDate).format("YYYY-MM-DD");
-    const todayStrFormat = dayjs().format("YYYY-MM-DD");
-    const isToday = formattedStart === todayStrFormat;
-    
-    if (dayjs(formattedStart).isBefore(dayjs(todayStrFormat))) {
-       Alert.alert("Hata", "Geçmiş bir tarihe ilaç ekleyemezsiniz!");
-       return;
-    }
-    
-    if (isToday) {
-       const allPast = medTimes.every(t => {
-           const timeDate = new Date();
-           timeDate.setHours(t.getHours(), t.getMinutes(), 0, 0);
-           return timeDate < now;
-       });
-       if (allPast) {
-           Alert.alert("Hata", "Seçtiğiniz saatler geçmişte. Lütfen ileri bir saat seçin veya tarihi yarına alın.");
-           return;
-       }
-    }
+    if (!coupleId || !userId) return;
 
     setIsSubmitting(true);
-    
-    let targetUserId = userId;
-    if (isPartnerAdd) {
-      const { data: partner } = await supabase.from("users").select("id").eq("couple_id", coupleId).neq("id", userId).single();
-      if (partner) targetUserId = partner.id;
-    }
+    try {
+      let targetUserId = userId;
+      if (isPartnerAdd) {
+        const { data: partnerData } = await supabase
+          .from("users")
+          .select("id")
+          .eq("couple_id", coupleId)
+          .neq("id", userId)
+          .maybeSingle();
 
-    const formattedEnd = dayjs(medEndDate).format("YYYY-MM-DD");
-    const formattedTimes = medTimes.map(t => dayjs(t).format("HH:mm"));
-
-    if (editingMedicineId) {
-      const { error } = await supabase.from("medicines").update({
-        name: medName,
-        start_date: formattedStart,
-        end_date: formattedEnd,
-        time: formattedTimes[0],
-        times: formattedTimes,
-      }).eq("id", editingMedicineId).eq("couple_id", coupleId);
-      
-      setIsSubmitting(false);
-      
-      if (error) {
-        Alert.alert("Hata", "İlaç güncellenirken hata oluştu.");
-      } else {
-        resetForm();
-        refetch();
+        if (!partnerData?.id) {
+          Alert.alert("Bilgi", "Partneriniz henüz eşleşmemiş.");
+          setIsSubmitting(false);
+          return;
+        }
+        targetUserId = partnerData.id;
       }
-    } else {
-      const medInsertPayload: any = {
-        name: medName,
-        start_date: formattedStart,
-        end_date: formattedEnd,
+
+      const formattedTimes = medTimes.map(t => dayjs(t).format("HH:mm"));
+      const payload: any = {
+        name: medName.trim(),
+        start_date: dayjs(medStartDate).format("YYYY-MM-DD"),
+        end_date: dayjs(medEndDate).format("YYYY-MM-DD"),
         time: formattedTimes[0],
         times: formattedTimes,
         user_id: targetUserId,
+        couple_id: coupleId,
         is_active: true,
       };
-      if (coupleId) medInsertPayload.couple_id = coupleId;
-      const { error } = await supabase.from("medicines").insert(medInsertPayload);
 
-      setIsSubmitting(false);
-
-      if (error) {
-        Alert.alert("Hata", "İlaç eklenirken hata oluştu.");
+      if (editingMedicineId) {
+        const { error } = await supabase.from("medicines").update(payload).eq("id", editingMedicineId);
+        if (error) throw error;
+        Alert.alert("Başarılı 🎉", "İlaç bilgisi güncellendi.");
       } else {
-        resetForm();
-        refetch();
+        const { error } = await supabase.from("medicines").insert(payload);
+        if (error) throw error;
+        Alert.alert("Başarılı 🎉", "Yeni ilaç kaydedildi.");
       }
+
+      resetForm();
+      setShowManagerModal(false);
+      refetch();
+    } catch (err: any) {
+      Alert.alert("Hata", err?.message || "Beklenmeyen bir hata oluştu.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -242,7 +234,6 @@ export default function MedicineScreen() {
     setMedTimes([new Date()]);
     setMedError(false);
     setEditingMedicineId(null);
-    queryClient.invalidateQueries({ queryKey: ["medicine_data"] });
   };
 
   const handleEditMedicine = (med: any) => {
@@ -250,7 +241,6 @@ export default function MedicineScreen() {
     setMedName(med.name);
     setMedStartDate(new Date(med.start_date));
     setMedEndDate(new Date(med.end_date));
-    
     setIsPartnerAdd(med.user_id !== userId);
     
     if (med.times && Array.isArray(med.times) && med.times.length > 0) {
@@ -275,9 +265,11 @@ export default function MedicineScreen() {
 
   const handleDeleteMedicine = async (id: number) => {
     Alert.alert("İlacı Sil", "Bu ilacı silmek istediğinize emin misiniz?", [
-      { text: "İptal", style: "cancel" },
+      { text: "Vazgeç", style: "cancel" },
       {
-        text: "Sil", style: "destructive", onPress: async () => {
+        text: "Sil", 
+        style: "destructive", 
+        onPress: async () => {
           setIsDeleting(id);
           const { error } = await supabase.from("medicines").delete().eq("id", id).eq("couple_id", coupleId);
           setIsDeleting(null);
@@ -292,7 +284,8 @@ export default function MedicineScreen() {
   };
 
   const allMedicines = data?.medicines || [];
-  const filteredMedicines = allMedicines.filter(m => activeTab === "me" ? m.user_id === userId : m.user_id !== userId);
+  const todayMedicines = allMedicines.filter(m => m.start_date <= todayStr && m.end_date >= todayStr);
+  const filteredMedicines = todayMedicines.filter(m => activeTab === "me" ? m.user_id === userId : m.user_id !== userId);
   const todayLogs = data?.todayLogs || [];
   
   const map: Record<string, string> = {};
@@ -302,8 +295,8 @@ export default function MedicineScreen() {
   });
   
   filteredMedicines.forEach((m) => {
-    const medTimes = Array.isArray(m.times) && m.times.length > 0 ? m.times.map((t) => t.substring(0, 5)) : [m.time ? m.time.substring(0, 5) : "08:00"];
-    medTimes.forEach((t) => {
+    const times = Array.isArray(m.times) && m.times.length > 0 ? m.times.map((t) => t.substring(0, 5)) : [m.time ? m.time.substring(0, 5) : "08:00"];
+    times.forEach((t) => {
       const key = `${m.id}_${t}`;
       if (!map[key]) {
         const legacyLog = todayLogs.find((l) => l.medicine_id === m.id && (!l.time || l.time === ""));
@@ -313,11 +306,9 @@ export default function MedicineScreen() {
   });
 
   const now = new Date();
-  const currentTimeStr = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+  const currentHMS = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
-  const theme = getTheme(profile?.gender);
-
-  // Group history logs
+  // Geçmiş logları grupla
   const historyGrouped: Record<string, any[]> = {};
   data?.historicalLogs?.forEach(log => {
     if (activeTab === "me" && log.user_id !== userId) return;
@@ -348,141 +339,199 @@ export default function MedicineScreen() {
   const sortedDates = Object.keys(historyGrouped).sort((a, b) => b.localeCompare(a));
 
   return (
-    <ScreenBackground style={styles.container}>
-      <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
+    <ScreenBackground>
+      <View style={{ flex: 1 }}>
+        {/* HEADER */}
+        <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
+          <TouchableOpacity 
+            onPress={() => router.back()} 
+            style={styles.headerBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <ChevronLeft color="#ffffff" size={24} />
+          </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, backgroundColor: "rgba(0,0,0,0.3)", borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", position: "absolute", top: 40, right: 20, zIndex: 50 }}>
-          <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
-        </TouchableOpacity>
+          <View style={styles.headerTitleBox}>
+            <Text style={styles.headerTitle}>İlaç Takibi</Text>
+            <Text style={styles.headerSubtitle}>Günlük Sağlık Hatırlatıcısı 💊</Text>
+          </View>
 
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.titleRow}>
-              <Text style={styles.title}>İlaç Takibi</Text>
-              <Text style={styles.titleEmoji}>💊</Text>
+          <TouchableOpacity 
+            onPress={() => router.push("/menu")} 
+            style={styles.headerBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <AlignJustify color="rgba(255,255,255,0.75)" size={20} />
+          </TouchableOpacity>
+        </View>
+
+        {/* SCROLLABLE İÇERİK */}
+        <ScrollView 
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 140 }]}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* HIZLI İLAÇ EKLE / YÖNET KARTI */}
+          <TouchableOpacity 
+            style={[styles.quickActionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+            onPress={() => {
+              resetForm();
+              setShowManagerModal(true);
+            }}
+            activeOpacity={0.88}
+          >
+            <View style={[styles.quickActionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
+              <Plus size={20} color={theme.accent} />
             </View>
-            <Text style={styles.dateText}>Sağlığınız bizim için çok önemli</Text>
-          </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.quickActionTitle}>Yeni İlaç Ekle veya Yönet</Text>
+              <Text style={styles.quickActionSub}>Günlük dozları ve saatleri planlayın ✨</Text>
+            </View>
+            <ChevronRight size={18} color="rgba(255,255,255,0.4)" />
+          </TouchableOpacity>
 
-          {/* Segmented Control */}
-          <View style={[styles.tabsContainer, { backgroundColor: theme.cardBg }]}>
+          {/* BEN / SEVGİLİM SEGMENTED CONTROL */}
+          <View style={[styles.segmentedContainer, { backgroundColor: theme.cardBg }]}>
             <TouchableOpacity 
-              style={[styles.tabBtn, activeTab === "me" && { backgroundColor: theme.unitBg }]}
+              style={[styles.segmentedBtn, activeTab === "me" && { backgroundColor: theme.unitBg }]}
               onPress={() => setActiveTab("me")}
+              activeOpacity={0.8}
             >
-              <Text style={[styles.tabText, activeTab === "me" && { color: theme.accent }]}>Ben</Text>
+              <Text style={[styles.segmentedText, activeTab === "me" && { color: theme.accent, fontFamily: "Inter_700Bold" }]}>
+                Benim İlaçlarım
+              </Text>
             </TouchableOpacity>
+
             <TouchableOpacity 
-              style={[styles.tabBtn, activeTab === "partner" && { backgroundColor: theme.unitBg }]}
+              style={[styles.segmentedBtn, activeTab === "partner" && { backgroundColor: theme.unitBg }]}
               onPress={() => setActiveTab("partner")}
+              activeOpacity={0.8}
             >
-              <Text style={[styles.tabText, activeTab === "partner" && { color: theme.accent }]}>Sevgilim</Text>
+              <Text style={[styles.segmentedText, activeTab === "partner" && { color: theme.accent, fontFamily: "Inter_700Bold" }]}>
+                Sevgilimin İlaçları 💕
+              </Text>
             </TouchableOpacity>
           </View>
 
-          {/* Today's Medicines */}
-          <View style={styles.listSection}>
-            <Text style={styles.sectionTitle}>Bugünün İlaçları</Text>
-            
+          {/* BUGÜNÜN İLAÇLARI BÖLÜMÜ */}
+          <View style={styles.sectionBlock}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>BUGÜNÜN DOZLARI</Text>
+              <Text style={styles.sectionDateSub}>{dayjs().locale("tr").format("D MMMM, dddd")}</Text>
+            </View>
+
             {isLoading ? (
-              <View style={{ gap: 16, marginTop: 20 }}>
-                <Skeleton height={140} borderRadius={16} />
-                <Skeleton height={140} borderRadius={16} />
+              <View style={{ gap: 12, marginTop: 6 }}>
+                <Skeleton height={110} borderRadius={20} />
+                <Skeleton height={110} borderRadius={20} />
               </View>
             ) : filteredMedicines.length === 0 ? (
-              <View style={[styles.emptyState, { backgroundColor: theme.cardBg, borderColor: theme.cardBg, borderStyle: "solid" }]}>
-                <Text style={{ fontSize: 40 }}>💊</Text>
-                <Text style={styles.emptyText}>
-                  {activeTab === "partner" ? "Sevgilinin aktif ilacı yok" : "Bugün için aktif ilaç yok"}
+              <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                <Pill size={36} color="rgba(255,255,255,0.25)" />
+                <Text style={styles.emptyCardTitle}>Bugün İçin İlaç Yok</Text>
+                <Text style={styles.emptyCardSub}>
+                  {activeTab === "partner" ? "Sevgilinizin bugün alması gereken bir ilaç bulunmuyor." : "Bugün almanız gereken herhangi bir ilaç planlanmamış."}
                 </Text>
+                <TouchableOpacity 
+                  style={[styles.emptyBtn, { backgroundColor: theme.accent }]}
+                  onPress={() => {
+                    resetForm();
+                    setIsPartnerAdd(activeTab === "partner");
+                    setShowManagerModal(true);
+                  }}
+                >
+                  <Plus size={15} color="#ffffff" />
+                  <Text style={styles.emptyBtnText}>İlaç Ekle</Text>
+                </TouchableOpacity>
               </View>
             ) : (
               filteredMedicines.map((m) => {
-                const medTimes = Array.isArray(m.times) && m.times.length > 0 ? m.times.map((t) => t.substring(0, 5)) : [m.time ? m.time.substring(0, 5) : "08:00"];
-                const firstTime = medTimes[0];
-                const firstTimeKey = `${m.id}_${firstTime}`;
-                const firstTimeStatus = map[firstTimeKey] || "PENDING";
+                const times = Array.isArray(m.times) && m.times.length > 0 
+                  ? m.times.map((t) => t.substring(0, 5)) 
+                  : [m.time ? m.time.substring(0, 5) : "08:00"];
 
                 return (
-                  <View key={m.id} style={[styles.medCard, { backgroundColor: theme.cardBg }]}>
-                    <View style={styles.medCardTopRow}>
-                      <View style={styles.medIconBox}>
-                        <Pill color="#E8002D" size={24} />
+                  <View key={m.id} style={[styles.medCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                    <View style={styles.medCardHeader}>
+                      <View style={[styles.medIconBox, { backgroundColor: theme.pillAccentBg }]}>
+                        <Pill color={theme.accent} size={20} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.medName}>{m.name}</Text>
-                        <Text style={styles.medSubtitle}>Günde {medTimes.length} kez ({medTimes.join(", ")})</Text>
+                        <Text style={styles.medSub}>Günde {times.length} doz ({times.join(", ")})</Text>
                       </View>
-                      {firstTimeStatus === "DRANK" && (
-                        <View style={styles.drankBadge}>
-                          <Text style={styles.drankBadgeText}>Sabah İçildi</Text>
-                        </View>
-                      )}
                     </View>
 
+                    {/* Dozaj Slotları */}
                     <View style={styles.slotsContainer}>
-                      {medTimes.map((slotTime) => {
+                      {times.map((slotTime) => {
                         const key = `${m.id}_${slotTime}`;
                         const status = map[key] || "PENDING";
                         const isDrank = status === "DRANK";
                         const isMissed = status === "MISSED";
                         const isSlotLoading = loadingSlot === key;
-                        
-                        const now = new Date();
-                        const currentHour = now.getHours().toString().padStart(2, "0");
-                        const currentMin = now.getMinutes().toString().padStart(2, "0");
-                        const currentHMS = `${currentHour}:${currentMin}`;
                         const isTimePassed = currentHMS >= slotTime;
 
                         if (isSlotLoading) {
                           return (
-                            <View key={slotTime} style={[styles.slotLoading, { width: "100%" }]}>
-                              <ActivityIndicator color="#fff" />
+                            <View key={slotTime} style={[styles.slotStateBox, { backgroundColor: theme.unitBg }]}>
+                              <ActivityIndicator color={theme.accent} size="small" />
                             </View>
                           );
                         }
 
                         if (isDrank) {
                           return (
-                            <View key={slotTime} style={[styles.statusBox, { width: "100%", backgroundColor: "#22C55E", borderColor: "#22C55E" }]}>
-                              <CheckCircle2 size={16} color="#fff" />
-                              <Text style={[styles.statusText, { color: "#fff" }]}>Alındı ({slotTime})</Text>
+                            <View key={slotTime} style={[styles.slotStateBox, styles.drankStateBox]}>
+                              <CheckCircle2 size={16} color="#22c55e" />
+                              <Text style={styles.drankStateText}>Alındı ({slotTime}) ✔️</Text>
                             </View>
                           );
                         }
 
                         if (isMissed) {
                           return (
-                            <View key={slotTime} style={[styles.statusBox, { width: "100%", backgroundColor: theme.unitBg, borderColor: theme.unitBg }]}>
-                              <Text style={[styles.statusText, { color: "rgba(255,255,255,0.6)" }]}>Atlandı ({slotTime})</Text>
+                            <View key={slotTime} style={[styles.slotStateBox, { backgroundColor: theme.unitBg }]}>
+                              <Text style={styles.missedStateText}>Atlandı ({slotTime})</Text>
                             </View>
                           );
                         }
-                        
+
                         if (!isTimePassed) {
                           return (
-                            <View key={slotTime} style={[styles.statusBox, { width: "100%", backgroundColor: theme.unitBg, borderColor: theme.unitBg }]}>
-                              <Text style={[styles.statusText, { color: "rgba(255,255,255,0.6)" }]}>Bekliyor ({slotTime})</Text>
+                            <View key={slotTime} style={[styles.slotStateBox, { backgroundColor: theme.unitBg }]}>
+                              <Clock size={13} color="rgba(255,255,255,0.5)" />
+                              <Text style={styles.waitingStateText}>Bekliyor ({slotTime})</Text>
                             </View>
                           );
                         }
 
                         if (activeTab === "partner") {
-                           return (
-                            <View key={slotTime} style={[styles.statusBox, { width: "100%", backgroundColor: theme.unitBg, borderColor: theme.unitBg }]}>
-                              <Text style={[styles.statusText, { color: "rgba(255,255,255,0.6)" }]}>İçilmedi ({slotTime})</Text>
+                          return (
+                            <View key={slotTime} style={[styles.slotStateBox, { backgroundColor: theme.unitBg }]}>
+                              <AlertCircle size={14} color="#f59e0b" />
+                              <Text style={styles.waitingStateText}>Henüz Alınmadı ({slotTime})</Text>
                             </View>
                           );
                         }
 
+                        // Kullanıcının kendi ilacı için aksiyon butonları
                         return (
-                          <View key={slotTime} style={{ flexDirection: "row", gap: 8, width: "100%" }}>
-                            <TouchableOpacity style={[styles.missBtn, { backgroundColor: theme.unitBg }]} onPress={() => handleLog(m.id, "MISSED", slotTime)}>
-                              <Text style={styles.missBtnText}>Atla</Text>
+                          <View key={slotTime} style={styles.actionSlotRow}>
+                            <TouchableOpacity 
+                              style={[styles.skipBtn, { backgroundColor: theme.unitBg }]} 
+                              onPress={() => handleLog(m.id, "MISSED", slotTime)}
+                              activeOpacity={0.8}
+                            >
+                              <Text style={styles.skipBtnText}>Atla ({slotTime})</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={[styles.drankBtn, { borderColor: theme.accent }]} onPress={() => handleLog(m.id, "DRANK", slotTime)}>
-                              <Text style={[styles.drankBtnText, { color: theme.accent }]}>İçtim</Text>
+
+                            <TouchableOpacity 
+                              style={[styles.takeBtn, { backgroundColor: theme.accent }]} 
+                              onPress={() => handleLog(m.id, "DRANK", slotTime)}
+                              activeOpacity={0.88}
+                            >
+                              <Check size={16} color="#ffffff" />
+                              <Text style={styles.takeBtnText}>İçtim ({slotTime}) ✨</Text>
                             </TouchableOpacity>
                           </View>
                         );
@@ -492,210 +541,269 @@ export default function MedicineScreen() {
                 );
               })
             )}
+          </View>
 
-            {/* History Section */}
-            <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Geçmiş (Son 14 Gün)</Text>
+          {/* GEÇMİŞ (SON 14 GÜN) */}
+          <View style={styles.sectionBlock}>
+            <Text style={styles.sectionTitle}>GEÇMİŞ GÜNLÜK TAKİP (SON 14 GÜN)</Text>
             {sortedDates.length === 0 ? (
-              <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginTop: 10 }}>Kayıt bulunamadı.</Text>
+              <Text style={styles.historyEmptyText}>Geçmiş ilaç kaydı bulunmuyor.</Text>
             ) : (
               sortedDates.map((dateStr) => (
                 <React.Fragment key={dateStr}>
                   {historyGrouped[dateStr].map((med, idx) => {
                     const isAllDrank = med.drankSlots === med.totalSlots;
-                    const iconColor = isAllDrank ? "#22C55E" : "#EAB308";
+                    const iconColor = isAllDrank ? "#22c55e" : "#f59e0b";
+
                     return (
-                      <View key={`${dateStr}-${idx}`} style={[styles.historyCard, { backgroundColor: theme.cardBg }]}>
+                      <View key={`${dateStr}-${idx}`} style={[styles.historyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.historyDate}>{getRelativeDateLabel(dateStr)}</Text>
-                          <Text style={styles.historySubtitle}>
-                            {med.name} ({med.drankSlots}/{med.totalSlots} Alındı) • {med.times.join(" & ")}
+                          <Text style={styles.historyMedSub}>
+                            {med.name} • {med.drankSlots}/{med.totalSlots} Alındı ({med.times.join(", ")})
                           </Text>
                         </View>
-                        <CheckCircle2 color={iconColor} size={22} />
+                        <CheckCircle2 color={iconColor} size={20} />
                       </View>
                     );
                   })}
                 </React.Fragment>
               ))
             )}
-
-            <TouchableOpacity style={[styles.addBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBg }]} onPress={() => setShowManagerModal(true)}>
-              <Settings color={theme.accent} size={18} />
-              <Text style={[styles.addBtnText, { color: theme.accent }]}>İlaç Yönetimi</Text>
-            </TouchableOpacity>
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
 
-      {/* İLAÇ YÖNETİMİ MODALI */}
+      {/* ─── İLAÇ YÖNETİMİ & EKLEME MODALI ─── */}
       <Modal visible={showManagerModal} animationType="slide" transparent>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: theme.cardBg }]}>
-              {/* Header Title */}
-              <View style={styles.modalHeaderTitle}>
-                <Text style={styles.modalTitle}>İlaç Yönetimi</Text>
-                <TouchableOpacity onPress={() => setShowManagerModal(false)} style={styles.closeModalBtn}>
-                  <X color="rgba(255,255,255,0.6)" size={16} />
-                </TouchableOpacity>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Settings size={18} color={theme.accent} />
+                <Text style={styles.modalTitle}>
+                  {editingMedicineId ? "İlacı Düzenle" : "İlaç Yönetimi & Ekle"}
+                </Text>
               </View>
 
-              <ScrollView style={{ maxHeight: "85%" }} showsVerticalScrollIndicator={false}>
-                {/* Mevcut İlaçlar */}
-                <View style={{ marginBottom: 24 }}>
-                  <Text style={styles.modalSectionLabel}>MEVCUT İLAÇLAR</Text>
-                  {allMedicines.length === 0 && <Text style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>Kayıtlı ilaç yok.</Text>}
+              <TouchableOpacity 
+                onPress={() => setShowManagerModal(false)}
+                style={styles.modalCloseBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <X size={18} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+
+            <KeyboardAwareScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 20, gap: 16 }}
+              enableOnAndroid={true}
+              extraScrollHeight={130}
+              keyboardShouldPersistTaps="handled"
+            >
+              {/* Mevcut İlaçlar Listesi */}
+              {!editingMedicineId && allMedicines.length > 0 && (
+                <View style={{ gap: 8 }}>
+                  <Text style={styles.modalSectionSub}>KAYITLI İLAÇLAR</Text>
                   {allMedicines.map((m) => (
-                    <View key={m.id} style={[styles.modalMedCard, { backgroundColor: theme.unitBg }]}>
+                    <View key={m.id} style={[styles.registeredMedCard, { backgroundColor: theme.unitBg }]}>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.modalMedName}>{m.name}</Text>
-                        <Text style={styles.modalMedSubtitle}>
-                          {m.user_id === userId ? "Ben" : "Sevgilim"} • Günde {Array.isArray(m.times) ? m.times.length : 1} Kez
+                        <Text style={styles.registeredMedName}>{m.name}</Text>
+                        <Text style={styles.registeredMedSub}>
+                          {m.user_id === userId ? "Benim" : "Sevgilimin"} • Günde {Array.isArray(m.times) ? m.times.length : 1} kez
                         </Text>
                       </View>
-                      <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
-                        <TouchableOpacity onPress={() => handleEditMedicine(m)}>
-                          <Edit2 size={18} color="rgba(255,255,255,0.6)" />
+                      <View style={{ flexDirection: "row", gap: 10 }}>
+                        <TouchableOpacity onPress={() => handleEditMedicine(m)} style={styles.medActionBtn}>
+                          <Edit2 size={16} color="rgba(255,255,255,0.7)" />
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => handleDeleteMedicine(m.id)} disabled={isDeleting === m.id}>
-                          {isDeleting === m.id ? <ActivityIndicator size="small" color="#E8002D" /> : <Trash2 size={18} color="#FF5252" />}
+                        <TouchableOpacity onPress={() => handleDeleteMedicine(m.id)} style={[styles.medActionBtn, { backgroundColor: "rgba(239,68,68,0.15)" }]}>
+                          {isDeleting === m.id ? (
+                            <ActivityIndicator size="small" color="#ef4444" />
+                          ) : (
+                            <Trash2 size={16} color="#ef4444" />
+                          )}
                         </TouchableOpacity>
                       </View>
                     </View>
                   ))}
                 </View>
+              )}
 
-                {/* Yeni İlaç Ekle */}
-                <View style={{ borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.1)", paddingTop: 20 }}>
-                  <Text style={styles.modalSectionLabel}>{editingMedicineId ? "İLACI DÜZENLE" : "YENİ İLAÇ EKLE"}</Text>
-                  
-                  {/* Segmented Control for Who */}
-                  <View style={[styles.tabsContainer, { backgroundColor: theme.unitBg, marginBottom: 16 }]}>
-                    <TouchableOpacity 
-                      style={[styles.tabBtn, !isPartnerAdd && { backgroundColor: theme.cardBg }]}
-                      onPress={() => setIsPartnerAdd(false)}
-                    >
-                      <Text style={[styles.tabText, !isPartnerAdd && { color: theme.accent }]}>Ben</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[styles.tabBtn, isPartnerAdd && { backgroundColor: theme.cardBg }]}
-                      onPress={() => setIsPartnerAdd(true)}
-                    >
-                      <Text style={[styles.tabText, isPartnerAdd && { color: theme.accent }]}>Sevgilim</Text>
-                    </TouchableOpacity>
-                  </View>
+              {/* Form Alanı */}
+              <View style={{ gap: 12, marginTop: 4 }}>
+                <Text style={styles.modalSectionSub}>
+                  {editingMedicineId ? "İLAÇ DETAYLARI" : "YENİ İLAÇ FORMU"}
+                </Text>
 
-                  <View style={styles.formGroup}>
-                    <Text style={[styles.label, medError && { color: "red" }]}>İlaç Adı</Text>
-                    <TextInput 
-                      style={[styles.input, { backgroundColor: theme.unitBg }, medError && { borderColor: "red" }]} 
-                      placeholder="Parol" 
-                      placeholderTextColor="rgba(255,255,255,0.3)" 
-                      value={medName} 
-                      onChangeText={(text) => {
-                        setMedName(text);
-                        setMedError(false);
-                      }} 
-                    />
-                  </View>
+                {/* Kimin İçin? */}
+                <View style={[styles.segmentedContainer, { backgroundColor: theme.unitBg }]}>
+                  <TouchableOpacity 
+                    style={[styles.segmentedBtn, !isPartnerAdd && { backgroundColor: theme.cardBg }]}
+                    onPress={() => setIsPartnerAdd(false)}
+                  >
+                    <Text style={[styles.segmentedText, !isPartnerAdd && { color: theme.accent, fontFamily: "Inter_700Bold" }]}>Ben</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.segmentedBtn, isPartnerAdd && { backgroundColor: theme.cardBg }]}
+                    onPress={() => setIsPartnerAdd(true)}
+                  >
+                    <Text style={[styles.segmentedText, isPartnerAdd && { color: theme.accent, fontFamily: "Inter_700Bold" }]}>Sevgilim</Text>
+                  </TouchableOpacity>
+                </View>
 
-                  <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.label}>Başlangıç</Text>
-                      <TouchableOpacity style={[styles.input, { backgroundColor: theme.unitBg }]} onPress={() => setShowPicker("start")}>
-                        <Text style={{ color: "#fff" }}>{dayjs(medStartDate).format("DD.MM.YYYY")}</Text>
-                      </TouchableOpacity>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.label}>Bitiş</Text>
-                      <TouchableOpacity style={[styles.input, { backgroundColor: theme.unitBg }]} onPress={() => setShowPicker("end")}>
-                        <Text style={{ color: "#fff" }}>{dayjs(medEndDate).format("DD.MM.YYYY")}</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
+                {/* İlaç Adı */}
+                <View style={{ gap: 6 }}>
+                  <Text style={styles.fieldLabel}>İLAÇ ADI</Text>
+                  <TextInput 
+                    style={[
+                      styles.textInput, 
+                      { backgroundColor: theme.unitBg }, 
+                      medError && styles.inputError
+                    ]} 
+                    placeholder="Örn: Aspirin, B12 Vitamini..." 
+                    placeholderTextColor="rgba(255,255,255,0.3)" 
+                    value={medName} 
+                    onChangeText={(text) => {
+                      setMedName(text);
+                      setMedError(false);
+                    }} 
+                  />
+                </View>
 
-                  <View style={styles.formGroup}>
-                    <Text style={styles.label}>Günde Kaç Kez?</Text>
-                    <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
-                      {[1, 2, 3].map((num) => (
-                        <TouchableOpacity 
-                          key={num}
-                          onPress={() => {
-                            setMedFrequency(num as 1|2|3);
-                            const newTimes = [...medTimes];
-                            if (newTimes.length < num) {
-                              while(newTimes.length < num) newTimes.push(new Date());
-                            } else if (newTimes.length > num) {
-                              newTimes.splice(num);
-                            }
-                            setMedTimes(newTimes);
-                          }}
+                {/* Günlük Doz Sıklığı (1, 2, 3) */}
+                <View style={{ gap: 6 }}>
+                  <Text style={styles.fieldLabel}>GÜNLÜK DOZ SIKLIĞI</Text>
+                  <View style={{ flexDirection: "row", gap: 10 }}>
+                    {([1, 2, 3] as const).map((freq) => {
+                      const isSelected = medFrequency === freq;
+                      return (
+                        <TouchableOpacity
+                          key={freq}
+                          onPress={() => handleFrequencyChange(freq)}
                           style={[
-                            styles.freqBtn, 
-                            { backgroundColor: medFrequency === num ? theme.accent : "transparent", borderColor: medFrequency === num ? theme.accent : "rgba(255,255,255,0.1)" }
+                            styles.freqBtn,
+                            { backgroundColor: theme.unitBg },
+                            isSelected && { borderColor: theme.accent, backgroundColor: theme.pillAccentBg, borderWidth: 1.5 }
                           ]}
                         >
-                          <Text style={[styles.freqText, medFrequency === num && { color: "#fff", fontFamily: "Inter_700Bold" }]}>{num} Kez</Text>
+                          <Text style={[styles.freqBtnText, isSelected && { color: "#ffffff", fontFamily: "Inter_700Bold" }]}>
+                            {freq} Kez
+                          </Text>
                         </TouchableOpacity>
-                      ))}
-                    </View>
-                    
-                    {medTimes.length > 0 && (
-                      <>
-                        <Text style={styles.label}>Alım Saatleri</Text>
-                        <View style={{ flexDirection: "row", gap: 10, flexWrap: "wrap" }}>
-                          {medTimes.map((t, index) => (
-                            <TouchableOpacity key={index} style={[styles.input, { backgroundColor: theme.unitBg, flex: 1, minWidth: "30%" }]} onPress={() => { setActiveTimeIndex(index); setShowPicker("time"); }}>
-                              <Text style={{ color: "#fff", textAlign: "center" }}>{dayjs(t).format("HH:mm")}</Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      </>
-                    )}
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* Saat Seçicileri */}
+                <View style={{ gap: 6 }}>
+                  <Text style={styles.fieldLabel}>DOZ SAATLERİ</Text>
+                  <View style={{ flexDirection: "row", gap: 10 }}>
+                    {medTimes.map((time, idx) => (
+                      <TouchableOpacity
+                        key={idx}
+                        onPress={() => {
+                          setActiveTimeIndex(idx);
+                          setShowPicker("time");
+                        }}
+                        style={[styles.timePickerBox, { backgroundColor: theme.unitBg }]}
+                      >
+                        <Clock size={14} color={theme.accent} />
+                        <Text style={styles.timePickerText}>{dayjs(time).format("HH:mm")}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Başlangıç & Bitiş Tarihleri */}
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <View style={{ flex: 1, gap: 6 }}>
+                    <Text style={styles.fieldLabel}>BAŞLANGIÇ</Text>
+                    <TouchableOpacity
+                      onPress={() => setShowPicker("start")}
+                      style={[styles.datePickerBtn, { backgroundColor: theme.unitBg }]}
+                    >
+                      <Calendar size={14} color={theme.accent} />
+                      <Text style={styles.datePickerText}>{dayjs(medStartDate).format("DD.MM.YYYY")}</Text>
+                    </TouchableOpacity>
                   </View>
 
-                  <TouchableOpacity style={[styles.saveBtn, { backgroundColor: theme.accent }]} onPress={handleAddMedicine} disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.saveBtnText}>{editingMedicineId ? "Güncelle" : "Kaydet"}</Text>
-                    )}
-                  </TouchableOpacity>
-                  
-                  {editingMedicineId && (
-                    <TouchableOpacity 
-                      style={{ marginTop: 12, paddingVertical: 12, alignItems: "center" }}
-                      onPress={resetForm}
+                  <View style={{ flex: 1, gap: 6 }}>
+                    <Text style={styles.fieldLabel}>BİTİŞ</Text>
+                    <TouchableOpacity
+                      onPress={() => setShowPicker("end")}
+                      style={[styles.datePickerBtn, { backgroundColor: theme.unitBg }]}
                     >
-                      <Text style={{ color: "rgba(255,255,255,0.5)", fontFamily: "Inter_600SemiBold" }}>İptal</Text>
+                      <Calendar size={14} color={theme.accent} />
+                      <Text style={styles.datePickerText}>{dayjs(medEndDate).format("DD.MM.YYYY")}</Text>
                     </TouchableOpacity>
-                  )}
+                  </View>
                 </View>
-              </ScrollView>
-            </View>
+
+                {/* Kaydet Butonu */}
+                <TouchableOpacity 
+                  style={[styles.saveMedBtn, { backgroundColor: theme.accent }]} 
+                  onPress={handleSaveMedicine}
+                  disabled={isSubmitting}
+                  activeOpacity={0.88}
+                >
+                  {isSubmitting ? (
+                    <ActivityIndicator color="#ffffff" size="small" />
+                  ) : (
+                    <>
+                      <Check size={17} color="#ffffff" />
+                      <Text style={styles.saveMedBtnText}>
+                        {editingMedicineId ? "Güncellemeyi Kaydet" : "İlacı Listeye Ekle"}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </KeyboardAwareScrollView>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </Modal>
 
-      {/* DateTime Picker */}
-      {showPicker && (
+      {/* TARİH & SAAT PICKER MODALLARI */}
+      {showPicker === "start" && (
         <DateTimePicker
-          value={showPicker === "start" ? medStartDate : showPicker === "end" ? medEndDate : (activeTimeIndex !== null ? medTimes[activeTimeIndex] : new Date())}
-          mode={showPicker === "time" ? "time" : "date"}
+          value={medStartDate}
+          mode="date"
+          display="default"
+          onChange={(_, date) => {
+            setShowPicker(null);
+            if (date) setMedStartDate(date);
+          }}
+        />
+      )}
+
+      {showPicker === "end" && (
+        <DateTimePicker
+          value={medEndDate}
+          mode="date"
+          display="default"
+          onChange={(_, date) => {
+            setShowPicker(null);
+            if (date) setMedEndDate(date);
+          }}
+        />
+      )}
+
+      {showPicker === "time" && activeTimeIndex !== null && (
+        <DateTimePicker
+          value={medTimes[activeTimeIndex] || new Date()}
+          mode="time"
           is24Hour={true}
           display="default"
-          onChange={(event, selectedDate) => {
-            const currentMode = showPicker;
-            const currentIdx = activeTimeIndex;
-            setShowPicker(Platform.OS === 'ios' ? currentMode : null);
-            if (selectedDate) {
-              if (currentMode === "start") setMedStartDate(selectedDate);
-              else if (currentMode === "end") setMedEndDate(selectedDate);
-              else if (currentMode === "time" && currentIdx !== null) {
-                const newTimes = [...medTimes];
-                newTimes[currentIdx] = selectedDate;
-                setMedTimes(newTimes);
-              }
+          onChange={(_, date) => {
+            setShowPicker(null);
+            if (date && activeTimeIndex !== null) {
+              const updated = [...medTimes];
+              updated[activeTimeIndex] = date;
+              setMedTimes(updated);
             }
           }}
         />
@@ -705,66 +813,416 @@ export default function MedicineScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scrollContent: { paddingBottom: 40 },
-  header: { alignItems: "center", paddingTop: 40, paddingBottom: 20 },
-  titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 6 },
-  title: { fontSize: 34, fontFamily: "PlayfairDisplay_400Regular_Italic", color: "#fff" },
-  titleEmoji: { fontSize: 28 },
-  dateText: { fontSize: 13, color: "rgba(255,255,255,0.6)", fontFamily: "Inter_400Regular" },
-  
-  tabsContainer: { flexDirection: "row", marginHorizontal: 20, marginBottom: 24, borderRadius: 12, padding: 4 },
-  tabBtn: { flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: "center" },
-  tabText: { color: "rgba(255,255,255,0.4)", fontFamily: "Inter_600SemiBold", fontSize: 14 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+  },
+  headerBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitleBox: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 8,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    letterSpacing: -0.4,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.55)",
+    marginTop: 2,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    gap: 16,
+  },
 
-  listSection: { paddingHorizontal: 20 },
-  sectionTitle: { fontSize: 24, fontFamily: "PlayfairDisplay_400Regular_Italic", color: "#fff", marginBottom: 14 },
-  emptyState: { alignItems: "center", paddingVertical: 40, backgroundColor: "rgba(255,255,255,0.03)", borderRadius: 16, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)", borderStyle: "dashed" },
-  emptyText: { color: "rgba(255,255,255,0.5)", marginTop: 10, fontFamily: "Inter_400Regular" },
-  
-  medCard: { borderRadius: 20, padding: 16, marginBottom: 16 },
-  medCardTopRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 16 },
-  medIconBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: "rgba(232,0,45,0.15)", alignItems: "center", justifyContent: "center", marginRight: 12 },
-  medName: { color: "#fff", fontSize: 18, fontFamily: "Inter_700Bold", marginBottom: 2 },
-  medSubtitle: { color: "rgba(255,255,255,0.5)", fontSize: 13, fontFamily: "Inter_400Regular" },
-  drankBadge: { backgroundColor: "rgba(34,197,94,0.15)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  drankBadgeText: { color: "#22c55e", fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  /* HIZLI İLAÇ EKLE KARTI */
+  quickActionCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 12,
+  },
+  quickActionIconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quickActionTitle: {
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    letterSpacing: -0.2,
+  },
+  quickActionSub: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.55)",
+    marginTop: 2,
+  },
 
-  slotsContainer: { width: "100%", flexDirection: "column", gap: 8 },
-  slotLoading: { paddingVertical: 14, backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 12, alignItems: "center" },
-  statusBox: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 14, borderRadius: 12 },
-  statusText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  
-  missBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  missBtnText: { color: "rgba(255,255,255,0.6)", fontFamily: "Inter_600SemiBold", fontSize: 14 },
-  drankBtn: { flex: 1, paddingVertical: 14, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  drankBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 14 },
+  /* SEGMENTED CONTROL */
+  segmentedContainer: {
+    flexDirection: "row",
+    padding: 4,
+    borderRadius: 16,
+  },
+  segmentedBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+  },
+  segmentedText: {
+    fontSize: 13,
+    fontFamily: "Inter_500Medium",
+    color: "rgba(255,255,255,0.6)",
+  },
 
-  historyCard: { flexDirection: "row", alignItems: "center", padding: 16, borderRadius: 16, marginBottom: 8 },
-  historyDate: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold", marginBottom: 4 },
-  historySubtitle: { color: "rgba(255,255,255,0.5)", fontSize: 13, fontFamily: "Inter_400Regular" },
+  /* BÖLÜMLER */
+  sectionBlock: {
+    gap: 10,
+  },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginLeft: 4,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    color: "rgba(255,255,255,0.5)",
+    letterSpacing: 0.7,
+  },
+  sectionDateSub: {
+    fontSize: 11.5,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.4)",
+  },
 
-  addBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, paddingVertical: 16, borderRadius: 20, marginTop: 10 },
-  addBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 16 },
+  /* İLAÇ KARTI */
+  medCard: {
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    gap: 14,
+  },
+  medCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  medIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  medName: {
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    letterSpacing: -0.2,
+  },
+  medSub: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.55)",
+    marginTop: 2,
+  },
+  slotsContainer: {
+    gap: 8,
+  },
+  slotStateBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  drankStateBox: {
+    backgroundColor: "rgba(34, 197, 94, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(34, 197, 94, 0.3)",
+  },
+  drankStateText: {
+    color: "#22c55e",
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
+  },
+  missedStateText: {
+    color: "rgba(255,255,255,0.45)",
+    fontSize: 12.5,
+    fontFamily: "Inter_500Medium",
+  },
+  waitingStateText: {
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 12.5,
+    fontFamily: "Inter_500Medium",
+  },
+  actionSlotRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  skipBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  skipBtnText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
+  takeBtn: {
+    flex: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  takeBtnText: {
+    color: "#ffffff",
+    fontSize: 13.5,
+    fontFamily: "Inter_700Bold",
+  },
 
-  // MODAL
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "center", alignItems: "center", padding: 20 },
-  modalContent: { width: "100%", maxWidth: 450, borderRadius: 30, padding: 24, paddingBottom: 30, borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" },
-  modalHeaderTitle: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: 24, position: "relative" },
-  modalTitle: { color: "#fff", fontSize: 24, fontFamily: "PlayfairDisplay_400Regular_Italic" },
-  closeModalBtn: { position: "absolute", right: 0, padding: 6, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 16 },
-  
-  modalSectionLabel: { color: "rgba(255,255,255,0.5)", fontSize: 12, fontFamily: "Inter_600SemiBold", letterSpacing: 0.5, marginBottom: 12 },
-  modalMedCard: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, borderRadius: 16, marginBottom: 12 },
-  modalMedName: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold", marginBottom: 4 },
-  modalMedSubtitle: { color: "rgba(255,255,255,0.5)", fontSize: 13, fontFamily: "Inter_400Regular" },
+  /* GEÇMİŞ KARTLARI */
+  historyCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  historyDate: {
+    fontSize: 13.5,
+    fontFamily: "Inter_600SemiBold",
+    color: "#ffffff",
+  },
+  historyMedSub: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.5)",
+    marginTop: 2,
+  },
+  historyEmptyText: {
+    fontSize: 12.5,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.4)",
+    marginLeft: 4,
+  },
 
-  formGroup: { marginBottom: 16 },
-  label: { color: "rgba(255,255,255,0.6)", fontSize: 13, marginBottom: 8, fontFamily: "Inter_500Medium" },
-  input: { borderRadius: 12, color: "#fff", padding: 14, fontSize: 15, fontFamily: "Inter_400Regular" },
-  saveBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 16, paddingVertical: 16, marginTop: 16 },
-  saveBtnText: { color: "#fff", fontFamily: "Inter_700Bold", fontSize: 16 },
-  
-  freqBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: "center", borderWidth: 1 },
-  freqText: { color: "rgba(255,255,255,0.6)", fontFamily: "Inter_500Medium", fontSize: 14 },
+  /* BOŞ DURUM */
+  emptyCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  emptyCardTitle: {
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    marginTop: 4,
+  },
+  emptyCardSub: {
+    fontSize: 12.5,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.5)",
+    textAlign: "center",
+    lineHeight: 18,
+  },
+  emptyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 12,
+    marginTop: 6,
+  },
+  emptyBtnText: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
+  },
+
+  /* MODAL */
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.75)",
+    justifyContent: "center",
+    padding: 18,
+  },
+  modalBox: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 20,
+    maxHeight: "88%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.08)",
+  },
+  modalTitle: {
+    fontSize: 16.5,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+  },
+  modalCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalSectionSub: {
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    color: "rgba(255,255,255,0.45)",
+    letterSpacing: 0.6,
+  },
+  registeredMedCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 14,
+  },
+  registeredMedName: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+    color: "#ffffff",
+  },
+  registeredMedSub: {
+    fontSize: 11.5,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.5)",
+    marginTop: 2,
+  },
+  medActionBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fieldLabel: {
+    fontSize: 11.5,
+    fontFamily: "Inter_600SemiBold",
+    color: "rgba(255,255,255,0.6)",
+    letterSpacing: 0.5,
+  },
+  textInput: {
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: "#ffffff",
+    fontSize: 14.5,
+    fontFamily: "Inter_400Regular",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  inputError: {
+    borderColor: "#ff4d6a",
+    borderWidth: 1.5,
+  },
+  freqBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  freqBtnText: {
+    fontSize: 13,
+    fontFamily: "Inter_500Medium",
+    color: "rgba(255,255,255,0.6)",
+  },
+  timePickerBox: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  timePickerText: {
+    fontSize: 13.5,
+    fontFamily: "Inter_600SemiBold",
+    color: "#ffffff",
+  },
+  datePickerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  datePickerText: {
+    fontSize: 13,
+    fontFamily: "Inter_500Medium",
+    color: "#ffffff",
+  },
+  saveMedBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    height: 48,
+    borderRadius: 14,
+    marginTop: 6,
+  },
+  saveMedBtnText: {
+    color: "#ffffff",
+    fontSize: 14.5,
+    fontFamily: "Inter_700Bold",
+  },
 });

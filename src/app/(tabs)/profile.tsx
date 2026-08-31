@@ -4,16 +4,16 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   Alert,
   ActivityIndicator,
-  Platform
+  Platform,
+  StyleSheet
 } from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { WatchAdModal } from "@/components/ui/WatchAdModal";
 import { PremiumSuccessModal } from "@/components/ui/PremiumSuccessModal";
-import { router, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
@@ -28,19 +28,27 @@ import {
   CalendarHeart,
   LogOut,
   Trash2,
+  ChevronRight,
   ChevronDown,
   ChevronUp,
-  CheckCircle,
-  AlertTriangle,
-  Menu,
   AlignJustify,
   Wallet,
-  PlayCircle
+  PlayCircle,
+  Sparkles,
+  Crown,
+  Calendar,
+  ShieldCheck,
+  Heart,
+  Lock,
+  ChevronLeft
 } from "lucide-react-native";
+import dayjs from "dayjs";
+import "dayjs/locale/tr";
 
-// ─── Section Card ─────────────────────────────────────────────────────────────
+dayjs.locale("tr");
 
-function SectionCard({
+// ─── Modern Grup Kartı ────────────────────────────────────────────────────────
+function ModernSection({
   title,
   icon,
   children,
@@ -53,46 +61,24 @@ function SectionCard({
   theme: AppTheme;
   defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
   return (
-    <View
-      style={{
-        borderRadius: 20,
-        overflow: "hidden",
-        backgroundColor: theme.cardBg,
-        borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.05)",
-        marginBottom: 12,
-      }}
-    >
+    <View style={[styles.sectionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
       <TouchableOpacity
-        onPress={() => setOpen(!open)}
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: 18,
-        }}
+        activeOpacity={0.78}
+        onPress={() => setIsOpen(!isOpen)}
+        style={styles.sectionHeader}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <View
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 12,
-              backgroundColor: theme.pillAccentBg,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
+        <View style={styles.sectionHeaderLeft}>
+          <View style={[styles.sectionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
             {icon}
           </View>
-          <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>
-            {title}
-          </Text>
+          <Text style={styles.sectionTitleText}>{title}</Text>
         </View>
-        <View>
-          {open ? (
+
+        <View style={styles.chevronWrapper}>
+          {isOpen ? (
             <ChevronUp size={18} color="rgba(255,255,255,0.4)" />
           ) : (
             <ChevronDown size={18} color="rgba(255,255,255,0.4)" />
@@ -100,111 +86,14 @@ function SectionCard({
         </View>
       </TouchableOpacity>
 
-      {open && (
-        <View
-          style={{
-            paddingHorizontal: 18,
-            paddingBottom: 20,
-            borderTopWidth: 1,
-            borderTopColor: "rgba(255,255,255,0.06)",
-          }}
-        >
+      {isOpen && (
+        <View style={styles.sectionContent}>
           {children}
         </View>
       )}
     </View>
   );
 }
-
-// ─── Label + Input ────────────────────────────────────────────────────────────
-
-function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-  multiline,
-  error,
-  theme,
-}: {
-  label: string;
-  value: string;
-  onChange: (t: string) => void;
-  placeholder?: string;
-  multiline?: boolean;
-  error?: boolean;
-  theme: AppTheme;
-}) {
-  return (
-    <View style={{ marginTop: 16 }}>
-      <Text style={{ color: error ? "#FF4D6A" : "rgba(255,255,255,0.6)", fontSize: 13, marginBottom: 6 }}>
-        {label}
-      </Text>
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        placeholder={placeholder ?? ""}
-        placeholderTextColor="rgba(255,255,255,0.3)"
-        multiline={multiline}
-        style={{
-          backgroundColor: theme.inputBg,
-          borderWidth: 1,
-          borderColor: error ? "red" : "rgba(255,255,255,0.1)",
-          borderRadius: 14,
-          paddingHorizontal: 16,
-          paddingVertical: 13,
-          color: "#fff",
-          fontSize: 15,
-          minHeight: multiline ? 80 : undefined,
-          textAlignVertical: multiline ? "top" : "center",
-        }}
-      />
-    </View>
-  );
-}
-
-// ─── Save Button ──────────────────────────────────────────────────────────────
-
-function SaveButton({
-  onPress,
-  loading,
-  label = "Kaydet",
-  theme,
-}: {
-  onPress: () => void;
-  loading?: boolean;
-  label?: string;
-  theme: AppTheme;
-}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      disabled={loading}
-      style={{
-        marginTop: 18,
-        backgroundColor: loading ? theme.pillAccentBg : theme.accent,
-        paddingVertical: 14,
-        borderRadius: 16,
-        alignItems: "center",
-        shadowColor: theme.accent,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-        elevation: 6,
-      }}
-    >
-      {loading ? (
-        <ActivityIndicator color="#fff" />
-      ) : (
-        <Text style={{ color: loading ? theme.accent : "#fff", fontWeight: "700", fontSize: 15 }}>
-          {label}
-        </Text>
-      )}
-    </TouchableOpacity>
-  );
-}
-
-// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
   const { session, signOut, profile, refreshProfile } = useAuth();
@@ -229,9 +118,6 @@ export default function ProfileScreen() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  const [resetEmail, setResetEmail] = useState("");
-  const [resetLoading, setResetLoading] = useState(false);
-
   // Promosyon Kodu
   const [promoCode, setPromoCode] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
@@ -240,7 +126,6 @@ export default function ProfileScreen() {
   const [showAdModal, setShowAdModal] = useState(false);
   const [showPremiumSuccess, setShowPremiumSuccess] = useState(false);
 
-  // Eklentiler: Tema vs
   // Verileri yükle
   React.useEffect(() => {
     if (!session?.user?.id || dataLoaded) return;
@@ -253,7 +138,7 @@ export default function ProfileScreen() {
         .single();
 
       if (userData) {
-        setDisplayName(userData.display_name ? decrypt(userData.display_name) : "");
+        setDisplayName(userData.display_name ? (decrypt(userData.display_name) || userData.display_name) : "");
         setGender((userData.gender as "male" | "female") ?? "female");
         setCoupleId(userData.couple_id ?? null);
 
@@ -280,7 +165,7 @@ export default function ProfileScreen() {
     if (!session?.user?.id) return;
     if (displayName.trim().length < 2) {
       setNameError(true);
-      Alert.alert("Hata", "İsim en az 2 karakter olmalı.");
+      Alert.alert("Eksik Bilgi", "Lütfen en az 2 karakterden oluşan bir isim girin.");
       return;
     }
     setProfileLoading(true);
@@ -293,8 +178,9 @@ export default function ProfileScreen() {
     if (error) {
       Alert.alert("Hata", "Profil güncellenemedi. Lütfen tekrar deneyin.");
     } else {
+      await refreshProfile();
       queryClient.invalidateQueries({ queryKey: ["user_gender"] });
-      Alert.alert("Başarılı 🎉", "Profilin güncellendi!");
+      Alert.alert("Başarılı ✨", "Profil bilgileriniz başarıyla güncellendi!");
     }
   }
 
@@ -302,7 +188,7 @@ export default function ProfileScreen() {
   async function handleUpdateDates() {
     if (!coupleId) return;
     if (!meetDate || !relStartDate) {
-      Alert.alert("Hata", "Her iki tarih de gereklidir.");
+      Alert.alert("Eksik Tarih", "Lütfen her iki tarihi de belirleyin.");
       return;
     }
     setDatesLoading(true);
@@ -315,19 +201,20 @@ export default function ProfileScreen() {
     if (error) {
       Alert.alert("Hata", "Tarihler güncellenemedi. Lütfen tekrar deneyin.");
     } else {
-      Alert.alert("Başarılı 💕", "İlişki tarihleri güncellendi!");
+      await refreshProfile();
+      queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
+      Alert.alert("Başarılı 💕", "İlişki tarihleriniz güncellendi!");
     }
   }
 
   // Çıkış Yap
   async function handleLogout() {
-    Alert.alert("Çıkış Yap", "Hesabından çıkış yapmak istediğinden emin misin?", [
-      { text: "İptal", style: "cancel" },
+    Alert.alert("Çıkış Yap", "Hesabınızdan çıkış yapmak istediğinize emin misiniz?", [
+      { text: "Vazgeç", style: "cancel" },
       {
         text: "Çıkış Yap",
         style: "destructive",
         onPress: async () => {
-          // Push token'ı sil
           if (session?.user?.id) {
             await supabase
               .from("push_tokens")
@@ -341,7 +228,7 @@ export default function ProfileScreen() {
     ]);
   }
 
-  // Promosyon Kodu İşlemi
+  // Promosyon Kodu
   async function handleRedeemPromo() {
     const code = promoCode.trim().toUpperCase();
     if (!code) return;
@@ -381,7 +268,7 @@ export default function ProfileScreen() {
       });
       if (error) throw error;
       
-      await refreshProfile(); // Refresh tokens / premium status
+      await refreshProfile();
       
       if (data?.reward_type === "premium") {
         setShowPremiumSuccess(true);
@@ -404,7 +291,7 @@ export default function ProfileScreen() {
   async function handleDeleteAccount() {
     Alert.alert(
       "⚠️ Hesabını Sil",
-      "Eğer hesabını silersen, sana ve partnerine ait tüm fotoğraflar, mektuplar ve veriler kalıcı olarak yok edilir.\n\nAncak verileriniz 1 hafta boyunca dondurulur. Bu süre içinde ikinizden biri giriş yaparsa silinme iptal edilir.\n\n1 hafta sonunda her şey kalıcı olarak silinir.\n\nDevam etmek istiyor musun?",
+      "Eğer hesabınızı silerseniz, tüm fotoğraflarınız, mektuplarınız ve hatıralarınız 1 hafta sonra kalıcı olarak silinir.\n\nBu 1 hafta içinde herhangi biriniz giriş yaparsa silinme otomatik iptal edilir.\n\nOnaylıyor musunuz?",
       [
         { text: "Vazgeç", style: "cancel" },
         {
@@ -431,344 +318,395 @@ export default function ProfileScreen() {
               return;
             }
 
-            // Push token temizle ve çıkış yap
             if (session?.user?.id) {
               await supabase.from("push_tokens").delete().eq("user_id", session.user.id);
             }
+            await signOut();
             router.replace("/(auth)/login");
-            setTimeout(() => {
-              signOut();
-            }, 100);
           },
         },
       ]
     );
   }
 
+  const isPremium = profile?.isPremium ?? false;
+  const tokenBalance = profile?.tokenBalance ?? 0;
+  const initialLetter = displayName ? displayName.trim().charAt(0).toUpperCase() : "U";
+
   return (
     <ScreenBackground>
-      <KeyboardAwareScrollView 
-        contentContainerStyle={{ paddingBottom: 100 }}
-        showsVerticalScrollIndicator={false}
-        enableOnAndroid={true}
-        extraScrollHeight={60}
-      >
-        {/* Başlık */}
-        <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, paddingTop: insets.top + 16, paddingHorizontal: 20 }}>
-          <View style={{ width: 40 }} />
-          <View style={{ flex: 1, alignItems: "center" }}>
-            <Text style={{ color: "#fff", fontSize: 28, fontFamily: "PlayfairDisplay_400Regular_Italic" }}>
-              Ayarlar ⚙️
-            </Text>
-            <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 4 }}>
-              Profil ve hesap bilgilerini yönet
-            </Text>
+      <View style={{ flex: 1 }}>
+        {/* HEADER */}
+        <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
+          <TouchableOpacity 
+            onPress={() => router.back()} 
+            style={styles.headerBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <ChevronLeft color="#ffffff" size={24} />
+          </TouchableOpacity>
+
+          <View style={styles.headerTitleBox}>
+            <Text style={styles.headerTitle}>Ayarlar</Text>
+            <Text style={styles.headerSubtitle}>Profil & Hesap Tercihleri ⚙️</Text>
           </View>
-          <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.05)" }}>
-            <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
+
+          <TouchableOpacity 
+            onPress={() => router.push("/menu")} 
+            style={styles.headerBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <AlignJustify color="rgba(255,255,255,0.75)" size={20} />
           </TouchableOpacity>
         </View>
 
-        {/* Cüzdan ve Premium */}
-        <SectionCard title="Cüzdanım" icon={<Wallet size={18} color={theme.accent} />} theme={theme}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 15 }}>Mevcut Token:</Text>
-            <Text style={{ color: "#c8922a", fontWeight: "700", fontSize: 18 }}>🪙 {profile?.tokenBalance ?? 0}</Text>
-          </View>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-            <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 15 }}>Premium Durumu:</Text>
-            {profile?.isPremium ? (
-              <Text style={{ color: "#4ade80", fontWeight: "700", fontSize: 15 }}>Aktif (Sınırsız)</Text>
-            ) : (
-              <Text style={{ color: "rgba(255,255,255,0.4)", fontWeight: "600", fontSize: 15 }}>Aktif Değil</Text>
-            )}
-          </View>
-          
-          <TouchableOpacity
-            onPress={() => setShowAdModal(true)}
-            style={{
-              marginTop: 16,
-              backgroundColor: "rgba(255, 215, 0, 0.1)",
-              borderWidth: 1,
-              borderColor: "rgba(255, 215, 0, 0.3)",
-              borderRadius: 14,
-              paddingVertical: 12,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8
-            }}
-          >
-            <PlayCircle color="#FFD700" size={18} />
-            <Text style={{ color: "#FFD700", fontWeight: "700", fontSize: 14 }}>
-              Reklam İzle & Token Kazan
-            </Text>
-          </TouchableOpacity>
-        </SectionCard>
-
-        {/* Silinme Uyarısı */}
-        {deletionDate && (
-          <View
-            style={{
-              backgroundColor: "rgba(232,0,45,0.1)",
-              borderWidth: 1,
-              borderColor: "rgba(232,0,45,0.3)",
-              borderRadius: 16,
-              padding: 16,
-              marginBottom: 16,
-            }}
-          >
-            <Text style={{ color: "#FF4D6A", fontWeight: "700", fontSize: 14, marginBottom: 6 }}>
-              ⚠️ Hesabın Silinmek Üzere
-            </Text>
-            <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, lineHeight: 20 }}>
-              {new Date(deletionDate).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })} tarihinde
-              tüm veriler kalıcı silinecek. Giriş yaparak iptal edebilirsin.
-            </Text>
-          </View>
-        )}
-
-        {/* Kişisel Bilgiler */}
-        <SectionCard title="Kişisel Bilgiler" icon={<User size={18} color={theme.accent} />} theme={theme}>
-          <Field
-            theme={theme}
-            label="Görünen İsim"
-            value={displayName}
-            onChange={(val) => {
-              setDisplayName(val);
-              setNameError(false);
-            }}
-            placeholder="Adın"
-            error={nameError}
-          />
-          <View style={{ marginTop: 16 }}>
-            <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, marginBottom: 8 }}>
-              Cinsiyet
-            </Text>
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              {(["female", "male"] as const).map((g) => (
-                <TouchableOpacity
-                  key={g}
-                  onPress={() => setGender(g)}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 12,
-                    borderRadius: 14,
-                    borderWidth: 1,
-                    borderColor: gender === g ? theme.accent : "rgba(255,255,255,0.12)",
-                    backgroundColor: gender === g ? theme.pillAccentBg : "rgba(255,255,255,0.02)",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: gender === g ? theme.accent : "rgba(255,255,255,0.5)",
-                      fontWeight: "600",
-                      fontSize: 14,
-                    }}
-                  >
-                    {g === "female" ? "Kadın" : "Erkek"}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-          <SaveButton theme={theme} onPress={handleUpdateProfile} loading={profileLoading} label="Değişiklikleri Kaydet" />
-        </SectionCard>
-
-        {/* İlişki Tarihleri */}
-        {coupleId && (
-          <SectionCard title="İlişki Tarihleri" icon={<CalendarHeart size={18} color={theme.accent} />} theme={theme} defaultOpen={false}>
-            <View style={{ marginTop: 16 }}>
-              <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, marginBottom: 6 }}>Tanışma Tarihi</Text>
-              <TouchableOpacity
-                onPress={() => setShowMeetDatePicker(true)}
-                style={{
-                  backgroundColor: theme.inputBg, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)",
-                  borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13
-                }}
-              >
-                <Text style={{ color: meetDate ? "#fff" : "rgba(255,255,255,0.3)", fontSize: 15 }}>
-                  {meetDate || "Seçiniz"}
-                </Text>
-              </TouchableOpacity>
-              {showMeetDatePicker && (
-                <DateTimePicker
-                  value={meetDate ? new Date(meetDate) : new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={(event, selectedDate) => {
-                    setShowMeetDatePicker(Platform.OS === 'ios');
-                    if (selectedDate) {
-                      const offset = selectedDate.getTimezoneOffset();
-                      const adjustedDate = new Date(selectedDate.getTime() - (offset*60*1000));
-                      setMeetDate(adjustedDate.toISOString().split('T')[0]);
-                    }
-                  }}
-                />
-              )}
+        {/* KAYDIRILABİLİR İÇERİK */}
+        <KeyboardAwareScrollView 
+          style={{ flex: 1 }}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 280 }]}
+          showsVerticalScrollIndicator={false}
+          enableOnAndroid={true}
+          extraScrollHeight={130}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* ─── LÜKS PROFİL HERO KARTI ─── */}
+          <View style={[styles.heroProfileCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            <View style={[styles.avatarCircle, { backgroundColor: theme.pillAccentBg, borderColor: theme.accent }]}>
+              <Text style={[styles.avatarText, { color: theme.accent }]}>{initialLetter}</Text>
             </View>
 
-            <View style={{ marginTop: 16 }}>
-              <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, marginBottom: 6 }}>Sevgili Olma Tarihi</Text>
-              <TouchableOpacity
-                onPress={() => setShowRelDatePicker(true)}
-                style={{
-                  backgroundColor: theme.inputBg, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)",
-                  borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13
-                }}
-              >
-                <Text style={{ color: relStartDate ? "#fff" : "rgba(255,255,255,0.3)", fontSize: 15 }}>
-                  {relStartDate || "Seçiniz"}
-                </Text>
-              </TouchableOpacity>
-              {showRelDatePicker && (
-                <DateTimePicker
-                  value={relStartDate ? new Date(relStartDate) : new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={(event, selectedDate) => {
-                    setShowRelDatePicker(Platform.OS === 'ios');
-                    if (selectedDate) {
-                      const offset = selectedDate.getTimezoneOffset();
-                      const adjustedDate = new Date(selectedDate.getTime() - (offset*60*1000));
-                      setRelStartDate(adjustedDate.toISOString().split('T')[0]);
-                    }
-                  }}
-                />
-              )}
+            <View style={styles.heroDetails}>
+              <Text style={styles.heroNameText} numberOfLines={1}>
+                {displayName || "Kullanıcı"}
+              </Text>
+              
+              <View style={styles.badgesRow}>
+                {isPremium ? (
+                  <View style={styles.premiumBadge}>
+                    <Crown size={12} color="#ffd700" />
+                    <Text style={styles.premiumBadgeText}>Premium Üye</Text>
+                  </View>
+                ) : (
+                  <View style={styles.standardBadge}>
+                    <ShieldCheck size={12} color="rgba(255,255,255,0.6)" />
+                    <Text style={styles.standardBadgeText}>Standart Üye</Text>
+                  </View>
+                )}
+
+                {coupleId ? (
+                  <View style={[styles.pairedBadge, { backgroundColor: `${theme.accent}18` }]}>
+                    <Heart size={11} color={theme.accent} fill={theme.accent} />
+                    <Text style={[styles.pairedBadgeText, { color: theme.accent }]}>Eşleşildi</Text>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+          </View>
+
+          {/* ─── CÜZDAN & AYRICALIKLAR ─── */}
+          <View style={[styles.walletCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            <View style={styles.walletHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <View style={[styles.walletIconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                  <Wallet size={18} color={theme.accent} />
+                </View>
+                <View>
+                  <Text style={styles.walletCardTitle}>Cüzdan & Bakiye</Text>
+                  <Text style={styles.walletCardSub}>Mevcut Jetonların</Text>
+                </View>
+              </View>
+
+              <View style={styles.tokenPill}>
+                <Text style={styles.tokenEmoji}>🪙</Text>
+                <Text style={styles.tokenAmountText}>{tokenBalance}</Text>
+              </View>
             </View>
 
-            <SaveButton theme={theme} onPress={handleUpdateDates} loading={datesLoading} label="Tarihleri Güncelle" />
-          </SectionCard>
-        )}
+            <View style={styles.walletDivider} />
 
-        {/* Oturum / Çıkış */}
-        <SectionCard title="Oturum" icon={<LogOut size={18} color={theme.accent} />} theme={theme} defaultOpen={false}>
-          <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, lineHeight: 20, marginTop: 12 }}>
-            Hesabından güvenli bir şekilde çıkış yapar. Bildirim jetonun temizlenir.
-          </Text>
-          <TouchableOpacity
-            onPress={handleLogout}
-            style={{
-              marginTop: 16,
-              paddingVertical: 14,
-              borderRadius: 16,
-              backgroundColor: "rgba(255,255,255,0.05)",
-              borderWidth: 1,
-              borderColor: "rgba(255,255,255,0.1)",
-              alignItems: "center",
-            }}
-          >
-            <Text style={{ color: "rgba(255,255,255,0.8)", fontWeight: "700", fontSize: 15 }}>
-              Çıkış Yap
-            </Text>
-          </TouchableOpacity>
-        </SectionCard>
-
-        {/* Promosyon Kodları */}
-        <SectionCard title="Promosyon Kodları" icon={<Gift size={18} color={theme.accent} />} theme={theme} defaultOpen={false}>
-          <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, marginBottom: 16 }}>
-            Özel bir indirim veya hediye kodunuz varsa buradan kullanabilirsiniz.
-          </Text>
-          
-          <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
-            <TextInput
-              style={{
-                flex: 1,
-                backgroundColor: "rgba(255,255,255,0.05)",
-                borderWidth: 1,
-                borderColor: "rgba(255,255,255,0.1)",
-                borderRadius: 14,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                color: "#fff",
-                fontSize: 15,
-                textTransform: "uppercase"
-              }}
-              placeholder="HEDİYE KODU"
-              placeholderTextColor="rgba(255,255,255,0.3)"
-              value={promoCode}
-              onChangeText={setPromoCode}
-              autoCapitalize="characters"
-            />
             <TouchableOpacity
-              onPress={handleRedeemPromo}
-              disabled={promoLoading || !promoCode.trim()}
-              style={{
-                backgroundColor: theme.accent,
-                borderRadius: 14,
-                paddingHorizontal: 20,
-                justifyContent: "center",
-                opacity: (!promoCode.trim() || promoLoading) ? 0.6 : 1
-              }}
+              onPress={() => setShowAdModal(true)}
+              activeOpacity={0.85}
+              style={[styles.watchAdBtn, { borderColor: `${theme.accent}40`, backgroundColor: `${theme.accent}12` }]}
             >
-              {promoLoading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: "#fff", fontWeight: "700" }}>Kullan</Text>}
-            </TouchableOpacity>
-          </View>
-
-          {Platform.OS === 'ios' && (
-            <TouchableOpacity
-              onPress={() => RevenueCatService.presentCodeRedemptionSheet()}
-              style={{
-                paddingVertical: 12,
-                borderRadius: 14,
-                borderWidth: 1,
-                borderColor: "rgba(255,255,255,0.1)",
-                alignItems: "center",
-                backgroundColor: "rgba(255,255,255,0.03)"
-              }}
-            >
-              <Text style={{ color: "rgba(255,255,255,0.7)", fontWeight: "600", fontSize: 13 }}>
-                App Store Kodu Kullan (İndirimler İçin)
+              <PlayCircle color={theme.accent} size={18} />
+              <Text style={[styles.watchAdBtnText, { color: theme.accent }]}>
+                Reklam İzle & +100 Token Kazan
               </Text>
             </TouchableOpacity>
+          </View>
+
+          {/* SİLİNME UYARISI */}
+          {deletionDate && (
+            <View style={styles.deletionWarningBox}>
+              <Text style={styles.deletionWarningTitle}>⚠️ Hesabınız Silinmek Üzere</Text>
+              <Text style={styles.deletionWarningText}>
+                {dayjs(deletionDate).format("D MMMM YYYY")} tarihinde hesabınız kalıcı olarak silinecektir. Uygulamayı kullanmaya devam ederek bu işlemi iptal edebilirsiniz.
+              </Text>
+            </View>
           )}
-        </SectionCard>
 
-        {/* Tehlike Bölgesi */}
-        <SectionCard title="Tehlike Bölgesi" icon={<Trash2 size={18} color="#FF4D6A" />} theme={theme} defaultOpen={false}>
-          <View
-            style={{
-              backgroundColor: "rgba(232,0,45,0.06)",
-              borderWidth: 1,
-              borderColor: "rgba(232,0,45,0.2)",
-              borderRadius: 14,
-              padding: 14,
-              marginTop: 14,
-            }}
+          {/* ─── KİŞİSEL BİLGİLER ─── */}
+          <ModernSection 
+            title="Kişisel Bilgiler" 
+            icon={<User size={18} color={theme.accent} />} 
+            theme={theme}
+            defaultOpen={true}
           >
-            <Text style={{ color: "#FF4D6A", fontWeight: "700", fontSize: 14, marginBottom: 6 }}>
-              ⚠️ Dikkat: Geri Alınamaz
-            </Text>
-            <Text style={{ color: "rgba(255,255,255,0.55)", fontSize: 13, lineHeight: 20 }}>
-              Hesabını silersen, sana ve partnerine ait tüm fotoğraflar, mektuplar ve notlar kalıcı olarak silinir.{"\n\n"}
-              Verileriniz 1 hafta dondurulur — bu sürede ikinizden biri giriş yaparsa iptal edilir.
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={handleDeleteAccount}
-            disabled={deleteLoading}
-            style={{
-              marginTop: 14,
-              paddingVertical: 14,
-              borderRadius: 16,
-              backgroundColor: "rgba(232,0,45,0.08)",
-              borderWidth: 1,
-              borderColor: "rgba(232,0,45,0.3)",
-              alignItems: "center",
-            }}
+            <View style={styles.inputGroup}>
+              <Text style={styles.fieldLabel}>GÖRÜNEN İSİM</Text>
+              <TextInput
+                style={[
+                  styles.textInput, 
+                  { backgroundColor: theme.unitBg },
+                  nameError && styles.inputError
+                ]}
+                value={displayName}
+                onChangeText={(val) => {
+                  setDisplayName(val);
+                  setNameError(false);
+                }}
+                placeholder="Adınız..."
+                placeholderTextColor="rgba(255,255,255,0.3)"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.fieldLabel}>CİNSİYET & TEMA TERCİHİ</Text>
+              <View style={styles.genderSelectRow}>
+                {(["female", "male"] as const).map((g) => {
+                  const isSelected = gender === g;
+                  return (
+                    <TouchableOpacity
+                      key={g}
+                      onPress={() => setGender(g)}
+                      activeOpacity={0.8}
+                      style={[
+                        styles.genderBtn,
+                        { backgroundColor: theme.unitBg },
+                        isSelected && {
+                          borderColor: theme.accent,
+                          backgroundColor: theme.pillAccentBg,
+                          borderWidth: 1.5,
+                        }
+                      ]}
+                    >
+                      <Text style={{ fontSize: 16 }}>{g === "female" ? "🌸" : "⚡"}</Text>
+                      <Text 
+                        style={[
+                          styles.genderBtnText,
+                          isSelected && { color: "#ffffff", fontFamily: "Inter_700Bold" }
+                        ]}
+                      >
+                        {g === "female" ? "Kadın" : "Erkek"}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            <TouchableOpacity 
+              style={[styles.actionSaveBtn, { backgroundColor: theme.accent }]}
+              onPress={handleUpdateProfile}
+              disabled={profileLoading}
+              activeOpacity={0.88}
+            >
+              {profileLoading ? (
+                <ActivityIndicator color="#ffffff" size="small" />
+              ) : (
+                <Text style={styles.actionSaveBtnText}>Değişiklikleri Kaydet</Text>
+              )}
+            </TouchableOpacity>
+          </ModernSection>
+
+          {/* ─── İLİŞKİ TARİHLERİ ─── */}
+          {coupleId && (
+            <ModernSection 
+              title="İlişki Tarihleri" 
+              icon={<CalendarHeart size={18} color={theme.accent} />} 
+              theme={theme}
+              defaultOpen={false}
+            >
+              <View style={styles.inputGroup}>
+                <Text style={styles.fieldLabel}>TANIŞMA TARİHİ</Text>
+                <TouchableOpacity
+                  onPress={() => setShowMeetDatePicker(true)}
+                  style={[styles.datePickerBtn, { backgroundColor: theme.unitBg }]}
+                  activeOpacity={0.8}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                    <Calendar size={18} color={theme.accent} />
+                    <Text style={styles.datePickerBtnText}>
+                      {meetDate ? dayjs(meetDate).format("DD MMMM YYYY") : "Tarih Seçiniz"}
+                    </Text>
+                  </View>
+                  <ChevronRight size={16} color="rgba(255,255,255,0.4)" />
+                </TouchableOpacity>
+
+                {showMeetDatePicker && (
+                  <DateTimePicker
+                    value={meetDate ? new Date(meetDate) : new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={(_, selectedDate) => {
+                      setShowMeetDatePicker(Platform.OS === 'ios');
+                      if (selectedDate) {
+                        setMeetDate(dayjs(selectedDate).format("YYYY-MM-DD"));
+                      }
+                    }}
+                  />
+                )}
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.fieldLabel}>SEVGİLİ OLMA TARİHİ</Text>
+                <TouchableOpacity
+                  onPress={() => setShowRelDatePicker(true)}
+                  style={[styles.datePickerBtn, { backgroundColor: theme.unitBg }]}
+                  activeOpacity={0.8}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                    <Heart size={18} color={theme.accent} />
+                    <Text style={styles.datePickerBtnText}>
+                      {relStartDate ? dayjs(relStartDate).format("DD MMMM YYYY") : "Tarih Seçiniz"}
+                    </Text>
+                  </View>
+                  <ChevronRight size={16} color="rgba(255,255,255,0.4)" />
+                </TouchableOpacity>
+
+                {showRelDatePicker && (
+                  <DateTimePicker
+                    value={relStartDate ? new Date(relStartDate) : new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={(_, selectedDate) => {
+                      setShowRelDatePicker(Platform.OS === 'ios');
+                      if (selectedDate) {
+                        setRelStartDate(dayjs(selectedDate).format("YYYY-MM-DD"));
+                      }
+                    }}
+                  />
+                )}
+              </View>
+
+              <TouchableOpacity 
+                style={[styles.actionSaveBtn, { backgroundColor: theme.accent }]}
+                onPress={handleUpdateDates}
+                disabled={datesLoading}
+                activeOpacity={0.88}
+              >
+                {datesLoading ? (
+                  <ActivityIndicator color="#ffffff" size="small" />
+                ) : (
+                  <Text style={styles.actionSaveBtnText}>Tarihleri Güncelle 💕</Text>
+                )}
+              </TouchableOpacity>
+            </ModernSection>
+          )}
+
+          {/* ─── PROMOSYON KODLARI ─── */}
+          <ModernSection 
+            title="Promosyon & Hediye Kodu" 
+            icon={<Gift size={18} color={theme.accent} />} 
+            theme={theme}
+            defaultOpen={false}
           >
-            {deleteLoading ? (
-              <ActivityIndicator color="#FF4D6A" />
-            ) : (
-              <Text style={{ color: "#FF4D6A", fontWeight: "700", fontSize: 15 }}>
-                Hesabımı Sil
-              </Text>
+            <Text style={styles.promoHintText}>
+              Özel bir indirim veya hediye kodunuz varsa buraya girerek hesabınıza tanımlayabilirsiniz.
+            </Text>
+
+            <View style={styles.promoInputRow}>
+              <TextInput
+                style={[styles.promoTextInput, { backgroundColor: theme.unitBg }]}
+                placeholder="HEDİYE KODU"
+                placeholderTextColor="rgba(255,255,255,0.3)"
+                value={promoCode}
+                onChangeText={setPromoCode}
+                autoCapitalize="characters"
+              />
+              <TouchableOpacity
+                onPress={handleRedeemPromo}
+                disabled={promoLoading || !promoCode.trim()}
+                style={[
+                  styles.promoApplyBtn,
+                  { backgroundColor: theme.accent },
+                  (!promoCode.trim() || promoLoading) && { opacity: 0.5 }
+                ]}
+                activeOpacity={0.85}
+              >
+                {promoLoading ? (
+                  <ActivityIndicator color="#ffffff" size="small" />
+                ) : (
+                  <Text style={styles.promoApplyBtnText}>Kullan</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {Platform.OS === 'ios' && (
+              <TouchableOpacity
+                onPress={() => RevenueCatService.presentCodeRedemptionSheet()}
+                style={[styles.iosCodeBtn, { backgroundColor: theme.unitBg }]}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.iosCodeBtnText}>App Store Teklif Kodu Kullan 🍎</Text>
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
-        </SectionCard>
-      </KeyboardAwareScrollView>
+          </ModernSection>
+
+          {/* ─── OTURUM & GÜVENLİK ─── */}
+          <ModernSection 
+            title="Oturum & Güvenlik" 
+            icon={<LogOut size={18} color={theme.accent} />} 
+            theme={theme}
+            defaultOpen={false}
+          >
+            <Text style={styles.sessionHintText}>
+              Cihazınızdan güvenli bir şekilde çıkış yapın. Bildirim jetonlarınız temizlenecektir.
+            </Text>
+            
+            <TouchableOpacity
+              onPress={handleLogout}
+              style={[styles.logoutBtn, { backgroundColor: "rgba(255,255,255,0.06)" }]}
+              activeOpacity={0.8}
+            >
+              <LogOut size={16} color="rgba(255,255,255,0.85)" />
+              <Text style={styles.logoutBtnText}>Çıkış Yap</Text>
+            </TouchableOpacity>
+          </ModernSection>
+
+          {/* ─── TEHLİKE BÖLGESİ ─── */}
+          <ModernSection 
+            title="Hesap Yönetimi & Tehlike Bölgesi" 
+            icon={<Trash2 size={18} color="#ff4d6a" />} 
+            theme={theme}
+            defaultOpen={false}
+          >
+            <View style={styles.dangerNoticeBox}>
+              <Text style={styles.dangerNoticeTitle}>⚠️ Dikkat: Geri Alınamaz İşlem</Text>
+              <Text style={styles.dangerNoticeText}>
+                Hesabınızı silerseniz, ilişkinize ait tüm ortak galeriler, mektuplar, günlükler ve veriler 7 gün sonra kalıcı olarak imha edilir.
+              </Text>
+            </View>
+
+              <TouchableOpacity
+                onPress={handleDeleteAccount}
+                disabled={deleteLoading}
+                style={styles.deleteAccountBtn}
+                activeOpacity={0.8}
+              >
+                {deleteLoading ? (
+                  <ActivityIndicator color="#ff4d6a" size="small" />
+                ) : (
+                  <Text style={styles.deleteAccountBtnText}>Hesabımı ve Tüm Verileri Sil</Text>
+                )}
+              </TouchableOpacity>
+            </ModernSection>
+
+            {/* Alt Tab Bar İçin Ekstra Ferah Boşluk */}
+            <View style={{ height: 120 }} />
+          </KeyboardAwareScrollView>
+      </View>
 
       <WatchAdModal
         visible={showAdModal}
@@ -783,3 +721,448 @@ export default function ProfileScreen() {
     </ScreenBackground>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+  },
+  headerBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitleBox: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 8,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    letterSpacing: -0.4,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.55)",
+    marginTop: 2,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    gap: 14,
+  },
+
+  /* HERO PROFİL KARTI */
+  heroProfileCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 22,
+    borderWidth: 1,
+    gap: 14,
+  },
+  avatarCircle: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: {
+    fontSize: 24,
+    fontFamily: "Inter_700Bold",
+  },
+  heroDetails: {
+    flex: 1,
+  },
+  heroNameText: {
+    fontSize: 17,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    letterSpacing: -0.2,
+    marginBottom: 6,
+  },
+  badgesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  premiumBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(255, 215, 0, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 215, 0, 0.3)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  premiumBadgeText: {
+    color: "#ffd700",
+    fontSize: 11.5,
+    fontFamily: "Inter_600SemiBold",
+  },
+  standardBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  standardBadgeText: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 11.5,
+    fontFamily: "Inter_500Medium",
+  },
+  pairedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  pairedBadgeText: {
+    fontSize: 11.5,
+    fontFamily: "Inter_600SemiBold",
+  },
+
+  /* CÜZDAN KARTI */
+  walletCard: {
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+  },
+  walletHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  walletIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  walletCardTitle: {
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+  },
+  walletCardSub: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.5)",
+  },
+  tokenPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255, 215, 0, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 215, 0, 0.3)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
+  tokenEmoji: {
+    fontSize: 15,
+  },
+  tokenAmountText: {
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+    color: "#ffd700",
+  },
+  walletDivider: {
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    marginVertical: 14,
+  },
+  watchAdBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  watchAdBtnText: {
+    fontSize: 13.5,
+    fontFamily: "Inter_700Bold",
+  },
+
+  /* BÖLÜM KARTLARI */
+  sectionCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+  },
+  sectionHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  sectionIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionTitleText: {
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    letterSpacing: -0.2,
+  },
+  chevronWrapper: {
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 18,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.06)",
+    gap: 14,
+  },
+
+  /* FORM ALANLARI */
+  inputGroup: {
+    marginTop: 12,
+    gap: 6,
+  },
+  fieldLabel: {
+    fontSize: 11.5,
+    fontFamily: "Inter_600SemiBold",
+    color: "rgba(255,255,255,0.6)",
+    letterSpacing: 0.5,
+  },
+  textInput: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: "#ffffff",
+    fontSize: 14.5,
+    fontFamily: "Inter_400Regular",
+  },
+  inputError: {
+    borderColor: "#ff4d6a",
+    borderWidth: 1.5,
+  },
+  genderSelectRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  genderBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  genderBtnText: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+    color: "rgba(255,255,255,0.6)",
+  },
+  actionSaveBtn: {
+    marginTop: 14,
+    height: 48,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  actionSaveBtnText: {
+    color: "#ffffff",
+    fontSize: 14.5,
+    fontFamily: "Inter_700Bold",
+  },
+
+  /* TARİH SEÇİCİ */
+  datePickerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  datePickerBtnText: {
+    fontSize: 14,
+    fontFamily: "Inter_500Medium",
+    color: "#ffffff",
+  },
+
+  /* PROMOSYON KODU */
+  promoHintText: {
+    fontSize: 12.5,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.55)",
+    lineHeight: 18,
+    marginTop: 10,
+  },
+  promoInputRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 10,
+  },
+  promoTextInput: {
+    flex: 1,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: "#ffffff",
+    fontSize: 14.5,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 0.5,
+  },
+  promoApplyBtn: {
+    paddingHorizontal: 20,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  promoApplyBtnText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+  },
+  iosCodeBtn: {
+    marginTop: 10,
+    paddingVertical: 12,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  iosCodeBtnText: {
+    color: "rgba(255,255,255,0.75)",
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
+
+  /* OTURUM */
+  sessionHintText: {
+    fontSize: 12.5,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.5)",
+    lineHeight: 18,
+    marginTop: 10,
+  },
+  logoutBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 13,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    marginTop: 10,
+  },
+  logoutBtnText: {
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+  },
+
+  /* TEHLİKE */
+  dangerNoticeBox: {
+    backgroundColor: "rgba(255, 77, 106, 0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 77, 106, 0.25)",
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 10,
+    gap: 6,
+  },
+  dangerNoticeTitle: {
+    color: "#ff4d6a",
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
+  },
+  dangerNoticeText: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 17,
+  },
+  deleteAccountBtn: {
+    marginTop: 12,
+    paddingVertical: 13,
+    borderRadius: 14,
+    backgroundColor: "rgba(255, 77, 106, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 77, 106, 0.35)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deleteAccountBtnText: {
+    color: "#ff4d6a",
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+  },
+
+  /* SİLİNME UYARISI */
+  deletionWarningBox: {
+    backgroundColor: "rgba(255, 77, 106, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 77, 106, 0.3)",
+    borderRadius: 16,
+    padding: 16,
+    gap: 6,
+  },
+  deletionWarningTitle: {
+    color: "#ff4d6a",
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+  },
+  deletionWarningText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12.5,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 18,
+  },
+});

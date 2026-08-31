@@ -1,15 +1,20 @@
-import React, { useCallback,  useState, useMemo } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Modal } from "react-native";
+import React, { useState, useMemo } from "react";
+import { 
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, 
+  ActivityIndicator, Alert, Modal 
+} from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
-import { deterministicDecrypt } from "@/utils/crypto";
 import { logger } from "@/utils/logger";
 import { Calendar, LocaleConfig } from "react-native-calendars";
-import { X, Check, ChevronLeft, Menu, AlignJustify, Lock, Crown } from "lucide-react-native";
+import { 
+  X, Check, ChevronLeft, AlignJustify, Lock, Crown, 
+  Heart, Sparkles, Droplet, Coffee, MessageCircleHeart, Info, Gift
+} from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getTheme } from "@/lib/theme";
@@ -35,8 +40,8 @@ export default function PeriodTrackerScreen() {
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
   
-  // Checking if the current user is Female
-  const { data: userData , refetch: refetch_0} = useQuery({
+  // Kullanıcının cinsiyeti (Profildeki veya users tablosundaki)
+  const { data: userData } = useQuery({
     queryKey: ["user_gender", userId],
     enabled: !!userId,
     queryFn: async () => {
@@ -50,22 +55,29 @@ export default function PeriodTrackerScreen() {
     staleTime: 1000 * 60 * 5,
   });
 
-  const isFemale = userData?.gender === "female";
+  const isFemale = (profile?.gender || userData?.gender) === "female";
   const isPremium = profile?.isPremium ?? false;
   const [showPaywall, setShowPaywall] = useState(false);
 
-  // Erkek ve premium değilse, sayfa tamamen kilitli
+  // Erkek ve premium değilse kilitli görünüm
   const isMaleLocked = !isFemale && !isPremium;
 
-  const { data: logs, isLoading , refetch: refetch_1} = useQuery({
-    queryKey: ["period_logs", userId],
-    enabled: !!userId,
+  // Regl loglarını çek
+  // Eğer erkek ise partnerinin loglarını çekebilmesi için couple üzerinden sorguluyoruz
+  const { data: logs, isLoading } = useQuery({
+    queryKey: ["period_logs", coupleId, isFemale ? userId : "partner"],
+    enabled: !!coupleId,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("period_logs")
-        .select("id, date")
-        .eq("user_id", userId)
-        .order("date", { ascending: false });
+      let query = supabase.from("period_logs").select("id, date, user_id").order("date", { ascending: false });
+      
+      if (isFemale && userId) {
+        query = query.eq("user_id", userId);
+      } else {
+        // Erkekse partnerin logları
+        query = query.neq("user_id", userId);
+      }
+
+      const { data } = await query;
       return data || [];
     },
     staleTime: 1000 * 60 * 5,
@@ -83,11 +95,12 @@ export default function PeriodTrackerScreen() {
       marks[log.date] = {
         customStyles: {
           container: {
-            backgroundColor: 'rgba(200, 0, 30, 0.75)',
-            borderRadius: 20
+            backgroundColor: '#ff4d6a',
+            borderRadius: 18,
+            elevation: 3,
           },
           text: {
-            color: 'white',
+            color: '#ffffff',
             fontWeight: 'bold'
           }
         }
@@ -99,7 +112,7 @@ export default function PeriodTrackerScreen() {
 
   function handleDateClick(day: any) {
     if (!isFemale) {
-      Alert.alert("Erişim Engellendi", "Bu tabloyu sadece kadınlar güncelleyebilir.");
+      Alert.alert("Bilgi 🌸", "Regl takvimini yalnızca kadın partner güncelleyebilir.");
       return;
     }
 
@@ -107,11 +120,10 @@ export default function PeriodTrackerScreen() {
     const exists = logs?.some(l => l.date === dateStr);
 
     if (!exists) {
-      // Check max 2 logs per month
       const currentMonthStr = dateStr.substring(0, 7);
       const monthLogsCount = logs?.filter(l => l.date.startsWith(currentMonthStr)).length || 0;
-      if (monthLogsCount >= 2) {
-        Alert.alert("Sınır Aşıldı", "Bir ay içerisinde en fazla 2 gün seçebilirsiniz.");
+      if (monthLogsCount >= 4) {
+        Alert.alert("Sınır", "Bir ay içerisinde en fazla 4 gün işaretleyebilirsiniz.");
         return;
       }
     }
@@ -125,7 +137,6 @@ export default function PeriodTrackerScreen() {
     setLoading(true);
 
     try {
-      // RPC to bypass PostgREST identity DEFAULT issue
       const { error } = await supabase.rpc("toggle_period_log", {
         p_date: selectedDate
       });
@@ -141,331 +152,653 @@ export default function PeriodTrackerScreen() {
     }
   }
 
-
+  const latestLog = logs && logs.length > 0 ? logs[0] : null;
 
   return (
     <ScreenBackground>
-      <ScrollView contentContainerStyle={[styles.container, { paddingBottom: 100 }]}>
-        
-        {/* Header */}
-        <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, paddingTop: insets.top + 16, paddingHorizontal: 20 }}>
-          <View style={{ width: 40 }} />
-          <View style={{ flex: 1, alignItems: "center" }}>
-            <Text style={{ fontSize: 28, fontFamily: "PlayfairDisplay_400Regular_Italic", color: "#fff" }}>
-              Regl Takvimi 🩸
+      <View style={{ flex: 1 }}>
+        {/* HEADER */}
+        <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
+          <TouchableOpacity 
+            onPress={() => router.back()} 
+            style={styles.headerBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <ChevronLeft color="#ffffff" size={24} />
+          </TouchableOpacity>
+
+          <View style={styles.headerTitleBox}>
+            <Text style={styles.headerTitle}>Döngü & Regl Takvimi</Text>
+            <Text style={styles.headerSubtitle}>
+              {isFemale ? "Kişisel Döngü & Sağlık Takibi 🌸" : "Sevgilinin Döngüsü & Destek Rehberi 💕"}
             </Text>
           </View>
-          <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.05)" }}>
-            <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
+
+          <TouchableOpacity 
+            onPress={() => router.push("/menu")} 
+            style={styles.headerBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <AlignJustify color="rgba(255,255,255,0.75)" size={20} />
           </TouchableOpacity>
         </View>
 
-        {/* Male Premium Lock */}
-        {isMaleLocked ? (
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 30, paddingVertical: 60 }}>
-            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(200,0,30,0.1)", justifyContent: "center", alignItems: "center", marginBottom: 20 }}>
-              <Lock color="#E8002D" size={36} />
+        <ScrollView 
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 140 }]}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* ─── PREMIUM OLMAYAN HESAPLAR İÇİN ULTRA LÜKS KİLİT KARTI ─── */}
+          {isMaleLocked ? (
+            <View style={[styles.luxuryLockCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+              <View style={styles.luxuryLockGlow}>
+                <View style={[styles.luxuryLockIconBox, { backgroundColor: "rgba(255, 77, 106, 0.15)", borderColor: "rgba(255, 77, 106, 0.35)" }]}>
+                  <Crown color="#ff4d6a" size={32} />
+                </View>
+              </View>
+
+              <View style={styles.vipBadge}>
+                <Sparkles size={13} color="#ffd700" />
+                <Text style={styles.vipBadgeText}>VIP ÇİFT AYRICALIĞI</Text>
+              </View>
+
+              <Text style={styles.luxuryLockTitle}>
+                Sevgilinin Döngüsünü Birlikte Takip Edin 💕
+              </Text>
+              
+              <Text style={styles.luxuryLockDesc}>
+                Partnerinizin hassas dönemlerinden haberdar olarak ona en doğru zamanda anlayış ve şefkatle yaklaşabilirsiniz.
+              </Text>
+
+              {/* Avantaj Maddeleri */}
+              <View style={styles.perksList}>
+                <View style={styles.perkItem}>
+                  <View style={styles.perkBullet}>
+                    <Check size={13} color="#22c55e" strokeWidth={3} />
+                  </View>
+                  <Text style={styles.perkText}>Hassas günlerinde sevgiline şefkatle destek ol</Text>
+                </View>
+
+                <View style={styles.perkItem}>
+                  <View style={styles.perkBullet}>
+                    <Check size={13} color="#22c55e" strokeWidth={3} />
+                  </View>
+                  <Text style={styles.perkText}>Özel günleri ve tatil planlarını rahatça organize et</Text>
+                </View>
+
+                <View style={styles.perkItem}>
+                  <View style={styles.perkBullet}>
+                    <Check size={13} color="#22c55e" strokeWidth={3} />
+                  </View>
+                  <Text style={styles.perkText}>Duygu durum değişimlerini önceden fark et ve anlayış göster</Text>
+                </View>
+              </View>
+
+              {/* Lüks CTA Butonu */}
+              <TouchableOpacity
+                onPress={() => setShowPaywall(true)}
+                activeOpacity={0.88}
+                style={[styles.upgradeBtn, { backgroundColor: theme.accent }]}
+              >
+                <Crown color="#ffffff" size={18} />
+                <Text style={styles.upgradeBtnText}>Ayrıcalıkları Keşfet ✨</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800", textAlign: "center", marginBottom: 10 }}>
-              Premium Özellik
-            </Text>
-            <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, textAlign: "center", lineHeight: 22, marginBottom: 24 }}>
-              Partnerinin regl döngüsünü takip etmek için Premium'a geçmen gerekiyor.
-            </Text>
-            <TouchableOpacity
-              onPress={() => setShowPaywall(true)}
-              activeOpacity={0.8}
-              style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 16, backgroundColor: "#E8002D" }}
-            >
-              <Crown color="#fff" size={18} />
-              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Premium'a Geç</Text>
-            </TouchableOpacity>
+          ) : (
+            <>
+              {/* ─── KADIN YA DA PREMIUM ERKEK İÇİN DURUM ÖZETİ KARTI ─── */}
+              <View style={[styles.statusHeroCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                <View style={[styles.statusHeroIconBox, { backgroundColor: "rgba(255, 77, 106, 0.15)" }]}>
+                  <Droplet size={24} color="#ff4d6a" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.statusHeroTitle}>
+                    {isFemale ? "Döngü Takibi Aktif 🌸" : "Sevgilinin Döngüsü Takipte 💕"}
+                  </Text>
+                  <Text style={styles.statusHeroSubtitle}>
+                    {latestLog 
+                      ? `Son kayıt: ${dayjs(latestLog.date).locale("tr").format("D MMMM YYYY")}`
+                      : "Henüz takvime bir döngü günü kaydedilmedi."
+                    }
+                  </Text>
+                </View>
+              </View>
 
-            <PremiumPaywall
-              visible={showPaywall}
-              onClose={() => setShowPaywall(false)}
-              featureName="Regl Takvimi"
-              featureDescription="Partnerinin döngüsünü takip et, beraber planlayın."
-              gender={profile?.gender}
-            />
-          </View>
-        ) : (
-        <>
-
-        {isLoading ? (
-          <View style={{ gap: 16, marginTop: 40, paddingHorizontal: 20 }}>
-            <Skeleton height={350} borderRadius={20} />
-            <Skeleton height={100} borderRadius={16} />
-          </View>
-        ) : (
-          <>
-            {/* Calendar View */}
-            <View style={[styles.calendarContainer, { backgroundColor: "#0f1a2e" }]}>
-              <Calendar
-                current={today}
-                onDayPress={handleDateClick}
-                markedDates={markedDates}
-                markingType={'custom'}
-                theme={{
-                  calendarBackground: 'transparent',
-                  textSectionTitleColor: 'rgba(255,255,255,0.4)',
-                  todayTextColor: theme.accent,
-                  selectedDayBackgroundColor: theme.accent,
-                  selectedDayTextColor: '#fff',
-                  dayTextColor: 'rgba(255,255,255,0.85)',
-                  textDisabledColor: 'rgba(255,255,255,0.2)',
-                  arrowColor: theme.accent,
-                  monthTextColor: '#ffffff',
-                  textMonthFontWeight: 'bold',
-                  textDayFontSize: 14,
-                  textMonthFontSize: 17,
-                  textDayHeaderFontSize: 11,
-                  textDayHeaderFontWeight: '600'
-                }}
-              />
-            </View>
-
-            {/* Past Records */}
-            <View style={styles.pastRecordsBox}>
-              <Text style={styles.pastRecordsTitle}>Geçmiş Kayıtlar</Text>
-
-              {!logs || logs.length === 0 ? (
-                <Text style={styles.emptyText}>Henüz hiç regl kaydı bulunmuyor.</Text>
-              ) : (
-                <View style={{ gap: 10 }}>
-                  {logs.map(log => {
-                    const logDate = dayjs(log.date);
-                    return (
-                      <View key={log.id} style={[styles.logCard, { backgroundColor: theme.cardBg, borderWidth: 1, borderColor: theme.accent + '30' }]}>
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                          <View style={[styles.dropIconBox, { backgroundColor: theme.accent + '20', borderColor: theme.accent + '50' }]}>
-                            <Text style={{ fontSize: 20 }}>🩸</Text>
-                          </View>
-                          <View>
-                            <Text style={styles.logDateText}>{logDate.format("DD MMMM YYYY")}</Text>
-                            <Text style={[styles.logDayText, { color: theme.accent }]}>{logDate.format("dddd")}</Text>
-                          </View>
-                        </View>
-                        <Text style={[styles.logMonthText, { color: theme.accent }]}>{logDate.format("MMMM")}</Text>
-                      </View>
-                    );
-                  })}
+              {/* ─── ERKEK KULLANICI İÇİN ŞEFKAT & DESTEK REHBERİ ─── */}
+              {!isFemale && (
+                <View style={[styles.gentleGuideCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                  <View style={styles.guideHeader}>
+                    <MessageCircleHeart size={18} color="#ff4d6a" />
+                    <Text style={styles.guideTitle}>Sevgiline Destek Olma İpuçları</Text>
+                  </View>
+                  <View style={styles.guideItemsBox}>
+                    <View style={styles.guideItemRow}>
+                      <Text style={{ fontSize: 16 }}>🍫</Text>
+                      <Text style={styles.guideItemText}>Ona en sevdiği çikolatayı veya tatlıyı hediye edebilirsin.</Text>
+                    </View>
+                    <View style={styles.guideItemRow}>
+                      <Text style={{ fontSize: 16 }}>☕</Text>
+                      <Text style={styles.guideItemText}>Sıcak bir bitki çayı hazırlayıp rahatlamasına yardımcı ol.</Text>
+                    </View>
+                    <View style={styles.guideItemRow}>
+                      <Text style={{ fontSize: 16 }}>🫂</Text>
+                      <Text style={styles.guideItemText}>Ekstra anlayışlı davranıp onu sımsıkı kucakla.</Text>
+                    </View>
+                  </View>
                 </View>
               )}
-            </View>
-          </>
-        )}
-        </>
-        )}
-      </ScrollView>
 
-      {/* Modal */}
+              {/* ─── KADIN KULLANICI İÇİN İPUCU KARTI ─── */}
+              {isFemale && (
+                <View style={[styles.femaleTipsCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                  <View style={styles.guideHeader}>
+                    <Sparkles size={17} color={theme.accent} />
+                    <Text style={styles.guideTitle}>Günün Kendine Bakım Notu</Text>
+                  </View>
+                  <Text style={styles.femaleTipsText}>
+                    Regl gününü takvimden seçerek döngünü kaydedebilirsin. Bol su içmeyi ve kendini dinlendirmeyi unutma tatlım 🌸
+                  </Text>
+                </View>
+              )}
+
+              {/* ─── MODERN TAKVİM ─── */}
+              <View style={[styles.calendarBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                {isLoading ? (
+                  <View style={{ padding: 20, gap: 12 }}>
+                    <Skeleton height={260} borderRadius={18} />
+                  </View>
+                ) : (
+                  <Calendar
+                    current={today}
+                    onDayPress={handleDateClick}
+                    markedDates={markedDates}
+                    markingType={'custom'}
+                    theme={{
+                      calendarBackground: 'transparent',
+                      textSectionTitleColor: 'rgba(255,255,255,0.45)',
+                      todayTextColor: '#ff4d6a',
+                      selectedDayBackgroundColor: '#ff4d6a',
+                      selectedDayTextColor: '#ffffff',
+                      dayTextColor: 'rgba(255,255,255,0.9)',
+                      textDisabledColor: 'rgba(255,255,255,0.2)',
+                      arrowColor: theme.accent,
+                      monthTextColor: '#ffffff',
+                      textMonthFontWeight: '700',
+                      textDayFontSize: 14.5,
+                      textMonthFontSize: 16.5,
+                      textDayHeaderFontSize: 11,
+                      textDayHeaderFontWeight: '600'
+                    }}
+                  />
+                )}
+              </View>
+
+              {/* ─── GEÇMİŞ DÖNGÜ KAYITLARI ─── */}
+              <View style={styles.pastRecordsSection}>
+                <Text style={styles.pastSectionTitle}>GEÇMİŞ KAYITLAR</Text>
+
+                {!logs || logs.length === 0 ? (
+                  <View style={[styles.emptyBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                    <Text style={{ fontSize: 32, marginBottom: 8 }}>🌸</Text>
+                    <Text style={styles.emptyText}>Henüz kayıtlı bir döngü günü bulunmuyor.</Text>
+                  </View>
+                ) : (
+                  <View style={{ gap: 10 }}>
+                    {logs.map(log => {
+                      const logDate = dayjs(log.date);
+                      return (
+                        <View key={log.id} style={[styles.logCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                          <View style={styles.logLeftCol}>
+                            <View style={[styles.logDropBadge, { backgroundColor: "rgba(255, 77, 106, 0.15)" }]}>
+                              <Droplet size={18} color="#ff4d6a" />
+                            </View>
+                            <View>
+                              <Text style={styles.logDateText}>{logDate.locale("tr").format("DD MMMM YYYY")}</Text>
+                              <Text style={styles.logDayText}>{logDate.locale("tr").format("dddd")}</Text>
+                            </View>
+                          </View>
+                          <View style={styles.logRightTag}>
+                            <Text style={styles.logRightTagText}>{logDate.locale("tr").format("MMMM")}</Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+            </>
+          )}
+        </ScrollView>
+      </View>
+
+      {/* ─── TARİH KAYIT / SİLME MODALI ─── */}
       <Modal visible={!!selectedDate} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            
-            <View style={styles.modalIconBox}>
-              <Text style={{ fontSize: 28 }}>🩸</Text>
+          <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            <View style={[styles.modalIconCircle, { backgroundColor: "rgba(255, 77, 106, 0.15)" }]}>
+              <Droplet size={28} color="#ff4d6a" />
             </View>
 
-            <Text style={styles.modalDateText}>
-              {selectedDate ? dayjs(selectedDate).format("DD MMMM YYYY") : ""}
+            <Text style={styles.modalDateTitle}>
+              {selectedDate ? dayjs(selectedDate).locale("tr").format("DD MMMM YYYY, dddd") : ""}
             </Text>
             
-            <Text style={styles.modalSubtitle}>
-              {isAdding ? "Sıkıntılı günler başladı mı?" : "Bu günkü kaydı silmek istediğine emin misin?"}
+            <Text style={styles.modalDescription}>
+              {isAdding 
+                ? "Bu günü regl başlangıcı olarak işaretlemek istiyor musunuz?" 
+                : "Bu tarihteki regl kaydını kaldırmak istiyor musunuz?"
+              }
             </Text>
 
             <View style={styles.modalBtnRow}>
               <TouchableOpacity
-                style={styles.modalCancelBtn}
+                style={[styles.modalCancelBtn, { backgroundColor: theme.unitBg }]}
                 disabled={loading}
                 onPress={() => setSelectedDate(null)}
               >
-                <Text style={styles.modalCancelBtnText}>İptal</Text>
+                <Text style={styles.modalCancelBtnText}>Vazgeç</Text>
               </TouchableOpacity>
               
               <TouchableOpacity
-                style={[styles.modalActionBtn, { backgroundColor: theme.accent }, loading && { opacity: 0.7 }]}
+                style={[
+                  styles.modalConfirmBtn, 
+                  { backgroundColor: isAdding ? "#ff4d6a" : "rgba(239, 68, 68, 0.85)" }, 
+                  loading && { opacity: 0.7 }
+                ]}
                 disabled={loading}
                 onPress={handleToggle}
               >
                 {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : isAdding ? (
-                  <>
-                    <Check color="#fff" size={16} />
-                    <Text style={styles.modalActionBtnText}>Evet</Text>
-                  </>
+                  <ActivityIndicator color="#ffffff" size="small" />
                 ) : (
                   <>
-                    <X color="#fff" size={16} />
-                    <Text style={styles.modalActionBtnText}>Kaydı Sil</Text>
+                    <Check color="#ffffff" size={16} />
+                    <Text style={styles.modalConfirmBtnText}>
+                      {isAdding ? "İşaretle" : "Kaydı Sil"}
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
             </View>
-
           </View>
         </View>
       </Modal>
+
+      {/* ─── PREMIUM PAYWALL MODALI ─── */}
+      <PremiumPaywall
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        featureName="Döngü & Regl Takvimi"
+        featureDescription="Sevgilinizin döngüsünü birlikte takip edin, hassas dönemlerinde ona en doğru şekilde destek olun."
+        gender={profile?.gender}
+      />
     </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-    paddingBottom: 120,
-  },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 12,
   },
-  backBtn: {
-    padding: 4,
-    marginLeft: -4,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: "#fff",
-    letterSpacing: 1,
-  },
-  calendarContainer: {
-    backgroundColor: "rgba(255,255,255,0.06)",
+  headerBtn: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    padding: 8,
-    marginBottom: 28,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  pastRecordsBox: {
-    marginTop: 8,
+  headerTitleBox: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 8,
   },
-  pastRecordsTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 14,
+  headerTitle: {
+    fontSize: 21,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    letterSpacing: -0.4,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.55)",
+    marginTop: 2,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    gap: 16,
+  },
+
+  /* ─── LÜKS KİLİT KARTI (PREMIUMSIZ) ─── */
+  luxuryLockCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 24,
+    alignItems: "center",
+    marginTop: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  luxuryLockGlow: {
+    marginBottom: 16,
+  },
+  luxuryLockIconBox: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  vipBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255, 215, 0, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 215, 0, 0.3)",
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  vipBadgeText: {
+    color: "#ffd700",
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.8,
+  },
+  luxuryLockTitle: {
+    fontSize: 18,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    textAlign: "center",
+    letterSpacing: -0.2,
+    marginBottom: 8,
+  },
+  luxuryLockDesc: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.6)",
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 20,
+    paddingHorizontal: 8,
+  },
+  perksList: {
+    width: "100%",
+    gap: 12,
+    backgroundColor: "rgba(255,255,255,0.03)",
+    padding: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+    marginBottom: 22,
+  },
+  perkItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  perkBullet: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "rgba(34, 197, 94, 0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  perkText: {
+    fontSize: 12.5,
+    fontFamily: "Inter_500Medium",
+    color: "rgba(255,255,255,0.85)",
+    flex: 1,
+  },
+  upgradeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    width: "100%",
+    height: 48,
+    borderRadius: 16,
+  },
+  upgradeBtnText: {
+    color: "#ffffff",
+    fontSize: 14.5,
+    fontFamily: "Inter_700Bold",
+  },
+
+  /* ─── DURUM HERO KARTI ─── */
+  statusHeroCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 14,
+  },
+  statusHeroIconBox: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  statusHeroTitle: {
+    fontSize: 15.5,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    letterSpacing: -0.2,
+  },
+  statusHeroSubtitle: {
+    fontSize: 12.5,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.6)",
+    marginTop: 2,
+  },
+
+  /* ─── ŞEFKAT & DESTEK REHBERİ ─── */
+  gentleGuideCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 16,
+    gap: 12,
+  },
+  guideHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  guideTitle: {
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+  },
+  guideItemsBox: {
+    gap: 8,
+  },
+  guideItemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "rgba(255,255,255,0.03)",
+    padding: 10,
+    borderRadius: 12,
+  },
+  guideItemText: {
+    fontSize: 12.5,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.75)",
+    flex: 1,
+  },
+
+  /* KADIN İPUCU KARTI */
+  femaleTipsCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 14,
+    gap: 8,
+  },
+  femaleTipsText: {
+    fontSize: 12.5,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.75)",
+    lineHeight: 18,
+  },
+
+  /* MODERN TAKVİM KUTUSU */
+  calendarBox: {
+    borderRadius: 22,
+    borderWidth: 1,
+    overflow: "hidden",
+    paddingVertical: 8,
+  },
+
+  /* GEÇMİŞ KAYITLAR */
+  pastRecordsSection: {
+    gap: 10,
+  },
+  pastSectionTitle: {
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    color: "rgba(255,255,255,0.5)",
+    letterSpacing: 0.8,
+    marginLeft: 4,
+  },
+  emptyBox: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 24,
+    alignItems: "center",
+    justifyContent: "center",
   },
   emptyText: {
-    color: "rgba(255,255,255,0.35)",
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.5)",
     textAlign: "center",
-    paddingVertical: 24,
-    fontSize: 14,
   },
   logCard: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#1c1c1e",
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-  },
-  dropIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(200,0,30,0.15)",
+    padding: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(200,0,30,0.3)",
+  },
+  logLeftCol: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  logDropBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
   },
   logDateText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "rgba(255,255,255,0.9)",
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+    color: "#ffffff",
   },
   logDayText: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.6)",
-    fontWeight: "500",
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.55)",
+    marginTop: 2,
   },
-  logMonthText: {
-    fontSize: 13,
-    fontWeight: "bold",
-    color: "#c8922a",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+  logRightTag: {
+    backgroundColor: "rgba(255,255,255,0.06)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
   },
-  // Modal
+  logRightTagText: {
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+    color: "rgba(255,255,255,0.75)",
+  },
+
+  /* MODAL */
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.75)",
     alignItems: "center",
     justifyContent: "center",
-    padding: 16,
-  },
-  modalContent: {
-    width: "100%",
-    maxWidth: 340,
-    backgroundColor: "#1c1c1e",
-    borderRadius: 20,
     padding: 24,
-    alignItems: "center",
   },
-  modalIconBox: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#1a3a5c",
+  modalBox: {
+    width: "100%",
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 22,
+    alignItems: "center",
+    gap: 12,
+  },
+  modalIconCircle: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
-    shadowColor: "#4A90D9",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 5,
   },
-  modalDateText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 6,
+  modalDateTitle: {
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    textAlign: "center",
   },
-  modalSubtitle: {
-    fontSize: 14,
+  modalDescription: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
     color: "rgba(255,255,255,0.65)",
     textAlign: "center",
-    marginBottom: 20,
+    lineHeight: 19,
+    paddingHorizontal: 10,
   },
   modalBtnRow: {
     flexDirection: "row",
-    gap: 10,
+    gap: 12,
     width: "100%",
+    marginTop: 8,
   },
   modalCancelBtn: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.07)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    height: 44,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
   modalCancelBtnText: {
     color: "rgba(255,255,255,0.7)",
-    fontWeight: "600",
-    fontSize: 15,
+    fontSize: 13.5,
+    fontFamily: "Inter_600SemiBold",
   },
-  modalActionBtn: {
-    flex: 2,
+  modalConfirmBtn: {
+    flex: 1.3,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: "#4A90D9",
+    gap: 6,
+    height: 44,
+    borderRadius: 14,
   },
-  modalActionBtnText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 15,
-  }
+  modalConfirmBtnText: {
+    color: "#ffffff",
+    fontSize: 13.5,
+    fontFamily: "Inter_700Bold",
+  },
 });

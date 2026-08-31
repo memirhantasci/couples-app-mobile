@@ -15,15 +15,25 @@ const interstitial = InterstitialAd.createForAdRequest(adUnitId, {
 let lastAdShowTime = 0;
 const AD_COOLDOWN_MS = 60 * 1000 * 2; // 2 minutes cooldown between interstitial ads
 
+// Global flag to suppress ads during and immediately after sign out
+let isLoggingOut = false;
+
+export function setAdLoggingOut(value: boolean) {
+  isLoggingOut = value;
+}
+
 export function useInterstitialAd() {
-  const { profile } = useAuth();
-  const isPremium = profile?.isPremium ?? false;
+  const { session, profile, isLoading } = useAuth();
+  const isPremium = profile?.isPremium === true;
   
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    // Premium users never load or see ads
-    if (isPremium) return;
+    // If logging out, unauthenticated, loading, or premium: never load ads
+    if (isLoggingOut || !session || isLoading || !profile || isPremium) {
+      setLoaded(false);
+      return;
+    }
 
     let unsubscribeLoaded: () => void;
     let unsubscribeClosed: () => void;
@@ -31,6 +41,7 @@ export function useInterstitialAd() {
 
     const loadAd = () => {
       try {
+        if (isLoggingOut || !session || isPremium) return;
         if (!interstitial.loaded) {
           interstitial.load();
         } else {
@@ -42,24 +53,24 @@ export function useInterstitialAd() {
     };
 
     unsubscribeLoaded = interstitial.addAdEventListener(AdEventType.LOADED, () => {
-      setLoaded(true);
+      if (!isLoggingOut && session && !isPremium) {
+        setLoaded(true);
+      }
     });
 
     unsubscribeClosed = interstitial.addAdEventListener(AdEventType.CLOSED, () => {
       setLoaded(false);
       lastAdShowTime = Date.now();
-      // Preload next ad
-      loadAd();
+      // Preload next ad only if user is still logged in and not premium
+      if (!isLoggingOut && session && !isPremium) {
+        loadAd();
+      }
     });
 
     // @ts-ignore
     unsubscribeError = interstitial.addAdEventListener('error', (error) => {
       logger.error("Interstitial Ad Error:", error);
       setLoaded(false);
-      // Wait a bit before trying to load again on error
-      setTimeout(() => {
-        loadAd();
-      }, 10000);
     });
 
     loadAd();
@@ -69,10 +80,13 @@ export function useInterstitialAd() {
       if (unsubscribeClosed) unsubscribeClosed();
       if (unsubscribeError) unsubscribeError();
     };
-  }, [isPremium]);
+  }, [session, isLoading, profile, isPremium]);
 
   const showAdIfReady = () => {
-    if (isPremium) return false; // Premium users bypass
+    // If user is logging out, unauthenticated, profile is loading, or user is premium: NEVER show ad
+    if (isLoggingOut || !session || isLoading || !profile || isPremium) {
+      return false;
+    }
 
     const now = Date.now();
     if (loaded && (now - lastAdShowTime > AD_COOLDOWN_MS)) {

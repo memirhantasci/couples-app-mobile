@@ -120,10 +120,9 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: "800",
     color: "#fff",
     marginBottom: 8,
-    fontFamily: "PlayfairDisplay_700Bold",
+    fontFamily: "Inter_700Bold",
   },
   subtitle: {
     fontSize: 14,

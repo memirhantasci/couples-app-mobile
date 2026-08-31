@@ -1,31 +1,42 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { 
+  View, Text, TouchableOpacity, StyleSheet, 
+  ScrollView, Platform 
+} from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useRouter } from "expo-router";
-import { X, Heart, Settings, Home, Pill, CalendarHeart, Droplet, MapPin, LogOut, ChevronRight, User, BookOpen, Mail, Image as ImageIcon, Camera } from "lucide-react-native";
+import { 
+  X, Heart, Settings, Home, Pill, CalendarHeart, 
+  Droplet, MapPin, LogOut, ChevronRight, User, 
+  BookOpen, Mail, Images, Camera, Sparkles, ShieldCheck,
+  Calendar, Clock
+} from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 import { getTheme } from "@/lib/theme";
 import { decrypt } from "@/utils/crypto";
 import { dayjs, daysSince } from "@/lib/date";
 import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function MenuScreen() {
   const router = useRouter();
   const { profile, session, signOut } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const handleRoute = (path: string) => {
     router.back();
     setTimeout(() => {
       router.push(path as any);
-    }, 100);
+    }, 120);
   };
 
   const handleSignOut = async () => {
-    router.replace("/(auth)/login" as any);
-    setTimeout(() => {
-      signOut();
-    }, 100);
+    try {
+      await signOut();
+    } finally {
+      router.replace("/(auth)/login" as any);
+    }
   };
 
   const theme = getTheme(profile?.gender);
@@ -46,108 +57,230 @@ export default function MenuScreen() {
         .eq("couple_id", coupleId)
         .neq("id", currentUserId)
         .maybeSingle();
-      return data?.display_name ? decrypt(data.display_name) : "Partner";
+      return data?.display_name ? decrypt(data.display_name) : "Sevgilin";
     },
     staleTime: 1000 * 60 * 60,
   });
 
   const displayName = profile?.displayName || "Kullanıcı";
+  const initialLetter = displayName.charAt(0).toUpperCase();
 
   return (
     <ScreenBackground>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Menü</Text>
-          <TouchableOpacity onPress={() => router.back()} style={[styles.closeBtn, { backgroundColor: theme.cardBg }]}>
-            <X color="#fff" size={20} />
+      <View style={{ flex: 1 }}>
+        {/* HEADER */}
+        <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
+          <Text style={styles.headerTitle}>Uygulama Menüsü</Text>
+          <TouchableOpacity 
+            onPress={() => router.back()} 
+            style={[styles.closeBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <X color="#ffffff" size={18} />
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={styles.content}>
-          {/* Profile Card */}
-          <View style={[styles.profileCard, { backgroundColor: theme.cardBg }]}>
-            <View style={styles.avatarCircle}>
-              <User color="rgba(255,255,255,0.8)" size={32} />
+        <ScrollView 
+          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 60 }]}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* ─── LÜKS ÇİFT PROFİL KARTI ─── */}
+          <View style={[styles.profileCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            <View style={[styles.avatarCircle, { backgroundColor: theme.pillAccentBg, borderColor: theme.accent }]}>
+              <Text style={[styles.avatarLetter, { color: theme.accent }]}>{initialLetter}</Text>
             </View>
             <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{displayName}</Text>
-              <Text style={styles.profileSubtitle}>{displayName} & {partnerName || "Partner"} • {daysSinceTogether} Gündür ❤️</Text>
+              <Text style={styles.profileName} numberOfLines={1}>{displayName}</Text>
+              <View style={styles.profileSubtitleRow}>
+                <Heart size={11} color={theme.accent} fill={theme.accent} />
+                <Text style={styles.profileSubtitle}>
+                  {displayName} & {partnerName || "Sevgilin"} • {daysSinceTogether} Gün
+                </Text>
+              </View>
             </View>
           </View>
-          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/(tabs)/home")}>
-            <Home color="#fff" size={20} />
-            <Text style={styles.menuText}>Ana Sayfa</Text>
-            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
-          </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/(tabs)/medicine")}>
-            <Pill color="#fff" size={20} />
-            <Text style={styles.menuText}>İlaçlar</Text>
-            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
-          </TouchableOpacity>
+          {/* ─── KATEGORİ 1: AŞK & ANILAR (ANA BÖLÜMLER) ─── */}
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionHeaderLabel}>AŞK & ORTAK ANILAR</Text>
 
-          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/(tabs)/memories")}>
-            <Heart color="#fff" size={20} />
-            <Text style={styles.menuText}>Özel Günler</Text>
-            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              onPress={() => handleRoute("/(tabs)/home")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <Home color={theme.accent} size={18} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>Ana Sayfa</Text>
+                <Text style={styles.menuSub}>Günün özeti ve aşk ölçer</Text>
+              </View>
+              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+            </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/(tabs)/photos")}>
-            <ImageIcon color="#fff" size={20} />
-            <Text style={styles.menuText}>Ortak Galeri</Text>
-            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              onPress={() => handleRoute("/(tabs)/photos")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <Images color={theme.accent} size={18} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>Ortak Galeri</Text>
+                <Text style={styles.menuSub}>Birlikte biriktirdiğiniz fotoğraflar</Text>
+              </View>
+              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+            </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/(tabs)/add-photo")}>
-            <Camera color="#fff" size={20} />
-            <Text style={styles.menuText}>Fotoğraf Yükle</Text>
-            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              onPress={() => handleRoute("/(tabs)/daily-notes")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <BookOpen color={theme.accent} size={18} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>Günlüğüm</Text>
+                <Text style={styles.menuSub}>Sana özel şifreli not defterin</Text>
+              </View>
+              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+            </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/(tabs)/daily-notes")}>
-            <BookOpen color="#fff" size={20} />
-            <Text style={styles.menuText}>Günlüğüm</Text>
-            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              onPress={() => handleRoute("/(tabs)/letters")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <Mail color={theme.accent} size={18} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>Mektuplar</Text>
+                <Text style={styles.menuSub}>Zaman kilitli aşk mektupları</Text>
+              </View>
+              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+            </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/(tabs)/calendar")}>
-            <CalendarHeart color="#fff" size={20} />
-            <Text style={styles.menuText}>Takvim</Text>
-            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              onPress={() => handleRoute("/(tabs)/memories")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <Heart color={theme.accent} size={18} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>Özel Günler & Yıldönümleri</Text>
+                <Text style={styles.menuSub}>Unutulmaz tarihlerin geri sayımı</Text>
+              </View>
+              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+            </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/(tabs)/letters")}>
-            <View style={styles.iconCircle}>
-              <X color="#fff" size={14} strokeWidth={3} />
-            </View>
-            <Text style={styles.menuText}>Mektuplar</Text>
-            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              onPress={() => handleRoute("/(tabs)/calendar")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <CalendarHeart color={theme.accent} size={18} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>Aşk Takvimi</Text>
+                <Text style={styles.menuSub}>Ruh halleri, notlar ve fotoğraflar</Text>
+              </View>
+              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+            </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/profile")}>
-            <Settings color="#fff" size={20} />
-            <Text style={styles.menuText}>Ayarlar</Text>
-            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              onPress={() => handleRoute("/(tabs)/meetings")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <MapPin color={theme.accent} size={18} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>Buluşmalar & Harita</Text>
+                <Text style={styles.menuSub}>Konum seçimi ve buluşma planları</Text>
+              </View>
+              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+            </TouchableOpacity>
+          </View>
 
-          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/(tabs)/period-tracker")}>
-            <Droplet color="#fff" size={20} />
-            <Text style={styles.menuText}>Regl Takvimi</Text>
-            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
-          </TouchableOpacity>
+          {/* ─── KATEGORİ 2: SAĞLIK & ÖZEL TAKİP ─── */}
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionHeaderLabel}>SAĞLIK & TAKİP</Text>
 
-          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={() => handleRoute("/(tabs)/meetings")}>
-            <MapPin color="#fff" size={20} />
-            <Text style={styles.menuText}>Buluşmalar</Text>
-            <ChevronRight color="rgba(255,255,255,0.3)" size={20} style={{ marginLeft: "auto" }} />
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              onPress={() => handleRoute("/(tabs)/medicine")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <Pill color={theme.accent} size={18} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>İlaç Takibi</Text>
+                <Text style={styles.menuSub}>Senin ve sevgilinin günlük dozları</Text>
+              </View>
+              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+            </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.cardBg }]} onPress={handleSignOut}>
-            <LogOut color={theme.accent} size={20} />
-            <Text style={[styles.menuText, { color: theme.accent }]}>Çıkış Yap</Text>
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              onPress={() => handleRoute("/(tabs)/period-tracker")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <Droplet color={theme.accent} size={18} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>Döngü & Regl Takvimi</Text>
+                <Text style={styles.menuSub}>Hassas dönemler ve hatırlatıcılar</Text>
+              </View>
+              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+            </TouchableOpacity>
+          </View>
+
+          {/* ─── KATEGORİ 3: AYARLAR & HESAP ─── */}
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionHeaderLabel}>HESAP & AYARLAR</Text>
+
+            <TouchableOpacity 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              onPress={() => handleRoute("/(tabs)/profile")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <Settings color={theme.accent} size={18} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>Ayarlar & Profil</Text>
+                <Text style={styles.menuSub}>Cüzdan, ilişki tarihleri ve güvenlik</Text>
+              </View>
+              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.logoutItem, { backgroundColor: "rgba(255, 77, 106, 0.08)", borderColor: "rgba(255, 77, 106, 0.25)" }]} 
+              onPress={handleSignOut}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: "rgba(255, 77, 106, 0.15)" }]}>
+                <LogOut color="#ff4d6a" size={18} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={[styles.menuTitle, { color: "#ff4d6a" }]}>Çıkış Yap</Text>
+                <Text style={styles.menuSub}>Oturumu güvenli bir şekilde kapat</Text>
+              </View>
+              <ChevronRight color="rgba(255, 77, 106, 0.4)" size={18} />
+            </TouchableOpacity>
+          </View>
         </ScrollView>
-      </KeyboardAvoidingView>
+      </View>
     </ScreenBackground>
   );
 }
@@ -158,75 +291,117 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  closeBtn: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    paddingBottom: 14,
   },
   headerTitle: {
-    fontSize: 28,
-    fontFamily: "PlayfairDisplay_400Regular_Italic",
-    color: "#fff",
+    fontSize: 22,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    letterSpacing: -0.4,
+  },
+  closeBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   content: {
-    padding: 20,
-    paddingBottom: 100,
-    gap: 12,
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    gap: 20,
   },
+
+  /* PROFİL KARTI */
   profileCard: {
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    borderRadius: 20,
-    marginBottom: 8,
+    borderRadius: 22,
+    borderWidth: 1,
     gap: 14,
   },
   avatarCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
-    overflow: "hidden",
+  },
+  avatarLetter: {
+    fontSize: 22,
+    fontFamily: "Inter_700Bold",
   },
   profileInfo: {
     flex: 1,
-    justifyContent: "center",
   },
   profileName: {
-    fontSize: 16,
-    fontFamily: "Inter_600SemiBold",
-    color: "#fff",
-    marginBottom: 2,
+    fontSize: 16.5,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    marginBottom: 4,
+  },
+  profileSubtitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
   profileSubtitle: {
     fontSize: 12,
     fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.6)",
+    color: "rgba(255,255,255,0.65)",
+  },
+
+  /* BÖLÜM KAPLARI */
+  sectionContainer: {
+    gap: 10,
+  },
+  sectionHeaderLabel: {
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    color: "rgba(255,255,255,0.45)",
+    letterSpacing: 0.8,
+    marginLeft: 4,
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 18,
+    padding: 14,
     borderRadius: 18,
+    borderWidth: 1,
     gap: 14,
   },
+  logoutItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 14,
+    marginTop: 4,
+  },
   iconCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: "#fff",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
   },
-  menuText: {
-    color: "#fff",
+  menuTextContainer: {
+    flex: 1,
+  },
+  menuTitle: {
     fontSize: 15,
-    fontFamily: "Inter_500Medium",
-  }
+    fontFamily: "Inter_600SemiBold",
+    color: "#ffffff",
+    letterSpacing: -0.2,
+  },
+  menuSub: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.45)",
+    marginTop: 2,
+  },
 });

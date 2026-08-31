@@ -246,8 +246,9 @@ export default function VerifyScreen() {
             <Text
               style={{
                 color: "#FFFFFF",
-                fontSize: 32,
-                fontFamily: "PlayfairDisplay_400Regular_Italic",
+                fontSize: 28,
+                fontFamily: "Inter_700Bold",
+                letterSpacing: -0.5,
                 textAlign: "center",
                 marginBottom: 8,
               }}

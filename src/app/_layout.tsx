@@ -10,18 +10,13 @@ import { supabase } from "@/lib/supabase";
 import { configureAndroidNotificationChannel } from "@/lib/notifications";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 
-import { 
-  useFonts,
-  PlayfairDisplay_400Regular,
-  PlayfairDisplay_400Regular_Italic,
-  PlayfairDisplay_700Bold,
-  PlayfairDisplay_700Bold_Italic
-} from '@expo-google-fonts/playfair-display';
 import {
+  useFonts,
   Inter_400Regular,
   Inter_500Medium,
   Inter_600SemiBold,
-  Inter_700Bold
+  Inter_700Bold,
+  Inter_800ExtraBold,
 } from '@expo-google-fonts/inter';
 
 SplashScreen.preventAutoHideAsync();
@@ -47,14 +42,11 @@ function RootLayoutNav() {
   useProtectedRoute();
 
   const [fontsLoaded] = useFonts({
-    PlayfairDisplay_400Regular,
-    PlayfairDisplay_400Regular_Italic,
-    PlayfairDisplay_700Bold,
-    PlayfairDisplay_700Bold_Italic,
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    Inter_800ExtraBold,
   });
 
   // Hide splash once auth state is resolved and fonts are loaded

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   View,
   Text,
@@ -24,10 +24,12 @@ import {
 import { getQuoteForDay } from "@/lib/quotes";
 import { decrypt, deterministicDecrypt } from "@/utils/crypto";
 import { useRouter, useFocusEffect } from "expo-router";
-import { AlignJustify } from "lucide-react-native";
+import { 
+  AlignJustify, Sparkles, Heart, Images, 
+  BookOpen, Mail, MapPin, Calendar, Flame, Clock
+} from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getTheme } from "@/lib/theme";
-import { useCallback } from "react";
 
 import { LoveMeter } from "@/components/home/LoveMeter";
 import { MoodSelector } from "@/components/home/MoodSelector";
@@ -144,14 +146,23 @@ export default function HomeScreen() {
     staleTime: 1000 * 60 * 5,
   });
 
+  // Dinamik Selamlama
+  const getGreeting = () => {
+    const hour = dayjs().hour();
+    if (hour >= 6 && hour < 12) return { text: "Günaydın", emoji: "☀️" };
+    if (hour >= 12 && hour < 18) return { text: "Tünaydın", emoji: "🌸" };
+    if (hour >= 18 && hour < 23) return { text: "İyi Akşamlar", emoji: "🌙" };
+    return { text: "İyi Geceler", emoji: "✨" };
+  };
+
   if (!session || (!dashboardData && isLoading)) {
     return (
       <ScreenBackground style={{ paddingTop: insets.top + 20, paddingHorizontal: 20 }}>
-        <Skeleton height={80} borderRadius={16} style={{ marginBottom: 16 }} />
-        <Skeleton height={100} borderRadius={20} style={{ marginBottom: 14 }} />
+        <Skeleton height={80} borderRadius={20} style={{ marginBottom: 16 }} />
+        <Skeleton height={140} borderRadius={24} style={{ marginBottom: 14 }} />
         <Skeleton height={90} borderRadius={20} style={{ marginBottom: 14 }} />
-        <Skeleton height={140} borderRadius={20} style={{ marginBottom: 14 }} />
         <Skeleton height={120} borderRadius={20} style={{ marginBottom: 14 }} />
+        <Skeleton height={140} borderRadius={20} style={{ marginBottom: 14 }} />
       </ScreenBackground>
     );
   }
@@ -160,21 +171,23 @@ export default function HomeScreen() {
   const relDate = profile?.relationshipStartDate;
   const daysSinceMeeting = meetDate ? daysSince(dayjs(meetDate)) : 0;
   const daysSinceTogether = relDate ? daysSince(dayjs(relDate)) : 0;
-  const name = profile?.displayName || "Tatlım";
+  const name = profile?.displayName || "Sevgilim";
   const quote = getQuoteForDay(doy);
   const loveMeter = getLoveMeter();
-  const dateLabel = dayjs().format("D MMMM dddd");
+  const dateLabel = dayjs().format("D MMMM, dddd");
+  const greeting = getGreeting();
 
   return (
     <ScreenBackground>
       <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"} 
+        behavior={Platform.OS === "ios" ? "padding" : undefined} 
         style={{ flex: 1 }}
       >
         <ScrollView
+          style={{ flex: 1 }}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingTop: insets.top + 16 },
+            { paddingTop: insets.top + 14, paddingBottom: insets.bottom + 140 },
           ]}
           refreshControl={
             <RefreshControl
@@ -185,62 +198,138 @@ export default function HomeScreen() {
           }
           showsVerticalScrollIndicator={false}
         >
-          {/* ── HEADER ─────────────────────────────────────────────────── */}
+          {/* ─── 1. MODERN HEADER ─── */}
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Text style={styles.greetingText}>Günaydın, {name} </Text>
-                <Text style={{ fontSize: 20 }}>❤️</Text>
+              <View style={styles.greetingRow}>
+                <Text style={styles.greetingText}>
+                  {greeting.text}, {name}
+                </Text>
+                <Text style={styles.greetingEmoji}>{greeting.emoji}</Text>
               </View>
-              <Text style={styles.dateLabel}>{dateLabel}</Text>
+              <View style={styles.dateBadgeRow}>
+                <Calendar size={13} color="rgba(255,255,255,0.5)" />
+                <Text style={styles.dateLabel}>{dateLabel}</Text>
+              </View>
             </View>
-            <TouchableOpacity onPress={() => router.push("/menu")} style={[styles.menuBtn, { backgroundColor: "rgba(255,255,255,0.05)" }]}>
-              <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
+
+            <TouchableOpacity 
+              onPress={() => router.push("/menu")} 
+              style={[styles.menuBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+              activeOpacity={0.8}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <AlignJustify color="rgba(255,255,255,0.85)" size={20} />
             </TouchableOpacity>
           </View>
 
-          {/* ── COUNTER PILLS ──────────────────────────────────────────── */}
-          <View style={[styles.pillCard, { backgroundColor: theme.cardBg }]}>
-            <View style={styles.pillRow}>
-              <View style={styles.pill}>
-                <Text style={styles.pillValue}>{daysSinceMeeting}</Text>
-                <Text style={styles.pillLabel}> gün tanışalı 🤝</Text>
+          {/* ─── 2. HERO İLİŞKİ SAYACI KARTI ─── */}
+          <View style={[styles.heroLoveCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            <View style={styles.heroTopBadge}>
+              <Heart size={13} color={theme.accent} fill={theme.accent} />
+              <Text style={[styles.heroTopBadgeText, { color: theme.accent }]}>
+                AŞKIMIZIN YOLCULUĞU
+              </Text>
+            </View>
+
+            <View style={styles.countersRow}>
+              {/* Sevgililik Sayacı */}
+              <View style={[styles.counterBox, { backgroundColor: theme.unitBg }]}>
+                <View style={[styles.counterIconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                  <Heart size={16} color={theme.accent} fill={theme.accent} />
+                </View>
+                <Text style={styles.counterNumber}>{daysSinceTogether}</Text>
+                <Text style={styles.counterDesc}>Gündür Sevgiliyiz</Text>
               </View>
-              <View style={styles.pill}>
-                <Text style={styles.pillValue}>{daysSinceTogether}</Text>
-                <Text style={styles.pillLabel}> gün sevgili ❤️</Text>
+
+              {/* Tanışma Sayacı */}
+              <View style={[styles.counterBox, { backgroundColor: theme.unitBg }]}>
+                <View style={[styles.counterIconCircle, { backgroundColor: "rgba(255,255,255,0.06)" }]}>
+                  <Sparkles size={16} color="#ffd700" />
+                </View>
+                <Text style={styles.counterNumber}>{daysSinceMeeting}</Text>
+                <Text style={styles.counterDesc}>Gündür Hayatımdasın</Text>
               </View>
             </View>
           </View>
 
-          {/* ── GÜNÜN SÖZÜ ─────────────────────────────────────────────── */}
-          <View style={[styles.quoteCard, { backgroundColor: theme.cardBg }]}>
+          {/* ─── 3. HIZLI ERİŞİM KISAYOLLARI (QUICK ACTIONS) ─── */}
+          <View style={styles.quickActionsContainer}>
+            <TouchableOpacity 
+              style={[styles.actionPill, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+              onPress={() => router.push("/(tabs)/photos")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.actionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <Images size={17} color={theme.accent} />
+              </View>
+              <Text style={styles.actionPillText}>Galeri</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.actionPill, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+              onPress={() => router.push("/(tabs)/daily-notes")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.actionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <BookOpen size={17} color={theme.accent} />
+              </View>
+              <Text style={styles.actionPillText}>Günlüğüm</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.actionPill, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+              onPress={() => router.push("/(tabs)/letters")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.actionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <Mail size={17} color={theme.accent} />
+              </View>
+              <Text style={styles.actionPillText}>Mektuplar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.actionPill, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+              onPress={() => router.push("/(tabs)/meetings")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.actionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <MapPin size={17} color={theme.accent} />
+              </View>
+              <Text style={styles.actionPillText}>Buluşma</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* ─── 4. GÜNÜN SÖZÜ ─── */}
+          <View style={[styles.quoteCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
             <View style={styles.quoteHeaderRow}>
-              <Text style={styles.quoteStarIcon}>⭐</Text>
-              <Text style={[styles.quoteTitle, { color: theme.accentLight }]}>GÜNÜN SÖZÜ</Text>
+              <View style={[styles.quoteStarCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <Sparkles size={14} color={theme.accent} />
+              </View>
+              <Text style={[styles.quoteTitle, { color: theme.accent }]}>GÜNÜN İLHAMI</Text>
             </View>
-            <Text style={styles.quoteText}>"{quote}"</Text>
+            <Text style={styles.quoteText}>“{quote}”</Text>
           </View>
 
-          {/* ── AŞK ÖLÇER ──────────────────────────────────────────────── */}
+          {/* ─── 5. AŞK ÖLÇER ─── */}
           <LoveMeter value={loveMeter} theme={theme} />
 
-          {/* ── BULUŞMA GERİ SAYIMI ─────────────────────────────────────── */}
+          {/* ─── 6. BULUŞMA GERİ SAYIMI ─── */}
           {dashboardData?.activeMeeting && (
             <MeetingCountdown meeting={dashboardData.activeMeeting} theme={theme} />
           )}
 
-          {/* ── MOD SEÇİMİ ─────────────────────────────────────────────── */}
+          {/* ─── 7. MOD SEÇİMİ ─── */}
           <MoodSelector
             currentMood={dashboardData?.currentMood}
             moodLocked={!!dashboardData?.currentMood}
             theme={theme}
           />
 
-          {/* ── GÜNLÜK NOT ─────────────────────────────────────────────── */}
+          {/* ─── 8. GÜNLÜK NOT ─── */}
           <DailyNoteCard existingNote={dashboardData?.currentNote} theme={theme} />
 
-          {/* ── BEKLEYEN MEKTUPLAR ─────────────────────────────────────── */}
+          {/* ─── 9. BEKLEYEN MEKTUPLAR ─── */}
           <PendingLettersCard letters={dashboardData?.pendingLetters || []} theme={theme} />
         </ScrollView>
       </KeyboardAvoidingView>
@@ -251,96 +340,171 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   scrollContent: {
-    paddingHorizontal: 18,
-    paddingBottom: 120,
+    paddingHorizontal: 16,
+    gap: 14,
   },
 
   // ─── Header ────────────────────────────────────────────────────────────
   headerRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 20,
+    marginBottom: 4,
+  },
+  greetingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   greetingText: {
-    fontSize: 28,
-    fontFamily: "PlayfairDisplay_400Regular_Italic",
+    fontSize: 24,
+    fontFamily: "Inter_700Bold",
     color: "#ffffff",
+    letterSpacing: -0.4,
   },
-  dateLabel: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.7)",
+  greetingEmoji: {
+    fontSize: 22,
+  },
+  dateBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     marginTop: 4,
   },
+  dateLabel: {
+    fontSize: 12.5,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.6)",
+  },
   menuBtn: {
-    padding: 8,
-    borderRadius: 20,
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
 
-  // ─── Counter Pills ─────────────────────────────────────────────────────
-  pillCard: {
-    borderRadius: 20,
+  // ─── Hero Aşk Sayacı ───────────────────────────────────────────────────
+  heroLoveCard: {
+    borderRadius: 24,
     padding: 16,
-    marginBottom: 18,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  pillRow: {
+  heroTopBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    marginBottom: 14,
+  },
+  heroTopBadgeText: {
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.6,
+  },
+  countersRow: {
     flexDirection: "row",
     gap: 12,
   },
-  pill: {
+  counterBox: {
     flex: 1,
-    flexDirection: "row",
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 50,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
   },
-  pillValue: {
-    fontSize: 15,
-    fontFamily: "Inter_600SemiBold",
-    color: "#fff",
+  counterIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 6,
   },
-  pillLabel: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.75)",
+  counterNumber: {
+    fontSize: 26,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    letterSpacing: -0.5,
+  },
+  counterDesc: {
+    fontSize: 11.5,
+    fontFamily: "Inter_500Medium",
+    color: "rgba(255,255,255,0.65)",
+    marginTop: 2,
+    textAlign: "center",
   },
 
-  // ─── Quote Card ────────────────────────────────────────────────────────
+  // ─── Hızlı Erişim Kısayolları ──────────────────────────────────────────
+  quickActionsContainer: {
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "space-between",
+  },
+  actionPill: {
+    flex: 1,
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 6,
+  },
+  actionIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionPillText: {
+    fontSize: 11.5,
+    fontFamily: "Inter_600SemiBold",
+    color: "rgba(255,255,255,0.85)",
+  },
+
+  // ─── Günün Sözü ────────────────────────────────────────────────────────
   quoteCard: {
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 18,
-    borderWidth: 0,
+    borderRadius: 22,
+    padding: 18,
+    borderWidth: 1,
   },
   quoteHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    marginBottom: 12,
+    gap: 8,
+    marginBottom: 10,
   },
-  quoteStarIcon: {
-    fontSize: 12,
+  quoteStarCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
   },
   quoteTitle: {
     fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 1.2,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 1,
     textTransform: "uppercase",
   },
   quoteText: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontFamily: "PlayfairDisplay_400Regular_Italic",
+    fontSize: 14.5,
+    lineHeight: 22,
+    fontFamily: "Inter_500Medium",
     color: "rgba(255,255,255,0.9)",
+    fontStyle: "italic",
   },
 });

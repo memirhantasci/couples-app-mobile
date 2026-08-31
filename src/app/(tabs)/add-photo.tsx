@@ -1,27 +1,29 @@
 import React, { useState, useCallback } from "react";
 import { 
   View, Text, StyleSheet, TextInput, TouchableOpacity, 
-  ActivityIndicator, Alert, Platform
+  ActivityIndicator, Alert, Platform 
 } from "react-native";
 import { Image } from "expo-image";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-
 import * as ImagePicker from "expo-image-picker";
 import { decode } from "base64-arraybuffer";
 import { useRouter, useFocusEffect } from "expo-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Image as ImageIcon, Camera, Check, X, Calendar as CalendarIcon, Clock, Menu, Calendar, CheckCircle, AlertCircle, UploadCloud, ArrowUp , AlignJustify} from "lucide-react-native";
+import { useQueryClient } from "@tanstack/react-query";
+import { 
+  ChevronLeft, Camera, ImagePlus, CheckCircle2, 
+  AlertCircle, Calendar as CalendarIcon, Clock, AlignJustify, 
+  UploadCloud, RefreshCw
+} from "lucide-react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { dayjs, todayString } from "@/lib/date";
 import { getTheme } from "@/lib/theme";
-import { deterministicDecrypt } from "@/utils/crypto";
 import { logger } from "@/utils/logger";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function AddPhotoScreen() {
   const router = useRouter();
@@ -36,8 +38,8 @@ export default function AddPhotoScreen() {
   const [showPaywall, setShowPaywall] = useState(false);
 
   const [localImage, setLocalImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
-  const [takenDate, setTakenDate] = useState("");
-  const [takenTime, setTakenTime] = useState("");
+  const [takenDate, setTakenDate] = useState(todayString());
+  const [takenTime, setTakenTime] = useState(dayjs().format("HH:mm"));
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [exifStatus, setExifStatus] = useState<"idle" | "loading" | "found" | "not_found">("idle");
@@ -51,7 +53,7 @@ export default function AddPhotoScreen() {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        quality: 0.6,
+        quality: 0.7,
         base64: true,
         exif: true,
       });
@@ -86,7 +88,7 @@ export default function AddPhotoScreen() {
           setTakenTime(dayjs().format("HH:mm"));
           setExifStatus("not_found");
         }
-      }, 500);
+      }, 400);
 
     } catch (error) {
       logger.error("Photo upload error:", error);
@@ -107,19 +109,19 @@ export default function AddPhotoScreen() {
     }
 
     if (!takenDate) {
-      Alert.alert("Eksik", "Lütfen bir tarih girin.");
+      Alert.alert("Eksik", "Lütfen bir çekim tarihi girin.");
       return;
     }
 
     if (newErrors.description) {
-      Alert.alert("Eksik", "Lütfen bir açıklama girin.");
+      Alert.alert("Eksik", "Lütfen fotoğraf için bir açıklama veya hikaye girin.");
       return;
     }
 
     if (!localImage) return;
 
-    if (localImage.fileSize && localImage.fileSize > 5 * 1024 * 1024) {
-       Alert.alert("Dosya Çok Büyük", "Lütfen 5 MB'dan daha küçük bir fotoğraf seçin.");
+    if (localImage.fileSize && localImage.fileSize > 8 * 1024 * 1024) {
+       Alert.alert("Dosya Çok Büyük", "Lütfen 8 MB'dan daha küçük bir fotoğraf seçin.");
        return;
     }
 
@@ -159,12 +161,12 @@ export default function AddPhotoScreen() {
       queryClient.invalidateQueries({ queryKey: ["photo_archive", coupleId] });
       queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
 
-      Alert.alert("Başarılı", "Fotoğraf başarıyla arşive eklendi! 🎉", [
-        { text: "Tamam", onPress: () => router.back() }
+      Alert.alert("Başarılı", "Fotoğraf başarıyla ortak arşive eklendi! 🎉", [
+        { text: "Harika", onPress: () => router.back() }
       ]);
     } catch (error: any) {
-      logger.error("Photo delete error:", error);
-      Alert.alert("Hata", "Kaydetme sırasında bir sorun oluştu.");
+      logger.error("Photo save error:", error);
+      Alert.alert("Hata", "Kaydetme sırasında bir sorun oluştu: " + (error?.message || ""));
     } finally {
       setUploading(false);
     }
@@ -195,8 +197,8 @@ export default function AddPhotoScreen() {
       setTitle("");
       setDescription("");
       setExifStatus("idle");
-      setTakenDate("");
-      setTakenTime("");
+      setTakenDate(todayString());
+      setTakenTime(dayjs().format("HH:mm"));
       setErrors({ photo: false, description: false });
       setUploading(false);
     }, [])
@@ -207,19 +209,27 @@ export default function AddPhotoScreen() {
   return (
     <ScreenBackground>
       <View style={{ flex: 1 }}>
-        {/* HEADER */}
-        <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, paddingTop: insets.top + 16, paddingHorizontal: 20 }}>
-          <View style={{ width: 40 }} />
-          <View style={{ flex: 1, alignItems: "center" }}>
-            <Text style={{ fontSize: 28, fontFamily: "PlayfairDisplay_400Regular_Italic", color: "#fff" }}>
-              Fotoğraf Yükle
-            </Text>
-            <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.7)", marginTop: 4 }}>
-              Bu anıyı arşive ekle 📸
-            </Text>
+        {/* HEADER - Diğer tüm sayfalarla tam uyumlu ve simetrik */}
+        <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
+          <TouchableOpacity 
+            onPress={() => router.back()} 
+            style={styles.headerBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <ChevronLeft color="#ffffff" size={24} />
+          </TouchableOpacity>
+
+          <View style={styles.headerTitleBox}>
+            <Text style={styles.headerTitle}>Fotoğraf Yükle</Text>
+            <Text style={styles.headerSubtitle}>Ortak Galeri Anısı 📸</Text>
           </View>
-          <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.05)" }}>
-            <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
+
+          <TouchableOpacity 
+            onPress={() => router.push("/menu")} 
+            style={styles.headerBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <AlignJustify color="rgba(255,255,255,0.75)" size={20} />
           </TouchableOpacity>
         </View>
 
@@ -230,165 +240,213 @@ export default function AddPhotoScreen() {
           enableOnAndroid={true}
           extraScrollHeight={80}
         >
-          
-          {/* Dotted Upload Box */}
-          <TouchableOpacity 
-            style={[styles.uploadBox, localImage ? styles.uploadBoxHasImage : {}, errors.photo && { borderColor: "red" }]} 
-            onPress={handlePickImage}
-            activeOpacity={0.8}
-          >
-            {localImage ? (
-              <View style={{ width: "100%", alignItems: "center" }}>
-                <Image source={{ uri: localImage.uri }} style={styles.previewImage} contentFit="cover" />
-                <TouchableOpacity style={styles.changeBadgeOut} onPress={handlePickImage}>
-                  <Text style={styles.changeBadgeText}>Değiştir</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.uploadPlaceholder}>
-                <View style={[styles.iconBox, { backgroundColor: theme.accent }]}>
-                  <ImageIcon color="#fff" size={28} />
+          {/* FOTOĞRAF SEÇİM ALANI */}
+          <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            <Text style={styles.cardHeaderTitle}>Görsel</Text>
+            <TouchableOpacity 
+              style={[
+                styles.imagePickerBox, 
+                { backgroundColor: theme.unitBg },
+                errors.photo && styles.boxError
+              ]} 
+              onPress={handlePickImage}
+              activeOpacity={0.88}
+            >
+              {localImage ? (
+                <View style={styles.imagePreviewWrapper}>
+                  <Image source={{ uri: localImage.uri }} style={styles.previewImage} contentFit="cover" />
+                  <TouchableOpacity 
+                    style={styles.changeImageBadge} 
+                    onPress={handlePickImage}
+                    activeOpacity={0.8}
+                  >
+                    <RefreshCw size={13} color="#ffffff" />
+                    <Text style={styles.changeImageText}>Değiştir</Text>
+                  </TouchableOpacity>
                 </View>
-                <Text style={styles.uploadTitle}>Fotoğraf Seç</Text>
-                <Text style={styles.uploadSub}>Galerinizden bir fotoğraf seçin</Text>
-                <View style={[styles.uploadBtn, { backgroundColor: theme.accent }]}>
-                  <ArrowUp color="#fff" size={14} style={{ marginRight: 4 }} />
-                  <Text style={styles.uploadBtnText}>Galeriyi Aç</Text>
+              ) : (
+                <View style={styles.pickerPlaceholder}>
+                  <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                    <ImagePlus color={theme.accent} size={28} />
+                  </View>
+                  <Text style={styles.placeholderTitle}>Fotoğraf Seç</Text>
+                  <Text style={styles.placeholderSubtitle}>
+                    Galerinizden ortak arşive eklemek istediğiniz fotoğrafı seçin
+                  </Text>
                 </View>
+              )}
+            </TouchableOpacity>
+
+            {/* EXIF BİLGİ DURUM ROZETLERİ */}
+            {exifStatus === "loading" && (
+              <View style={styles.exifLoadingBox}>
+                <ActivityIndicator color={theme.accent} size="small" />
+                <Text style={styles.exifLoadingText}>Çekim tarihi taranıyor...</Text>
               </View>
             )}
-          </TouchableOpacity>
 
-          {/* EXIF Alerts */}
-          {exifStatus === "loading" && (
-            <View style={[styles.alertBox, { backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.1)" }]}>
-              <ActivityIndicator color="#fff" size="small" />
-              <Text style={[styles.alertText, { color: "rgba(255,255,255,0.6)" }]}>EXIF bilgileri okunuyor...</Text>
-            </View>
-          )}
+            {exifStatus === "found" && (
+              <View style={styles.exifSuccessBox}>
+                <CheckCircle2 color="#22c55e" size={16} />
+                <Text style={styles.exifSuccessText}>
+                  Çekim zamanı algılandı: {dayjs(takenDate).locale("tr").format("D MMMM YYYY")}, {takenTime}
+                </Text>
+              </View>
+            )}
 
-          {exifStatus === "found" && (
-            <View style={[styles.alertBox, { borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.15)", borderRadius: 8 }]}>
-              <Check color="#22c55e" size={16} />
-              <Text style={[styles.alertText, { color: "#22c55e" }]}>
-                Çekim bilgileri bulundu: {dayjs(takenDate).locale("tr").format("D MMMM YYYY")}, {takenTime}
-              </Text>
-            </View>
-          )}
+            {exifStatus === "not_found" && (
+              <View style={styles.exifNoticeBox}>
+                <AlertCircle color="#f59e0b" size={16} />
+                <Text style={styles.exifNoticeText}>
+                  Fotoğrafta çekim zamanı bulunamadı, şimdiki zaman eklendi.
+                </Text>
+              </View>
+            )}
+          </View>
 
-          {exifStatus === "not_found" && (
-            <View style={[styles.alertBox, { borderColor: "#f59e0b", backgroundColor: "rgba(245,158,11,0.1)", borderRadius: 8 }]}>
-              <AlertCircle color="#f59e0b" size={16} />
-              <Text style={[styles.alertText, { color: "#f59e0b", flex: 1 }]}>
-                Çekim bilgileri bulunamadı, dosya tarihi eklendi.
-              </Text>
-            </View>
-          )}
-
-          {/* Form Fields */}
-          <View style={{ gap: 16, marginTop: 8 }}>
-            
-            <View>
+          {/* TARİH VE SAAT KARTI */}
+          <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            <Text style={styles.cardHeaderTitle}>Zaman Bilgisi</Text>
+            <View style={styles.rowInputs}>
+              {/* Tarih */}
+              <View style={{ flex: 1.2 }}>
                 <Text style={styles.fieldLabel}>Çekim Tarihi *</Text>
-                <TouchableOpacity style={styles.inputWrap} onPress={() => setShowDatePicker(true)}>
-                  <View style={[styles.input, { justifyContent: 'center' }]}>
-                    <Text style={{ color: takenDate ? "#fff" : "rgba(255,255,255,0.3)" }}>
-                      {takenDate || "YYYY-AA-GG"}
-                    </Text>
-                  </View>
-                  <Calendar color="rgba(255,255,255,0.5)" size={18} style={{ position: "absolute", right: 14 }} />
-                </TouchableOpacity>
-              </View>
-
-              <View>
-                <Text style={styles.fieldLabel}>Çekim Saati (isteğe bağlı)</Text>
-                <TouchableOpacity onPress={() => setShowTimePicker(true)}>
-                  <View style={[styles.input, { justifyContent: 'center' }]}>
-                    <Text style={{ color: takenTime ? "#fff" : "rgba(255,255,255,0.3)" }}>
-                      {takenTime || "HH:MM"}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-
-              {showDatePicker && (
-                <DateTimePicker
-                  value={takenDate ? new Date(takenDate) : new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={onDateChange}
-                />
-              )}
-
-              {showTimePicker && (
-                <DateTimePicker
-                  value={
-                    takenTime 
-                      ? new Date(`2000-01-01T${takenTime}:00`) 
-                      : new Date()
-                  }
-                  mode="time"
-                  is24Hour={true}
-                  display="default"
-                  onChange={onTimeChange}
-                />
-              )}
-
-              <View>
-                <Text style={styles.fieldLabel}>Başlık (isteğe bağlı)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={title}
-                  onChangeText={setTitle}
-                  placeholder="Fotoğrafınıza bir başlık verin..."
-                  placeholderTextColor="rgba(255,255,255,0.3)"
-                />
-              </View>
-
-              <View>
-                <Text style={[styles.fieldLabel, errors.description && { color: "red" }]}>Açıklama *</Text>
-                <TextInput
-                  style={[styles.input, { height: 100, textAlignVertical: "top" }, errors.description && { borderColor: "red" }]}
-                  value={description}
-                  onChangeText={(text) => {
-                    setDescription(text);
-                    setErrors(prev => ({ ...prev, description: false }));
-                  }}
-                  placeholder="Bu anı anlatın... Neredeydiniz, ne hissettiniz?"
-                  placeholderTextColor="rgba(255,255,255,0.3)"
-                  multiline
-                />
-              </View>
-
-              <Text style={styles.infoText}>
-                * Yüklenen fotoğraflar ortak arşivinizde kalıcı olarak saklanır.
-              </Text>
-
-              {!isPremium ? (
                 <TouchableOpacity 
-                  style={[styles.saveBtn, { backgroundColor: "rgba(255,255,255,0.05)", borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" }]} 
-                  onPress={() => setShowPaywall(true)}
+                  style={[styles.inputRowBtn, { backgroundColor: theme.unitBg }]} 
+                  onPress={() => setShowDatePicker(true)}
+                  activeOpacity={0.7}
                 >
-                  <Text style={[styles.saveBtnText, { color: theme.accent }]}>Premium Özellik 🔒</Text>
+                  <CalendarIcon size={16} color={theme.accent} />
+                  <Text style={styles.inputRowBtnText} numberOfLines={1}>
+                    {dayjs(takenDate).locale("tr").format("DD MMM YYYY")}
+                  </Text>
                 </TouchableOpacity>
-              ) : (
-                <TouchableOpacity 
-                  style={[styles.saveBtn, { backgroundColor: theme.accent }]} 
-                  onPress={handleSave}
-                  disabled={uploading}
-                >
-                  {uploading ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={styles.saveBtnText}>Arşive Ekle 💾</Text>
-                  )}
-                </TouchableOpacity>
-              )}
+              </View>
 
+              {/* Saat */}
+              <View style={{ flex: 0.8 }}>
+                <Text style={styles.fieldLabel}>Saat</Text>
+                <TouchableOpacity 
+                  style={[styles.inputRowBtn, { backgroundColor: theme.unitBg }]} 
+                  onPress={() => setShowTimePicker(true)}
+                  activeOpacity={0.7}
+                >
+                  <Clock size={16} color="rgba(255,255,255,0.6)" />
+                  <Text style={styles.inputRowBtnText}>
+                    {takenTime || "Seç"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
+
+            {showDatePicker && (
+              <DateTimePicker
+                value={takenDate ? new Date(takenDate) : new Date()}
+                mode="date"
+                display="default"
+                onChange={onDateChange}
+              />
+            )}
+
+            {showTimePicker && (
+              <DateTimePicker
+                value={
+                  takenTime 
+                    ? new Date(`2000-01-01T${takenTime}:00`) 
+                    : new Date()
+                }
+                mode="time"
+                is24Hour={true}
+                display="default"
+                onChange={onTimeChange}
+              />
+            )}
+          </View>
+
+          {/* BAŞLIK VE AÇIKLAMA KARTI */}
+          <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            <Text style={styles.cardHeaderTitle}>Anı Detayları</Text>
+            
+            {/* Başlık Input */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Fotoğraf Başlığı (İsteğe bağlı)</Text>
+              <TextInput
+                style={[styles.textInput, { backgroundColor: theme.unitBg }]}
+                value={title}
+                onChangeText={setTitle}
+                placeholder="Örn: Kapadokya Gün Batımı ✨"
+                placeholderTextColor="rgba(255,255,255,0.3)"
+              />
+            </View>
+
+            {/* Açıklama Input */}
+            <View style={styles.fieldGroup}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                <Text style={[styles.fieldLabel, errors.description && { color: "#ff5c77" }]}>
+                  Anının Hikayesi *
+                </Text>
+                {errors.description && (
+                  <Text style={{ fontSize: 11, color: "#ff5c77", fontFamily: "Inter_500Medium" }}>
+                    Zorunlu alan
+                  </Text>
+                )}
+              </View>
+              <TextInput
+                style={[
+                  styles.textInput, 
+                  styles.textArea, 
+                  { backgroundColor: theme.unitBg },
+                  errors.description && styles.boxError
+                ]}
+                value={description}
+                onChangeText={(text) => {
+                  setDescription(text);
+                  setErrors(prev => ({ ...prev, description: false }));
+                }}
+                placeholder="Bu fotoğrafa dair hatırlamak istediğin özel bir his, mekan veya anı..."
+                placeholderTextColor="rgba(255,255,255,0.3)"
+                multiline
+                numberOfLines={4}
+              />
+            </View>
+          </View>
+
+          {/* KAYDET BUTONU */}
+          <View style={{ marginTop: 6 }}>
+            {!isPremium ? (
+              <TouchableOpacity 
+                style={[styles.saveBtn, { backgroundColor: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.12)", borderWidth: 1 }]} 
+                onPress={() => setShowPaywall(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.saveBtnText, { color: theme.accent }]}>Premium Özellik 🔒</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity 
+                style={[
+                  styles.saveBtn, 
+                  { backgroundColor: theme.accent, shadowColor: theme.accent },
+                  uploading && { opacity: 0.75 }
+                ]} 
+                onPress={handleSave}
+                disabled={uploading}
+                activeOpacity={0.85}
+              >
+                {uploading ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <>
+                    <UploadCloud size={20} color="#ffffff" />
+                    <Text style={styles.saveBtnText}>Ortak Arşive Ekle</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
 
         </KeyboardAwareScrollView>
         
+        {/* Premium Paywall */}
         <PremiumPaywall
           visible={showPaywall}
           onClose={() => setShowPaywall(false)}
@@ -405,138 +463,225 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingBottom: 16,
+  },
+  headerBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitleBox: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 8,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    letterSpacing: -0.4,
+  },
+  headerSubtitle: {
+    fontSize: 12.5,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.6)",
+    marginTop: 2,
   },
   container: {
-    paddingHorizontal: 20,
-    paddingBottom: 120,
+    paddingHorizontal: 16,
+    paddingBottom: 130,
+    gap: 14,
   },
-  pageTitle: {
-    fontSize: 28,
-    fontFamily: "PlayfairDisplay_400Regular_Italic",
-    color: "#fff",
-    textAlign: "center",
-  },
-  sectionLabel: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 12,
-    textAlign: "center",
-  },
-  uploadBox: {
+  card: {
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    backgroundColor: "rgba(255,255,255,0.03)",
+    padding: 16,
+    gap: 12,
+  },
+  cardHeaderTitle: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+    color: "rgba(255,255,255,0.9)",
+    letterSpacing: -0.2,
+  },
+  imagePickerBox: {
     borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
     minHeight: 180,
-    padding: 20,
+    overflow: "hidden",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
-    marginTop: 16,
   },
-  uploadBoxHasImage: {
-    borderColor: "transparent",
-    backgroundColor: "rgba(255,255,255,0.03)",
-    padding: 10,
+  boxError: {
+    borderColor: "#ff5c77",
+    borderWidth: 1.5,
   },
-  uploadPlaceholder: {
+  pickerPlaceholder: {
     alignItems: "center",
+    padding: 24,
+    gap: 8,
   },
-  iconBox: {
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  uploadTitle: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "700",
+  iconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 4,
   },
-  uploadSub: {
+  placeholderTitle: {
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+    color: "#ffffff",
+  },
+  placeholderSubtitle: {
+    fontSize: 12.5,
+    fontFamily: "Inter_400Regular",
     color: "rgba(255,255,255,0.5)",
-    fontSize: 14,
-    marginBottom: 16,
+    textAlign: "center",
+    lineHeight: 18,
+    paddingHorizontal: 12,
   },
-  uploadBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 24,
-    borderRadius: 6,
-  },
-  uploadBtnText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 14,
+  imagePreviewWrapper: {
+    width: "100%",
+    position: "relative",
   },
   previewImage: {
     width: "100%",
-    height: 180,
+    aspectRatio: 1.15,
+    borderRadius: 15,
+  },
+  changeImageBadge: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  changeImageText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+  },
+  exifLoadingBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    padding: 10,
     borderRadius: 12,
   },
-  changeBadgeOut: {
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 8,
+  exifLoadingText: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.6)",
   },
-  changeBadgeText: {
-    color: "#fff",
-    fontSize: 13,
-  },
-  alertBox: {
+  exifSuccessBox: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 16,
     gap: 8,
+    backgroundColor: "rgba(34,197,94,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(34,197,94,0.25)",
+    padding: 10,
+    borderRadius: 12,
   },
-  alertText: {
-    fontSize: 13,
-    lineHeight: 18,
+  exifSuccessText: {
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+    color: "#22c55e",
+    flex: 1,
+  },
+  exifNoticeBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(245,158,11,0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(245,158,11,0.2)",
+    padding: 10,
+    borderRadius: 12,
+  },
+  exifNoticeText: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: "#f59e0b",
+    flex: 1,
+  },
+  rowInputs: {
+    flexDirection: "row",
+    gap: 12,
   },
   fieldLabel: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 14,
+    fontSize: 12.5,
+    fontFamily: "Inter_500Medium",
+    color: "rgba(255,255,255,0.7)",
     marginBottom: 6,
-    fontWeight: "500",
   },
-  inputWrap: {
-    justifyContent: "center",
-  },
-  input: {
-    backgroundColor: "rgba(255,255,255,0.03)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.05)",
-    borderRadius: 8,
+  inputRowBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     paddingHorizontal: 14,
-    paddingVertical: 14,
-    color: "#fff",
-    fontSize: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
   },
-  infoText: {
-    color: "rgba(255,255,255,0.4)",
-    fontSize: 11,
-    textAlign: "center",
-    marginVertical: 10,
+  inputRowBtnText: {
+    color: "#ffffff",
+    fontSize: 13.5,
+    fontFamily: "Inter_500Medium",
+  },
+  fieldGroup: {
+    gap: 2,
+  },
+  textInput: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: "#ffffff",
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: "top",
+    lineHeight: 20,
   },
   saveBtn: {
+    height: 52,
+    borderRadius: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 20,
-    marginTop: 5,
+    gap: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
   },
   saveBtnText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
-  }
+    color: "#ffffff",
+    fontSize: 15.5,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -0.2,
+  },
 });

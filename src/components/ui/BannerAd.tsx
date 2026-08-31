@@ -7,10 +7,10 @@ import { logger } from '@/utils/logger';
 const adUnitId = __DEV__ ? TestIds.BANNER : "ca-app-pub-xxxxxxxxxxxxxxxx/yyyyyyyyyy";
 
 export function BannerAd() {
-  const { profile } = useAuth();
+  const { profile, session, isLoading } = useAuth();
   
-  // Premium users do not see banners
-  if (profile?.isPremium) {
+  // Premium users, unauthenticated users, or loading states do not see banners
+  if (!session || isLoading || !profile || profile?.isPremium) {
     return null;
   }
 

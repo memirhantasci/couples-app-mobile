@@ -90,10 +90,9 @@ const styles = StyleSheet.create({
   },
   greetingText: {
     fontSize: 26,
-    fontWeight: "700",
+    fontFamily: "Inter_700Bold",
     color: "#ffffff",
-    fontStyle: "italic",
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
   },
   heartEmoji: {
     fontSize: 22,
@@ -102,7 +101,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "rgba(255,255,255,0.45)",
     marginTop: 4,
-    fontWeight: "400",
+    fontFamily: "Inter_400Regular",
   },
   menuBtn: {
     padding: 6,
@@ -136,7 +135,7 @@ const styles = StyleSheet.create({
   title: {
     color: "#fff",
     fontSize: 18,
-    fontWeight: "600",
+    fontFamily: "Inter_600SemiBold",
     textAlign: "center",
   },
   iconBtn: {

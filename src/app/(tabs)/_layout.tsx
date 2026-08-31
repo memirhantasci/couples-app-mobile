@@ -1,21 +1,56 @@
 import { Tabs } from "expo-router";
-import { StyleSheet, View, Text } from "react-native";
-import { Home, CalendarHeart, Pill, Heart, Settings, XCircle } from "lucide-react-native";
+import { StyleSheet, View, Text, Platform } from "react-native";
+import { 
+  Home, CalendarHeart, Pill, Mail, Settings, 
+  Sparkles, Heart 
+} from "lucide-react-native";
 import React from "react";
 import { useAuth } from "@/context/AuthContext";
 import { getTheme } from "@/lib/theme";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const TabItem = React.memo(({ IconComponent, label, focused, theme }: { IconComponent: any, label: string, focused: boolean, theme: any }) => {
+interface TabItemProps {
+  IconComponent: any;
+  label: string;
+  focused: boolean;
+  theme: any;
+}
+
+const TabItem = React.memo(({ IconComponent, label, focused, theme }: TabItemProps) => {
   return (
-    <View style={[styles.tabItem, focused && { backgroundColor: theme.accent, paddingHorizontal: 10 }]}>
-      <IconComponent color={focused ? "#fff" : "rgba(255, 255, 255, 0.4)"} size={20} strokeWidth={focused ? 2.5 : 2} />
+    <View style={styles.tabItemWrapper}>
+      {/* Aktif olduğunda arkada beliren yumuşak renkli ışık kapsülü */}
+      <View 
+        style={[
+          styles.iconPill, 
+          focused && { 
+            backgroundColor: theme.pillAccentBg,
+            borderColor: "rgba(255,255,255,0.12)",
+            borderWidth: 1,
+          }
+        ]}
+      >
+        <IconComponent 
+          color={focused ? theme.accent : "rgba(255, 255, 255, 0.45)"} 
+          size={20} 
+          strokeWidth={focused ? 2.4 : 1.8} 
+        />
+      </View>
+
       <Text
-        style={[styles.tabLabel, focused && styles.tabLabelActive]}
+        style={[
+          styles.tabLabel, 
+          focused && { color: "#ffffff", fontFamily: "Inter_700Bold" }
+        ]}
         numberOfLines={1}
-        adjustsFontSizeToFit
       >
         {label}
       </Text>
+
+      {/* Aktif sekmenin altında beliren minik parlak aşk noktası */}
+      {focused && (
+        <View style={[styles.activeIndicatorDot, { backgroundColor: theme.accent }]} />
+      )}
     </View>
   );
 });
@@ -23,56 +58,78 @@ const TabItem = React.memo(({ IconComponent, label, focused, theme }: { IconComp
 export default function TabsLayout() {
   const { profile } = useAuth();
   const theme = getTheme(profile?.gender);
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarShowLabel: false, // We're rendering the label inside the icon to wrap them both
+        tabBarShowLabel: false,
         tabBarStyle: {
           position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 85,
-          paddingBottom: 20,
-          paddingTop: 10,
-          borderTopWidth: 0,
-          elevation: 0,
-          backgroundColor: theme.cardBg, // Dynamic based on gender
+          bottom: Platform.OS === "ios" ? insets.bottom + 6 : 14,
+          left: 16,
+          right: 16,
+          height: 68,
+          borderRadius: 24,
+          backgroundColor: theme.cardBg,
+          borderWidth: 1,
+          borderColor: theme.cardBorder,
+          elevation: 12,
+          shadowColor: "#000000",
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.35,
+          shadowRadius: 12,
+          paddingHorizontal: 6,
+          paddingBottom: 0,
+          paddingTop: 0,
+          alignItems: "center",
+          justifyContent: "space-around",
         },
       }}
     >
       <Tabs.Screen
         name="home"
         options={{
-          tabBarIcon: ({ focused }) => <TabItem IconComponent={Home} label="Ana Sayfa" focused={focused} theme={theme} />,
+          tabBarIcon: ({ focused }) => (
+            <TabItem IconComponent={Home} label="Ana Sayfa" focused={focused} theme={theme} />
+          ),
         }}
       />
       <Tabs.Screen
         name="medicine"
         options={{
-          tabBarIcon: ({ focused }) => <TabItem IconComponent={Pill} label="İlaçlar" focused={focused} theme={theme} />,
+          tabBarIcon: ({ focused }) => (
+            <TabItem IconComponent={Pill} label="İlaçlar" focused={focused} theme={theme} />
+          ),
         }}
       />
       <Tabs.Screen
         name="calendar"
         options={{
-          tabBarIcon: ({ focused }) => <TabItem IconComponent={CalendarHeart} label="Takvim" focused={focused} theme={theme} />,
+          tabBarIcon: ({ focused }) => (
+            <TabItem IconComponent={CalendarHeart} label="Takvim" focused={focused} theme={theme} />
+          ),
         }}
       />
       <Tabs.Screen
         name="letters"
         options={{
-          tabBarIcon: ({ focused }) => <TabItem IconComponent={XCircle} label="Mektuplar" focused={focused} theme={theme} />,
+          tabBarIcon: ({ focused }) => (
+            <TabItem IconComponent={Mail} label="Mektuplar" focused={focused} theme={theme} />
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          tabBarIcon: ({ focused }) => <TabItem IconComponent={Settings} label="Ayarlar" focused={focused} theme={theme} />,
+          tabBarIcon: ({ focused }) => (
+            <TabItem IconComponent={Settings} label="Ayarlar" focused={focused} theme={theme} />
+          ),
         }}
       />
+
+      {/* Gizli Alt Rotalar */}
       <Tabs.Screen name="meetings" options={{ href: null }} />
       <Tabs.Screen name="memories" options={{ href: null }} />
       <Tabs.Screen name="add-memory" options={{ href: null }} />
@@ -86,24 +143,33 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  tabItem: {
+  tabItemWrapper: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    borderRadius: 18,
-    minWidth: 54,
-    maxWidth: 70,
+    width: 60,
+    height: "100%",
+    position: "relative",
+  },
+  iconPill: {
+    width: 38,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 2,
   },
   tabLabel: {
-    fontSize: 9,
+    fontSize: 10,
     fontFamily: "Inter_500Medium",
-    color: "rgba(255, 255, 255, 0.4)",
-    marginTop: 4,
+    color: "rgba(255, 255, 255, 0.45)",
     textAlign: "center",
+    letterSpacing: -0.2,
   },
-  tabLabelActive: {
-    color: "#fff",
-    fontFamily: "Inter_700Bold",
+  activeIndicatorDot: {
+    position: "absolute",
+    bottom: 4,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
   },
 });

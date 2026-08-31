@@ -27,7 +27,7 @@ export interface AppTheme {
 // Aksiyonlar: #FF4081
 
 export const FEMALE_THEME: AppTheme = {
-  bgGradient: ["#CA3F7A", "#B83067", "#CA3F7A"] as const,
+  bgGradient: ["#2E0F1C", "#17070E", "#2E0F1C"] as const,
   cardBg: "#4A152B",
   cardBorder: "rgba(255,255,255,0.05)",
   unitBg: "#330d1d",

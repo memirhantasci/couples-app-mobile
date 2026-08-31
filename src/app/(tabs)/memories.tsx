@@ -29,21 +29,28 @@ export default function MemoriesScreen() {
   useEffect(() => {
     async function addDefaultMemories() {
       if (!coupleId) return;
-      const key = `default_memories_added_${coupleId}`;
-      const added = await AsyncStorage.getItem(key);
-      if (added) return;
+      
+      // Check if they already exist in database for this couple
+      const { data: existing } = await supabase
+        .from("memories")
+        .select("title")
+        .eq("couple_id", coupleId)
+        .in("title", ["Tanışma Yıl Dönümümüz", "Sevgili Olma Yıl Dönümümüz"]);
+        
+      const existingTitles = existing?.map(e => e.title) || [];
 
       const memoriesToInsert = [];
-      if (profile?.meetDate) {
+      if (profile?.meetDate && !existingTitles.includes("Tanışma Yıl Dönümümüz")) {
         memoriesToInsert.push({
           couple_id: coupleId,
           title: "Tanışma Yıl Dönümümüz",
           date: profile.meetDate,
           description: "Hikayemizin başladığı o güzel gün...",
-          is_default: false,
+          is_default: false, // is_default true da olabilir ama false kalabilir
         });
       }
-      if (profile?.relationshipStartDate) {
+      
+      if (profile?.relationshipStartDate && !existingTitles.includes("Sevgili Olma Yıl Dönümümüz")) {
         memoriesToInsert.push({
           couple_id: coupleId,
           title: "Sevgili Olma Yıl Dönümümüz",
@@ -55,9 +62,8 @@ export default function MemoriesScreen() {
 
       if (memoriesToInsert.length > 0) {
         await supabase.from("memories").insert(memoriesToInsert);
+        queryClient.invalidateQueries({ queryKey: ["memories"] });
       }
-      await AsyncStorage.setItem(key, "true");
-      queryClient.invalidateQueries({ queryKey: ["memories"] });
     }
 
     addDefaultMemories();
@@ -267,9 +273,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
-    fontSize: 34,
-    fontFamily: "PlayfairDisplay_400Regular_Italic",
+    fontSize: 30,
+    fontFamily: "Inter_700Bold",
     color: "#fff",
+    letterSpacing: -0.5,
   },
   subtitle: {
     color: "rgba(255,255,255,0.6)",

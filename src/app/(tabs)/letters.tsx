@@ -1,14 +1,23 @@
 import React, { useState } from "react";
 import { useRouter } from "expo-router";
-import { View, Text, SectionList, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, Alert, KeyboardAvoidingView, Platform, Modal } from "react-native";
+import { 
+  View, Text, FlatList, StyleSheet, TouchableOpacity, 
+  ActivityIndicator, TextInput, Alert, KeyboardAvoidingView, 
+  Platform, Modal, ScrollView 
+} from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
 import { encrypt, decrypt, deterministicDecrypt } from "@/utils/crypto";
-import { Lock, ChevronRight, FileEdit, LockKeyhole, Calendar as CalendarIcon, XCircle, ChevronDown, AlignJustify } from "lucide-react-native";
+import { 
+  Lock, ChevronRight, LockKeyhole, Calendar as CalendarIcon, 
+  X, AlignJustify, PenLine, Send, ChevronLeft, 
+  Clock, Mail, Sparkles, Unlock, UserCheck
+} from "lucide-react-native";
 import { sanitize, sanitizeStrict } from "@/utils/sanitize";
 import { logger } from "@/utils/logger";
 import { getTheme } from "@/lib/theme";
@@ -19,7 +28,7 @@ import { WatchAdModal } from "@/components/ui/WatchAdModal";
 
 export default function LettersScreen() {
   const router = useRouter();
-  const { session, profile } = useAuth();
+  const { session, profile, refreshProfile } = useAuth();
   const queryClient = useQueryClient();
   const today = todayString();
   const insets = useSafeAreaInsets();
@@ -28,17 +37,27 @@ export default function LettersScreen() {
   const userId = session?.user?.id ? session.user.id : null;
   const theme = getTheme(profile?.gender);
 
-  const [letterLimit, setLetterLimit] = useState(15);
+  const [activeTab, setActiveTab] = useState<"all" | "received" | "sent">("all");
+  const [pageLimit, setPageLimit] = useState(30);
+  const [showWriteModal, setShowWriteModal] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [showAdModal, setShowAdModal] = useState(false);
-  const [isSpendingToken, setIsSpendingToken] = useState(false);
   const isPremium = profile?.isPremium ?? false;
   const tokenBalance = profile?.tokenBalance ?? 0;
-  const { refreshProfile } = useAuth();
 
-  // --- Mektupları Getir ---
+  const safeDecrypt = (val: string | null | undefined): string => {
+    if (!val) return "";
+    try {
+      const dec = decrypt(val);
+      return dec || val;
+    } catch {
+      return val;
+    }
+  };
+
+  // --- Mektupları Getir (Sayfalamalı ve Korumalı) ---
   const { data, isLoading } = useQuery({
-    queryKey: ["letters_data", coupleId, userId, letterLimit],
+    queryKey: ["letters_data", coupleId, userId, pageLimit],
     enabled: !!coupleId && !!userId,
     queryFn: async () => {
       const [receivedRes, sentRes, usersRes] = await Promise.all([
@@ -47,13 +66,15 @@ export default function LettersScreen() {
           .select("*")
           .eq("couple_id", coupleId)
           .eq("receiver_id", userId)
-          .order("created_at", { ascending: false }),
+          .order("created_at", { ascending: false })
+          .limit(pageLimit),
         supabase
           .from("letters")
           .select("*")
           .eq("couple_id", coupleId)
           .eq("sender_id", userId)
-          .order("created_at", { ascending: false }),
+          .order("created_at", { ascending: false })
+          .limit(pageLimit),
         supabase
           .from("users")
           .select("id, username, display_name")
@@ -63,37 +84,44 @@ export default function LettersScreen() {
       const userMap = (usersRes.data || []).reduce((acc: any, u: any) => {
         acc[u.id] = {
           ...u,
-          display_name: u.display_name ? decrypt(u.display_name) : null,
+          display_name: u.display_name ? safeDecrypt(u.display_name) : null,
         };
         return acc;
       }, {});
 
+      const received = (receivedRes.data || []).map((l: any) => {
+        const senderObj = userMap[l.sender_id];
+        return {
+          ...l,
+          _type: "received" as const,
+          content: safeDecrypt(l.content),
+          sender: senderObj ? { 
+            ...senderObj, 
+            username: senderObj.username ? (deterministicDecrypt(senderObj.username) || senderObj.username) : "Sevgilin" 
+          } : null
+        };
+      });
+
+      const sent = (sentRes.data || []).map((l: any) => {
+        const receiverObj = userMap[l.receiver_id];
+        return {
+          ...l,
+          _type: "sent" as const,
+          content: safeDecrypt(l.content),
+          receiver: receiverObj ? { 
+            ...receiverObj, 
+            username: receiverObj.username ? (deterministicDecrypt(receiverObj.username) || receiverObj.username) : "Sevgilin" 
+          } : null
+        };
+      });
+
       return {
-        received: (receivedRes.data || []).map((l: any) => {
-          const senderObj = userMap[l.sender_id];
-          return {
-            ...l,
-            content: l.content ? decrypt(l.content) : "",
-            sender: senderObj ? { 
-              ...senderObj, 
-              username: senderObj.username ? (deterministicDecrypt(senderObj.username) || senderObj.username) : "Bilinmeyen" 
-            } : null
-          };
-        }),
-        sent: (sentRes.data || []).map((l: any) => {
-          const receiverObj = userMap[l.receiver_id];
-          return {
-            ...l,
-            content: l.content ? decrypt(l.content) : "",
-            receiver: receiverObj ? { 
-              ...receiverObj, 
-              username: receiverObj.username ? (deterministicDecrypt(receiverObj.username) || receiverObj.username) : "Bilinmeyen" 
-            } : null
-          };
-        }),
+        received,
+        sent,
+        all: [...received, ...sent].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
       };
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
   });
 
   // --- Alıcı Kullanıcıları Getir ---
@@ -125,15 +153,28 @@ export default function LettersScreen() {
   const [loadingForm, setLoadingForm] = useState(false);
   const [errors, setErrors] = useState({ receiver: false, title: false, content: false });
 
+  const allLetters = data?.all || [];
   const receivedLetters = data?.received || [];
   const sentLetters = data?.sent || [];
 
+  const handleOpenWriteModal = () => {
+    // Partner varsa alıcıyı otomatik seç
+    if (users && users.length === 1 && !receiverId) {
+      setReceiverId(String(users[0].id));
+    }
+    setShowWriteModal(true);
+  };
+
   const handleSave = async () => {
-    const newErrors = { receiver: !receiverId, title: !title.trim(), content: !content.trim() };
+    const newErrors = { 
+      receiver: !receiverId, 
+      title: !title.trim(), 
+      content: !content.trim() 
+    };
     setErrors(newErrors);
 
     if (newErrors.receiver || newErrors.title || newErrors.content) {
-      Alert.alert("Eksik Bilgi", "Lütfen tüm alanları doldur.");
+      Alert.alert("Eksik Bilgi", "Lütfen kime göndereceğinizi, başlığı ve mektup içeriğini doldurun.");
       return;
     }
 
@@ -169,30 +210,36 @@ export default function LettersScreen() {
 
       await refreshProfile();
       queryClient.invalidateQueries({ queryKey: ["letters_data"] });
-      Alert.alert("Başarılı", "Mektup başarıyla mühürlendi! 💌");
       
-      // Formu temizle
-      setReceiverId("");
+      // Formu temizle ve modalı kapat
       setTitle("");
       setContent("");
       setUnlockDate(todayString());
-      
+      setShowWriteModal(false);
+
+      Alert.alert("Mektup Mühürlendi! 💌", "Mektubunuz zamanda yolculuğa çıktı ve başarıyla mühürlendi.");
     } catch (error: any) {
       logger.error("Letter save error:", error);
-      Alert.alert("Hata", "Mektup mührlenirken bir hata oluştu.");
+      Alert.alert("Hata", "Mektup mühürlenirken bir hata oluştu: " + (error?.message || ""));
     } finally {
       setLoadingForm(false);
     }
   };
 
   const confirmAndSave = () => {
+    if (!isPremium && tokenBalance < 100) {
+      setShowWriteModal(false);
+      setShowPaywall(true);
+      return;
+    }
+
     if (!isPremium) {
       Alert.alert(
         "Token Kullanımı",
-        "Bu mektubu göndermek için 100 token kullanılacaktır. Onaylıyor musunuz?",
+        "Bu mektubu mühürlemek için 100 token kullanılacaktır. Onaylıyor musunuz?",
         [
           { text: "İptal", style: "cancel" },
-          { text: "Onayla", onPress: () => handleSave() }
+          { text: "Onayla ve Mühürle", onPress: () => handleSave() }
         ]
       );
     } else {
@@ -200,62 +247,87 @@ export default function LettersScreen() {
     }
   };
 
-  const renderLetterItem = (letter: any, type: "received" | "sent") => {
+  const renderLetterItem = ({ item: letter }: { item: any }) => {
     const now = new Date();
     const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const unlockDateStr = letter.unlock_date.substring(0, 10);
     const isLockedDate = unlockDateStr > localToday;
     const unlockDateObj = dayjs(unlockDateStr);
-    const canOpen = type === "sent" || !isLockedDate;
+    const itemType = letter._type || (letter.sender_id === userId ? "sent" : "received");
+    const canOpen = itemType === "sent" || !isLockedDate;
     const isOpen = openLetterId === letter.id;
 
-    const personName = type === "received"
-      ? (letter.sender?.display_name || letter.sender?.username || "Bilinmeyen")
-      : (letter.receiver?.display_name || letter.receiver?.username || "Bilinmeyen");
+    const personName = itemType === "received"
+      ? (letter.sender?.display_name || letter.sender?.username || "Sevgilin")
+      : (letter.receiver?.display_name || letter.receiver?.username || "Sevgilin");
 
-    let relativeDate = dayjs(letter.created_at).format("DD.MM.YYYY");
+    let relativeDate = dayjs(letter.created_at).format("DD MMMM YYYY");
     if (dayjs(letter.created_at).isSame(dayjs(), 'day')) relativeDate = "Bugün";
 
     return (
-      <View key={letter.id} style={[styles.letterContainer, { backgroundColor: theme.cardBg }]}>
+      <View 
+        style={[
+          styles.letterCard, 
+          { backgroundColor: theme.cardBg, borderColor: theme.cardBorder },
+          isLockedDate && itemType === "received" && styles.letterCardLocked
+        ]}
+      >
         <TouchableOpacity
-          activeOpacity={canOpen ? 0.7 : 1}
+          activeOpacity={canOpen ? 0.75 : 1}
           onPress={() => canOpen && setOpenLetterId(isOpen ? null : letter.id)}
-          style={{ opacity: (!canOpen && type === "received") ? 0.8 : 1 }}
         >
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-            <View style={styles.lockedBadge}>
-              {isLockedDate ? (
-                <>
-                  <XCircle size={14} color="#E8002D" />
-                  <Text style={styles.lockedText}>
-                    Kilitli (Açılış: {unlockDateObj.format("DD.MM.YYYY")})
+          {/* Üst Durum Çubuğu */}
+          <View style={styles.cardTopRow}>
+            <View style={styles.badgeContainer}>
+              {isLockedDate && itemType === "received" ? (
+                <View style={styles.lockedBadge}>
+                  <LockKeyhole size={13} color="#f59e0b" />
+                  <Text style={styles.lockedBadgeText}>
+                    Kilitli • {unlockDateObj.locale("tr").format("DD MMM YYYY")}
                   </Text>
-                </>
+                </View>
               ) : (
-                <Text style={[styles.lockedText, { color: "#4ade80" }]}>Açık</Text>
+                <View style={styles.unlockedBadge}>
+                  <Unlock size={13} color="#22c55e" />
+                  <Text style={styles.unlockedBadgeText}>
+                    {itemType === "sent" ? "Gönderildi" : "Açıldı"}
+                  </Text>
+                </View>
               )}
             </View>
-            <Text style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>{relativeDate}</Text>
+
+            <Text style={styles.cardDate}>{relativeDate}</Text>
           </View>
-          
-          <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15, marginBottom: 4 }}>
+
+          {/* Mektup Başlığı */}
+          <Text style={styles.cardTitle}>
             {letter.title || "İsimsiz Mektup"}
           </Text>
-          
-          <Text style={styles.letterPerson}>
-            {type === "received" ? `Kimden: ${personName}` : `Kime: ${personName}`}
-          </Text>
 
+          {/* Gönderen / Alıcı Bilgisi */}
+          <View style={styles.personRow}>
+            <Mail size={13} color="rgba(255,255,255,0.5)" />
+            <Text style={styles.personText}>
+              {activeTab === "received" ? `Gönderen: ${personName}` : `Alıcı: ${personName}`}
+            </Text>
+          </View>
+
+          {/* Kapalı Durumdaki İpucu */}
           {!isOpen && (
-            <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginTop: 4 }} numberOfLines={1}>
-              {(!canOpen && type === "received") ? "Bu mektubun içeriği henüz kilitli..." : (letter.content || "İçerik yok...")}
+            <Text style={styles.previewText} numberOfLines={2}>
+              {(!canOpen && activeTab === "received") 
+                ? "🔒 Bu mektup zaman kilidiyle koruma altında. Açılış gününde içeriği görebileceksin..." 
+                : (letter.content || "Mektup içeriği bulunamadı.")}
             </Text>
           )}
 
+          {/* Açık Durumdaki Tam Mektup */}
           {canOpen && isOpen && (
-            <View style={styles.letterBody}>
-              <Text style={styles.letterContent}>{letter.content}</Text>
+            <View style={styles.letterContentBox}>
+              <Text style={styles.letterContentText}>{letter.content}</Text>
+              <Text style={styles.letterFooterNote}>
+                {unlockDateStr ? `Açılış Zamanı: ${dayjs(unlockDateStr).locale("tr").format("DD MMMM YYYY")}` : ""}
+              </Text>
             </View>
           )}
         </TouchableOpacity>
@@ -265,138 +337,259 @@ export default function LettersScreen() {
 
   if (!session) return <View style={{ flex: 1, backgroundColor: "#0a0a0f" }} />;
 
+  const currentList = activeTab === "received" ? receivedLetters : sentLetters;
+
   return (
     <ScreenBackground>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        <View style={{ flex: 1, paddingHorizontal: 20 }}>
-          
-          <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, paddingTop: insets.top + 16 }}>
-            <View style={{ width: 40 }} />
-            <View style={{ flex: 1, alignItems: "center" }}>
-              <Text style={{ fontSize: 28, fontFamily: "PlayfairDisplay_400Regular_Italic", color: "#fff" }}>
-                Mektuplar
-              </Text>
-              <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.7)", marginTop: 4 }}>Geleceğe mesajlar 💌</Text>
-            </View>
-            <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.05)" }}>
-              <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
-            </TouchableOpacity>
+      <View style={{ flex: 1 }}>
+        {/* HEADER - Diğer tüm sayfalarla simetrik ve tam uyumlu */}
+        <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
+          <TouchableOpacity 
+            onPress={() => router.back()} 
+            style={styles.headerBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <ChevronLeft color="#ffffff" size={24} />
+          </TouchableOpacity>
+
+          <View style={styles.headerTitleBox}>
+            <Text style={styles.headerTitle}>Mektuplar</Text>
+            <Text style={styles.headerSubtitle}>Geleceğe Zaman Kapsülü 💌</Text>
           </View>
 
-          {isLoading ? (
-            <View style={{ marginTop: 40, gap: 24 }}>
-              <Skeleton height={200} borderRadius={16} />
-              <Skeleton height={200} borderRadius={16} />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <TouchableOpacity 
+              onPress={handleOpenWriteModal} 
+              style={[styles.headerBtn, { backgroundColor: theme.cardBg }]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <PenLine color={theme.accent} size={19} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              onPress={() => router.push("/menu")} 
+              style={styles.headerBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <AlignJustify color="rgba(255,255,255,0.75)" size={20} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* ÜSTTE HIZLI MEKTUP YAZ BUTONU (Aşağı kaydırma derdine son!) */}
+        <View style={styles.topActionContainer}>
+          <TouchableOpacity 
+            style={[styles.writeLetterActionBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+            onPress={handleOpenWriteModal}
+            activeOpacity={0.88}
+          >
+            <View style={[styles.writeActionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
+              <PenLine size={20} color={theme.accent} />
             </View>
-          ) : (
-            <SectionList
-              sections={[
-                { title: "Gelen Mektuplar", icon: "✉️", data: receivedLetters, type: "received" },
-                { title: "Gönderdiğim Mektuplar", icon: "➤", data: sentLetters, type: "sent" }
-              ]}
-              keyExtractor={(item, index) => item.id.toString()}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 150 }}
-              renderSectionHeader={({ section }) => (
-                <View style={{ marginBottom: 12, marginTop: section.type === "received" ? 0 : 20 }}>
-                  <Text style={{ fontSize: 12, fontWeight: "600", color: "rgba(255,255,255,0.4)", letterSpacing: 0.5 }}>
-                    {section.type === "received" ? "GELEN MEKTUPLAR" : "GÖNDERDİĞİM MEKTUPLAR"}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.writeActionTitle}>Yeni Bir Mektup Yaz</Text>
+              <Text style={styles.writeActionSub}>Sevdiğine gelecekte açılacak bir mesaj bırak ✨</Text>
+            </View>
+            <ChevronRight size={18} color="rgba(255,255,255,0.4)" />
+          </TouchableOpacity>
+        </View>
+
+        {/* SEKME ÇUBUĞU (TÜMÜ / GELENLER / GÖNDERİLENLER) */}
+        <View style={[styles.tabsWrapper, { backgroundColor: theme.cardBg }]}>
+          <TouchableOpacity 
+            style={[styles.tabBtn, activeTab === "all" && { backgroundColor: theme.unitBg }]}
+            onPress={() => setActiveTab("all")}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.tabText, activeTab === "all" && { color: theme.accent, fontFamily: "Inter_700Bold" }]}>
+              Tümü ({allLetters.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.tabBtn, activeTab === "received" && { backgroundColor: theme.unitBg }]}
+            onPress={() => setActiveTab("received")}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.tabText, activeTab === "received" && { color: theme.accent, fontFamily: "Inter_700Bold" }]}>
+              Gelen ({receivedLetters.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.tabBtn, activeTab === "sent" && { backgroundColor: theme.unitBg }]}
+            onPress={() => setActiveTab("sent")}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.tabText, activeTab === "sent" && { color: theme.accent, fontFamily: "Inter_700Bold" }]}>
+              Giden ({sentLetters.length})
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* MEKTUP LİSTESİ */}
+        {isLoading ? (
+          <View style={{ paddingHorizontal: 16, gap: 14, marginTop: 10 }}>
+            <Skeleton height={120} borderRadius={18} />
+            <Skeleton height={120} borderRadius={18} />
+            <Skeleton height={120} borderRadius={18} />
+          </View>
+        ) : (
+          <FlatList
+            data={activeTab === "all" ? allLetters : activeTab === "received" ? receivedLetters : sentLetters}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderLetterItem}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={[styles.emptyCard, { backgroundColor: theme.cardBg }]}>
+                <Text style={{ fontSize: 38, marginBottom: 12 }}>📮</Text>
+                <Text style={styles.emptyTitle}>
+                  {activeTab === "received" ? "Henüz Mektubun Yok" : "Henüz Mektup Göndermedin"}
+                </Text>
+                <Text style={styles.emptySubtitle}>
+                  {activeTab === "received" 
+                    ? "Partnerin sana henüz bir zaman mektubu mühürlememiş. İlk adımı sen atabilirsin!" 
+                    : "Sevdiğine duygularını anlatan, zamanda yolculuk yapacak bir mektup yazmaya ne dersin?"}
+                </Text>
+                <TouchableOpacity 
+                  style={[styles.emptyActionBtn, { backgroundColor: theme.accent }]}
+                  onPress={handleOpenWriteModal}
+                >
+                  <Text style={styles.emptyActionBtnText}>Hemen Mektup Yaz ✍️</Text>
+                </TouchableOpacity>
+              </View>
+            }
+            ListFooterComponent={
+              currentList.length >= pageLimit ? (
+                <TouchableOpacity 
+                  style={[styles.loadMoreBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+                  onPress={() => setPageLimit((prev) => prev + 15)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.loadMoreText, { color: theme.accent }]}>
+                    Daha Fazla Mektup Yükle ({currentList.length} Gösteriliyor) 📜
                   </Text>
-                </View>
-              )}
-              renderItem={({ item, section }) => renderLetterItem(item, section.type as "received" | "sent")}
-              renderSectionFooter={({ section }) => (
-                section.data.length === 0 ? (
-                  <View style={[styles.letterContainer, { backgroundColor: theme.cardBg, paddingVertical: 20, alignItems: "center" }]}>
-                    <Text style={[styles.emptyText, { marginBottom: 0 }]}>
-                      {section.type === "received" ? "Henüz sana yazılmış bir mektup yok." : "Henüz kimseye mektup göndermedin."}
-                    </Text>
-                  </View>
-                ) : null
-              )}
-              ListFooterComponent={
-                <View style={[styles.formBox, { backgroundColor: theme.cardBg, borderColor: 'transparent' }]}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 24 }}>
-                    <Text style={{ fontSize: 18 }}>✍️</Text>
-                    <Text style={{ fontSize: 24, fontFamily: "PlayfairDisplay_400Regular_Italic", color: "#fff" }}>
-                      Yeni Mektup Yaz
-                    </Text>
-                  </View>
+                </TouchableOpacity>
+              ) : null
+            }
+            onEndReached={() => {
+              if (currentList.length >= pageLimit) {
+                setPageLimit((prev) => prev + 15);
+              }
+            }}
+            onEndReachedThreshold={0.4}
+          />
+        )}
 
-                  {/* Premium Guard */}
-                  {!isPremium && tokenBalance < 100 ? (
-                    <TouchableOpacity
-                      onPress={() => setShowPaywall(true)}
-                      activeOpacity={0.7}
-                      style={{
-                        alignItems: "center",
-                        paddingVertical: 30,
-                        borderRadius: 16,
-                        backgroundColor: "rgba(255,255,255,0.03)",
-                        borderWidth: 1,
-                        borderColor: "rgba(255,255,255,0.06)",
-                      }}
-                    >
-                      <Lock color={theme.accent} size={32} />
-                      <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16, marginTop: 12 }}>
-                        Premium Özellik
-                      </Text>
-                      <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginTop: 6, textAlign: "center", paddingHorizontal: 20 }}>
-                        Mektup yazmak için Premium'a geç veya 100 token harca
-                      </Text>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 14, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: `${theme.accent}15` }}>
-                        <Text style={{ color: theme.accent, fontWeight: "700", fontSize: 13 }}>Detayları Gör →</Text>
-                      </View>
-                    </TouchableOpacity>
-                  ) : (
-                  <View>
+      </View>
 
-                  <View style={styles.inputGroup}>
-                    <Text style={[styles.label, errors.receiver && { color: "red" }]}>KİME</Text>
-                    <View style={styles.usersRow}>
-                      {users?.map((u) => {
-                        const isSelected = receiverId === String(u.id);
-                        return (
-                          <TouchableOpacity
-                            key={u.id}
+      {/* YENİ MEKTUP YAZMA MODALI (Modern, temiz ve klavye duyarlı!) */}
+      <Modal
+        visible={showWriteModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowWriteModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            {/* Modal Başlık Çubuğu */}
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <PenLine size={20} color={theme.accent} />
+                <Text style={styles.modalHeaderTitle}>Mektup Mühürle</Text>
+              </View>
+
+              <TouchableOpacity 
+                onPress={() => setShowWriteModal(false)}
+                style={styles.modalCloseBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <X size={18} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+
+            <KeyboardAwareScrollView 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 60, gap: 16 }}
+              enableOnAndroid={true}
+              enableAutomaticScroll={true}
+              extraScrollHeight={160}
+              extraHeight={160}
+              keyboardOpeningTime={250}
+              keyboardShouldPersistTaps="handled"
+            >
+                {/* KİME ALANI */}
+                <View>
+                  <Text style={[styles.fieldLabel, errors.receiver && { color: "#ff5c77" }]}>
+                    KİME GÖNDERİLECEK *
+                  </Text>
+                  <View style={styles.usersSelectorRow}>
+                    {users?.map((u) => {
+                      const isSelected = receiverId === String(u.id);
+                      return (
+                        <TouchableOpacity
+                          key={u.id}
+                          style={[
+                            styles.userPillBtn,
+                            { backgroundColor: theme.unitBg },
+                            isSelected && { 
+                              borderColor: theme.accent, 
+                              backgroundColor: theme.pillAccentBg,
+                              borderWidth: 1.5
+                            }
+                          ]}
+                          onPress={() => {
+                            setReceiverId(String(u.id));
+                            setErrors(prev => ({ ...prev, receiver: false }));
+                          }}
+                        >
+                          <UserCheck size={16} color={isSelected ? theme.accent : "rgba(255,255,255,0.6)"} />
+                          <Text 
                             style={[
-                              styles.input,
-                              { flex: 1, paddingVertical: 12, alignItems: "center" },
-                              isSelected && { borderColor: "#c8922a", backgroundColor: "rgba(200,146,42,0.1)" }
+                              styles.userPillText, 
+                              isSelected && { color: "#ffffff", fontFamily: "Inter_700Bold" }
                             ]}
-                            onPress={() => {
-                              setReceiverId(String(u.id));
-                              setErrors(prev => ({ ...prev, receiver: false }));
-                            }}
                           >
-                            <Text style={[styles.userBtnText, isSelected && { color: "#c8922a", fontWeight: "bold" }]}>
-                              {u.display_name || u.username}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                      {(!users || users.length === 0) && (
-                        <TouchableOpacity style={[styles.input, { flex: 1, paddingVertical: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }]}>
-                          <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>Kullanıcı Seçiniz</Text>
+                            {u.display_name || u.username}
+                          </Text>
                         </TouchableOpacity>
-                      )}
+                      );
+                    })}
+                    {(!users || users.length === 0) && (
+                      <View style={[styles.userPillBtn, { backgroundColor: theme.unitBg, flex: 1 }]}>
+                        <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>
+                          Partnerin henüz eşleşmemiş
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+
+                {/* AÇILIŞ TARİHİ (KİLİT) */}
+                <View>
+                  <View style={styles.fieldLabelRow}>
+                    <Text style={styles.fieldLabel}>KİLİT AÇILMA TARİHİ *</Text>
+                    <View style={styles.lockHintPill}>
+                      <LockKeyhole size={11} color={theme.accent} />
+                      <Text style={[styles.lockHintText, { color: theme.accent }]}>Zaman Kilidi</Text>
                     </View>
                   </View>
 
-                <View style={styles.inputGroup}>
-                  <View style={styles.labelRow}>
-                    <Text style={styles.label}>AÇILIŞ TARİHİ (KİLİT)</Text>
-                    <LockKeyhole size={14} color="rgba(255,255,255,0.35)" />
-                  </View>
                   <TouchableOpacity
-                    style={[styles.input, { flexDirection: "row", alignItems: "center", justifyContent: "space-between" }]}
+                    style={[styles.dateSelectorBtn, { backgroundColor: theme.unitBg }]}
                     onPress={() => setShowDatePicker(true)}
+                    activeOpacity={0.8}
                   >
-                    <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 14 }}>
-                      {dayjs(unlockDate).format("DD MMMM YYYY")}
-                    </Text>
-                    <CalendarIcon size={16} color="#c8922a" />
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                      <CalendarIcon size={18} color={theme.accent} />
+                      <Text style={styles.dateSelectorText}>
+                        {dayjs(unlockDate).locale("tr").format("DD MMMM YYYY, dddd")}
+                      </Text>
+                    </View>
+                    <ChevronRight size={16} color="rgba(255,255,255,0.4)" />
                   </TouchableOpacity>
+
                   {showDatePicker && (
                     <DateTimePicker
                       value={new Date(unlockDate)}
@@ -413,58 +606,81 @@ export default function LettersScreen() {
                   )}
                 </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.label, errors.title && { color: "red" }]}>MEKTUP BAŞLIĞI</Text>
+                {/* MEKTUP BAŞLIĞI */}
+                <View>
+                  <Text style={[styles.fieldLabel, errors.title && { color: "#ff5c77" }]}>
+                    MEKTUP BAŞLIĞI *
+                  </Text>
                   <TextInput
-                    style={[styles.input, errors.title && { borderColor: "red" }]}
+                    style={[
+                      styles.inputField, 
+                      { backgroundColor: theme.unitBg },
+                      errors.title && styles.inputError
+                    ]}
                     value={title}
                     onChangeText={(text) => {
                       setTitle(text);
                       setErrors(prev => ({ ...prev, title: false }));
                     }}
-                    placeholder="Gelecekteki Bize..."
-                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    placeholder="Örn: 1. Yılımızda Açılacak Özel Bir Not..."
+                    placeholderTextColor="rgba(255,255,255,0.3)"
                   />
                 </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.label, errors.content && { color: "red" }]}>MEKTUP İÇERİĞİ</Text>
+                {/* MEKTUP İÇERİĞİ */}
+                <View>
+                  <Text style={[styles.fieldLabel, errors.content && { color: "#ff5c77" }]}>
+                    MEKTUP İÇERİĞİ *
+                  </Text>
                   <TextInput
-                    style={[styles.input, styles.textArea, errors.content && { borderColor: "red" }]}
+                    style={[
+                      styles.inputField, 
+                      styles.textAreaField, 
+                      { backgroundColor: theme.unitBg },
+                      errors.content && styles.inputError
+                    ]}
                     value={content}
                     onChangeText={(text) => {
                       setContent(text);
                       setErrors(prev => ({ ...prev, content: false }));
                     }}
-                    placeholder="Yüreğinden geçenleri dök..."
-                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    placeholder="Yüreğinden geçenleri dök... Gelecekte sevdiğinin okumasını istediğin en özel satırlar..."
+                    placeholderTextColor="rgba(255,255,255,0.3)"
                     multiline
+                    numberOfLines={6}
                   />
                 </View>
 
+                {/* MÜHÜRLE BUTONU (Sarı kaldırıldı, modern theme.accent entegre edildi!) */}
                 <TouchableOpacity 
-                  style={[styles.saveBtn, loadingForm && { opacity: 0.7 }]} 
+                  style={[
+                    styles.sealBtn, 
+                    { backgroundColor: theme.accent, shadowColor: theme.accent },
+                    loadingForm && { opacity: 0.75 }
+                  ]} 
                   onPress={confirmAndSave}
                   disabled={loadingForm}
+                  activeOpacity={0.88}
                 >
                   {loadingForm ? (
-                    <ActivityIndicator color="#111" />
+                    <ActivityIndicator color="#ffffff" />
                   ) : (
                     <>
-                      <Text style={{ fontSize: 18 }}>📮</Text>
-                      <Text style={styles.saveBtnText}>MEKTUBU MÜHÜRLE</Text>
+                      <Send size={18} color="#ffffff" />
+                      <Text style={styles.sealBtnText}>Mektubu Mühürle 💌</Text>
                     </>
                   )}
                 </TouchableOpacity>
 
-                </View>
-                  )}
-              </View>
-              }
-            />
-          )}
+                {!isPremium && (
+                  <Text style={styles.tokenNoticeText}>
+                    * Premium olmayan üyeler için 100 Token karşılığında mühürlenir. (Mevcut bakiyeniz: {tokenBalance} Token)
+                  </Text>
+                )}
+            </KeyboardAwareScrollView>
+          </View>
         </View>
-      </KeyboardAvoidingView>
+      </Modal>
 
       {/* Premium Paywall Modal */}
       <PremiumPaywall
@@ -490,178 +706,393 @@ export default function LettersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-    paddingBottom: 120, // Alt bar için boşluk
-  },
-  loadMoreBtn: {
-    paddingVertical: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 10,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-  },
-  loadMoreText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  formBox: {
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.04)",
-    borderRadius: 16,
-    padding: 18,
-    marginTop: 8,
-  },
-  cardTitleBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 16,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#fff",
-  },
-  iconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: "rgba(200,146,42,0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyText: {
-    color: "rgba(255,255,255,0.35)",
-    fontSize: 13,
-  },
-  letterContainer: {
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-  },
-  letterHeader: {
+  header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingBottom: 14,
   },
-  letterDate: {
+  headerBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitleBox: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 8,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    letterSpacing: -0.4,
+  },
+  headerSubtitle: {
+    fontSize: 12.5,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.6)",
+    marginTop: 2,
+  },
+  topActionContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  writeLetterActionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  writeActionIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  writeActionTitle: {
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    letterSpacing: -0.2,
+  },
+  writeActionSub: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.4)",
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.55)",
+    marginTop: 2,
+  },
+  tabsWrapper: {
+    flexDirection: "row",
+    marginHorizontal: 16,
+    marginBottom: 14,
+    borderRadius: 14,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabText: {
+    color: "rgba(255,255,255,0.5)",
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 130,
+    gap: 12,
+  },
+  letterCard: {
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  letterCardLocked: {
+    borderStyle: "dashed",
+    borderColor: "rgba(255,255,255,0.15)",
+  },
+  cardTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  badgeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   lockedBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 5,
+    backgroundColor: "rgba(245,158,11,0.12)",
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(245,158,11,0.25)",
   },
-  lockedText: {
-    color: "#E8002D",
+  lockedBadgeText: {
+    color: "#f59e0b",
+    fontSize: 11.5,
+    fontFamily: "Inter_600SemiBold",
+  },
+  unlockedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(34,197,94,0.12)",
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(34,197,94,0.25)",
+  },
+  unlockedBadgeText: {
+    color: "#22c55e",
+    fontSize: 11.5,
+    fontFamily: "Inter_600SemiBold",
+  },
+  cardDate: {
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.4)",
   },
-  letterPerson: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.6)",
-    marginTop: 4,
+  cardTitle: {
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    letterSpacing: -0.3,
+    marginBottom: 4,
   },
-  letterBody: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.05)",
-  },
-  letterTitle: {
-    fontSize: 15,
-    fontWeight: "bold",
-    color: "#f4f4f5",
-    marginBottom: 8,
-  },
-  letterContent: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.75)",
-    lineHeight: 22,
-  },
-  
-  /* Form Styles */
-  inputGroup: {
-    marginBottom: 16,
-  },
-  labelRow: {
+  personRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     marginBottom: 8,
   },
-  label: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.35)",
-    fontWeight: "bold",
-    letterSpacing: 0.8,
+  personText: {
+    fontSize: 12.5,
+    fontFamily: "Inter_500Medium",
+    color: "rgba(255,255,255,0.6)",
+  },
+  previewText: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.5)",
+    lineHeight: 18,
+  },
+  letterContentBox: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)",
+  },
+  letterContentText: {
+    fontSize: 14.5,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.85)",
+    lineHeight: 23,
+  },
+  letterFooterNote: {
+    marginTop: 12,
+    fontSize: 11.5,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.4)",
+    textAlign: "right",
+  },
+  emptyCard: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 28,
+    borderRadius: 20,
+    marginTop: 20,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    marginBottom: 6,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.5)",
+    textAlign: "center",
+    lineHeight: 19,
+    marginBottom: 18,
+  },
+  emptyActionBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+  },
+  emptyActionBtnText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+  },
+
+  /* MODAL STILLERI */
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.75)",
+    justifyContent: "flex-end",
+  },
+  modalBox: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderWidth: 1,
+    padding: 20,
+    height: "92%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 18,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.08)",
+  },
+  modalHeaderTitle: {
+    fontSize: 18,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    letterSpacing: -0.3,
+  },
+  modalCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fieldLabel: {
+    fontSize: 11.5,
+    fontFamily: "Inter_600SemiBold",
+    color: "rgba(255,255,255,0.7)",
+    letterSpacing: 0.6,
     marginBottom: 8,
   },
-  usersRow: {
+  fieldLabelRow: {
     flexDirection: "row",
-    gap: 12,
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
   },
-  userBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    backgroundColor: "#1a1a1e",
+  lockHintPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
-  userBtnSelected: {
-    borderColor: "#c8922a",
-    backgroundColor: "rgba(200,146,42,0.1)",
+  lockHintText: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
   },
-  userBtnText: {
-    color: "#f4f4f5",
-    fontSize: 14,
+  usersSelectorRow: {
+    flexDirection: "row",
+    gap: 10,
   },
-  userBtnTextSelected: {
-    color: "#c8922a",
-    fontWeight: "bold",
-  },
-  input: {
-    backgroundColor: "#151515",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.03)",
-    borderRadius: 12,
-    color: "#fff",
-    fontSize: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  textArea: {
-    minHeight: 120,
-    textAlignVertical: "top",
-    lineHeight: 22,
-  },
-  saveBtn: {
+  userPillBtn: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#fdb765",
-    paddingVertical: 16,
-    borderRadius: 16,
-    marginTop: 10,
-    shadowColor: "#c8922a",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
   },
-  saveBtnText: {
-    color: "#111",
-    fontSize: 15,
-    fontWeight: "bold",
-    letterSpacing: 0.5,
-  }
+  userPillText: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 13.5,
+    fontFamily: "Inter_600SemiBold",
+  },
+  dateSelectorBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  dateSelectorText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontFamily: "Inter_500Medium",
+  },
+  inputField: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    color: "#ffffff",
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+  },
+  textAreaField: {
+    minHeight: 140,
+    textAlignVertical: "top",
+    lineHeight: 21,
+  },
+  inputError: {
+    borderColor: "#ff5c77",
+    borderWidth: 1.5,
+  },
+  sealBtn: {
+    height: 52,
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  sealBtnText: {
+    color: "#ffffff",
+    fontSize: 15.5,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -0.2,
+  },
+  tokenNoticeText: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.45)",
+    textAlign: "center",
+    lineHeight: 17,
+  },
+  loadMoreBtn: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  loadMoreText: {
+    fontSize: 13.5,
+    fontFamily: "Inter_600SemiBold",
+  },
 });

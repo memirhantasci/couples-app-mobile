@@ -1,5 +1,8 @@
-import React, { useCallback,  useState, useMemo, useEffect } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, Modal, KeyboardAvoidingView, Platform } from "react-native";
+import React, { useState, useMemo } from "react";
+import { 
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, 
+  ActivityIndicator, TextInput, Modal, Platform 
+} from "react-native";
 import { Image } from "expo-image";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -9,12 +12,16 @@ import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
 import { decrypt, deterministicDecrypt, encrypt } from "@/utils/crypto";
-import { ChevronRight, Heart, FileText, Frown, Smile, Meh, AlertCircle, Sparkles, Droplet, Pill, Menu, ChevronLeft, X, Calendar as CalendarIcon, Save, Trash2, MapPin, AlignJustify } from "lucide-react-native";
+import { 
+  ChevronRight, Heart, FileText, Sparkles, 
+  ChevronLeft, X, Check, Trash2, AlignJustify, 
+  Lock, Plus, Calendar as CalendarIcon, Clock, Camera, Smile, Maximize2
+} from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getTheme } from "@/lib/theme";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
-import { Lock } from "lucide-react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 LocaleConfig.locales['tr'] = {
   monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
@@ -34,9 +41,10 @@ export default function CalendarScreen() {
 
   const [selectedDate, setSelectedDate] = useState<string>(today);
   const [currentMonth, setCurrentMonth] = useState<string>(today);
-  const [showTodayModal, setShowTodayModal] = useState(false);
+  const [showNoteModal, setShowNoteModal] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [saving, setSaving] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<any | null>(null);
 
   const theme = getTheme(profile?.gender);
   const coupleId = profile?.coupleId || null;
@@ -44,13 +52,13 @@ export default function CalendarScreen() {
   const isPremium = profile?.isPremium ?? false;
   const [showPaywall, setShowPaywall] = useState(false);
 
-  // Fetch Data
-  const { data, isLoading , refetch} = useQuery({
+  // Veri çekme
+  const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["calendar_data", coupleId],
     enabled: !!coupleId || !!userId,
     queryFn: async () => {
-      const threeMonthsAgo = dayjs().subtract(1, "month").startOf("month").format("YYYY-MM-DD");
-      const twoMonthsLater = dayjs().add(2, "month").endOf("month").format("YYYY-MM-DD");
+      const threeMonthsAgo = dayjs().subtract(2, "month").startOf("month").format("YYYY-MM-DD");
+      const threeMonthsLater = dayjs().add(2, "month").endOf("month").format("YYYY-MM-DD");
 
       const [notesRes, moodsRes, photosRes, usersRes] = await Promise.all([
         supabase
@@ -58,19 +66,19 @@ export default function CalendarScreen() {
           .select("id, date, note, user_id, created_at")
           .eq("couple_id", coupleId)
           .gte("date", threeMonthsAgo)
-          .lte("date", twoMonthsLater),
+          .lte("date", threeMonthsLater),
         supabase
           .from("moods")
           .select("date, mood_type, user_id")
           .eq("couple_id", coupleId)
           .gte("date", threeMonthsAgo)
-          .lte("date", twoMonthsLater),
+          .lte("date", threeMonthsLater),
         supabase
           .from("photo_archive")
           .select("id, user_id, image_url, title, description, taken_date, taken_time")
           .eq("couple_id", coupleId)
           .gte("taken_date", threeMonthsAgo)
-          .lte("taken_date", twoMonthsLater)
+          .lte("taken_date", threeMonthsLater)
           .order("taken_time", { ascending: false }),
         supabase
           .from("users")
@@ -87,157 +95,154 @@ export default function CalendarScreen() {
       }, {});
 
       return {
-        notes: (notesRes.data || []).map(n => ({
+        notes: (notesRes.data || []).map((n: any) => ({
           ...n,
           user: userMap[n.user_id],
         })),
-        moods: (moodsRes.data || []).map(m => ({
+        moods: (moodsRes.data || []).map((m: any) => ({
           ...m,
           user: userMap[m.user_id],
         })),
-        photos: (photosRes.data || []).map(p => ({
+        photos: (photosRes.data || []).map((p: any) => ({
           ...p,
           title: p.title ? decrypt(p.title) : null,
           description: p.description ? decrypt(p.description) : null,
           uploader: userMap[p.user_id],
         })),
-        users: Object.values(userMap),
+        users: Object.values(userMap) as any[],
       };
     },
     staleTime: 1000 * 60 * 5,
   });
 
-  // Calculate markedDates
+  // Takvim işaretli günleri
   const markedDates = useMemo(() => {
     if (!data) return {};
-    
     const marks: Record<string, any> = {};
 
     const addDot = (dateStr: string, color: string, key: string) => {
       if (!marks[dateStr]) marks[dateStr] = { dots: [] };
-      // avoid duplicates
       if (!marks[dateStr].dots.find((d: any) => d.key === key)) {
         marks[dateStr].dots.push({ key, color });
       }
     };
 
-    data.notes.forEach(n => addDot(n.date, theme.accent, "note"));
-    data.moods.forEach(m => {
+    data.notes.forEach((n: any) => addDot(n.date, theme.accent, "note"));
+    data.moods.forEach((m: any) => {
       const isMe = m.user_id === userId;
-      addDot(m.date, isMe ? "#FFD700" : "#64b4ff", isMe ? "my-mood" : "partner-mood");
+      addDot(m.date, isMe ? "#ffd700" : "#60a5fa", isMe ? "my-mood" : "partner-mood");
     });
-    data.photos.forEach(p => addDot(p.taken_date, "#22c55e", "photo"));
+    data.photos.forEach((p: any) => addDot(p.taken_date, "#22c55e", "photo"));
 
-    // Set selected
-    if (selectedDate) {
-      if (!marks[selectedDate]) marks[selectedDate] = {};
-      marks[selectedDate].selected = true;
-      marks[selectedDate].selectedColor = theme.accent;
+    if (marks[selectedDate]) {
+      marks[selectedDate] = {
+        ...marks[selectedDate],
+        selected: true,
+        selectedColor: theme.accent,
+      };
+    } else {
+      marks[selectedDate] = {
+        selected: true,
+        selectedColor: theme.accent,
+        dots: [],
+      };
     }
 
     return marks;
-  }, [data, selectedDate, userId]);
+  }, [data, selectedDate, theme.accent, userId]);
 
-  // Selected Day Details
-  const selectedDayNotes = useMemo(() => {
-    if (!data || !selectedDate) return [];
-    return data.notes.filter(n => n.date === selectedDate);
-  }, [data, selectedDate]);
-
-  const selectedDayMoods = useMemo(() => {
-    if (!data || !selectedDate) return [];
-    return data.moods.filter(m => m.date === selectedDate);
-  }, [data, selectedDate]);
-
-  const selectedDayPhotos = useMemo(() => {
-    if (!data || !selectedDate) return [];
-    return data.photos.filter(p => p.taken_date === selectedDate);
-  }, [data, selectedDate]);
-
-  const todayNote = useMemo(() => {
-    if (!data) return null;
-    return data.notes.find(n => n.date === today && n.user_id === userId);
-  }, [data, today, userId]);
-
-  // Handlers
-  function onDayPress(day: any) {
+  const onDayPress = (day: { dateString: string }) => {
     setSelectedDate(day.dateString);
-    if (day.dateString === today) {
-      setNoteText(todayNote?.note || "");
-      setShowTodayModal(true);
-    }
-  }
+  };
 
   const handlePrevMonth = () => {
-    setCurrentMonth(prev => dayjs(prev).subtract(1, "month").format("YYYY-MM-DD"));
+    setCurrentMonth(dayjs(currentMonth).subtract(1, "month").format("YYYY-MM-DD"));
   };
 
   const handleNextMonth = () => {
-    setCurrentMonth(prev => dayjs(prev).add(1, "month").format("YYYY-MM-DD"));
+    setCurrentMonth(dayjs(currentMonth).add(1, "month").format("YYYY-MM-DD"));
   };
 
-  async function handleSaveNote() {
-    if (!noteText.trim() || !userId) return;
+  // Seçili güne ait veriler
+  const selectedDayNotes = useMemo(() => {
+    return data?.notes?.filter((n: any) => n.date === selectedDate) || [];
+  }, [data, selectedDate]);
+
+  const selectedDayMoods = useMemo(() => {
+    return data?.moods?.filter((m: any) => m.date === selectedDate) || [];
+  }, [data, selectedDate]);
+
+  const selectedDayPhotos = useMemo(() => {
+    return data?.photos?.filter((p: any) => p.taken_date === selectedDate) || [];
+  }, [data, selectedDate]);
+
+  const userNoteForSelectedDay = useMemo(() => {
+    return selectedDayNotes.find((n: any) => n.user_id === userId);
+  }, [selectedDayNotes, userId]);
+
+  const openNoteModal = () => {
+    setNoteText(userNoteForSelectedDay?.note || "");
+    setShowNoteModal(true);
+  };
+
+  const handleSaveNote = async () => {
+    if (!coupleId || !userId) return;
     setSaving(true);
 
     let error;
-    if (todayNote?.id) {
+    if (userNoteForSelectedDay?.id) {
       const res = await supabase
         .from("calendar_notes")
         .update({ note: noteText.trim() })
-        .eq("id", todayNote.id);
+        .eq("id", userNoteForSelectedDay.id);
       error = res.error;
     } else {
-      const payload: any = {
-        user_id: userId,
-        date: today,
-        note: noteText.trim(),
-      };
-      if (coupleId) payload.couple_id = coupleId;
       const res = await supabase
         .from("calendar_notes")
-        .insert(payload);
+        .insert({
+          couple_id: coupleId,
+          user_id: userId,
+          date: selectedDate,
+          note: noteText.trim(),
+        });
       error = res.error;
     }
 
     setSaving(false);
     if (!error) {
-      setShowTodayModal(false);
+      setShowNoteModal(false);
       queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
     }
-  }
+  };
 
-  async function handleDeleteNote() {
-    if (!todayNote?.id) return;
+  const handleDeleteNote = async () => {
+    if (!userNoteForSelectedDay?.id) return;
     setSaving(true);
     const { error } = await supabase
       .from("calendar_notes")
       .delete()
-      .eq("id", todayNote.id);
+      .eq("id", userNoteForSelectedDay.id);
     
     setSaving(false);
     if (!error) {
-      setShowTodayModal(false);
+      setShowNoteModal(false);
       queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
     }
-  }
+  };
 
   const getAuthorName = (itemUserId: string | undefined | null) => {
     if (!itemUserId) return "İsimsiz";
-    
-    // Check if the item belongs to current user
     if (itemUserId === userId) {
-      const myUserObj = data?.users?.find(u => u.id === userId);
-      let name = myUserObj?.display_name || myUserObj?.first_name || myUserObj?.full_name || myUserObj?.name || profile?.displayName;
+      const myUserObj = (data?.users as any[])?.find(u => u.id === userId);
+      let name = myUserObj?.display_name || myUserObj?.first_name || myUserObj?.full_name || profile?.displayName;
       if (!name && myUserObj?.username) {
         name = deterministicDecrypt(myUserObj.username) || myUserObj.username;
       }
       return name || "Sen";
     }
     
-    // Otherwise it belongs to partner
-    const partnerObj = data?.users?.find(u => u.id !== userId);
-    let pName = partnerObj?.display_name || partnerObj?.first_name || partnerObj?.full_name || partnerObj?.name;
+    const partnerObj = (data?.users as any[])?.find(u => u.id !== userId);
+    let pName = partnerObj?.display_name || partnerObj?.first_name || partnerObj?.full_name;
     if (!pName && partnerObj?.username) {
       pName = deterministicDecrypt(partnerObj.username) || partnerObj.username;
     }
@@ -246,370 +251,540 @@ export default function CalendarScreen() {
 
   const getAuthorAvatar = (itemUserId: string | undefined | null) => {
     if (!itemUserId) return null;
-    const userObj = data?.users?.find(u => u.id === itemUserId);
+    const userObj = (data?.users as any[])?.find(u => u.id === itemUserId);
     return userObj?.avatar_url || null;
   };
 
-  const renderSelectedDayDetails = () => {
-    if (selectedDayNotes.length === 0 && selectedDayMoods.length === 0 && selectedDayPhotos.length === 0) {
-      return (
-        <Text style={styles.emptyText}>Bu gün için henüz bir kayıt yok.</Text>
-      );
-    }
-
-    return (
-      <View style={{ gap: 16 }}>
-        {/* Photos */}
-        {selectedDayPhotos.length > 0 && (
-          <View style={{ gap: 16 }}>
-            {!isPremium ? (
-              <TouchableOpacity
-                onPress={() => setShowPaywall(true)}
-                activeOpacity={0.8}
-                style={[styles.photoCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBg, height: 180, justifyContent: "center", alignItems: "center" }]}
-              >
-                <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.05)", justifyContent: "center", alignItems: "center", marginBottom: 12 }}>
-                  <Lock color={theme.accent} size={24} />
-                </View>
-                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16, marginBottom: 4 }}>Fotoğraflar Gizli</Text>
-                <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, textAlign: "center", paddingHorizontal: 20 }}>
-                  Takvimdeki fotoğrafları görmek için Premium'a geç.
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              selectedDayPhotos.map(photo => {
-                const uploaderName = getAuthorName(photo.user_id);
-              const avatarUrl = getAuthorAvatar(photo.user_id);
-
-              return (
-                <View key={photo.id} style={[styles.photoCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBg }]}>
-                  <Image source={{ uri: photo.image_url }} style={styles.photoImg} contentFit="cover" />
-                  
-                  <View style={styles.photoCaptionBox}>
-                    {!!photo.title && <Text style={styles.photoTitle}>{photo.title}</Text>}
-                    {!!photo.description && <Text style={styles.photoDesc}>{photo.description}</Text>}
-                  </View>
-
-                  <View style={styles.photoMeta}>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                      {avatarUrl ? (
-                        <Image source={{ uri: avatarUrl }} style={styles.avatarImg} contentFit="cover" />
-                      ) : (
-                        <View style={[styles.avatarFallback, { backgroundColor: theme.unitBg }]}>
-                          <Text style={styles.avatarFallbackText}>{uploaderName.substring(0,1).toUpperCase()}</Text>
-                        </View>
-                      )}
-                      <Text style={styles.photoMetaTextBold}>{uploaderName}</Text>
-                    </View>
-                    <Text style={styles.photoMetaTextTime}>
-                      {!!photo.taken_time ? photo.taken_time.substring(0,5) : ""}
-                    </Text>
-                  </View>
-                </View>
-              );
-            })
-            )}
-          </View>
-        )}
-
-        {/* Notes */}
-        {selectedDayNotes.length > 0 && (
-          <View>
-            <View style={[styles.sectionHeader, { borderLeftColor: theme.accent }]}>
-              <Text style={styles.sectionHeaderText}>GÜNLÜK ÖZET</Text>
-            </View>
-            <View style={{ gap: 10 }}>
-              {selectedDayNotes.map(note => {
-                const authorName = getAuthorName(note.user_id);
-
-                return (
-                  <View key={note.id} style={[styles.noteBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBg }]}>
-                    <Text style={styles.noteText}>{note.note}</Text>
-                    <View style={styles.noteMeta}>
-                      <Text style={styles.noteAuthor}>— {authorName}</Text>
-                      {!!note.created_at && (
-                        <Text style={styles.noteTime}>{dayjs(note.created_at).format("HH:mm")}</Text>
-                      )}
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-        )}
-
-        {/* Moods */}
-        {selectedDayMoods.length > 0 && (
-          <View>
-            <View style={[styles.sectionHeader, { borderLeftColor: "#FFD700" }]}>
-              <Text style={styles.sectionHeaderText}>RUH HALLERİ</Text>
-            </View>
-            <View style={{ gap: 8 }}>
-              {selectedDayMoods.map((m, i) => {
-                const authorName = getAuthorName(m.user_id);
-
-                return (
-                  <View key={i} style={[styles.moodBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBg }]}>
-                    <Text style={{ fontSize: 24 }}>{m.mood_type}</Text>
-                    <Text style={styles.moodAuthor}>{authorName}</Text>
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-        )}
-      </View>
-    );
-  };
-
-  if (!session) {
-    return <View style={{ flex: 1, backgroundColor: "#080811" }} />;
-  }
-
-
-
   return (
     <ScreenBackground>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: insets.top + 16, paddingBottom: 120 }}>
-        
-        {/* Header */}
-        <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
-          <View style={{ flex: 1, alignItems: "center" }}>
-            <Text style={styles.title}>Takvim</Text>
-            <Text style={styles.subtitle}>Notlar, ruh halleri ve anılar</Text>
+      <View style={{ flex: 1 }}>
+        {/* HEADER */}
+        <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
+          <TouchableOpacity 
+            onPress={() => router.back()} 
+            style={styles.headerBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <ChevronLeft color="#ffffff" size={24} />
+          </TouchableOpacity>
+
+          <View style={styles.headerTitleBox}>
+            <Text style={styles.headerTitle}>Takvim</Text>
+            <Text style={styles.headerSubtitle}>Özel Günler & Hatıralar 📅</Text>
           </View>
-          <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.05)" }}>
-            <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
+
+          <TouchableOpacity 
+            onPress={() => router.push("/menu")} 
+            style={styles.headerBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <AlignJustify color="rgba(255,255,255,0.75)" size={20} />
           </TouchableOpacity>
         </View>
 
-        {/* Custom Month Navigator (Outside the dark card!) */}
-        <View style={styles.customMonthNav}>
-          <TouchableOpacity onPress={handlePrevMonth} style={styles.arrowCircle}>
-            <ChevronLeft color="#fff" size={20} />
-          </TouchableOpacity>
-          <Text style={styles.customMonthText}>
-            {dayjs(currentMonth).format("MMMM YYYY")}
-          </Text>
-          <TouchableOpacity onPress={handleNextMonth} style={styles.arrowCircle}>
-            <ChevronRight color="#fff" size={20} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Calendar View */}
-        <View style={[styles.calendarContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBg }]}>
-          <Calendar
-            current={currentMonth}
-            key={currentMonth} // Force re-render to update the month immediately
-            firstDay={1}
-            onDayPress={onDayPress}
-            markedDates={markedDates}
-            markingType={'multi-dot'}
-            renderArrow={(direction: string) => (
-              <View style={styles.arrowCircle}>
-                {direction === 'left' ? <ChevronLeft color="#fff" size={16} /> : <ChevronRight color="#fff" size={16} />}
-              </View>
-            )}
-            theme={{
-              calendarBackground: 'transparent',
-              textSectionTitleColor: 'rgba(255,255,255,0.4)',
-              selectedDayBackgroundColor: theme.accent,
-              selectedDayTextColor: '#ffffff',
-              todayTextColor: theme.accent,
-              dayTextColor: 'rgba(255,255,255,0.85)',
-              textDisabledColor: 'rgba(255,255,255,0.2)',
-              dotColor: theme.accent,
-              selectedDotColor: '#ffffff',
-              monthTextColor: '#ffffff',
-              textMonthFontFamily: 'PlayfairDisplay_400Regular_Italic',
-              textMonthFontSize: 22,
-              textDayFontSize: 13,
-              textDayHeaderFontSize: 11,
-              textDayHeaderFontWeight: '600',
-              'stylesheet.calendar.header': {
-                header: {
-                  display: 'none', // Completely hide the internal month title & arrows!
-                },
-              },
-              'stylesheet.day.multiDot': {
-                base: {
-                  width: 32,
-                  height: 32, // Square for selection like mockup
-                  alignItems: 'center',
-                  paddingTop: 4,
-                  borderRadius: 12, // Squircle
-                },
-                today: {
-                  backgroundColor: 'transparent'
-                },
-                selected: {
-                  backgroundColor: theme.accent,
-                  borderRadius: 12,
-                }
-              }
-            }}
-          />
-
-          {/* Legend Inside Calendar Card */}
-          <View style={styles.legendRow}>
-            {[
-              { color: theme.accent, label: "Notlar" },
-              { color: "#FFD700", label: "E. Ruh Hali" },
-              { color: "#22c55e", label: "Fotoğraflar" },
-              { color: "#64b4ff", label: "O. Ruh Hali" },
-            ].map(item => (
-              <View key={item.label} style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: item.color }]} />
-                <Text style={styles.legendText}>{item.label}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-
-
-        {/* Selected Day Details */}
-        {selectedDate && (
-          <View style={{ marginTop: 10 }}>
-            <Text style={styles.detailsTitle}>Günün Anıları</Text>
-            
-            {isLoading ? (
-              <View style={[styles.detailsCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBg }]}>
-                <Skeleton height={150} borderRadius={16} />
-                <Skeleton height={60} borderRadius={16} />
-              </View>
-            ) : (
-              renderSelectedDayDetails()
-            )}
-          </View>
-        )}
-
-      </ScrollView>
-
-      {/* TODAY MODAL */}
-      <Modal visible={showTodayModal} transparent animationType="fade">
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.modalOverlay}
+        {/* KAYDIRILABİLİR İÇERİK */}
+        <ScrollView 
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 140 }]}
+          showsVerticalScrollIndicator={false}
         >
-          <View style={[styles.modalContent, { backgroundColor: theme.cardBg, borderColor: "rgba(255,255,255,0.05)" }]}>
-            <TouchableOpacity style={styles.closeBtn} onPress={() => setShowTodayModal(false)}>
-              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.05)", justifyContent: 'center', alignItems: 'center' }}>
-                <X color="rgba(255,255,255,0.6)" size={18} />
-              </View>
+          {/* AY SEÇİCİ ÇUBUĞU */}
+          <View style={[styles.monthNavCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            <TouchableOpacity onPress={handlePrevMonth} style={styles.monthArrowBtn} activeOpacity={0.75}>
+              <ChevronLeft color="#ffffff" size={20} />
             </TouchableOpacity>
 
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8, marginTop: 4 }}>
-              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: `${theme.accent}15`, justifyContent: 'center', alignItems: 'center' }}>
-                <CalendarIcon color={theme.accent} size={18} />
-              </View>
-              <View>
-                <Text style={styles.modalTitle}>Günün Notu</Text>
-                <Text style={styles.modalSubtitle}>
-                  {dayjs(today).format("DD MMMM YYYY, dddd")}
-                </Text>
-              </View>
+            <View style={styles.monthTextBox}>
+              <CalendarIcon size={16} color={theme.accent} />
+              <Text style={styles.monthText}>
+                {dayjs(currentMonth).format("MMMM YYYY")}
+              </Text>
             </View>
 
-            <TextInput
-              value={noteText}
-              onChangeText={setNoteText}
-              placeholder="Bugün nasıl geçti? Özel bir şey var mı?"
-              placeholderTextColor="rgba(255,255,255,0.3)"
-              multiline
-              style={[styles.modalInput, { backgroundColor: "rgba(0,0,0,0.2)", borderColor: "rgba(255,255,255,0.03)" }]}
-              autoFocus
+            <TouchableOpacity onPress={handleNextMonth} style={styles.monthArrowBtn} activeOpacity={0.75}>
+              <ChevronRight color="#ffffff" size={20} />
+            </TouchableOpacity>
+          </View>
+
+          {/* TAKVİM BİLEŞENİ */}
+          <View style={[styles.calendarCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            <Calendar
+              current={currentMonth}
+              key={currentMonth}
+              firstDay={1}
+              onDayPress={onDayPress}
+              markedDates={markedDates}
+              markingType={'multi-dot'}
+              theme={{
+                calendarBackground: 'transparent',
+                textSectionTitleColor: 'rgba(255,255,255,0.45)',
+                selectedDayBackgroundColor: theme.accent,
+                selectedDayTextColor: '#ffffff',
+                todayTextColor: theme.accent,
+                dayTextColor: 'rgba(255,255,255,0.85)',
+                textDisabledColor: 'rgba(255,255,255,0.2)',
+                dotColor: theme.accent,
+                selectedDotColor: '#ffffff',
+                monthTextColor: '#ffffff',
+                textDayFontSize: 14,
+                textDayHeaderFontSize: 11.5,
+                textDayHeaderFontWeight: '600',
+                ...({
+                  'stylesheet.calendar.header': {
+                    header: {
+                      display: 'none',
+                    },
+                  },
+                  'stylesheet.day.multiDot': {
+                    base: {
+                      width: 34,
+                      height: 34,
+                      alignItems: 'center',
+                      paddingTop: 4,
+                      borderRadius: 12,
+                    },
+                    today: {
+                      backgroundColor: 'transparent',
+                    },
+                    selected: {
+                      backgroundColor: theme.accent,
+                      borderRadius: 12,
+                    },
+                  },
+                } as any),
+              }}
             />
 
-            <View style={{ flexDirection: "row", gap: 12, marginTop: 20 }}>
-              {todayNote && (
-                <TouchableOpacity 
-                  onPress={handleDeleteNote} 
-                  disabled={saving}
-                  style={[styles.deleteBtn, { backgroundColor: "rgba(255,59,48,0.1)", borderColor: "transparent" }]}
-                >
-                  <Trash2 color="#FF3B30" size={20} />
-                </TouchableOpacity>
+            {/* LEJANT (RENK KILAVUZU) */}
+            <View style={styles.legendRow}>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: theme.accent }]} />
+                <Text style={styles.legendText}>Not</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: "#ffd700" }]} />
+                <Text style={styles.legendText}>Ruh Halim</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: "#60a5fa" }]} />
+                <Text style={styles.legendText}>Partnerim</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: "#22c55e" }]} />
+                <Text style={styles.legendText}>Fotoğraf</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* SEÇİLEN GÜN BAŞLIĞI & NOT BUTONU */}
+          <View style={styles.selectedDayHeaderRow}>
+            <View>
+              <Text style={styles.selectedDayDate}>
+                {dayjs(selectedDate).format("D MMMM YYYY, dddd")}
+              </Text>
+              <Text style={styles.selectedDaySub}>Günün Kayıtları ve Anıları</Text>
+            </View>
+
+            <TouchableOpacity 
+              style={[styles.addNoteBtn, { backgroundColor: theme.accent }]}
+              onPress={openNoteModal}
+              activeOpacity={0.85}
+            >
+              <Plus size={16} color="#ffffff" />
+              <Text style={styles.addNoteBtnText}>
+                {userNoteForSelectedDay ? "Notu Düzenle" : "Not Ekle"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* SEÇİLEN GÜNÜN DETAYLARI */}
+          {isLoading ? (
+            <View style={{ gap: 12, marginTop: 4 }}>
+              <Skeleton height={90} borderRadius={18} />
+              <Skeleton height={140} borderRadius={18} />
+            </View>
+          ) : (
+            <View style={{ gap: 14 }}>
+              {/* Fotoğraflar */}
+              {selectedDayPhotos.length > 0 && (
+                <View style={{ gap: 12 }}>
+                  <View style={styles.sectionHeader}>
+                    <Camera size={15} color="#22c55e" />
+                    <Text style={styles.sectionHeaderText}>FOTOĞRAF ARŞİVİ</Text>
+                  </View>
+
+                  {!isPremium ? (
+                    <TouchableOpacity
+                      onPress={() => setShowPaywall(true)}
+                      activeOpacity={0.8}
+                      style={[styles.photoCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, height: 160, justifyContent: "center", alignItems: "center" }]}
+                    >
+                      <View style={[styles.lockIconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                        <Lock color={theme.accent} size={22} />
+                      </View>
+                      <Text style={styles.lockTitle}>Fotoğraflar Gizli</Text>
+                      <Text style={styles.lockSub}>Takvimdeki fotoğrafları görmek için Premium'a geçin.</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    selectedDayPhotos.map((photo: any) => {
+                      const uploaderName = getAuthorName(photo.user_id);
+                      const avatarUrl = getAuthorAvatar(photo.user_id);
+
+                      return (
+                        <TouchableOpacity 
+                          key={photo.id} 
+                          style={[styles.photoCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+                          activeOpacity={0.92}
+                          onPress={() => setSelectedPhoto(photo)}
+                        >
+                          <View style={{ position: "relative" }}>
+                            <Image source={{ uri: photo.image_url }} style={styles.photoImg} contentFit="cover" />
+                            <View style={styles.photoExpandBadge}>
+                              <Maximize2 size={12} color="#ffffff" />
+                            </View>
+                          </View>
+                          <View style={styles.photoCaptionBox}>
+                            {!!photo.title && <Text style={styles.photoTitle}>{photo.title}</Text>}
+                            {!!photo.description && <Text style={styles.photoDesc}>{photo.description}</Text>}
+                          </View>
+                          <View style={styles.photoMeta}>
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                              {avatarUrl ? (
+                                <Image source={{ uri: avatarUrl }} style={styles.avatarImg} contentFit="cover" />
+                              ) : (
+                                <View style={[styles.avatarFallback, { backgroundColor: theme.unitBg }]}>
+                                  <Text style={styles.avatarFallbackText}>{uploaderName.substring(0, 1).toUpperCase()}</Text>
+                                </View>
+                              )}
+                              <Text style={styles.photoMetaTextBold}>{uploaderName}</Text>
+                            </View>
+                            {!!photo.taken_time && (
+                              <Text style={styles.photoMetaTextTime}>{photo.taken_time.substring(0, 5)}</Text>
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })
+                  )}
+                </View>
               )}
-              <TouchableOpacity 
-                onPress={handleSaveNote}
-                disabled={saving || !noteText.trim()}
-                style={[styles.saveBtn, { backgroundColor: theme.accent }, (saving || !noteText.trim()) && { opacity: 0.5 }]}
-              >
-                <Save color="#fff" size={18} />
-                <Text style={styles.saveBtnText}>
-                  {saving ? "Kaydediliyor..." : todayNote ? "Güncelle" : "Kaydet"}
+
+              {/* Notlar */}
+              {selectedDayNotes.length > 0 && (
+                <View style={{ gap: 10 }}>
+                  <View style={styles.sectionHeader}>
+                    <FileText size={15} color={theme.accent} />
+                    <Text style={styles.sectionHeaderText}>GÜNÜN NOTLARI</Text>
+                  </View>
+
+                  {selectedDayNotes.map((note: any) => {
+                    const authorName = getAuthorName(note.user_id);
+                    return (
+                      <View key={note.id} style={[styles.noteBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                        <Text style={styles.noteText}>{note.note}</Text>
+                        <View style={styles.noteMeta}>
+                          <Text style={[styles.noteAuthor, { color: theme.accent }]}>— {authorName}</Text>
+                          {!!note.created_at && (
+                            <Text style={styles.noteTime}>{dayjs(note.created_at).format("HH:mm")}</Text>
+                          )}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+
+              {/* Ruh Halleri */}
+              {selectedDayMoods.length > 0 && (
+                <View style={{ gap: 10 }}>
+                  <View style={styles.sectionHeader}>
+                    <Smile size={15} color="#ffd700" />
+                    <Text style={styles.sectionHeaderText}>HİSSEDİLEN RUH HALLERİ</Text>
+                  </View>
+
+                  <View style={styles.moodsGrid}>
+                    {selectedDayMoods.map((m: any, i: number) => {
+                      const authorName = getAuthorName(m.user_id);
+                      return (
+                        <View key={i} style={[styles.moodCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                          <Text style={{ fontSize: 26 }}>{m.mood_type}</Text>
+                          <Text style={styles.moodAuthor}>{authorName}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+
+              {/* Boş Durum */}
+              {selectedDayNotes.length === 0 && selectedDayMoods.length === 0 && selectedDayPhotos.length === 0 && (
+                <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                  <CalendarIcon size={32} color="rgba(255,255,255,0.2)" />
+                  <Text style={styles.emptyCardTitle}>Henüz Kayıt Yok</Text>
+                  <Text style={styles.emptyCardSub}>
+                    Bu güne ait henüz bir not, ruh hali veya fotoğraf bulunmuyor.
+                  </Text>
+                  <TouchableOpacity 
+                    style={[styles.emptyAddBtn, { backgroundColor: theme.accent }]}
+                    onPress={openNoteModal}
+                    activeOpacity={0.85}
+                  >
+                    <Plus size={15} color="#ffffff" />
+                    <Text style={styles.emptyAddBtnText}>İlk Notu Ekle ✍️</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
+        </ScrollView>
+      </View>
+
+      {/* NOT EKLEME / DÜZENLEME MODALI */}
+      <Modal visible={showNoteModal} animationType="slide" transparent>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <FileText size={18} color={theme.accent} />
+                <Text style={styles.modalTitle}>
+                  {userNoteForSelectedDay ? "Günün Notunu Düzenle" : "Güne Not Ekle"}
                 </Text>
+              </View>
+
+              <TouchableOpacity 
+                onPress={() => setShowNoteModal(false)}
+                style={styles.modalCloseBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <X size={18} color="#ffffff" />
               </TouchableOpacity>
             </View>
 
+            <KeyboardAwareScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 16, gap: 14 }}
+              enableOnAndroid={true}
+              extraScrollHeight={130}
+              keyboardShouldPersistTaps="handled"
+            >
+              <Text style={styles.modalDateText}>
+                {dayjs(selectedDate).format("D MMMM YYYY, dddd")}
+              </Text>
+
+              <TextInput
+                style={[styles.modalTextInput, { backgroundColor: theme.unitBg }]}
+                multiline
+                maxLength={1000}
+                value={noteText}
+                onChangeText={setNoteText}
+                placeholder="Bugünle ilgili küçük bir hatıra veya not bırak..."
+                placeholderTextColor="rgba(255,255,255,0.3)"
+              />
+
+              <Text style={styles.modalCharCount}>
+                {noteText.length} / 1000 karakter
+              </Text>
+
+              <View style={styles.modalActionsRow}>
+                {userNoteForSelectedDay && (
+                  <TouchableOpacity 
+                    onPress={handleDeleteNote}
+                    disabled={saving}
+                    style={styles.modalDeleteBtn}
+                  >
+                    <Trash2 size={16} color="#ef4444" />
+                  </TouchableOpacity>
+                )}
+
+                <View style={{ flex: 1 }} />
+
+                <TouchableOpacity 
+                  onPress={() => setShowNoteModal(false)}
+                  style={styles.modalCancelBtn}
+                >
+                  <Text style={styles.modalCancelBtnText}>Vazgeç</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  onPress={handleSaveNote}
+                  disabled={saving || !noteText.trim()}
+                  style={[styles.modalSaveBtn, { backgroundColor: theme.accent }, !noteText.trim() && { opacity: 0.5 }]}
+                >
+                  {saving ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <>
+                      <Check size={16} color="#ffffff" />
+                      <Text style={styles.modalSaveBtnText}>Kaydet</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </KeyboardAwareScrollView>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </Modal>
 
-      <PremiumPaywall
-        visible={showPaywall}
-        onClose={() => setShowPaywall(false)}
-        featureName="Takvim Fotoğrafları"
-        featureDescription="Geçmiş günlerdeki fotoğrafları görüntülemek için Premium'a geçin."
-        gender={profile?.gender}
-      />
+      {/* ─── FOTOĞRAF TAM EKRAN (LIGHTBOX) MODALI ─── */}
+      <Modal
+        visible={!!selectedPhoto}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSelectedPhoto(null)}
+      >
+        <View style={styles.lightboxBackdrop}>
+          {/* Lightbox Üst Bar */}
+          <View style={[styles.lightboxHeader, { paddingTop: insets.top + 10 }]}>
+            <TouchableOpacity 
+              onPress={() => setSelectedPhoto(null)}
+              style={styles.lightboxCloseBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <X size={20} color="#ffffff" />
+            </TouchableOpacity>
 
+            <View style={styles.lightboxDatePill}>
+              <CalendarIcon size={13} color={theme.accent} />
+              <Text style={[styles.lightboxDateText, { color: theme.accent }]}>
+                {selectedPhoto ? dayjs(selectedPhoto.taken_date).locale("tr").format("DD MMMM YYYY") : ""}
+              </Text>
+            </View>
+
+            <View style={{ width: 40 }} />
+          </View>
+
+          {/* Tam Ekran Fotoğraf */}
+          <View style={styles.lightboxMainArea}>
+            {selectedPhoto && (
+              <Image 
+                source={{ uri: selectedPhoto.image_url }} 
+                style={styles.lightboxImg} 
+                contentFit="contain" 
+              />
+            )}
+          </View>
+
+          {/* Alt Bilgi Kartı */}
+          {selectedPhoto && (
+            <View style={[styles.lightboxFooter, { paddingBottom: insets.bottom + 20 }]}>
+              <View style={styles.lightboxMetaRow}>
+                <Text style={styles.lightboxAuthor}>
+                  {getAuthorName(selectedPhoto.user_id)}
+                </Text>
+                {selectedPhoto.taken_time && (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                    <Clock size={12} color="rgba(255,255,255,0.6)" />
+                    <Text style={styles.lightboxTime}>{selectedPhoto.taken_time.substring(0, 5)}</Text>
+                  </View>
+                )}
+              </View>
+
+              {selectedPhoto.title ? (
+                <Text style={styles.lightboxTitle}>{selectedPhoto.title}</Text>
+              ) : null}
+
+              {selectedPhoto.description ? (
+                <Text style={styles.lightboxDesc}>{selectedPhoto.description}</Text>
+              ) : null}
+            </View>
+          )}
+        </View>
+      </Modal>
+
+      <PremiumPaywall 
+        visible={showPaywall} 
+        onClose={() => setShowPaywall(false)} 
+        featureName="Takvimdeki Fotoğraflar"
+      />
     </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
   header: {
-    marginBottom: 30,
-    alignItems: "center",
-  },
-  customMonthNav: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-    paddingHorizontal: 10,
+    paddingHorizontal: 20,
+    paddingBottom: 14,
   },
-  customMonthText: {
-    fontSize: 24,
-    fontFamily: "PlayfairDisplay_400Regular_Italic",
-    color: "#fff",
-  },
-  title: {
-    fontSize: 32,
-    fontFamily: "PlayfairDisplay_400Regular_Italic",
-    color: "#fff",
-  },
-  subtitle: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.6)",
-    marginTop: 4,
-  },
-  arrowCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  calendarContainer: {
-    backgroundColor: "#181a20",
+  headerBtn: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.06)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.08)",
-    padding: 8,
-    paddingBottom: 12,
-    marginBottom: 16,
-    overflow: "visible",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitleBox: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 8,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    letterSpacing: -0.4,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.55)",
+    marginTop: 2,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    gap: 16,
+  },
+
+  /* AY GEZGİNİ */
+  monthNavCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  monthArrowBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  monthTextBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  monthText: {
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    letterSpacing: -0.2,
+  },
+
+  /* TAKVİM KARTI */
+  calendarCard: {
+    borderRadius: 22,
+    padding: 14,
+    borderWidth: 1,
   },
   legendRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    alignItems: "center",
     justifyContent: "center",
     gap: 16,
-    marginBottom: 20,
+    paddingTop: 12,
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.06)",
   },
   legendItem: {
     flexDirection: "row",
@@ -617,130 +792,93 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 3,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
   legendText: {
-    fontSize: 10,
-    fontWeight: "500",
-    color: "rgba(255,255,255,0.4)",
+    fontSize: 11,
+    fontFamily: "Inter_500Medium",
+    color: "rgba(255,255,255,0.55)",
   },
-  detailsCard: {
-    backgroundColor: "#181a20",
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    padding: 20,
-  },
-  detailsHeader: {
+
+  /* SEÇİLEN GÜN */
+  selectedDayHeaderRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    justifyContent: "space-between",
+    marginTop: 4,
   },
-  detailsTitle: {
-    fontSize: 24,
-    fontFamily: "PlayfairDisplay_400Regular_Italic",
-    color: "#fff",
-    marginBottom: 16,
+  selectedDayDate: {
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
   },
-  detailsDate: {
+  selectedDaySub: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.4)",
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.5)",
+    marginTop: 2,
   },
-  emptyText: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.3)",
-    textAlign: "center",
-    paddingVertical: 20,
+  addNoteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 14,
   },
+  addNoteBtnText: {
+    fontSize: 12.5,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+  },
+
+  /* SECTION HEADER */
   sectionHeader: {
-    paddingLeft: 10,
-    borderLeftWidth: 3,
-    marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
   },
   sectionHeaderText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "rgba(255,255,255,0.3)",
-    letterSpacing: 1,
-  },
-  noteBox: {
-    padding: 14,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.03)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-  },
-  noteText: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.8)",
-    lineHeight: 20,
-  },
-  noteAuthor: {
-    fontSize: 11,
-    color: "#E8002D", // or we can leave it
-    fontWeight: "600",
-  },
-  noteTime: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.4)",
-  },
-  noteMeta: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 8,
-  },
-  moodBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,215,0,0.04)",
-    borderWidth: 1,
-    borderColor: "rgba(255,215,0,0.1)",
-  },
-  moodAuthor: {
-    fontSize: 13,
+    fontSize: 11.5,
+    fontFamily: "Inter_700Bold",
     color: "rgba(255,255,255,0.6)",
-    fontWeight: "500",
+    letterSpacing: 0.6,
   },
+
+  /* FOTOĞRAFLAR */
   photoCard: {
     borderRadius: 20,
-    overflow: "hidden",
     borderWidth: 1,
+    overflow: "hidden",
   },
   photoImg: {
     width: "100%",
-    height: 180,
+    height: 200,
   },
   photoCaptionBox: {
-    paddingTop: 16,
-    paddingHorizontal: 16,
-    paddingBottom: 8,
+    padding: 14,
   },
   photoTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#fff",
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    marginBottom: 4,
   },
   photoDesc: {
     fontSize: 13,
-    color: "rgba(255,255,255,0.6)",
-    marginTop: 6,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.7)",
     lineHeight: 18,
   },
   photoMeta: {
-    paddingTop: 8,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingBottom: 14,
   },
   avatarImg: {
     width: 24,
@@ -751,91 +889,323 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
   },
   avatarFallbackText: {
-    color: "#fff",
-    fontSize: 10,
-    fontWeight: "700",
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
   },
   photoMetaTextBold: {
-    fontSize: 13,
-    color: "#fff",
-    fontWeight: "600",
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+    color: "rgba(255,255,255,0.8)",
   },
   photoMetaTextTime: {
-    fontSize: 12,
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
     color: "rgba(255,255,255,0.4)",
   },
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.75)",
-    justifyContent: "center",
+  lockIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
-    padding: 20,
+    justifyContent: "center",
+    marginBottom: 8,
   },
-  modalContent: {
-    width: "100%",
-    maxWidth: 400,
-    backgroundColor: "#1c1c1e",
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+  lockTitle: {
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    marginBottom: 4,
   },
-  closeBtn: {
-    position: "absolute",
-    top: 20,
-    right: 20,
-    padding: 4,
-    zIndex: 10,
-  },
-  modalTitle: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  modalSubtitle: {
+  lockSub: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.4)",
-    marginBottom: 16,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.5)",
+    textAlign: "center",
   },
-  modalInput: {
-    width: "100%",
-    minHeight: 120,
+
+  /* NOTLAR */
+  noteBox: {
+    borderRadius: 16,
     padding: 14,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.04)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    color: "rgba(255,255,255,0.9)",
+  },
+  noteText: {
     fontSize: 14,
-    textAlignVertical: "top",
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.85)",
+    lineHeight: 21,
   },
-  deleteBtn: {
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  saveBtn: {
-    flex: 1,
+  noteMeta: {
     flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.06)",
+  },
+  noteAuthor: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+  },
+  noteTime: {
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.4)",
+  },
+
+  /* RUH HALLERİ */
+  moodsGrid: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  moodCard: {
+    flex: 1,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  moodAuthor: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+    color: "rgba(255,255,255,0.75)",
+  },
+
+  /* BOŞ DURUM */
+  emptyCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 24,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#E8002D",
-    borderRadius: 12,
-    padding: 12,
+    marginTop: 6,
   },
-  saveBtnText: {
-    color: "white",
-    fontWeight: "700",
-    fontSize: 14,
-  }
+  emptyCardTitle: {
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    marginTop: 4,
+  },
+  emptyCardSub: {
+    fontSize: 12.5,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.5)",
+    textAlign: "center",
+    lineHeight: 18,
+  },
+  emptyAddBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
+    marginTop: 8,
+  },
+  emptyAddBtnText: {
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+  },
+
+  /* MODAL */
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.75)",
+    justifyContent: "center",
+    padding: 18,
+  },
+  modalBox: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 20,
+    maxHeight: "85%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 14,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.08)",
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+  },
+  modalCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalDateText: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+    color: "rgba(255,255,255,0.6)",
+    marginBottom: 4,
+  },
+  modalTextInput: {
+    borderRadius: 16,
+    padding: 16,
+    fontSize: 15,
+    fontFamily: "Inter_400Regular",
+    color: "#ffffff",
+    minHeight: 140,
+    textAlignVertical: "top",
+    lineHeight: 22,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  modalCharCount: {
+    alignSelf: "flex-end",
+    fontSize: 11.5,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.4)",
+  },
+  modalActionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 6,
+  },
+  modalDeleteBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: "rgba(239, 68, 68, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalCancelBtn: {
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  modalCancelBtnText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 13.5,
+    fontFamily: "Inter_600SemiBold",
+  },
+  modalSaveBtn: {
+    paddingVertical: 11,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  modalSaveBtnText: {
+    color: "#ffffff",
+    fontSize: 13.5,
+    fontFamily: "Inter_700Bold",
+  },
+
+  /* FOTOĞRAF BÜYÜT ROZETİ */
+  photoExpandBadge: {
+    position: "absolute",
+    right: 12,
+    bottom: 12,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  /* LIGHTBOX MODAL */
+  lightboxBackdrop: {
+    flex: 1,
+    backgroundColor: "#000000",
+    justifyContent: "space-between",
+  },
+  lightboxHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 18,
+    paddingBottom: 10,
+    zIndex: 10,
+  },
+  lightboxCloseBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lightboxDatePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
+  lightboxDateText: {
+    fontSize: 12.5,
+    fontFamily: "Inter_600SemiBold",
+  },
+  lightboxMainArea: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  lightboxImg: {
+    width: "100%",
+    height: "100%",
+  },
+  lightboxFooter: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    backgroundColor: "rgba(0,0,0,0.85)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.1)",
+    gap: 6,
+  },
+  lightboxMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  lightboxAuthor: {
+    fontSize: 13.5,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+  },
+  lightboxTime: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.6)",
+  },
+  lightboxTitle: {
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+    color: "#ffffff",
+    letterSpacing: -0.2,
+  },
+  lightboxDesc: {
+    fontSize: 13.5,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.75)",
+    lineHeight: 19,
+  },
 });

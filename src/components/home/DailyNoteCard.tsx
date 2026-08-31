@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontFamily: "PlayfairDisplay_400Regular_Italic",
+    fontFamily: "Inter_700Bold",
     color: "#fff",
     marginBottom: 16,
   },

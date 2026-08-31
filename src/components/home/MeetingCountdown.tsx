@@ -50,7 +50,7 @@ export function MeetingCountdown({ meeting, theme }: CountdownProps) {
         onPress={() => setShowModal(true)}
       >
         <Text style={{ fontSize: 28, marginBottom: 8 }}>🎉</Text>
-        <Text style={{ fontSize: 16, fontFamily: "PlayfairDisplay_400Regular_Italic", color: "#fff" }}>{title}</Text>
+        <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: "#fff" }}>{title}</Text>
         <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.45)", marginTop: 4 }}>
           Buluşma gerçekleşti!
         </Text>
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 16,
-    fontFamily: "PlayfairDisplay_400Regular_Italic",
+    fontFamily: "Inter_700Bold",
     color: "#fff",
   },
   locationText: {
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   },
   unitValue: {
     fontSize: 26,
-    fontFamily: "PlayfairDisplay_400Regular",
+    fontFamily: "Inter_700Bold",
     color: "#fff",
     fontVariant: ["tabular-nums"],
     lineHeight: 28,
