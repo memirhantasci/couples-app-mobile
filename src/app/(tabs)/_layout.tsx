@@ -2,7 +2,7 @@ import { Tabs } from "expo-router";
 import { StyleSheet, View, Text, Platform, TouchableOpacity } from "react-native";
 import { BlurView } from "expo-blur";
 import { 
-  Home, CalendarHeart, Pill, Mail, Settings 
+  Home, CalendarHeart, Pill, Mail, Settings, MapIcon
 } from "lucide-react-native";
 import React from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -13,6 +13,7 @@ const TAB_CONFIG: Record<string, { label: string; Icon: any }> = {
   home: { label: "Ana Sayfa", Icon: Home },
   medicine: { label: "İlaçlar", Icon: Pill },
   calendar: { label: "Takvim", Icon: CalendarHeart },
+  map: { label: "Harita", Icon: MapIcon },
   letters: { label: "Mektuplar", Icon: Mail },
   profile: { label: "Ayarlar", Icon: Settings },
 };
@@ -129,6 +130,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="home" />
       <Tabs.Screen name="medicine" />
       <Tabs.Screen name="calendar" />
+      <Tabs.Screen name="map" />
       <Tabs.Screen name="letters" />
       <Tabs.Screen name="profile" />
 

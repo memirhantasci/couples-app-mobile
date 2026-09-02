@@ -11,9 +11,9 @@ import { decode } from "base64-arraybuffer";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
-  ChevronLeft, Camera, ImagePlus, CheckCircle2, 
+  ChevronLeft, ImagePlus, CheckCircle2, 
   AlertCircle, Calendar as CalendarIcon, Clock, AlignJustify, 
-  UploadCloud, RefreshCw
+  UploadCloud, RefreshCw, MapPin, Navigation
 } from "lucide-react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -24,6 +24,13 @@ import { dayjs, todayString } from "@/lib/date";
 import { getTheme } from "@/lib/theme";
 import { logger } from "@/utils/logger";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
+import { MapPickerModal } from "@/components/MapPickerModal";
+
+interface LocationData {
+  latitude: number;
+  longitude: number;
+  locationName?: string;
+}
 
 export default function AddPhotoScreen() {
   const router = useRouter();
@@ -48,6 +55,11 @@ export default function AddPhotoScreen() {
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+
+  // Konum
+  const [photoLocation, setPhotoLocation] = useState<LocationData | null>(null);
+  const [exifGpsFound, setExifGpsFound] = useState(false);
+  const [showMapPicker, setShowMapPicker] = useState(false);
 
   const handlePickImage = async () => {
     try {
@@ -87,6 +99,22 @@ export default function AddPhotoScreen() {
           setTakenDate(todayString());
           setTakenTime(dayjs().format("HH:mm"));
           setExifStatus("not_found");
+        }
+
+        // EXIF GPS konumu
+        const lat = asset.exif?.GPSLatitude;
+        const lng = asset.exif?.GPSLongitude;
+        const latRef = asset.exif?.GPSLatitudeRef;
+        const lngRef = asset.exif?.GPSLongitudeRef;
+
+        if (lat != null && lng != null) {
+          const finalLat = latRef === 'S' ? -Math.abs(lat) : Math.abs(lat);
+          const finalLng = lngRef === 'W' ? -Math.abs(lng) : Math.abs(lng);
+          setPhotoLocation({ latitude: finalLat, longitude: finalLng });
+          setExifGpsFound(true);
+        } else {
+          setExifGpsFound(false);
+          // Konum bilgisi sıfırlanmasın — kullanıcı daha önce manuel seçmiş olabilir
         }
       }, 400);
 
@@ -153,7 +181,10 @@ export default function AddPhotoScreen() {
         taken_date: takenDate,
         taken_time: takenTime || null,
         exif_found: exifStatus === "found",
-        file_size: localImage.fileSize || 0
+        file_size: localImage.fileSize || 0,
+        latitude: photoLocation?.latitude ?? null,
+        longitude: photoLocation?.longitude ?? null,
+        location_name: photoLocation?.locationName ?? null,
       });
 
       if (dbError) throw dbError;
@@ -201,6 +232,8 @@ export default function AddPhotoScreen() {
       setTakenTime(dayjs().format("HH:mm"));
       setErrors({ photo: false, description: false });
       setUploading(false);
+      setPhotoLocation(null);
+      setExifGpsFound(false);
     }, [])
   );
 
@@ -301,6 +334,49 @@ export default function AddPhotoScreen() {
                   Fotoğrafta çekim zamanı bulunamadı, şimdiki zaman eklendi.
                 </Text>
               </View>
+            )}
+          </View>
+
+          {/* KONUM KARTI */}
+          <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            <Text style={styles.cardHeaderTitle}>Konum Bilgisi</Text>
+
+            {exifGpsFound && photoLocation ? (
+              <View style={styles.exifSuccessBox}>
+                <Navigation size={15} color="#22c55e" />
+                <Text style={[styles.exifSuccessText, { flex: 1 }]}>
+                  {photoLocation.locationName 
+                    ? `GPS: ${photoLocation.locationName}` 
+                    : `GPS: ${photoLocation.latitude.toFixed(4)}, ${photoLocation.longitude.toFixed(4)}`}
+                </Text>
+                <TouchableOpacity onPress={() => setShowMapPicker(true)} style={styles.changeLocBtn}>
+                  <Text style={styles.changeLocBtnText}>Değiştir</Text>
+                </TouchableOpacity>
+              </View>
+            ) : photoLocation ? (
+              <View style={[styles.exifSuccessBox, { backgroundColor: "rgba(59,130,246,0.12)", borderColor: "rgba(59,130,246,0.3)" }]}>
+                <MapPin size={15} color="#60a5fa" />
+                <Text style={[styles.exifSuccessText, { flex: 1, color: "#60a5fa" }]}>
+                  {photoLocation.locationName ?? `${photoLocation.latitude.toFixed(4)}, ${photoLocation.longitude.toFixed(4)}`}
+                </Text>
+                <TouchableOpacity onPress={() => { setPhotoLocation(null); }} style={[styles.changeLocBtn, { borderColor: "rgba(59,130,246,0.4)" }]}>
+                  <Text style={[styles.changeLocBtnText, { color: "#60a5fa" }]}>Kaldır</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[styles.locationPickerBtn, { backgroundColor: theme.unitBg }]}
+                onPress={() => setShowMapPicker(true)}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg, width: 40, height: 40, borderRadius: 20 }]}>
+                  <MapPin size={18} color={theme.accent} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.locationPickerTitle}>Konum Ekle</Text>
+                  <Text style={styles.locationPickerSub}>Haritadan veya adresten seçin (opsiyonel)</Text>
+                </View>
+              </TouchableOpacity>
             )}
           </View>
 
@@ -454,6 +530,17 @@ export default function AddPhotoScreen() {
           featureDescription="Ortak galeriye dilediğiniz kadar fotoğraf yükleyin."
           gender={profile?.gender}
         />
+
+        {/* Harita Konum Seçici */}
+        <MapPickerModal
+          visible={showMapPicker}
+          onClose={() => setShowMapPicker(false)}
+          initialLocation={photoLocation ?? undefined}
+          onSelectLocation={(loc) => {
+            setPhotoLocation(loc);
+            setShowMapPicker(false);
+          }}
+        />
       </View>
     </ScreenBackground>
   );
@@ -523,6 +610,38 @@ const styles = StyleSheet.create({
   boxError: {
     borderColor: "#ff5c77",
     borderWidth: 1.5,
+  },
+  locationPickerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  locationPickerTitle: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+    color: "#ffffff",
+  },
+  locationPickerSub: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.45)",
+    marginTop: 2,
+  },
+  changeLocBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(34,197,94,0.4)",
+  },
+  changeLocBtnText: {
+    fontSize: 11.5,
+    fontFamily: "Inter_600SemiBold",
+    color: "#22c55e",
   },
   pickerPlaceholder: {
     alignItems: "center",
