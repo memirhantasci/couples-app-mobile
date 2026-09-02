@@ -2,19 +2,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, Modal, TouchableOpacity, 
   Dimensions, Platform, ActivityIndicator, Alert,
-  PermissionsAndroid 
+  StatusBar 
 } from 'react-native';
 import MapView, { Marker, Region, UserLocationChangeEvent } from 'react-native-maps';
-import { X, MapPin, Check, LocateFixed } from 'lucide-react-native';
+import { X, MapPin, Check, LocateFixed, Navigation, Sparkles } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-
-// Güvenli Location modülü yüklemesi (Native modül henüz build edilmediyse çökmemesi için)
-let LocationModule: any = null;
-try {
-  LocationModule = require('expo-location');
-} catch (e) {
-  LocationModule = null;
-}
+import { BlurView } from 'expo-blur';
+import { useAuth } from '@/context/AuthContext';
+import { getTheme } from '@/lib/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Location from 'expo-location';
 
 interface LocationData {
   latitude: number;
@@ -29,9 +26,34 @@ interface MapPickerModalProps {
   initialLocation?: LocationData;
 }
 
+// Modern Dark Map Styling (Google Maps JSON)
+const DARK_MAP_STYLE = [
+  { elementType: "geometry", stylers: [{ color: "#16131f" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#16131f" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#958fa3" }] },
+  { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d6aebc" }] },
+  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#d19a9a" }] },
+  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#1c2528" }] },
+  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#729b7d" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#262133" }] },
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#1b1726" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#8d889b" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#422e54" }] },
+  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1b1424" }] },
+  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f3c7a6" }] },
+  { featureType: "transit", elementType: "geometry", stylers: [{ color: "#272138" }] },
+  { featureType: "transit.station", elementType: "labels.text.fill", stylers: [{ color: "#d19a9a" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0e0b17" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#4d586e" }] },
+  { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#0e0b17" }] }
+];
+
 export function MapPickerModal({ visible, onClose, onSelectLocation, initialLocation }: MapPickerModalProps) {
   const mapRef = useRef<MapView | null>(null);
   const userLocationRef = useRef<{ latitude: number; longitude: number } | null>(null);
+  const insets = useSafeAreaInsets();
+  const { profile } = useAuth();
+  const theme = getTheme(profile?.gender);
 
   // Varsayılan konum (İstanbul)
   const defaultLocation: Region = {
@@ -59,50 +81,37 @@ export function MapPickerModal({ visible, onClose, onSelectLocation, initialLoca
   );
   const [isLocating, setIsLocating] = useState(false);
 
-  // Android ve iOS Yerleşik Konum İzni Kontrolü
-  const ensureLocationPermission = async () => {
-    if (Platform.OS === 'android') {
-      try {
-        const hasFine = await PermissionsAndroid.check(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-        );
-        if (hasFine) return true;
-
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-          {
-            title: 'Konum İzni Gerekli',
-            message: 'Buluşma yerinizi kolayca seçebilmeniz için mevcut konumunuza erişim izni vermeniz gerekmektedir.',
-            buttonPositive: 'İzin Ver',
-            buttonNegative: 'İptal',
-          }
-        );
-        return granted === PermissionsAndroid.RESULTS.GRANTED;
-      } catch (err) {
-        return false;
+  // Android ve iOS Doğal Konum İzni Kontrolü
+  const ensureLocationPermission = async (): Promise<boolean> => {
+    try {
+      const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
+      if (existingStatus === 'granted') {
+        return true;
       }
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      return status === 'granted';
+    } catch (err) {
+      console.warn("Location permission error:", err);
+      return false;
     }
-    return true;
   };
 
-  // Adres Çözümleme (Reverse Geocoding): Expo Location veya Web API fallback
+  // Adres Çözümleme (Reverse Geocoding)
   const fetchAddress = async (lat: number, lng: number) => {
     try {
-      if (LocationModule && LocationModule.reverseGeocodeAsync) {
-        const results = await LocationModule.reverseGeocodeAsync({ latitude: lat, longitude: lng });
-        if (results && results.length > 0) {
-          const item = results[0];
-          const parts = [
-            item.district || item.subregion || item.street, 
-            item.city || item.region
-          ].filter(Boolean);
-          const name = parts.length > 0 ? parts.join(', ') : (item.name || 'Seçili Konum');
-          setResolvedAddress(name);
-          return name;
-        }
+      const results = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+      if (results && results.length > 0) {
+        const item = results[0];
+        const parts = [
+          item.district || item.subregion || item.street, 
+          item.city || item.region
+        ].filter(Boolean);
+        const name = parts.length > 0 ? parts.join(', ') : (item.name || 'Seçili Konum');
+        setResolvedAddress(name);
+        return name;
       }
     } catch (e) {
-      // Hata durumunda geç
+      // Hata durumunda web API fallback'e geç
     }
 
     // Web Fallback (Nominatim OpenStreetMap)
@@ -145,78 +154,44 @@ export function MapPickerModal({ visible, onClose, onSelectLocation, initialLoca
     try {
       if (!isAuto) setIsLocating(true);
 
-      // 1. Konum İzni Al
       const hasPerm = await ensureLocationPermission();
       if (!hasPerm) {
         if (!isAuto) {
-          Alert.alert('Konum İzni Verilmedi', 'Mevcut konumunuza gidebilmek için lütfen konum iznine onay verin.');
+          Alert.alert(
+            'Konum İzni Gerekli', 
+            'Buluşma yerinizi mevcut konumunuza göre ayarlayabilmek için lütfen konum iznini onaylayın veya harita üzerinden istediğiniz noktaya dokunun.'
+          );
         }
         setIsLocating(false);
         return;
       }
 
-      // 2. Haritanın hazırda yakaladığı bir konum varsa anında odaklan
       if (userLocationRef.current) {
         await applyNewCoordinate(userLocationRef.current);
         setIsLocating(false);
         return;
       }
 
-      // 3. Standart Geolocation ile cihazdan konum çek
-      if (typeof navigator !== 'undefined' && navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            if (position?.coords) {
-              const newCoord = {
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-              };
-              userLocationRef.current = newCoord;
-              await applyNewCoordinate(newCoord);
-            }
-            setIsLocating(false);
-          },
-          async (error) => {
-            // High accuracy başarısız olursa low accuracy dene
-            navigator.geolocation.getCurrentPosition(
-              async (pos) => {
-                if (pos?.coords) {
-                  const newCoord = {
-                    latitude: pos.coords.latitude,
-                    longitude: pos.coords.longitude,
-                  };
-                  userLocationRef.current = newCoord;
-                  await applyNewCoordinate(newCoord);
-                }
-                setIsLocating(false);
-              },
-              (err) => {
-                if (!isAuto) {
-                  Alert.alert(
-                    'GPS Servisi Kapalı Olabilir', 
-                    'Cihazınızdan GPS konumu henüz alınamadı. Telefonunuzun üst panelinden "Konum / GPS" servisinin açık olduğunu kontrol edin veya haritaya dokunarak istediğiniz yeri seçin.'
-                  );
-                }
-                setIsLocating(false);
-              },
-              { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
-            );
-          },
-          { enableHighAccuracy: true, timeout: 7000, maximumAge: 10000 }
-        );
-        return;
-      }
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
 
-      // 4. Expo Location Fallback
-      if (LocationModule && LocationModule.getCurrentPositionAsync) {
+      if (loc?.coords) {
+        const newCoord = {
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        };
+        userLocationRef.current = newCoord;
+        await applyNewCoordinate(newCoord);
+      }
+    } catch (error) {
+      if (!isAuto) {
         try {
-          const loc = await LocationModule.getCurrentPositionAsync({
-            accuracy: LocationModule.Accuracy?.Balanced || 3,
-          });
-          if (loc?.coords) {
+          const lastKnown = await Location.getLastKnownPositionAsync();
+          if (lastKnown?.coords) {
             const newCoord = {
-              latitude: loc.coords.latitude,
-              longitude: loc.coords.longitude,
+              latitude: lastKnown.coords.latitude,
+              longitude: lastKnown.coords.longitude,
             };
             userLocationRef.current = newCoord;
             await applyNewCoordinate(newCoord);
@@ -224,21 +199,17 @@ export function MapPickerModal({ visible, onClose, onSelectLocation, initialLoca
             return;
           }
         } catch (e) {}
-      }
 
-      if (!isAuto) {
-        Alert.alert('GPS Sinyali Bekleniyor', 'Lütfen cihazınızın Konum/GPS özelliğinin açık olduğundan emin olun.');
-      }
-    } catch (error) {
-      if (!isAuto) {
-        Alert.alert('Hata', 'Konum bilgisi alınırken bir sorun oluştu.');
+        Alert.alert(
+          'Konum Alınamadı', 
+          'Cihazınızın Konum/GPS özelliğinin açık olduğundan emin olun veya doğrudan harita üzerine dokunarak istediğiniz yeri seçin.'
+        );
       }
     } finally {
       setIsLocating(false);
     }
   };
 
-  // Modal açıldığında kontrol
   useEffect(() => {
     if (visible) {
       if (initialLocation) {
@@ -258,53 +229,75 @@ export function MapPickerModal({ visible, onClose, onSelectLocation, initialLoca
           mapRef.current?.animateToRegion(initRegion, 500);
         }, 200);
       } else {
-        // İzin kontrolünü arka planda başlat
-        ensureLocationPermission().then((granted) => {
-          if (granted && userLocationRef.current) {
-            applyNewCoordinate(userLocationRef.current);
-          }
-        });
+        // Otomatik olarak kullanıcının anlık konumunu bul ve haritayı oraya odakla
+        moveToUserLocation(true);
       }
     }
   }, [visible]);
 
-  // Haritaya tıklandığında
   const handleMapPress = async (e: any) => {
     const coord = e.nativeEvent.coordinate;
+    if (!coord) return;
     setSelectedCoordinate(coord);
     await fetchAddress(coord.latitude, coord.longitude);
   };
 
+  const currentCoord = selectedCoordinate || (region ? { latitude: region.latitude, longitude: region.longitude } : null);
+
   const handleSelect = () => {
-    if (selectedCoordinate) {
+    if (currentCoord) {
       onSelectLocation({
-        latitude: selectedCoordinate.latitude,
-        longitude: selectedCoordinate.longitude,
+        latitude: currentCoord.latitude,
+        longitude: currentCoord.longitude,
         locationName: resolvedAddress || 'Seçili Konum',
       });
       onClose();
     }
   };
 
+  const isMale = profile?.gender === "male";
+  const activeColor = isMale ? "#4D9CFF" : "#FF4D6D";
+  const activeGradient = isMale 
+    ? (["#4D9CFF", "#1B6FD8", "#0A4DB8"] as const) 
+    : (["#FF3366", "#E8002D", "#C0006B"] as const);
+
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent>
       <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <X color="#fff" size={24} />
+        <StatusBar barStyle="light-content" />
+
+        {/* ─── Modern Floating Header ─── */}
+        <View style={[styles.headerFloating, { paddingTop: insets.top + 10 }]}>
+          <BlurView tint="dark" intensity={70} style={StyleSheet.absoluteFill} />
+          
+          <TouchableOpacity 
+            onPress={onClose} 
+            style={styles.closeBtn}
+            activeOpacity={0.8}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <X color="#FFFFFF" size={20} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Buluşma Noktası Seç</Text>
-          {selectedCoordinate ? (
-            <TouchableOpacity onPress={handleSelect} style={styles.confirmBtn}>
-              <Check color="#22c55e" size={24} />
+
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Buluşma Noktası</Text>
+            <Text style={styles.headerSubtitle}>Haritadan konumu seçin</Text>
+          </View>
+
+          {currentCoord ? (
+            <TouchableOpacity 
+              onPress={handleSelect} 
+              style={[styles.confirmQuickBtn, { backgroundColor: `${activeColor}25`, borderColor: activeColor }]}
+              activeOpacity={0.8}
+            >
+              <Check color={activeColor} size={18} strokeWidth={2.6} />
             </TouchableOpacity>
           ) : (
-            <View style={{ width: 40 }} />
+            <View style={{ width: 38 }} />
           )}
         </View>
 
-        {/* Harita */}
+        {/* ─── Map View ─── */}
         <View style={styles.mapContainer}>
           <MapView
             ref={mapRef}
@@ -312,7 +305,8 @@ export function MapPickerModal({ visible, onClose, onSelectLocation, initialLoca
             initialRegion={region}
             onPress={handleMapPress}
             showsUserLocation={true}
-            showsMyLocationButton={true}
+            showsMyLocationButton={false}
+            customMapStyle={DARK_MAP_STYLE}
             onUserLocationChange={(event: UserLocationChangeEvent) => {
               const c = event.nativeEvent?.coordinate;
               if (c && c.latitude && c.longitude) {
@@ -323,62 +317,86 @@ export function MapPickerModal({ visible, onClose, onSelectLocation, initialLoca
               }
             }}
           >
-            {selectedCoordinate && (
+            {currentCoord && (
               <Marker
-                coordinate={selectedCoordinate}
+                coordinate={currentCoord}
                 title="Buluşma Noktası"
                 description={resolvedAddress || "Buluşacağınız yeri seçtiniz."}
+                anchor={{ x: 0.5, y: 1 }}
               >
+                {/* Modern Glowing Pulse Marker */}
                 <View style={styles.markerContainer}>
-                  <MapPin color="#ff4081" size={36} fill="#ff4081" />
+                  <View style={[styles.markerAura, { backgroundColor: `${activeColor}35` }]} />
+                  <View style={[styles.markerBadge, { backgroundColor: activeColor }]}>
+                    <MapPin color="#FFFFFF" size={20} strokeWidth={2.2} />
+                  </View>
+                  <View style={[styles.markerStem, { borderTopColor: activeColor }]} />
                 </View>
               </Marker>
             )}
           </MapView>
 
-          {/* Harita Üzeri İpucu */}
+          {/* ─── Top Instruction Banner ─── */}
           {!selectedCoordinate && (
-            <View style={styles.instructionOverlay}>
+            <View style={[styles.instructionBadge, { top: insets.top + 76 }]}>
+              <BlurView tint="dark" intensity={80} style={StyleSheet.absoluteFill} />
+              <Navigation size={14} color={activeColor} style={{ transform: [{ rotate: "45deg" }] }} />
               <Text style={styles.instructionText}>
-                Haritaya dokunarak veya GPS ile buluşma noktasını seçin
+                Haritaya dokunarak buluşma yerini belirleyin
               </Text>
             </View>
           )}
 
-          {/* GPS / Mevcut Konum Butonu */}
+          {/* ─── Floating GPS Button (Anlık Konum) ─── */}
           <TouchableOpacity 
-            style={styles.gpsBtn} 
+            style={[styles.gpsFloatingBtn, { bottom: 200 }]} 
             onPress={() => moveToUserLocation(false)}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
             disabled={isLocating}
           >
+            <BlurView tint="dark" intensity={85} style={StyleSheet.absoluteFill} />
             {isLocating ? (
-              <ActivityIndicator color="#ffd700" size="small" />
+              <ActivityIndicator color={activeColor} size="small" />
             ) : (
-              <LocateFixed color="#ffffff" size={22} />
+              <LocateFixed color={activeColor} size={22} strokeWidth={2.4} />
             )}
           </TouchableOpacity>
         </View>
 
-        {/* Alt Seçim Çubuğu */}
-        {selectedCoordinate && (
-          <View style={styles.footer}>
-            {resolvedAddress ? (
-              <View style={styles.selectedAddressBadge}>
-                <MapPin size={15} color="#ffd700" />
-                <Text style={styles.selectedAddressText} numberOfLines={1}>
-                  {resolvedAddress}
+        {/* ─── Modern Floating Bottom Sheet (Konum Seç Kartı) ─── */}
+        {currentCoord && (
+          <View style={[styles.footerCard, { paddingBottom: Math.max(insets.bottom, 18) }]}>
+            <BlurView tint="dark" intensity={95} style={StyleSheet.absoluteFill} />
+
+            {/* Address Details Card */}
+            <View style={styles.addressCard}>
+              <View style={[styles.addressIconBox, { backgroundColor: `${activeColor}20` }]}>
+                <MapPin size={20} color={activeColor} strokeWidth={2.4} />
+              </View>
+              <View style={styles.addressTextBox}>
+                <Text style={styles.addressHeaderLabel}>SEÇİLEN KONUM</Text>
+                <Text style={styles.addressTitle} numberOfLines={2}>
+                  {resolvedAddress || "Harita Üzerindeki Nokta"}
+                </Text>
+                <Text style={styles.addressCoords}>
+                  {currentCoord.latitude.toFixed(5)}, {currentCoord.longitude.toFixed(5)}
                 </Text>
               </View>
-            ) : null}
+            </View>
 
-            <TouchableOpacity style={styles.submitBtn} onPress={handleSelect} activeOpacity={0.88}>
+            {/* Primary Action Button */}
+            <TouchableOpacity 
+              style={styles.submitBtn} 
+              onPress={handleSelect} 
+              activeOpacity={0.88}
+            >
               <LinearGradient 
-                colors={["#b8860b", "#ffd700", "#b8860b"]} 
+                colors={activeGradient} 
                 start={{ x: 0, y: 0 }} 
                 end={{ x: 1, y: 0 }} 
-                style={styles.submitBtnGradient}
+                style={styles.submitGradient}
               >
+                <Check color="#FFFFFF" size={20} strokeWidth={2.5} />
                 <Text style={styles.submitBtnText}>Bu Konumu Seç</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -392,33 +410,55 @@ export function MapPickerModal({ visible, onClose, onSelectLocation, initialLoca
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1c1c1e',
+    backgroundColor: '#0A0812',
   },
-  header: {
+  headerFloating: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingHorizontal: 20,
-    paddingBottom: 15,
-    backgroundColor: '#1c1c1e',
-    zIndex: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
-  },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
-    fontFamily: 'Inter_700Bold',
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    overflow: 'hidden',
   },
   closeBtn: {
-    padding: 8,
-    marginLeft: -8,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  confirmBtn: {
-    padding: 8,
-    marginRight: -8,
+  headerCenter: {
+    alignItems: 'center',
+  },
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: -0.2,
+  },
+  headerSubtitle: {
+    color: 'rgba(255, 255, 255, 0.45)',
+    fontSize: 11.5,
+    fontFamily: 'Inter_500Medium',
+    marginTop: 1,
+  },
+  confirmQuickBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1.2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   mapContainer: {
     flex: 1,
@@ -432,87 +472,157 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  instructionOverlay: {
+  markerAura: {
     position: 'absolute',
-    top: 20,
-    alignSelf: 'center',
-    backgroundColor: 'rgba(15,15,20,0.85)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    top: -6,
+  },
+  markerBadge: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    maxWidth: '90%',
-  },
-  instructionText: {
-    color: '#fff',
-    fontSize: 13.5,
-    fontFamily: 'Inter_500Medium',
-    textAlign: 'center',
-  },
-  gpsBtn: {
-    position: 'absolute',
-    right: 18,
-    bottom: 24,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(28,28,30,0.92)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 6,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
-  footer: {
+  markerStem: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    alignSelf: 'center',
+    marginTop: -1,
+  },
+  instructionBadge: {
+    position: 'absolute',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    maxWidth: '88%',
+  },
+  instructionText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontFamily: 'Inter_500Medium',
+  },
+  gpsFloatingBtn: {
+    position: 'absolute',
+    right: 18,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 1.2,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  footerCard: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#1c1c1e',
-    padding: 16,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 20,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.1)',
-    gap: 12,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderTopWidth: 1.2,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    padding: 18,
+    gap: 14,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 20,
   },
-  selectedAddressBadge: {
+  addressCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
+    gap: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.09)',
+    borderRadius: 18,
+    padding: 14,
   },
-  selectedAddressText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontFamily: 'Inter_600SemiBold',
+  addressIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addressTextBox: {
     flex: 1,
   },
-  submitBtn: {
-    shadowColor: "#ffd700",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
+  addressHeaderLabel: {
+    color: 'rgba(255, 255, 255, 0.45)',
+    fontSize: 10.5,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: 0.6,
+    marginBottom: 2,
   },
-  submitBtnGradient: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 15,
-    borderRadius: 14,
+  addressTitle: {
+    color: '#FFFFFF',
+    fontSize: 14.5,
+    fontFamily: 'Inter_600SemiBold',
+    lineHeight: 19,
+  },
+  addressCoords: {
+    color: 'rgba(255, 255, 255, 0.35)',
+    fontSize: 11,
+    fontFamily: 'Inter_500Medium',
+    marginTop: 2,
+  },
+  submitBtn: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  submitGradient: {
+    height: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 20,
   },
   submitBtnText: {
-    color: "#1a1114",
+    color: '#FFFFFF',
     fontSize: 15.5,
-    fontFamily: "Inter_700Bold",
-  }
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: -0.2,
+  },
 });

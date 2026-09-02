@@ -505,7 +505,7 @@ export default function CalendarScreen() {
                     {selectedDayMoods.map((m: any, i: number) => {
                       const authorName = getAuthorName(m.user_id);
                       return (
-                        <View key={i} style={[styles.moodCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                        <View key={m.id || `mood-${i}`} style={[styles.moodCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                           <Text style={{ fontSize: 26 }}>{m.mood_type}</Text>
                           <Text style={styles.moodAuthor}>{authorName}</Text>
                         </View>

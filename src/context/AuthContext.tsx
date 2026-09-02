@@ -5,6 +5,9 @@ import { RevenueCatService } from "@/lib/revenuecat";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { decrypt } from "@/utils/crypto";
 import { setAdLoggingOut } from "@/hooks/useInterstitialAd";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const CACHED_PROFILE_KEY = "@couples_app_cached_profile";
 
 export interface CoupleProfile {
   coupleId: number | null;   // integer — DB'de INTEGER tipinde
@@ -36,6 +39,24 @@ const AuthContext = createContext<AuthContextValue>({
 
 export function useAuth() {
   return useContext(AuthContext);
+}
+
+async function saveCachedProfile(p: CoupleProfile) {
+  try {
+    await AsyncStorage.setItem(CACHED_PROFILE_KEY, JSON.stringify(p));
+  } catch (e) {
+    // silent catch
+  }
+}
+
+async function getCachedProfile(): Promise<CoupleProfile | null> {
+  try {
+    const raw = await AsyncStorage.getItem(CACHED_PROFILE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
 }
 
 async function fetchProfile(userId: string): Promise<CoupleProfile> {
@@ -91,8 +112,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<CoupleProfile | null>(null);
 
   useEffect(() => {
-    RevenueCatService.initialize();
+    // Background initialization
+    RevenueCatService.initialize().catch(() => {});
 
+    // 1. Load cached profile immediately to allow instant rendering without splash freeze
+    getCachedProfile().then((cached) => {
+      if (cached) {
+        setProfile(cached);
+        setIsLoading(false);
+      }
+    });
+
+    // 2. Resolve Supabase session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (!session) setIsLoading(false);
@@ -102,6 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       if (!session) {
         setProfile(null);
+        AsyncStorage.removeItem(CACHED_PROFILE_KEY).catch(() => {});
         setIsLoading(false);
         RevenueCatService.logOut();
       } else {
@@ -114,32 +146,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (session?.user?.id) {
-      setIsLoading(true);
+      // If we don't have a cached profile loaded yet, keep loading active until initial fetch
+      if (!profile) {
+        setIsLoading(true);
+      }
+
       fetchProfile(session.user.id)
-        .then(async (p) => {
+        .then((p) => {
           setProfile(p);
-          // Login to RevenueCat to sync premium status
-          await RevenueCatService.logIn(session.user.id);
-          // If the login synced something, we might want to refresh profile, but let's do it seamlessly:
-          // In reality, set_premium_status will trigger a realtime change if they use it, but for now we just log in.
+          saveCachedProfile(p);
           setIsLoading(false);
+
+          // Non-blocking background syncs
+          RevenueCatService.logIn(session.user.id).catch(() => {});
+          registerForPushNotifications(session.user.id).catch(() => {});
         })
         .catch((err) => {
           console.error("fetchProfile error:", err);
           setIsLoading(false);
         });
-      
-      registerForPushNotifications(session.user.id).catch(() => {});
     }
   }, [session?.user?.id]);
 
   const refreshProfile = useCallback(async () => {
     if (!session?.user?.id) {
       setProfile(null);
+      await AsyncStorage.removeItem(CACHED_PROFILE_KEY).catch(() => {});
       return;
     }
     const p = await fetchProfile(session.user.id);
     setProfile(p);
+    saveCachedProfile(p);
   }, [session]);
 
   // Realtime listener for database changes (e.g. premium status, token balance)
@@ -173,6 +210,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     setAdLoggingOut(true);
+    await AsyncStorage.removeItem(CACHED_PROFILE_KEY).catch(() => {});
     await supabase.auth.signOut();
   }, []);
 

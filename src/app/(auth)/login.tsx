@@ -9,6 +9,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Modal,
+  StyleSheet,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -19,7 +20,11 @@ import { useAuth } from "@/context/AuthContext";
 import { encrypt, decrypt, deterministicEncrypt } from "@/utils/crypto";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { logger } from "@/utils/logger";
-import { Eye, EyeOff, Heart, Link } from "lucide-react-native";
+import { 
+  Eye, EyeOff, Heart, Link, 
+  AtSign, Lock, User, Mail, 
+  AlertCircle, CheckCircle2, ArrowRight 
+} from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -332,13 +337,13 @@ export default function LoginScreen() {
         await AsyncStorage.setItem("device_id", deviceId);
       }
 
-      await supabase.from("authorized_devices").upsert({
+      await supabase.from("device_authorizations").upsert({
         user_id: data.user.id,
         device_id: deviceId,
+        is_authorized: true,
       });
 
-      setPendingUserId(data.user.id);
-      setShowNotifModal(true);
+      await AsyncStorage.setItem("last_user_id", data.user.id);
     } catch (e: any) {
       setErrorMsg("Beklenmedik bir hata oluştu.");
     } finally {
@@ -348,382 +353,593 @@ export default function LoginScreen() {
 
   // ─── Gender & button accent ───────────────────────────────────────────────
   const isMale = regGender === "male";
-  const registerAccent = isMale ? "#4D9CFF" : "#E8002D";
-  const registerAccentGlow = isMale ? "#4D9CFF" : "#C0006B";
-
-  // ─── Shared input style ──────────────────────────────────────────────────
-  const inputStyle = {
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    borderRadius: 14,
-    paddingHorizontal: 18,
-    paddingVertical: 15,
-    color: "#FFFFFF",
-    fontSize: 15,
-    marginBottom: 14,
-  } as const;
-
-  const labelStyle = {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 13,
-    marginBottom: 6,
-    marginLeft: 2,
-  } as const;
+  const activeAccent = mode === "register" && isMale ? "#4D9CFF" : "#FF4D6D";
+  const activeGradient = mode === "register" && isMale
+    ? (["#4D9CFF", "#1B6FD8"] as const)
+    : (["#FF3366", "#E8002D", "#C0006B"] as const);
 
   return (
-    <>
-      <LinearGradient
-        colors={["#0A0A10", "#0D0D14", "#0A0A10"]}
+    <LinearGradient
+      colors={["#080811", "#0F0B18", "#080811"]}
+      style={styles.container}
+    >
+      {/* Ambient Glows */}
+      <View style={styles.topAmbientGlow} pointerEvents="none" />
+      <View 
+        style={[
+          styles.bottomAmbientGlow, 
+          { backgroundColor: mode === "register" && isMale ? "rgba(77, 156, 255, 0.12)" : "rgba(255, 77, 109, 0.12)" }
+        ]} 
+        pointerEvents="none" 
+      />
+
+      <KeyboardAvoidingView
         style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingTop: insets.top + 32,
+              paddingBottom: insets.bottom + 40,
+            }
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <ScrollView
-            contentContainerStyle={{
-              flexGrow: 1,
-              paddingHorizontal: 24,
-              paddingTop: insets.top + 40,
-              paddingBottom: 60,
-            }}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {/* ─── Header ─── */}
-            <View style={{ alignItems: "center", marginBottom: 36 }}>
-              {/* Heart Icon */}
-              <View
-                style={{
-                  width: 60,
-                  height: 60,
-                  borderRadius: 30,
-                  backgroundColor: "rgba(255,255,255,0.07)",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 16,
-                }}
+          {/* ─── Modern Hero Header ─── */}
+          <View style={styles.heroSection}>
+            <View style={[styles.heroIconWrapper, { borderColor: `${activeAccent}40` }]}>
+              <LinearGradient
+                colors={[`${activeAccent}33`, `${activeAccent}10`]}
+                style={styles.heroIconGradient}
               >
                 <Heart
-                  color="#E8002D"
-                  size={28}
-                  fill="#E8002D"
+                  color={activeAccent}
+                  size={30}
+                  fill={activeAccent}
                 />
+              </LinearGradient>
+            </View>
+
+            <Text style={styles.heroTitle}>Couples App</Text>
+            <Text style={styles.heroSubtitle}>
+              {mode === "login"
+                ? "Aşkınızı belgelemenin ve büyütmenin en romantik yolu."
+                : "Birlikte unutulmaz anılar biriktirmek için ilk adımı atın."}
+            </Text>
+          </View>
+
+          {/* ─── Modern Segmented Toggle ─── */}
+          <View style={styles.segmentContainer}>
+            <TouchableOpacity
+              onPress={() => {
+                setMode("login");
+                clearErrors();
+              }}
+              activeOpacity={0.8}
+              style={[
+                styles.segmentBtn,
+                mode === "login" && styles.segmentBtnActive
+              ]}
+            >
+              <Text
+                style={[
+                  styles.segmentBtnText,
+                  mode === "login" && styles.segmentBtnTextActive
+                ]}
+              >
+                Giriş Yap
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                setMode("register");
+                clearErrors();
+              }}
+              activeOpacity={0.8}
+              style={[
+                styles.segmentBtn,
+                mode === "register" && styles.segmentBtnActive
+              ]}
+            >
+              <Text
+                style={[
+                  styles.segmentBtnText,
+                  mode === "register" && styles.segmentBtnTextActive
+                ]}
+              >
+                Kayıt Ol
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* ─── LOGIN FORM ─── */}
+          {mode === "login" && (
+            <View style={styles.formContainer}>
+              {/* E-Posta / Kullanıcı Adı */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.fieldLabel}>E-POSTA VEYA KULLANICI ADI</Text>
+                <View style={styles.inputBox}>
+                  <View style={styles.inputIconBox}>
+                    <AtSign size={18} color="rgba(255,255,255,0.45)" />
+                  </View>
+                  <TextInput
+                    value={loginUsername}
+                    onChangeText={setLoginUsername}
+                    placeholder="ornek@gmail.com veya kullanıcı adı"
+                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                    selectionColor={activeAccent}
+                    style={styles.textInputField}
+                  />
+                </View>
               </View>
 
-              {/* App Title */}
-              <Text
-                style={{
-                  color: "#FFFFFF",
-                  fontSize: 28,
-                  fontFamily: "Inter_700Bold",
-                  letterSpacing: -0.5,
-                  marginBottom: 8,
-                }}
-              >
-                Couples App
-              </Text>
-
-              {/* Subtitle — changes per mode */}
-              <Text
-                style={{
-                  color: "rgba(255,255,255,0.45)",
-                  fontSize: 14,
-                  textAlign: "center",
-                  lineHeight: 20,
-                  paddingHorizontal: 16,
-                }}
-              >
-                {mode === "login"
-                  ? "Aşkınızı belgelemenin ve büyütmenin en romantik yolu."
-                  : "Kendi dünyanızı kurmaya başlayın"}
-              </Text>
-            </View>
-
-            {/* ─── Tab Toggle ─── */}
-            <View
-              style={{
-                flexDirection: "row",
-                backgroundColor: "rgba(255,255,255,0.06)",
-                borderRadius: 14,
-                padding: 4,
-                marginBottom: 28,
-              }}
-            >
-              {(["login", "register"] as Mode[]).map((m) => (
-                <TouchableOpacity
-                  key={m}
-                  onPress={() => {
-                    setMode(m);
-                    clearErrors();
-                  }}
-                  activeOpacity={0.8}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 13,
-                    borderRadius: 11,
-                    alignItems: "center",
-                    backgroundColor:
-                      mode === m ? "#FFFFFF" : "transparent",
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: mode === m ? "#0A0A10" : "rgba(255,255,255,0.45)",
-                      fontWeight: "700",
-                      fontSize: 14,
-                    }}
-                  >
-                    {m === "login" ? "Giriş Yap" : "Kayıt Ol"}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* ─── LOGIN FORM ─── */}
-            {mode === "login" && (
-              <>
-                <Text style={labelStyle}>E-Posta / Kullanıcı Adı</Text>
-                <TextInput
-                  value={loginUsername}
-                  onChangeText={setLoginUsername}
-                  placeholder="ornek@gmail.com"
-                  placeholderTextColor="rgba(255,255,255,0.25)"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="email-address"
-                  style={inputStyle}
-                />
-
-                <Text style={labelStyle}>Şifre</Text>
-                <View style={{ position: "relative", marginBottom: 10 }}>
+              {/* Şifre */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.fieldLabel}>ŞİFRE</Text>
+                <View style={styles.inputBox}>
+                  <View style={styles.inputIconBox}>
+                    <Lock size={18} color="rgba(255,255,255,0.45)" />
+                  </View>
                   <TextInput
                     value={loginPassword}
                     onChangeText={setLoginPassword}
                     placeholder="••••••••"
                     placeholderTextColor="rgba(255,255,255,0.25)"
                     secureTextEntry={!showLoginPass}
-                    style={[inputStyle, { marginBottom: 0, paddingRight: 50 }]}
+                    selectionColor={activeAccent}
+                    style={styles.textInputField}
                   />
                   <TouchableOpacity
                     onPress={() => setShowLoginPass(!showLoginPass)}
-                    style={{
-                      position: "absolute",
-                      right: 16,
-                      top: 0,
-                      bottom: 0,
-                      justifyContent: "center",
-                    }}
+                    style={styles.eyeBtn}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    {showLoginPass
-                      ? <EyeOff color="rgba(255,255,255,0.4)" size={20} />
-                      : <Eye color="rgba(255,255,255,0.4)" size={20} />
-                    }
+                    {showLoginPass ? (
+                      <EyeOff color="rgba(255,255,255,0.45)" size={19} />
+                    ) : (
+                      <Eye color="rgba(255,255,255,0.45)" size={19} />
+                    )}
                   </TouchableOpacity>
                 </View>
+              </View>
 
-                <TouchableOpacity
-                  onPress={() => router.push("/(auth)/forgot-password")}
-                  style={{ alignSelf: "flex-end", marginBottom: 24, marginTop: 4 }}
-                >
-                  <Text style={{ color: "#FF4D6D", fontSize: 13, fontWeight: "600" }}>
-                    Şifremi Unuttum?
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
+              {/* Şifremi Unuttum */}
+              <TouchableOpacity
+                onPress={() => router.push("/(auth)/forgot-password")}
+                style={styles.forgotBtn}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.forgotText, { color: activeAccent }]}>
+                  Şifremi Unuttum?
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-            {/* ─── REGISTER FORM ─── */}
-            {mode === "register" && (
-              <>
-                <Text style={labelStyle}>Ad Soyad</Text>
-                <TextInput
-                  value={regDisplayName}
-                  onChangeText={setRegDisplayName}
-                  placeholder="Örn. Selin Yılmaz"
-                  placeholderTextColor="rgba(255,255,255,0.25)"
-                  style={inputStyle}
-                />
+          {/* ─── REGISTER FORM ─── */}
+          {mode === "register" && (
+            <View style={styles.formContainer}>
+              {/* Ad Soyad */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.fieldLabel}>AD SOYAD</Text>
+                <View style={styles.inputBox}>
+                  <View style={styles.inputIconBox}>
+                    <User size={18} color="rgba(255,255,255,0.45)" />
+                  </View>
+                  <TextInput
+                    value={regDisplayName}
+                    onChangeText={setRegDisplayName}
+                    placeholder="Örn. Selin Yılmaz"
+                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    selectionColor={activeAccent}
+                    style={styles.textInputField}
+                  />
+                </View>
+              </View>
 
-                <Text style={labelStyle}>Kullanıcı Adı</Text>
-                <TextInput
-                  value={regUsername}
-                  onChangeText={setRegUsername}
-                  placeholder="seliny"
-                  placeholderTextColor="rgba(255,255,255,0.25)"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  style={inputStyle}
-                />
+              {/* Kullanıcı Adı */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.fieldLabel}>KULLANICI ADI</Text>
+                <View style={styles.inputBox}>
+                  <View style={styles.inputIconBox}>
+                    <AtSign size={18} color="rgba(255,255,255,0.45)" />
+                  </View>
+                  <TextInput
+                    value={regUsername}
+                    onChangeText={setRegUsername}
+                    placeholder="seliny"
+                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    selectionColor={activeAccent}
+                    style={styles.textInputField}
+                  />
+                </View>
+              </View>
 
-                <Text style={labelStyle}>E-Posta</Text>
-                <TextInput
-                  value={regEmail}
-                  onChangeText={setRegEmail}
-                  placeholder="selin@gmail.com"
-                  placeholderTextColor="rgba(255,255,255,0.25)"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  style={inputStyle}
-                />
+              {/* E-Posta */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.fieldLabel}>E-POSTA</Text>
+                <View style={styles.inputBox}>
+                  <View style={styles.inputIconBox}>
+                    <Mail size={18} color="rgba(255,255,255,0.45)" />
+                  </View>
+                  <TextInput
+                    value={regEmail}
+                    onChangeText={setRegEmail}
+                    placeholder="selin@gmail.com"
+                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    selectionColor={activeAccent}
+                    style={styles.textInputField}
+                  />
+                </View>
+              </View>
 
-                <Text style={labelStyle}>Şifre</Text>
-                <View style={{ position: "relative", marginBottom: 14 }}>
+              {/* Şifre */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.fieldLabel}>ŞİFRE</Text>
+                <View style={styles.inputBox}>
+                  <View style={styles.inputIconBox}>
+                    <Lock size={18} color="rgba(255,255,255,0.45)" />
+                  </View>
                   <TextInput
                     value={regPassword}
                     onChangeText={setRegPassword}
-                    placeholder="••••••••"
+                    placeholder="En az 6 karakter"
                     placeholderTextColor="rgba(255,255,255,0.25)"
                     secureTextEntry={!showRegPass}
-                    style={[inputStyle, { marginBottom: 0, paddingRight: 50 }]}
+                    selectionColor={activeAccent}
+                    style={styles.textInputField}
                   />
                   <TouchableOpacity
                     onPress={() => setShowRegPass(!showRegPass)}
-                    style={{
-                      position: "absolute",
-                      right: 16,
-                      top: 0,
-                      bottom: 0,
-                      justifyContent: "center",
-                    }}
+                    style={styles.eyeBtn}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    {showRegPass
-                      ? <EyeOff color="rgba(255,255,255,0.4)" size={20} />
-                      : <Eye color="rgba(255,255,255,0.4)" size={20} />
-                    }
+                    {showRegPass ? (
+                      <EyeOff color="rgba(255,255,255,0.45)" size={19} />
+                    ) : (
+                      <Eye color="rgba(255,255,255,0.45)" size={19} />
+                    )}
                   </TouchableOpacity>
                 </View>
+              </View>
 
-                {/* Gender */}
-                <Text style={labelStyle}>Cinsiyetiniz</Text>
-                <View style={{ flexDirection: "row", gap: 12, marginBottom: 14 }}>
+              {/* Cinsiyet Seçimi */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.fieldLabel}>CİNSİYETİNİZ</Text>
+                <View style={styles.genderRow}>
                   {([
-                    { val: "female" as const, label: "Kadın ♀", accent: "#E8002D", bg: "rgba(232,0,45,0.18)" },
-                    { val: "male" as const, label: "Erkek ♂", accent: "#4D9CFF", bg: "rgba(77,156,255,0.18)" },
-                  ]).map(({ val, label, accent, bg }) => (
-                    <TouchableOpacity
-                      key={val}
-                      onPress={() => setRegGender(val)}
-                      activeOpacity={0.8}
-                      style={{
-                        flex: 1,
-                        paddingVertical: 14,
-                        borderRadius: 14,
-                        borderWidth: 1.5,
-                        borderColor: regGender === val ? accent : "rgba(255,255,255,0.1)",
-                        backgroundColor: regGender === val ? bg : "rgba(255,255,255,0.04)",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: regGender === val ? accent : "rgba(255,255,255,0.5)",
-                          fontWeight: "700",
-                          fontSize: 14,
-                        }}
+                    { val: "female" as const, label: "Kadın ♀", color: "#FF4D6D", bg: "rgba(255, 77, 109, 0.14)" },
+                    { val: "male" as const, label: "Erkek ♂", color: "#4D9CFF", bg: "rgba(77, 156, 255, 0.14)" },
+                  ]).map(({ val, label, color, bg }) => {
+                    const isSelected = regGender === val;
+                    return (
+                      <TouchableOpacity
+                        key={val}
+                        onPress={() => setRegGender(val)}
+                        activeOpacity={0.8}
+                        style={[
+                          styles.genderCard,
+                          isSelected && {
+                            borderColor: color,
+                            backgroundColor: bg,
+                            borderWidth: 1.5,
+                          }
+                        ]}
                       >
-                        {label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        <Text
+                          style={[
+                            styles.genderLabel,
+                            isSelected && { color: "#FFFFFF", fontFamily: "Inter_700Bold" }
+                          ]}
+                        >
+                          {label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
+              </View>
 
-                {/* Pairing Code */}
-                <Text style={labelStyle}>Eşleşme Kodu (İsteğe Bağlı)</Text>
-                <View style={{ position: "relative", marginBottom: 20 }}>
+              {/* Eşleşme Kodu */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.fieldLabel}>EŞLEŞME KODU (İSTEĞE BAĞLI)</Text>
+                <View style={styles.inputBox}>
+                  <View style={styles.inputIconBox}>
+                    <Link size={18} color="rgba(255,255,255,0.45)" />
+                  </View>
                   <TextInput
                     value={regPairingCode}
                     onChangeText={setRegPairingCode}
-                    placeholder="X7Y9Z2"
+                    placeholder="Örn. X7Y9Z2"
                     placeholderTextColor="rgba(255,255,255,0.25)"
                     autoCapitalize="characters"
-                    style={[inputStyle, { marginBottom: 0, paddingRight: 50 }]}
+                    selectionColor={activeAccent}
+                    style={styles.textInputField}
                   />
-                  <View
-                    style={{
-                      position: "absolute",
-                      right: 16,
-                      top: 0,
-                      bottom: 0,
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Link color="rgba(255,255,255,0.3)" size={20} />
-                  </View>
                 </View>
-              </>
-            )}
-
-            {/* ─── Error Banner ─── */}
-            {!!errorMsg && (
-              <View
-                style={{
-                  backgroundColor: "rgba(232,0,45,0.1)",
-                  borderWidth: 1,
-                  borderColor: "rgba(232,0,45,0.3)",
-                  borderRadius: 12,
-                  padding: 14,
-                  marginBottom: 16,
-                }}
-              >
-                <Text style={{ color: "#FF4D6A", fontSize: 14, textAlign: "center" }}>
-                  {errorMsg}
-                </Text>
               </View>
-            )}
+            </View>
+          )}
 
-            {/* ─── Success Banner ─── */}
-            {!!successMsg && (
-              <View
-                style={{
-                  backgroundColor: "rgba(0,200,100,0.1)",
-                  borderWidth: 1,
-                  borderColor: "rgba(0,200,100,0.3)",
-                  borderRadius: 12,
-                  padding: 14,
-                  marginBottom: 16,
-                }}
-              >
-                <Text style={{ color: "#00C864", fontSize: 14, textAlign: "center" }}>
-                  {successMsg}
-                </Text>
-              </View>
-            )}
+          {/* ─── Hata Bildirimi ─── */}
+          {!!errorMsg && (
+            <View style={styles.errorBanner}>
+              <AlertCircle size={18} color="#FF4D6A" />
+              <Text style={styles.errorBannerText}>{errorMsg}</Text>
+            </View>
+          )}
 
-            {/* ─── CTA Button ─── */}
-            <TouchableOpacity
-              onPress={mode === "login" ? handleLogin : handleRegister}
-              disabled={isLoading}
-              activeOpacity={0.85}
-              style={{ borderRadius: 30, overflow: "hidden", opacity: isLoading ? 0.7 : 1 }}
+          {/* ─── Başarı Bildirimi ─── */}
+          {!!successMsg && (
+            <View style={styles.successBanner}>
+              <CheckCircle2 size={18} color="#00C864" />
+              <Text style={styles.successBannerText}>{successMsg}</Text>
+            </View>
+          )}
+
+          {/* ─── Modern CTA Butonu ─── */}
+          <TouchableOpacity
+            onPress={mode === "login" ? handleLogin : handleRegister}
+            disabled={isLoading}
+            activeOpacity={0.88}
+            style={styles.ctaWrapper}
+          >
+            <LinearGradient
+              colors={activeGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.ctaGradient}
             >
-              <LinearGradient
-                colors={
-                  mode === "register" && isMale
-                    ? ["#4D9CFF", "#1B6FD8"]
-                    : ["#E8002D", "#C0006B"]
-                }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{
-                  paddingVertical: 18,
-                  alignItems: "center",
-                  borderRadius: 30,
-                }}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={{ color: "#fff", fontWeight: "800", fontSize: 17 }}>
-                    {mode === "login" ? "Giriş Yap" : "Kayıt Ol"}
+              {isLoading ? (
+                <ActivityIndicator color="#ffffff" size="small" />
+              ) : (
+                <View style={styles.ctaContentRow}>
+                  <Text style={styles.ctaText}>
+                    {mode === "login" ? "Giriş Yap" : "Hesap Oluştur"}
                   </Text>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </LinearGradient>
-    </>
+                  <ArrowRight size={18} color="#ffffff" />
+                </View>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  topAmbientGlow: {
+    position: "absolute",
+    top: -120,
+    alignSelf: "center",
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: "rgba(255, 77, 109, 0.1)",
+  },
+  bottomAmbientGlow: {
+    position: "absolute",
+    bottom: -100,
+    alignSelf: "center",
+    width: 340,
+    height: 340,
+    borderRadius: 170,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+  },
+  heroSection: {
+    alignItems: "center",
+    marginBottom: 28,
+  },
+  heroIconWrapper: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  heroIconGradient: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 34,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroTitle: {
+    color: "#FFFFFF",
+    fontSize: 28,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -0.5,
+    marginBottom: 6,
+  },
+  heroSubtitle: {
+    color: "rgba(255,255,255,0.48)",
+    fontSize: 13.5,
+    textAlign: "center",
+    lineHeight: 19,
+    paddingHorizontal: 20,
+  },
+  segmentContainer: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 16,
+    padding: 4,
+    marginBottom: 26,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+  },
+  segmentBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  segmentBtnActive: {
+    backgroundColor: "rgba(255,255,255,0.12)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  segmentBtnText: {
+    color: "rgba(255,255,255,0.45)",
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+  },
+  segmentBtnTextActive: {
+    color: "#FFFFFF",
+    fontFamily: "Inter_700Bold",
+  },
+  formContainer: {
+    gap: 16,
+    marginBottom: 20,
+  },
+  inputGroup: {
+    gap: 6,
+  },
+  fieldLabel: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 0.6,
+    marginLeft: 2,
+  },
+  inputBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1.2,
+    borderColor: "rgba(255,255,255,0.1)",
+    borderRadius: 16,
+    height: 52,
+    paddingHorizontal: 14,
+  },
+  inputIconBox: {
+    marginRight: 10,
+  },
+  textInputField: {
+    flex: 1,
+    color: "#FFFFFF",
+    fontSize: 14.5,
+    fontFamily: "Inter_500Medium",
+    height: "100%",
+  },
+  eyeBtn: {
+    padding: 6,
+    marginLeft: 6,
+  },
+  forgotBtn: {
+    alignSelf: "flex-end",
+    marginTop: -4,
+    marginBottom: 4,
+  },
+  forgotText: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
+  genderRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  genderCard: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1.2,
+    borderColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "rgba(255,255,255,0.04)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  genderLabel: {
+    color: "rgba(255,255,255,0.5)",
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+  },
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(232, 0, 45, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(232, 0, 45, 0.25)",
+    borderRadius: 14,
+    padding: 13,
+    marginBottom: 16,
+    gap: 10,
+  },
+  errorBannerText: {
+    flex: 1,
+    color: "#FF4D6A",
+    fontSize: 13,
+    fontFamily: "Inter_500Medium",
+  },
+  successBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 200, 100, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(0, 200, 100, 0.25)",
+    borderRadius: 14,
+    padding: 13,
+    marginBottom: 16,
+    gap: 10,
+  },
+  successBannerText: {
+    flex: 1,
+    color: "#00C864",
+    fontSize: 13,
+    fontFamily: "Inter_500Medium",
+  },
+  ctaWrapper: {
+    borderRadius: 26,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    elevation: 10,
+  },
+  ctaGradient: {
+    height: 54,
+    borderRadius: 26,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ctaContentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  ctaText: {
+    color: "#FFFFFF",
+    fontFamily: "Inter_700Bold",
+    fontSize: 16,
+    letterSpacing: -0.2,
+  },
+});
+

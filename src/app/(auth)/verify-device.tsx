@@ -203,7 +203,9 @@ export default function VerifyDeviceScreen() {
             {digits.map((digit, index) => (
               <TextInput
                 key={index}
-                ref={(el) => (inputRefs.current[index] = el)}
+                ref={(el) => {
+                  inputRefs.current[index] = el;
+                }}
                 value={digit}
                 onChangeText={(val) => handleDigitChange(val, index)}
                 onKeyPress={({ nativeEvent }) =>

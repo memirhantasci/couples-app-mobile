@@ -156,16 +156,28 @@ export default function MedicineScreen() {
 
   const handleFrequencyChange = (freq: 1 | 2 | 3) => {
     setMedFrequency(freq);
-    const newTimes: Date[] = [];
     const defaults = ["09:00", "14:00", "20:00"];
+    const newTimes: Date[] = [];
     for (let i = 0; i < freq; i++) {
       const d = new Date();
       const [h, m] = defaults[i].split(":");
-      d.setHours(parseInt(h, 10));
-      d.setMinutes(parseInt(m, 10));
+      d.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
       newTimes.push(medTimes[i] || d);
     }
-    setMedTimes(newTimes);
+    const seen = new Set<string>();
+    const finalTimes = newTimes.map((t, idx) => {
+      const f = dayjs(t).format("HH:mm");
+      if (seen.has(f)) {
+        const d = new Date();
+        const [h, m] = defaults[idx].split(":");
+        d.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
+        seen.add(defaults[idx]);
+        return d;
+      }
+      seen.add(f);
+      return t;
+    });
+    setMedTimes(finalTimes);
   };
 
   const handleSaveMedicine = async () => {
@@ -174,6 +186,13 @@ export default function MedicineScreen() {
       return;
     }
     if (!coupleId || !userId) return;
+
+    const formattedTimes = medTimes.map(t => dayjs(t).format("HH:mm"));
+    const uniqueTimes = new Set(formattedTimes);
+    if (uniqueTimes.size !== formattedTimes.length) {
+      Alert.alert("Uyarı", "Aynı ilaç için birden fazla aynı saat seçilemez. Lütfen farklı doz saatleri belirleyin.");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -194,7 +213,6 @@ export default function MedicineScreen() {
         targetUserId = partnerData.id;
       }
 
-      const formattedTimes = medTimes.map(t => dayjs(t).format("HH:mm"));
       const payload: any = {
         name: medName.trim(),
         start_date: dayjs(medStartDate).format("YYYY-MM-DD"),
@@ -231,7 +249,9 @@ export default function MedicineScreen() {
     setMedStartDate(new Date());
     setMedEndDate(new Date());
     setMedFrequency(1);
-    setMedTimes([new Date()]);
+    const d = new Date();
+    d.setHours(9, 0, 0, 0);
+    setMedTimes([d]);
     setMedError(false);
     setEditingMedicineId(null);
   };
@@ -463,8 +483,9 @@ export default function MedicineScreen() {
 
                     {/* Dozaj Slotları */}
                     <View style={styles.slotsContainer}>
-                      {times.map((slotTime) => {
+                      {times.map((slotTime, slotIdx) => {
                         const key = `${m.id}_${slotTime}`;
+                        const itemKey = `${m.id}_${slotTime}_${slotIdx}`;
                         const status = map[key] || "PENDING";
                         const isDrank = status === "DRANK";
                         const isMissed = status === "MISSED";
@@ -473,7 +494,7 @@ export default function MedicineScreen() {
 
                         if (isSlotLoading) {
                           return (
-                            <View key={slotTime} style={[styles.slotStateBox, { backgroundColor: theme.unitBg }]}>
+                            <View key={itemKey} style={[styles.slotStateBox, { backgroundColor: theme.unitBg }]}>
                               <ActivityIndicator color={theme.accent} size="small" />
                             </View>
                           );
@@ -481,7 +502,7 @@ export default function MedicineScreen() {
 
                         if (isDrank) {
                           return (
-                            <View key={slotTime} style={[styles.slotStateBox, styles.drankStateBox]}>
+                            <View key={itemKey} style={[styles.slotStateBox, styles.drankStateBox]}>
                               <CheckCircle2 size={16} color="#22c55e" />
                               <Text style={styles.drankStateText}>Alındı ({slotTime}) ✔️</Text>
                             </View>
@@ -490,7 +511,7 @@ export default function MedicineScreen() {
 
                         if (isMissed) {
                           return (
-                            <View key={slotTime} style={[styles.slotStateBox, { backgroundColor: theme.unitBg }]}>
+                            <View key={itemKey} style={[styles.slotStateBox, { backgroundColor: theme.unitBg }]}>
                               <Text style={styles.missedStateText}>Atlandı ({slotTime})</Text>
                             </View>
                           );
@@ -498,7 +519,7 @@ export default function MedicineScreen() {
 
                         if (!isTimePassed) {
                           return (
-                            <View key={slotTime} style={[styles.slotStateBox, { backgroundColor: theme.unitBg }]}>
+                            <View key={itemKey} style={[styles.slotStateBox, { backgroundColor: theme.unitBg }]}>
                               <Clock size={13} color="rgba(255,255,255,0.5)" />
                               <Text style={styles.waitingStateText}>Bekliyor ({slotTime})</Text>
                             </View>
@@ -507,7 +528,7 @@ export default function MedicineScreen() {
 
                         if (activeTab === "partner") {
                           return (
-                            <View key={slotTime} style={[styles.slotStateBox, { backgroundColor: theme.unitBg }]}>
+                            <View key={itemKey} style={[styles.slotStateBox, { backgroundColor: theme.unitBg }]}>
                               <AlertCircle size={14} color="#f59e0b" />
                               <Text style={styles.waitingStateText}>Henüz Alınmadı ({slotTime})</Text>
                             </View>
@@ -516,7 +537,7 @@ export default function MedicineScreen() {
 
                         // Kullanıcının kendi ilacı için aksiyon butonları
                         return (
-                          <View key={slotTime} style={styles.actionSlotRow}>
+                          <View key={itemKey} style={styles.actionSlotRow}>
                             <TouchableOpacity 
                               style={[styles.skipBtn, { backgroundColor: theme.unitBg }]} 
                               onPress={() => handleLog(m.id, "MISSED", slotTime)}
@@ -801,6 +822,12 @@ export default function MedicineScreen() {
           onChange={(_, date) => {
             setShowPicker(null);
             if (date && activeTimeIndex !== null) {
+              const newTimeStr = dayjs(date).format("HH:mm");
+              const isDuplicate = medTimes.some((t, i) => i !== activeTimeIndex && dayjs(t).format("HH:mm") === newTimeStr);
+              if (isDuplicate) {
+                Alert.alert("Uyarı", "Bu ilaç için bu saati zaten seçtiniz. Lütfen farklı bir saat belirleyin.");
+                return;
+              }
               const updated = [...medTimes];
               updated[activeTimeIndex] = date;
               setMedTimes(updated);

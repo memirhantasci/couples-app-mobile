@@ -52,9 +52,17 @@ function RootLayoutNav() {
   // Hide splash once auth state is resolved and fonts are loaded
   useEffect(() => {
     if (!isLoading && fontsLoaded) {
-      SplashScreen.hideAsync();
+      SplashScreen.hideAsync().catch(() => {});
     }
   }, [isLoading, fontsLoaded]);
+
+  // Safety fallback: ensure splash screen never stays stuck under any network condition
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      SplashScreen.hideAsync().catch(() => {});
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, []);
 
   // ── Deep link listener ────────────────────────────────────────────────────
   // Handles both cold-start URLs (app was closed) and foreground URLs (app open)
@@ -107,10 +115,10 @@ function RootLayoutNav() {
   }
 
   // ── Loading splash ────────────────────────────────────────────────────────
-  if (isLoading || !fontsLoaded) {
+  if ((isLoading && !profile) || !fontsLoaded) {
     return (
-      <View className="flex-1 items-center justify-center bg-surface">
-        <ActivityIndicator color="#E8002D" size="large" />
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#080811" }}>
+        <ActivityIndicator color="#FF4D6A" size="large" />
       </View>
     );
   }
