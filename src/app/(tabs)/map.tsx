@@ -37,6 +37,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { getTheme } from "@/lib/theme";
 import { dayjs } from "@/lib/date";
+import { notifyPartner } from "@/lib/notifications";
 
 const { width: SW, height: SH } = Dimensions.get("window");
 
@@ -156,6 +157,10 @@ export default function MapScreen() {
       setSheetMode("hidden");
       setNoteText("");
       setPendingCoord(null);
+
+      if (coupleId && userId) {
+        notifyPartner(coupleId, userId, "Haritada Yeni Not 📍", "Sevgilin haritaya yeni bir not bıraktı.");
+      }
     },
     onError: (e: any) => {
       Alert.alert("Hata", "Not kaydedilemedi: " + (e?.message ?? ""));

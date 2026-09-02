@@ -17,6 +17,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { notifyPartner } from "@/lib/notifications";
 import { dayjs } from "@/lib/date";
 import { getTheme } from "@/lib/theme";
 import { MapPickerModal } from "@/components/MapPickerModal";
@@ -141,6 +142,11 @@ export default function MeetingsScreen() {
         });
 
         if (error) throw error;
+
+        if (coupleId && userId) {
+          notifyPartner(coupleId, userId, "Buluşma Planlandı! 📅", `Yeni bir buluşma eklendi: ${title.trim() || "Buluşma"}`);
+        }
+
         Alert.alert("Başarılı 🎉", "Buluşma başarıyla planlandı!");
       }
 

@@ -23,6 +23,7 @@ import {
 import { getQuoteForDay } from "@/lib/quotes";
 import { decrypt, deterministicDecrypt } from "@/utils/crypto";
 import { computeLoveScore } from "@/lib/loveScore";
+import { scheduleDateLocalNotification } from "@/lib/notifications";
 import { useRouter, useFocusEffect } from "expo-router";
 import { 
   AlignJustify, Sparkles, Heart, Images, 
@@ -156,12 +157,39 @@ export default function HomeScreen() {
       // Partneri bul
       const { data: usersData } = await supabase
         .from("users")
-        .select("id")
+        .select("id, gender")
         .eq("couple_id", coupleId)
         .neq("id", userId)
         .limit(1);
-      const partnerId = usersData?.[0]?.id ?? null;
-      return computeLoveScore(coupleId!, userId!, partnerId);
+      const partnerData = usersData?.[0] ?? null;
+
+      // Premium ise partnerin regl döngüsünü kontrol edip yerel bildirim kur
+      if (profile?.isPremium && partnerData && partnerData.gender === "female") {
+        const { data: periodLogs } = await supabase
+          .from("period_logs")
+          .select("date")
+          .eq("user_id", partnerData.id)
+          .order("date", { ascending: false })
+          .limit(1);
+
+        if (periodLogs && periodLogs.length > 0) {
+          const lastPeriodDate = dayjs(periodLogs[0].date);
+          // Yaklaşık 28 gün döngü, 2 gün kala haber ver
+          const notifyDate = lastPeriodDate.add(26, "day").hour(10).minute(0).second(0).toDate();
+          
+          // Gelecekte bir tarihse kur
+          if (notifyDate.getTime() > Date.now()) {
+            scheduleDateLocalNotification(
+              "period_approach_alert",
+              "Regl Yaklaşıyor 🌸",
+              "Partnerinin regl dönemi yaklaşmak üzere. Ona destek olmak için harika bir zaman!",
+              notifyDate
+            );
+          }
+        }
+      }
+
+      return computeLoveScore(coupleId!, userId!, partnerData?.id ?? null);
     },
   });
 

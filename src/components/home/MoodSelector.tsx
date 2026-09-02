@@ -10,7 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { todayString } from "@/lib/date";
 import { useQueryClient } from "@tanstack/react-query";
-import { sendPushNotification } from "@/lib/notifications";
+import { notifyPartner } from "@/lib/notifications";
 import { logger } from "@/utils/logger";
 import { AppTheme } from "@/lib/theme";
 
@@ -78,24 +78,15 @@ export function MoodSelector({ currentMood, moodLocked = false, theme }: MoodSel
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
 
-      if (coupleId) {
-        supabase
-          .from("users")
-          .select("id")
-          .eq("couple_id", coupleId)
-          .neq("id", userId)
-          .maybeSingle()
-          .then(({ data: partnerData }) => {
-            if (partnerData) {
-              const moodLabel = MOODS.find((m) => m.emoji === emoji)?.label || "güncelledi";
-              const myName = profile?.displayName || "Partnerin";
-              sendPushNotification(
-                partnerData.id.toString(),
-                "Mod Güncellemesi 💭",
-                `${myName} bugün kendini ${moodLabel} ${emoji} hissediyor.`
-              );
-            }
-          }, (err) => logger.log("Push error:", err));
+      if (coupleId && userId) {
+        const moodLabel = MOODS.find((m) => m.emoji === emoji)?.label || "güncelledi";
+        const myName = profile?.displayName || "Partnerin";
+        notifyPartner(
+          coupleId,
+          userId,
+          "Mod Güncellemesi 💭",
+          `${myName} bugün kendini ${moodLabel} ${emoji} hissediyor.`
+        );
       }
     } else {
       logger.error("Mood error:", JSON.stringify(error, null, 2));

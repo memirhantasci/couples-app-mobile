@@ -17,6 +17,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { BookOpen } from "lucide-react-native";
 import { AppTheme } from "@/lib/theme";
+import { notifyPartner } from "@/lib/notifications";
 
 interface DailyNoteCardProps {
   existingNote?: string | null;
@@ -53,6 +54,10 @@ export function DailyNoteCard({ existingNote, theme }: DailyNoteCardProps) {
     if (!error) {
       setSaved(true);
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
+      
+      if (coupleId && session?.user?.id) {
+        notifyPartner(coupleId, session.user.id, "Günün Notu 📖", "Sevgilin günlüğüne bir not bıraktı.");
+      }
     } else {
       logger.error("Note save error:", JSON.stringify(error, null, 2));
       alert("Not kaydedilemedi: " + (error?.message || "Bilinmeyen hata"));

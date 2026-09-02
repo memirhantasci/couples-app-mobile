@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { notifyPartner } from "@/lib/notifications";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
 import { encrypt, decrypt, deterministicDecrypt } from "@/utils/crypto";
@@ -216,6 +217,10 @@ export default function LettersScreen() {
       setContent("");
       setUnlockDate(todayString());
       setShowWriteModal(false);
+
+      if (coupleId && userId) {
+        notifyPartner(coupleId, userId, "Gelecekten Bir Mesaj 💌", "Sevgilin sana mühürlü bir mektup gönderdi.");
+      }
 
       Alert.alert("Mektup Mühürlendi! 💌", "Mektubunuz zamanda yolculuğa çıktı ve başarıyla mühürlendi.");
     } catch (error: any) {

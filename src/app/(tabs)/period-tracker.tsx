@@ -18,6 +18,7 @@ import {
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getTheme } from "@/lib/theme";
+import { notifyPartner } from "@/lib/notifications";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 
 LocaleConfig.locales['tr'] = {
@@ -144,6 +145,10 @@ export default function PeriodTrackerScreen() {
           type: "period",
         });
         if (error) throw error;
+        
+        if (isPremium && coupleId && userId) {
+          notifyPartner(coupleId, userId, "Regl Dönemi 🌸", "Partnerinin regl dönemi başladı. Ona biraz daha özen gösterme zamanı!");
+        }
       } else {
         const { error } = await supabase
           .from("period_logs")

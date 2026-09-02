@@ -5,6 +5,7 @@ import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { logger } from "@/utils/logger";
+import dayjs from "dayjs";
 
 /**
  * Saves or updates a push token in Supabase for the given user.
@@ -137,5 +138,91 @@ export async function sendPushNotification(userId: string, title: string, body: 
     }
   } catch (error) {
     logger.log("[Push] Error sending push:", error);
+  }
+}
+
+/**
+ * Sunucuyu yormadan, yerel cihaz üzerinde günlük tekrarlanan bir bildirim kurar.
+ * Özellikle ilaç hatırlatıcıları için kullanılır.
+ */
+export async function scheduleDailyLocalNotification(id: string, title: string, body: string, hour: number, minute: number) {
+  try {
+    // Önce aynı ID'ye sahip eski bildirimi temizle
+    await cancelLocalNotification(id);
+    
+    await Notifications.scheduleNotificationAsync({
+      identifier: id,
+      content: {
+        title,
+        body,
+        sound: true,
+      },
+      trigger: {
+        hour,
+        minute,
+        repeats: true,
+      } as any,
+    });
+    logger.log(`[LocalPush] Scheduled daily notification ${id} at ${hour}:${minute}`);
+  } catch (error) {
+    logger.error("[LocalPush] Failed to schedule daily notification:", error);
+  }
+}
+
+/**
+ * Belirli bir gelecekteki tarihte çalışacak yerel bildirim kurar.
+ * Regl yaklaşma hatırlatıcıları için kullanılır (Sunucu yormaz).
+ */
+export async function scheduleDateLocalNotification(id: string, title: string, body: string, triggerDate: Date) {
+  try {
+    await cancelLocalNotification(id);
+    
+    // Geçmiş bir tarihse kurma
+    if (triggerDate.getTime() <= Date.now()) return;
+
+    await Notifications.scheduleNotificationAsync({
+      identifier: id,
+      content: {
+        title,
+        body,
+        sound: true,
+      },
+      trigger: triggerDate as any,
+    });
+    logger.log(`[LocalPush] Scheduled date notification ${id} for ${triggerDate.toISOString()}`);
+  } catch (error) {
+    logger.error("[LocalPush] Failed to schedule date notification:", error);
+  }
+}
+
+/**
+ * ID'si verilen yerel bildirimi iptal eder.
+ */
+export async function cancelLocalNotification(id: string) {
+  try {
+    await Notifications.cancelScheduledNotificationAsync(id);
+  } catch (error) {
+    // Sessizce yut, henüz kurulmamış olabilir
+  }
+}
+
+/**
+ * Mevcut kullanıcının partnerine bildirim gönderir.
+ * Performans: İlgili partner ID'sini tek bir optimize sorguyla bulur.
+ */
+export async function notifyPartner(coupleId: number, currentUserId: string, title: string, body: string, data?: any) {
+  try {
+    const { data: partnerData } = await supabase
+      .from("users")
+      .select("id")
+      .eq("couple_id", coupleId)
+      .neq("id", currentUserId)
+      .maybeSingle();
+
+    if (partnerData?.id) {
+      await sendPushNotification(partnerData.id, title, body, data);
+    }
+  } catch (error) {
+    logger.error("[Push] Failed to notify partner:", error);
   }
 }

@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { notifyPartner } from "@/lib/notifications";
 import { dayjs, todayString } from "@/lib/date";
 import { getTheme } from "@/lib/theme";
 import { logger } from "@/utils/logger";
@@ -191,6 +192,10 @@ export default function AddPhotoScreen() {
 
       queryClient.invalidateQueries({ queryKey: ["photo_archive", coupleId] });
       queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
+
+      if (coupleId && userId) {
+        notifyPartner(coupleId, userId, "Yeni Bir Anı 📸", "Galeriye yeni bir fotoğraf eklendi.");
+      }
 
       Alert.alert("Başarılı", "Fotoğraf başarıyla ortak arşive eklendi! 🎉", [
         { text: "Harika", onPress: () => router.back() }

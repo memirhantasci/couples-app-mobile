@@ -15,6 +15,7 @@ import { getTheme } from "@/lib/theme";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { scheduleDailyLocalNotification, cancelLocalNotification } from "@/lib/notifications";
 import { dayjs, todayString } from "@/lib/date";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -225,12 +226,34 @@ export default function MedicineScreen() {
       };
 
       if (editingMedicineId) {
+        // Eski bildirimleri silmek için mevcut ilacı bul
+        const oldMed = data?.medicines?.find((m: any) => m.id === editingMedicineId);
+        if (oldMed?.times && targetUserId === userId) {
+          oldMed.times.forEach((t: string) => cancelLocalNotification(`med_${editingMedicineId}_${t}`));
+        }
+
         const { error } = await supabase.from("medicines").update(payload).eq("id", editingMedicineId);
         if (error) throw error;
+        
+        if (targetUserId === userId) {
+          formattedTimes.forEach((t: string) => {
+            const [h, m] = t.split(":");
+            scheduleDailyLocalNotification(`med_${editingMedicineId}_${t}`, "İlaç Vakti 💧", `${payload.name} ilacınızı alma vakti geldi.`, parseInt(h), parseInt(m));
+          });
+        }
+        
         Alert.alert("Başarılı 🎉", "İlaç bilgisi güncellendi.");
       } else {
-        const { error } = await supabase.from("medicines").insert(payload);
+        const { data: newMed, error } = await supabase.from("medicines").insert(payload).select("id").single();
         if (error) throw error;
+        
+        if (newMed && targetUserId === userId) {
+          formattedTimes.forEach((t: string) => {
+            const [h, m] = t.split(":");
+            scheduleDailyLocalNotification(`med_${newMed.id}_${t}`, "İlaç Vakti 💧", `${payload.name} ilacınızı alma vakti geldi.`, parseInt(h), parseInt(m));
+          });
+        }
+        
         Alert.alert("Başarılı 🎉", "Yeni ilaç kaydedildi.");
       }
 
@@ -291,6 +314,13 @@ export default function MedicineScreen() {
         style: "destructive", 
         onPress: async () => {
           setIsDeleting(id);
+          
+          // Yerel bildirimleri temizle
+          const med = data?.medicines?.find((m: any) => m.id === id);
+          if (med?.times && med.user_id === userId) {
+            med.times.forEach((t: string) => cancelLocalNotification(`med_${id}_${t}`));
+          }
+
           const { error } = await supabase.from("medicines").delete().eq("id", id).eq("couple_id", coupleId);
           setIsDeleting(null);
           if (error) {
