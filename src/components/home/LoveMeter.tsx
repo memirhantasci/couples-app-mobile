@@ -13,9 +13,10 @@ import { AppTheme } from "@/lib/theme";
 interface LoveMeterProps {
   value: number; // 0-100
   theme: AppTheme;
+  subtitle?: string; // Dinamik mesaj (opsiyonel, verilmezse varsayılan gösterilir)
 }
 
-export function LoveMeter({ value, theme }: LoveMeterProps) {
+export function LoveMeter({ value, theme, subtitle }: LoveMeterProps) {
   const widthVal = useSharedValue(0);
 
   useEffect(() => {
@@ -28,6 +29,8 @@ export function LoveMeter({ value, theme }: LoveMeterProps) {
   const animatedWidthStyle = useAnimatedStyle(() => ({
     width: `${widthVal.value}%` as any,
   }));
+
+  const displaySubtitle = subtitle ?? "Bugün için ölçüldü 💝 · Harika bir uyum!";
 
   return (
     <View style={[styles.card, { backgroundColor: theme.cardBg }]}>
@@ -49,10 +52,8 @@ export function LoveMeter({ value, theme }: LoveMeterProps) {
         </Animated.View>
       </View>
 
-      {/* Alt açıklama */}
-      <Text style={styles.subtitle}>
-        Bugün için ölçüldü 💝 · Harika bir uyum!
-      </Text>
+      {/* Alt açıklama — dinamik */}
+      <Text style={styles.subtitle}>{displaySubtitle}</Text>
     </View>
   );
 }

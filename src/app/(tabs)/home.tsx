@@ -17,12 +17,12 @@ import { useQuery } from "@tanstack/react-query";
 import {
   dayjs,
   daysSince,
-  getLoveMeter,
   dayOfYear,
   todayString,
 } from "@/lib/date";
 import { getQuoteForDay } from "@/lib/quotes";
 import { decrypt, deterministicDecrypt } from "@/utils/crypto";
+import { computeLoveScore } from "@/lib/loveScore";
 import { useRouter, useFocusEffect } from "expo-router";
 import { 
   AlignJustify, Sparkles, Heart, Images, 
@@ -146,6 +146,25 @@ export default function HomeScreen() {
     staleTime: 1000 * 60 * 5,
   });
 
+  // ─── Dinamik Aşk Puanı ───────────────────────────────────────────────────────
+  // Partner ID'yi usersRes'ten çekemediğimiz için ayrı küçük query
+  const { data: loveScoreData } = useQuery({
+    queryKey: ["love_score", coupleId, userId, today],
+    enabled: !!coupleId && !!userId,
+    staleTime: 1000 * 60 * 5,
+    queryFn: async () => {
+      // Partneri bul
+      const { data: usersData } = await supabase
+        .from("users")
+        .select("id")
+        .eq("couple_id", coupleId)
+        .neq("id", userId)
+        .limit(1);
+      const partnerId = usersData?.[0]?.id ?? null;
+      return computeLoveScore(coupleId!, userId!, partnerId);
+    },
+  });
+
   // Dinamik Selamlama
   const getGreeting = () => {
     const hour = dayjs().hour();
@@ -173,7 +192,8 @@ export default function HomeScreen() {
   const daysSinceTogether = relDate ? daysSince(dayjs(relDate)) : 0;
   const name = profile?.displayName || "Sevgilim";
   const quote = getQuoteForDay(doy);
-  const loveMeter = getLoveMeter();
+  const loveMeter = loveScoreData?.score ?? 50;
+  const loveSubtitle = loveScoreData?.subtitle;
   const dateLabel = dayjs().format("D MMMM, dddd");
   const greeting = getGreeting();
 
@@ -312,7 +332,7 @@ export default function HomeScreen() {
           </View>
 
           {/* ─── 5. AŞK ÖLÇER ─── */}
-          <LoveMeter value={loveMeter} theme={theme} />
+          <LoveMeter value={loveMeter} theme={theme} subtitle={loveSubtitle} />
 
           {/* ─── 6. BULUŞMA GERİ SAYIMI ─── */}
           {dashboardData?.activeMeeting && (
