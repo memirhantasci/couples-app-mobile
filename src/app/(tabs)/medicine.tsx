@@ -476,10 +476,10 @@ export default function MedicineScreen() {
                 <Skeleton height={110} borderRadius={20} />
               </View>
             ) : filteredMedicines.length === 0 ? (
-              <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                <Pill size={36} color="rgba(255,255,255,0.25)" />
-                <Text style={styles.emptyCardTitle}>Bugün İçin İlaç Yok</Text>
-                <Text style={styles.emptyCardSub}>
+              <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+                <Pill size={36} color={theme.textMuted} />
+                <Text style={[styles.emptyCardTitle, { color: theme.text }]}>Bugün İçin İlaç Yok</Text>
+                <Text style={[styles.emptyCardSub, { color: theme.textSecondary }]}>
                   {activeTab === "partner" ? "Sevgilinizin bugün alması gereken bir ilaç bulunmuyor." : "Bugün almanız gereken herhangi bir ilaç planlanmamış."}
                 </Text>
                 <TouchableOpacity 
@@ -507,8 +507,8 @@ export default function MedicineScreen() {
                         <Pill color={theme.accent} size={20} />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.medName}>{m.name}</Text>
-                        <Text style={styles.medSub}>Günde {times.length} doz ({times.join(", ")})</Text>
+                        <Text style={[styles.medName, { color: theme.text }]}>{m.name}</Text>
+                        <Text style={[styles.medSub, { color: theme.textMuted }]}>Günde {times.length} doz ({times.join(", ")})</Text>
                       </View>
                     </View>
 
@@ -543,7 +543,7 @@ export default function MedicineScreen() {
                         if (isMissed) {
                           return (
                             <View key={itemKey} style={[styles.slotStateBox, { backgroundColor: theme.unitBg }]}>
-                              <Text style={styles.missedStateText}>Atlandı ({slotTime})</Text>
+                              <Text style={[styles.missedStateText, { color: theme.textMuted }]}>Atlandı ({slotTime})</Text>
                             </View>
                           );
                         }
@@ -551,8 +551,8 @@ export default function MedicineScreen() {
                         if (!isTimePassed) {
                           return (
                             <View key={itemKey} style={[styles.slotStateBox, { backgroundColor: theme.unitBg }]}>
-                              <Clock size={13} color="rgba(255,255,255,0.5)" />
-                              <Text style={styles.waitingStateText}>Bekliyor ({slotTime})</Text>
+                              <Clock size={13} color={theme.textMuted} />
+                              <Text style={[styles.waitingStateText, { color: theme.textSecondary }]}>Bekliyor ({slotTime})</Text>
                             </View>
                           );
                         }
@@ -561,7 +561,7 @@ export default function MedicineScreen() {
                           return (
                             <View key={itemKey} style={[styles.slotStateBox, { backgroundColor: theme.unitBg }]}>
                               <AlertCircle size={14} color="#f59e0b" />
-                              <Text style={styles.waitingStateText}>Henüz Alınmadı ({slotTime})</Text>
+                              <Text style={[styles.waitingStateText, { color: theme.textSecondary }]}>Henüz Alınmadı ({slotTime})</Text>
                             </View>
                           );
                         }
@@ -574,16 +574,16 @@ export default function MedicineScreen() {
                               onPress={() => handleLog(m.id, "MISSED", slotTime)}
                               activeOpacity={0.8}
                             >
-                              <Text style={styles.skipBtnText}>Atla ({slotTime})</Text>
+                              <Text style={[styles.skipBtnText, { color: theme.textSecondary }]}>Atla ({slotTime})</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity 
                               style={[styles.takeBtn, { backgroundColor: theme.accent }]} 
                               onPress={() => handleLog(m.id, "DRANK", slotTime)}
-                              activeOpacity={0.88}
+                              activeOpacity={0.85}
                             >
-                              <Check size={16} color="#ffffff" />
-                              <Text style={styles.takeBtnText}>İçtim ({slotTime}) ✨</Text>
+                              <CheckCircle2 size={16} color="#ffffff" />
+                              <Text style={styles.takeBtnText}>İçtim ({slotTime})</Text>
                             </TouchableOpacity>
                           </View>
                         );
@@ -597,9 +597,9 @@ export default function MedicineScreen() {
 
           {/* GEÇMİŞ (SON 14 GÜN) */}
           <View style={styles.sectionBlock}>
-            <Text style={styles.sectionTitle}>GEÇMİŞ GÜNLÜK TAKİP (SON 14 GÜN)</Text>
+            <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>GEÇMİŞ GÜNLÜK TAKİP (SON 14 GÜN)</Text>
             {sortedDates.length === 0 ? (
-              <Text style={styles.historyEmptyText}>Geçmiş ilaç kaydı bulunmuyor.</Text>
+              <Text style={[styles.historyEmptyText, { color: theme.textMuted }]}>Geçmiş ilaç kaydı bulunmuyor.</Text>
             ) : (
               sortedDates.map((dateStr) => (
                 <React.Fragment key={dateStr}>
@@ -610,8 +610,8 @@ export default function MedicineScreen() {
                     return (
                       <View key={`${dateStr}-${idx}`} style={[styles.historyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.historyDate}>{getRelativeDateLabel(dateStr)}</Text>
-                          <Text style={styles.historyMedSub}>
+                          <Text style={[styles.historyDate, { color: theme.text }]}>{getRelativeDateLabel(dateStr)}</Text>
+                          <Text style={[styles.historyMedSub, { color: theme.textSecondary }]}>
                             {med.name} • {med.drankSlots}/{med.totalSlots} Alındı ({med.times.join(", ")})
                           </Text>
                         </View>
@@ -631,20 +631,20 @@ export default function MedicineScreen() {
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
             {/* Modal Header */}
-            <View style={styles.modalHeader}>
+            <View style={[styles.modalHeader, { borderBottomColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Settings size={18} color={theme.accent} />
-                <Text style={styles.modalTitle}>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>
                   {editingMedicineId ? "İlacı Düzenle" : "İlaç Yönetimi & Ekle"}
                 </Text>
               </View>
 
               <TouchableOpacity 
                 onPress={() => setShowManagerModal(false)}
-                style={styles.modalCloseBtn}
+                style={[styles.modalCloseBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <X size={18} color="#ffffff" />
+                <X size={18} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -658,18 +658,18 @@ export default function MedicineScreen() {
               {/* Mevcut İlaçlar Listesi */}
               {!editingMedicineId && allMedicines.length > 0 && (
                 <View style={{ gap: 8 }}>
-                  <Text style={styles.modalSectionSub}>KAYITLI İLAÇLAR</Text>
+                  <Text style={[styles.modalSectionSub, { color: theme.textMuted }]}>KAYITLI İLAÇLAR</Text>
                   {allMedicines.map((m) => (
-                    <View key={m.id} style={[styles.registeredMedCard, { backgroundColor: theme.unitBg }]}>
+                    <View key={m.id} style={[styles.registeredMedCard, { backgroundColor: theme.unitBg, borderColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)", borderWidth: 1 }]}>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.registeredMedName}>{m.name}</Text>
-                        <Text style={styles.registeredMedSub}>
+                        <Text style={[styles.registeredMedName, { color: theme.text }]}>{m.name}</Text>
+                        <Text style={[styles.registeredMedSub, { color: theme.textMuted }]}>
                           {m.user_id === userId ? "Benim" : "Sevgilimin"} • Günde {Array.isArray(m.times) ? m.times.length : 1} kez
                         </Text>
                       </View>
                       <View style={{ flexDirection: "row", gap: 10 }}>
-                        <TouchableOpacity onPress={() => handleEditMedicine(m)} style={styles.medActionBtn}>
-                          <Edit2 size={16} color="rgba(255,255,255,0.7)" />
+                        <TouchableOpacity onPress={() => handleEditMedicine(m)} style={[styles.medActionBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)" }]}>
+                          <Edit2 size={16} color={theme.textSecondary} />
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => handleDeleteMedicine(m.id)} style={[styles.medActionBtn, { backgroundColor: "rgba(239,68,68,0.15)" }]}>
                           {isDeleting === m.id ? (
@@ -686,7 +686,7 @@ export default function MedicineScreen() {
 
               {/* Form Alanı */}
               <View style={{ gap: 12, marginTop: 4 }}>
-                <Text style={styles.modalSectionSub}>
+                <Text style={[styles.modalSectionSub, { color: theme.textMuted }]}>
                   {editingMedicineId ? "İLAÇ DETAYLARI" : "YENİ İLAÇ FORMU"}
                 </Text>
 
@@ -696,27 +696,31 @@ export default function MedicineScreen() {
                     style={[styles.segmentedBtn, !isPartnerAdd && { backgroundColor: theme.cardBg }]}
                     onPress={() => setIsPartnerAdd(false)}
                   >
-                    <Text style={[styles.segmentedText, !isPartnerAdd && { color: theme.accent, fontFamily: "Inter_700Bold" }]}>Ben</Text>
+                    <Text style={[styles.segmentedText, { color: !isPartnerAdd ? theme.accent : theme.textSecondary }, !isPartnerAdd && { fontFamily: "Inter_700Bold" }]}>Ben</Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={[styles.segmentedBtn, isPartnerAdd && { backgroundColor: theme.cardBg }]}
                     onPress={() => setIsPartnerAdd(true)}
                   >
-                    <Text style={[styles.segmentedText, isPartnerAdd && { color: theme.accent, fontFamily: "Inter_700Bold" }]}>Sevgilim</Text>
+                    <Text style={[styles.segmentedText, { color: isPartnerAdd ? theme.accent : theme.textSecondary }, isPartnerAdd && { fontFamily: "Inter_700Bold" }]}>Sevgilim</Text>
                   </TouchableOpacity>
                 </View>
 
                 {/* İlaç Adı */}
                 <View style={{ gap: 6 }}>
-                  <Text style={styles.fieldLabel}>İLAÇ ADI</Text>
+                  <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>İLAÇ ADI</Text>
                   <TextInput 
                     style={[
                       styles.textInput, 
-                      { backgroundColor: theme.unitBg }, 
+                      { 
+                        backgroundColor: theme.unitBg, 
+                        color: theme.text,
+                        borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                      }, 
                       medError && styles.inputError
                     ]} 
                     placeholder="Örn: Aspirin, B12 Vitamini..." 
-                    placeholderTextColor="rgba(255,255,255,0.3)" 
+                    placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.3)"} 
                     value={medName} 
                     onChangeText={(text) => {
                       setMedName(text);
@@ -727,7 +731,7 @@ export default function MedicineScreen() {
 
                 {/* Günlük Doz Sıklığı (1, 2, 3) */}
                 <View style={{ gap: 6 }}>
-                  <Text style={styles.fieldLabel}>GÜNLÜK DOZ SIKLIĞI</Text>
+                  <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>GÜNLÜK DOZ SIKLIĞI</Text>
                   <View style={{ flexDirection: "row", gap: 10 }}>
                     {([1, 2, 3] as const).map((freq) => {
                       const isSelected = medFrequency === freq;
@@ -737,11 +741,14 @@ export default function MedicineScreen() {
                           onPress={() => handleFrequencyChange(freq)}
                           style={[
                             styles.freqBtn,
-                            { backgroundColor: theme.unitBg },
+                            { 
+                              backgroundColor: theme.unitBg,
+                              borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                            },
                             isSelected && { borderColor: theme.accent, backgroundColor: theme.pillAccentBg, borderWidth: 1.5 }
                           ]}
                         >
-                          <Text style={[styles.freqBtnText, isSelected && { color: "#ffffff", fontFamily: "Inter_700Bold" }]}>
+                          <Text style={[styles.freqBtnText, { color: isSelected ? theme.accent : theme.textSecondary }, isSelected && { fontFamily: "Inter_700Bold" }]}>
                             {freq} Kez
                           </Text>
                         </TouchableOpacity>
@@ -752,7 +759,7 @@ export default function MedicineScreen() {
 
                 {/* Saat Seçicileri */}
                 <View style={{ gap: 6 }}>
-                  <Text style={styles.fieldLabel}>DOZ SAATLERİ</Text>
+                  <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>DOZ SAATLERİ</Text>
                   <View style={{ flexDirection: "row", gap: 10 }}>
                     {medTimes.map((time, idx) => (
                       <TouchableOpacity
@@ -761,10 +768,16 @@ export default function MedicineScreen() {
                           setActiveTimeIndex(idx);
                           setShowPicker("time");
                         }}
-                        style={[styles.timePickerBox, { backgroundColor: theme.unitBg }]}
+                        style={[
+                          styles.timePickerBox, 
+                          { 
+                            backgroundColor: theme.unitBg,
+                            borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                          }
+                        ]}
                       >
                         <Clock size={14} color={theme.accent} />
-                        <Text style={styles.timePickerText}>{dayjs(time).format("HH:mm")}</Text>
+                        <Text style={[styles.timePickerText, { color: theme.text }]}>{dayjs(time).format("HH:mm")}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -773,24 +786,36 @@ export default function MedicineScreen() {
                 {/* Başlangıç & Bitiş Tarihleri */}
                 <View style={{ flexDirection: "row", gap: 10 }}>
                   <View style={{ flex: 1, gap: 6 }}>
-                    <Text style={styles.fieldLabel}>BAŞLANGIÇ</Text>
+                    <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>BAŞLANGIÇ</Text>
                     <TouchableOpacity
                       onPress={() => setShowPicker("start")}
-                      style={[styles.datePickerBtn, { backgroundColor: theme.unitBg }]}
+                      style={[
+                        styles.datePickerBtn, 
+                        { 
+                          backgroundColor: theme.unitBg,
+                          borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                        }
+                      ]}
                     >
                       <Calendar size={14} color={theme.accent} />
-                      <Text style={styles.datePickerText}>{dayjs(medStartDate).format("DD.MM.YYYY")}</Text>
+                      <Text style={[styles.datePickerText, { color: theme.text }]}>{dayjs(medStartDate).format("DD.MM.YYYY")}</Text>
                     </TouchableOpacity>
                   </View>
 
                   <View style={{ flex: 1, gap: 6 }}>
-                    <Text style={styles.fieldLabel}>BİTİŞ</Text>
+                    <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>BİTİŞ</Text>
                     <TouchableOpacity
                       onPress={() => setShowPicker("end")}
-                      style={[styles.datePickerBtn, { backgroundColor: theme.unitBg }]}
+                      style={[
+                        styles.datePickerBtn, 
+                        { 
+                          backgroundColor: theme.unitBg,
+                          borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                        }
+                      ]}
                     >
                       <Calendar size={14} color={theme.accent} />
-                      <Text style={styles.datePickerText}>{dayjs(medEndDate).format("DD.MM.YYYY")}</Text>
+                      <Text style={[styles.datePickerText, { color: theme.text }]}>{dayjs(medEndDate).format("DD.MM.YYYY")}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>

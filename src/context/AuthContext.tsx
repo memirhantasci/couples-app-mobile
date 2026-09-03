@@ -4,7 +4,7 @@ import { Session } from "@supabase/supabase-js";
 import { RevenueCatService } from "@/lib/revenuecat";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { decrypt } from "@/utils/crypto";
-import { setAdLoggingOut } from "@/lib/adFlags";
+import { setAdLoggingOut } from "../utils/adFlags";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getOrCreateDeviceId } from "@/utils/device";
 

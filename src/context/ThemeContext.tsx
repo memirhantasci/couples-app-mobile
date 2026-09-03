@@ -15,7 +15,7 @@ const THEME_STORAGE_KEY = "@couples_app_theme_mode";
 interface ThemeContextValue {
   theme: AppTheme;
   themeMode: ThemeMode;
-  setThemeMode: (mode: ThemeMode) => Promise<void>;
+  setThemeMode: (mode: ThemeMode) => void;
   gender: "female" | "male";
   availableThemes: readonly AppTheme[];
   isLight: boolean;
@@ -24,7 +24,7 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue>({
   theme: FEMALE_CURRENT,
   themeMode: "current",
-  setThemeMode: async () => {},
+  setThemeMode: () => {},
   gender: "female",
   availableThemes: getAvailableThemes("female"),
   isLight: false,
@@ -71,19 +71,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setGlobalActiveTheme(gender, themeMode);
   }, [gender, themeMode]);
 
-  // Instant mode setter
+  // Instant mode setter (0ms, non-blocking)
   const setThemeMode = useCallback(
-    async (mode: ThemeMode) => {
+    (mode: ThemeMode) => {
       // 1. Instant React state update (0ms delay)
       setLocalThemeMode(mode);
       setGlobalActiveTheme(gender, mode);
 
-      // 2. Persist to storage in background
-      try {
-        await AsyncStorage.setItem(THEME_STORAGE_KEY, mode);
-      } catch (err) {
+      // 2. Persist to storage in background (fire-and-forget, never blocks JS thread)
+      AsyncStorage.setItem(THEME_STORAGE_KEY, mode).catch((err) => {
         console.error("Failed to save theme mode:", err);
-      }
+      });
     },
     [gender]
   );

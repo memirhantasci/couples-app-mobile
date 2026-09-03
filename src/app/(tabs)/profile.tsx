@@ -482,8 +482,8 @@ export default function ProfileScreen() {
                     <TouchableOpacity
                       key={t.id}
                       activeOpacity={0.82}
-                      onPress={async () => {
-                        await setThemeMode(t.id);
+                      onPress={() => {
+                        setThemeMode(t.id);
                       }}
                       style={[
                         styles.themeOptionCard,
@@ -703,15 +703,22 @@ export default function ProfileScreen() {
             theme={theme}
             defaultOpen={false}
           >
-            <Text style={styles.promoHintText}>
+            <Text style={[styles.promoHintText, { color: theme.textMuted }]}>
               Özel bir indirim veya hediye kodunuz varsa buraya girerek hesabınıza tanımlayabilirsiniz.
             </Text>
 
             <View style={styles.promoInputRow}>
               <TextInput
-                style={[styles.promoTextInput, { backgroundColor: theme.unitBg }]}
+                style={[
+                  styles.promoTextInput, 
+                  { 
+                    backgroundColor: theme.unitBg,
+                    color: theme.text,
+                    borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)"
+                  }
+                ]}
                 placeholder="HEDİYE KODU"
-                placeholderTextColor="rgba(255,255,255,0.3)"
+                placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.3)"}
                 value={promoCode}
                 onChangeText={setPromoCode}
                 autoCapitalize="characters"
@@ -740,7 +747,7 @@ export default function ProfileScreen() {
                 style={[styles.iosCodeBtn, { backgroundColor: theme.unitBg }]}
                 activeOpacity={0.8}
               >
-                <Text style={styles.iosCodeBtnText}>App Store Teklif Kodu Kullan 🍎</Text>
+                <Text style={[styles.iosCodeBtnText, { color: theme.textSecondary }]}>App Store Teklif Kodu Kullan 🍎</Text>
               </TouchableOpacity>
             )}
           </ModernSection>
@@ -752,17 +759,23 @@ export default function ProfileScreen() {
             theme={theme}
             defaultOpen={false}
           >
-            <Text style={styles.sessionHintText}>
+            <Text style={[styles.sessionHintText, { color: theme.textMuted }]}>
               Cihazınızdan güvenli bir şekilde çıkış yapın. Bildirim jetonlarınız temizlenecektir.
             </Text>
             
             <TouchableOpacity
               onPress={handleLogout}
-              style={[styles.logoutBtn, { backgroundColor: "rgba(255,255,255,0.06)" }]}
+              style={[
+                styles.logoutBtn, 
+                { 
+                  backgroundColor: isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)",
+                  borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.1)"
+                }
+              ]}
               activeOpacity={0.8}
             >
-              <LogOut size={16} color="rgba(255,255,255,0.85)" />
-              <Text style={styles.logoutBtnText}>Çıkış Yap</Text>
+              <LogOut size={16} color={theme.text} />
+              <Text style={[styles.logoutBtnText, { color: theme.text }]}>Çıkış Yap</Text>
             </TouchableOpacity>
           </ModernSection>
 
@@ -773,7 +786,7 @@ export default function ProfileScreen() {
             theme={theme}
             defaultOpen={false}
           >
-            <Text style={styles.sessionHintText}>
+            <Text style={[styles.sessionHintText, { color: theme.textMuted }]}>
               Verilerinizin güvenliği, gizliliğiniz ve mevzuat haklarınızla ilgili tüm yasal metinleri dilediğiniz zaman inceleyebilirsiniz.
             </Text>
 
@@ -814,9 +827,9 @@ export default function ProfileScreen() {
             theme={theme}
             defaultOpen={false}
           >
-            <View style={styles.dangerNoticeBox}>
+            <View style={[styles.dangerNoticeBox, isLight && { backgroundColor: "rgba(255, 77, 106, 0.08)", borderColor: "rgba(255, 77, 106, 0.25)" }]}>
               <Text style={styles.dangerNoticeTitle}>⚠️ KVKK md. 11 Kapsamında Veri İmhası</Text>
-              <Text style={styles.dangerNoticeText}>
+              <Text style={[styles.dangerNoticeText, { color: isLight ? "#991B1B" : "rgba(255,255,255,0.7)" }]}>
                 Unutulma hakkınız uyarınca hesabınızı sildiğinizde, ilişkinize ait tüm ortak fotoğraflar, şifreli mektuplar, günlükler ve veriler 7 günlük cayma süresi sonunda sunucularımızdan kalıcı olarak imha edilir.
               </Text>
             </View>

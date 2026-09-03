@@ -50,8 +50,8 @@ export function MeetingCountdown({ meeting, theme }: CountdownProps) {
         onPress={() => setShowModal(true)}
       >
         <Text style={{ fontSize: 28, marginBottom: 8 }}>🎉</Text>
-        <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: "#fff" }}>{title}</Text>
-        <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.45)", marginTop: 4 }}>
+        <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: theme.text }}>{title}</Text>
+        <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: theme.textMuted, marginTop: 4 }}>
           Buluşma gerçekleşti!
         </Text>
         <MeetingModal
@@ -141,31 +141,31 @@ function MeetingModal({
       <View style={styles.modalOverlay}>
         <View style={[styles.modalContent, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Buluşma Detayları</Text>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Buluşma Detayları</Text>
             <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>
-              <X color="rgba(255,255,255,0.5)" size={24} />
+              <X color={theme.textSecondary} size={24} />
             </TouchableOpacity>
           </View>
 
           <View style={{ gap: 16 }}>
             <View>
-              <Text style={styles.detailLabel}>Başlık</Text>
-              <Text style={styles.detailValue}>{meeting.title || "Buluşma"}</Text>
+              <Text style={[styles.detailLabel, { color: theme.textMuted }]}>Başlık</Text>
+              <Text style={[styles.detailValue, { color: theme.text }]}>{meeting.title || "Buluşma"}</Text>
             </View>
 
             <View>
-              <Text style={styles.detailLabel}>Tarih & Saat</Text>
-              <Text style={styles.detailValue}>{formattedDate}</Text>
+              <Text style={[styles.detailLabel, { color: theme.textMuted }]}>Tarih & Saat</Text>
+              <Text style={[styles.detailValue, { color: theme.text }]}>{formattedDate}</Text>
             </View>
 
             {meeting.location_name && (
               <View>
-                <Text style={styles.detailLabel}>Konum</Text>
+                <Text style={[styles.detailLabel, { color: theme.textMuted }]}>Konum</Text>
                 <View
                   style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}
                 >
                   <MapPin color={theme.accent} size={16} />
-                  <Text style={styles.detailValue}>{meeting.location_name}</Text>
+                  <Text style={[styles.detailValue, { color: theme.text }]}>{meeting.location_name}</Text>
                 </View>
               </View>
             )}

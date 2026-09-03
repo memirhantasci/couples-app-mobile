@@ -298,9 +298,9 @@ export default function MeetingsScreen() {
                         <Calendar size={13} color={theme.accent} />
                         <Text style={styles.timePillText}>{formattedDate}</Text>
                       </View>
-                      <View style={styles.timePill}>
+                      <View style={[styles.timePill, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.05)" }]}>
                         <Clock size={13} color={theme.accent} />
-                        <Text style={styles.timePillText}>{formattedTime}</Text>
+                        <Text style={[styles.timePillText, { color: theme.text }]}>{formattedTime}</Text>
                       </View>
                     </View>
 
@@ -308,7 +308,7 @@ export default function MeetingsScreen() {
                     {m.location_name ? (
                       <View style={styles.locationContainer}>
                         <MapPin color={theme.accent} size={14} />
-                        <Text style={styles.locationText} numberOfLines={1}>
+                        <Text style={[styles.locationText, { color: theme.textSecondary }]} numberOfLines={1}>
                           {m.location_name}
                         </Text>
                       </View>
@@ -342,10 +342,10 @@ export default function MeetingsScreen() {
                 );
               })
             ) : (
-              <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                <MapPin size={36} color="rgba(255,255,255,0.25)" />
-                <Text style={styles.emptyTitle}>Aktif Buluşma Yok</Text>
-                <Text style={styles.emptySub}>
+              <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+                <MapPin size={36} color={theme.textMuted} />
+                <Text style={[styles.emptyTitle, { color: theme.text }]}>Aktif Buluşma Yok</Text>
+                <Text style={[styles.emptySub, { color: theme.textSecondary }]}>
                   Birlikte romantik bir akşam yemeği veya kahve molası planlamak için hemen yeni bir buluşma oluşturun.
                 </Text>
                 <TouchableOpacity 
@@ -365,22 +365,22 @@ export default function MeetingsScreen() {
           {/* GEÇMİŞ BULUŞMALAR BÖLÜMÜ */}
           {pastMeetings.length > 0 && (
             <View style={styles.sectionBlock}>
-              <Text style={styles.sectionLabel}>GEÇMİŞ BULUŞMALAR</Text>
+              <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>GEÇMİŞ BULUŞMALAR</Text>
               {pastMeetings.map((m) => {
                 const formattedDate = dayjs(m.meeting_datetime).locale("tr").format("D MMMM YYYY");
 
                 return (
                   <View key={m.id} style={[styles.pastMeetingCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.pastCardTitle}>{m.title}</Text>
-                      <Text style={styles.pastCardDate}>{formattedDate}</Text>
+                      <Text style={[styles.pastCardTitle, { color: theme.text }]}>{m.title}</Text>
+                      <Text style={[styles.pastCardDate, { color: theme.textMuted }]}>{formattedDate}</Text>
                       {m.location_name ? (
-                        <Text style={styles.pastLocationText} numberOfLines={1}>
+                        <Text style={[styles.pastLocationText, { color: theme.textSecondary }]} numberOfLines={1}>
                           📍 {m.location_name}
                         </Text>
                       ) : null}
                     </View>
-                    <Check size={18} color="rgba(255,255,255,0.3)" />
+                    <Check size={18} color={theme.textMuted} />
                   </View>
                 );
               })}
@@ -394,20 +394,20 @@ export default function MeetingsScreen() {
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
             {/* Header */}
-            <View style={styles.modalHeader}>
+            <View style={[styles.modalHeader, { borderBottomColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <MapPin size={18} color={theme.accent} />
-                <Text style={styles.modalTitle}>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>
                   {editingMeetingId ? "Buluşmayı Düzenle" : "Yeni Buluşma Planla"}
                 </Text>
               </View>
 
               <TouchableOpacity 
                 onPress={handleCancelEdit}
-                style={styles.modalCloseBtn}
+                style={[styles.modalCloseBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <X size={18} color="#ffffff" />
+                <X size={18} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -420,11 +420,18 @@ export default function MeetingsScreen() {
             >
               {/* Buluşma Başlığı */}
               <View style={{ gap: 6 }}>
-                <Text style={styles.fieldLabel}>BULUŞMA BAŞLIĞI</Text>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>BULUŞMA BAŞLIĞI</Text>
                 <TextInput
-                  style={[styles.textInput, { backgroundColor: theme.unitBg }]}
+                  style={[
+                    styles.textInput, 
+                    { 
+                      backgroundColor: theme.unitBg,
+                      color: theme.text,
+                      borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                    }
+                  ]}
                   placeholder="Örn: Yıldönümü Yemeği, Kahve Randevusu..."
-                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.3)"}
                   value={title}
                   onChangeText={setTitle}
                   maxLength={60}
@@ -434,36 +441,54 @@ export default function MeetingsScreen() {
               {/* Tarih & Saat Seçicileri */}
               <View style={{ flexDirection: "row", gap: 10 }}>
                 <View style={{ flex: 1, gap: 6 }}>
-                  <Text style={styles.fieldLabel}>TARİH</Text>
+                  <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>TARİH</Text>
                   <TouchableOpacity 
-                    style={[styles.pickerBtn, { backgroundColor: theme.unitBg }]} 
+                    style={[
+                      styles.pickerBtn, 
+                      { 
+                        backgroundColor: theme.unitBg,
+                        borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                      }
+                    ]} 
                     onPress={() => setShowDatePicker(true)}
                   >
                     <Calendar size={14} color={theme.accent} />
-                    <Text style={styles.pickerBtnText}>{dayjs(meetingDate).format("DD.MM.YYYY")}</Text>
+                    <Text style={[styles.pickerBtnText, { color: theme.text }]}>{dayjs(meetingDate).format("DD.MM.YYYY")}</Text>
                   </TouchableOpacity>
                 </View>
 
                 <View style={{ flex: 1, gap: 6 }}>
-                  <Text style={styles.fieldLabel}>SAAT</Text>
+                  <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>SAAT</Text>
                   <TouchableOpacity 
-                    style={[styles.pickerBtn, { backgroundColor: theme.unitBg }]} 
+                    style={[
+                      styles.pickerBtn, 
+                      { 
+                        backgroundColor: theme.unitBg,
+                        borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                      }
+                    ]} 
                     onPress={() => setShowTimePicker(true)}
                   >
                     <Clock size={14} color={theme.accent} />
-                    <Text style={styles.pickerBtnText}>{dayjs(meetingDate).format("HH:mm")}</Text>
+                    <Text style={[styles.pickerBtnText, { color: theme.text }]}>{dayjs(meetingDate).format("HH:mm")}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
               {/* Konum Belirleme */}
               <View style={{ gap: 6 }}>
-                <Text style={styles.fieldLabel}>BULUŞMA YERİ / KONUM</Text>
-                <View style={styles.locationInputBox}>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>BULUŞMA YERİ / KONUM</Text>
+                <View style={[styles.locationInputBox, { backgroundColor: theme.unitBg, borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]}>
                   <TextInput
-                    style={[styles.locationTextInput, { backgroundColor: theme.unitBg }]}
+                    style={[
+                      styles.locationTextInput, 
+                      { 
+                        backgroundColor: theme.unitBg,
+                        color: theme.text,
+                      }
+                    ]}
                     placeholder="Buluşulacak mekan veya adres..."
-                    placeholderTextColor="rgba(255,255,255,0.3)"
+                    placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.3)"}
                     value={locationName}
                     onChangeText={setLocationName}
                   />

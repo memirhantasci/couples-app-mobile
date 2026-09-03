@@ -238,9 +238,9 @@ export default function MemoriesScreen() {
           <Skeleton height={150} borderRadius={16} />
         </View>
       ) : memories?.length === 0 ? (
-        <View style={styles.emptyBox}>
+        <View style={[styles.emptyBox, { borderColor: theme.cardBorder, backgroundColor: theme.cardBg }]}>
           <Text style={{ fontSize: 48 }}>📸</Text>
-          <Text style={styles.emptyText}>Henüz anı eklenmedi</Text>
+          <Text style={[styles.emptyText, { color: theme.textMuted }]}>Henüz anı eklenmedi</Text>
         </View>
       ) : (
         <View style={styles.timelineContainer}>

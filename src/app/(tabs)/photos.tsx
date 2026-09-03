@@ -170,16 +170,16 @@ export default function PhotosScreen() {
         </View>
 
         <View style={styles.grid2Details}>
-          <Text style={styles.grid2Date} numberOfLines={1}>
+          <Text style={[styles.grid2Date, { color: theme.textMuted }]} numberOfLines={1}>
             {dayjs(item.taken_date).locale("tr").format("D MMM YYYY")}
           </Text>
 
           {item.title ? (
-            <Text style={styles.grid2Title} numberOfLines={1}>
+            <Text style={[styles.grid2Title, { color: theme.text }]} numberOfLines={1}>
               {item.title}
             </Text>
           ) : (
-            <Text style={styles.grid2EmptySub}>Özel Hatıra ✨</Text>
+            <Text style={[styles.grid2EmptySub, { color: theme.textMuted }]}>Özel Hatıra ✨</Text>
           )}
         </View>
       </TouchableOpacity>
@@ -195,16 +195,16 @@ export default function PhotosScreen() {
       <View style={[styles.singleCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
         {/* Üst Bilgi Barı */}
         <View style={styles.singleHeader}>
-          <View style={styles.singleDateBadge}>
+          <View style={[styles.singleDateBadge, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)" }]}>
             <Calendar size={13} color={theme.accent} />
-            <Text style={styles.singleDateText}>
+            <Text style={[styles.singleDateText, { color: theme.text }]}>
               {dayjs(item.taken_date).locale("tr").format("DD MMMM YYYY")}
             </Text>
             {item.taken_time ? (
               <>
                 <Text style={styles.dotSeparator}>•</Text>
-                <Clock size={12} color="rgba(255,255,255,0.6)" />
-                <Text style={styles.singleTimeText}>{item.taken_time.substring(0, 5)}</Text>
+                <Clock size={12} color={theme.textMuted} />
+                <Text style={[styles.singleTimeText, { color: theme.textSecondary }]}>{item.taken_time.substring(0, 5)}</Text>
               </>
             ) : null}
           </View>
@@ -236,12 +236,12 @@ export default function PhotosScreen() {
         {hasInfo ? (
           <View style={styles.singleInfoBox}>
             {item.title ? (
-              <Text style={styles.singleTitle} numberOfLines={2}>
+              <Text style={[styles.singleTitle, { color: theme.text }]} numberOfLines={2}>
                 {item.title}
               </Text>
             ) : null}
             {item.description ? (
-              <Text style={styles.singleDescription}>
+              <Text style={[styles.singleDescription, { color: theme.textSecondary }]}>
                 {item.description}
               </Text>
             ) : null}
@@ -344,29 +344,29 @@ export default function PhotosScreen() {
               <Text style={styles.vipBadgeText}>VIP ÇİFT AYRICALIĞI</Text>
             </View>
 
-            <Text style={styles.luxuryLockTitle}>Ortak Galeri ve Anı Arşivi</Text>
-            <Text style={styles.luxuryLockDesc}>
+            <Text style={[styles.luxuryLockTitle, { color: theme.text }]}>Ortak Galeri ve Anı Arşivi</Text>
+            <Text style={[styles.luxuryLockDesc, { color: theme.textSecondary }]}>
               Birlikte çektiğiniz fotoğrafları ortak bir bulutta sınırsızca saklayın, tarihleriyle ölümsüzleştirin.
             </Text>
 
-            <View style={styles.perksList}>
+            <View style={[styles.perksList, { backgroundColor: isLight ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.03)", borderColor: theme.cardBorder }]}>
               <View style={styles.perkItem}>
                 <View style={styles.perkBullet}>
                   <Check size={12} color="#22c55e" strokeWidth={3} />
                 </View>
-                <Text style={styles.perkText}>Sınırsız yüksek kaliteli ortak fotoğraf yükleme</Text>
+                <Text style={[styles.perkText, { color: theme.text }]}>Sınırsız yüksek kaliteli ortak fotoğraf yükleme</Text>
               </View>
               <View style={styles.perkItem}>
                 <View style={styles.perkBullet}>
                   <Check size={12} color="#22c55e" strokeWidth={3} />
                 </View>
-                <Text style={styles.perkText}>3 farklı ızgara (Grid) görünümü ve tam ekran lightbox</Text>
+                <Text style={[styles.perkText, { color: theme.text }]}>3 farklı ızgara (Grid) görünümü ve tam ekran lightbox</Text>
               </View>
               <View style={styles.perkItem}>
                 <View style={styles.perkBullet}>
                   <Check size={12} color="#22c55e" strokeWidth={3} />
                 </View>
-                <Text style={styles.perkText}>Aşk takviminde fotoğraflı gün hatıraları</Text>
+                <Text style={[styles.perkText, { color: theme.text }]}>Aşk takviminde fotoğraflı gün hatıraları</Text>
               </View>
             </View>
 
@@ -420,10 +420,10 @@ export default function PhotosScreen() {
             }
           />
         ) : (
-          <View style={[styles.emptyBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View style={[styles.emptyBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
             <Text style={{ fontSize: 42, marginBottom: 12 }}>📸</Text>
-            <Text style={styles.emptyTitle}>Galeriniz Henüz Boş</Text>
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>Galeriniz Henüz Boş</Text>
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
               Birlikte geçirdiğiniz özel anları ölümsüzleştirmek için ilk fotoğrafınızı yükleyin.
             </Text>
             <TouchableOpacity 

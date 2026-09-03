@@ -239,14 +239,14 @@ export default function PeriodTrackerScreen() {
                   <View style={styles.perkBullet}>
                     <Check size={13} color="#22c55e" strokeWidth={3} />
                   </View>
-                  <Text style={styles.perkText}>Özel günleri ve tatil planlarını rahatça organize et</Text>
+                  <Text style={[styles.perkText, { color: theme.text }]}>Özel günleri ve tatil planlarını rahatça organize et</Text>
                 </View>
 
                 <View style={styles.perkItem}>
                   <View style={styles.perkBullet}>
                     <Check size={13} color="#22c55e" strokeWidth={3} />
                   </View>
-                  <Text style={styles.perkText}>Duygu durum değişimlerini önceden fark et ve anlayış göster</Text>
+                  <Text style={[styles.perkText, { color: theme.text }]}>Duygu durum değişimlerini önceden fark et ve anlayış göster</Text>
                 </View>
               </View>
 
@@ -352,12 +352,12 @@ export default function PeriodTrackerScreen() {
 
               {/* ─── GEÇMİŞ DÖNGÜ KAYITLARI ─── */}
               <View style={styles.pastRecordsSection}>
-                <Text style={styles.pastSectionTitle}>GEÇMİŞ KAYITLAR</Text>
+                <Text style={[styles.pastSectionTitle, { color: theme.textMuted }]}>GEÇMİŞ KAYITLAR</Text>
 
                 {!logs || logs.length === 0 ? (
-                  <View style={[styles.emptyBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                  <View style={[styles.emptyBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
                     <Text style={{ fontSize: 32, marginBottom: 8 }}>🌸</Text>
-                    <Text style={styles.emptyText}>Henüz kayıtlı bir döngü günü bulunmuyor.</Text>
+                    <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Henüz kayıtlı bir döngü günü bulunmuyor.</Text>
                   </View>
                 ) : (
                   <View style={{ gap: 10 }}>
@@ -370,8 +370,8 @@ export default function PeriodTrackerScreen() {
                               <Droplet size={18} color="#ff4d6a" />
                             </View>
                             <View>
-                              <Text style={styles.logDateText}>{logDate.locale("tr").format("DD MMMM YYYY")}</Text>
-                              <Text style={styles.logDayText}>{logDate.locale("tr").format("dddd")}</Text>
+                              <Text style={[styles.logDateText, { color: theme.text }]}>{logDate.locale("tr").format("DD MMMM YYYY")}</Text>
+                              <Text style={[styles.logDayText, { color: theme.textMuted }]}>{logDate.locale("tr").format("dddd")}</Text>
                             </View>
                           </View>
                           <View style={styles.logRightTag}>
@@ -396,11 +396,11 @@ export default function PeriodTrackerScreen() {
               <Droplet size={28} color="#ff4d6a" />
             </View>
 
-            <Text style={styles.modalDateTitle}>
+            <Text style={[styles.modalDateTitle, { color: theme.text }]}>
               {selectedDate ? dayjs(selectedDate).locale("tr").format("DD MMMM YYYY, dddd") : ""}
             </Text>
             
-            <Text style={styles.modalDescription}>
+            <Text style={[styles.modalDescription, { color: theme.textSecondary }]}>
               {isAdding 
                 ? "Bu günü regl başlangıcı olarak işaretlemek istiyor musunuz?" 
                 : "Bu tarihteki regl kaydını kaldırmak istiyor musunuz?"
@@ -409,11 +409,11 @@ export default function PeriodTrackerScreen() {
 
             <View style={styles.modalBtnRow}>
               <TouchableOpacity
-                style={[styles.modalCancelBtn, { backgroundColor: theme.unitBg }]}
+                style={[styles.modalCancelBtn, { backgroundColor: theme.unitBg, borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]}
                 disabled={loading}
                 onPress={() => setSelectedDate(null)}
               >
-                <Text style={styles.modalCancelBtnText}>Vazgeç</Text>
+                <Text style={[styles.modalCancelBtnText, { color: theme.textSecondary }]}>Vazgeç</Text>
               </TouchableOpacity>
               
               <TouchableOpacity

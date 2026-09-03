@@ -15,7 +15,7 @@ const interstitial = InterstitialAd.createForAdRequest(adUnitId, {
 let lastAdShowTime = 0;
 const AD_COOLDOWN_MS = 60 * 1000 * 2; // 2 minutes cooldown between interstitial ads
 
-import { setAdLoggingOut, getIsAdLoggingOut } from '@/lib/adFlags';
+import { setAdLoggingOut, getIsAdLoggingOut } from '../utils/adFlags';
 export { setAdLoggingOut, getIsAdLoggingOut };
 
 export function useInterstitialAd() {

@@ -333,25 +333,25 @@ export default function LettersScreen() {
               )}
             </View>
 
-            <Text style={styles.cardDate}>{relativeDate}</Text>
+            <Text style={[styles.cardDate, { color: theme.textMuted }]}>{relativeDate}</Text>
           </View>
 
           {/* Mektup Başlığı */}
-          <Text style={styles.cardTitle}>
+          <Text style={[styles.cardTitle, { color: theme.text }]}>
             {letter.title || "İsimsiz Mektup"}
           </Text>
 
           {/* Gönderen / Alıcı Bilgisi */}
           <View style={styles.personRow}>
-            <Mail size={13} color="rgba(255,255,255,0.5)" />
-            <Text style={styles.personText}>
+            <Mail size={13} color={theme.textMuted} />
+            <Text style={[styles.personText, { color: theme.textSecondary }]}>
               {itemType === "received" ? `Gönderen: ${personName}` : `Alıcı: ${personName}`}
             </Text>
           </View>
 
           {/* Kapalı Durumdaki İpucu */}
           {!isOpen && (
-            <Text style={styles.previewText} numberOfLines={2}>
+            <Text style={[styles.previewText, { color: theme.textSecondary }]} numberOfLines={2}>
               {(!canOpen && itemType === "received") 
                 ? "🔒 Bu mektup zaman kilidiyle koruma altında. Açılış gününde içeriği görebileceksin..." 
                 : (letter.content || "Mektup içeriği bulunamadı.")}
@@ -360,9 +360,9 @@ export default function LettersScreen() {
 
           {/* Açık Durumdaki Tam Mektup */}
           {canOpen && isOpen && (
-            <View style={styles.letterContentBox}>
-              <Text style={styles.letterContentText}>{letter.content}</Text>
-              <Text style={styles.letterFooterNote}>
+            <View style={[styles.letterContentBox, { borderTopColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}>
+              <Text style={[styles.letterContentText, { color: theme.text }]}>{letter.content}</Text>
+              <Text style={[styles.letterFooterNote, { color: theme.textMuted }]}>
                 {unlockDateStr ? `Açılış Zamanı: ${dayjs(unlockDateStr).locale("tr").format("DD MMMM YYYY")}` : ""}
               </Text>
             </View>
@@ -479,16 +479,16 @@ export default function LettersScreen() {
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
-              <View style={[styles.emptyCard, { backgroundColor: theme.cardBg }]}>
+              <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
                 <Text style={{ fontSize: 38, marginBottom: 12 }}>📮</Text>
-                <Text style={styles.emptyTitle}>
+                <Text style={[styles.emptyTitle, { color: theme.text }]}>
                   {activeTab === "received" 
                     ? "Henüz Mektubun Yok" 
                     : activeTab === "sent" 
                     ? "Henüz Mektup Göndermedin" 
                     : "Henüz Mektup Bulunmuyor"}
                 </Text>
-                <Text style={styles.emptySubtitle}>
+                <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
                   {activeTab === "received" 
                     ? "Partnerin sana henüz bir zaman mektubu mühürlememiş. İlk adımı sen atabilirsin!" 
                     : "Sevdiğine duygularını anlatan, zamanda yolculuk yapacak bir mektup yazmaya ne dersin?"}
@@ -535,18 +535,18 @@ export default function LettersScreen() {
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
             {/* Modal Başlık Çubuğu */}
-            <View style={styles.modalHeader}>
+            <View style={[styles.modalHeader, { borderBottomColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <PenLine size={20} color={theme.accent} />
-                <Text style={styles.modalHeaderTitle}>Mektup Mühürle</Text>
+                <Text style={[styles.modalHeaderTitle, { color: theme.text }]}>Mektup Mühürle</Text>
               </View>
 
               <TouchableOpacity 
                 onPress={() => setShowWriteModal(false)}
-                style={styles.modalCloseBtn}
+                style={[styles.modalCloseBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <X size={18} color="#ffffff" />
+                <X size={18} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -562,7 +562,7 @@ export default function LettersScreen() {
             >
                 {/* KİME ALANI */}
                 <View>
-                  <Text style={[styles.fieldLabel, errors.receiver && { color: "#ff5c77" }]}>
+                  <Text style={[styles.fieldLabel, { color: theme.textSecondary }, errors.receiver && { color: "#ff5c77" }]}>
                     KİME GÖNDERİLECEK *
                   </Text>
                   <View style={styles.usersSelectorRow}>
@@ -573,7 +573,10 @@ export default function LettersScreen() {
                           key={u.id}
                           style={[
                             styles.userPillBtn,
-                            { backgroundColor: theme.unitBg },
+                            { 
+                              backgroundColor: theme.unitBg,
+                              borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                            },
                             isSelected && { 
                               borderColor: theme.accent, 
                               backgroundColor: theme.pillAccentBg,
@@ -585,11 +588,12 @@ export default function LettersScreen() {
                             setErrors(prev => ({ ...prev, receiver: false }));
                           }}
                         >
-                          <UserCheck size={16} color={isSelected ? theme.accent : "rgba(255,255,255,0.6)"} />
+                          <UserCheck size={16} color={isSelected ? theme.accent : theme.textMuted} />
                           <Text 
                             style={[
                               styles.userPillText, 
-                              isSelected && { color: "#ffffff", fontFamily: "Inter_700Bold" }
+                              { color: isSelected ? theme.accent : theme.textSecondary },
+                              isSelected && { fontFamily: "Inter_700Bold" }
                             ]}
                           >
                             {u.display_name || u.username}
@@ -599,7 +603,7 @@ export default function LettersScreen() {
                     })}
                     {(!users || users.length === 0) && (
                       <View style={[styles.userPillBtn, { backgroundColor: theme.unitBg, flex: 1 }]}>
-                        <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>
+                        <Text style={{ color: theme.textMuted, fontSize: 13 }}>
                           Partnerin henüz eşleşmemiş
                         </Text>
                       </View>
@@ -610,25 +614,31 @@ export default function LettersScreen() {
                 {/* AÇILIŞ TARİHİ (KİLİT) */}
                 <View>
                   <View style={styles.fieldLabelRow}>
-                    <Text style={styles.fieldLabel}>KİLİT AÇILMA TARİHİ *</Text>
-                    <View style={styles.lockHintPill}>
+                    <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>KİLİT AÇILMA TARİHİ *</Text>
+                    <View style={[styles.lockHintPill, { backgroundColor: theme.pillAccentBg }]}>
                       <LockKeyhole size={11} color={theme.accent} />
                       <Text style={[styles.lockHintText, { color: theme.accent }]}>Zaman Kilidi</Text>
                     </View>
                   </View>
 
                   <TouchableOpacity
-                    style={[styles.dateSelectorBtn, { backgroundColor: theme.unitBg }]}
+                    style={[
+                      styles.dateSelectorBtn, 
+                      { 
+                        backgroundColor: theme.unitBg,
+                        borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                      }
+                    ]}
                     onPress={() => setShowDatePicker(true)}
                     activeOpacity={0.8}
                   >
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                       <CalendarIcon size={18} color={theme.accent} />
-                      <Text style={styles.dateSelectorText}>
+                      <Text style={[styles.dateSelectorText, { color: theme.text }]}>
                         {dayjs(unlockDate).locale("tr").format("DD MMMM YYYY, dddd")}
                       </Text>
                     </View>
-                    <ChevronRight size={16} color="rgba(255,255,255,0.4)" />
+                    <ChevronRight size={16} color={theme.textMuted} />
                   </TouchableOpacity>
 
                   {showDatePicker && (
@@ -649,13 +659,17 @@ export default function LettersScreen() {
 
                 {/* MEKTUP BAŞLIĞI */}
                 <View>
-                  <Text style={[styles.fieldLabel, errors.title && { color: "#ff5c77" }]}>
+                  <Text style={[styles.fieldLabel, { color: theme.textSecondary }, errors.title && { color: "#ff5c77" }]}>
                     MEKTUP BAŞLIĞI *
                   </Text>
                   <TextInput
                     style={[
                       styles.inputField, 
-                      { backgroundColor: theme.unitBg },
+                      { 
+                        backgroundColor: theme.unitBg,
+                        color: theme.text,
+                        borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                      },
                       errors.title && styles.inputError
                     ]}
                     value={title}
@@ -664,20 +678,24 @@ export default function LettersScreen() {
                       setErrors(prev => ({ ...prev, title: false }));
                     }}
                     placeholder="Örn: 1. Yılımızda Açılacak Özel Bir Not..."
-                    placeholderTextColor="rgba(255,255,255,0.3)"
+                    placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.3)"}
                   />
                 </View>
 
                 {/* MEKTUP İÇERİĞİ */}
                 <View>
-                  <Text style={[styles.fieldLabel, errors.content && { color: "#ff5c77" }]}>
+                  <Text style={[styles.fieldLabel, { color: theme.textSecondary }, errors.content && { color: "#ff5c77" }]}>
                     MEKTUP İÇERİĞİ *
                   </Text>
                   <TextInput
                     style={[
                       styles.inputField, 
                       styles.textAreaField, 
-                      { backgroundColor: theme.unitBg },
+                      { 
+                        backgroundColor: theme.unitBg,
+                        color: theme.text,
+                        borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                      },
                       errors.content && styles.inputError
                     ]}
                     value={content}
@@ -686,7 +704,7 @@ export default function LettersScreen() {
                       setErrors(prev => ({ ...prev, content: false }));
                     }}
                     placeholder="Yüreğinden geçenleri dök... Gelecekte sevdiğinin okumasını istediğin en özel satırlar..."
-                    placeholderTextColor="rgba(255,255,255,0.3)"
+                    placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.3)"}
                     multiline
                     numberOfLines={6}
                   />
@@ -714,7 +732,7 @@ export default function LettersScreen() {
                 </TouchableOpacity>
 
                 {!isPremium && (
-                  <Text style={styles.tokenNoticeText}>
+                  <Text style={[styles.tokenNoticeText, { color: theme.textMuted }]}>
                     * Premium olmayan üyeler için 100 Token karşılığında mühürlenir. (Mevcut bakiyeniz: {tokenBalance} Token)
                   </Text>
                 )}

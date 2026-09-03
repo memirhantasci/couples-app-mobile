@@ -547,9 +547,9 @@ export default function CalendarScreen() {
               {/* Boş Durum */}
               {selectedDayNotes.length === 0 && selectedDayMoods.length === 0 && selectedDayPhotos.length === 0 && (
                 <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                  <CalendarIcon size={32} color="rgba(255,255,255,0.2)" />
-                  <Text style={styles.emptyCardTitle}>Henüz Kayıt Yok</Text>
-                  <Text style={styles.emptyCardSub}>
+                  <CalendarIcon size={32} color={theme.textMuted} />
+                  <Text style={[styles.emptyCardTitle, { color: theme.text }]}>Henüz Kayıt Yok</Text>
+                  <Text style={[styles.emptyCardSub, { color: theme.textSecondary }]}>
                     Bu güne ait henüz bir not, ruh hali veya fotoğraf bulunmuyor.
                   </Text>
                   <TouchableOpacity 
@@ -574,17 +574,17 @@ export default function CalendarScreen() {
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <FileText size={18} color={theme.accent} />
-                <Text style={styles.modalTitle}>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>
                   {userNoteForSelectedDay ? "Günün Notunu Düzenle" : "Güne Not Ekle"}
                 </Text>
               </View>
 
               <TouchableOpacity 
                 onPress={() => setShowNoteModal(false)}
-                style={styles.modalCloseBtn}
+                style={[styles.modalCloseBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <X size={18} color="#ffffff" />
+                <X size={18} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -595,21 +595,28 @@ export default function CalendarScreen() {
               extraScrollHeight={130}
               keyboardShouldPersistTaps="handled"
             >
-              <Text style={styles.modalDateText}>
+              <Text style={[styles.modalDateText, { color: theme.textMuted }]}>
                 {dayjs(selectedDate).format("D MMMM YYYY, dddd")}
               </Text>
 
               <TextInput
-                style={[styles.modalTextInput, { backgroundColor: theme.unitBg }]}
+                style={[
+                  styles.modalTextInput, 
+                  { 
+                    backgroundColor: theme.unitBg, 
+                    color: theme.text,
+                    borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                  }
+                ]}
                 multiline
                 maxLength={1000}
                 value={noteText}
                 onChangeText={setNoteText}
                 placeholder="Bugünle ilgili küçük bir hatıra veya not bırak..."
-                placeholderTextColor="rgba(255,255,255,0.3)"
+                placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.3)"}
               />
 
-              <Text style={styles.modalCharCount}>
+              <Text style={[styles.modalCharCount, { color: theme.textMuted }]}>
                 {noteText.length} / 1000 karakter
               </Text>
 
@@ -628,9 +635,9 @@ export default function CalendarScreen() {
 
                 <TouchableOpacity 
                   onPress={() => setShowNoteModal(false)}
-                  style={styles.modalCancelBtn}
+                  style={[styles.modalCancelBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}
                 >
-                  <Text style={styles.modalCancelBtnText}>Vazgeç</Text>
+                  <Text style={[styles.modalCancelBtnText, { color: theme.textSecondary }]}>Vazgeç</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity 

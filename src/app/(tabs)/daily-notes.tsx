@@ -267,10 +267,10 @@ export default function DailyNotesScreen() {
               />
             }
             ListEmptyComponent={
-              <View style={[styles.emptyCard, { backgroundColor: theme.cardBg }]}>
+              <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
                 <Text style={{ fontSize: 40, marginBottom: 12 }}>📓</Text>
-                <Text style={styles.emptyTitle}>Henüz Günlük Yazmadın</Text>
-                <Text style={styles.emptySubtitle}>
+                <Text style={[styles.emptyTitle, { color: theme.text }]}>Henüz Günlük Yazmadın</Text>
+                <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
                   Bugün hissettiklerini, sevgilinle geçirdiğin güzel bir anı veya sadece aklından geçenleri buraya kaydederek başlayabilirsin.
                 </Text>
                 <TouchableOpacity 
@@ -290,18 +290,18 @@ export default function DailyNotesScreen() {
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
             {/* Modal Header */}
-            <View style={styles.modalHeader}>
+            <View style={[styles.modalHeader, { borderBottomColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Edit3 size={18} color={theme.accent} />
-                <Text style={styles.modalTitle}>Günlüğü Düzenle</Text>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Günlüğü Düzenle</Text>
               </View>
 
               <TouchableOpacity 
                 onPress={() => setEditingNote(null)}
-                style={styles.modalCloseBtn}
+                style={[styles.modalCloseBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <X size={18} color="#ffffff" />
+                <X size={18} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -315,7 +315,11 @@ export default function DailyNotesScreen() {
               <TextInput
                 style={[
                   styles.modalTextInput,
-                  { backgroundColor: theme.unitBg },
+                  { 
+                    backgroundColor: theme.unitBg,
+                    color: theme.text,
+                    borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                  },
                   editError && styles.modalInputError
                 ]}
                 multiline
@@ -326,19 +330,19 @@ export default function DailyNotesScreen() {
                   setEditError(false);
                 }}
                 placeholder="Günlüğünüz..."
-                placeholderTextColor="rgba(255,255,255,0.3)"
+                placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.3)"}
               />
 
-              <Text style={{ alignSelf: "flex-end", fontSize: 11.5, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.4)", marginRight: 4 }}>
+              <Text style={{ alignSelf: "flex-end", fontSize: 11.5, fontFamily: "Inter_400Regular", color: theme.textMuted, marginRight: 4 }}>
                 {editContent.length} / 4000 harf
               </Text>
 
               <View style={styles.modalActionsRow}>
                 <TouchableOpacity 
                   onPress={() => setEditingNote(null)}
-                  style={styles.modalCancelBtn}
+                  style={[styles.modalCancelBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)" }]}
                 >
-                  <Text style={styles.modalCancelBtnText}>İptal</Text>
+                  <Text style={[styles.modalCancelBtnText, { color: theme.textSecondary }]}>İptal</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity 
