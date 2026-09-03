@@ -73,7 +73,7 @@ export const ALL_TAB_DEFINITIONS: TabItemDefinition[] = [
     key: "daily-notes",
     label: "Günlük",
     Icon: BookOpen,
-    description: "Partnerine bırakabileceğin günlük mini notlar",
+    description: "Sana özel, şifreli kişisel not defterin",
   },
   {
     key: "meetings",
