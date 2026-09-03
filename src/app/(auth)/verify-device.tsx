@@ -21,16 +21,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const OTP_LENGTH = 6;
 
-function maskEmail(email: string) {
-  if (!email) return "";
-  const [localPart, domain] = email.split("@");
-  if (!domain) return email;
-  if (localPart.length <= 2) return `${localPart}***@${domain}`;
-  const firstLetter = localPart[0];
-  const lastLetter = localPart[localPart.length - 1];
-  return `${firstLetter}***${lastLetter}@${domain}`;
-}
-
 export default function VerifyDeviceScreen() {
   const { userId, deviceId, email } = useLocalSearchParams<{
     userId: string;
@@ -38,13 +28,14 @@ export default function VerifyDeviceScreen() {
     email?: string;
   }>();
 
+  const { refreshProfile, setIsDeviceAuthorized, session } = useAuth();
+  const targetEmail = email || session?.user?.email || "";
+
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [focusedIndex, setFocusedIndex] = useState<number>(0);
   const inputRefs = useRef<(TextInput | null)[]>([]);
-  
-  const { refreshProfile, setIsDeviceAuthorized } = useAuth();
 
   useEffect(() => {
     const handleBackAction = () => {
@@ -90,7 +81,7 @@ export default function VerifyDeviceScreen() {
     setErrorMsg("");
     
     try {
-      if (!email) {
+      if (!targetEmail) {
         setErrorMsg("E-posta adresi bulunamadı.");
         setIsLoading(false);
         return;
@@ -98,7 +89,7 @@ export default function VerifyDeviceScreen() {
 
       // Verify the OTP using Supabase's native auth system
       const { data, error: otpError } = await supabase.auth.verifyOtp({
-        email,
+        email: targetEmail,
         token: code,
         type: "email",
       });
@@ -204,12 +195,23 @@ export default function VerifyDeviceScreen() {
             
             <Text
               style={{
-                color: "rgba(255,255,255,0.6)",
+                color: "rgba(255,255,255,0.65)",
                 fontSize: 15,
                 textAlign: "center",
+                lineHeight: 22,
+                paddingHorizontal: 12,
               }}
             >
-              {email ? `${maskEmail(email)} adresine kod gönderdik` : "E-posta adresine kod gönderdik"}
+              {targetEmail ? (
+                <>
+                  <Text style={{ color: "#FFFFFF", fontFamily: "Inter_600SemiBold" }}>
+                    {targetEmail}
+                  </Text>
+                  {" adresine kod gönderdik"}
+                </>
+              ) : (
+                "E-posta adresinize kod gönderdik"
+              )}
             </Text>
           </View>
 

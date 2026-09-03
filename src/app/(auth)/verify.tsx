@@ -21,16 +21,6 @@ import { decrypt } from "@/utils/crypto";
 
 const OTP_LENGTH = 6;
 
-function maskEmail(email: string) {
-  if (!email) return "";
-  const [localPart, domain] = email.split("@");
-  if (!domain) return email;
-  if (localPart.length <= 2) return `${localPart}***@${domain}`;
-  const firstLetter = localPart[0];
-  const lastLetter = localPart[localPart.length - 1];
-  return `${firstLetter}***${lastLetter}@${domain}`;
-}
-
 export default function VerifyScreen() {
   const params = useLocalSearchParams<{
     email?: string;
@@ -258,12 +248,23 @@ export default function VerifyScreen() {
             
             <Text
               style={{
-                color: "rgba(255,255,255,0.6)",
+                color: "rgba(255,255,255,0.65)",
                 fontSize: 15,
                 textAlign: "center",
+                lineHeight: 22,
+                paddingHorizontal: 12,
               }}
             >
-              {params.email ? `${maskEmail(params.email)} adresine kod gönderdik` : "E-posta adresine kod gönderdik"}
+              {params.email ? (
+                <>
+                  <Text style={{ color: "#FFFFFF", fontFamily: "Inter_600SemiBold" }}>
+                    {params.email}
+                  </Text>
+                  {" adresine kod gönderdik"}
+                </>
+              ) : (
+                "E-posta adresinize kod gönderdik"
+              )}
             </Text>
           </View>
 

@@ -37,7 +37,13 @@ export function useProtectedRoute() {
       // If the device is not authorized for this user, force them to verify-device screen
       if (isDeviceAuthorized === false) {
         if (!currentRoute.includes("verify-device")) {
-          router.replace("/(auth)/verify-device");
+          router.replace({
+            pathname: "/(auth)/verify-device",
+            params: {
+              userId: session.user.id,
+              email: session.user.email || "",
+            },
+          });
         }
         return;
       }

@@ -192,9 +192,7 @@ export default function LoginScreen() {
       const isAuthorized = (lastUserId === userId) && !authError && !!auths?.is_authorized;
 
       if (!isAuthorized) {
-        setIsDeviceAuthorized(false);
-
-        // Send OTP email
+        // Send OTP email while spinner is active on the login button
         const { error: otpError } = await supabase.auth.signInWithOtp({
           email: emailToUse,
         });
@@ -205,11 +203,12 @@ export default function LoginScreen() {
           return;
         }
 
-        // Direct, instant transition to verify-device without flashing home or login
+        // Direct, instant transition to verify-device with full params before triggering route protection
         router.replace({
           pathname: "/(auth)/verify-device",
           params: { userId, deviceId, email: emailToUse },
         });
+        setIsDeviceAuthorized(false);
         return;
       }
 
