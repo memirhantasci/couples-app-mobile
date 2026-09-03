@@ -3,7 +3,7 @@ import { useRouter, useSegments, useRootNavigationState } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 
 export function useProtectedRoute() {
-  const { session, isLoading, profile } = useAuth();
+  const { session, isLoading, profile, isDeviceAuthorized } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const navigationState = useRootNavigationState();
@@ -17,6 +17,9 @@ export function useProtectedRoute() {
     const inSetupGroup = segments[0] === "(setup)";
     const currentRoute = segments.join("/");
 
+    // Verification screens (email confirmation or device OTP verification)
+    const isVerifying = currentRoute.includes("verify-device") || currentRoute.includes("verify");
+
     if (!session) {
       // 1. Unauthenticated users (Guests)
       // They can only access (auth) routes like login, register, reset-password, verify
@@ -25,16 +28,31 @@ export function useProtectedRoute() {
       }
     } else {
       // 2. Authenticated Users
-      
-      // Prevent authenticated users from going back to login/auth pages
-      // unless they are explicitly logging out (handled by logout logic elsewhere).
-      // If they land on auth screens, push them back to the app flow.
+
+      // If device authorization check is still resolving, don't redirect anywhere yet
+      if (isDeviceAuthorized === null) {
+        return;
+      }
+
+      // If the device is not authorized for this user, force them to verify-device screen
+      if (isDeviceAuthorized === false) {
+        if (!currentRoute.includes("verify-device")) {
+          router.replace("/(auth)/verify-device");
+        }
+        return;
+      }
+
+      // If user is currently on verification screen, let them stay and finish it
+      if (isVerifying) {
+        return;
+      }
+
+      // Prevent authorized users from going back to login/auth pages
       const isTryingToAccessAuth = inAuthGroup;
 
       if (!profile?.isPaired) {
         // Role: Paired yet? NO
         // They must complete the pairing step.
-        // We only allow them on the pairing screen.
         if (!currentRoute.includes("pairing")) {
           router.replace("/(setup)/pairing");
         }
@@ -46,7 +64,6 @@ export function useProtectedRoute() {
         }
       } else {
         // Role: Fully setup user.
-        // They can access main app routes (/(tabs), /memories, etc.)
         // Prevent them from going to setup screens or auth screens unnecessarily.
         if (isTryingToAccessAuth || inSetupGroup) {
           // Send them to the main home tab
@@ -54,5 +71,5 @@ export function useProtectedRoute() {
         }
       }
     }
-  }, [session, isLoading, profile, segments, navigationState?.key]);
+  }, [session, isLoading, profile, isDeviceAuthorized, segments, navigationState?.key]);
 }

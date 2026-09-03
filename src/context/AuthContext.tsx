@@ -6,6 +6,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import { decrypt } from "@/utils/crypto";
 import { setAdLoggingOut } from "@/hooks/useInterstitialAd";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getOrCreateDeviceId } from "@/utils/device";
 
 const CACHED_PROFILE_KEY = "@couples_app_cached_profile";
 
@@ -25,6 +26,9 @@ interface AuthContextValue {
   session: Session | null;
   isLoading: boolean;
   profile: CoupleProfile | null;
+  isDeviceAuthorized: boolean | null;
+  setIsDeviceAuthorized: (val: boolean | null) => void;
+  checkDeviceAuth: (userId: string) => Promise<boolean>;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -33,6 +37,9 @@ const AuthContext = createContext<AuthContextValue>({
   session: null,
   isLoading: true,
   profile: null,
+  isDeviceAuthorized: null,
+  setIsDeviceAuthorized: () => { },
+  checkDeviceAuth: async () => false,
   refreshProfile: async () => { },
   signOut: async () => { },
 });
@@ -110,6 +117,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<CoupleProfile | null>(null);
+  const [isDeviceAuthorized, setIsDeviceAuthorized] = useState<boolean | null>(null);
+
+  const checkDeviceAuth = useCallback(async (userId: string): Promise<boolean> => {
+    try {
+      const deviceId = await getOrCreateDeviceId();
+      const lastUserId = await AsyncStorage.getItem("last_user_id");
+
+      const { data: auths, error } = await supabase
+        .from("device_authorizations")
+        .select("is_authorized")
+        .eq("user_id", userId)
+        .eq("device_id", deviceId)
+        .maybeSingle();
+
+      const isAuth = (lastUserId === userId) && !error && !!auths?.is_authorized;
+      setIsDeviceAuthorized(isAuth);
+      return isAuth;
+    } catch {
+      setIsDeviceAuthorized(false);
+      return false;
+    }
+  }, []);
 
   useEffect(() => {
     // Background initialization
@@ -123,26 +152,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // 2. Resolve Supabase session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // 2. Resolve Supabase session & check device authorization
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
-      if (!session) setIsLoading(false);
+      if (!session) {
+        setIsLoading(false);
+        setIsDeviceAuthorized(null);
+      } else {
+        await checkDeviceAuth(session.user.id);
+      }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
       if (!session) {
         setProfile(null);
+        setIsDeviceAuthorized(null);
         AsyncStorage.removeItem(CACHED_PROFILE_KEY).catch(() => {});
         setIsLoading(false);
         RevenueCatService.logOut();
       } else {
         setAdLoggingOut(false);
+        if (event === "SIGNED_IN") {
+          await checkDeviceAuth(session.user.id);
+        }
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [checkDeviceAuth]);
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -215,7 +253,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ session, isLoading, profile, refreshProfile, signOut }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        isLoading,
+        profile,
+        isDeviceAuthorized,
+        setIsDeviceAuthorized,
+        checkDeviceAuth,
+        refreshProfile,
+        signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

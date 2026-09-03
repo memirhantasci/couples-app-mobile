@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  BackHandler,
 } from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { LinearGradient } from "expo-linear-gradient";
@@ -43,7 +44,20 @@ export default function VerifyDeviceScreen() {
   const [focusedIndex, setFocusedIndex] = useState<number>(0);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   
-  const { refreshProfile } = useAuth();
+  const { refreshProfile, setIsDeviceAuthorized } = useAuth();
+
+  useEffect(() => {
+    const handleBackAction = () => {
+      supabase.auth.signOut().then(() => {
+        setIsDeviceAuthorized(null);
+        router.replace("/(auth)/login");
+      });
+      return true;
+    };
+
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", handleBackAction);
+    return () => backHandler.remove();
+  }, [setIsDeviceAuthorized]);
 
   function handleDigitChange(value: string, index: number) {
     const digit = value.replace(/[^0-9]/g, "").slice(-1);
@@ -120,12 +134,19 @@ export default function VerifyDeviceScreen() {
       }
 
       await AsyncStorage.setItem("last_user_id", userId);
+      setIsDeviceAuthorized(true);
       await refreshProfile();
       router.replace("/(tabs)/home");
     } catch (e: any) {
       setErrorMsg("Beklenmedik bir hata oluştu.");
       setIsLoading(false);
     }
+  };
+
+  const handleBack = async () => {
+    await supabase.auth.signOut();
+    setIsDeviceAuthorized(null);
+    router.replace("/(auth)/login");
   };
 
   return (
@@ -137,7 +158,7 @@ export default function VerifyDeviceScreen() {
         <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 60, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
           
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={handleBack}
             style={{
               width: 42,
               height: 42,

@@ -25,20 +25,10 @@ import {
   AtSign, Lock, User, Mail, 
   AlertCircle, CheckCircle2, ArrowRight, Check 
 } from "lucide-react-native";
+import { getOrCreateDeviceId } from "@/utils/device";
 import { LegalModal } from "@/components/legal/LegalModal";
 import { LegalDocType } from "@/constants/legalTexts";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function generateUUID() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    var r = (Math.random() * 16) | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
-
-
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
@@ -46,6 +36,7 @@ type Mode = "login" | "register";
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
+  const { setIsDeviceAuthorized } = useAuth();
   const [mode, setMode] = useState<"login" | "register">("login");
 
   // Login fields
@@ -188,18 +179,9 @@ export default function LoginScreen() {
 
       // --- Device Verification ---
       const userId = data.user.id;
-      
-      // 1. Get or generate a persistent device ID for this installation
-      let deviceId = await AsyncStorage.getItem("device_id");
-      if (!deviceId) {
-        deviceId = generateUUID();
-        await AsyncStorage.setItem("device_id", deviceId);
-      }
-
-      // 2. Check last logged in user on this device
+      const deviceId = await getOrCreateDeviceId();
       const lastUserId = await AsyncStorage.getItem("last_user_id");
 
-      // 3. Check if this device is authorized for this user
       const { data: auths, error: authError } = await supabase
         .from("device_authorizations")
         .select("is_authorized")
@@ -207,33 +189,33 @@ export default function LoginScreen() {
         .eq("device_id", deviceId)
         .maybeSingle();
 
-      // If the account on the device changed, or it's not authorized, force OTP
-      if (lastUserId !== userId || authError || !auths || !auths.is_authorized) {
+      const isAuthorized = (lastUserId === userId) && !authError && !!auths?.is_authorized;
+
+      if (!isAuthorized) {
+        setIsDeviceAuthorized(false);
+
         // Send OTP email
         const { error: otpError } = await supabase.auth.signInWithOtp({
           email: emailToUse,
         });
 
         if (otpError) {
-          setErrorMsg("Cihaz doğrulama kodu gönderilemedi.");
+          setErrorMsg("Cihaz doğrulama kodu gönderilemedi: " + otpError.message);
           setIsLoading(false);
           return;
         }
 
-        // Prevent useProtectedRoute from redirecting to home by signing out.
-        // The user will sign back in fully upon verifying the OTP in verify-device.tsx
-        await supabase.auth.signOut();
-
-        setSuccessMsg("Yeni cihaz algılandı. Doğrulama kodu gönderildi.");
-        setTimeout(() => {
-          router.push({
-            pathname: "/(auth)/verify-device",
-            params: { userId, deviceId, email: emailToUse },
-          });
-        }, 1500);
+        // Direct, instant transition to verify-device without flashing home or login
+        router.replace({
+          pathname: "/(auth)/verify-device",
+          params: { userId, deviceId, email: emailToUse },
+        });
         return;
       }
 
+      // Device is authorized!
+      setIsDeviceAuthorized(true);
+      await AsyncStorage.setItem("last_user_id", userId);
       setLoginAttempts(0);
       setLockedUntil(null);
     } catch (e: any) {
@@ -357,11 +339,7 @@ export default function LoginScreen() {
         return;
       }
 
-      let deviceId = await AsyncStorage.getItem("device_id");
-      if (!deviceId) {
-        deviceId = generateUUID();
-        await AsyncStorage.setItem("device_id", deviceId);
-      }
+      const deviceId = await getOrCreateDeviceId();
 
       await supabase.from("device_authorizations").upsert({
         user_id: data.user.id,
@@ -370,6 +348,7 @@ export default function LoginScreen() {
       });
 
       await AsyncStorage.setItem("last_user_id", data.user.id);
+      setIsDeviceAuthorized(true);
     } catch (e: any) {
       setErrorMsg("Beklenmedik bir hata oluştu.");
     } finally {
