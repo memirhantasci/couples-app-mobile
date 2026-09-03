@@ -38,6 +38,7 @@ import {
   ChevronRight,
   Maximize2,
   ZoomIn,
+  AlignJustify,
 } from "lucide-react-native";
 import * as Location from "expo-location";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -602,6 +603,21 @@ export default function MapScreen() {
               ) : (
                 <Navigation size={16} color={theme.accent} />
               )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.topActionBtn,
+                {
+                  backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.1)",
+                  borderColor: isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.15)",
+                },
+              ]}
+              onPress={() => router.push("/menu")}
+              activeOpacity={0.8}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <AlignJustify size={16} color={theme.accent} />
             </TouchableOpacity>
           </View>
         </View>

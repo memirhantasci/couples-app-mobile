@@ -199,15 +199,30 @@ export default function MenuScreen() {
 
             <TouchableOpacity 
               style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
-              onPress={() => handleRoute("/(tabs)/meetings")}
+              onPress={() => handleRoute("/(tabs)/map")}
               activeOpacity={0.8}
             >
               <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
                 <MapPin color={theme.accent} size={18} />
               </View>
               <View style={styles.menuTextContainer}>
-                <Text style={styles.menuTitle}>Buluşmalar & Harita</Text>
-                <Text style={styles.menuSub}>Konum seçimi ve buluşma planları</Text>
+                <Text style={styles.menuTitle}>Aşk Haritası</Text>
+                <Text style={styles.menuSub}>Fotoğraflı anılar ve mühürlü aşk notları</Text>
+              </View>
+              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              onPress={() => handleRoute("/(tabs)/meetings")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <Clock color={theme.accent} size={18} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>Buluşmalar</Text>
+                <Text style={styles.menuSub}>Geri sayım ve buluşma planları</Text>
               </View>
               <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
             </TouchableOpacity>
