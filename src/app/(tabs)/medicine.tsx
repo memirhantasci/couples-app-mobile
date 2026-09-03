@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { 
   View, Text, StyleSheet, ScrollView, TouchableOpacity, 
   ActivityIndicator, Alert, Modal, TextInput, Platform 
@@ -334,60 +334,72 @@ export default function MedicineScreen() {
     ]);
   };
 
-  const allMedicines = data?.medicines || [];
-  const todayMedicines = allMedicines.filter(m => m.start_date <= todayStr && m.end_date >= todayStr);
-  const filteredMedicines = todayMedicines.filter(m => activeTab === "me" ? m.user_id === userId : m.user_id !== userId);
-  const todayLogs = data?.todayLogs || [];
+  const allMedicines = useMemo(() => data?.medicines || [], [data?.medicines]);
+  const todayMedicines = useMemo(
+    () => allMedicines.filter((m: any) => m.start_date <= todayStr && m.end_date >= todayStr),
+    [allMedicines, todayStr]
+  );
+  const filteredMedicines = useMemo(
+    () => todayMedicines.filter((m: any) => activeTab === "me" ? m.user_id === userId : m.user_id !== userId),
+    [todayMedicines, activeTab, userId]
+  );
+  const todayLogs = useMemo(() => data?.todayLogs || [], [data?.todayLogs]);
   
-  const map: Record<string, string> = {};
-  todayLogs.forEach((log) => {
-    const timeKey = log.time ? log.time.substring(0, 5) : "";
-    if (timeKey) map[`${log.medicine_id}_${timeKey}`] = log.status;
-  });
-  
-  filteredMedicines.forEach((m) => {
-    const times = Array.isArray(m.times) && m.times.length > 0 ? m.times.map((t) => t.substring(0, 5)) : [m.time ? m.time.substring(0, 5) : "08:00"];
-    times.forEach((t) => {
-      const key = `${m.id}_${t}`;
-      if (!map[key]) {
-        const legacyLog = todayLogs.find((l) => l.medicine_id === m.id && (!l.time || l.time === ""));
-        map[key] = legacyLog ? legacyLog.status : "PENDING";
-      }
+  const map = useMemo<Record<string, string>>(() => {
+    const res: Record<string, string> = {};
+    todayLogs.forEach((log: any) => {
+      const timeKey = log.time ? log.time.substring(0, 5) : "";
+      if (timeKey) res[`${log.medicine_id}_${timeKey}`] = log.status;
     });
-  });
+    
+    filteredMedicines.forEach((m: any) => {
+      const times = Array.isArray(m.times) && m.times.length > 0 ? m.times.map((t: string) => t.substring(0, 5)) : [m.time ? m.time.substring(0, 5) : "08:00"];
+      times.forEach((t: string) => {
+        const key = `${m.id}_${t}`;
+        if (!res[key]) {
+          const legacyLog = todayLogs.find((l: any) => l.medicine_id === m.id && (!l.time || l.time === ""));
+          res[key] = legacyLog ? legacyLog.status : "PENDING";
+        }
+      });
+    });
+    return res;
+  }, [todayLogs, filteredMedicines]);
 
   const now = new Date();
   const currentHMS = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
-  // Geçmiş logları grupla
-  const historyGrouped: Record<string, any[]> = {};
-  data?.historicalLogs?.forEach(log => {
-    if (activeTab === "me" && log.user_id !== userId) return;
-    if (activeTab === "partner" && log.user_id === userId) return;
-    
-    if (!historyGrouped[log.date]) historyGrouped[log.date] = [];
-    
-    const med = allMedicines.find(m => m.id === log.medicine_id);
-    if (med) {
-      let entry = historyGrouped[log.date].find(e => e.medicine_id === log.medicine_id);
-      if (!entry) {
-        const timesArr = Array.isArray(med.times) ? med.times : [med.time];
-        entry = {
-          medicine_id: med.id,
-          name: med.name,
-          totalSlots: timesArr.length,
-          drankSlots: 0,
-          times: timesArr.map(t => t.substring(0, 5)),
-        };
-        historyGrouped[log.date].push(entry);
+  // Geçmiş logları grupla (Memoized)
+  const historyGrouped = useMemo<Record<string, any[]>>(() => {
+    const grouped: Record<string, any[]> = {};
+    data?.historicalLogs?.forEach((log: any) => {
+      if (activeTab === "me" && log.user_id !== userId) return;
+      if (activeTab === "partner" && log.user_id === userId) return;
+      
+      if (!grouped[log.date]) grouped[log.date] = [];
+      
+      const med = allMedicines.find((m: any) => m.id === log.medicine_id);
+      if (med) {
+        let entry = grouped[log.date].find((e: any) => e.medicine_id === log.medicine_id);
+        if (!entry) {
+          const timesArr = Array.isArray(med.times) ? med.times : [med.time];
+          entry = {
+            medicine_id: med.id,
+            name: med.name,
+            totalSlots: timesArr.length,
+            drankSlots: 0,
+            times: timesArr.map((t: string) => t.substring(0, 5)),
+          };
+          grouped[log.date].push(entry);
+        }
+        if (log.status === "DRANK") {
+          entry.drankSlots += 1;
+        }
       }
-      if (log.status === "DRANK") {
-        entry.drankSlots += 1;
-      }
-    }
-  });
+    });
+    return grouped;
+  }, [data?.historicalLogs, activeTab, userId, allMedicines]);
 
-  const sortedDates = Object.keys(historyGrouped).sort((a, b) => b.localeCompare(a));
+  const sortedDates = useMemo(() => Object.keys(historyGrouped).sort((a, b) => b.localeCompare(a)), [historyGrouped]);
 
   return (
     <ScreenBackground>

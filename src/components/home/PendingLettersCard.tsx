@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { dayjs } from "@/lib/date";
@@ -11,7 +11,7 @@ interface PendingLetter {
   sender?: { display_name?: string; username: string };
 }
 
-export function PendingLettersCard({ letters, theme }: { letters: PendingLetter[]; theme: AppTheme }) {
+export const PendingLettersCard = memo(function PendingLettersCard({ letters, theme }: { letters: PendingLetter[]; theme: AppTheme }) {
   const router = useRouter();
   if (!letters || letters.length === 0) return null;
 
@@ -69,7 +69,7 @@ export function PendingLettersCard({ letters, theme }: { letters: PendingLetter[
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

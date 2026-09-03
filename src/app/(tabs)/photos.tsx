@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { 
   View, Text, StyleSheet, FlatList, TouchableOpacity, 
-  ActivityIndicator, Alert, Modal, Dimensions, StatusBar 
+  ActivityIndicator, Alert, Modal, Dimensions, StatusBar, Platform 
 } from "react-native";
 import { Image } from "expo-image";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
@@ -134,7 +134,7 @@ export default function PhotosScreen() {
   };
 
   // ─── 3 SÜTUNLU KOMPAKT IZGARA RENDER ─────────────────────────────────────
-  const renderGrid3Item = ({ item, index }: { item: PhotoItem; index: number }) => {
+  const renderGrid3Item = useCallback(({ item, index }: { item: PhotoItem; index: number }) => {
     const itemSize = (SCREEN_WIDTH - 32 - 12) / 3;
     return (
       <TouchableOpacity
@@ -142,15 +142,20 @@ export default function PhotosScreen() {
         onPress={() => setSelectedIndex(index)}
         style={[styles.grid3Box, { width: itemSize, height: itemSize }]}
       >
-        <Image source={{ uri: item.image_url }} style={styles.grid3Img} contentFit="cover" />
+        <Image 
+          source={{ uri: item.image_url }} 
+          style={styles.grid3Img} 
+          contentFit="cover" 
+          cachePolicy="memory-disk"
+          recyclingKey={item.id.toString()}
+        />
       </TouchableOpacity>
     );
-  };
+  }, []);
 
   // ─── 2 SÜTUNLU MODERN ESTETİK KART RENDER ────────────────────────────────
-  const renderGrid2Item = ({ item, index }: { item: PhotoItem; index: number }) => {
+  const renderGrid2Item = useCallback(({ item, index }: { item: PhotoItem; index: number }) => {
     const itemWidth = (SCREEN_WIDTH - 32 - 10) / 2;
-    const isMine = item.user_id === userId;
 
     return (
       <TouchableOpacity
@@ -162,7 +167,13 @@ export default function PhotosScreen() {
         ]}
       >
         <View style={styles.grid2ImgContainer}>
-          <Image source={{ uri: item.image_url }} style={styles.grid2Img} contentFit="cover" />
+          <Image 
+            source={{ uri: item.image_url }} 
+            style={styles.grid2Img} 
+            contentFit="cover" 
+            cachePolicy="memory-disk"
+            recyclingKey={item.id.toString()}
+          />
           
           <View style={styles.grid2ExpandBadge}>
             <Maximize2 size={11} color="#ffffff" />
@@ -184,10 +195,10 @@ export default function PhotosScreen() {
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [theme.cardBg, theme.cardBorder, theme.text, theme.textMuted]);
 
   // ─── 1 SÜTUNLU BÜYÜK HİKAYE KARTI RENDER ─────────────────────────────────
-  const renderSingleItem = ({ item, index }: { item: PhotoItem; index: number }) => {
+  const renderSingleItem = useCallback(({ item, index }: { item: PhotoItem; index: number }) => {
     const isMine = item.user_id === userId;
     const hasInfo = Boolean(item.title?.trim() || item.description?.trim());
 
@@ -226,7 +237,13 @@ export default function PhotosScreen() {
           onPress={() => setSelectedIndex(index)}
           style={styles.singleTouchable}
         >
-          <Image source={{ uri: item.image_url }} style={styles.singleImg} contentFit="cover" />
+          <Image 
+            source={{ uri: item.image_url }} 
+            style={styles.singleImg} 
+            contentFit="cover" 
+            cachePolicy="memory-disk"
+            recyclingKey={item.id.toString()}
+          />
           <View style={styles.singleExpandBadge}>
             <Maximize2 size={13} color="#ffffff" />
           </View>
@@ -249,7 +266,9 @@ export default function PhotosScreen() {
         ) : null}
       </View>
     );
-  };
+  }, [theme.cardBg, theme.cardBorder, theme.accent, theme.text, theme.textMuted, theme.textSecondary, isLight, userId, handleDelete]);
+
+  const keyExtractor = useCallback((item: PhotoItem) => item.id.toString(), []);
 
   const numColumns = viewMode === "grid3" ? 3 : viewMode === "grid2" ? 2 : 1;
 
@@ -390,8 +409,12 @@ export default function PhotosScreen() {
           <FlatList
             key={viewMode} // Re-render when layout columns change
             data={photos}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={keyExtractor}
             numColumns={numColumns}
+            initialNumToRender={6}
+            maxToRenderPerBatch={8}
+            windowSize={5}
+            removeClippedSubviews={Platform.OS === 'android'}
             contentContainerStyle={[
               styles.listContent, 
               { paddingBottom: insets.bottom + 140 },

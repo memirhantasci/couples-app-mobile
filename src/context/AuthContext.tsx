@@ -2,7 +2,7 @@ import { registerForPushNotifications } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { RevenueCatService } from "@/lib/revenuecat";
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState, useMemo } from "react";
 import { decrypt } from "@/utils/crypto";
 import { setAdLoggingOut } from "../utils/adFlags";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -249,19 +249,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   }, []);
 
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      session,
+      isLoading,
+      profile,
+      isDeviceAuthorized,
+      setIsDeviceAuthorized,
+      checkDeviceAuth,
+      refreshProfile,
+      signOut,
+    }),
+    [
+      session,
+      isLoading,
+      profile,
+      isDeviceAuthorized,
+      checkDeviceAuth,
+      refreshProfile,
+      signOut,
+    ]
+  );
+
   return (
-    <AuthContext.Provider
-      value={{
-        session,
-        isLoading,
-        profile,
-        isDeviceAuthorized,
-        setIsDeviceAuthorized,
-        checkDeviceAuth,
-        refreshProfile,
-        signOut,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

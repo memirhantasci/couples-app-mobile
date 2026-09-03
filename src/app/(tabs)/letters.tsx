@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useRouter } from "expo-router";
 import { 
   View, Text, FlatList, StyleSheet, TouchableOpacity, 
@@ -29,6 +29,16 @@ import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { WatchAdModal } from "@/components/ui/WatchAdModal";
 import { OrigamiBirdAnimation } from "@/components/letters/OrigamiBirdAnimation";
 
+const safeDecrypt = (val: string | null | undefined): string => {
+  if (!val) return "";
+  try {
+    const dec = decrypt(val);
+    return dec || val;
+  } catch {
+    return val;
+  }
+};
+
 export default function LettersScreen() {
   const router = useRouter();
   const { session, profile, refreshProfile } = useAuth();
@@ -48,16 +58,6 @@ export default function LettersScreen() {
   const [showAdModal, setShowAdModal] = useState(false);
   const isPremium = profile?.isPremium ?? false;
   const tokenBalance = profile?.tokenBalance ?? 0;
-
-  const safeDecrypt = (val: string | null | undefined): string => {
-    if (!val) return "";
-    try {
-      const dec = decrypt(val);
-      return dec || val;
-    } catch {
-      return val;
-    }
-  };
 
   // --- Mektupları Getir (Sayfalamalı ve Korumalı) ---
   const { data, isLoading } = useQuery({
@@ -256,7 +256,7 @@ export default function LettersScreen() {
     }
   };
 
-  const renderLetterItem = ({ item: letter }: { item: any }) => {
+  const renderLetterItem = useCallback(({ item: letter }: { item: any }) => {
     const now = new Date();
     const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const unlockDateStr = letter.unlock_date.substring(0, 10);
@@ -338,25 +338,29 @@ export default function LettersScreen() {
 
           {/* Mektup Başlığı */}
           <Text style={[styles.cardTitle, { color: theme.text }]}>
-            {letter.title || "İsimsiz Mektup"}
+            {canOpen ? letter.title : "🔒 Geleceğe Kilitli Mektup"}
           </Text>
 
           {/* Gönderen / Alıcı Bilgisi */}
           <View style={styles.personRow}>
-            <Mail size={13} color={theme.textMuted} />
             <Text style={[styles.personText, { color: theme.textSecondary }]}>
               {itemType === "received" ? `Gönderen: ${personName}` : `Alıcı: ${personName}`}
             </Text>
           </View>
 
-          {/* Kapalı Durumdaki İpucu */}
-          {!isOpen && (
-            <Text style={[styles.previewText, { color: theme.textSecondary }]} numberOfLines={2}>
-              {(!canOpen && itemType === "received") 
-                ? "🔒 Bu mektup zaman kilidiyle koruma altında. Açılış gününde içeriği görebileceksin..." 
-                : (letter.content || "Mektup içeriği bulunamadı.")}
-            </Text>
-          )}
+          {/* Kısa Önizleme */}
+          <Text 
+            style={[
+              styles.previewText, 
+              { color: theme.textSecondary },
+              isLockedDate && itemType === "received" && styles.previewTextBlurred
+            ]} 
+            numberOfLines={isOpen ? undefined : 2}
+          >
+            {canOpen 
+              ? letter.content 
+              : "Bu mektup sevdiğin tarafından belirlenen tarihe kadar özel bir mühürle kilitlenmiştir..."}
+          </Text>
 
           {/* Açık Durumdaki Tam Mektup */}
           {canOpen && isOpen && (
@@ -370,7 +374,9 @@ export default function LettersScreen() {
         </TouchableOpacity>
       </View>
     );
-  };
+  }, [theme.cardBg, theme.cardBorder, theme.text, theme.textMuted, theme.textSecondary, isLight, userId, openLetterId, activeTab]);
+
+  const keyExtractor = useCallback((item: any) => item.id.toString(), []);
 
   if (!session) return <View style={{ flex: 1, backgroundColor: "#0a0a0f" }} />;
 
@@ -474,8 +480,12 @@ export default function LettersScreen() {
         ) : (
           <FlatList
             data={activeTab === "all" ? allLetters : activeTab === "received" ? receivedLetters : sentLetters}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={keyExtractor}
             renderItem={renderLetterItem}
+            initialNumToRender={8}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            removeClippedSubviews={Platform.OS === 'android'}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
@@ -965,6 +975,10 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     color: "rgba(255,255,255,0.5)",
     lineHeight: 18,
+  },
+  previewTextBlurred: {
+    opacity: 0.6,
+    fontStyle: "italic",
   },
   letterContentBox: {
     marginTop: 12,

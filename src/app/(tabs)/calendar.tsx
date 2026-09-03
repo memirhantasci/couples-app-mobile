@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { 
   View, Text, ScrollView, StyleSheet, TouchableOpacity, 
   ActivityIndicator, TextInput, Modal, Platform 
@@ -158,17 +158,17 @@ export default function CalendarScreen() {
     return marks;
   }, [data, selectedDate, theme.accent, userId]);
 
-  const onDayPress = (day: { dateString: string }) => {
+  const onDayPress = useCallback((day: { dateString: string }) => {
     setSelectedDate(day.dateString);
-  };
+  }, []);
 
-  const handlePrevMonth = () => {
-    setCurrentMonth(dayjs(currentMonth).subtract(1, "month").format("YYYY-MM-DD"));
-  };
+  const handlePrevMonth = useCallback(() => {
+    setCurrentMonth(prev => dayjs(prev).subtract(1, "month").format("YYYY-MM-DD"));
+  }, []);
 
-  const handleNextMonth = () => {
-    setCurrentMonth(dayjs(currentMonth).add(1, "month").format("YYYY-MM-DD"));
-  };
+  const handleNextMonth = useCallback(() => {
+    setCurrentMonth(prev => dayjs(prev).add(1, "month").format("YYYY-MM-DD"));
+  }, []);
 
   // Seçili güne ait veriler
   const selectedDayNotes = useMemo(() => {
@@ -237,7 +237,7 @@ export default function CalendarScreen() {
     }
   };
 
-  const getAuthorName = (itemUserId: string | undefined | null) => {
+  const getAuthorName = useCallback((itemUserId: string | undefined | null) => {
     if (!itemUserId) return "İsimsiz";
     if (itemUserId === userId) {
       const myUserObj = (data?.users as any[])?.find(u => u.id === userId);
@@ -254,13 +254,13 @@ export default function CalendarScreen() {
       pName = deterministicDecrypt(partnerObj.username) || partnerObj.username;
     }
     return pName || "Partnerin";
-  };
+  }, [data?.users, userId, profile?.displayName]);
 
-  const getAuthorAvatar = (itemUserId: string | undefined | null) => {
+  const getAuthorAvatar = useCallback((itemUserId: string | undefined | null) => {
     if (!itemUserId) return null;
     const userObj = (data?.users as any[])?.find(u => u.id === itemUserId);
     return userObj?.avatar_url || null;
-  };
+  }, [data?.users]);
 
   return (
     <ScreenBackground>

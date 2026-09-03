@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -227,12 +227,12 @@ export default function HomeScreen() {
   const daysSinceMeeting = meetDate ? daysSince(dayjs(meetDate)) : 0;
   const daysSinceTogether = relDate ? daysSince(dayjs(relDate)) : 0;
   const name = profile?.displayName || "Sevgilim";
-  const quote = getQuoteForDay(doy);
+  const quote = useMemo(() => getQuoteForDay(doy), [doy]);
   const activeLoveScore = loveScoreData || cachedScore;
   const loveMeter = activeLoveScore?.score;
   const loveSubtitle = activeLoveScore?.subtitle;
-  const dateLabel = dayjs().format("D MMMM, dddd");
-  const greeting = getGreeting();
+  const dateLabel = useMemo(() => dayjs().format("D MMMM, dddd"), []);
+  const greeting = useMemo(() => getGreeting(), []);
 
   return (
     <ScreenBackground>

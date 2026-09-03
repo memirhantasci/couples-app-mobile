@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, memo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Linking } from "react-native";
 import { getCountdown, dayjs } from "@/lib/date";
 import { MapPin, X, Navigation } from "lucide-react-native";
@@ -19,19 +19,25 @@ interface CountdownProps {
   theme: AppTheme;
 }
 
-export function MeetingCountdown({ meeting, theme }: CountdownProps) {
+export const MeetingCountdown = memo(function MeetingCountdown({ meeting, theme }: CountdownProps) {
   const targetDate = meeting.meeting_datetime;
   const title = meeting.title || "Buluşma";
 
-  const [countdown, setCountdown] = useState(getCountdown(targetDate));
+  const [countdown, setCountdown] = useState(() => getCountdown(targetDate));
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
+    if (countdown.isPast) return;
+
     const interval = setInterval(() => {
-      setCountdown(getCountdown(targetDate));
+      const next = getCountdown(targetDate);
+      setCountdown(next);
+      if (next.isPast) {
+        clearInterval(interval);
+      }
     }, 1000);
     return () => clearInterval(interval);
-  }, [targetDate]);
+  }, [targetDate, countdown.isPast]);
 
   const openDirections = () => {
     if (meeting.latitude && meeting.longitude) {
@@ -117,7 +123,7 @@ export function MeetingCountdown({ meeting, theme }: CountdownProps) {
       />
     </TouchableOpacity>
   );
-}
+});
 
 function MeetingModal({
   visible,

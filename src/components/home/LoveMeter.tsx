@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, memo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
@@ -17,7 +17,7 @@ interface LoveMeterProps {
   isLoading?: boolean;
 }
 
-export function LoveMeter({ value, theme, subtitle, isLoading }: LoveMeterProps) {
+export const LoveMeter = memo(function LoveMeter({ value, theme, subtitle, isLoading }: LoveMeterProps) {
   const hasValue = value !== undefined && value !== null;
   const widthVal = useSharedValue(hasValue ? (value as number) : 0);
 
@@ -66,7 +66,7 @@ export function LoveMeter({ value, theme, subtitle, isLoading }: LoveMeterProps)
       </Text>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

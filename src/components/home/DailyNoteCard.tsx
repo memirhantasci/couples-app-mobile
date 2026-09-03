@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, memo } from "react";
 import {
   View,
   Text,
@@ -24,7 +24,7 @@ interface DailyNoteCardProps {
   theme: AppTheme;
 }
 
-export function DailyNoteCard({ existingNote, theme }: DailyNoteCardProps) {
+export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }: DailyNoteCardProps) {
   const { session, profile } = useAuth();
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -119,7 +119,7 @@ export function DailyNoteCard({ existingNote, theme }: DailyNoteCardProps) {
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

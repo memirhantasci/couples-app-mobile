@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, memo } from "react";
 import {
   View,
   Text,
@@ -29,7 +29,7 @@ interface MoodSelectorProps {
   theme: AppTheme;
 }
 
-export function MoodSelector({ currentMood, moodLocked = false, theme }: MoodSelectorProps) {
+export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked = false, theme }: MoodSelectorProps) {
   const { session, profile } = useAuth();
   const queryClient = useQueryClient();
 
@@ -148,7 +148,7 @@ export function MoodSelector({ currentMood, moodLocked = false, theme }: MoodSel
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

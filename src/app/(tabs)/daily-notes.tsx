@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -37,6 +37,14 @@ interface DailyNote {
   date: string;
   content: string;
 }
+
+const cleanContentText = (raw: string) => {
+  if (!raw) return "";
+  return raw
+    .replace(/^\[Mod:\s*.*?\]\n?/, "")
+    .replace(/^#\s*.*?\n\n?/, "")
+    .trim();
+};
 
 export default function DailyNotesScreen() {
   const { session, profile } = useAuth();
@@ -82,7 +90,7 @@ export default function DailyNotesScreen() {
     staleTime: 0,
   });
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = useCallback(async (id: number) => {
     Alert.alert("Günlüğü Sil", "Bu günlük kaydını kalıcı olarak silmek istediğinize emin misiniz?", [
       { text: "Vazgeç", style: "cancel" },
       {
@@ -99,7 +107,7 @@ export default function DailyNotesScreen() {
         }
       }
     ]);
-  };
+  }, [queryClient, userId]);
 
   const handleUpdate = async () => {
     if (!editingNote) return;
@@ -129,15 +137,7 @@ export default function DailyNotesScreen() {
     }
   };
 
-  const cleanContentText = (raw: string) => {
-    if (!raw) return "";
-    return raw
-      .replace(/^\[Mod:\s*.*?\]\n?/, "")
-      .replace(/^#\s*.*?\n\n?/, "")
-      .trim();
-  };
-
-  const renderNoteCard = ({ item: note }: { item: DailyNote }) => {
+  const renderNoteCard = useCallback(({ item: note }: { item: DailyNote }) => {
     const dateObj = dayjs(note.date);
     const day = dateObj.format("D");
     const month = dateObj.format("MMMM");
@@ -148,7 +148,6 @@ export default function DailyNotesScreen() {
 
     return (
       <View style={[styles.cardContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-        {/* Kart Üst Başlık & Tarih Rozeti */}
         <View style={styles.cardHeader}>
           <View style={styles.dateBadge}>
             <View style={[styles.dayCircle, { backgroundColor: theme.pillAccentBg }]}>
@@ -160,7 +159,6 @@ export default function DailyNotesScreen() {
             </View>
           </View>
 
-          {/* Eylemler: Düzenle / Sil */}
           <View style={styles.actionBtnsRow}>
             <TouchableOpacity
               onPress={() => {
@@ -184,11 +182,12 @@ export default function DailyNotesScreen() {
           </View>
         </View>
 
-        {/* Günlük Metni */}
         <Text style={[styles.noteBodyText, { color: theme.textSecondary }]}>{displayContent}</Text>
       </View>
     );
-  };
+  }, [theme, handleDelete]);
+
+  const keyExtractor = useCallback((item: DailyNote) => item.id.toString(), []);
 
   return (
     <ScreenBackground>
@@ -255,8 +254,12 @@ export default function DailyNotesScreen() {
         ) : (
           <FlatList
             data={notes}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={keyExtractor}
             renderItem={renderNoteCard}
+            initialNumToRender={8}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            removeClippedSubviews={Platform.OS === 'android'}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             refreshControl={

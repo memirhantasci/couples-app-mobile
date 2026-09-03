@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleProp, ViewStyle, StatusBar } from 'react-native';
 import { useTheme } from '@/context/ThemeContext';
@@ -9,7 +9,7 @@ interface ScreenBackgroundProps {
   colors?: readonly [string, string, ...string[]];
 }
 
-export function ScreenBackground({ children, style, colors }: ScreenBackgroundProps) {
+export const ScreenBackground = memo(function ScreenBackground({ children, style, colors }: ScreenBackgroundProps) {
   const { theme, isLight } = useTheme();
   const backgroundColors = colors ?? theme.bgGradient;
 
@@ -19,4 +19,4 @@ export function ScreenBackground({ children, style, colors }: ScreenBackgroundPr
       {children}
     </LinearGradient>
   );
-}
+});
