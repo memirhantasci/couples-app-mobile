@@ -18,11 +18,13 @@ import { dayjs, daysSince } from "@/lib/date";
 import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LegalModal } from "@/components/legal/LegalModal";
 
 export default function MenuScreen() {
   const router = useRouter();
   const { profile, session, signOut } = useAuth();
   const insets = useSafeAreaInsets();
+  const [legalVisible, setLegalVisible] = React.useState(false);
 
   const handleRoute = (path: string) => {
     router.back();
@@ -265,6 +267,21 @@ export default function MenuScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              onPress={() => setLegalVisible(true)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <ShieldCheck color={theme.accent} size={18} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>Yasal Bilgiler & Gizlilik</Text>
+                <Text style={styles.menuSub}>KVKK, gizlilik ve kullanım şartları</Text>
+              </View>
+              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
               style={[styles.logoutItem, { backgroundColor: "rgba(255, 77, 106, 0.08)", borderColor: "rgba(255, 77, 106, 0.25)" }]} 
               onPress={handleSignOut}
               activeOpacity={0.8}
@@ -281,6 +298,12 @@ export default function MenuScreen() {
           </View>
         </ScrollView>
       </View>
+
+      <LegalModal
+        visible={legalVisible}
+        onClose={() => setLegalVisible(false)}
+        accentColor={theme.accent}
+      />
     </ScreenBackground>
   );
 }

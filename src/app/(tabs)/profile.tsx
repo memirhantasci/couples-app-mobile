@@ -40,8 +40,13 @@ import {
   ShieldCheck,
   Heart,
   Lock,
-  ChevronLeft
+  ChevronLeft,
+  FileText,
+  CreditCard,
+  UserCheck,
 } from "lucide-react-native";
+import { LegalModal } from "@/components/legal/LegalModal";
+import { LegalDocType } from "@/constants/legalTexts";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 
@@ -125,6 +130,15 @@ export default function ProfileScreen() {
   // Reklam & Premium Modal
   const [showAdModal, setShowAdModal] = useState(false);
   const [showPremiumSuccess, setShowPremiumSuccess] = useState(false);
+
+  // Yasal Sözleşmeler Modal State
+  const [legalModalVisible, setLegalModalVisible] = useState(false);
+  const [selectedLegalDoc, setSelectedLegalDoc] = useState<LegalDocType>("kvkk");
+
+  const openLegal = (doc: LegalDocType) => {
+    setSelectedLegalDoc(doc);
+    setLegalModalVisible(true);
+  };
 
   // Verileri yükle
   React.useEffect(() => {
@@ -675,6 +689,47 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </ModernSection>
 
+          {/* ─── YASAL BİLGİLER & GİZLİLİK SÖZLEŞMELERİ ─── */}
+          <ModernSection 
+            title="Yasal & Gizlilik Sözleşmeleri" 
+            icon={<ShieldCheck size={18} color={theme.accent} />} 
+            theme={theme}
+            defaultOpen={false}
+          >
+            <Text style={styles.sessionHintText}>
+              Verilerinizin güvenliği, gizliliğiniz ve mevzuat haklarınızla ilgili tüm yasal metinleri dilediğiniz zaman inceleyebilirsiniz.
+            </Text>
+
+            <View style={styles.legalListContainer}>
+              {([
+                { id: "kvkk" as const, title: "KVKK Aydınlatma Metni", sub: "6698 Sayılı Kanun Kapsamında Bilgilendirme", icon: ShieldCheck },
+                { id: "privacy" as const, title: "Gizlilik Politikası", sub: "Veri Koruma, Şifreleme ve Güvenlik İlkeleri", icon: Lock },
+                { id: "terms" as const, title: "Kullanım Koşulları (EULA)", sub: "Kullanıcı Sözleşmesi ve Genel Kurallar", icon: FileText },
+                { id: "consent" as const, title: "Açık Rıza Metni", sub: "Sağlık ve Konum Verilerinin İşlenmesi", icon: UserCheck },
+                { id: "subscription" as const, title: "Abonelik ve İade Şartları", sub: "Mesafeli Satış, İptal ve Yenileme", icon: CreditCard },
+              ]).map((item) => {
+                const ItemIcon = item.icon;
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    onPress={() => openLegal(item.id)}
+                    style={[styles.legalItemCard, { backgroundColor: theme.unitBg }]}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[styles.legalItemIconBox, { backgroundColor: theme.pillAccentBg }]}>
+                      <ItemIcon size={16} color={theme.accent} />
+                    </View>
+                    <View style={styles.legalItemTextBox}>
+                      <Text style={styles.legalItemTitle}>{item.title}</Text>
+                      <Text style={styles.legalItemSub}>{item.sub}</Text>
+                    </View>
+                    <ChevronRight size={16} color="rgba(255,255,255,0.4)" />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ModernSection>
+
           {/* ─── TEHLİKE BÖLGESİ ─── */}
           <ModernSection 
             title="Hesap Yönetimi & Tehlike Bölgesi" 
@@ -683,29 +738,29 @@ export default function ProfileScreen() {
             defaultOpen={false}
           >
             <View style={styles.dangerNoticeBox}>
-              <Text style={styles.dangerNoticeTitle}>⚠️ Dikkat: Geri Alınamaz İşlem</Text>
+              <Text style={styles.dangerNoticeTitle}>⚠️ KVKK md. 11 Kapsamında Veri İmhası</Text>
               <Text style={styles.dangerNoticeText}>
-                Hesabınızı silerseniz, ilişkinize ait tüm ortak galeriler, mektuplar, günlükler ve veriler 7 gün sonra kalıcı olarak imha edilir.
+                Unutulma hakkınız uyarınca hesabınızı sildiğinizde, ilişkinize ait tüm ortak fotoğraflar, şifreli mektuplar, günlükler ve veriler 7 günlük cayma süresi sonunda sunucularımızdan kalıcı olarak imha edilir.
               </Text>
             </View>
 
-              <TouchableOpacity
-                onPress={handleDeleteAccount}
-                disabled={deleteLoading}
-                style={styles.deleteAccountBtn}
-                activeOpacity={0.8}
-              >
-                {deleteLoading ? (
-                  <ActivityIndicator color="#ff4d6a" size="small" />
-                ) : (
-                  <Text style={styles.deleteAccountBtnText}>Hesabımı ve Tüm Verileri Sil</Text>
-                )}
-              </TouchableOpacity>
-            </ModernSection>
+            <TouchableOpacity
+              onPress={handleDeleteAccount}
+              disabled={deleteLoading}
+              style={styles.deleteAccountBtn}
+              activeOpacity={0.8}
+            >
+              {deleteLoading ? (
+                <ActivityIndicator color="#ff4d6a" size="small" />
+              ) : (
+                <Text style={styles.deleteAccountBtnText}>Hesabımı ve Tüm Verileri Sil</Text>
+              )}
+            </TouchableOpacity>
+          </ModernSection>
 
-            {/* Alt Tab Bar İçin Ekstra Ferah Boşluk */}
-            <View style={{ height: 120 }} />
-          </KeyboardAwareScrollView>
+          {/* Alt Tab Bar İçin Ekstra Ferah Boşluk */}
+          <View style={{ height: 120 }} />
+        </KeyboardAwareScrollView>
       </View>
 
       <WatchAdModal
@@ -717,6 +772,13 @@ export default function ProfileScreen() {
       <PremiumSuccessModal
         visible={showPremiumSuccess}
         onClose={() => setShowPremiumSuccess(false)}
+      />
+
+      <LegalModal
+        visible={legalModalVisible}
+        onClose={() => setLegalModalVisible(false)}
+        initialDoc={selectedLegalDoc}
+        accentColor={theme.accent}
       />
     </ScreenBackground>
   );
@@ -1164,5 +1226,39 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontFamily: "Inter_400Regular",
     lineHeight: 18,
+  },
+
+  /* YASAL METİNLER LİSTESİ */
+  legalListContainer: {
+    marginTop: 12,
+    gap: 8,
+  },
+  legalItemCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 14,
+    gap: 12,
+  },
+  legalItemIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  legalItemTextBox: {
+    flex: 1,
+  },
+  legalItemTitle: {
+    color: "#FFFFFF",
+    fontSize: 13.5,
+    fontFamily: "Inter_600SemiBold",
+    marginBottom: 2,
+  },
+  legalItemSub: {
+    color: "rgba(255,255,255,0.45)",
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
   },
 });

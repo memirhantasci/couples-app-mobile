@@ -23,8 +23,10 @@ import { logger } from "@/utils/logger";
 import { 
   Eye, EyeOff, Heart, Link, 
   AtSign, Lock, User, Mail, 
-  AlertCircle, CheckCircle2, ArrowRight 
+  AlertCircle, CheckCircle2, ArrowRight, Check 
 } from "lucide-react-native";
+import { LegalModal } from "@/components/legal/LegalModal";
+import { LegalDocType } from "@/constants/legalTexts";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -59,6 +61,18 @@ export default function LoginScreen() {
   const [showRegPass, setShowRegPass] = useState(false);
   const [regGender, setRegGender] = useState<"male" | "female">("female");
   const [regPairingCode, setRegPairingCode] = useState("");
+
+  // Legal Consent & Modal States
+  const [regAgreeTerms, setRegAgreeTerms] = useState(false);
+  const [regAgreeKvkk, setRegAgreeKvkk] = useState(false);
+  const [attemptedRegister, setAttemptedRegister] = useState(false);
+  const [legalModalVisible, setLegalModalVisible] = useState(false);
+  const [selectedLegalDoc, setSelectedLegalDoc] = useState<LegalDocType>("kvkk");
+
+  function openLegalDoc(doc: LegalDocType) {
+    setSelectedLegalDoc(doc);
+    setLegalModalVisible(true);
+  }
 
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -250,6 +264,18 @@ export default function LoginScreen() {
     }
     if (!regPassword.trim() || regPassword.length < 6) {
       setErrorMsg("Şifre en az 6 karakter olmalı.");
+      return;
+    }
+
+    if (!regAgreeTerms) {
+      setAttemptedRegister(true);
+      setErrorMsg("Kayıt olmak için Kullanım Koşulları ve Gizlilik Politikası'nı onaylamanız gerekmektedir.");
+      return;
+    }
+
+    if (!regAgreeKvkk) {
+      setAttemptedRegister(true);
+      setErrorMsg("Kayıt olmak için KVKK Aydınlatma Metni ve Açık Rıza şartlarını onaylamanız gerekmektedir.");
       return;
     }
 
@@ -520,6 +546,34 @@ export default function LoginScreen() {
                   Şifremi Unuttum?
                 </Text>
               </TouchableOpacity>
+
+              {/* Giriş Modu Yasal Bilgilendirme */}
+              <View style={styles.loginLegalNotice}>
+                <Text style={styles.loginLegalText}>
+                  Giriş yaparak{" "}
+                  <Text
+                    style={[styles.legalLink, { color: activeAccent }]}
+                    onPress={() => openLegalDoc("terms")}
+                  >
+                    Kullanım Koşulları
+                  </Text>
+                  {", "}
+                  <Text
+                    style={[styles.legalLink, { color: activeAccent }]}
+                    onPress={() => openLegalDoc("privacy")}
+                  >
+                    Gizlilik Politikası
+                  </Text>
+                  {" ve "}
+                  <Text
+                    style={[styles.legalLink, { color: activeAccent }]}
+                    onPress={() => openLegalDoc("kvkk")}
+                  >
+                    KVKK Metni
+                  </Text>
+                  'ni kabul etmiş sayılırsınız.
+                </Text>
+              </View>
             </View>
           )}
 
@@ -669,6 +723,83 @@ export default function LoginScreen() {
                   />
                 </View>
               </View>
+
+              {/* KVKK & Kullanım Koşulları Onay Kutuları */}
+              <View style={styles.legalSection}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => setRegAgreeTerms(!regAgreeTerms)}
+                  style={[
+                    styles.checkboxRow,
+                    attemptedRegister && !regAgreeTerms && styles.checkboxRowError,
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.checkboxBox,
+                      regAgreeTerms && { backgroundColor: activeAccent, borderColor: activeAccent },
+                    ]}
+                  >
+                    {regAgreeTerms && <Check size={13} color="#FFFFFF" strokeWidth={3} />}
+                  </View>
+                  <View style={styles.checkboxTextContainer}>
+                    <Text style={styles.checkboxLabel}>
+                      <Text
+                        style={[styles.legalLink, { color: activeAccent }]}
+                        onPress={() => openLegalDoc("terms")}
+                      >
+                        Kullanım Koşulları
+                      </Text>
+                      {" ve "}
+                      <Text
+                        style={[styles.legalLink, { color: activeAccent }]}
+                        onPress={() => openLegalDoc("privacy")}
+                      >
+                        Gizlilik Politikası
+                      </Text>
+                      {"'nı okudum, kabul ediyorum."}
+                      <Text style={{ color: activeAccent }}> *</Text>
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => setRegAgreeKvkk(!regAgreeKvkk)}
+                  style={[
+                    styles.checkboxRow,
+                    attemptedRegister && !regAgreeKvkk && styles.checkboxRowError,
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.checkboxBox,
+                      regAgreeKvkk && { backgroundColor: activeAccent, borderColor: activeAccent },
+                    ]}
+                  >
+                    {regAgreeKvkk && <Check size={13} color="#FFFFFF" strokeWidth={3} />}
+                  </View>
+                  <View style={styles.checkboxTextContainer}>
+                    <Text style={styles.checkboxLabel}>
+                      <Text
+                        style={[styles.legalLink, { color: activeAccent }]}
+                        onPress={() => openLegalDoc("kvkk")}
+                      >
+                        KVKK Aydınlatma Metni
+                      </Text>
+                      {" ve "}
+                      <Text
+                        style={[styles.legalLink, { color: activeAccent }]}
+                        onPress={() => openLegalDoc("consent")}
+                      >
+                        Açık Rıza Metni
+                      </Text>
+                      {" kapsamında verilerimin işlenmesini onaylıyorum."}
+                      <Text style={{ color: activeAccent }}> *</Text>
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
@@ -715,6 +846,13 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <LegalModal
+        visible={legalModalVisible}
+        onClose={() => setLegalModalVisible(false)}
+        initialDoc={selectedLegalDoc}
+        accentColor={activeAccent}
+      />
     </LinearGradient>
   );
 }
@@ -940,6 +1078,62 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     fontSize: 16,
     letterSpacing: -0.2,
+  },
+  loginLegalNotice: {
+    paddingHorizontal: 8,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  loginLegalText: {
+    color: "rgba(255,255,255,0.42)",
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    lineHeight: 18,
+  },
+  legalSection: {
+    gap: 12,
+    marginTop: 4,
+    marginBottom: 6,
+    paddingHorizontal: 2,
+  },
+  checkboxRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    borderRadius: 8,
+  },
+  checkboxRowError: {
+    backgroundColor: "rgba(232, 0, 45, 0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(232, 0, 45, 0.35)",
+    padding: 8,
+  },
+  checkboxBox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.25)",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  checkboxTextContainer: {
+    flex: 1,
+  },
+  checkboxLabel: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12.5,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 18,
+  },
+  legalLink: {
+    fontFamily: "Inter_700Bold",
+    textDecorationLine: "underline",
   },
 });
 

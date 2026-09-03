@@ -8,6 +8,8 @@ import { RevenueCatService } from "@/lib/revenuecat";
 import { PurchasesPackage } from "react-native-purchases";
 import { X, Crown, Check, ShieldCheck } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LegalModal } from "@/components/legal/LegalModal";
+import { LegalDocType } from "@/constants/legalTexts";
 
 export default function PaywallScreen() {
   const router = useRouter();
@@ -19,6 +21,14 @@ export default function PaywallScreen() {
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null);
+
+  const [legalModalVisible, setLegalModalVisible] = useState(false);
+  const [selectedLegalDoc, setSelectedLegalDoc] = useState<LegalDocType>("subscription");
+
+  const openLegal = (doc: LegalDocType) => {
+    setSelectedLegalDoc(doc);
+    setLegalModalVisible(true);
+  };
 
   useEffect(() => {
     const fetchOfferings = async () => {
@@ -149,9 +159,37 @@ export default function PaywallScreen() {
               <ShieldCheck color="rgba(255,255,255,0.5)" size={16} />
               <Text style={styles.restoreText}>Satın Alımları Geri Yükle</Text>
             </TouchableOpacity>
+
+            {/* Yasal Abonelik ve İade Bilgilendirmesi */}
+            <View style={styles.legalNoticeContainer}>
+              <Text style={styles.legalNoticeText}>
+                Aboneliğiniz onaylandığında ödeme mağaza hesabınızdan tahsil edilir. Cari dönemin bitiminden en az 24 saat önce iptal edilmediği sürece abonelik otomatik olarak yenilenir. Satın alımdan sonra hesap ayarlarınızdan dilediğiniz an iptal edebilirsiniz.
+              </Text>
+
+              <View style={styles.legalLinksRow}>
+                <TouchableOpacity onPress={() => openLegal("terms")}>
+                  <Text style={[styles.legalLinkText, { color: theme.accent }]}>Kullanım Koşulları (EULA)</Text>
+                </TouchableOpacity>
+                <Text style={styles.legalLinkDot}>•</Text>
+                <TouchableOpacity onPress={() => openLegal("privacy")}>
+                  <Text style={[styles.legalLinkText, { color: theme.accent }]}>Gizlilik Politikası</Text>
+                </TouchableOpacity>
+                <Text style={styles.legalLinkDot}>•</Text>
+                <TouchableOpacity onPress={() => openLegal("subscription")}>
+                  <Text style={[styles.legalLinkText, { color: theme.accent }]}>Abonelik Koşulları</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         )}
       </ScrollView>
+
+      <LegalModal
+        visible={legalModalVisible}
+        onClose={() => setLegalModalVisible(false)}
+        initialDoc={selectedLegalDoc}
+        accentColor={theme.accent}
+      />
     </ScreenBackground>
   );
 }
@@ -278,5 +316,36 @@ const styles = StyleSheet.create({
   restoreText: {
     color: "rgba(255,255,255,0.5)",
     fontSize: 14,
-  }
+  },
+  legalNoticeContainer: {
+    marginTop: 24,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)",
+    gap: 12,
+    alignItems: "center",
+  },
+  legalNoticeText: {
+    color: "rgba(255,255,255,0.4)",
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: "center",
+    fontFamily: "Inter_400Regular",
+  },
+  legalLinksRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  legalLinkText: {
+    fontSize: 11.5,
+    fontFamily: "Inter_600SemiBold",
+    textDecorationLine: "underline",
+  },
+  legalLinkDot: {
+    color: "rgba(255,255,255,0.3)",
+    fontSize: 11,
+  },
 });

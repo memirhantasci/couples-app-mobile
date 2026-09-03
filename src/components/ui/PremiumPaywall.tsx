@@ -99,6 +99,17 @@ export function PremiumPaywall({
           </TouchableOpacity>
 
           <Text style={styles.trialText}>14 gün ücretsiz dene • İstediğin zaman iptal et</Text>
+          <TouchableOpacity 
+            onPress={() => {
+              onClose();
+              router.push("/paywall");
+            }}
+            style={{ marginTop: 6 }}
+          >
+            <Text style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", textDecorationLine: "underline" }}>
+              Abonelik & Kullanım Koşulları (EULA)
+            </Text>
+          </TouchableOpacity>
 
           {/* Token Option */}
           {tokenOption && (
