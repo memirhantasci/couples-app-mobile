@@ -14,7 +14,6 @@ import {
   ScrollView,
   Modal,
   StatusBar,
-  Image as RNImage,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { Image } from "expo-image";
@@ -164,14 +163,15 @@ function PhotoMarkerPin({
     >
       <View style={styles.photoMarkerWrapper}>
         <View style={styles.photoPolaroidFrame}>
-          <RNImage
+          <Image
             source={{ uri: photo.image_url }}
             style={styles.photoMarkerImg}
+            contentFit="cover"
+            cachePolicy="memory-disk"
             onLoadEnd={() => {
-              setTimeout(() => setTracksViewChanges(false), 500);
+              setTimeout(() => setTracksViewChanges(false), 300);
             }}
-            fadeDuration={0}
-            resizeMode="cover"
+            transition={0}
           />
           <View style={styles.photoHeartBadge}>
             <Heart size={10} color="#fff" fill="#fff" />

@@ -42,22 +42,8 @@ export default function PeriodTrackerScreen() {
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
   
-  // Kullanıcının cinsiyeti (Profildeki veya users tablosundaki)
-  const { data: userData } = useQuery({
-    queryKey: ["user_gender", userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("users")
-        .select("gender")
-        .eq("id", userId)
-        .single();
-      return data;
-    },
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const isFemale = (profile?.gender || userData?.gender) === "female";
+  // Cinsiyet doğrudan profil önbelleğinden okunur — ekstra DB sorgusu atilmaz
+  const isFemale = profile?.gender === "female";
   const isPremium = profile?.isPremium ?? false;
   const [showPaywall, setShowPaywall] = useState(false);
 

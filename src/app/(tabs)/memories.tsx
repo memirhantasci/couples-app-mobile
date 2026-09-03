@@ -30,27 +30,32 @@ export default function MemoriesScreen() {
   useEffect(() => {
     async function addDefaultMemories() {
       if (!coupleId) return;
-      
-      // Check if they already exist in database for this couple
+      // AsyncStorage guard: Sadece bu couple için henüz yapılmadıysa bir kez çalıştır.
+      // Bu sayede kullanıcı anıyı silse bile uygulama onu tekrar yazmaz.
+      const storageKey = `@defaults_seeded_${coupleId}`;
+      const alreadySeeded = await AsyncStorage.getItem(storageKey);
+      if (alreadySeeded) return;
+
+      // Veritabanında mevcut olanları kontrol et
       const { data: existing } = await supabase
         .from("memories")
         .select("title")
         .eq("couple_id", coupleId)
         .in("title", ["Tanışma Yıl Dönümümüz", "Sevgili Olma Yıl Dönümümüz"]);
-        
+
       const existingTitles = existing?.map(e => e.title) || [];
 
-      const memoriesToInsert = [];
+      const memoriesToInsert: any[] = [];
       if (profile?.meetDate && !existingTitles.includes("Tanışma Yıl Dönümümüz")) {
         memoriesToInsert.push({
           couple_id: coupleId,
           title: "Tanışma Yıl Dönümümüz",
           date: profile.meetDate,
           description: "Hikayemizin başladığı o güzel gün...",
-          is_default: false, // is_default true da olabilir ama false kalabilir
+          is_default: false,
         });
       }
-      
+
       if (profile?.relationshipStartDate && !existingTitles.includes("Sevgili Olma Yıl Dönümümüz")) {
         memoriesToInsert.push({
           couple_id: coupleId,
@@ -65,10 +70,14 @@ export default function MemoriesScreen() {
         await supabase.from("memories").insert(memoriesToInsert);
         queryClient.invalidateQueries({ queryKey: ["memories"] });
       }
+
+      // İşaret et: bir daha çalışmasını engelle
+      await AsyncStorage.setItem(storageKey, "1");
     }
 
     addDefaultMemories();
-  }, [coupleId, profile]);
+  // coupleId değişince (farklı hesap) yeniden çalışsın, profile değişiminde çalışmasın
+  }, [coupleId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const {
     data,

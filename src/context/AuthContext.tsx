@@ -218,7 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!session?.user?.id) return;
 
-    const channel = supabase.channel('profile_changes');
+    const channel = supabase.channel(`profile_changes_${session.user.id}`);
 
     // Listen to changes on the user's row
     channel.on(

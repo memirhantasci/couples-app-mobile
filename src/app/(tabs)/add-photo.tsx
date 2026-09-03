@@ -7,7 +7,7 @@ import { Image } from "expo-image";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import * as ImagePicker from "expo-image-picker";
-import { decode } from "base64-arraybuffer";
+import * as ImageManipulator from "expo-image-manipulator";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
@@ -45,7 +45,7 @@ export default function AddPhotoScreen() {
   const isPremium = profile?.isPremium ?? false;
   const [showPaywall, setShowPaywall] = useState(false);
 
-  const [localImage, setLocalImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [localImage, setLocalImage] = useState<{ uri: string; fileSize?: number; exif?: any } | null>(null);
   const [takenDate, setTakenDate] = useState(todayString());
   const [takenTime, setTakenTime] = useState(dayjs().format("HH:mm"));
   const [title, setTitle] = useState("");
@@ -64,63 +64,68 @@ export default function AddPhotoScreen() {
 
   const handlePickImage = async () => {
     try {
+      // base64:false — büyük fotoğrafları JS heap'e yüklemeyiz (OOM crash engeli)
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        quality: 0.7,
-        base64: true,
+        quality: 1, // Manipülatör kendi sıkıştırmasını yapacak
+        base64: false,
         exif: true,
       });
 
-      if (result.canceled || !result.assets[0]?.base64) return;
+      if (result.canceled || !result.assets[0]) return;
 
       const asset = result.assets[0];
-      setLocalImage(asset);
       setExifStatus("loading");
       setErrors(prev => ({ ...prev, photo: false }));
 
-      setTimeout(() => {
-        let foundDate = false;
-        
-        if (asset.exif && asset.exif.DateTimeOriginal) {
-          const parts = asset.exif.DateTimeOriginal.split(" ");
-          if (parts.length === 2) {
-            const dateParts = parts[0].split(":");
-            if (dateParts.length === 3) {
-              const formattedDate = `${dateParts[0]}-${dateParts[1]}-${dateParts[2]}`;
-              const formattedTime = parts[1].substring(0, 5);
-              setTakenDate(formattedDate);
-              setTakenTime(formattedTime);
-              setExifStatus("found");
-              foundDate = true;
-            }
+      // EXIF tarih/saat okuma
+      let foundDate = false;
+      if (asset.exif && asset.exif.DateTimeOriginal) {
+        const parts = asset.exif.DateTimeOriginal.split(" ");
+        if (parts.length === 2) {
+          const dateParts = parts[0].split(":");
+          if (dateParts.length === 3) {
+            const formattedDate = `${dateParts[0]}-${dateParts[1]}-${dateParts[2]}`;
+            const formattedTime = parts[1].substring(0, 5);
+            setTakenDate(formattedDate);
+            setTakenTime(formattedTime);
+            setExifStatus("found");
+            foundDate = true;
           }
         }
+      }
+      if (!foundDate) {
+        setTakenDate(todayString());
+        setTakenTime(dayjs().format("HH:mm"));
+        setExifStatus("not_found");
+      }
 
-        if (!foundDate) {
-          setTakenDate(todayString());
-          setTakenTime(dayjs().format("HH:mm"));
-          setExifStatus("not_found");
-        }
+      // EXIF GPS konumu
+      const lat = asset.exif?.GPSLatitude;
+      const lng = asset.exif?.GPSLongitude;
+      const latRef = asset.exif?.GPSLatitudeRef;
+      const lngRef = asset.exif?.GPSLongitudeRef;
+      if (lat != null && lng != null) {
+        const finalLat = latRef === 'S' ? -Math.abs(lat) : Math.abs(lat);
+        const finalLng = lngRef === 'W' ? -Math.abs(lng) : Math.abs(lng);
+        setPhotoLocation({ latitude: finalLat, longitude: finalLng });
+        setExifGpsFound(true);
+      } else {
+        setExifGpsFound(false);
+      }
 
-        // EXIF GPS konumu
-        const lat = asset.exif?.GPSLatitude;
-        const lng = asset.exif?.GPSLongitude;
-        const latRef = asset.exif?.GPSLatitudeRef;
-        const lngRef = asset.exif?.GPSLongitudeRef;
+      // Görsel sıkıştırma: maks 1600px, JPEG %80 kalite
+      // 10MB fotoğraf → ~300KB'a iner, OOM crash imkansız hale gelir
+      const compressed = await ImageManipulator.manipulateAsync(
+        asset.uri,
+        [{ resize: { width: 1600 } }],
+        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+      );
 
-        if (lat != null && lng != null) {
-          const finalLat = latRef === 'S' ? -Math.abs(lat) : Math.abs(lat);
-          const finalLng = lngRef === 'W' ? -Math.abs(lng) : Math.abs(lng);
-          setPhotoLocation({ latitude: finalLat, longitude: finalLng });
-          setExifGpsFound(true);
-        } else {
-          setExifGpsFound(false);
-          // Konum bilgisi sıfırlanmasın — kullanıcı daha önce manuel seçmiş olabilir
-        }
-      }, 400);
+      setLocalImage({ uri: compressed.uri, exif: asset.exif });
 
     } catch (error) {
-      logger.error("Photo upload error:", error);
+      logger.error("Photo pick error:", error);
       Alert.alert("Hata", "Fotoğraf seçilirken bir hata oluştu.");
     }
   };
@@ -149,22 +154,20 @@ export default function AddPhotoScreen() {
 
     if (!localImage) return;
 
-    if (localImage.fileSize && localImage.fileSize > 8 * 1024 * 1024) {
-       Alert.alert("Dosya Çok Büyük", "Lütfen 8 MB'dan daha küçük bir fotoğraf seçin.");
-       return;
-    }
-
     setUploading(true);
 
     try {
-      const fileExt = localImage.uri.split('.').pop() || 'jpg';
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      // URI'den binary blob al — base64 encode/decode yok, bellek patlaması yok
+      const response = await fetch(localImage.uri);
+      const blob = await response.arrayBuffer();
+
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
       const filePath = `${coupleId}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("photos")
-        .upload(filePath, decode(localImage.base64!), {
-          contentType: `image/${fileExt}`,
+        .upload(filePath, blob, {
+          contentType: "image/jpeg",
         });
 
       if (uploadError) throw new Error("Fotoğraf yüklenemedi: " + uploadError.message);
@@ -182,7 +185,7 @@ export default function AddPhotoScreen() {
         taken_date: takenDate,
         taken_time: takenTime || null,
         exif_found: exifStatus === "found",
-        file_size: localImage.fileSize || 0,
+        file_size: 0,
         latitude: photoLocation?.latitude ?? null,
         longitude: photoLocation?.longitude ?? null,
         location_name: photoLocation?.locationName ?? null,
