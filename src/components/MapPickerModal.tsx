@@ -26,26 +26,22 @@ interface MapPickerModalProps {
   initialLocation?: LocationData;
 }
 
-// Modern Dark Map Styling (Google Maps JSON)
-const DARK_MAP_STYLE = [
-  { elementType: "geometry", stylers: [{ color: "#16131f" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#16131f" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#958fa3" }] },
-  { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d6aebc" }] },
-  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#d19a9a" }] },
-  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#1c2528" }] },
-  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#729b7d" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#262133" }] },
-  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#1b1726" }] },
-  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#8d889b" }] },
-  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#422e54" }] },
-  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1b1424" }] },
-  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f3c7a6" }] },
-  { featureType: "transit", elementType: "geometry", stylers: [{ color: "#272138" }] },
-  { featureType: "transit.station", elementType: "labels.text.fill", stylers: [{ color: "#d19a9a" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0e0b17" }] },
-  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#4d586e" }] },
-  { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#0e0b17" }] }
+// ─── Temiz & Aydınlık Romantik Harita Teması (Normal / Beyaz Arka Plan) ──────
+const CLEAN_LIGHT_MAP_STYLE = [
+  { elementType: "geometry", stylers: [{ color: "#F9F6F0" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#4A4356" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#F9F6F0" }, { weight: 2 }] },
+  { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#9E4A68" }] },
+  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#F0E9DF" }] },
+  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#E7EFE6" }] },
+  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#5E8467" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#FFFFFF" }] },
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#E8DFD8" }, { weight: 0.8 }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#FCEEE9" }] },
+  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#F2D7CD" }, { weight: 1 }] },
+  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#8E6058" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#C6DCF2" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#4E7294" }] },
 ];
 
 export function MapPickerModal({ visible, onClose, onSelectLocation, initialLocation }: MapPickerModalProps) {
@@ -103,72 +99,46 @@ export function MapPickerModal({ visible, onClose, onSelectLocation, initialLoca
       if (results && results.length > 0) {
         const item = results[0];
         const parts = [
-          item.district || item.subregion || item.street, 
+          item.name || item.street,
+          item.district || item.subregion,
           item.city || item.region
         ].filter(Boolean);
-        const name = parts.length > 0 ? parts.join(', ') : (item.name || 'Seçili Konum');
-        setResolvedAddress(name);
-        return name;
+        
+        const fullAddr = parts.join(', ');
+        setResolvedAddress(fullAddr || 'Seçilen Konum');
+      } else {
+        setResolvedAddress('Seçilen Konum');
       }
-    } catch (e) {
-      // Hata durumunda web API fallback'e geç
+    } catch (error) {
+      setResolvedAddress('Seçilen Konum');
     }
-
-    // Web Fallback (Nominatim OpenStreetMap)
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=tr`, {
-        headers: { 'User-Agent': 'CouplesAppMobile/1.0' }
-      });
-      const data = await res.json();
-      if (data && data.address) {
-        const addr = data.address;
-        const sub = addr.suburb || addr.neighbourhood || addr.town || addr.district || addr.road;
-        const city = addr.province || addr.city || addr.state;
-        const parts = [sub, city].filter(Boolean);
-        const name = parts.length > 0 ? parts.join(', ') : (data.display_name?.split(',')[0] || 'Seçili Konum');
-        setResolvedAddress(name);
-        return name;
-      }
-    } catch (e) {
-      // Hata durumunda geç
-    }
-
-    setResolvedAddress('Seçili Konum');
-    return 'Seçili Konum';
   };
 
+  // Yeni Koordinat Seçildiğinde
   const applyNewCoordinate = async (newCoord: { latitude: number; longitude: number }) => {
-    const newRegion: Region = {
+    setSelectedCoordinate(newCoord);
+    mapRef.current?.animateToRegion({
       ...newCoord,
       latitudeDelta: 0.012,
       longitudeDelta: 0.012,
-    };
-    setRegion(newRegion);
-    mapRef.current?.animateToRegion(newRegion, 800);
-    setSelectedCoordinate(newCoord);
+    }, 450);
+
     await fetchAddress(newCoord.latitude, newCoord.longitude);
   };
 
-  // Kullanıcının Mevcut GPS Konumuna Git
-  const moveToUserLocation = async (isAuto = false) => {
+  // Anlık Konuma Gitme Fonksiyonu
+  const moveToUserLocation = async (isInitial = false) => {
     try {
-      if (!isAuto) setIsLocating(true);
+      setIsLocating(true);
+      const hasPermission = await ensureLocationPermission();
 
-      const hasPerm = await ensureLocationPermission();
-      if (!hasPerm) {
-        if (!isAuto) {
+      if (!hasPermission) {
+        if (!isInitial) {
           Alert.alert(
-            'Konum İzni Gerekli', 
-            'Buluşma yerinizi mevcut konumunuza göre ayarlayabilmek için lütfen konum iznini onaylayın veya harita üzerinden istediğiniz noktaya dokunun.'
+            "Konum İzni Gerekli",
+            "Mevcut konumunuzu görebilmek için konum erişimine izin vermeniz gerekmektedir."
           );
         }
-        setIsLocating(false);
-        return;
-      }
-
-      if (userLocationRef.current) {
-        await applyNewCoordinate(userLocationRef.current);
-        setIsLocating(false);
         return;
       }
 
@@ -176,34 +146,41 @@ export function MapPickerModal({ visible, onClose, onSelectLocation, initialLoca
         accuracy: Location.Accuracy.Balanced,
       });
 
-      if (loc?.coords) {
-        const newCoord = {
+      if (loc && loc.coords) {
+        const userCoord = {
           latitude: loc.coords.latitude,
           longitude: loc.coords.longitude,
         };
-        userLocationRef.current = newCoord;
-        await applyNewCoordinate(newCoord);
+
+        userLocationRef.current = userCoord;
+
+        mapRef.current?.animateToRegion({
+          ...userCoord,
+          latitudeDelta: 0.015,
+          longitudeDelta: 0.015,
+        }, 600);
+
+        if (!selectedCoordinate) {
+          await applyNewCoordinate(userCoord);
+        }
       }
     } catch (error) {
-      if (!isAuto) {
-        try {
-          const lastKnown = await Location.getLastKnownPositionAsync();
-          if (lastKnown?.coords) {
-            const newCoord = {
-              latitude: lastKnown.coords.latitude,
-              longitude: lastKnown.coords.longitude,
-            };
-            userLocationRef.current = newCoord;
-            await applyNewCoordinate(newCoord);
-            setIsLocating(false);
-            return;
-          }
-        } catch (e) {}
-
-        Alert.alert(
-          'Konum Alınamadı', 
-          'Cihazınızın Konum/GPS özelliğinin açık olduğundan emin olun veya doğrudan harita üzerine dokunarak istediğiniz yeri seçin.'
-        );
+      try {
+        const lastKnown = await Location.getLastKnownPositionAsync({});
+        if (lastKnown && lastKnown.coords) {
+          const userCoord = {
+            latitude: lastKnown.coords.latitude,
+            longitude: lastKnown.coords.longitude,
+          };
+          userLocationRef.current = userCoord;
+          mapRef.current?.animateToRegion({
+            ...userCoord,
+            latitudeDelta: 0.015,
+            longitudeDelta: 0.015,
+          }, 600);
+        }
+      } catch (fallbackError) {
+        console.warn("Location error:", fallbackError);
       }
     } finally {
       setIsLocating(false);
@@ -213,33 +190,39 @@ export function MapPickerModal({ visible, onClose, onSelectLocation, initialLoca
   useEffect(() => {
     if (visible) {
       if (initialLocation) {
-        const initCoord = {
+        setRegion({
           latitude: initialLocation.latitude,
           longitude: initialLocation.longitude,
-        };
-        setSelectedCoordinate(initCoord);
-        setResolvedAddress(initialLocation.locationName || 'Seçili Konum');
-        const initRegion: Region = {
-          ...initCoord,
           latitudeDelta: 0.015,
           longitudeDelta: 0.015,
-        };
-        setRegion(initRegion);
+        });
+        setSelectedCoordinate({
+          latitude: initialLocation.latitude,
+          longitude: initialLocation.longitude,
+        });
+        setResolvedAddress(initialLocation.locationName || '');
+        
         setTimeout(() => {
-          mapRef.current?.animateToRegion(initRegion, 500);
-        }, 200);
+          mapRef.current?.animateToRegion({
+            latitude: initialLocation.latitude,
+            longitude: initialLocation.longitude,
+            latitudeDelta: 0.015,
+            longitudeDelta: 0.015,
+          }, 400);
+        }, 300);
       } else {
-        // Otomatik olarak kullanıcının anlık konumunu bul ve haritayı oraya odakla
         moveToUserLocation(true);
       }
     }
-  }, [visible]);
+  }, [visible, initialLocation]);
 
+  // Haritaya tıklama
   const handleMapPress = async (e: any) => {
-    const coord = e.nativeEvent.coordinate;
-    if (!coord) return;
-    setSelectedCoordinate(coord);
-    await fetchAddress(coord.latitude, coord.longitude);
+    const coord = e.nativeEvent?.coordinate;
+    if (coord && coord.latitude && coord.longitude) {
+      setSelectedCoordinate(coord);
+      await fetchAddress(coord.latitude, coord.longitude);
+    }
   };
 
   const currentCoord = selectedCoordinate || (region ? { latitude: region.latitude, longitude: region.longitude } : null);
@@ -249,26 +232,30 @@ export function MapPickerModal({ visible, onClose, onSelectLocation, initialLoca
       onSelectLocation({
         latitude: currentCoord.latitude,
         longitude: currentCoord.longitude,
-        locationName: resolvedAddress || 'Seçili Konum',
+        locationName: resolvedAddress.trim() || undefined,
       });
       onClose();
+    } else {
+      Alert.alert("Konum Belirlenmedi", "Lütfen harita üzerinden bir konum seçin.");
     }
   };
 
-  const isMale = profile?.gender === "male";
-  const activeColor = isMale ? "#4D9CFF" : "#FF4D6D";
-  const activeGradient = isMale 
-    ? (["#4D9CFF", "#1B6FD8", "#0A4DB8"] as const) 
-    : (["#FF3366", "#E8002D", "#C0006B"] as const);
+  const activeColor = theme?.accent || '#FF4D6D';
+  const activeGradient: [string, string] = [theme?.accent || '#FF4D6D', theme?.accentLight || '#FF758F'];
 
   return (
-    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={false}
+      onRequestClose={onClose}
+    >
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" />
+        <StatusBar barStyle="dark-content" backgroundColor="#F9F6F0" />
 
-        {/* ─── Modern Floating Header ─── */}
-        <View style={[styles.headerFloating, { paddingTop: insets.top + 10 }]}>
-          <BlurView tint="dark" intensity={70} style={StyleSheet.absoluteFill} />
+        {/* ─── Modern Floating Header (Açık & Temiz) ─── */}
+        <View style={[styles.headerFloating, { paddingTop: insets.top + 8 }]}>
+          <BlurView tint="light" intensity={85} style={StyleSheet.absoluteFill} />
           
           <TouchableOpacity 
             onPress={onClose} 
@@ -276,7 +263,7 @@ export function MapPickerModal({ visible, onClose, onSelectLocation, initialLoca
             activeOpacity={0.8}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <X color="#FFFFFF" size={20} />
+            <X color="#1A1528" size={20} />
           </TouchableOpacity>
 
           <View style={styles.headerCenter}>
@@ -287,7 +274,7 @@ export function MapPickerModal({ visible, onClose, onSelectLocation, initialLoca
           {currentCoord ? (
             <TouchableOpacity 
               onPress={handleSelect} 
-              style={[styles.confirmQuickBtn, { backgroundColor: `${activeColor}25`, borderColor: activeColor }]}
+              style={[styles.confirmQuickBtn, { backgroundColor: `${activeColor}20`, borderColor: activeColor }]}
               activeOpacity={0.8}
             >
               <Check color={activeColor} size={18} strokeWidth={2.6} />
@@ -297,7 +284,7 @@ export function MapPickerModal({ visible, onClose, onSelectLocation, initialLoca
           )}
         </View>
 
-        {/* ─── Map View ─── */}
+        {/* ─── Map View (Açık & Normal Harita) ─── */}
         <View style={styles.mapContainer}>
           <MapView
             ref={mapRef}
@@ -306,7 +293,7 @@ export function MapPickerModal({ visible, onClose, onSelectLocation, initialLoca
             onPress={handleMapPress}
             showsUserLocation={true}
             showsMyLocationButton={false}
-            customMapStyle={DARK_MAP_STYLE}
+            customMapStyle={CLEAN_LIGHT_MAP_STYLE}
             onUserLocationChange={(event: UserLocationChangeEvent) => {
               const c = event.nativeEvent?.coordinate;
               if (c && c.latitude && c.longitude) {
@@ -339,7 +326,7 @@ export function MapPickerModal({ visible, onClose, onSelectLocation, initialLoca
           {/* ─── Top Instruction Banner ─── */}
           {!selectedCoordinate && (
             <View style={[styles.instructionBadge, { top: insets.top + 76 }]}>
-              <BlurView tint="dark" intensity={80} style={StyleSheet.absoluteFill} />
+              <BlurView tint="light" intensity={90} style={StyleSheet.absoluteFill} />
               <Navigation size={14} color={activeColor} style={{ transform: [{ rotate: "45deg" }] }} />
               <Text style={styles.instructionText}>
                 Haritaya dokunarak buluşma yerini belirleyin
@@ -354,7 +341,7 @@ export function MapPickerModal({ visible, onClose, onSelectLocation, initialLoca
             activeOpacity={0.85}
             disabled={isLocating}
           >
-            <BlurView tint="dark" intensity={85} style={StyleSheet.absoluteFill} />
+            <BlurView tint="light" intensity={90} style={StyleSheet.absoluteFill} />
             {isLocating ? (
               <ActivityIndicator color={activeColor} size="small" />
             ) : (
@@ -366,15 +353,15 @@ export function MapPickerModal({ visible, onClose, onSelectLocation, initialLoca
         {/* ─── Modern Floating Bottom Sheet (Konum Seç Kartı) ─── */}
         {currentCoord && (
           <View style={[styles.footerCard, { paddingBottom: Math.max(insets.bottom, 18) }]}>
-            <BlurView tint="dark" intensity={95} style={StyleSheet.absoluteFill} />
+            <BlurView tint="light" intensity={95} style={StyleSheet.absoluteFill} />
 
             {/* Address Details Card */}
             <View style={styles.addressCard}>
-              <View style={[styles.addressIconBox, { backgroundColor: `${activeColor}20` }]}>
+              <View style={[styles.addressIconBox, { backgroundColor: `${activeColor}18` }]}>
                 <MapPin size={20} color={activeColor} strokeWidth={2.4} />
               </View>
               <View style={styles.addressTextBox}>
-                <Text style={styles.addressHeaderLabel}>SEÇİLEN KONUM</Text>
+                <Text style={styles.addressHeaderLabel}>SEÇİLEN BULUŞMA NOKTASI</Text>
                 <Text style={styles.addressTitle} numberOfLines={2}>
                   {resolvedAddress || "Harita Üzerindeki Nokta"}
                 </Text>
@@ -397,7 +384,7 @@ export function MapPickerModal({ visible, onClose, onSelectLocation, initialLoca
                 style={styles.submitGradient}
               >
                 <Check color="#FFFFFF" size={20} strokeWidth={2.5} />
-                <Text style={styles.submitBtnText}>Bu Konumu Seç</Text>
+                <Text style={styles.submitBtnText}>Bu Konumu Onayla</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -410,7 +397,7 @@ export function MapPickerModal({ visible, onClose, onSelectLocation, initialLoca
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0812',
+    backgroundColor: '#F9F6F0',
   },
   headerFloating: {
     position: 'absolute',
@@ -424,16 +411,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomColor: 'rgba(0, 0, 0, 0.06)',
     overflow: 'hidden',
   },
   closeBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: 'rgba(0, 0, 0, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -441,13 +428,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    color: '#FFFFFF',
+    color: '#1A1528',
     fontSize: 16,
     fontFamily: 'Inter_700Bold',
     letterSpacing: -0.2,
   },
   headerSubtitle: {
-    color: 'rgba(255, 255, 255, 0.45)',
+    color: '#6B6577',
     fontSize: 11.5,
     fontFamily: 'Inter_500Medium',
     marginTop: 1,
@@ -487,7 +474,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 8,
     borderWidth: 2,
@@ -514,19 +501,19 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: 'rgba(0, 0, 0, 0.08)',
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 6,
+    elevation: 5,
     maxWidth: '88%',
   },
   instructionText: {
-    color: '#FFFFFF',
+    color: '#332E38',
     fontSize: 13,
-    fontFamily: 'Inter_500Medium',
+    fontFamily: 'Inter_600SemiBold',
   },
   gpsFloatingBtn: {
     position: 'absolute',
@@ -535,15 +522,15 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
     borderWidth: 1.2,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(0, 0, 0, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
   footerCard: {
     position: 'absolute',
@@ -553,13 +540,13 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     borderTopWidth: 1.2,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: 'rgba(0, 0, 0, 0.08)',
     padding: 18,
     gap: 14,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -6 },
-    shadowOpacity: 0.4,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
     shadowRadius: 16,
     elevation: 20,
   },
@@ -567,11 +554,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.09)',
+    borderColor: 'rgba(0, 0, 0, 0.06)',
     borderRadius: 18,
     padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
   },
   addressIconBox: {
     width: 42,
@@ -584,20 +576,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   addressHeaderLabel: {
-    color: 'rgba(255, 255, 255, 0.45)',
-    fontSize: 10.5,
+    color: '#9C95A6',
+    fontSize: 10,
     fontFamily: 'Inter_700Bold',
     letterSpacing: 0.6,
     marginBottom: 2,
   },
   addressTitle: {
-    color: '#FFFFFF',
+    color: '#1A1528',
     fontSize: 14.5,
     fontFamily: 'Inter_600SemiBold',
     lineHeight: 19,
   },
   addressCoords: {
-    color: 'rgba(255, 255, 255, 0.35)',
+    color: '#8A8294',
     fontSize: 11,
     fontFamily: 'Inter_500Medium',
     marginTop: 2,
@@ -605,11 +597,11 @@ const styles = StyleSheet.create({
   submitBtn: {
     borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
+    shadowColor: '#FF4D6D',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
     shadowRadius: 10,
-    elevation: 8,
+    elevation: 6,
   },
   submitGradient: {
     height: 52,

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -12,8 +12,10 @@ import {
   KeyboardAvoidingView,
   Linking,
   ScrollView,
+  Modal,
+  StatusBar,
 } from "react-native";
-import MapView, { Marker, Region } from "react-native-maps";
+import MapView, { Marker } from "react-native-maps";
 import { Image } from "expo-image";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
@@ -32,10 +34,10 @@ import {
   Calendar,
   Heart,
   Sparkles,
-  Compass,
   Layers,
   ChevronRight,
   Maximize2,
+  ZoomIn,
 } from "lucide-react-native";
 import * as Location from "expo-location";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -58,6 +60,7 @@ interface PhotoPin {
   location_name?: string | null;
   taken_date: string;
   title?: string | null;
+  description?: string | null;
   user_id: string;
 }
 
@@ -90,9 +93,9 @@ type SelectedItem =
   | { type: "meeting"; data: MeetingPin }
   | null;
 
-// ─── HARİTA STİLLERİ (Artık otoyollar bağırmıyor, romantik ve zarif) ─────────
+// ─── HARİTA STİLLERİ (Otoyollar bağırmıyor, romantik, zarif ve aydınlık) ─────
 
-// 1. Romantik & Sıcak Pastel Tema (Varsayılan: Yumuşak krem, pastel pudra ve huzurlu su)
+// 1. Romantik & Sıcak Pastel Tema (Varsayılan: Yumuşak krem, nane/gül parklar, sakin su)
 const ROMANTIC_CREAM_STYLE = [
   { elementType: "geometry", stylers: [{ color: "#F9F6F0" }] },
   { elementType: "labels.text.fill", stylers: [{ color: "#4A4356" }] },
@@ -111,7 +114,7 @@ const ROMANTIC_CREAM_STYLE = [
   { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#4E7294" }] },
 ];
 
-// 2. Geceyarısı Kadife Tema (Siyah yerine zengin lacivert/antrasit, sade yollar)
+// 2. Geceyarısı Kadife Tema (Sade, zengin lacivert/antrasit koyu tema)
 const MIDNIGHT_VELVET_STYLE = [
   { elementType: "geometry", stylers: [{ color: "#0F131D" }] },
   { elementType: "labels.text.stroke", stylers: [{ color: "#0F131D" }, { weight: 2 }] },
@@ -151,6 +154,7 @@ export default function MapScreen() {
   const queryClient = useQueryClient();
   const mapRef = useRef<MapView | null>(null);
   const userLocRef = useRef<{ latitude: number; longitude: number } | null>(null);
+  const lastMarkerPressRef = useRef<number>(0);
 
   const coupleId = profile?.coupleId ?? null;
   const userId = session?.user?.id ?? null;
@@ -160,15 +164,16 @@ export default function MapScreen() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [showThemePicker, setShowThemePicker] = useState(false);
 
-  // Etkileşim ve Detay Kartı
+  // Etkileşim, Detay Kartı ve Modal State'leri
   const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [pendingCoord, setPendingCoord] = useState<{ latitude: number; longitude: number } | null>(null);
   const [noteText, setNoteText] = useState("");
   const [isLocating, setIsLocating] = useState(false);
   const [isSavingNote, setIsSavingNote] = useState(false);
+  const [fullScreenPhoto, setFullScreenPhoto] = useState<PhotoPin | null>(null);
 
-  // ─── 1. Fotoğraf Pinlerini Çek ────────────────────────────────────────────
+  // ─── 1. Fotoğraf Pinlerini Çek (description dahil) ────────────────────────
   const {
     data: photoPins = [],
     isLoading: loadingPhotos,
@@ -180,7 +185,7 @@ export default function MapScreen() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("photo_archive")
-        .select("id, image_url, latitude, longitude, location_name, taken_date, title, user_id")
+        .select("id, image_url, latitude, longitude, location_name, taken_date, title, description, user_id")
         .eq("couple_id", coupleId)
         .not("latitude", "is", null)
         .not("longitude", "is", null);
@@ -240,6 +245,18 @@ export default function MapScreen() {
     }, [refetchPhotos, refetchNotes, refetchMeetings])
   );
 
+  // ─── Marker Tıklama (Tıklamanın MapView tarafından ezilmesini önler) ─────
+  const handleMarkerPress = (item: SelectedItem) => {
+    lastMarkerPressRef.current = Date.now();
+    setSelectedItem(item);
+  };
+
+  // Haritaya tıklama (Marker tıklandıysa kartı kapatma)
+  const handleMapPress = () => {
+    if (Date.now() - lastMarkerPressRef.current < 450) return;
+    setSelectedItem(null);
+  };
+
   // ─── Not Kaydetme ─────────────────────────────────────────────────────────
   const saveNoteMutation = useMutation({
     mutationFn: async ({ lat, lng, note }: { lat: number; lng: number; note: string }) => {
@@ -284,11 +301,13 @@ export default function MapScreen() {
 
   // ─── Haritada Not Bırakma (Uzun Basış) ────────────────────────────────────
   const handleMapLongPress = (e: any) => {
-    const coord = e.nativeEvent.coordinate;
-    setPendingCoord(coord);
-    setNoteText("");
-    setSelectedItem(null);
-    setIsAddingNote(true);
+    const coord = e.nativeEvent?.coordinate;
+    if (coord && coord.latitude && coord.longitude) {
+      setPendingCoord(coord);
+      setNoteText("");
+      setSelectedItem(null);
+      setIsAddingNote(true);
+    }
   };
 
   // ─── GPS Konumuna Git ─────────────────────────────────────────────────────
@@ -332,7 +351,7 @@ export default function MapScreen() {
     }
 
     mapRef.current?.fitToCoordinates(coords, {
-      edgePadding: { top: 140, right: 60, bottom: 220, left: 60 },
+      edgePadding: { top: 140, right: 60, bottom: 240, left: 60 },
       animated: true,
     });
   };
@@ -360,6 +379,19 @@ export default function MapScreen() {
     setIsSavingNote(false);
   };
 
+  // Buluşma Geri Sayımı Metni
+  const getMeetingCountdown = (meetingDateStr: string) => {
+    const now = dayjs();
+    const target = dayjs(meetingDateStr);
+    const diffHours = target.diff(now, "hour");
+    const diffDays = target.diff(now, "day");
+
+    if (diffHours < 0) return "Gerçekleşti";
+    if (diffDays === 0) return "🎉 Bugün Buluşma Günü!";
+    if (diffDays === 1) return "⏳ Yarın!";
+    return `⏳ ${diffDays} gün kaldı`;
+  };
+
   // Seçili Tema Stili
   const selectedMapStyle =
     mapTheme === "romantic"
@@ -373,6 +405,8 @@ export default function MapScreen() {
 
   return (
     <View style={styles.root}>
+      <StatusBar barStyle={isLight ? "dark-content" : "light-content"} />
+
       {/* ─── HARİTA ─────────────────────────────────────────────────────── */}
       <MapView
         ref={mapRef}
@@ -380,29 +414,28 @@ export default function MapScreen() {
         customMapStyle={selectedMapStyle}
         initialRegion={{
           latitude: 41.0082,
-          longitude: 28.9784, // İstanbul merkezli zarif başlangıç
+          longitude: 28.9784,
           latitudeDelta: 0.15,
           longitudeDelta: 0.15,
         }}
         onLongPress={handleMapLongPress}
-        onPress={() => {
-          if (!isAddingNote) setSelectedItem(null);
-        }}
+        onPress={handleMapPress}
         showsUserLocation
         showsMyLocationButton={false}
         showsCompass={false}
         toolbarEnabled={false}
       >
-        {/* ── 1. Fotoğraf Pinleri (Polaroid & Kalp Çerçeveli) ───────────── */}
+        {/* ── 1. Fotoğraf Pinleri (Polaroid Çerçeveli) ──────────────────── */}
         {(activeFilter === "all" || activeFilter === "photos") &&
           photoPins.map((photo) => (
             <Marker
               key={`photo-${photo.id}`}
               coordinate={{ latitude: photo.latitude, longitude: photo.longitude }}
-              onPress={() => {
-                setSelectedItem({ type: "photo", data: photo });
-                setIsAddingNote(false);
+              onPress={(e) => {
+                e.stopPropagation?.();
+                handleMarkerPress({ type: "photo", data: photo });
               }}
+              tracksViewChanges={false}
             >
               <View style={styles.photoMarkerWrapper}>
                 <View style={styles.photoPolaroidFrame}>
@@ -426,10 +459,11 @@ export default function MapScreen() {
             <Marker
               key={`note-${note.id}`}
               coordinate={{ latitude: note.latitude, longitude: note.longitude }}
-              onPress={() => {
-                setSelectedItem({ type: "note", data: note });
-                setIsAddingNote(false);
+              onPress={(e) => {
+                e.stopPropagation?.();
+                handleMarkerPress({ type: "note", data: note });
               }}
+              tracksViewChanges={false}
             >
               <View style={styles.noteMarkerWrapper}>
                 <LinearGradient
@@ -449,10 +483,11 @@ export default function MapScreen() {
             <Marker
               key={`meeting-${meeting.id}`}
               coordinate={{ latitude: meeting.latitude, longitude: meeting.longitude }}
-              onPress={() => {
-                setSelectedItem({ type: "meeting", data: meeting });
-                setIsAddingNote(false);
+              onPress={(e) => {
+                e.stopPropagation?.();
+                handleMarkerPress({ type: "meeting", data: meeting });
               }}
+              tracksViewChanges={false}
             >
               <View style={styles.meetingMarkerWrapper}>
                 <LinearGradient
@@ -482,7 +517,7 @@ export default function MapScreen() {
         )}
       </MapView>
 
-      {/* ─── ÜST KONTROL ÇUBUĞU (Temiz & Modern Başlık) ────────────────── */}
+      {/* ─── ÜST KONTROL ÇUBUĞU (Başlık & Filtreler) ──────────────────── */}
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         <BlurView tint={isLight ? "light" : "dark"} intensity={80} style={StyleSheet.absoluteFill} />
         
@@ -496,9 +531,8 @@ export default function MapScreen() {
             </Text>
           </View>
 
-          {/* Aksiyon Butonları (Tema & GPS) */}
+          {/* Aksiyon Butonları (Tema, Sığdır, GPS) */}
           <View style={styles.topActionsGroup}>
-            {/* Tema Seçici Butonu */}
             <TouchableOpacity
               style={[
                 styles.topActionBtn,
@@ -513,7 +547,6 @@ export default function MapScreen() {
               <Layers size={16} color={theme.accent} />
             </TouchableOpacity>
 
-            {/* Sığdır Butonu */}
             <TouchableOpacity
               style={[
                 styles.topActionBtn,
@@ -528,7 +561,6 @@ export default function MapScreen() {
               <Maximize2 size={16} color={theme.accent} />
             </TouchableOpacity>
 
-            {/* GPS Konum Butonu */}
             <TouchableOpacity
               style={[
                 styles.topActionBtn,
@@ -642,10 +674,10 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* ─── DETAY KARTI (Floating Glass Card) ─────────────────────────── */}
+      {/* ─── DETAY KARTI (Floating Glass Card with High zIndex) ─────────── */}
       {selectedItem && (
         <View style={[styles.detailCardOverlay, { bottom: insets.bottom + 85 }]}>
-          <BlurView tint={isLight ? "light" : "dark"} intensity={95} style={StyleSheet.absoluteFill} />
+          <BlurView tint="dark" intensity={95} style={StyleSheet.absoluteFill} />
 
           {/* 1. FOTOĞRAF DETAYI */}
           {selectedItem.type === "photo" && (
@@ -665,14 +697,24 @@ export default function MapScreen() {
               </View>
 
               <View style={styles.photoPreviewRow}>
-                <Image
-                  source={{ uri: selectedItem.data.image_url }}
-                  style={styles.photoDetailThumb}
-                  contentFit="cover"
-                />
+                <TouchableOpacity
+                  onPress={() => setFullScreenPhoto(selectedItem.data)}
+                  activeOpacity={0.85}
+                  style={styles.photoThumbContainer}
+                >
+                  <Image
+                    source={{ uri: selectedItem.data.image_url }}
+                    style={styles.photoDetailThumb}
+                    contentFit="cover"
+                  />
+                  <View style={styles.zoomIconBadge}>
+                    <ZoomIn size={12} color="#fff" />
+                  </View>
+                </TouchableOpacity>
+
                 <View style={styles.photoDetailInfo}>
                   <Text style={styles.photoDetailTitle} numberOfLines={2}>
-                    {selectedItem.data.title || "İsimsiz Fotoğraf"}
+                    {selectedItem.data.title || "Fotoğraf Anısı"}
                   </Text>
                   <Text style={styles.photoDetailDate}>
                     📅 {dayjs(selectedItem.data.taken_date).locale("tr").format("D MMMM YYYY")}
@@ -684,6 +726,15 @@ export default function MapScreen() {
                   ) : null}
                 </View>
               </View>
+
+              {/* Fotoğraf Açıklaması */}
+              {selectedItem.data.description ? (
+                <View style={styles.descriptionBox}>
+                  <Text style={styles.descriptionText} numberOfLines={3}>
+                    {selectedItem.data.description}
+                  </Text>
+                </View>
+              ) : null}
 
               <View style={styles.detailActionsRow}>
                 <TouchableOpacity
@@ -699,6 +750,15 @@ export default function MapScreen() {
                 >
                   <Navigation size={14} color="#fff" />
                   <Text style={styles.actionBtnText}>Yol Tarifi Al</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.actionBtnSecondary}
+                  onPress={() => setFullScreenPhoto(selectedItem.data)}
+                  activeOpacity={0.85}
+                >
+                  <ZoomIn size={14} color="#fff" />
+                  <Text style={styles.actionBtnSecondaryText}>Büyüt</Text>
                 </TouchableOpacity>
 
                 {selectedItem.data.user_id === userId && (
@@ -810,12 +870,20 @@ export default function MapScreen() {
               </View>
 
               <View style={styles.meetingDetailsBox}>
-                <Text style={styles.meetingTitleText}>{selectedItem.data.title}</Text>
+                <View style={styles.meetingTopRow}>
+                  <Text style={styles.meetingTitleText}>{selectedItem.data.title}</Text>
+                  <View style={styles.meetingCountdownBadge}>
+                    <Text style={styles.meetingCountdownText}>
+                      {getMeetingCountdown(selectedItem.data.meeting_datetime)}
+                    </Text>
+                  </View>
+                </View>
+
                 <Text style={styles.meetingDatetimeText}>
                   🗓️ {dayjs(selectedItem.data.meeting_datetime).locale("tr").format("D MMMM YYYY, dddd · HH:mm")}
                 </Text>
                 {selectedItem.data.location_name ? (
-                  <Text style={styles.meetingLocationText} numberOfLines={1}>
+                  <Text style={styles.meetingLocationText} numberOfLines={2}>
                     📍 {selectedItem.data.location_name}
                   </Text>
                 ) : null}
@@ -834,11 +902,11 @@ export default function MapScreen() {
                   activeOpacity={0.85}
                 >
                   <Navigation size={14} color="#fff" />
-                  <Text style={styles.actionBtnText}>Buluşmaya Yol Tarifi</Text>
+                  <Text style={styles.actionBtnText}>Yol Tarifi Al</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.actionBtnSecondary, { borderColor: "rgba(255,255,255,0.15)" }]}
+                  style={styles.actionBtnSecondary}
                   onPress={() => router.push("/(tabs)/meetings")}
                   activeOpacity={0.8}
                 >
@@ -851,22 +919,98 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* ─── YENİ NOT EKLEME MODAL FORMU ───────────────────────────────── */}
-      {isAddingNote && pendingCoord && (
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={[styles.addNoteSheet, { paddingBottom: insets.bottom + 10 }]}
-        >
-          <BlurView tint="dark" intensity={90} style={StyleSheet.absoluteFill} />
+      {/* ─── TAM EKRAN FOTOĞRAF LIGHTBOX MODAL ──────────────────────────── */}
+      <Modal
+        visible={!!fullScreenPhoto}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setFullScreenPhoto(null)}
+      >
+        {fullScreenPhoto && (
+          <View style={styles.lightboxContainer}>
+            <BlurView tint="dark" intensity={95} style={StyleSheet.absoluteFill} />
 
-          <View style={styles.addNoteInner}>
-            <View style={styles.addNoteHeader}>
-              <View style={[styles.addNoteIconCircle, { backgroundColor: theme.pillAccentBg }]}>
-                <StickyNote size={18} color={theme.accent} />
+            <View style={[styles.lightboxHeader, { paddingTop: insets.top + 10 }]}>
+              <TouchableOpacity
+                style={styles.lightboxCloseBtn}
+                onPress={() => setFullScreenPhoto(null)}
+              >
+                <X size={22} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.lightboxTitle} numberOfLines={1}>
+                {fullScreenPhoto.title || "Fotoğraf Anısı"}
+              </Text>
+              <View style={{ width: 40 }} />
+            </View>
+
+            <View style={styles.lightboxImageWrapper}>
+              <Image
+                source={{ uri: fullScreenPhoto.image_url }}
+                style={styles.lightboxImage}
+                contentFit="contain"
+              />
+            </View>
+
+            <View style={[styles.lightboxFooter, { paddingBottom: insets.bottom + 16 }]}>
+              <Text style={styles.lightboxDate}>
+                📅 {dayjs(fullScreenPhoto.taken_date).locale("tr").format("D MMMM YYYY")}
+                {fullScreenPhoto.location_name ? ` · 📍 ${fullScreenPhoto.location_name}` : ""}
+              </Text>
+              {fullScreenPhoto.description ? (
+                <Text style={styles.lightboxDesc}>{fullScreenPhoto.description}</Text>
+              ) : null}
+
+              <TouchableOpacity
+                style={[styles.lightboxDirectionsBtn, { backgroundColor: theme.accent }]}
+                onPress={() =>
+                  openDirections(
+                    fullScreenPhoto.latitude,
+                    fullScreenPhoto.longitude,
+                    fullScreenPhoto.title || "Fotoğraf Konumu"
+                  )
+                }
+              >
+                <Navigation size={15} color="#fff" />
+                <Text style={styles.lightboxDirectionsText}>Bu Konuma Yol Tarifi Al</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </Modal>
+
+      {/* ─── YENİ NOT EKLEME MODALI (Ezilmeyen, Tam Ekran Kart) ─────────── */}
+      <Modal
+        visible={isAddingNote}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => {
+          setIsAddingNote(false);
+          setPendingCoord(null);
+        }}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.modalBackdrop}
+        >
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => {
+              setIsAddingNote(false);
+              setPendingCoord(null);
+            }}
+          >
+            <BlurView tint="dark" intensity={70} style={StyleSheet.absoluteFill} />
+          </TouchableOpacity>
+
+          <View style={[styles.modalNoteCard, { marginBottom: Platform.OS === "ios" ? 40 : 20 }]}>
+            <View style={styles.modalNoteHeader}>
+              <View style={[styles.modalNoteIconCircle, { backgroundColor: `${theme.accent}20` }]}>
+                <StickyNote size={20} color={theme.accent} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.addNoteTitle}>Buraya Bir Aşk Notu Bırak 💌</Text>
-                <Text style={styles.addNoteSubtitle}>
+                <Text style={styles.modalNoteTitle}>Buraya Bir Aşk Notu Bırak 💌</Text>
+                <Text style={styles.modalNoteSubtitle}>
                   Sevgilin haritayı açtığında burada senin notunu görecek.
                 </Text>
               </View>
@@ -877,45 +1021,62 @@ export default function MapScreen() {
                   setPendingCoord(null);
                 }}
               >
-                <X size={18} color="#fff" />
+                <X size={18} color="rgba(255,255,255,0.7)" />
               </TouchableOpacity>
             </View>
 
             <TextInput
-              style={styles.noteTextInput}
+              style={styles.modalNoteInput}
               value={noteText}
               onChangeText={setNoteText}
               placeholder="Buraya dair özel bir hatıra veya aşk sözü yaz..."
               placeholderTextColor="rgba(255,255,255,0.4)"
               multiline
-              numberOfLines={3}
+              numberOfLines={4}
+              maxLength={300}
               autoFocus
             />
 
-            <TouchableOpacity
-              style={[
-                styles.saveNoteBtn,
-                {
-                  backgroundColor: noteText.trim() ? theme.accent : "rgba(255,255,255,0.1)",
-                  opacity: isSavingNote ? 0.7 : 1,
-                },
-              ]}
-              onPress={handleSaveNote}
-              disabled={!noteText.trim() || isSavingNote}
-              activeOpacity={0.85}
-            >
-              {isSavingNote ? (
-                <ActivityIndicator size={16} color="#fff" />
-              ) : (
-                <>
-                  <Check size={16} color="#fff" />
-                  <Text style={styles.saveNoteBtnText}>Notu Mühürle & Bırak</Text>
-                </>
-              )}
-            </TouchableOpacity>
+            <View style={styles.charCountRow}>
+              <Text style={styles.charCountText}>{noteText.length} / 300</Text>
+            </View>
+
+            <View style={styles.modalButtonsRow}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => {
+                  setIsAddingNote(false);
+                  setPendingCoord(null);
+                }}
+              >
+                <Text style={styles.modalCancelBtnText}>Vazgeç</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.modalSaveBtn,
+                  {
+                    backgroundColor: noteText.trim() ? theme.accent : "rgba(255,255,255,0.15)",
+                    opacity: isSavingNote ? 0.7 : 1,
+                  },
+                ]}
+                onPress={handleSaveNote}
+                disabled={!noteText.trim() || isSavingNote}
+                activeOpacity={0.85}
+              >
+                {isSavingNote ? (
+                  <ActivityIndicator size={16} color="#fff" />
+                ) : (
+                  <>
+                    <Check size={16} color="#fff" />
+                    <Text style={styles.modalSaveBtnText}>Notu Mühürle & Bırak</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </KeyboardAvoidingView>
-      )}
+      </Modal>
     </View>
   );
 }
@@ -1118,7 +1279,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 6,
     elevation: 6,
-    maxWidth: 120,
+    maxWidth: 130,
   },
   meetingMarkerText: {
     color: "#FFFFFF",
@@ -1168,6 +1329,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 4,
+    zIndex: 10,
   },
   hintPillText: {
     fontSize: 12,
@@ -1185,9 +1347,10 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.15)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowOpacity: 0.45,
+    shadowRadius: 18,
+    elevation: 25,
+    zIndex: 999,
   },
   detailCardBody: {
     padding: 16,
@@ -1227,12 +1390,26 @@ const styles = StyleSheet.create({
     gap: 12,
     alignItems: "center",
   },
+  photoThumbContainer: {
+    position: "relative",
+  },
   photoDetailThumb: {
     width: 72,
     height: 72,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
+  },
+  zoomIconBadge: {
+    position: "absolute",
+    bottom: 4,
+    right: 4,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
   },
   photoDetailInfo: {
     flex: 1,
@@ -1252,6 +1429,19 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.85)",
     fontSize: 11.5,
     fontFamily: "Inter_500Medium",
+  },
+  descriptionBox: {
+    backgroundColor: "rgba(255,255,255,0.06)",
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  descriptionText: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 12.5,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 18,
   },
 
   // Aşk Notu Detay
@@ -1290,12 +1480,30 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: "rgba(139, 92, 246, 0.25)",
-    gap: 4,
+    gap: 5,
+  },
+  meetingTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
   },
   meetingTitleText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontFamily: "Inter_700Bold",
+    flex: 1,
+  },
+  meetingCountdownBadge: {
+    backgroundColor: "rgba(139, 92, 246, 0.3)",
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+  },
+  meetingCountdownText: {
+    color: "#E9D5FF",
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
   },
   meetingDatetimeText: {
     color: "#C4B5FD",
@@ -1334,9 +1542,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
     paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.1)",
     borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
   },
   actionBtnSecondaryText: {
     color: "#FFFFFF",
@@ -1354,70 +1564,168 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 77, 109, 0.3)",
   },
 
-  // ─── YENİ NOT EKLEME MODAL FORMU ───────────────────────────────────────
-  addNoteSheet: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    overflow: "hidden",
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    borderTopWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.15)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 12,
+  // ─── FULLSCREEN LIGHTBOX ───────────────────────────────────────────────
+  lightboxContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.95)",
+    justifyContent: "space-between",
   },
-  addNoteInner: {
-    padding: 20,
-    gap: 14,
-  },
-  addNoteHeader: {
+  lightboxHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingBottom: 12,
   },
-  addNoteIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+  lightboxCloseBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.15)",
     alignItems: "center",
     justifyContent: "center",
   },
-  addNoteTitle: {
-    color: "#FFFFFF",
-    fontSize: 15,
+  lightboxTitle: {
+    color: "#fff",
+    fontSize: 16,
     fontFamily: "Inter_700Bold",
+    flex: 1,
+    textAlign: "center",
+    paddingHorizontal: 10,
   },
-  addNoteSubtitle: {
-    color: "rgba(255,255,255,0.55)",
-    fontSize: 11.5,
-    fontFamily: "Inter_400Regular",
+  lightboxImageWrapper: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  noteTextInput: {
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderRadius: 14,
-    padding: 12,
+  lightboxImage: {
+    width: SW,
+    height: SH * 0.65,
+  },
+  lightboxFooter: {
+    paddingHorizontal: 20,
+    gap: 8,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    paddingTop: 16,
+  },
+  lightboxDate: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12.5,
+    fontFamily: "Inter_500Medium",
+  },
+  lightboxDesc: {
     color: "#FFFFFF",
-    fontSize: 13.5,
+    fontSize: 14,
     fontFamily: "Inter_400Regular",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    minHeight: 70,
-    textAlignVertical: "top",
+    lineHeight: 20,
   },
-  saveNoteBtn: {
+  lightboxDirectionsBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
+    gap: 8,
     paddingVertical: 12,
     borderRadius: 14,
+    marginTop: 6,
   },
-  saveNoteBtnText: {
+  lightboxDirectionsText: {
+    color: "#fff",
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+  },
+
+  // ─── YENİ NOT EKLEME MODALI ─────────────────────────────────────────────
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  modalNoteCard: {
+    backgroundColor: "#161224",
+    borderRadius: 24,
+    padding: 20,
+    gap: 14,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.15)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  modalNoteHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  modalNoteIconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalNoteTitle: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+  },
+  modalNoteSubtitle: {
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    marginTop: 1,
+  },
+  modalNoteInput: {
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderRadius: 16,
+    padding: 14,
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    minHeight: 100,
+    textAlignVertical: "top",
+    lineHeight: 20,
+  },
+  charCountRow: {
+    alignItems: "flex-end",
+    marginTop: -6,
+  },
+  charCountText: {
+    color: "rgba(255,255,255,0.4)",
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+  },
+  modalButtonsRow: {
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "center",
+  },
+  modalCancelBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  modalCancelBtnText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 13.5,
+    fontFamily: "Inter_600SemiBold",
+  },
+  modalSaveBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 13,
+    borderRadius: 14,
+  },
+  modalSaveBtnText: {
     color: "#FFFFFF",
     fontSize: 14,
     fontFamily: "Inter_700Bold",
