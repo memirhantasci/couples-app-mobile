@@ -173,9 +173,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         RevenueCatService.logOut();
       } else {
         setAdLoggingOut(false);
-        if (event === "SIGNED_IN") {
-          await checkDeviceAuth(session.user.id);
-        }
       }
     });
 

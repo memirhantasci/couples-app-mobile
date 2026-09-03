@@ -203,12 +203,13 @@ export default function LoginScreen() {
           return;
         }
 
-        // Direct, instant transition to verify-device with full params before triggering route protection
+        setIsDeviceAuthorized(false);
+
+        // Direct, single transition to verify-device with full params
         router.replace({
           pathname: "/(auth)/verify-device",
           params: { userId, deviceId, email: emailToUse },
         });
-        setIsDeviceAuthorized(false);
         return;
       }
 
