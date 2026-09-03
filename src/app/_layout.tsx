@@ -64,15 +64,9 @@ function RootLayoutNav() {
     return () => clearTimeout(timer);
   }, []);
 
-  // ── Deep link listener ────────────────────────────────────────────────────
-  // Handles both cold-start URLs (app was closed) and foreground URLs (app open)
+  // ── Deep link listener (Foreground deep links) ──────────────────────────
+  // Cold-start URLs are automatically handled by Expo Router's navigation container
   useEffect(() => {
-    // Handle cold-start deep link
-    Linking.getInitialURL().then((url) => {
-      if (url) handleDeepLink(url);
-    });
-
-    // Handle foreground deep link
     const subscription = Linking.addEventListener("url", ({ url }) => {
       handleDeepLink(url);
     });
@@ -114,13 +108,9 @@ function RootLayoutNav() {
     }
   }
 
-  // ── Loading splash ────────────────────────────────────────────────────────
-  if ((isLoading && !profile) || !fontsLoaded) {
-    return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#080811" }}>
-        <ActivityIndicator color="#FF4D6A" size="large" />
-      </View>
-    );
+  // While fonts are loading, keep splash screen visible and render null
+  if (!fontsLoaded) {
+    return null;
   }
 
   return (

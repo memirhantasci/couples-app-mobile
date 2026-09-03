@@ -15,12 +15,8 @@ const interstitial = InterstitialAd.createForAdRequest(adUnitId, {
 let lastAdShowTime = 0;
 const AD_COOLDOWN_MS = 60 * 1000 * 2; // 2 minutes cooldown between interstitial ads
 
-// Global flag to suppress ads during and immediately after sign out
-let isLoggingOut = false;
-
-export function setAdLoggingOut(value: boolean) {
-  isLoggingOut = value;
-}
+import { setAdLoggingOut, getIsAdLoggingOut } from '@/lib/adFlags';
+export { setAdLoggingOut, getIsAdLoggingOut };
 
 export function useInterstitialAd() {
   const { session, profile, isLoading } = useAuth();
@@ -30,7 +26,7 @@ export function useInterstitialAd() {
 
   useEffect(() => {
     // If logging out, unauthenticated, loading, or premium: never load ads
-    if (isLoggingOut || !session || isLoading || !profile || isPremium) {
+    if (getIsAdLoggingOut() || !session || isLoading || !profile || isPremium) {
       setLoaded(false);
       return;
     }
@@ -41,7 +37,7 @@ export function useInterstitialAd() {
 
     const loadAd = () => {
       try {
-        if (isLoggingOut || !session || isPremium) return;
+        if (getIsAdLoggingOut() || !session || isPremium) return;
         if (!interstitial.loaded) {
           interstitial.load();
         } else {
@@ -53,7 +49,7 @@ export function useInterstitialAd() {
     };
 
     unsubscribeLoaded = interstitial.addAdEventListener(AdEventType.LOADED, () => {
-      if (!isLoggingOut && session && !isPremium) {
+      if (!getIsAdLoggingOut() && session && !isPremium) {
         setLoaded(true);
       }
     });
@@ -62,7 +58,7 @@ export function useInterstitialAd() {
       setLoaded(false);
       lastAdShowTime = Date.now();
       // Preload next ad only if user is still logged in and not premium
-      if (!isLoggingOut && session && !isPremium) {
+      if (!getIsAdLoggingOut() && session && !isPremium) {
         loadAd();
       }
     });
@@ -84,7 +80,7 @@ export function useInterstitialAd() {
 
   const showAdIfReady = () => {
     // If user is logging out, unauthenticated, profile is loading, or user is premium: NEVER show ad
-    if (isLoggingOut || !session || isLoading || !profile || isPremium) {
+    if (getIsAdLoggingOut() || !session || isLoading || !profile || isPremium) {
       return false;
     }
 
