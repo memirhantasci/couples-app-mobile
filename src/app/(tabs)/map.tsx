@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -44,7 +44,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { getTheme } from "@/lib/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { dayjs } from "@/lib/date";
 import { notifyPartner } from "@/lib/notifications";
 
@@ -186,7 +186,7 @@ function PhotoMarkerPin({
 export default function MapScreen() {
   const router = useRouter();
   const { session, profile } = useAuth();
-  const theme = getTheme(profile?.gender);
+  const { theme, isLight: isAppLight } = useTheme();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const mapRef = useRef<MapView | null>(null);
@@ -196,10 +196,16 @@ export default function MapScreen() {
   const coupleId = profile?.coupleId ?? null;
   const userId = session?.user?.id ?? null;
 
-  // Harita Tema ve Filtreleme
-  const [mapTheme, setMapTheme] = useState<MapThemeType>("romantic");
+  // Harita Tema ve Filtreleme:
+  // Beyaz modda varsayılan: "romantic", diğer tüm renk modlarında varsayılan: "midnight" (koyu)
+  const [mapTheme, setMapTheme] = useState<MapThemeType>(() => (isAppLight ? "romantic" : "midnight"));
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [showThemePicker, setShowThemePicker] = useState(false);
+
+  // Uygulamanın tema modu değiştiğinde haritanın varsayılan temasını da otomatik senkronize et
+  useEffect(() => {
+    setMapTheme(isAppLight ? "romantic" : "midnight");
+  }, [isAppLight]);
 
   // Etkileşim, Detay Kartı ve Modal State'leri
   const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
