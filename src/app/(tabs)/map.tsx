@@ -14,6 +14,7 @@ import {
   ScrollView,
   Modal,
   StatusBar,
+  Image as RNImage,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { Image } from "expo-image";
@@ -145,6 +146,42 @@ const MINIMAL_SILVER_STYLE = [
   { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#E0E3E8" }] },
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#D2E2F0" }] },
 ];
+
+function PhotoMarkerPin({
+  photo,
+  onPress,
+}: {
+  photo: PhotoPin;
+  onPress: () => void;
+}) {
+  const [tracksViewChanges, setTracksViewChanges] = useState(true);
+
+  return (
+    <Marker
+      coordinate={{ latitude: photo.latitude, longitude: photo.longitude }}
+      onPress={onPress}
+      tracksViewChanges={tracksViewChanges}
+    >
+      <View style={styles.photoMarkerWrapper}>
+        <View style={styles.photoPolaroidFrame}>
+          <RNImage
+            source={{ uri: photo.image_url }}
+            style={styles.photoMarkerImg}
+            onLoadEnd={() => {
+              setTimeout(() => setTracksViewChanges(false), 500);
+            }}
+            fadeDuration={0}
+            resizeMode="cover"
+          />
+          <View style={styles.photoHeartBadge}>
+            <Heart size={10} color="#fff" fill="#fff" />
+          </View>
+        </View>
+        <View style={[styles.markerStem, { borderTopColor: "#FFFFFF" }]} />
+      </View>
+    </Marker>
+  );
+}
 
 export default function MapScreen() {
   const router = useRouter();
@@ -428,29 +465,11 @@ export default function MapScreen() {
         {/* ── 1. Fotoğraf Pinleri (Polaroid Çerçeveli) ──────────────────── */}
         {(activeFilter === "all" || activeFilter === "photos") &&
           photoPins.map((photo) => (
-            <Marker
+            <PhotoMarkerPin
               key={`photo-${photo.id}`}
-              coordinate={{ latitude: photo.latitude, longitude: photo.longitude }}
-              onPress={(e) => {
-                e.stopPropagation?.();
-                handleMarkerPress({ type: "photo", data: photo });
-              }}
-              tracksViewChanges={false}
-            >
-              <View style={styles.photoMarkerWrapper}>
-                <View style={styles.photoPolaroidFrame}>
-                  <Image
-                    source={{ uri: photo.image_url }}
-                    style={styles.photoMarkerImg}
-                    contentFit="cover"
-                  />
-                  <View style={styles.photoHeartBadge}>
-                    <Heart size={10} color="#fff" fill="#fff" />
-                  </View>
-                </View>
-                <View style={[styles.markerStem, { borderTopColor: "#FFFFFF" }]} />
-              </View>
-            </Marker>
+              photo={photo}
+              onPress={() => handleMarkerPress({ type: "photo", data: photo })}
+            />
           ))}
 
         {/* ── 2. Aşk Notu Pinleri (Mühürlü Aşk Zarfı Tasarımı) ─────────── */}
@@ -1210,23 +1229,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   photoPolaroidFrame: {
-    width: 52,
-    height: 52,
+    width: 56,
+    height: 56,
     borderRadius: 14,
     backgroundColor: "#FFFFFF",
-    padding: 2.5,
+    padding: 3,
     borderWidth: 2,
     borderColor: "#FFFFFF",
     shadowColor: "#FF4D6D",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.4,
     shadowRadius: 6,
-    elevation: 6,
+    elevation: 8,
   },
   photoMarkerImg: {
     width: "100%",
     height: "100%",
     borderRadius: 10,
+    backgroundColor: "#F3F4F6",
   },
   photoHeartBadge: {
     position: "absolute",

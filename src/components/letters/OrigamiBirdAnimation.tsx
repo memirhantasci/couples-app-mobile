@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -8,9 +8,8 @@ import {
   Dimensions,
   Easing,
   TouchableOpacity,
-  Platform,
 } from "react-native";
-import Svg, { Path, Polygon, Defs, LinearGradient, Stop } from "react-native-svg";
+import Svg, { Polygon, Defs, LinearGradient, Stop } from "react-native-svg";
 import { Sparkles, Heart } from "lucide-react-native";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -26,40 +25,37 @@ export function OrigamiBirdAnimation({
   onComplete,
   accentColor = "#FF4D6D",
 }: OrigamiBirdAnimationProps) {
-  // Main timeline driver
-  const animProgress = useRef(new Animated.Value(0)).current;
-
-  // Paper fold animations
+  // Paper sheet animations
   const paperScale = useRef(new Animated.Value(0)).current;
   const paperOpacity = useRef(new Animated.Value(1)).current;
   const paperFoldX = useRef(new Animated.Value(1)).current;
+  const paperFoldY = useRef(new Animated.Value(1)).current;
   const paperRotate = useRef(new Animated.Value(0)).current;
 
-  // Bird appearance & flight
+  // Origami Bird animations
   const birdOpacity = useRef(new Animated.Value(0)).current;
-  const birdScale = useRef(new Animated.Value(0.2)).current;
+  const birdScale = useRef(new Animated.Value(0.3)).current;
   const birdFlightX = useRef(new Animated.Value(0)).current;
   const birdFlightY = useRef(new Animated.Value(0)).current;
   const birdFlightRotate = useRef(new Animated.Value(0)).current;
 
-  // Wing flapping (oscillates continuously during flight)
+  // Wing flapping (continuous smooth oscillation during flight)
   const wingFlap = useRef(new Animated.Value(0)).current;
 
-  // Sparkles & Success card
+  // Trail sparkles & Success card
   const sparklesOpacity = useRef(new Animated.Value(0)).current;
   const successCardOpacity = useRef(new Animated.Value(0)).current;
   const successCardScale = useRef(new Animated.Value(0.85)).current;
 
   useEffect(() => {
     if (!visible) {
-      // Reset all values
-      animProgress.setValue(0);
       paperScale.setValue(0);
       paperOpacity.setValue(1);
       paperFoldX.setValue(1);
+      paperFoldY.setValue(1);
       paperRotate.setValue(0);
       birdOpacity.setValue(0);
-      birdScale.setValue(0.2);
+      birdScale.setValue(0.3);
       birdFlightX.setValue(0);
       birdFlightY.setValue(0);
       birdFlightRotate.setValue(0);
@@ -70,62 +66,68 @@ export function OrigamiBirdAnimation({
       return;
     }
 
-    // Start wing flap loop
+    // Wing flapping loop
     const wingLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(wingFlap, {
           toValue: 1,
-          duration: 160,
-          easing: Easing.inOut(Easing.quad),
+          duration: 150,
+          easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
         Animated.timing(wingFlap, {
           toValue: 0,
-          duration: 160,
-          easing: Easing.inOut(Easing.quad),
+          duration: 150,
+          easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
       ])
     );
     wingLoop.start();
 
-    // Sequence of the entire origami transformation & flight:
+    // ─── MASTER ANIMATION TIMELINE ───
     Animated.sequence([
-      // 1. Paper emerges and pops to center
+      // 1. Mektup Kağıdı Ortaya Çıkar
       Animated.spring(paperScale, {
         toValue: 1,
-        friction: 6,
+        friction: 7,
         tension: 50,
         useNativeDriver: true,
       }),
 
-      // Small pause to see the sealed letter
-      Animated.delay(350),
+      // Kısa bir bekleme (Mektup okunur)
+      Animated.delay(400),
 
-      // 2. Paper folds inward into an origami fold
+      // 2. Mektup Sayfası Katlanmaya Başlar (Origami Külah / Üçgen & Elmas Katlaması)
       Animated.parallel([
         Animated.timing(paperFoldX, {
-          toValue: 0.15,
-          duration: 500,
+          toValue: 0.18,
+          duration: 550,
+          easing: Easing.bezier(0.4, 0, 0.2, 1),
+          useNativeDriver: true,
+        }),
+        Animated.timing(paperFoldY, {
+          toValue: 0.65,
+          duration: 550,
           easing: Easing.bezier(0.4, 0, 0.2, 1),
           useNativeDriver: true,
         }),
         Animated.timing(paperRotate, {
           toValue: 1,
-          duration: 500,
-          easing: Easing.in(Easing.cubic),
+          duration: 550,
+          easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
         Animated.timing(paperOpacity, {
           toValue: 0,
-          duration: 450,
-          delay: 100,
+          duration: 400,
+          delay: 200,
           useNativeDriver: true,
         }),
 
-        // 3. Simultaneously, Origami Crane morphs in!
+        // 3. Katlanan Kağıttan Büyülü Origami Kuşu Doğar
         Animated.sequence([
-          Animated.delay(200),
+          Animated.delay(220),
           Animated.parallel([
             Animated.timing(birdOpacity, {
               toValue: 1,
@@ -135,71 +137,81 @@ export function OrigamiBirdAnimation({
             Animated.spring(birdScale, {
               toValue: 1,
               friction: 5,
-              tension: 60,
+              tension: 65,
               useNativeDriver: true,
             }),
             Animated.timing(sparklesOpacity, {
               toValue: 1,
-              duration: 300,
+              duration: 350,
               useNativeDriver: true,
             }),
           ]),
         ]),
       ]),
 
-      // 4. Crane anticipates & swoops into the sky!
+      // Kuş kanatlarını açar ve uçuşa hazırlanır
       Animated.delay(250),
+
+      // 4. Kuş Kanat Çırparak Gökyüzüne Doğru Süzülür ve Uçar
       Animated.parallel([
-        // Dip slightly down first (anticipation), then shoot up-right
+        // Y ekseninde önce hafif çöker (hazırlık), sonra yukarı fırlar
         Animated.sequence([
           Animated.timing(birdFlightY, {
-            toValue: 20,
-            duration: 180,
+            toValue: 15,
+            duration: 160,
             easing: Easing.quad,
             useNativeDriver: true,
           }),
           Animated.timing(birdFlightY, {
-            toValue: -SCREEN_HEIGHT * 0.65,
+            toValue: -SCREEN_HEIGHT * 0.75,
             duration: 1200,
             easing: Easing.bezier(0.25, 0.1, 0.25, 1),
             useNativeDriver: true,
           }),
         ]),
+
+        // X ekseninde sağa doğru uçar
         Animated.sequence([
           Animated.timing(birdFlightX, {
-            toValue: -15,
-            duration: 180,
+            toValue: -10,
+            duration: 160,
             easing: Easing.quad,
             useNativeDriver: true,
           }),
           Animated.timing(birdFlightX, {
-            toValue: SCREEN_WIDTH * 0.85,
+            toValue: SCREEN_WIDTH * 0.95,
             duration: 1200,
             easing: Easing.bezier(0.25, 0.1, 0.25, 1),
             useNativeDriver: true,
           }),
         ]),
+
+        // Uçuş açısına doğru döner (yaklaşık -35 derece)
         Animated.timing(birdFlightRotate, {
           toValue: 1,
           duration: 1200,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
+
+        // Perspektif: Uzaklaştıkça küçülür
         Animated.timing(birdScale, {
-          toValue: 0.45,
+          toValue: 0.4,
           duration: 1200,
-          delay: 200,
+          delay: 150,
           useNativeDriver: true,
         }),
+
+        // Ekrandan çıkarken yavaşça kaybolur
         Animated.timing(birdOpacity, {
           toValue: 0,
-          duration: 350,
+          duration: 300,
           delay: 1050,
           useNativeDriver: true,
         }),
       ]),
 
-      // 5. Success Message Card Blooms!
+      // 5. Başarı Kartı Ortaya Çıkar (Mektubun Kanatlandı!)
       Animated.parallel([
         Animated.timing(successCardOpacity, {
           toValue: 1,
@@ -214,8 +226,8 @@ export function OrigamiBirdAnimation({
         }),
       ]),
 
-      // Hold on success message for reading
-      Animated.delay(1400),
+      // Kullanıcının okuması için ekranda kalma süresi
+      Animated.delay(1300),
     ]).start(() => {
       wingLoop.stop();
       onComplete();
@@ -239,28 +251,29 @@ export function OrigamiBirdAnimation({
     outputRange: ["0deg", "-15deg", "-38deg"],
   });
 
+  // Smooth realistic origami wing flapping
   const leftWingFlapInterpolate = wingFlap.interpolate({
     inputRange: [0, 1],
-    outputRange: ["0deg", "32deg"],
+    outputRange: ["-18deg", "28deg"],
   });
 
   const rightWingFlapInterpolate = wingFlap.interpolate({
     inputRange: [0, 1],
-    outputRange: ["0deg", "-32deg"],
+    outputRange: ["18deg", "-28deg"],
   });
 
   const wingScaleInterpolate = wingFlap.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 0.7],
+    outputRange: [1, 0.78],
   });
 
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
-        {/* Ambient Darkened Backdrop with soft glowing center */}
+        {/* Karartılmış arka plan */}
         <View style={styles.ambientBackdrop} />
 
-        {/* ─── PHASE 1: FOLDING PAPER LETTER ─── */}
+        {/* ─── 1. ADIM: GERÇEK MEKTUP KAĞIDI (KATLANAN SAYFA) ─── */}
         <Animated.View
           style={[
             styles.paperContainer,
@@ -269,24 +282,37 @@ export function OrigamiBirdAnimation({
               transform: [
                 { scale: paperScale },
                 { scaleX: paperFoldX },
+                { scaleY: paperFoldY },
                 { rotate: paperRotateInterpolate },
               ],
             },
           ]}
         >
-          <View style={styles.parchmentSheet}>
-            {/* Wax Seal */}
-            <View style={styles.waxSeal}>
-              <Text style={{ fontSize: 24 }}>💌</Text>
+          <View style={styles.letterSheet}>
+            {/* Romantik Mektup Başlığı */}
+            <View style={styles.letterHeader}>
+              <View style={styles.stampCircle}>
+                <Heart size={16} color="#FF4D6D" fill="#FF4D6D" />
+              </View>
+              <Text style={styles.letterTitle}>Sevgilime Özel...</Text>
             </View>
-            <View style={styles.letterLineShort} />
-            <View style={styles.letterLineLong} />
-            <View style={styles.letterLineMedium} />
-            <Text style={styles.sealingStatusText}>Mektup Katlanıyor...</Text>
+
+            {/* Yumuşak Mektup Satırları */}
+            <View style={styles.letterLinesWrapper}>
+              <View style={styles.letterLine} />
+              <View style={styles.letterLine} />
+              <View style={styles.letterLine} />
+              <View style={[styles.letterLine, { width: "65%" }]} />
+            </View>
+
+            {/* Alt Mühür & İpucu */}
+            <View style={styles.letterFooter}>
+              <Text style={styles.letterFoldingHint}>Kuşa Katlanıyor... 🕊️</Text>
+            </View>
           </View>
         </Animated.View>
 
-        {/* ─── PHASE 2: ORIGAMI CRANE / BIRD IN FLIGHT ─── */}
+        {/* ─── 2. ADIM: BEYAZ ZARİF ORIGAMI KUŞU (KANAT ÇIRPARAK UÇAN) ─── */}
         <Animated.View
           style={[
             styles.birdContainer,
@@ -301,9 +327,8 @@ export function OrigamiBirdAnimation({
             },
           ]}
         >
-          {/* Origami Bird Rendered via SVG with 3D Folded Facets */}
           <View style={styles.origamiWrapper}>
-            {/* Left Wing Animated */}
+            {/* Sol Kanat (Animated Flap) */}
             <Animated.View
               style={[
                 styles.wingLeftWrapper,
@@ -315,69 +340,60 @@ export function OrigamiBirdAnimation({
                 },
               ]}
             >
-              <Svg width={60} height={70} viewBox="0 0 60 70">
+              <Svg width={65} height={75} viewBox="0 0 65 75">
                 <Defs>
-                  <LinearGradient id="leftWingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <LinearGradient id="leftWingMain" x1="100%" y1="100%" x2="0%" y2="0%">
                     <Stop offset="0%" stopColor="#FFFFFF" />
-                    <Stop offset="50%" stopColor="#FFE4EC" />
-                    <Stop offset="100%" stopColor="#FFB3C6" />
+                    <Stop offset="60%" stopColor="#FFF0F5" />
+                    <Stop offset="100%" stopColor="#FFD1DC" />
+                  </LinearGradient>
+                  <LinearGradient id="leftWingFold" x1="100%" y1="100%" x2="0%" y2="0%">
+                    <Stop offset="0%" stopColor="#FFF5F7" />
+                    <Stop offset="100%" stopColor="#FFB8C6" />
                   </LinearGradient>
                 </Defs>
-                <Polygon
-                  points="55,60 5,10 40,45"
-                  fill="url(#leftWingGrad)"
-                  stroke="rgba(255,255,255,0.7)"
-                  strokeWidth="1.2"
-                />
+                {/* Ana Origami Kanat Yüzeyi */}
+                <Polygon points="60,65 5,12 38,30" fill="url(#leftWingMain)" />
+                {/* Alt Origami Katlama Kıvrımı */}
+                <Polygon points="60,65 38,30 46,55" fill="url(#leftWingFold)" />
               </Svg>
             </Animated.View>
 
-            {/* Main Body, Neck & Tail */}
-            <Svg width={90} height={90} viewBox="0 0 90 90">
+            {/* Gövde, Baş ve Kuyruk (Origami Turna Kuşu Şekli) */}
+            <Svg width={90} height={95} viewBox="0 0 90 95">
               <Defs>
-                <LinearGradient id="bodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <LinearGradient id="bodyFaceLeft" x1="0%" y1="0%" x2="100%" y2="100%">
                   <Stop offset="0%" stopColor="#FFFFFF" />
-                  <Stop offset="70%" stopColor="#FFF0F5" />
-                  <Stop offset="100%" stopColor="#FFC2D1" />
+                  <Stop offset="100%" stopColor="#FFF2F5" />
                 </LinearGradient>
-                <LinearGradient id="headGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <LinearGradient id="bodyFaceRight" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <Stop offset="0%" stopColor="#FFE8EE" />
+                  <Stop offset="100%" stopColor="#FFCCD7" />
+                </LinearGradient>
+                <LinearGradient id="headBeak" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <Stop offset="0%" stopColor="#FFFFFF" />
+                  <Stop offset="100%" stopColor="#FF9EB5" />
+                </LinearGradient>
+                <LinearGradient id="tailGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                   <Stop offset="0%" stopColor="#FFF5F8" />
-                  <Stop offset="100%" stopColor="#FF85A1" />
-                </LinearGradient>
-                <LinearGradient id="tailGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <Stop offset="0%" stopColor="#FFE0E9" />
-                  <Stop offset="100%" stopColor="#FF6B8B" />
+                  <Stop offset="100%" stopColor="#FFA6BC" />
                 </LinearGradient>
               </Defs>
 
-              {/* Neck & Head fold */}
-              <Polygon
-                points="45,40 32,15 22,8 26,24"
-                fill="url(#headGrad)"
-                stroke="rgba(255,255,255,0.8)"
-                strokeWidth="1"
-              />
+              {/* Origami Kuyruk */}
+              <Polygon points="45,65 58,92 50,75" fill="url(#tailGradient)" />
 
-              {/* Tail fold */}
-              <Polygon
-                points="45,55 58,82 52,70"
-                fill="url(#tailGrad)"
-                stroke="rgba(255,255,255,0.6)"
-                strokeWidth="1"
-              />
+              {/* Origami Boyun & Zarif Baş */}
+              <Polygon points="45,45 32,18 22,12 26,24" fill="url(#headBeak)" />
 
-              {/* Center Diamond Body Facets */}
-              <Polygon
-                points="45,35 55,50 45,65 35,50"
-                fill="url(#bodyGrad)"
-                stroke="rgba(255,255,255,0.9)"
-                strokeWidth="1.5"
-              />
-              {/* Center Crease line */}
-              <Path d="M45,35 L45,65" stroke="rgba(255,105,180,0.4)" strokeWidth="1" />
+              {/* Gövde Sol Elmas Yüzey */}
+              <Polygon points="45,35 34,55 45,72 45,35" fill="url(#bodyFaceLeft)" />
+
+              {/* Gövde Sağ Elmas Yüzey (Gölgeli origami katı) */}
+              <Polygon points="45,35 56,55 45,72 45,35" fill="url(#bodyFaceRight)" />
             </Svg>
 
-            {/* Right Wing Animated */}
+            {/* Sağ Kanat (Animated Flap) */}
             <Animated.View
               style={[
                 styles.wingRightWrapper,
@@ -389,50 +405,52 @@ export function OrigamiBirdAnimation({
                 },
               ]}
             >
-              <Svg width={60} height={70} viewBox="0 0 60 70">
+              <Svg width={65} height={75} viewBox="0 0 65 75">
                 <Defs>
-                  <LinearGradient id="rightWingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <LinearGradient id="rightWingMain" x1="0%" y1="100%" x2="100%" y2="0%">
                     <Stop offset="0%" stopColor="#FFFFFF" />
-                    <Stop offset="50%" stopColor="#FFD1DC" />
-                    <Stop offset="100%" stopColor="#FF85A1" />
+                    <Stop offset="60%" stopColor="#FFF0F5" />
+                    <Stop offset="100%" stopColor="#FFCCD7" />
+                  </LinearGradient>
+                  <LinearGradient id="rightWingFold" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <Stop offset="0%" stopColor="#FFE4EC" />
+                    <Stop offset="100%" stopColor="#FFA6BC" />
                   </LinearGradient>
                 </Defs>
-                <Polygon
-                  points="5,60 55,10 20,45"
-                  fill="url(#rightWingGrad)"
-                  stroke="rgba(255,255,255,0.7)"
-                  strokeWidth="1.2"
-                />
+                {/* Ana Origami Kanat Yüzeyi */}
+                <Polygon points="5,65 60,12 27,30" fill="url(#rightWingMain)" />
+                {/* Alt Origami Katlama Kıvrımı */}
+                <Polygon points="5,65 27,30 19,55" fill="url(#rightWingFold)" />
               </Svg>
             </Animated.View>
           </View>
 
-          {/* Sparkle Aura around bird */}
+          {/* Kuşun Etrafındaki Büyülü Parıltı */}
           <View style={styles.sparkleCluster}>
-            <Sparkles size={18} color="#FFD700" />
+            <Sparkles size={16} color="#FFD700" />
           </View>
         </Animated.View>
 
-        {/* ─── SPARKLE TRAIL PARTICLES ─── */}
+        {/* ─── UÇUŞ İZİ PARÇACIKLARI (KALPLER VE YILDIZLAR) ─── */}
         <Animated.View
           style={[styles.trailContainer, { opacity: sparklesOpacity }]}
           pointerEvents="none"
         >
-          <View style={[styles.particle, { top: "42%", left: "48%" }]}>
-            <Sparkles size={16} color="#FFF" />
+          <View style={[styles.particle, { top: "42%", left: "46%" }]}>
+            <Sparkles size={15} color="#FFF" />
           </View>
-          <View style={[styles.particle, { top: "35%", left: "58%" }]}>
+          <View style={[styles.particle, { top: "34%", left: "56%" }]}>
             <Heart size={14} color="#FF4D6D" fill="#FF4D6D" />
           </View>
-          <View style={[styles.particle, { top: "28%", left: "68%" }]}>
+          <View style={[styles.particle, { top: "26%", left: "67%" }]}>
             <Sparkles size={14} color="#FFD700" />
           </View>
-          <View style={[styles.particle, { top: "20%", left: "78%" }]}>
+          <View style={[styles.particle, { top: "18%", left: "78%" }]}>
             <Heart size={12} color="#FF85A1" fill="#FF85A1" />
           </View>
         </Animated.View>
 
-        {/* ─── PHASE 3: SUCCESS CELEBRATION CARD ─── */}
+        {/* ─── 3. ADIM: TAMAMLANMA & KUTLAMA KARTI ─── */}
         <Animated.View
           style={[
             styles.successCard,
@@ -443,17 +461,17 @@ export function OrigamiBirdAnimation({
           ]}
         >
           <View style={styles.successIconCircle}>
-            <Text style={{ fontSize: 36 }}>🕊️</Text>
+            <Text style={{ fontSize: 34 }}>🕊️</Text>
           </View>
 
-          <Text style={styles.successTitle}>Mektubunuz Zamanda Yolculuğa Çıktı!</Text>
+          <Text style={styles.successTitle}>Mektubun Kanatlandı!</Text>
           <Text style={styles.successSubtitle}>
-            Sevdiğin için mühürlendi ve geleceğe doğru kanatlandı ✨
+            Mektup sayfası kuşa dönüştü ve sevgiline doğru gökyüzünde süzülüyor ✨
           </Text>
 
           <View style={styles.successBadge}>
-            <Sparkles size={14} color="#FFD700" />
-            <Text style={styles.successBadgeText}>Açılış gününe kadar güvenle kilitli</Text>
+            <Sparkles size={13} color="#FFD700" />
+            <Text style={styles.successBadgeText}>Açılış gününe kadar güvenle mühürlendi</Text>
           </View>
 
           <TouchableOpacity
@@ -472,7 +490,7 @@ export function OrigamiBirdAnimation({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(5, 5, 12, 0.92)",
+    backgroundColor: "rgba(6, 5, 14, 0.92)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -482,64 +500,75 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(255, 77, 109, 0.05)",
+    backgroundColor: "rgba(255, 77, 109, 0.06)",
   },
 
-  /* PAPER LETTER STYLES */
+  /* MEKTUP KAĞIDI STİLLERİ */
   paperContainer: {
     position: "absolute",
     alignItems: "center",
     justifyContent: "center",
   },
-  parchmentSheet: {
-    width: 220,
-    height: 160,
+  letterSheet: {
+    width: 210,
+    height: 250,
     backgroundColor: "#FFFDF9",
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 18,
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 77, 109, 0.25)",
+    shadowColor: "#FF4D6D",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 18,
+    elevation: 12,
+    justifyContent: "space-between",
+  },
+  letterHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 77, 109, 0.15)",
+    paddingBottom: 10,
+  },
+  stampCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(255, 77, 109, 0.12)",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1.5,
-    borderColor: "rgba(255, 215, 0, 0.4)",
-    shadowColor: "#FFD700",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
   },
-  waxSeal: {
-    marginBottom: 8,
+  letterTitle: {
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
+    color: "#2D1B2D",
+    letterSpacing: -0.2,
   },
-  letterLineLong: {
-    width: "70%",
-    height: 3,
-    backgroundColor: "rgba(200, 160, 120, 0.35)",
+  letterLinesWrapper: {
+    gap: 12,
+    paddingVertical: 14,
+  },
+  letterLine: {
+    width: "100%",
+    height: 4,
+    backgroundColor: "rgba(230, 200, 210, 0.45)",
     borderRadius: 2,
-    marginVertical: 4,
   },
-  letterLineMedium: {
-    width: "50%",
-    height: 3,
-    backgroundColor: "rgba(200, 160, 120, 0.25)",
-    borderRadius: 2,
-    marginVertical: 4,
+  letterFooter: {
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 77, 109, 0.12)",
+    paddingTop: 8,
   },
-  letterLineShort: {
-    width: "35%",
-    height: 3,
-    backgroundColor: "rgba(200, 160, 120, 0.2)",
-    borderRadius: 2,
-    marginVertical: 4,
-  },
-  sealingStatusText: {
-    marginTop: 10,
-    fontSize: 12,
+  letterFoldingHint: {
+    fontSize: 11.5,
     fontFamily: "Inter_600SemiBold",
-    color: "#8B4513",
-    letterSpacing: 0.5,
+    color: "#FF4D6D",
   },
 
-  /* ORIGAMI BIRD STYLES */
+  /* BEYAZ ORIGAMI KUŞU STİLLERİ */
   birdContainer: {
     position: "absolute",
     alignItems: "center",
@@ -554,21 +583,21 @@ const styles = StyleSheet.create({
   },
   wingLeftWrapper: {
     position: "absolute",
-    left: 0,
-    top: 15,
+    left: 4,
+    top: 18,
   },
   wingRightWrapper: {
     position: "absolute",
-    right: 0,
-    top: 15,
+    right: 4,
+    top: 18,
   },
   sparkleCluster: {
     position: "absolute",
-    top: -8,
-    right: -8,
+    top: -6,
+    right: -6,
   },
 
-  /* PARTICLES */
+  /* PARÇACIKLAR */
   trailContainer: {
     position: "absolute",
     top: 0,
@@ -580,11 +609,11 @@ const styles = StyleSheet.create({
     position: "absolute",
   },
 
-  /* SUCCESS CELEBRATION CARD */
+  /* KUTLAMA KARTI */
   successCard: {
     width: SCREEN_WIDTH * 0.86,
     maxWidth: 340,
-    backgroundColor: "rgba(22, 22, 35, 0.95)",
+    backgroundColor: "rgba(20, 18, 30, 0.96)",
     borderRadius: 24,
     padding: 24,
     alignItems: "center",
@@ -594,61 +623,61 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.35,
     shadowRadius: 24,
-    elevation: 12,
+    elevation: 14,
   },
   successIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     backgroundColor: "rgba(255, 77, 109, 0.15)",
     borderWidth: 1.5,
-    borderColor: "rgba(255, 77, 109, 0.4)",
+    borderColor: "rgba(255, 77, 109, 0.35)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
   },
   successTitle: {
     color: "#FFFFFF",
-    fontSize: 19,
+    fontSize: 18.5,
     fontFamily: "Inter_700Bold",
     textAlign: "center",
     marginBottom: 8,
     letterSpacing: -0.3,
   },
   successSubtitle: {
-    color: "rgba(255, 255, 255, 0.7)",
-    fontSize: 13.5,
+    color: "rgba(255, 255, 255, 0.72)",
+    fontSize: 13,
     fontFamily: "Inter_400Regular",
     textAlign: "center",
-    lineHeight: 20,
-    marginBottom: 18,
+    lineHeight: 19,
+    marginBottom: 16,
   },
   successBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(255, 215, 0, 0.12)",
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 20,
+    backgroundColor: "rgba(255, 215, 0, 0.1)",
     borderWidth: 1,
-    borderColor: "rgba(255, 215, 0, 0.25)",
+    borderColor: "rgba(255, 215, 0, 0.3)",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 14,
     marginBottom: 20,
   },
   successBadgeText: {
     color: "#FFD700",
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: "Inter_600SemiBold",
   },
   closeBtn: {
     backgroundColor: "#FF4D6D",
     paddingVertical: 12,
-    paddingHorizontal: 32,
+    paddingHorizontal: 36,
     borderRadius: 22,
     shadowColor: "#FF4D6D",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
     elevation: 4,
   },
   closeBtnText: {
