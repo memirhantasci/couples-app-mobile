@@ -202,6 +202,7 @@ export default function MapScreen() {
   const [mapTheme, setMapTheme] = useState<MapThemeType>(() => (isAppLight ? "romantic" : "midnight"));
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [showThemePicker, setShowThemePicker] = useState(false);
+  const [isMapReady, setIsMapReady] = useState(false);
 
   // Uygulamanın tema modu değiştiğinde haritanın varsayılan temasını da otomatik senkronize et
   useEffect(() => {
@@ -448,14 +449,15 @@ export default function MapScreen() {
   const isLoading = loadingPhotos || loadingNotes || loadingMeetings;
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: isLight ? "#F7F4EF" : "#0F131D" }]}>
       <StatusBar barStyle={isLight ? "dark-content" : "light-content"} />
 
       {/* ─── HARİTA ─────────────────────────────────────────────────────── */}
       <MapView
         ref={mapRef}
-        style={StyleSheet.absoluteFill}
+        style={[StyleSheet.absoluteFill, { opacity: isMapReady ? 1 : 0 }]}
         customMapStyle={selectedMapStyle}
+        onMapReady={() => setIsMapReady(true)}
         initialRegion={{
           latitude: 41.0082,
           longitude: 28.9784,
