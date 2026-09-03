@@ -26,6 +26,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { WatchAdModal } from "@/components/ui/WatchAdModal";
+import { OrigamiBirdAnimation } from "@/components/letters/OrigamiBirdAnimation";
 
 export default function LettersScreen() {
   const router = useRouter();
@@ -41,6 +42,7 @@ export default function LettersScreen() {
   const [activeTab, setActiveTab] = useState<"all" | "received" | "sent">("all");
   const [pageLimit, setPageLimit] = useState(30);
   const [showWriteModal, setShowWriteModal] = useState(false);
+  const [showOrigamiAnimation, setShowOrigamiAnimation] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [showAdModal, setShowAdModal] = useState(false);
   const isPremium = profile?.isPremium ?? false;
@@ -212,7 +214,7 @@ export default function LettersScreen() {
       await refreshProfile();
       queryClient.invalidateQueries({ queryKey: ["letters_data"] });
       
-      // Formu temizle ve modalı kapat
+      // Formu temizle ve yazma modalını kapat
       setTitle("");
       setContent("");
       setUnlockDate(todayString());
@@ -222,7 +224,8 @@ export default function LettersScreen() {
         notifyPartner(coupleId, userId, "Gelecekten Bir Mesaj 💌", "Sevgilin sana mühürlü bir mektup gönderdi.");
       }
 
-      Alert.alert("Mektup Mühürlendi! 💌", "Mektubunuz zamanda yolculuğa çıktı ve başarıyla mühürlendi.");
+      // Origami turna kuşu uçuş animasyonunu başlat! 🕊️✨
+      setShowOrigamiAnimation(true);
     } catch (error: any) {
       logger.error("Letter save error:", error);
       Alert.alert("Hata", "Mektup mühürlenirken bir hata oluştu: " + (error?.message || ""));
@@ -284,6 +287,30 @@ export default function LettersScreen() {
           {/* Üst Durum Çubuğu */}
           <View style={styles.cardTopRow}>
             <View style={styles.badgeContainer}>
+              {/* Tümü sekmesindeyken Gelen / Giden belirteci */}
+              {activeTab === "all" && (
+                <View
+                  style={[
+                    styles.directionBadge,
+                    {
+                      backgroundColor:
+                        itemType === "received"
+                          ? "rgba(168, 85, 247, 0.15)"
+                          : "rgba(59, 130, 246, 0.15)",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.directionBadgeText,
+                      { color: itemType === "received" ? "#c084fc" : "#60a5fa" },
+                    ]}
+                  >
+                    {itemType === "received" ? "📥 Gelen" : "📤 Giden"}
+                  </Text>
+                </View>
+              )}
+
               {isLockedDate && itemType === "received" ? (
                 <View style={styles.lockedBadge}>
                   <LockKeyhole size={13} color="#f59e0b" />
@@ -295,7 +322,11 @@ export default function LettersScreen() {
                 <View style={styles.unlockedBadge}>
                   <Unlock size={13} color="#22c55e" />
                   <Text style={styles.unlockedBadgeText}>
-                    {itemType === "sent" ? "Gönderildi" : "Açıldı"}
+                    {itemType === "sent"
+                      ? isLockedDate
+                        ? `Mühürlü • ${unlockDateObj.locale("tr").format("DD MMM")}`
+                        : "Gönderildi"
+                      : "Açıldı"}
                   </Text>
                 </View>
               )}
@@ -313,14 +344,14 @@ export default function LettersScreen() {
           <View style={styles.personRow}>
             <Mail size={13} color="rgba(255,255,255,0.5)" />
             <Text style={styles.personText}>
-              {activeTab === "received" ? `Gönderen: ${personName}` : `Alıcı: ${personName}`}
+              {itemType === "received" ? `Gönderen: ${personName}` : `Alıcı: ${personName}`}
             </Text>
           </View>
 
           {/* Kapalı Durumdaki İpucu */}
           {!isOpen && (
             <Text style={styles.previewText} numberOfLines={2}>
-              {(!canOpen && activeTab === "received") 
+              {(!canOpen && itemType === "received") 
                 ? "🔒 Bu mektup zaman kilidiyle koruma altında. Açılış gününde içeriği görebileceksin..." 
                 : (letter.content || "Mektup içeriği bulunamadı.")}
             </Text>
@@ -342,7 +373,7 @@ export default function LettersScreen() {
 
   if (!session) return <View style={{ flex: 1, backgroundColor: "#0a0a0f" }} />;
 
-  const currentList = activeTab === "received" ? receivedLetters : sentLetters;
+  const currentList = activeTab === "all" ? allLetters : activeTab === "received" ? receivedLetters : sentLetters;
 
   return (
     <ScreenBackground>
@@ -450,7 +481,11 @@ export default function LettersScreen() {
               <View style={[styles.emptyCard, { backgroundColor: theme.cardBg }]}>
                 <Text style={{ fontSize: 38, marginBottom: 12 }}>📮</Text>
                 <Text style={styles.emptyTitle}>
-                  {activeTab === "received" ? "Henüz Mektubun Yok" : "Henüz Mektup Göndermedin"}
+                  {activeTab === "received" 
+                    ? "Henüz Mektubun Yok" 
+                    : activeTab === "sent" 
+                    ? "Henüz Mektup Göndermedin" 
+                    : "Henüz Mektup Bulunmuyor"}
                 </Text>
                 <Text style={styles.emptySubtitle}>
                   {activeTab === "received" 
@@ -706,6 +741,12 @@ export default function LettersScreen() {
         onSuccess={() => setShowAdModal(false)}
       />
 
+      <OrigamiBirdAnimation
+        visible={showOrigamiAnimation}
+        onComplete={() => setShowOrigamiAnimation(false)}
+        accentColor={theme.accent}
+      />
+
     </ScreenBackground>
   );
 }
@@ -830,6 +871,20 @@ const styles = StyleSheet.create({
   badgeContainer: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 6,
+  },
+  directionBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  directionBadgeText: {
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
   },
   lockedBadge: {
     flexDirection: "row",
