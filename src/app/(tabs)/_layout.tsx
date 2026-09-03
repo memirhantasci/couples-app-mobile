@@ -1,34 +1,35 @@
 import { Tabs } from "expo-router";
 import { StyleSheet, View, Text, Platform, TouchableOpacity } from "react-native";
 import { BlurView } from "expo-blur";
-import { 
-  Home, CalendarHeart, Pill, Mail, Settings, MapIcon
-} from "lucide-react-native";
-import React from "react";
+import React, { useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { getTheme } from "@/lib/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
 import { useTheme } from "@/context/ThemeContext";
-
-const TAB_CONFIG: Record<string, { label: string; Icon: any }> = {
-  home: { label: "Ana Sayfa", Icon: Home },
-  medicine: { label: "İlaçlar", Icon: Pill },
-  calendar: { label: "Takvim", Icon: CalendarHeart },
-  map: { label: "Harita", Icon: MapIcon },
-  letters: { label: "Mektuplar", Icon: Mail },
-  profile: { label: "Ayarlar", Icon: Settings },
-};
+import { useTabBar } from "@/context/TabBarContext";
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const { theme, isLight } = useTheme();
+  const { enabledTabs, allTabs } = useTabBar();
   const insets = useSafeAreaInsets();
 
-  // Yalnızca href !== null olan ana sekmeleri filtrele
-  const visibleRoutes = state.routes.filter((route: any) => {
-    const { options } = descriptors[route.key];
-    return options.href !== null && TAB_CONFIG[route.name];
-  });
+  const tabLookup = useMemo(() => {
+    return allTabs.reduce((acc, tab) => {
+      acc[tab.key] = tab;
+      return acc;
+    }, {} as Record<string, (typeof allTabs)[0]>);
+  }, [allTabs]);
+
+  // Kullanıcının alt barda aktif ettiği sekmeleri sırayla filtrele
+  const visibleTabs = useMemo(() => {
+    return enabledTabs
+      .map((tabKey) => {
+        const route = state.routes.find((r: any) => r.name === tabKey);
+        const config = tabLookup[tabKey];
+        if (!route || !config) return null;
+        return { route, config };
+      })
+      .filter(Boolean) as { route: any; config: (typeof allTabs)[0] }[];
+  }, [enabledTabs, state.routes, tabLookup]);
 
   // Alt boşluk: iPhone Home Bar ile dengeli ve estetik duracak şekilde
   const bottomOffset = Platform.OS === "ios" 
@@ -55,11 +56,8 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
       />
 
       <View style={styles.tabBarInner}>
-        {visibleRoutes.map((route: any) => {
+        {visibleTabs.map(({ route, config }) => {
           const isFocused = state.routes[state.index].name === route.name;
-          const config = TAB_CONFIG[route.name];
-          if (!config) return null;
-
           const { label, Icon } = config;
 
           const onPress = () => {
@@ -131,20 +129,21 @@ export default function TabsLayout() {
         headerShown: false,
       }}
     >
+      {/* Kullanıcının seçebileceği tüm ana sekmeler */}
       <Tabs.Screen name="home" />
       <Tabs.Screen name="medicine" />
       <Tabs.Screen name="calendar" />
       <Tabs.Screen name="map" />
       <Tabs.Screen name="letters" />
       <Tabs.Screen name="profile" />
+      <Tabs.Screen name="photos" />
+      <Tabs.Screen name="daily-notes" />
+      <Tabs.Screen name="meetings" />
+      <Tabs.Screen name="memories" />
+      <Tabs.Screen name="period-tracker" />
 
-      {/* Gizli Alt Rotalar */}
-      <Tabs.Screen name="meetings" options={{ href: null }} />
-      <Tabs.Screen name="memories" options={{ href: null }} />
+      {/* Modal / Alt Form Rotaları (Alt barda yer almaz) */}
       <Tabs.Screen name="add-memory" options={{ href: null }} />
-      <Tabs.Screen name="daily-notes" options={{ href: null }} />
-      <Tabs.Screen name="period-tracker" options={{ href: null }} />
-      <Tabs.Screen name="photos" options={{ href: null }} />
       <Tabs.Screen name="add-photo" options={{ href: null }} />
       <Tabs.Screen name="add-daily-note" options={{ href: null }} />
     </Tabs>

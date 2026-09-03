@@ -136,13 +136,16 @@ function RootLayoutNav() {
 }
 
 import { ThemeProvider } from "@/context/ThemeContext";
+import { TabBarProvider } from "@/context/TabBarContext";
 
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ThemeProvider>
-          <RootLayoutNav />
+          <TabBarProvider>
+            <RootLayoutNav />
+          </TabBarProvider>
         </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
