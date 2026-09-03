@@ -1,8 +1,7 @@
 import React from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StyleProp, ViewStyle } from 'react-native';
-import { useAuth } from '@/context/AuthContext';
-import { getTheme } from '@/lib/theme';
+import { StyleProp, ViewStyle, StatusBar } from 'react-native';
+import { useTheme } from '@/context/ThemeContext';
 
 interface ScreenBackgroundProps {
   children: React.ReactNode;
@@ -11,12 +10,12 @@ interface ScreenBackgroundProps {
 }
 
 export function ScreenBackground({ children, style, colors }: ScreenBackgroundProps) {
-  const { profile } = useAuth();
-  const theme = getTheme(profile?.gender);
+  const { theme, isLight } = useTheme();
   const backgroundColors = colors ?? theme.bgGradient;
 
   return (
     <LinearGradient colors={backgroundColors} style={[{ flex: 1 }, style]}>
+      <StatusBar barStyle={isLight ? 'dark-content' : 'light-content'} />
       {children}
     </LinearGradient>
   );

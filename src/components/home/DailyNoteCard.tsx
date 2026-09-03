@@ -65,13 +65,13 @@ export function DailyNoteCard({ existingNote, theme }: DailyNoteCardProps) {
   }
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.cardBg }]}>
-      <Text style={styles.title}>Günlük Notum</Text>
+    <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+      <Text style={[styles.title, { color: theme.text }]}>Günlük Notum</Text>
 
       {saved ? (
-        <View style={[styles.savedBox, { borderColor: theme.cardBorder }]}>
-          <Text style={styles.savedContent}>{content}</Text>
-          <Text style={styles.footerText}>Yarın yeni bir not yazabilirsin 🌙</Text>
+        <View style={[styles.savedBox, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder }]}>
+          <Text style={[styles.savedContent, { color: theme.text }]}>{content}</Text>
+          <Text style={[styles.footerText, { color: theme.textMuted }]}>Yarın yeni bir not yazabilirsin 🌙</Text>
           <TouchableOpacity
             onPress={() => router.push("/(tabs)/daily-notes" as any)}
             style={styles.historyBtn}
@@ -86,11 +86,18 @@ export function DailyNoteCard({ existingNote, theme }: DailyNoteCardProps) {
             value={content}
             onChangeText={setContent}
             placeholder="Bugün nasıldı? Ne hissediyorsun?..."
-            placeholderTextColor="rgba(255,255,255,0.25)"
+            placeholderTextColor={theme.textMuted}
             multiline
             numberOfLines={4}
             maxLength={4500}
-            style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}
+            style={[
+              styles.input, 
+              { 
+                backgroundColor: theme.unitBg, 
+                color: theme.text,
+                borderColor: theme.isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" 
+              }
+            ]}
           />
           <TouchableOpacity
             style={[
@@ -100,9 +107,10 @@ export function DailyNoteCard({ existingNote, theme }: DailyNoteCardProps) {
             ]}
             onPress={handleSave}
             disabled={submitting || !content.trim()}
+            activeOpacity={0.8}
           >
             {submitting ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="#fff" size="small" />
             ) : (
               <Text style={styles.saveBtnText}>Kaydet</Text>
             )}
@@ -115,68 +123,60 @@ export function DailyNoteCard({ existingNote, theme }: DailyNoteCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 0,
+    borderWidth: 1,
     borderRadius: 20,
-    padding: 20,
-    marginBottom: 18,
+    padding: 18,
+    marginBottom: 4,
   },
   title: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: "Inter_700Bold",
-    color: "#fff",
-    marginBottom: 16,
+    marginBottom: 14,
   },
   savedBox: {
-    backgroundColor: "rgba(255,255,255,0.04)",
-    borderWidth: 1,
     borderRadius: 14,
     padding: 14,
+    borderWidth: 1,
   },
   savedContent: {
     fontSize: 14,
-    lineHeight: 22,
     fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.9)",
+    lineHeight: 21,
+    marginBottom: 10,
   },
   footerText: {
     fontSize: 11,
     fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.4)",
-    marginTop: 10,
+    marginBottom: 8,
   },
   historyBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    marginTop: 12,
+    gap: 6,
+    paddingTop: 4,
   },
   historyBtnText: {
     fontSize: 12,
     fontFamily: "Inter_600SemiBold",
   },
   input: {
-    width: "100%",
-    borderWidth: 0,
     borderRadius: 14,
-    color: "rgba(255,255,255,0.9)",
-    fontFamily: "Inter_400Regular",
+    padding: 14,
     fontSize: 14,
-    lineHeight: 22,
-    padding: 16,
-    minHeight: 110,
+    fontFamily: "Inter_400Regular",
+    borderWidth: 1,
+    minHeight: 90,
     textAlignVertical: "top",
   },
   saveBtn: {
-    width: "100%",
+    height: 44,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 50,
-    paddingVertical: 16,
   },
   saveBtnText: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 15,
     color: "#fff",
-    letterSpacing: 0.3,
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
   },
 });

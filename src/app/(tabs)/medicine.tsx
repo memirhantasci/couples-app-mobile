@@ -12,6 +12,7 @@ import {
   Calendar, AlertCircle, Sparkles, ChevronRight
 } from "lucide-react-native";
 import { getTheme } from "@/lib/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
@@ -30,12 +31,12 @@ const getRelativeDateLabel = (dateStr: string) => {
 
 export default function MedicineScreen() {
   const { profile, session } = useAuth();
+  const { theme, isLight } = useTheme();
   const router = useRouter();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const coupleId = profile?.coupleId;
   const userId = session?.user?.id ? session.user.id : null;
-  const theme = getTheme(profile?.gender);
 
   const todayStr = todayString();
   const [loadingSlot, setLoadingSlot] = useState<string | null>(null);
@@ -395,23 +396,23 @@ export default function MedicineScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity 
             onPress={() => router.back()} 
-            style={styles.headerBtn}
+            style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <ChevronLeft color="#ffffff" size={24} />
+            <ChevronLeft color={theme.text} size={24} />
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={styles.headerTitle}>İlaç Takibi</Text>
-            <Text style={styles.headerSubtitle}>Günlük Sağlık Hatırlatıcısı 💊</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>İlaç Takibi</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>Günlük Sağlık Hatırlatıcısı 💊</Text>
           </View>
 
           <TouchableOpacity 
             onPress={() => router.push("/menu")} 
-            style={styles.headerBtn}
+            style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <AlignJustify color="rgba(255,255,255,0.75)" size={20} />
+            <AlignJustify color={theme.textSecondary} size={20} />
           </TouchableOpacity>
         </View>
 
@@ -433,20 +434,20 @@ export default function MedicineScreen() {
               <Plus size={20} color={theme.accent} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.quickActionTitle}>Yeni İlaç Ekle veya Yönet</Text>
-              <Text style={styles.quickActionSub}>Günlük dozları ve saatleri planlayın ✨</Text>
+              <Text style={[styles.quickActionTitle, { color: theme.text }]}>Yeni İlaç Ekle veya Yönet</Text>
+              <Text style={[styles.quickActionSub, { color: theme.textMuted }]}>Günlük dozları ve saatleri planlayın ✨</Text>
             </View>
-            <ChevronRight size={18} color="rgba(255,255,255,0.4)" />
+            <ChevronRight size={18} color={theme.textMuted} />
           </TouchableOpacity>
 
           {/* BEN / SEVGİLİM SEGMENTED CONTROL */}
-          <View style={[styles.segmentedContainer, { backgroundColor: theme.cardBg }]}>
+          <View style={[styles.segmentedContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
             <TouchableOpacity 
               style={[styles.segmentedBtn, activeTab === "me" && { backgroundColor: theme.unitBg }]}
               onPress={() => setActiveTab("me")}
               activeOpacity={0.8}
             >
-              <Text style={[styles.segmentedText, activeTab === "me" && { color: theme.accent, fontFamily: "Inter_700Bold" }]}>
+              <Text style={[styles.segmentedText, { color: activeTab === "me" ? theme.accent : theme.textSecondary }, activeTab === "me" && { fontFamily: "Inter_700Bold" }]}>
                 Benim İlaçlarım
               </Text>
             </TouchableOpacity>
@@ -456,7 +457,7 @@ export default function MedicineScreen() {
               onPress={() => setActiveTab("partner")}
               activeOpacity={0.8}
             >
-              <Text style={[styles.segmentedText, activeTab === "partner" && { color: theme.accent, fontFamily: "Inter_700Bold" }]}>
+              <Text style={[styles.segmentedText, { color: activeTab === "partner" ? theme.accent : theme.textSecondary }, activeTab === "partner" && { fontFamily: "Inter_700Bold" }]}>
                 Sevgilimin İlaçları 💕
               </Text>
             </TouchableOpacity>
@@ -465,8 +466,8 @@ export default function MedicineScreen() {
           {/* BUGÜNÜN İLAÇLARI BÖLÜMÜ */}
           <View style={styles.sectionBlock}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>BUGÜNÜN DOZLARI</Text>
-              <Text style={styles.sectionDateSub}>{dayjs().locale("tr").format("D MMMM, dddd")}</Text>
+              <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>BUGÜNÜN DOZLARI</Text>
+              <Text style={[styles.sectionDateSub, { color: theme.textMuted }]}>{dayjs().locale("tr").format("D MMMM, dddd")}</Text>
             </View>
 
             {isLoading ? (

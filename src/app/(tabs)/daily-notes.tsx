@@ -27,6 +27,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { getTheme } from "@/lib/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 dayjs.locale("tr");
@@ -39,10 +40,10 @@ interface DailyNote {
 
 export default function DailyNotesScreen() {
   const { session, profile } = useAuth();
+  const { theme, isLight } = useTheme();
   const router = useRouter();
   const queryClient = useQueryClient();
   const userId = session?.user?.id ? session.user.id : null;
-  const theme = getTheme(profile?.gender);
   const insets = useSafeAreaInsets();
 
   const [editingNote, setEditingNote] = useState<DailyNote | null>(null);
@@ -154,8 +155,8 @@ export default function DailyNotesScreen() {
               <Text style={[styles.dayText, { color: theme.accent }]}>{day}</Text>
             </View>
             <View>
-              <Text style={styles.monthYearText}>{month} {year}</Text>
-              <Text style={styles.weekdayText}>{weekday}</Text>
+              <Text style={[styles.monthYearText, { color: theme.text }]}>{month} {year}</Text>
+              <Text style={[styles.weekdayText, { color: theme.textMuted }]}>{weekday}</Text>
             </View>
           </View>
 
@@ -170,7 +171,7 @@ export default function DailyNotesScreen() {
               style={styles.actionIconBtn}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
-              <Edit3 size={15} color="rgba(255,255,255,0.7)" />
+              <Edit3 size={15} color={theme.textMuted} />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -184,7 +185,7 @@ export default function DailyNotesScreen() {
         </View>
 
         {/* Günlük Metni */}
-        <Text style={styles.noteBodyText}>{displayContent}</Text>
+        <Text style={[styles.noteBodyText, { color: theme.textSecondary }]}>{displayContent}</Text>
       </View>
     );
   };
@@ -196,21 +197,21 @@ export default function DailyNotesScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity 
             onPress={() => router.back()} 
-            style={styles.headerBtn}
+            style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <ChevronLeft color="#ffffff" size={24} />
+            <ChevronLeft color={theme.text} size={24} />
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={styles.headerTitle}>Günlüğüm</Text>
-            <Text style={styles.headerSubtitle}>Sadece senin görebildiğin notların 📓</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Günlüğüm</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>Sadece senin görebildiğin notların 📓</Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <TouchableOpacity 
               onPress={() => router.push("/(tabs)/add-daily-note")}
-              style={[styles.headerBtn, { backgroundColor: theme.cardBg }]}
+              style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : theme.cardBg, borderColor: theme.cardBorder }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <PenLine color={theme.accent} size={19} />
@@ -218,10 +219,10 @@ export default function DailyNotesScreen() {
 
             <TouchableOpacity 
               onPress={() => router.push("/menu")} 
-              style={styles.headerBtn}
+              style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <AlignJustify color="rgba(255,255,255,0.75)" size={20} />
+              <AlignJustify color={theme.textSecondary} size={20} />
             </TouchableOpacity>
           </View>
         </View>
@@ -237,10 +238,10 @@ export default function DailyNotesScreen() {
               <BookOpen size={20} color={theme.accent} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.writeActionTitle}>Günün Günlüğünü Yaz</Text>
-              <Text style={styles.writeActionSub}>İçinden geçenleri defterine emanet et ✨</Text>
+              <Text style={[styles.writeActionTitle, { color: theme.text }]}>Günün Günlüğünü Yaz</Text>
+              <Text style={[styles.writeActionSub, { color: theme.textMuted }]}>İçinden geçenleri defterine emanet et ✨</Text>
             </View>
-            <PenLine size={18} color="rgba(255,255,255,0.4)" />
+            <PenLine size={18} color={theme.textMuted} />
           </TouchableOpacity>
         </View>
 

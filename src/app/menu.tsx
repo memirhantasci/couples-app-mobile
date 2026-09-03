@@ -17,12 +17,15 @@ import { decrypt } from "@/utils/crypto";
 import { dayjs, daysSince } from "@/lib/date";
 import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
+import { useTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LegalModal } from "@/components/legal/LegalModal";
 
 export default function MenuScreen() {
   const router = useRouter();
   const { profile, session, signOut } = useAuth();
+  const { theme, isLight } = useTheme();
+  const styles = React.useMemo(() => getMenuStyles(theme, isLight), [theme, isLight]);
   const insets = useSafeAreaInsets();
   const [legalVisible, setLegalVisible] = React.useState(false);
 
@@ -40,8 +43,6 @@ export default function MenuScreen() {
       router.replace("/(auth)/login" as any);
     }
   };
-
-  const theme = getTheme(profile?.gender);
   
   const relDate = profile?.relationshipStartDate;
   const daysSinceTogether = relDate ? daysSince(dayjs(relDate)) : 0;
@@ -72,13 +73,13 @@ export default function MenuScreen() {
       <View style={{ flex: 1 }}>
         {/* HEADER */}
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
-          <Text style={styles.headerTitle}>Uygulama Menüsü</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>Uygulama Menüsü</Text>
           <TouchableOpacity 
             onPress={() => router.back()} 
-            style={[styles.closeBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+            style={[styles.closeBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : theme.cardBg, borderColor: theme.cardBorder }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <X color="#ffffff" size={18} />
+            <X color={theme.text} size={18} />
           </TouchableOpacity>
         </View>
 
@@ -92,10 +93,10 @@ export default function MenuScreen() {
               <Text style={[styles.avatarLetter, { color: theme.accent }]}>{initialLetter}</Text>
             </View>
             <View style={styles.profileInfo}>
-              <Text style={styles.profileName} numberOfLines={1}>{displayName}</Text>
+              <Text style={[styles.profileName, { color: theme.text }]} numberOfLines={1}>{displayName}</Text>
               <View style={styles.profileSubtitleRow}>
                 <Heart size={11} color={theme.accent} fill={theme.accent} />
-                <Text style={styles.profileSubtitle}>
+                <Text style={[styles.profileSubtitle, { color: theme.textSecondary }]}>
                   {displayName} & {partnerName || "Sevgilin"} • {daysSinceTogether} Gün
                 </Text>
               </View>
@@ -308,7 +309,7 @@ export default function MenuScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getMenuStyles = (theme: any, isLight: boolean) => StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -319,7 +320,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontFamily: "Inter_700Bold",
-    color: "#ffffff",
+    color: theme.text,
     letterSpacing: -0.4,
   },
   closeBtn: {
@@ -363,7 +364,7 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 16.5,
     fontFamily: "Inter_700Bold",
-    color: "#ffffff",
+    color: theme.text,
     marginBottom: 4,
   },
   profileSubtitleRow: {
@@ -374,7 +375,7 @@ const styles = StyleSheet.create({
   profileSubtitle: {
     fontSize: 12,
     fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.65)",
+    color: theme.textSecondary,
   },
 
   /* BÖLÜM KAPLARI */
@@ -384,7 +385,7 @@ const styles = StyleSheet.create({
   sectionHeaderLabel: {
     fontSize: 11,
     fontFamily: "Inter_700Bold",
-    color: "rgba(255,255,255,0.45)",
+    color: theme.textMuted,
     letterSpacing: 0.8,
     marginLeft: 4,
   },
@@ -418,13 +419,13 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 15,
     fontFamily: "Inter_600SemiBold",
-    color: "#ffffff",
+    color: theme.text,
     letterSpacing: -0.2,
   },
   menuSub: {
     fontSize: 12,
     fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.45)",
+    color: theme.textMuted,
     marginTop: 2,
   },
 });

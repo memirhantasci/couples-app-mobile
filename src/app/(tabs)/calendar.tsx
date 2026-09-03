@@ -19,7 +19,7 @@ import {
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getTheme } from "@/lib/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
@@ -34,6 +34,7 @@ LocaleConfig.defaultLocale = 'tr';
 
 export default function CalendarScreen() {
   const { session, profile } = useAuth();
+  const { theme, isLight } = useTheme();
   const queryClient = useQueryClient();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -46,7 +47,6 @@ export default function CalendarScreen() {
   const [saving, setSaving] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<any | null>(null);
 
-  const theme = getTheme(profile?.gender);
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
   const isPremium = profile?.isPremium ?? false;
@@ -262,23 +262,23 @@ export default function CalendarScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity 
             onPress={() => router.back()} 
-            style={styles.headerBtn}
+            style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <ChevronLeft color="#ffffff" size={24} />
+            <ChevronLeft color={theme.text} size={24} />
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={styles.headerTitle}>Takvim</Text>
-            <Text style={styles.headerSubtitle}>Özel Günler & Hatıralar 📅</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Takvim</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>Özel Günler & Hatıralar 📅</Text>
           </View>
 
           <TouchableOpacity 
             onPress={() => router.push("/menu")} 
-            style={styles.headerBtn}
+            style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <AlignJustify color="rgba(255,255,255,0.75)" size={20} />
+            <AlignJustify color={theme.textSecondary} size={20} />
           </TouchableOpacity>
         </View>
 
@@ -290,18 +290,18 @@ export default function CalendarScreen() {
           {/* AY SEÇİCİ ÇUBUĞU */}
           <View style={[styles.monthNavCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
             <TouchableOpacity onPress={handlePrevMonth} style={styles.monthArrowBtn} activeOpacity={0.75}>
-              <ChevronLeft color="#ffffff" size={20} />
+              <ChevronLeft color={theme.text} size={20} />
             </TouchableOpacity>
 
             <View style={styles.monthTextBox}>
               <CalendarIcon size={16} color={theme.accent} />
-              <Text style={styles.monthText}>
+              <Text style={[styles.monthText, { color: theme.text }]}>
                 {dayjs(currentMonth).format("MMMM YYYY")}
               </Text>
             </View>
 
             <TouchableOpacity onPress={handleNextMonth} style={styles.monthArrowBtn} activeOpacity={0.75}>
-              <ChevronRight color="#ffffff" size={20} />
+              <ChevronRight color={theme.text} size={20} />
             </TouchableOpacity>
           </View>
 
@@ -309,22 +309,22 @@ export default function CalendarScreen() {
           <View style={[styles.calendarCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
             <Calendar
               current={currentMonth}
-              key={currentMonth}
+              key={`${currentMonth}_${theme.id}_${theme.gender}`}
               firstDay={1}
               onDayPress={onDayPress}
               markedDates={markedDates}
               markingType={'multi-dot'}
               theme={{
                 calendarBackground: 'transparent',
-                textSectionTitleColor: 'rgba(255,255,255,0.45)',
+                textSectionTitleColor: theme.textMuted,
                 selectedDayBackgroundColor: theme.accent,
                 selectedDayTextColor: '#ffffff',
                 todayTextColor: theme.accent,
-                dayTextColor: 'rgba(255,255,255,0.85)',
-                textDisabledColor: 'rgba(255,255,255,0.2)',
+                dayTextColor: theme.text,
+                textDisabledColor: isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.2)',
                 dotColor: theme.accent,
                 selectedDotColor: '#ffffff',
-                monthTextColor: '#ffffff',
+                monthTextColor: theme.text,
                 textDayFontSize: 14,
                 textDayHeaderFontSize: 11.5,
                 textDayHeaderFontWeight: '600',
@@ -343,7 +343,9 @@ export default function CalendarScreen() {
                       borderRadius: 12,
                     },
                     today: {
-                      backgroundColor: 'transparent',
+                      borderColor: theme.accent,
+                      borderWidth: 1.5,
+                      borderRadius: 12,
                     },
                     selected: {
                       backgroundColor: theme.accent,
@@ -358,19 +360,19 @@ export default function CalendarScreen() {
             <View style={styles.legendRow}>
               <View style={styles.legendItem}>
                 <View style={[styles.legendDot, { backgroundColor: theme.accent }]} />
-                <Text style={styles.legendText}>Not</Text>
+                <Text style={[styles.legendText, { color: theme.textMuted }]}>Not</Text>
               </View>
               <View style={styles.legendItem}>
                 <View style={[styles.legendDot, { backgroundColor: "#ffd700" }]} />
-                <Text style={styles.legendText}>Ruh Halim</Text>
+                <Text style={[styles.legendText, { color: theme.textMuted }]}>Ruh Halim</Text>
               </View>
               <View style={styles.legendItem}>
                 <View style={[styles.legendDot, { backgroundColor: "#60a5fa" }]} />
-                <Text style={styles.legendText}>Partnerim</Text>
+                <Text style={[styles.legendText, { color: theme.textMuted }]}>Partnerim</Text>
               </View>
               <View style={styles.legendItem}>
                 <View style={[styles.legendDot, { backgroundColor: "#22c55e" }]} />
-                <Text style={styles.legendText}>Fotoğraf</Text>
+                <Text style={[styles.legendText, { color: theme.textMuted }]}>Fotoğraf</Text>
               </View>
             </View>
           </View>
@@ -378,10 +380,10 @@ export default function CalendarScreen() {
           {/* SEÇİLEN GÜN BAŞLIĞI & NOT BUTONU */}
           <View style={styles.selectedDayHeaderRow}>
             <View>
-              <Text style={styles.selectedDayDate}>
+              <Text style={[styles.selectedDayDate, { color: theme.text }]}>
                 {dayjs(selectedDate).format("D MMMM YYYY, dddd")}
               </Text>
-              <Text style={styles.selectedDaySub}>Günün Kayıtları ve Anıları</Text>
+              <Text style={[styles.selectedDaySub, { color: theme.textMuted }]}>Günün Kayıtları ve Anıları</Text>
             </View>
 
             <TouchableOpacity 

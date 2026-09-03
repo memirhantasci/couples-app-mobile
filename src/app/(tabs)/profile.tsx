@@ -18,7 +18,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
-import { getTheme, AppTheme } from "@/lib/theme";
+import { getTheme, AppTheme, getAvailableThemes, ThemeMode, setGlobalActiveTheme } from "@/lib/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { encrypt, decrypt } from "@/utils/crypto";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { RevenueCatService } from "@/lib/revenuecat";
@@ -44,6 +45,8 @@ import {
   FileText,
   CreditCard,
   UserCheck,
+  Palette,
+  Check,
 } from "lucide-react-native";
 import { LegalModal } from "@/components/legal/LegalModal";
 import { LegalDocType } from "@/constants/legalTexts";
@@ -79,20 +82,20 @@ function ModernSection({
           <View style={[styles.sectionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
             {icon}
           </View>
-          <Text style={styles.sectionTitleText}>{title}</Text>
+          <Text style={[styles.sectionTitleText, { color: theme.text }]}>{title}</Text>
         </View>
 
         <View style={styles.chevronWrapper}>
           {isOpen ? (
-            <ChevronUp size={18} color="rgba(255,255,255,0.4)" />
+            <ChevronUp size={18} color={theme.textMuted} />
           ) : (
-            <ChevronDown size={18} color="rgba(255,255,255,0.4)" />
+            <ChevronDown size={18} color={theme.textMuted} />
           )}
         </View>
       </TouchableOpacity>
 
       {isOpen && (
-        <View style={styles.sectionContent}>
+        <View style={[styles.sectionContent, { borderTopColor: theme.cardBorder }]}>
           {children}
         </View>
       )}
@@ -102,10 +105,10 @@ function ModernSection({
 
 export default function ProfileScreen() {
   const { session, signOut, profile, refreshProfile } = useAuth();
+  const { theme, themeMode, setThemeMode, isLight } = useTheme();
   const router = useRouter();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
-  const theme = getTheme(profile?.gender);
 
   const [displayName, setDisplayName] = useState("");
   const [nameError, setNameError] = useState(false);
@@ -354,23 +357,23 @@ export default function ProfileScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity 
             onPress={() => router.back()} 
-            style={styles.headerBtn}
+            style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <ChevronLeft color="#ffffff" size={24} />
+            <ChevronLeft color={theme.text} size={24} />
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={styles.headerTitle}>Ayarlar</Text>
-            <Text style={styles.headerSubtitle}>Profil & Hesap Tercihleri ⚙️</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Ayarlar</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>Profil & Hesap Tercihleri ⚙️</Text>
           </View>
 
           <TouchableOpacity 
             onPress={() => router.push("/menu")} 
-            style={styles.headerBtn}
+            style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <AlignJustify color="rgba(255,255,255,0.75)" size={20} />
+            <AlignJustify color={theme.textSecondary} size={20} />
           </TouchableOpacity>
         </View>
 
@@ -390,7 +393,7 @@ export default function ProfileScreen() {
             </View>
 
             <View style={styles.heroDetails}>
-              <Text style={styles.heroNameText} numberOfLines={1}>
+              <Text style={[styles.heroNameText, { color: theme.text }]} numberOfLines={1}>
                 {displayName || "Kullanıcı"}
               </Text>
               
@@ -402,8 +405,8 @@ export default function ProfileScreen() {
                   </View>
                 ) : (
                   <View style={styles.standardBadge}>
-                    <ShieldCheck size={12} color="rgba(255,255,255,0.6)" />
-                    <Text style={styles.standardBadgeText}>Standart Üye</Text>
+                    <ShieldCheck size={12} color={isLight ? theme.textSecondary : "rgba(255,255,255,0.6)"} />
+                    <Text style={[styles.standardBadgeText, { color: theme.textSecondary }]}>Standart Üye</Text>
                   </View>
                 )}
 
@@ -425,8 +428,8 @@ export default function ProfileScreen() {
                   <Wallet size={18} color={theme.accent} />
                 </View>
                 <View>
-                  <Text style={styles.walletCardTitle}>Cüzdan & Bakiye</Text>
-                  <Text style={styles.walletCardSub}>Mevcut Jetonların</Text>
+                  <Text style={[styles.walletCardTitle, { color: theme.text }]}>Cüzdan & Bakiye</Text>
+                  <Text style={[styles.walletCardSub, { color: theme.textMuted }]}>Mevcut Jetonların</Text>
                 </View>
               </View>
 
@@ -460,6 +463,69 @@ export default function ProfileScreen() {
             </View>
           )}
 
+          {/* ─── TEMA & GÖRÜNÜM TERCİHİ ─── */}
+          <ModernSection 
+            title="Arayüz & Tema Modu" 
+            icon={<Palette size={18} color={theme.accent} />} 
+            theme={theme}
+            defaultOpen={true}
+          >
+            <View style={{ gap: 10 }}>
+              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+                {gender === "female" ? "KADIN ARAYÜZ MODLARI 🌸" : "ERKEK ARAYÜZ MODLARI ⚡"}
+              </Text>
+
+              <View style={styles.themeOptionsContainer}>
+                {getAvailableThemes(gender).map((t) => {
+                  const isSelected = themeMode === t.id;
+                  return (
+                    <TouchableOpacity
+                      key={t.id}
+                      activeOpacity={0.82}
+                      onPress={async () => {
+                        await setThemeMode(t.id);
+                      }}
+                      style={[
+                        styles.themeOptionCard,
+                        {
+                          backgroundColor: theme.unitBg,
+                          borderColor: isSelected ? theme.accent : (isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.07)"),
+                          borderWidth: isSelected ? 2 : 1,
+                        }
+                      ]}
+                    >
+                      {/* Renk Paleti Önizleme */}
+                      <View style={styles.palettePreviewRow}>
+                        <View style={[styles.colorDot, { backgroundColor: t.previewColors[0] }]} />
+                        <View style={[styles.colorDot, { backgroundColor: t.previewColors[1] }]} />
+                        <View style={[styles.colorDot, { backgroundColor: t.previewColors[2] }]} />
+                      </View>
+
+                      {/* Bilgi */}
+                      <View style={styles.themeInfoBlock}>
+                        <View style={styles.themeTitleRow}>
+                          <Text style={[styles.themeOptionTitle, { color: theme.text }]}>
+                            {t.name}
+                          </Text>
+                          {isSelected ? (
+                            <View style={[styles.activeThemeCheck, { backgroundColor: theme.accent }]}>
+                              <Check size={12} color="#ffffff" strokeWidth={3} />
+                            </View>
+                          ) : (
+                            <View style={[styles.inactiveThemeCheck, { borderColor: isLight ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.2)" }]} />
+                          )}
+                        </View>
+                        <Text style={[styles.themeOptionDesc, { color: theme.textMuted }]}>
+                          {t.description}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          </ModernSection>
+
           {/* ─── KİŞİSEL BİLGİLER ─── */}
           <ModernSection 
             title="Kişisel Bilgiler" 
@@ -468,11 +534,15 @@ export default function ProfileScreen() {
             defaultOpen={true}
           >
             <View style={styles.inputGroup}>
-              <Text style={styles.fieldLabel}>GÖRÜNEN İSİM</Text>
+              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>GÖRÜNEN İSİM</Text>
               <TextInput
                 style={[
                   styles.textInput, 
-                  { backgroundColor: theme.unitBg },
+                  { 
+                    backgroundColor: theme.unitBg,
+                    color: theme.text,
+                    borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)"
+                  },
                   nameError && styles.inputError
                 ]}
                 value={displayName}
@@ -481,23 +551,29 @@ export default function ProfileScreen() {
                   setNameError(false);
                 }}
                 placeholder="Adınız..."
-                placeholderTextColor="rgba(255,255,255,0.3)"
+                placeholderTextColor={theme.textMuted}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.fieldLabel}>CİNSİYET & TEMA TERCİHİ</Text>
+              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>CİNSİYET TERCİHİ</Text>
               <View style={styles.genderSelectRow}>
                 {(["female", "male"] as const).map((g) => {
                   const isSelected = gender === g;
                   return (
                     <TouchableOpacity
                       key={g}
-                      onPress={() => setGender(g)}
+                      onPress={() => {
+                        setGender(g);
+                        setGlobalActiveTheme(g, themeMode);
+                      }}
                       activeOpacity={0.8}
                       style={[
                         styles.genderBtn,
-                        { backgroundColor: theme.unitBg },
+                        { 
+                          backgroundColor: theme.unitBg,
+                          borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)"
+                        },
                         isSelected && {
                           borderColor: theme.accent,
                           backgroundColor: theme.pillAccentBg,
@@ -509,7 +585,8 @@ export default function ProfileScreen() {
                       <Text 
                         style={[
                           styles.genderBtnText,
-                          isSelected && { color: "#ffffff", fontFamily: "Inter_700Bold" }
+                          { color: isSelected ? (isLight ? theme.accent : "#ffffff") : theme.textSecondary },
+                          isSelected && { fontFamily: "Inter_700Bold" }
                         ]}
                       >
                         {g === "female" ? "Kadın" : "Erkek"}
@@ -543,19 +620,19 @@ export default function ProfileScreen() {
               defaultOpen={false}
             >
               <View style={styles.inputGroup}>
-                <Text style={styles.fieldLabel}>TANIŞMA TARİHİ</Text>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>TANIŞMA TARİHİ</Text>
                 <TouchableOpacity
                   onPress={() => setShowMeetDatePicker(true)}
-                  style={[styles.datePickerBtn, { backgroundColor: theme.unitBg }]}
+                  style={[styles.datePickerBtn, { backgroundColor: theme.unitBg, borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}
                   activeOpacity={0.8}
                 >
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                     <Calendar size={18} color={theme.accent} />
-                    <Text style={styles.datePickerBtnText}>
+                    <Text style={[styles.datePickerBtnText, { color: theme.text }]}>
                       {meetDate ? dayjs(meetDate).format("DD MMMM YYYY") : "Tarih Seçiniz"}
                     </Text>
                   </View>
-                  <ChevronRight size={16} color="rgba(255,255,255,0.4)" />
+                  <ChevronRight size={16} color={theme.textMuted} />
                 </TouchableOpacity>
 
                 {showMeetDatePicker && (
@@ -574,19 +651,19 @@ export default function ProfileScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.fieldLabel}>SEVGİLİ OLMA TARİHİ</Text>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>SEVGİLİ OLMA TARİHİ</Text>
                 <TouchableOpacity
                   onPress={() => setShowRelDatePicker(true)}
-                  style={[styles.datePickerBtn, { backgroundColor: theme.unitBg }]}
+                  style={[styles.datePickerBtn, { backgroundColor: theme.unitBg, borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}
                   activeOpacity={0.8}
                 >
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                     <Heart size={18} color={theme.accent} />
-                    <Text style={styles.datePickerBtnText}>
+                    <Text style={[styles.datePickerBtnText, { color: theme.text }]}>
                       {relStartDate ? dayjs(relStartDate).format("DD MMMM YYYY") : "Tarih Seçiniz"}
                     </Text>
                   </View>
-                  <ChevronRight size={16} color="rgba(255,255,255,0.4)" />
+                  <ChevronRight size={16} color={theme.textMuted} />
                 </TouchableOpacity>
 
                 {showRelDatePicker && (
@@ -720,10 +797,10 @@ export default function ProfileScreen() {
                       <ItemIcon size={16} color={theme.accent} />
                     </View>
                     <View style={styles.legalItemTextBox}>
-                      <Text style={styles.legalItemTitle}>{item.title}</Text>
-                      <Text style={styles.legalItemSub}>{item.sub}</Text>
+                      <Text style={[styles.legalItemTitle, { color: theme.text }]}>{item.title}</Text>
+                      <Text style={[styles.legalItemSub, { color: theme.textMuted }]}>{item.sub}</Text>
                     </View>
-                    <ChevronRight size={16} color="rgba(255,255,255,0.4)" />
+                    <ChevronRight size={16} color={theme.textMuted} />
                   </TouchableOpacity>
                 );
               })}
@@ -1261,4 +1338,63 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: "Inter_400Regular",
   },
+
+  /* TEMA SEÇİCİ */
+  themeOptionsContainer: {
+    gap: 10,
+    marginTop: 4,
+  },
+  themeOptionCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 13,
+    borderRadius: 16,
+    gap: 12,
+  },
+  palettePreviewRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    padding: 6,
+    borderRadius: 10,
+    backgroundColor: "rgba(0,0,0,0.12)",
+  },
+  colorDot: {
+    width: 13,
+    height: 13,
+    borderRadius: 6.5,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
+  },
+  themeInfoBlock: {
+    flex: 1,
+  },
+  themeTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  themeOptionTitle: {
+    fontSize: 14.5,
+    fontFamily: "Inter_700Bold",
+  },
+  themeOptionDesc: {
+    fontSize: 11.5,
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
+  },
+  activeThemeCheck: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  inactiveThemeCheck: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+  },
 });
+

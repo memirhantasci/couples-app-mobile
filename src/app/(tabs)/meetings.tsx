@@ -20,14 +20,15 @@ import { useAuth } from "@/context/AuthContext";
 import { notifyPartner } from "@/lib/notifications";
 import { dayjs } from "@/lib/date";
 import { getTheme } from "@/lib/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { MapPickerModal } from "@/components/MapPickerModal";
 
 export default function MeetingsScreen() {
   const router = useRouter();
   const { session, profile } = useAuth();
+  const { theme, isLight } = useTheme();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
-  const theme = getTheme(profile?.gender);
   
   const coupleId = profile?.coupleId;
   const userId = session?.user?.id ? session.user.id : null;
@@ -196,23 +197,23 @@ export default function MeetingsScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity 
             onPress={() => router.back()} 
-            style={styles.headerBtn}
+            style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <ChevronLeft color="#ffffff" size={24} />
+            <ChevronLeft color={theme.text} size={24} />
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={styles.headerTitle}>Buluşmalar</Text>
-            <Text style={styles.headerSubtitle}>Randevular & Özel Anlar 📍</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Buluşmalar</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>Randevular & Özel Anlar 📍</Text>
           </View>
 
           <TouchableOpacity 
             onPress={() => router.push("/menu")} 
-            style={styles.headerBtn}
+            style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <AlignJustify color="rgba(255,255,255,0.75)" size={20} />
+            <AlignJustify color={theme.textSecondary} size={20} />
           </TouchableOpacity>
         </View>
 
@@ -233,16 +234,16 @@ export default function MeetingsScreen() {
               <Plus size={20} color={theme.accent} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.quickPlanTitle}>Yeni Bir Buluşma Planla</Text>
-              <Text style={styles.quickPlanSub}>Tarih, saat ve haritadan konum belirleyin ✨</Text>
+              <Text style={[styles.quickPlanTitle, { color: theme.text }]}>Yeni Bir Buluşma Planla</Text>
+              <Text style={[styles.quickPlanSub, { color: theme.textMuted }]}>Tarih, saat ve haritadan konum belirleyin ✨</Text>
             </View>
-            <MapPin size={18} color="rgba(255,255,255,0.4)" />
+            <MapPin size={18} color={theme.textMuted} />
           </TouchableOpacity>
 
           {/* AKTİF BULUŞMALAR BÖLÜMÜ */}
           <View style={styles.sectionBlock}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionLabel}>YAKLAŞAN BULUŞMALAR</Text>
+              <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>YAKLAŞAN BULUŞMALAR</Text>
               {activeMeetings.length > 0 && (
                 <Text style={styles.sectionBadgeText}>{activeMeetings.length} Randevu</Text>
               )}

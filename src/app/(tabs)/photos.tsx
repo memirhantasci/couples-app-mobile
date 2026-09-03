@@ -19,6 +19,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { dayjs } from "@/lib/date";
 import { getTheme } from "@/lib/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 
 interface PhotoItem {
@@ -39,9 +40,9 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 export default function PhotosScreen() {
   const router = useRouter();
   const { session, profile } = useAuth();
+  const { theme, isLight } = useTheme();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
-  const theme = getTheme(profile?.gender);
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
@@ -259,15 +260,15 @@ export default function PhotosScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity 
             onPress={() => router.back()} 
-            style={styles.headerBtn}
+            style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <ChevronLeft color="#ffffff" size={24} />
+            <ChevronLeft color={theme.text} size={24} />
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={styles.headerTitle}>Ortak Galeri</Text>
-            <Text style={styles.headerSubtitle}>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Ortak Galeri</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>
               {photos.length > 0 ? `${photos.length} Ortak Hatıra 📸` : "Aşk Arşivimiz 📸"}
             </Text>
           </View>
@@ -275,7 +276,7 @@ export default function PhotosScreen() {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <TouchableOpacity 
               onPress={goToUpload} 
-              style={[styles.headerBtn, { backgroundColor: theme.cardBg }]}
+              style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : theme.cardBg, borderColor: theme.cardBorder }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Camera color={theme.accent} size={19} />
@@ -283,10 +284,10 @@ export default function PhotosScreen() {
 
             <TouchableOpacity 
               onPress={() => router.push("/menu")} 
-              style={styles.headerBtn}
+              style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <AlignJustify color="rgba(255,255,255,0.75)" size={20} />
+              <AlignJustify color={theme.textSecondary} size={20} />
             </TouchableOpacity>
           </View>
         </View>

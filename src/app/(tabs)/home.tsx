@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -22,7 +22,7 @@ import {
 } from "@/lib/date";
 import { getQuoteForDay } from "@/lib/quotes";
 import { decrypt, deterministicDecrypt } from "@/utils/crypto";
-import { computeLoveScore } from "@/lib/loveScore";
+import { computeLoveScore, getCachedLoveScore, LoveScoreResult } from "@/lib/loveScore";
 import { scheduleDateLocalNotification } from "@/lib/notifications";
 import { useRouter, useFocusEffect } from "expo-router";
 import { 
@@ -30,7 +30,7 @@ import {
   BookOpen, Mail, MapPin, Calendar, Flame, Clock
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getTheme } from "@/lib/theme";
+import { useTheme } from "@/context/ThemeContext";
 
 import { LoveMeter } from "@/components/home/LoveMeter";
 import { MoodSelector } from "@/components/home/MoodSelector";
@@ -42,9 +42,9 @@ import { useInterstitialAd } from "@/hooks/useInterstitialAd";
 
 export default function HomeScreen() {
   const { session, profile } = useAuth();
+  const { theme, isLight } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const theme = getTheme(profile?.gender);
 
   const today = todayString();
   const doy = dayOfYear();
@@ -53,6 +53,15 @@ export default function HomeScreen() {
   const userId = session?.user?.id ? session.user.id : null;
 
   const { showAdIfReady } = useInterstitialAd();
+  const [cachedScore, setCachedScore] = useState<LoveScoreResult | null>(null);
+
+  useEffect(() => {
+    if (coupleId) {
+      getCachedLoveScore(coupleId).then((cached) => {
+        if (cached) setCachedScore(cached);
+      });
+    }
+  }, [coupleId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -147,49 +156,48 @@ export default function HomeScreen() {
     staleTime: 1000 * 60 * 5,
   });
 
-  // ─── Dinamik Aşk Puanı ───────────────────────────────────────────────────────
-  // Partner ID'yi usersRes'ten çekemediğimiz için ayrı küçük query
-  const { data: loveScoreData } = useQuery({
-    queryKey: ["love_score", coupleId, userId, today],
-    enabled: !!coupleId && !!userId,
+  // ─── Dinamik Aşk Puanı (Çift için %100 simetrik ve eşit) ─────────────────────
+  const { data: loveScoreData, isLoading: isLoveScoreLoading } = useQuery({
+    queryKey: ["love_score", coupleId, today],
+    enabled: !!coupleId,
+    initialData: cachedScore || undefined,
     staleTime: 1000 * 60 * 5,
     queryFn: async () => {
-      // Partneri bul
-      const { data: usersData } = await supabase
-        .from("users")
-        .select("id, gender")
-        .eq("couple_id", coupleId)
-        .neq("id", userId)
-        .limit(1);
-      const partnerData = usersData?.[0] ?? null;
-
-      // Premium ise partnerin regl döngüsünü kontrol edip yerel bildirim kur
-      if (profile?.isPremium && partnerData && partnerData.gender === "female") {
-        const { data: periodLogs } = await supabase
-          .from("period_logs")
-          .select("date")
-          .eq("user_id", partnerData.id)
-          .order("date", { ascending: false })
+      // Partneri bul ve premium bildirim kur
+      if (profile?.isPremium && userId) {
+        const { data: usersData } = await supabase
+          .from("users")
+          .select("id, gender")
+          .eq("couple_id", coupleId)
+          .neq("id", userId)
           .limit(1);
+        const partnerData = usersData?.[0] ?? null;
 
-        if (periodLogs && periodLogs.length > 0) {
-          const lastPeriodDate = dayjs(periodLogs[0].date);
-          // Yaklaşık 28 gün döngü, 2 gün kala haber ver
-          const notifyDate = lastPeriodDate.add(26, "day").hour(10).minute(0).second(0).toDate();
-          
-          // Gelecekte bir tarihse kur
-          if (notifyDate.getTime() > Date.now()) {
-            scheduleDateLocalNotification(
-              "period_approach_alert",
-              "Regl Yaklaşıyor 🌸",
-              "Partnerinin regl dönemi yaklaşmak üzere. Ona destek olmak için harika bir zaman!",
-              notifyDate
-            );
+        if (partnerData && partnerData.gender === "female") {
+          const { data: periodLogs } = await supabase
+            .from("period_logs")
+            .select("date")
+            .eq("user_id", partnerData.id)
+            .order("date", { ascending: false })
+            .limit(1);
+
+          if (periodLogs && periodLogs.length > 0) {
+            const lastPeriodDate = dayjs(periodLogs[0].date);
+            const notifyDate = lastPeriodDate.add(26, "day").hour(10).minute(0).second(0).toDate();
+            
+            if (notifyDate.getTime() > Date.now()) {
+              scheduleDateLocalNotification(
+                "period_approach_alert",
+                "Regl Yaklaşıyor 🌸",
+                "Partnerinin regl dönemi yaklaşmak üzere. Ona destek olmak için harika bir zaman!",
+                notifyDate
+              );
+            }
           }
         }
       }
 
-      return computeLoveScore(coupleId!, userId!, partnerData?.id ?? null);
+      return computeLoveScore(coupleId!, userId, null);
     },
   });
 
@@ -220,8 +228,9 @@ export default function HomeScreen() {
   const daysSinceTogether = relDate ? daysSince(dayjs(relDate)) : 0;
   const name = profile?.displayName || "Sevgilim";
   const quote = getQuoteForDay(doy);
-  const loveMeter = loveScoreData?.score ?? 50;
-  const loveSubtitle = loveScoreData?.subtitle;
+  const activeLoveScore = loveScoreData || cachedScore;
+  const loveMeter = activeLoveScore?.score;
+  const loveSubtitle = activeLoveScore?.subtitle;
   const dateLabel = dayjs().format("D MMMM, dddd");
   const greeting = getGreeting();
 
@@ -250,30 +259,36 @@ export default function HomeScreen() {
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
               <View style={styles.greetingRow}>
-                <Text style={styles.greetingText}>
+                <Text style={[styles.greetingText, { color: theme.text }]}>
                   {greeting.text}, {name}
                 </Text>
                 <Text style={styles.greetingEmoji}>{greeting.emoji}</Text>
               </View>
               <View style={styles.dateBadgeRow}>
-                <Calendar size={13} color="rgba(255,255,255,0.5)" />
-                <Text style={styles.dateLabel}>{dateLabel}</Text>
+                <Calendar size={13} color={theme.textMuted} />
+                <Text style={[styles.dateLabel, { color: theme.textMuted }]}>{dateLabel}</Text>
               </View>
             </View>
 
             <TouchableOpacity 
               onPress={() => router.push("/menu")} 
-              style={[styles.menuBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+              style={[
+                styles.menuBtn, 
+                { 
+                  backgroundColor: isLight ? "rgba(0,0,0,0.05)" : theme.cardBg, 
+                  borderColor: theme.cardBorder 
+                }
+              ]}
               activeOpacity={0.8}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <AlignJustify color="rgba(255,255,255,0.85)" size={20} />
+              <AlignJustify color={theme.textSecondary} size={20} />
             </TouchableOpacity>
           </View>
 
           {/* ─── 2. HERO İLİŞKİ SAYACI KARTI ─── */}
           <View style={[styles.heroLoveCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-            <View style={styles.heroTopBadge}>
+            <View style={[styles.heroTopBadge, { backgroundColor: theme.pillAccentBg }]}>
               <Heart size={13} color={theme.accent} fill={theme.accent} />
               <Text style={[styles.heroTopBadgeText, { color: theme.accent }]}>
                 AŞKIMIZIN YOLCULUĞU
@@ -282,21 +297,21 @@ export default function HomeScreen() {
 
             <View style={styles.countersRow}>
               {/* Sevgililik Sayacı */}
-              <View style={[styles.counterBox, { backgroundColor: theme.unitBg }]}>
+              <View style={[styles.counterBox, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
                 <View style={[styles.counterIconCircle, { backgroundColor: theme.pillAccentBg }]}>
                   <Heart size={16} color={theme.accent} fill={theme.accent} />
                 </View>
-                <Text style={styles.counterNumber}>{daysSinceTogether}</Text>
-                <Text style={styles.counterDesc}>Gündür Sevgiliyiz</Text>
+                <Text style={[styles.counterNumber, { color: theme.text }]}>{daysSinceTogether}</Text>
+                <Text style={[styles.counterDesc, { color: theme.textSecondary }]}>Gündür Sevgiliyiz</Text>
               </View>
 
               {/* Tanışma Sayacı */}
-              <View style={[styles.counterBox, { backgroundColor: theme.unitBg }]}>
-                <View style={[styles.counterIconCircle, { backgroundColor: "rgba(255,255,255,0.06)" }]}>
+              <View style={[styles.counterBox, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+                <View style={[styles.counterIconCircle, { backgroundColor: isLight ? "rgba(255, 215, 0, 0.15)" : "rgba(255,255,255,0.06)" }]}>
                   <Sparkles size={16} color="#ffd700" />
                 </View>
-                <Text style={styles.counterNumber}>{daysSinceMeeting}</Text>
-                <Text style={styles.counterDesc}>Gündür Hayatımdasın</Text>
+                <Text style={[styles.counterNumber, { color: theme.text }]}>{daysSinceMeeting}</Text>
+                <Text style={[styles.counterDesc, { color: theme.textSecondary }]}>Gündür Hayatımdasın</Text>
               </View>
             </View>
           </View>
@@ -311,7 +326,7 @@ export default function HomeScreen() {
               <View style={[styles.actionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
                 <Images size={17} color={theme.accent} />
               </View>
-              <Text style={styles.actionPillText}>Galeri</Text>
+              <Text style={[styles.actionPillText, { color: theme.textSecondary }]}>Galeri</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -322,7 +337,7 @@ export default function HomeScreen() {
               <View style={[styles.actionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
                 <BookOpen size={17} color={theme.accent} />
               </View>
-              <Text style={styles.actionPillText}>Günlüğüm</Text>
+              <Text style={[styles.actionPillText, { color: theme.textSecondary }]}>Günlüğüm</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -333,7 +348,7 @@ export default function HomeScreen() {
               <View style={[styles.actionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
                 <Mail size={17} color={theme.accent} />
               </View>
-              <Text style={styles.actionPillText}>Mektuplar</Text>
+              <Text style={[styles.actionPillText, { color: theme.textSecondary }]}>Mektuplar</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -344,7 +359,7 @@ export default function HomeScreen() {
               <View style={[styles.actionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
                 <MapPin size={17} color={theme.accent} />
               </View>
-              <Text style={styles.actionPillText}>Buluşma</Text>
+              <Text style={[styles.actionPillText, { color: theme.textSecondary }]}>Buluşma</Text>
             </TouchableOpacity>
           </View>
 
@@ -356,11 +371,16 @@ export default function HomeScreen() {
               </View>
               <Text style={[styles.quoteTitle, { color: theme.accent }]}>GÜNÜN İLHAMI</Text>
             </View>
-            <Text style={styles.quoteText}>“{quote}”</Text>
+            <Text style={[styles.quoteText, { color: theme.text }]}>“{quote}”</Text>
           </View>
 
           {/* ─── 5. AŞK ÖLÇER ─── */}
-          <LoveMeter value={loveMeter} theme={theme} subtitle={loveSubtitle} />
+          <LoveMeter 
+            value={loveMeter} 
+            theme={theme} 
+            subtitle={loveSubtitle} 
+            isLoading={!activeLoveScore && isLoveScoreLoading} 
+          />
 
           {/* ─── 6. BULUŞMA GERİ SAYIMI ─── */}
           {dashboardData?.activeMeeting && (

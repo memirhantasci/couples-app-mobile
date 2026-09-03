@@ -11,20 +11,24 @@ import Animated, {
 import { AppTheme } from "@/lib/theme";
 
 interface LoveMeterProps {
-  value: number; // 0-100
+  value?: number | null; // 0-100
   theme: AppTheme;
-  subtitle?: string; // Dinamik mesaj (opsiyonel, verilmezse varsayılan gösterilir)
+  subtitle?: string;
+  isLoading?: boolean;
 }
 
-export function LoveMeter({ value, theme, subtitle }: LoveMeterProps) {
-  const widthVal = useSharedValue(0);
+export function LoveMeter({ value, theme, subtitle, isLoading }: LoveMeterProps) {
+  const hasValue = value !== undefined && value !== null;
+  const widthVal = useSharedValue(hasValue ? (value as number) : 0);
 
   useEffect(() => {
-    widthVal.value = withDelay(
-      300,
-      withTiming(value, { duration: 1400, easing: Easing.out(Easing.cubic) })
-    );
-  }, [value]);
+    if (hasValue) {
+      widthVal.value = withDelay(
+        150,
+        withTiming(value as number, { duration: 1000, easing: Easing.out(Easing.cubic) })
+      );
+    }
+  }, [value, hasValue]);
 
   const animatedWidthStyle = useAnimatedStyle(() => ({
     width: `${widthVal.value}%` as any,
@@ -33,15 +37,19 @@ export function LoveMeter({ value, theme, subtitle }: LoveMeterProps) {
   const displaySubtitle = subtitle ?? "Bugün için ölçüldü 💝 · Harika bir uyum!";
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.cardBg }]}>
+    <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
       {/* Başlık + yüzde */}
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Aşk Ölçer</Text>
-        <Text style={[styles.percentLabel, { color: theme.accent }]}>{value}%</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Aşk Ölçer</Text>
+        {isLoading && !hasValue ? (
+          <Text style={[styles.percentLabel, { color: theme.accent, opacity: 0.5 }]}>--%</Text>
+        ) : (
+          <Text style={[styles.percentLabel, { color: theme.accent }]}>{hasValue ? value : 0}%</Text>
+        )}
       </View>
 
       {/* Progress Bar */}
-      <View style={styles.track}>
+      <View style={[styles.track, { backgroundColor: theme.isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}>
         <Animated.View style={[styles.fillWrapper, animatedWidthStyle]}>
           <LinearGradient
             colors={[theme.accent, theme.accentLight]}
@@ -53,17 +61,19 @@ export function LoveMeter({ value, theme, subtitle }: LoveMeterProps) {
       </View>
 
       {/* Alt açıklama — dinamik */}
-      <Text style={styles.subtitle}>{displaySubtitle}</Text>
+      <Text style={[styles.subtitle, { color: theme.textMuted }]}>
+        {isLoading && !hasValue ? "Aşk skoru hesaplanıyor..." : displaySubtitle}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 0,
+    borderWidth: 1,
     borderRadius: 20,
     padding: 20,
-    marginBottom: 18,
+    marginBottom: 4,
   },
   headerRow: {
     flexDirection: "row",
@@ -74,7 +84,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontFamily: "Inter_700Bold",
-    color: "#fff",
   },
   percentLabel: {
     fontSize: 32,
@@ -83,7 +92,6 @@ const styles = StyleSheet.create({
   track: {
     height: 8,
     borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.08)",
     overflow: "hidden",
     marginBottom: 10,
   },
@@ -99,6 +107,5 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 11,
     fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.40)",
   },
 });

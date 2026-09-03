@@ -22,6 +22,7 @@ import {
 import { sanitize, sanitizeStrict } from "@/utils/sanitize";
 import { logger } from "@/utils/logger";
 import { getTheme } from "@/lib/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
@@ -31,13 +32,13 @@ import { OrigamiBirdAnimation } from "@/components/letters/OrigamiBirdAnimation"
 export default function LettersScreen() {
   const router = useRouter();
   const { session, profile, refreshProfile } = useAuth();
+  const { theme, isLight } = useTheme();
   const queryClient = useQueryClient();
   const today = todayString();
   const insets = useSafeAreaInsets();
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
-  const theme = getTheme(profile?.gender);
 
   const [activeTab, setActiveTab] = useState<"all" | "received" | "sent">("all");
   const [pageLimit, setPageLimit] = useState(30);
@@ -382,21 +383,21 @@ export default function LettersScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity 
             onPress={() => router.back()} 
-            style={styles.headerBtn}
+            style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <ChevronLeft color="#ffffff" size={24} />
+            <ChevronLeft color={theme.text} size={24} />
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={styles.headerTitle}>Mektuplar</Text>
-            <Text style={styles.headerSubtitle}>Geleceğe Zaman Kapsülü 💌</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Mektuplar</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>Geleceğe Zaman Kapsülü 💌</Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <TouchableOpacity 
               onPress={handleOpenWriteModal} 
-              style={[styles.headerBtn, { backgroundColor: theme.cardBg }]}
+              style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : theme.cardBg, borderColor: theme.cardBorder }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <PenLine color={theme.accent} size={19} />
@@ -404,15 +405,15 @@ export default function LettersScreen() {
 
             <TouchableOpacity 
               onPress={() => router.push("/menu")} 
-              style={styles.headerBtn}
+              style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <AlignJustify color="rgba(255,255,255,0.75)" size={20} />
+              <AlignJustify color={theme.textSecondary} size={20} />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* ÜSTTE HIZLI MEKTUP YAZ BUTONU (Aşağı kaydırma derdine son!) */}
+        {/* ÜSTTE HIZLI MEKTUP YAZ BUTONU */}
         <View style={styles.topActionContainer}>
           <TouchableOpacity 
             style={[styles.writeLetterActionBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
@@ -423,21 +424,21 @@ export default function LettersScreen() {
               <PenLine size={20} color={theme.accent} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.writeActionTitle}>Yeni Bir Mektup Yaz</Text>
-              <Text style={styles.writeActionSub}>Sevdiğine gelecekte açılacak bir mesaj bırak ✨</Text>
+              <Text style={[styles.writeActionTitle, { color: theme.text }]}>Yeni Bir Mektup Yaz</Text>
+              <Text style={[styles.writeActionSub, { color: theme.textMuted }]}>Sevdiğine gelecekte açılacak bir mesaj bırak ✨</Text>
             </View>
-            <ChevronRight size={18} color="rgba(255,255,255,0.4)" />
+            <ChevronRight size={18} color={theme.textMuted} />
           </TouchableOpacity>
         </View>
 
         {/* SEKME ÇUBUĞU (TÜMÜ / GELENLER / GÖNDERİLENLER) */}
-        <View style={[styles.tabsWrapper, { backgroundColor: theme.cardBg }]}>
+        <View style={[styles.tabsWrapper, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
           <TouchableOpacity 
             style={[styles.tabBtn, activeTab === "all" && { backgroundColor: theme.unitBg }]}
             onPress={() => setActiveTab("all")}
             activeOpacity={0.8}
           >
-            <Text style={[styles.tabText, activeTab === "all" && { color: theme.accent, fontFamily: "Inter_700Bold" }]}>
+            <Text style={[styles.tabText, { color: activeTab === "all" ? theme.accent : theme.textSecondary }, activeTab === "all" && { fontFamily: "Inter_700Bold" }]}>
               Tümü ({allLetters.length})
             </Text>
           </TouchableOpacity>
@@ -447,7 +448,7 @@ export default function LettersScreen() {
             onPress={() => setActiveTab("received")}
             activeOpacity={0.8}
           >
-            <Text style={[styles.tabText, activeTab === "received" && { color: theme.accent, fontFamily: "Inter_700Bold" }]}>
+            <Text style={[styles.tabText, { color: activeTab === "received" ? theme.accent : theme.textSecondary }, activeTab === "received" && { fontFamily: "Inter_700Bold" }]}>
               Gelen ({receivedLetters.length})
             </Text>
           </TouchableOpacity>
@@ -457,7 +458,7 @@ export default function LettersScreen() {
             onPress={() => setActiveTab("sent")}
             activeOpacity={0.8}
           >
-            <Text style={[styles.tabText, activeTab === "sent" && { color: theme.accent, fontFamily: "Inter_700Bold" }]}>
+            <Text style={[styles.tabText, { color: activeTab === "sent" ? theme.accent : theme.textSecondary }, activeTab === "sent" && { fontFamily: "Inter_700Bold" }]}>
               Giden ({sentLetters.length})
             </Text>
           </TouchableOpacity>

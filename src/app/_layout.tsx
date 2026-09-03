@@ -145,14 +145,17 @@ function RootLayoutNav() {
   );
 }
 
-// ─── Root layout: wraps providers ────────────────────────────────────────────
+import { ThemeProvider } from "@/context/ThemeContext";
 
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <RootLayoutNav />
+        <ThemeProvider>
+          <RootLayoutNav />
+        </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
 }
+

@@ -12,10 +12,12 @@ import { useRouter } from "expo-router";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getTheme } from "@/lib/theme";
+import { useTheme } from "@/context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function MemoriesScreen() {
   const { session, profile } = useAuth();
+  const { theme, isLight } = useTheme();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isEditMode, setIsEditMode] = useState(false);
@@ -23,7 +25,6 @@ export default function MemoriesScreen() {
   const insets = useSafeAreaInsets();
 
   const coupleId = profile?.coupleId || null;
-  const theme = getTheme(profile?.gender);
   const PAGE_SIZE = 15;
 
   useEffect(() => {
@@ -154,23 +155,23 @@ export default function MemoriesScreen() {
           <Text style={[styles.dateNumber, { color: theme.accent }]}>{index + 1}</Text>
         </View>
 
-        <View style={[styles.card, { backgroundColor: theme.cardBg }]}>
+        <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
           <View style={styles.cardHeader}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle} numberOfLines={1}>{memory.title}</Text>
+              <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>{memory.title}</Text>
               <Text style={[styles.cardYear, { color: theme.accent }]}>{d.locale("tr").format("D MMMM YYYY")}</Text>
             </View>
             
             {canManage && (
               <Animated.View entering={FadeInUp.duration(150)} style={styles.actionsBox}>
                 <TouchableOpacity onPress={() => handleEdit(memory)}>
-                  <Pencil size={18} color="rgba(255,255,255,0.5)" />
+                  <Pencil size={18} color={theme.textMuted} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => handleDelete(memory.id)} disabled={deletingId === memory.id}>
                   {deletingId === memory.id ? (
-                    <ActivityIndicator size="small" color="#fff" />
+                    <ActivityIndicator size="small" color={theme.accent} />
                   ) : (
-                    <Trash2 size={18} color="rgba(255,255,255,0.5)" />
+                    <Trash2 size={18} color={theme.textMuted} />
                   )}
                 </TouchableOpacity>
               </Animated.View>
@@ -178,7 +179,7 @@ export default function MemoriesScreen() {
           </View>
 
           {memory.description ? (
-            <Text style={styles.cardDesc}>{memory.description}</Text>
+            <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>{memory.description}</Text>
           ) : null}
 
           {memory.image_url && (
@@ -197,22 +198,35 @@ export default function MemoriesScreen() {
         <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <Text style={styles.title}>Özel Günler</Text>
+              <Text style={[styles.title, { color: theme.text }]}>Özel Günler</Text>
               <Text style={{ fontSize: 24 }}>❤️</Text>
             </View>
-            <Text style={[styles.subtitle, { marginTop: 4 }]}>En tatlı anılarımızın milatları</Text>
+            <Text style={[styles.subtitle, { color: theme.textMuted, marginTop: 4 }]}>En tatlı anılarımızın milatları</Text>
           </View>
           
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <TouchableOpacity 
-              style={[styles.editBtn, { backgroundColor: theme.cardBg }]}
+              style={[styles.editBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}
               onPress={() => setIsEditMode(!isEditMode)}
             >
-              <Text style={styles.editBtnText}>{isEditMode ? "Bitti" : "Düzenle"}</Text>
+              <Text style={[styles.editBtnText, { color: theme.text }]}>{isEditMode ? "Bitti" : "Düzenle"}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
-              <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
+            <TouchableOpacity 
+              onPress={() => router.push("/menu")} 
+              style={{ 
+                padding: 8, 
+                backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.05)", 
+                borderRadius: 20, 
+                width: 40, 
+                height: 40, 
+                alignItems: "center", 
+                justifyContent: "center",
+                borderColor: theme.cardBorder,
+                borderWidth: 1
+              }}
+            >
+              <AlignJustify color={theme.textSecondary} size={22} />
             </TouchableOpacity>
           </View>
         </View>

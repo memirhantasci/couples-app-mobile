@@ -74,36 +74,36 @@ export function MeetingCountdown({ meeting, theme }: CountdownProps) {
 
   return (
     <TouchableOpacity
-      style={[styles.card, { backgroundColor: theme.cardBg }]}
+      style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
       activeOpacity={0.9}
       onPress={() => setShowModal(true)}
     >
       {/* Başlık Satırı */}
       <View style={styles.titleRow}>
-        <View style={[styles.iconCircle, { backgroundColor: `${theme.accent}20` }]}>
+        <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
           <MapPin size={13} color={theme.accent} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.sectionLabel}>Sıradaki Buluşma</Text>
+          <Text style={[styles.sectionLabel, { color: theme.text }]}>Sıradaki Buluşma</Text>
           {meeting.location_name && (
-            <Text style={styles.locationText}>{meeting.location_name}</Text>
+            <Text style={[styles.locationText, { color: theme.textSecondary }]}>{meeting.location_name}</Text>
           )}
         </View>
-        <Text style={styles.dateChip}>{formattedDate}</Text>
+        <Text style={[styles.dateChip, { color: theme.textMuted }]}>{formattedDate}</Text>
       </View>
 
       {/* Geri Sayım Kutuları */}
       <View style={styles.grid}>
         {units.map((unit, i) => (
-          <View key={unit.label} style={[styles.unitBox, { backgroundColor: theme.unitBg }]}>
+          <View key={unit.label} style={[styles.unitBox, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder }]}>
             <Animated.Text
               key={`${unit.value}-${i}`}
               entering={FadeInUp.duration(200)}
-              style={styles.unitValue}
+              style={[styles.unitValue, { color: theme.text }]}
             >
               {String(unit.value).padStart(2, "0")}
             </Animated.Text>
-            <Text style={styles.unitLabel}>{unit.label}</Text>
+            <Text style={[styles.unitLabel, { color: theme.textMuted }]}>{unit.label}</Text>
           </View>
         ))}
       </View>

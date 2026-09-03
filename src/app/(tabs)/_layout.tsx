@@ -9,6 +9,8 @@ import { useAuth } from "@/context/AuthContext";
 import { getTheme } from "@/lib/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useTheme } from "@/context/ThemeContext";
+
 const TAB_CONFIG: Record<string, { label: string; Icon: any }> = {
   home: { label: "Ana Sayfa", Icon: Home },
   medicine: { label: "İlaçlar", Icon: Pill },
@@ -19,8 +21,7 @@ const TAB_CONFIG: Record<string, { label: string; Icon: any }> = {
 };
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
-  const { profile } = useAuth();
-  const theme = getTheme(profile?.gender);
+  const { theme, isLight } = useTheme();
   const insets = useSafeAreaInsets();
 
   // Yalnızca href !== null olan ana sekmeleri filtrele
@@ -40,12 +41,15 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
         styles.tabBarContainer,
         { 
           bottom: bottomOffset,
-          backgroundColor: Platform.OS === "ios" ? "rgba(18, 12, 24, 0.72)" : theme.cardBg,
+          backgroundColor: theme.tabBarBg,
+          borderColor: theme.tabBarBorder,
+          shadowColor: isLight ? theme.accent : "#000000",
+          shadowOpacity: isLight ? 0.15 : 0.45,
         }
       ]}
     >
       <BlurView
-        tint="dark"
+        tint={theme.blurTint}
         intensity={Platform.OS === "ios" ? 80 : 100}
         style={StyleSheet.absoluteFill}
       />
@@ -83,15 +87,15 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                   isFocused && [
                     styles.tabCapsuleActive,
                     { 
-                      backgroundColor: theme.pillAccentBg || "rgba(255, 77, 109, 0.16)",
-                      borderColor: theme.pillAccentBorder || "rgba(255, 77, 109, 0.35)",
+                      backgroundColor: theme.pillAccentBg,
+                      borderColor: theme.pillAccentBorder,
                     }
                   ]
                 ]}
               >
                 <Icon
                   size={18}
-                  color={isFocused ? theme.accent : "rgba(255, 255, 255, 0.42)"}
+                  color={isFocused ? theme.accent : (isLight ? theme.textMuted : "rgba(255, 255, 255, 0.42)")}
                   strokeWidth={isFocused ? 2.4 : 1.8}
                 />
 
@@ -99,10 +103,10 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                   style={[
                     styles.tabText,
                     isFocused ? { 
-                      color: "#FFFFFF", 
+                      color: isLight ? theme.accent : "#FFFFFF", 
                       fontFamily: "Inter_700Bold", 
                     } : {
-                      color: "rgba(255, 255, 255, 0.42)",
+                      color: isLight ? theme.textMuted : "rgba(255, 255, 255, 0.42)",
                       fontFamily: "Inter_500Medium",
                     }
                   ]}

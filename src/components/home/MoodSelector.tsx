@@ -95,8 +95,8 @@ export function MoodSelector({ currentMood, moodLocked = false, theme }: MoodSel
   }
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.cardBg }]}>
-      <Text style={styles.title}>Bugün nasılsın?</Text>
+    <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+      <Text style={[styles.title, { color: theme.text }]}>Bugün nasılsın?</Text>
 
       <View style={styles.row}>
         {MOODS.map((mood) => {
@@ -110,13 +110,24 @@ export function MoodSelector({ currentMood, moodLocked = false, theme }: MoodSel
               style={[
                 styles.moodBtn,
                 isSelected
-                  ? { backgroundColor: "rgba(77,156,255,0.1)", borderColor: theme.accent, borderWidth: 1 }
-                  : { backgroundColor: "transparent", borderColor: "rgba(255,255,255,0.1)", borderWidth: 1 },
-                locked && !isSelected && { opacity: 0.3 },
+                  ? { backgroundColor: theme.pillAccentBg, borderColor: theme.accent, borderWidth: 1.5 }
+                  : { 
+                      backgroundColor: "transparent", 
+                      borderColor: theme.isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.1)", 
+                      borderWidth: 1 
+                    },
+                locked && !isSelected && { opacity: 0.35 },
               ]}
             >
               <Text style={styles.emoji}>{mood.emoji}</Text>
-              <Text style={[styles.label, isSelected && { color: theme.accent, fontFamily: "Inter_600SemiBold" }]}>
+              <Text 
+                style={[
+                  styles.label, 
+                  { color: isSelected ? theme.accent : theme.textSecondary },
+                  isSelected && { fontFamily: "Inter_700Bold" }
+                ]}
+                numberOfLines={1}
+              >
                 {mood.label}
               </Text>
             </TouchableOpacity>
@@ -124,10 +135,16 @@ export function MoodSelector({ currentMood, moodLocked = false, theme }: MoodSel
         })}
       </View>
 
-      {loading && <ActivityIndicator color={theme.accent} style={{ marginTop: 10 }} />}
+      {loading && (
+        <View style={styles.loadingRow}>
+          <ActivityIndicator color={theme.accent} size="small" />
+        </View>
+      )}
 
-      {locked && selected && (
-        <Text style={styles.savedText}>Bugün için kaydedildi 💛</Text>
+      {locked && (
+        <Text style={[styles.lockedText, { color: theme.textMuted }]}>
+          Bugünkü modun kilitlendi ✨
+        </Text>
       )}
     </View>
   );
@@ -135,25 +152,27 @@ export function MoodSelector({ currentMood, moodLocked = false, theme }: MoodSel
 
 const styles = StyleSheet.create({
   card: {
+    borderWidth: 1,
     borderRadius: 20,
-    padding: 20,
-    marginBottom: 24,
+    padding: 18,
+    marginBottom: 4,
   },
   title: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: "Inter_700Bold",
-    color: "#fff",
-    marginBottom: 16,
+    marginBottom: 14,
   },
   row: {
     flexDirection: "row",
-    gap: 6,
+    justifyContent: "space-between",
   },
   moodBtn: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 2,
+    borderRadius: 14,
+    marginHorizontal: 3,
   },
   emoji: {
     fontSize: 22,
@@ -162,14 +181,16 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 10,
     fontFamily: "Inter_500Medium",
-    color: "rgba(255,255,255,0.6)",
     textAlign: "center",
   },
-  savedText: {
-    fontSize: 12,
+  loadingRow: {
+    alignItems: "center",
+    marginTop: 10,
+  },
+  lockedText: {
+    fontSize: 11,
     fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.4)",
     textAlign: "center",
-    marginTop: 14,
+    marginTop: 12,
   },
 });

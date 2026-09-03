@@ -18,6 +18,7 @@ import {
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getTheme } from "@/lib/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { notifyPartner } from "@/lib/notifications";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 
@@ -32,11 +33,11 @@ LocaleConfig.defaultLocale = 'tr';
 
 export default function PeriodTrackerScreen() {
   const { session, profile } = useAuth();
+  const { theme, isLight } = useTheme();
   const router = useRouter();
   const queryClient = useQueryClient();
   const today = todayString();
   const insets = useSafeAreaInsets();
-  const theme = getTheme(profile?.gender);
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
@@ -177,25 +178,25 @@ export default function PeriodTrackerScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity 
             onPress={() => router.back()} 
-            style={styles.headerBtn}
+            style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <ChevronLeft color="#ffffff" size={24} />
+            <ChevronLeft color={theme.text} size={24} />
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={styles.headerTitle}>Döngü & Regl Takvimi</Text>
-            <Text style={styles.headerSubtitle}>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Döngü & Regl Takvimi</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>
               {isFemale ? "Kişisel Döngü & Sağlık Takibi 🌸" : "Sevgilinin Döngüsü & Destek Rehberi 💕"}
             </Text>
           </View>
 
           <TouchableOpacity 
             onPress={() => router.push("/menu")} 
-            style={styles.headerBtn}
+            style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <AlignJustify color="rgba(255,255,255,0.75)" size={20} />
+            <AlignJustify color={theme.textSecondary} size={20} />
           </TouchableOpacity>
         </View>
 
@@ -267,10 +268,10 @@ export default function PeriodTrackerScreen() {
                   <Droplet size={24} color="#ff4d6a" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.statusHeroTitle}>
+                  <Text style={[styles.statusHeroTitle, { color: theme.text }]}>
                     {isFemale ? "Döngü Takibi Aktif 🌸" : "Sevgilinin Döngüsü Takipte 💕"}
                   </Text>
-                  <Text style={styles.statusHeroSubtitle}>
+                  <Text style={[styles.statusHeroSubtitle, { color: theme.textMuted }]}>
                     {latestLog 
                       ? `Son kayıt: ${dayjs(latestLog.date).locale("tr").format("D MMMM YYYY")}`
                       : "Henüz takvime bir döngü günü kaydedilmedi."
@@ -284,20 +285,20 @@ export default function PeriodTrackerScreen() {
                 <View style={[styles.gentleGuideCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                   <View style={styles.guideHeader}>
                     <MessageCircleHeart size={18} color="#ff4d6a" />
-                    <Text style={styles.guideTitle}>Sevgiline Destek Olma İpuçları</Text>
+                    <Text style={[styles.guideTitle, { color: theme.text }]}>Sevgiline Destek Olma İpuçları</Text>
                   </View>
                   <View style={styles.guideItemsBox}>
                     <View style={styles.guideItemRow}>
                       <Text style={{ fontSize: 16 }}>🍫</Text>
-                      <Text style={styles.guideItemText}>Ona en sevdiği çikolatayı veya tatlıyı hediye edebilirsin.</Text>
+                      <Text style={[styles.guideItemText, { color: theme.textSecondary }]}>Ona en sevdiği çikolatayı veya tatlıyı hediye edebilirsin.</Text>
                     </View>
                     <View style={styles.guideItemRow}>
                       <Text style={{ fontSize: 16 }}>☕</Text>
-                      <Text style={styles.guideItemText}>Sıcak bir bitki çayı hazırlayıp rahatlamasına yardımcı ol.</Text>
+                      <Text style={[styles.guideItemText, { color: theme.textSecondary }]}>Sıcak bir bitki çayı hazırlayıp rahatlamasına yardımcı ol.</Text>
                     </View>
                     <View style={styles.guideItemRow}>
                       <Text style={{ fontSize: 16 }}>🫂</Text>
-                      <Text style={styles.guideItemText}>Ekstra anlayışlı davranıp onu sımsıkı kucakla.</Text>
+                      <Text style={[styles.guideItemText, { color: theme.textSecondary }]}>Ekstra anlayışlı davranıp onu sımsıkı kucakla.</Text>
                     </View>
                   </View>
                 </View>
@@ -308,9 +309,9 @@ export default function PeriodTrackerScreen() {
                 <View style={[styles.femaleTipsCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                   <View style={styles.guideHeader}>
                     <Sparkles size={17} color={theme.accent} />
-                    <Text style={styles.guideTitle}>Günün Kendine Bakım Notu</Text>
+                    <Text style={[styles.guideTitle, { color: theme.text }]}>Günün Kendine Bakım Notu</Text>
                   </View>
-                  <Text style={styles.femaleTipsText}>
+                  <Text style={[styles.femaleTipsText, { color: theme.textSecondary }]}>
                     Regl gününü takvimden seçerek döngünü kaydedebilirsin. Bol su içmeyi ve kendini dinlendirmeyi unutma tatlım 🌸
                   </Text>
                 </View>
@@ -324,20 +325,21 @@ export default function PeriodTrackerScreen() {
                   </View>
                 ) : (
                   <Calendar
+                    key={`${theme.id}_${theme.gender}`}
                     current={today}
                     onDayPress={handleDateClick}
                     markedDates={markedDates}
                     markingType={'custom'}
                     theme={{
                       calendarBackground: 'transparent',
-                      textSectionTitleColor: 'rgba(255,255,255,0.45)',
+                      textSectionTitleColor: theme.textMuted,
                       todayTextColor: '#ff4d6a',
                       selectedDayBackgroundColor: '#ff4d6a',
                       selectedDayTextColor: '#ffffff',
-                      dayTextColor: 'rgba(255,255,255,0.9)',
-                      textDisabledColor: 'rgba(255,255,255,0.2)',
+                      dayTextColor: theme.text,
+                      textDisabledColor: isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.2)',
                       arrowColor: theme.accent,
-                      monthTextColor: '#ffffff',
+                      monthTextColor: theme.text,
                       textMonthFontWeight: '700',
                       textDayFontSize: 14.5,
                       textMonthFontSize: 16.5,

@@ -1,8 +1,9 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { useRouter } from "expo-router";
-import { AlignJustify } from "lucide-react-native";
+import { AlignJustify, ChevronLeft } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { dayjs } from "@/lib/date";
 
 interface PageHeaderProps {
@@ -14,6 +15,7 @@ interface PageHeaderProps {
 export function PageHeader({ title = "", showBack = true, showMenu = true }: PageHeaderProps) {
   const router = useRouter();
   const { profile } = useAuth();
+  const { theme, isLight } = useTheme();
 
   // Greeting name — display name or default
   const name = profile?.displayName || "Tatlım";
@@ -28,17 +30,17 @@ export function PageHeader({ title = "", showBack = true, showMenu = true }: Pag
       <View style={styles.homeHeader}>
         <View style={styles.greetingBlock}>
           <View style={styles.greetingRow}>
-            <Text style={styles.greetingText}>
+            <Text style={[styles.greetingText, { color: theme.text }]}>
               Günaydın, {name}{" "}
             </Text>
             <Text style={styles.heartEmoji}>❤️</Text>
           </View>
-          <Text style={styles.dateText}>{dateLabel}</Text>
+          <Text style={[styles.dateText, { color: theme.textMuted }]}>{dateLabel}</Text>
         </View>
 
         {showMenu && (
           <TouchableOpacity onPress={() => router.push("/menu")} style={styles.menuBtn}>
-            <AlignJustify color="rgba(255,255,255,0.75)" size={22} />
+            <AlignJustify color={theme.textSecondary} size={22} />
           </TouchableOpacity>
         )}
       </View>
@@ -50,19 +52,19 @@ export function PageHeader({ title = "", showBack = true, showMenu = true }: Pag
       <View style={styles.side}>
         {showBack && (
           <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
-            <AlignJustify color="#fff" size={24} />
+            <ChevronLeft color={theme.text} size={24} />
           </TouchableOpacity>
         )}
       </View>
 
       <View style={styles.center}>
-        {title ? <Text style={styles.title} numberOfLines={1}>{title}</Text> : null}
+        {title ? <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>{title}</Text> : null}
       </View>
 
       <View style={styles.sideRight}>
         {showMenu && (
           <TouchableOpacity onPress={() => router.push("/menu")} style={styles.iconBtn}>
-            <AlignJustify color="#fff" size={24} />
+            <AlignJustify color={theme.text} size={24} />
           </TouchableOpacity>
         )}
       </View>
@@ -91,7 +93,6 @@ const styles = StyleSheet.create({
   greetingText: {
     fontSize: 26,
     fontFamily: "Inter_700Bold",
-    color: "#ffffff",
     letterSpacing: -0.4,
   },
   heartEmoji: {
@@ -99,7 +100,6 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 13,
-    color: "rgba(255,255,255,0.45)",
     marginTop: 4,
     fontFamily: "Inter_400Regular",
   },
@@ -133,7 +133,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: {
-    color: "#fff",
     fontSize: 18,
     fontFamily: "Inter_600SemiBold",
     textAlign: "center",

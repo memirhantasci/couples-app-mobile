@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { dayjs } from "@/lib/date";
 import { AppTheme } from "@/lib/theme";
+import { Lock } from "lucide-react-native";
 
 interface PendingLetter {
   id: number;
@@ -24,10 +25,10 @@ export function PendingLettersCard({ letters, theme }: { letters: PendingLetter[
   if (pendingLetters.length === 0) return null;
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.cardBg }]}>
+    <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
       {/* Başlık + Tümünü Gör */}
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Bekleyen Mektuplar</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Bekleyen Mektuplar</Text>
         <TouchableOpacity onPress={() => router.push("/(tabs)/letters" as any)}>
           <Text style={[styles.viewAll, { color: theme.accent }]}>Tümünü Gör</Text>
         </TouchableOpacity>
@@ -42,26 +43,26 @@ export function PendingLettersCard({ letters, theme }: { letters: PendingLetter[
           const formattedDate = unlockDate.format("D MMM");
 
           return (
-            <View key={letter.id} style={styles.letterItem}>
-              {/* Sol: Kırmızı X ikonu */}
-              <View style={[styles.iconCircle, { backgroundColor: `${theme.accent}26` }]}>
-                <Text style={[styles.lockIcon, { color: theme.accent }]}>✕</Text>
+            <View key={letter.id} style={[styles.letterItem, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder }]}>
+              {/* Sol: Kilit ikonu */}
+              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <Lock size={15} color={theme.accent} />
               </View>
 
               {/* Orta: İsim + önizleme */}
               <View style={styles.textBlock}>
-                <Text style={styles.senderName}>{senderName}'tan Mektup</Text>
-                <Text style={styles.previewText} numberOfLines={1}>
+                <Text style={[styles.senderName, { color: theme.text }]}>{senderName}'tan Mektup</Text>
+                <Text style={[styles.previewText, { color: theme.textMuted }]} numberOfLines={1}>
                   Gözlerini kapat ve oku...
                 </Text>
                 {/* Alt: gün kaldı badge */}
-                <View style={[styles.daysLeftBadge, { backgroundColor: `${theme.accent}1F` }]}>
+                <View style={[styles.daysLeftBadge, { backgroundColor: theme.pillAccentBg, borderColor: theme.pillAccentBorder }]}>
                   <Text style={[styles.daysLeftText, { color: theme.accent }]}>{daysLeft} gün kaldı 🔒</Text>
                 </View>
               </View>
 
               {/* Sağ: tarih */}
-              <Text style={styles.dateText}>{formattedDate}</Text>
+              <Text style={[styles.dateText, { color: theme.textMuted }]}>{formattedDate}</Text>
             </View>
           );
         })}
@@ -72,10 +73,10 @@ export function PendingLettersCard({ letters, theme }: { letters: PendingLetter[
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 0,
+    borderWidth: 1,
     borderRadius: 20,
     padding: 16,
-    marginBottom: 18,
+    marginBottom: 4,
   },
   headerRow: {
     flexDirection: "row",
@@ -86,7 +87,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontFamily: "Inter_700Bold",
-    color: "#fff",
   },
   viewAll: {
     fontSize: 12,
@@ -96,8 +96,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "rgba(0,0,0,0.15)", // slightly darker inset
-    borderWidth: 0,
+    borderWidth: 1,
     borderRadius: 14,
     padding: 14,
   },
@@ -105,42 +104,35 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    borderWidth: 0,
     alignItems: "center",
     justifyContent: "center",
   },
-  lockIcon: {
-    fontSize: 14,
-    fontFamily: "Inter_700Bold",
-  },
   textBlock: {
     flex: 1,
-    gap: 3,
   },
   senderName: {
     fontSize: 14,
     fontFamily: "Inter_600SemiBold",
-    color: "#fff",
+    marginBottom: 3,
   },
   previewText: {
     fontSize: 12,
     fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.5)",
+    marginBottom: 6,
   },
   daysLeftBadge: {
     alignSelf: "flex-start",
-    borderRadius: 6,
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    marginTop: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1,
   },
   daysLeftText: {
     fontSize: 10,
     fontFamily: "Inter_600SemiBold",
   },
   dateText: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.4)",
-    fontFamily: "Inter_500Medium",
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
   },
 });
