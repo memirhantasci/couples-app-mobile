@@ -191,6 +191,7 @@ export default function AddPhotoScreen() {
       if (dbError) throw dbError;
 
       queryClient.invalidateQueries({ queryKey: ["photo_archive", coupleId] });
+      queryClient.invalidateQueries({ queryKey: ["map_photos", coupleId] });
       queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
 
       if (coupleId && userId) {

@@ -111,6 +111,7 @@ export default function PhotosScreen() {
             Alert.alert("Hata", "Fotoğraf silinirken bir hata oluştu.");
           } else {
             queryClient.invalidateQueries({ queryKey: ["photo_archive", coupleId] });
+            queryClient.invalidateQueries({ queryKey: ["map_photos", coupleId] });
             queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
           }
         }

@@ -152,6 +152,7 @@ export default function MeetingsScreen() {
 
       handleCancelEdit();
       queryClient.invalidateQueries({ queryKey: ["meetings", coupleId] });
+      queryClient.invalidateQueries({ queryKey: ["map_meetings", coupleId] });
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
     } catch (error: any) {
       Alert.alert("Hata", "İşlem gerçekleştirilemedi. Lütfen daha sonra tekrar deneyin.");
@@ -176,6 +177,7 @@ export default function MeetingsScreen() {
             Alert.alert("Hata", "Buluşma silinemedi.");
           } else {
             queryClient.invalidateQueries({ queryKey: ["meetings", coupleId] });
+            queryClient.invalidateQueries({ queryKey: ["map_meetings", coupleId] });
             queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
           }
         }
