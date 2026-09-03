@@ -32,6 +32,13 @@ LocaleConfig.locales['tr'] = {
 };
 LocaleConfig.defaultLocale = 'tr';
 
+export const CALENDAR_COLORS = {
+  note: "#EC4899",        // Canlı Fuşya / Pembe (Notlar)
+  myMood: "#F59E0B",      // Canlı Sıcak Amber (Senin Ruh Halin)
+  partnerMood: "#0EA5E9", // Canlı Elektrik Gökmavisi (Partnerinin Ruh Hali)
+  photo: "#10B981",       // Canlı Zümrüt Yeşili (Fotoğraflar)
+};
+
 export default function CalendarScreen() {
   const { session, profile } = useAuth();
   const { theme, isLight } = useTheme();
@@ -127,12 +134,12 @@ export default function CalendarScreen() {
       }
     };
 
-    data.notes.forEach((n: any) => addDot(n.date, theme.accent, "note"));
+    data.notes.forEach((n: any) => addDot(n.date, CALENDAR_COLORS.note, "note"));
     data.moods.forEach((m: any) => {
       const isMe = m.user_id === userId;
-      addDot(m.date, isMe ? "#ffd700" : "#60a5fa", isMe ? "my-mood" : "partner-mood");
+      addDot(m.date, isMe ? CALENDAR_COLORS.myMood : CALENDAR_COLORS.partnerMood, isMe ? "my-mood" : "partner-mood");
     });
-    data.photos.forEach((p: any) => addDot(p.taken_date, "#22c55e", "photo"));
+    data.photos.forEach((p: any) => addDot(p.taken_date, CALENDAR_COLORS.photo, "photo"));
 
     if (marks[selectedDate]) {
       marks[selectedDate] = {
@@ -336,8 +343,8 @@ export default function CalendarScreen() {
                   },
                   'stylesheet.day.multiDot': {
                     base: {
-                      width: 34,
-                      height: 34,
+                      width: 36,
+                      height: 36,
                       alignItems: 'center',
                       paddingTop: 4,
                       borderRadius: 12,
@@ -351,28 +358,36 @@ export default function CalendarScreen() {
                       backgroundColor: theme.accent,
                       borderRadius: 12,
                     },
+                    dot: {
+                      width: 6,
+                      height: 6,
+                      marginTop: 2.5,
+                      marginHorizontal: 1.5,
+                      borderRadius: 3,
+                      opacity: 1,
+                    },
                   },
                 } as any),
               }}
             />
 
             {/* LEJANT (RENK KILAVUZU) */}
-            <View style={styles.legendRow}>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: theme.accent }]} />
-                <Text style={[styles.legendText, { color: theme.textMuted }]}>Not</Text>
+            <View style={[styles.legendRow, { borderTopColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}>
+              <View style={[styles.legendItem, { backgroundColor: isLight ? "rgba(236,72,153,0.08)" : "rgba(236,72,153,0.14)", borderColor: "rgba(236,72,153,0.3)" }]}>
+                <View style={[styles.legendDot, { backgroundColor: CALENDAR_COLORS.note }]} />
+                <Text style={[styles.legendText, { color: isLight ? "#BE185D" : "#F472B6" }]}>Not</Text>
               </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: "#ffd700" }]} />
-                <Text style={[styles.legendText, { color: theme.textMuted }]}>Ruh Halim</Text>
+              <View style={[styles.legendItem, { backgroundColor: isLight ? "rgba(245,158,11,0.08)" : "rgba(245,158,11,0.14)", borderColor: "rgba(245,158,11,0.3)" }]}>
+                <View style={[styles.legendDot, { backgroundColor: CALENDAR_COLORS.myMood }]} />
+                <Text style={[styles.legendText, { color: isLight ? "#B45309" : "#FBBF24" }]}>Ruh Halim</Text>
               </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: "#60a5fa" }]} />
-                <Text style={[styles.legendText, { color: theme.textMuted }]}>Partnerim</Text>
+              <View style={[styles.legendItem, { backgroundColor: isLight ? "rgba(14,165,233,0.08)" : "rgba(14,165,233,0.14)", borderColor: "rgba(14,165,233,0.3)" }]}>
+                <View style={[styles.legendDot, { backgroundColor: CALENDAR_COLORS.partnerMood }]} />
+                <Text style={[styles.legendText, { color: isLight ? "#0369A1" : "#38BDF8" }]}>Partnerim</Text>
               </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: "#22c55e" }]} />
-                <Text style={[styles.legendText, { color: theme.textMuted }]}>Fotoğraf</Text>
+              <View style={[styles.legendItem, { backgroundColor: isLight ? "rgba(16,185,129,0.08)" : "rgba(16,185,129,0.14)", borderColor: "rgba(16,185,129,0.3)" }]}>
+                <View style={[styles.legendDot, { backgroundColor: CALENDAR_COLORS.photo }]} />
+                <Text style={[styles.legendText, { color: isLight ? "#047857" : "#34D399" }]}>Fotoğraf</Text>
               </View>
             </View>
           </View>
@@ -409,22 +424,22 @@ export default function CalendarScreen() {
               {/* Fotoğraflar */}
               {selectedDayPhotos.length > 0 && (
                 <View style={{ gap: 12 }}>
-                  <View style={styles.sectionHeader}>
-                    <Camera size={15} color="#22c55e" />
-                    <Text style={styles.sectionHeaderText}>FOTOĞRAF ARŞİVİ</Text>
+                  <View style={[styles.sectionHeaderBadge, { backgroundColor: isLight ? "rgba(16,185,129,0.1)" : "rgba(16,185,129,0.16)", borderColor: "rgba(16,185,129,0.3)" }]}>
+                    <Camera size={15} color={CALENDAR_COLORS.photo} />
+                    <Text style={[styles.sectionHeaderText, { color: isLight ? "#047857" : "#34D399" }]}>FOTOĞRAF ARŞİVİ</Text>
                   </View>
 
                   {!isPremium ? (
                     <TouchableOpacity
                       onPress={() => setShowPaywall(true)}
                       activeOpacity={0.8}
-                      style={[styles.photoCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, height: 160, justifyContent: "center", alignItems: "center" }]}
+                      style={[styles.photoCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderLeftWidth: 3.5, borderLeftColor: CALENDAR_COLORS.photo, height: 160, justifyContent: "center", alignItems: "center" }]}
                     >
                       <View style={[styles.lockIconCircle, { backgroundColor: theme.pillAccentBg }]}>
                         <Lock color={theme.accent} size={22} />
                       </View>
-                      <Text style={styles.lockTitle}>Fotoğraflar Gizli</Text>
-                      <Text style={styles.lockSub}>Takvimdeki fotoğrafları görmek için Premium'a geçin.</Text>
+                      <Text style={[styles.lockTitle, { color: theme.text }]}>Fotoğraflar Gizli</Text>
+                      <Text style={[styles.lockSub, { color: theme.textMuted }]}>Takvimdeki fotoğrafları görmek için Premium'a geçin.</Text>
                     </TouchableOpacity>
                   ) : (
                     selectedDayPhotos.map((photo: any) => {
@@ -434,7 +449,7 @@ export default function CalendarScreen() {
                       return (
                         <TouchableOpacity 
                           key={photo.id} 
-                          style={[styles.photoCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+                          style={[styles.photoCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderLeftWidth: 3.5, borderLeftColor: CALENDAR_COLORS.photo }]}
                           activeOpacity={0.92}
                           onPress={() => setSelectedPhoto(photo)}
                         >
@@ -445,8 +460,8 @@ export default function CalendarScreen() {
                             </View>
                           </View>
                           <View style={styles.photoCaptionBox}>
-                            {!!photo.title && <Text style={styles.photoTitle}>{photo.title}</Text>}
-                            {!!photo.description && <Text style={styles.photoDesc}>{photo.description}</Text>}
+                            {!!photo.title && <Text style={[styles.photoTitle, { color: theme.text }]}>{photo.title}</Text>}
+                            {!!photo.description && <Text style={[styles.photoDesc, { color: theme.textSecondary }]}>{photo.description}</Text>}
                           </View>
                           <View style={styles.photoMeta}>
                             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -457,10 +472,10 @@ export default function CalendarScreen() {
                                   <Text style={styles.avatarFallbackText}>{uploaderName.substring(0, 1).toUpperCase()}</Text>
                                 </View>
                               )}
-                              <Text style={styles.photoMetaTextBold}>{uploaderName}</Text>
+                              <Text style={[styles.photoMetaTextBold, { color: theme.text }]}>{uploaderName}</Text>
                             </View>
                             {!!photo.taken_time && (
-                              <Text style={styles.photoMetaTextTime}>{photo.taken_time.substring(0, 5)}</Text>
+                              <Text style={[styles.photoMetaTextTime, { color: theme.textMuted }]}>{photo.taken_time.substring(0, 5)}</Text>
                             )}
                           </View>
                         </TouchableOpacity>
@@ -473,20 +488,20 @@ export default function CalendarScreen() {
               {/* Notlar */}
               {selectedDayNotes.length > 0 && (
                 <View style={{ gap: 10 }}>
-                  <View style={styles.sectionHeader}>
-                    <FileText size={15} color={theme.accent} />
-                    <Text style={styles.sectionHeaderText}>GÜNÜN NOTLARI</Text>
+                  <View style={[styles.sectionHeaderBadge, { backgroundColor: isLight ? "rgba(236,72,153,0.1)" : "rgba(236,72,153,0.16)", borderColor: "rgba(236,72,153,0.3)" }]}>
+                    <FileText size={15} color={CALENDAR_COLORS.note} />
+                    <Text style={[styles.sectionHeaderText, { color: isLight ? "#BE185D" : "#F472B6" }]}>GÜNÜN NOTLARI</Text>
                   </View>
 
                   {selectedDayNotes.map((note: any) => {
                     const authorName = getAuthorName(note.user_id);
                     return (
-                      <View key={note.id} style={[styles.noteBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                        <Text style={styles.noteText}>{note.note}</Text>
-                        <View style={styles.noteMeta}>
-                          <Text style={[styles.noteAuthor, { color: theme.accent }]}>— {authorName}</Text>
+                      <View key={note.id} style={[styles.noteBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderLeftWidth: 3.5, borderLeftColor: CALENDAR_COLORS.note }]}>
+                        <Text style={[styles.noteText, { color: theme.text }]}>{note.note}</Text>
+                        <View style={[styles.noteMeta, { borderTopColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}>
+                          <Text style={[styles.noteAuthor, { color: CALENDAR_COLORS.note }]}>— {authorName}</Text>
                           {!!note.created_at && (
-                            <Text style={styles.noteTime}>{dayjs(note.created_at).format("HH:mm")}</Text>
+                            <Text style={[styles.noteTime, { color: theme.textMuted }]}>{dayjs(note.created_at).format("HH:mm")}</Text>
                           )}
                         </View>
                       </View>
@@ -498,18 +513,30 @@ export default function CalendarScreen() {
               {/* Ruh Halleri */}
               {selectedDayMoods.length > 0 && (
                 <View style={{ gap: 10 }}>
-                  <View style={styles.sectionHeader}>
-                    <Smile size={15} color="#ffd700" />
-                    <Text style={styles.sectionHeaderText}>HİSSEDİLEN RUH HALLERİ</Text>
+                  <View style={[styles.sectionHeaderBadge, { backgroundColor: isLight ? "rgba(245,158,11,0.1)" : "rgba(245,158,11,0.16)", borderColor: "rgba(245,158,11,0.3)" }]}>
+                    <Smile size={15} color={CALENDAR_COLORS.myMood} />
+                    <Text style={[styles.sectionHeaderText, { color: isLight ? "#B45309" : "#FBBF24" }]}>HİSSEDİLEN RUH HALLERİ</Text>
                   </View>
 
                   <View style={styles.moodsGrid}>
                     {selectedDayMoods.map((m: any, i: number) => {
+                      const isMe = m.user_id === userId;
                       const authorName = getAuthorName(m.user_id);
+                      const moodColor = isMe ? CALENDAR_COLORS.myMood : CALENDAR_COLORS.partnerMood;
+                      const bgTint = isLight 
+                        ? (isMe ? "rgba(245,158,11,0.06)" : "rgba(14,165,233,0.06)") 
+                        : (isMe ? "rgba(245,158,11,0.12)" : "rgba(14,165,233,0.12)");
+                      const borderTint = isMe ? "rgba(245,158,11,0.35)" : "rgba(14,165,233,0.35)";
+
                       return (
-                        <View key={m.id || `mood-${i}`} style={[styles.moodCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                          <Text style={{ fontSize: 26 }}>{m.mood_type}</Text>
-                          <Text style={styles.moodAuthor}>{authorName}</Text>
+                        <View key={m.id || `mood-${i}`} style={[styles.moodCard, { backgroundColor: bgTint, borderColor: borderTint }]}>
+                          <View style={[styles.moodTag, { backgroundColor: isLight ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.25)" }]}>
+                            <Text style={[styles.moodTagText, { color: moodColor }]}>
+                              {isMe ? "Sen" : "Partnerin"}
+                            </Text>
+                          </View>
+                          <Text style={{ fontSize: 30, marginVertical: 3 }}>{m.mood_type}</Text>
+                          <Text style={[styles.moodAuthor, { color: theme.textSecondary }]}>{authorName}</Text>
                         </View>
                       );
                     })}
@@ -781,27 +808,30 @@ const styles = StyleSheet.create({
   legendRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 16,
+    justifyContent: "space-between",
     paddingTop: 12,
-    marginTop: 8,
+    marginTop: 10,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.06)",
+    flexWrap: "wrap",
+    gap: 6,
   },
   legendItem: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 10,
+    borderWidth: 1,
   },
   legendDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   legendText: {
-    fontSize: 11,
-    fontFamily: "Inter_500Medium",
-    color: "rgba(255,255,255,0.55)",
+    fontSize: 11.5,
+    fontFamily: "Inter_600SemiBold",
   },
 
   /* SEÇİLEN GÜN */
@@ -843,10 +873,20 @@ const styles = StyleSheet.create({
     gap: 6,
     marginBottom: 4,
   },
+  sectionHeaderBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4.5,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 4,
+  },
   sectionHeaderText: {
-    fontSize: 11.5,
+    fontSize: 11,
     fontFamily: "Inter_700Bold",
-    color: "rgba(255,255,255,0.6)",
     letterSpacing: 0.6,
   },
 
@@ -970,10 +1010,22 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 16,
     borderWidth: 1,
-    paddingVertical: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 6,
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
+    gap: 4,
+  },
+  moodTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginBottom: 2,
+  },
+  moodTagText: {
+    fontSize: 10,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.2,
   },
   moodAuthor: {
     fontSize: 12,
