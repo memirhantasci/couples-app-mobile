@@ -3,7 +3,7 @@ import { useRouter, useSegments, useRootNavigationState } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 
 export function useProtectedRoute() {
-  const { session, isLoading, profile, isDeviceAuthorized } = useAuth();
+  const { session, isLoading, profile, isDeviceAuthorized, isDemoMode } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const navigationState = useRootNavigationState();
@@ -21,6 +21,14 @@ export function useProtectedRoute() {
     const isVerifying = currentRoute.includes("verify-device") || currentRoute.includes("verify");
 
     const timer = setTimeout(() => {
+      // 0. Demo Mode: Guests exploring the app
+      if (isDemoMode) {
+        if (inSetupGroup || isVerifying) {
+          router.replace("/(tabs)/home");
+        }
+        return;
+      }
+
       if (!session) {
         // 1. Unauthenticated users (Guests)
         // They can only access (auth) routes like login, register, reset-password, verify
@@ -81,5 +89,5 @@ export function useProtectedRoute() {
     }, 0);
 
     return () => clearTimeout(timer);
-  }, [session, isLoading, profile, isDeviceAuthorized, segments, navigationState?.key]);
+  }, [session, isLoading, profile, isDeviceAuthorized, isDemoMode, segments, navigationState?.key]);
 }

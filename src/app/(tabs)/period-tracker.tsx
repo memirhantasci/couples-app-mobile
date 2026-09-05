@@ -24,6 +24,8 @@ import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { usePageTour } from "@/hooks/usePageTour";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
+import { useDemoAction } from "@/hooks/useDemoAction";
+import { DemoActionModal } from "@/components/demo/DemoActionModal";
 
 LocaleConfig.locales['tr'] = {
   monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
@@ -35,7 +37,8 @@ LocaleConfig.locales['tr'] = {
 LocaleConfig.defaultLocale = 'tr';
 
 export default function PeriodTrackerScreen() {
-  const { session, profile } = useAuth();
+  const { session, profile, isDemoMode } = useAuth();
+  const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -54,12 +57,16 @@ export default function PeriodTrackerScreen() {
   // Erkek ve premium değilse kilitli görünüm
   const isMaleLocked = !isFemale && !isPremium;
 
-  // Regl loglarını çek
-  // Eğer erkek ise partnerinin loglarını çekebilmesi için couple üzerinden sorguluyoruz
   const { data: logs, isLoading } = useQuery({
-    queryKey: ["period_logs", coupleId, isFemale ? userId : "partner"],
-    enabled: !!coupleId && !isMaleLocked,
+    queryKey: ["period_logs", coupleId, isFemale ? userId : "partner", isDemoMode],
+    enabled: (!!coupleId && !isMaleLocked) || isDemoMode,
     queryFn: async () => {
+      if (isDemoMode) {
+        return [
+          { id: 1, date: dayjs().subtract(18, "day").format("YYYY-MM-DD"), user_id: "demo-partner" },
+          { id: 2, date: dayjs().subtract(46, "day").format("YYYY-MM-DD"), user_id: "demo-partner" },
+        ];
+      }
       let query = supabase.from("period_logs").select("id, date, user_id").eq("couple_id", coupleId).order("date", { ascending: false });
       
       if (isFemale && userId) {
@@ -103,6 +110,13 @@ export default function PeriodTrackerScreen() {
   }, [logs]);
 
   function handleDateClick(day: any) {
+    if (executeOrIntercept(
+      () => {},
+      "Döngü Takibini Başlatmak İçin Kayıt Olun 🌸",
+      "Kişisel döngünüzü kaydetmek, bilimsel tahminler almak ve partnerinizle paylaşmak için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
     if (!isFemale) {
       Alert.alert("Bilgi 🌸", "Regl takvimini yalnızca kadın partner güncelleyebilir.");
       return;
@@ -444,6 +458,12 @@ export default function PeriodTrackerScreen() {
         gender={profile?.gender}
       />
       <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <DemoActionModal
+        visible={isDemoModalOpen}
+        onClose={() => setIsDemoModalOpen(false)}
+        title={modalConfig.title}
+        description={modalConfig.description}
+      />
     </ScreenBackground>
   );
 }

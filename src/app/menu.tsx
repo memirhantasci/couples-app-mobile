@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { 
   X, Heart, Settings, Home, Pill, CalendarHeart, 
   Droplet, MapPin, LogOut, ChevronRight, User, 
@@ -26,7 +27,7 @@ import { resetAllPageTours } from "@/hooks/usePageTour";
 
 export default function MenuScreen() {
   const router = useRouter();
-  const { profile, session, signOut } = useAuth();
+  const { profile, session, signOut, isDemoMode, exitDemoMode } = useAuth();
   const { theme, isLight } = useTheme();
   const styles = React.useMemo(() => getMenuStyles(theme, isLight), [theme, isLight]);
   const insets = useSafeAreaInsets();
@@ -43,6 +44,10 @@ export default function MenuScreen() {
 
   const handleSignOut = async () => {
     try {
+      if (isDemoMode) {
+        exitDemoMode();
+        return;
+      }
       await signOut();
     } finally {
       router.replace("/(auth)/login" as any);
@@ -101,6 +106,35 @@ export default function MenuScreen() {
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 60 }]}
           showsVerticalScrollIndicator={false}
         >
+          {/* ─── DEMO SÜRÜMÜ BİLGİLENDİRME KARTI ─── */}
+          {isDemoMode && (
+            <View style={styles.demoCard}>
+              <LinearGradient
+                colors={["rgba(255, 46, 99, 0.18)", "rgba(255, 107, 139, 0.08)"]}
+                style={styles.demoCardGradient}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <Sparkles size={18} color="#FF2E63" />
+                  <Text style={styles.demoCardTitle}>Demo Modundasınız ✨</Text>
+                </View>
+                <Text style={styles.demoCardDesc}>
+                  Uygulamayı kayıt olmadan inceliyorsunuz. Sevgilinizle ortak alanınızı başlatıp anılarınızı kaydetmek için kaydolun.
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    router.back();
+                    exitDemoMode();
+                    router.replace({ pathname: "/(auth)/login", params: { initialMode: "register" } });
+                  }}
+                  style={styles.demoCardBtn}
+                  activeOpacity={0.88}
+                >
+                  <Text style={styles.demoCardBtnText}>Ücretsiz Kayıt Ol 💖</Text>
+                </TouchableOpacity>
+              </LinearGradient>
+            </View>
+          )}
+
           {/* ─── LÜKS ÇİFT PROFİL KARTI ─── */}
           <View style={[styles.profileCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
             <View style={[styles.avatarCircle, { backgroundColor: theme.pillAccentBg, borderColor: theme.accent }]}>
@@ -547,5 +581,39 @@ const getMenuStyles = (theme: any, isLight: boolean) => StyleSheet.create({
     fontFamily: "Inter_400Regular",
     color: theme.textMuted,
     marginTop: 2,
+  },
+  demoCard: {
+    borderRadius: 20,
+    overflow: "hidden",
+    borderWidth: 1.2,
+    borderColor: "rgba(255, 46, 99, 0.35)",
+    marginBottom: 12,
+  },
+  demoCardGradient: {
+    padding: 16,
+  },
+  demoCardTitle: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+  },
+  demoCardDesc: {
+    color: "rgba(255, 255, 255, 0.75)",
+    fontSize: 12.5,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  demoCardBtn: {
+    backgroundColor: "#FF2E63",
+    borderRadius: 14,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  demoCardBtnText: {
+    color: "#FFFFFF",
+    fontSize: 13.5,
+    fontFamily: "Inter_700Bold",
   },
 });

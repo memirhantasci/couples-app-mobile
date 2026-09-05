@@ -26,6 +26,8 @@ import { RevenueCatService } from "@/lib/revenuecat";
 import { usePageTour, resetAllPageTours } from "@/hooks/usePageTour";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
+import { useDemoAction } from "@/hooks/useDemoAction";
+import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import {
   User,
   Gift,
@@ -110,7 +112,8 @@ function ModernSection({
 }
 
 export default function ProfileScreen() {
-  const { session, signOut, profile, refreshProfile } = useAuth();
+  const { session, signOut, profile, refreshProfile, isDemoMode, exitDemoMode } = useAuth();
+  const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, themeMode, setThemeMode, isLight } = useTheme();
   const { enabledTabs, allTabs, toggleTab, isTabEnabled, resetTabs, maxTabs } = useTabBar();
   const router = useRouter();
@@ -153,6 +156,16 @@ export default function ProfileScreen() {
 
   // Verileri yükle
   React.useEffect(() => {
+    if (isDemoMode) {
+      if (!dataLoaded) {
+        setDisplayName("Misafir (Demo)");
+        setGender("male");
+        setMeetDate(dayjs().subtract(730, "day").format("YYYY-MM-DD"));
+        setRelStartDate(dayjs().subtract(520, "day").format("YYYY-MM-DD"));
+        setDataLoaded(true);
+      }
+      return;
+    }
     if (!session?.user?.id || dataLoaded) return;
     const uid = session.user.id;
     (async () => {
@@ -187,6 +200,13 @@ export default function ProfileScreen() {
 
   // Profili Güncelle
   async function handleUpdateProfile() {
+    if (executeOrIntercept(
+      () => {},
+      "Profili Güncellemek İçin Kayıt Olun 👤",
+      "Kişisel profilinizi ve tercihlerinizi kaydetmek için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
     if (!session?.user?.id) return;
     if (displayName.trim().length < 2) {
       setNameError(true);
@@ -211,6 +231,13 @@ export default function ProfileScreen() {
 
   // İlişki Tarihlerini Güncelle
   async function handleUpdateDates() {
+    if (executeOrIntercept(
+      () => {},
+      "İlişki Tarihlerini Belirlemek İçin Kayıt Olun 💕",
+      "Tanışma ve sevgililik tarihinizi kaydetmek, sayaçları başlatmak için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
     if (!coupleId) return;
     if (!meetDate || !relStartDate) {
       Alert.alert("Eksik Tarih", "Lütfen her iki tarihi de belirleyin.");
@@ -234,6 +261,11 @@ export default function ProfileScreen() {
 
   // Çıkış Yap
   async function handleLogout() {
+    if (isDemoMode) {
+      exitDemoMode();
+      router.replace("/(auth)/login");
+      return;
+    }
     Alert.alert("Çıkış Yap", "Hesabınızdan çıkış yapmak istediğinize emin misiniz?", [
       { text: "Vazgeç", style: "cancel" },
       {
@@ -1072,6 +1104,12 @@ export default function ProfileScreen() {
         accentColor={theme.accent}
       />
       <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <DemoActionModal
+        visible={isDemoModalOpen}
+        onClose={() => setIsDemoModalOpen(false)}
+        title={modalConfig.title}
+        description={modalConfig.description}
+      />
     </ScreenBackground>
   );
 }

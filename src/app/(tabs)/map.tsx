@@ -49,6 +49,9 @@ import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { supabase } from "@/lib/supabase";
 import { getTheme } from "@/lib/theme";
 import { isValidCoordinate } from "@/utils/exifHelper";
+import { DEMO_PHOTOS, DEMO_MAP_LOCATIONS, DEMO_HOME_DATA } from "@/constants/demoData";
+import { useDemoAction } from "@/hooks/useDemoAction";
+import { DemoActionModal } from "@/components/demo/DemoActionModal";
 
 const { width: SW, height: SH } = Dimensions.get("window");
 
@@ -187,7 +190,8 @@ function PhotoMarkerPin({
 
 export default function MapScreen() {
   const router = useRouter();
-  const { session, profile } = useAuth();
+  const { session, profile, isDemoMode } = useAuth();
+  const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const theme = getTheme(profile?.gender);
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
@@ -220,10 +224,23 @@ export default function MapScreen() {
     isLoading: loadingPhotos,
     refetch: refetchPhotos,
   } = useQuery({
-    queryKey: ["map_photos", coupleId],
-    enabled: !!coupleId && isPremium,
-    staleTime: 1000 * 30, // 30 sn — harita gerçek zamanlı his versin ama sorgu fırtınası durdurulsun
+    queryKey: ["map_photos", coupleId, isDemoMode],
+    enabled: (!!coupleId && isPremium) || isDemoMode,
+    staleTime: 1000 * 30,
     queryFn: async () => {
+      if (isDemoMode) {
+        return DEMO_PHOTOS.map((p) => ({
+          id: p.id,
+          image_url: p.image_url,
+          latitude: p.latitude!,
+          longitude: p.longitude!,
+          location_name: p.city || "Özel Konum",
+          taken_date: p.taken_date,
+          title: p.title,
+          description: p.description,
+          user_id: p.user_id,
+        })).filter((p) => isValidCoordinate(p.latitude, p.longitude));
+      }
       const { data, error } = await supabase
         .from("photo_archive")
         .select("id, image_url, latitude, longitude, location_name, taken_date, title, description, user_id")
@@ -241,10 +258,20 @@ export default function MapScreen() {
     isLoading: loadingNotes,
     refetch: refetchNotes,
   } = useQuery({
-    queryKey: ["map_notes", coupleId],
-    enabled: !!coupleId,
+    queryKey: ["map_notes", coupleId, isDemoMode],
+    enabled: !!coupleId || isDemoMode,
     staleTime: 1000 * 30,
     queryFn: async () => {
+      if (isDemoMode) {
+        return DEMO_MAP_LOCATIONS.map((loc) => ({
+          id: loc.id,
+          user_id: "demo",
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          note: `${loc.title} - ${loc.description}`,
+          created_at: loc.date,
+        })).filter((n) => isValidCoordinate(n.latitude, n.longitude));
+      }
       const { data, error } = await supabase
         .from("map_notes")
         .select("id, user_id, latitude, longitude, note, created_at")
@@ -261,10 +288,22 @@ export default function MapScreen() {
     isLoading: loadingMeetings,
     refetch: refetchMeetings,
   } = useQuery({
-    queryKey: ["map_meetings", coupleId],
-    enabled: !!coupleId,
+    queryKey: ["map_meetings", coupleId, isDemoMode],
+    enabled: !!coupleId || isDemoMode,
     staleTime: 1000 * 30,
     queryFn: async () => {
+      if (isDemoMode) {
+        return DEMO_HOME_DATA.activeMeeting ? [{
+          id: DEMO_HOME_DATA.activeMeeting.id,
+          title: DEMO_HOME_DATA.activeMeeting.title,
+          location_name: DEMO_HOME_DATA.activeMeeting.location_name,
+          latitude: DEMO_HOME_DATA.activeMeeting.latitude,
+          longitude: DEMO_HOME_DATA.activeMeeting.longitude,
+          meeting_datetime: DEMO_HOME_DATA.activeMeeting.meeting_datetime,
+          is_active: true,
+          user_id: "demo",
+        }] : [];
+      }
       const { data, error } = await supabase
         .from("meetings")
         .select("id, title, location_name, latitude, longitude, meeting_datetime, is_active, user_id")
@@ -348,6 +387,13 @@ export default function MapScreen() {
 
   // ─── Haritada Not Bırakma (Uzun Basış) ────────────────────────────────────
   const handleMapLongPress = (e: any) => {
+    if (executeOrIntercept(
+      () => {},
+      "Haritaya Aşk Notu Bırakmak İçin Kayıt Olun 📍",
+      "Partnerinizle gittiğiniz özel konumlara hatıra notları bırakmak için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
     const coord = e.nativeEvent?.coordinate;
     if (coord && coord.latitude && coord.longitude) {
       setPendingCoord(coord);
@@ -1121,6 +1167,12 @@ export default function MapScreen() {
       </Modal>
 
       <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <DemoActionModal
+        visible={isDemoModalOpen}
+        onClose={() => setIsDemoModalOpen(false)}
+        title={modalConfig.title}
+        description={modalConfig.description}
+      />
     </View>
   );
 }

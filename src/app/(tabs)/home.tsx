@@ -42,9 +42,10 @@ import { usePageTour } from "@/hooks/usePageTour";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { useInterstitialAd } from "@/hooks/useInterstitialAd";
+import { DEMO_HOME_DATA, DEMO_LOVE_SCORE } from "@/constants/demoData";
 
 export default function HomeScreen() {
-  const { session, profile } = useAuth();
+  const { session, profile, isDemoMode } = useAuth();
   const { theme, isLight } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -74,9 +75,12 @@ export default function HomeScreen() {
   );
 
   const { data: dashboardData, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ["home_dashboard", coupleId, userId, today],
-    enabled: !!userId,
+    queryKey: ["home_dashboard", coupleId, userId, today, isDemoMode],
+    enabled: !!userId || isDemoMode,
     queryFn: async () => {
+      if (isDemoMode) {
+        return DEMO_HOME_DATA as any;
+      }
       const [moodRes, noteRes, meetingRes, lettersRes, usersRes] = await Promise.all([
         supabase
           .from("moods")
@@ -162,11 +166,14 @@ export default function HomeScreen() {
 
   // ─── Dinamik Aşk Puanı (Çift için %100 simetrik ve eşit) ─────────────────────
   const { data: loveScoreData, isLoading: isLoveScoreLoading } = useQuery({
-    queryKey: ["love_score", coupleId, today],
-    enabled: !!coupleId,
+    queryKey: ["love_score", coupleId, today, isDemoMode],
+    enabled: !!coupleId || isDemoMode,
     initialData: cachedScore || undefined,
     staleTime: 1000 * 60 * 5,
     queryFn: async () => {
+      if (isDemoMode) {
+        return DEMO_LOVE_SCORE as any;
+      }
       return computeLoveScore(coupleId!, userId, null);
     },
   });
@@ -232,7 +239,7 @@ export default function HomeScreen() {
     return { text: "İyi Geceler", emoji: "✨" };
   };
 
-  if (!session || (!dashboardData && isLoading)) {
+  if ((!session && !isDemoMode) || (!dashboardData && isLoading && !isDemoMode)) {
     return (
       <ScreenBackground style={{ paddingTop: insets.top + 20, paddingHorizontal: 20 }}>
         <Skeleton height={80} borderRadius={20} style={{ marginBottom: 16 }} />
@@ -250,7 +257,9 @@ export default function HomeScreen() {
   const daysSinceTogether = relDate ? daysSince(dayjs(relDate)) : 0;
   const name = profile?.displayName || "Sevgilim";
   const quote = useMemo(() => getQuoteForDay(doy), [doy]);
-  const activeLoveScore = loveScoreData || cachedScore;
+  const activeLoveScore = isDemoMode 
+    ? { score: 96, subtitle: "Kusursuz Bir Uyum! 💖" }
+    : (loveScoreData || cachedScore);
   const loveMeter = activeLoveScore?.score;
   const loveSubtitle = activeLoveScore?.subtitle;
   const dateLabel = useMemo(() => dayjs().format("D MMMM, dddd"), []);

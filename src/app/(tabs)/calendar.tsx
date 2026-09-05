@@ -25,6 +25,9 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { usePageTour } from "@/hooks/usePageTour";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
+import { DEMO_DAILY_NOTES, DEMO_PHOTOS } from "@/constants/demoData";
+import { useDemoAction } from "@/hooks/useDemoAction";
+import { DemoActionModal } from "@/components/demo/DemoActionModal";
 
 LocaleConfig.locales['tr'] = {
   monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
@@ -43,10 +46,11 @@ export const CALENDAR_COLORS = {
 };
 
 export default function CalendarScreen() {
-  const { session, profile } = useAuth();
+  const router = useRouter();
+  const { session, profile, isDemoMode } = useAuth();
+  const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
   const queryClient = useQueryClient();
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const today = todayString();
 
@@ -65,9 +69,34 @@ export default function CalendarScreen() {
 
   // Veri çekme
   const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ["calendar_data", coupleId],
-    enabled: !!coupleId || !!userId,
+    queryKey: ["calendar_data", coupleId, isDemoMode],
+    enabled: !!coupleId || !!userId || isDemoMode,
     queryFn: async () => {
+      if (isDemoMode) {
+        return {
+          notes: DEMO_DAILY_NOTES.map(n => ({
+            id: n.id,
+            date: n.date,
+            note: n.content,
+            user_id: userId,
+            created_at: new Date().toISOString(),
+          })),
+          moods: [
+            { date: today, mood_type: "love", user_id: userId }
+          ],
+          photos: DEMO_PHOTOS.map(p => ({
+            id: p.id,
+            user_id: p.user_id,
+            image_url: p.image_url,
+            title: p.title,
+            description: p.description,
+            taken_date: p.taken_date,
+            taken_time: p.taken_time,
+          })),
+          partner: { display_name: "Sevgilin" },
+          me: { display_name: "Misafir" },
+        };
+      }
       const threeMonthsAgo = dayjs().subtract(2, "month").startOf("month").format("YYYY-MM-DD");
       const threeMonthsLater = dayjs().add(2, "month").endOf("month").format("YYYY-MM-DD");
 
@@ -194,6 +223,13 @@ export default function CalendarScreen() {
   }, [selectedDayNotes, userId]);
 
   const openNoteModal = () => {
+    if (executeOrIntercept(
+      () => {},
+      "Takvime Not Eklemek İçin Kayıt Olun 📅",
+      "Özel günlerinizi, hatıralarınızı ve planlarınızı ortak takviminize kaydetmek için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
     setNoteText(userNoteForSelectedDay?.note || "");
     setShowNoteModal(true);
   };
@@ -741,6 +777,12 @@ export default function CalendarScreen() {
         featureName="Takvimdeki Fotoğraflar"
       />
       <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <DemoActionModal
+        visible={isDemoModalOpen}
+        onClose={() => setIsDemoModalOpen(false)}
+        title={modalConfig.title}
+        description={modalConfig.description}
+      />
     </ScreenBackground>
   );
 }

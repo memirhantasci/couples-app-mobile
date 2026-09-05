@@ -32,6 +32,9 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { usePageTour } from "@/hooks/usePageTour";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
+import { DEMO_DAILY_NOTES } from "@/constants/demoData";
+import { useDemoAction } from "@/hooks/useDemoAction";
+import { DemoActionModal } from "@/components/demo/DemoActionModal";
 
 dayjs.locale("tr");
 
@@ -50,7 +53,8 @@ const cleanContentText = (raw: string) => {
 };
 
 export default function DailyNotesScreen() {
-  const { session, profile } = useAuth();
+  const { session, profile, isDemoMode } = useAuth();
+  const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -69,9 +73,12 @@ export default function DailyNotesScreen() {
     refetch,
     isRefetching,
   } = useQuery({
-    queryKey: ["daily_notes_history", userId],
-    enabled: !!userId,
+    queryKey: ["daily_notes_history", userId, isDemoMode],
+    enabled: !!userId || isDemoMode,
     queryFn: async (): Promise<DailyNote[]> => {
+      if (isDemoMode) {
+        return DEMO_DAILY_NOTES as any;
+      }
       const { data, error } = await supabase
         .from("daily_notes")
         .select("id, date, content")
@@ -215,7 +222,16 @@ export default function DailyNotesScreen() {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <TourGuideButton onPress={openTour} />
             <TouchableOpacity 
-              onPress={() => router.push("/(tabs)/add-daily-note")}
+              onPress={() => {
+                if (executeOrIntercept(
+                  () => router.push("/(tabs)/add-daily-note"),
+                  "Günlük Not Yazmak İçin Kayıt Olun 📖",
+                  "Günün hislerini ve sevgi notlarını şifreli olarak kaydetmek için ücretsiz hesabınızı oluşturun."
+                )) {
+                  return;
+                }
+                router.push("/(tabs)/add-daily-note");
+              }} 
               style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : theme.cardBg, borderColor: theme.cardBorder }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
@@ -236,7 +252,16 @@ export default function DailyNotesScreen() {
         <View style={styles.topActionContainer}>
           <TouchableOpacity 
             style={[styles.writeNoteActionBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
-            onPress={() => router.push("/(tabs)/add-daily-note")}
+            onPress={() => {
+              if (executeOrIntercept(
+                () => router.push("/(tabs)/add-daily-note"),
+                "Günlük Not Yazmak İçin Kayıt Olun 📖",
+                "Günün hislerini ve sevgi notlarını şifreli olarak kaydetmek için ücretsiz hesabınızı oluşturun."
+              )) {
+                return;
+              }
+              router.push("/(tabs)/add-daily-note");
+            }}
             activeOpacity={0.88}
           >
             <View style={[styles.writeActionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
@@ -374,6 +399,12 @@ export default function DailyNotesScreen() {
         </View>
       </Modal>
       <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <DemoActionModal
+        visible={isDemoModalOpen}
+        onClose={() => setIsDemoModalOpen(false)}
+        title={modalConfig.title}
+        description={modalConfig.description}
+      />
     </ScreenBackground>
   );
 }

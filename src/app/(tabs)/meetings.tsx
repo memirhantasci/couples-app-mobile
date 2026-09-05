@@ -25,10 +25,14 @@ import { MapPickerModal } from "@/components/MapPickerModal";
 import { usePageTour } from "@/hooks/usePageTour";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
+import { DEMO_MEETINGS } from "@/constants/demoData";
+import { useDemoAction } from "@/hooks/useDemoAction";
+import { DemoActionModal } from "@/components/demo/DemoActionModal";
 
 export default function MeetingsScreen() {
   const router = useRouter();
-  const { session, profile } = useAuth();
+  const { session, profile, isDemoMode } = useAuth();
+  const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
@@ -52,9 +56,12 @@ export default function MeetingsScreen() {
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
 
   const { data: meetings, isLoading } = useQuery({
-    queryKey: ["meetings", coupleId],
-    enabled: !!coupleId,
+    queryKey: ["meetings", coupleId, isDemoMode],
+    enabled: !!coupleId || isDemoMode,
     queryFn: async () => {
+      if (isDemoMode) {
+        return DEMO_MEETINGS;
+      }
       const { data, error } = await supabase
         .from("meetings")
         .select("*")
@@ -239,6 +246,13 @@ export default function MeetingsScreen() {
           <TouchableOpacity 
             style={[styles.quickPlanBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
             onPress={() => {
+              if (executeOrIntercept(
+                () => {},
+                "Yeni Buluşma Planlamak İçin Kayıt Olun 🍷",
+                "Partnerinizle özel buluşmalar planlamak, haritada yerini görmek ve canlı geri sayım başlatmak için ücretsiz hesabınızı oluşturun."
+              )) {
+                return;
+              }
               handleCancelEdit();
               setShowFormModal(true);
             }}
@@ -577,6 +591,12 @@ export default function MeetingsScreen() {
         }}
       />
       <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <DemoActionModal
+        visible={isDemoModalOpen}
+        onClose={() => setIsDemoModalOpen(false)}
+        title={modalConfig.title}
+        description={modalConfig.description}
+      />
     </ScreenBackground>
   );
 }

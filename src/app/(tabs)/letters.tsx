@@ -31,6 +31,9 @@ import { OrigamiBirdAnimation } from "@/components/letters/OrigamiBirdAnimation"
 import { usePageTour } from "@/hooks/usePageTour";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
+import { DEMO_LETTERS } from "@/constants/demoData";
+import { useDemoAction } from "@/hooks/useDemoAction";
+import { DemoActionModal } from "@/components/demo/DemoActionModal";
 
 const safeDecrypt = (val: string | null | undefined): string => {
   if (!val) return "";
@@ -44,7 +47,8 @@ const safeDecrypt = (val: string | null | undefined): string => {
 
 export default function LettersScreen() {
   const router = useRouter();
-  const { session, profile, refreshProfile } = useAuth();
+  const { session, profile, refreshProfile, isDemoMode } = useAuth();
+  const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
   const queryClient = useQueryClient();
   const today = todayString();
@@ -65,9 +69,15 @@ export default function LettersScreen() {
 
   // --- Mektupları Getir (Sayfalamalı ve Korumalı) ---
   const { data, isLoading } = useQuery({
-    queryKey: ["letters_data", coupleId, userId, pageLimit],
-    enabled: !!coupleId && !!userId,
+    queryKey: ["letters_data", coupleId, userId, pageLimit, isDemoMode],
+    enabled: (!!coupleId && !!userId) || isDemoMode,
     queryFn: async () => {
+      if (isDemoMode) {
+        const all = DEMO_LETTERS;
+        const received = DEMO_LETTERS.filter(l => l._type === "received");
+        const sent = DEMO_LETTERS.filter(l => l._type === "sent");
+        return { all, received, sent };
+      }
       const [receivedRes, sentRes, usersRes] = await Promise.all([
         supabase
           .from("letters")
@@ -166,6 +176,13 @@ export default function LettersScreen() {
   const sentLetters = data?.sent || [];
 
   const handleOpenWriteModal = () => {
+    if (executeOrIntercept(
+      () => {},
+      "Mektup Yazmak ve Mühürlemek İçin Kayıt Olun 💌",
+      "Partnerinize zaman kilitli mektuplar göndermek ve dilediğiniz tarihte açılmasını sağlamak için ücretsiz hesap oluşturun."
+    )) {
+      return;
+    }
     // Partner varsa alıcıyı otomatik seç
     if (users && users.length === 1 && !receiverId) {
       setReceiverId(String(users[0].id));
@@ -387,7 +404,7 @@ export default function LettersScreen() {
 
   const keyExtractor = useCallback((item: any) => item.id.toString(), []);
 
-  if (!session) return <View style={{ flex: 1, backgroundColor: "#0a0a0f" }} />;
+  if (!session && !isDemoMode) return <View style={{ flex: 1, backgroundColor: "#0a0a0f" }} />;
 
   const currentList = activeTab === "all" ? allLetters : activeTab === "received" ? receivedLetters : sentLetters;
 
@@ -786,6 +803,12 @@ export default function LettersScreen() {
         accentColor={theme.accent}
       />
       <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <DemoActionModal
+        visible={isDemoModalOpen}
+        onClose={() => setIsDemoModalOpen(false)}
+        title={modalConfig.title}
+        description={modalConfig.description}
+      />
     </ScreenBackground>
   );
 }

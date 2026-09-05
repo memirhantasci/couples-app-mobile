@@ -17,11 +17,14 @@ import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { usePageTour } from "@/hooks/usePageTour";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
+import { useDemoAction } from "@/hooks/useDemoAction";
+import { DemoActionModal } from "@/components/demo/DemoActionModal";
 
 export default function MemoriesScreen() {
-  const { session, profile } = useAuth();
-  const { theme, isLight } = useTheme();
   const router = useRouter();
+  const { profile, session, isDemoMode } = useAuth();
+  const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
+  const { theme, isLight } = useTheme();
   const queryClient = useQueryClient();
   const [isEditMode, setIsEditMode] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -32,6 +35,7 @@ export default function MemoriesScreen() {
   const PAGE_SIZE = 15;
 
   useEffect(() => {
+    if (isDemoMode) return;
     async function addDefaultMemories() {
       if (!coupleId) return;
       // AsyncStorage guard: Sadece bu couple için henüz yapılmadıysa bir kez çalıştır.
@@ -91,10 +95,26 @@ export default function MemoriesScreen() {
     isFetchingNextPage,
     refetch
   } = useInfiniteQuery({
-    queryKey: ["memories", coupleId],
-    enabled: !!coupleId,
+    queryKey: ["memories", coupleId, isDemoMode],
+    enabled: !!coupleId || isDemoMode,
     initialPageParam: 0,
     queryFn: async ({ pageParam = 0 }) => {
+      if (isDemoMode) {
+        return [
+          {
+            id: 1,
+            title: "Sevgili Olduğumuz İlk Gün 💖",
+            date: dayjs().subtract(520, "day").format("YYYY-MM-DD"),
+            description: "Birlikte el ele tutuşup geleceğe söz verdiğimiz o an...",
+          },
+          {
+            id: 2,
+            title: "İlk Tanıştığımız Gün ☕",
+            date: dayjs().subtract(730, "day").format("YYYY-MM-DD"),
+            description: "Gözlerinin içindeki parıltıyı ilk fark ettiğim gün.",
+          },
+        ];
+      }
       const { data, error } = await supabase
         .from("memories")
         .select("id, date, title, description, image_url, is_default")
@@ -150,7 +170,7 @@ export default function MemoriesScreen() {
     });
   };
 
-  if (!session) return <View style={{ flex: 1, backgroundColor: "#080811" }} />;
+  if (!session && !isDemoMode) return <View style={{ flex: 1, backgroundColor: "#080811" }} />;
 
 
 
@@ -283,7 +303,16 @@ export default function MemoriesScreen() {
         <Animated.View entering={FadeInUp.duration(250)} style={styles.addBtnContainer}>
           <TouchableOpacity 
             style={[styles.addBtn, { backgroundColor: theme.accent }]}
-            onPress={() => router.push("/(tabs)/add-memory")}
+            onPress={() => {
+              if (executeOrIntercept(
+                () => router.push("/(tabs)/add-memory"),
+                "Özel Gün ve Anı Eklemek İçin Kayıt Olun 💖",
+                "İlişkinizin dönüm noktalarını kaydetmek ve yıldönümü bildirimleri almak için ücretsiz hesabınızı oluşturun."
+              )) {
+                return;
+              }
+              router.push("/(tabs)/add-memory");
+            }}
             activeOpacity={0.8}
           >
             <PlusCircle size={20} color="#fff" />
@@ -292,6 +321,12 @@ export default function MemoriesScreen() {
         </Animated.View>
       )}
       <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <DemoActionModal
+        visible={isDemoModalOpen}
+        onClose={() => setIsDemoModalOpen(false)}
+        title={modalConfig.title}
+        description={modalConfig.description}
+      />
     </ScreenBackground>
   );
 }

@@ -12,7 +12,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { navigateAfterAuth } from "@/lib/navigate";
 import { registerForPushNotifications } from "@/lib/notifications";
@@ -23,7 +23,8 @@ import { logger } from "@/utils/logger";
 import { 
   Eye, EyeOff, Heart, Link, 
   AtSign, Lock, User, Mail, 
-  AlertCircle, CheckCircle2, ArrowRight, Check 
+  AlertCircle, CheckCircle2, ArrowRight, Check,
+  Sparkles 
 } from "lucide-react-native";
 import { getOrCreateDeviceId } from "@/utils/device";
 import { LegalModal } from "@/components/legal/LegalModal";
@@ -36,8 +37,16 @@ type Mode = "login" | "register";
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
-  const { setIsDeviceAuthorized } = useAuth();
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const { initialMode } = useLocalSearchParams<{ initialMode?: string }>();
+  const { setIsDeviceAuthorized, enterDemoMode } = useAuth();
+  const [mode, setMode] = useState<"login" | "register">(
+    initialMode === "register" ? "register" : "login"
+  );
+
+  React.useEffect(() => {
+    if (initialMode === "register") setMode("register");
+    else if (initialMode === "login") setMode("login");
+  }, [initialMode]);
 
   // Login fields
   const [loginUsername, setLoginUsername] = useState("");
@@ -95,6 +104,11 @@ export default function LoginScreen() {
   function clearErrors() {
     setErrorMsg("");
     setSuccessMsg("");
+  }
+
+  function handleEnterDemo() {
+    enterDemoMode();
+    router.replace("/(tabs)/home");
   }
 
   async function handleLogin() {
@@ -823,6 +837,25 @@ export default function LoginScreen() {
               )}
             </LinearGradient>
           </TouchableOpacity>
+
+          {/* ─── Demo / Keşfet Modu Butonu ─── */}
+          <View style={styles.demoDividerContainer}>
+            <View style={styles.demoDividerLine} />
+            <Text style={styles.demoDividerText}>VEYA</Text>
+            <View style={styles.demoDividerLine} />
+          </View>
+
+          <TouchableOpacity
+            onPress={handleEnterDemo}
+            activeOpacity={0.85}
+            style={[styles.demoModeBtn, { borderColor: `${activeAccent}44` }]}
+          >
+            <Sparkles size={16} color={activeAccent} style={{ marginRight: 8 }} />
+            <Text style={[styles.demoModeBtnText, { color: activeAccent }]}>
+              Uygulamayı Keşfet (Demo Modu)
+            </Text>
+            <ArrowRight size={15} color={activeAccent} style={{ marginLeft: 6 }} />
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -1113,6 +1146,38 @@ const styles = StyleSheet.create({
   legalLink: {
     fontFamily: "Inter_700Bold",
     textDecorationLine: "underline",
+  },
+  demoDividerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 18,
+    paddingHorizontal: 8,
+  },
+  demoDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+  },
+  demoDividerText: {
+    color: "rgba(255, 255, 255, 0.4)",
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+    paddingHorizontal: 12,
+    letterSpacing: 1,
+  },
+  demoModeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1.2,
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    marginBottom: 8,
+  },
+  demoModeBtnText: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
   },
 });
 

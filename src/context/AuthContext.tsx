@@ -11,6 +11,7 @@ import { getOrCreateDeviceId } from "@/utils/device";
 const CACHED_PROFILE_KEY = "@couples_app_cached_profile";
 const DEVICE_AUTH_CACHE_KEY = "@device_auth_cache";
 const DEVICE_AUTH_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+import { DEMO_PROFILE, DEMO_SESSION } from "@/constants/demoData";
 
 // Maximum time (ms) to wait for auth initialization before forcing loading=false
 const AUTH_INIT_TIMEOUT_MS = 8000;
@@ -39,6 +40,9 @@ interface AuthContextValue {
   checkDeviceAuth: (userId: string) => Promise<boolean>;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
+  isDemoMode: boolean;
+  enterDemoMode: () => void;
+  exitDemoMode: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -50,6 +54,9 @@ const AuthContext = createContext<AuthContextValue>({
   checkDeviceAuth: async () => false,
   refreshProfile: async () => { },
   signOut: async () => { },
+  isDemoMode: false,
+  enterDemoMode: () => { },
+  exitDemoMode: () => { },
 });
 
 export function useAuth() {
@@ -143,6 +150,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<CoupleProfile | null>(null);
   const [isDeviceAuthorized, setIsDeviceAuthorized] = useState<boolean | null>(null);
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
+
+  const enterDemoMode = useCallback(() => {
+    setIsDemoMode(true);
+    setSession(DEMO_SESSION);
+    setProfile(DEMO_PROFILE);
+    setIsDeviceAuthorized(true);
+    setIsLoading(false);
+  }, []);
+
+  const exitDemoMode = useCallback(() => {
+    setIsDemoMode(false);
+    setSession(null);
+    setProfile(null);
+    setIsDeviceAuthorized(null);
+    setIsLoading(false);
+  }, []);
 
   // Track whether initial session from getSession() has been processed
   // to avoid onAuthStateChange duplicating work for the same session
@@ -304,6 +328,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [checkDeviceAuth]);
 
   useEffect(() => {
+    if (isDemoMode) return;
     if (!session?.user?.id) return;
 
     const userId = session.user.id;
@@ -351,6 +376,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Realtime listener for database changes (e.g. premium status, token balance)
   useEffect(() => {
+    if (isDemoMode) return;
     if (!session?.user?.id) return;
 
     const channel = supabase.channel(`profile_changes_${session.user.id}`);
@@ -379,13 +405,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [session?.user?.id, profile?.coupleId, refreshProfile]);
 
   const signOut = useCallback(async () => {
+    if (isDemoMode) {
+      exitDemoMode();
+      return;
+    }
     setAdLoggingOut(true);
     profileFetchedForUser.current = null;
     // Clear device auth cache on sign-out so next user gets a fresh check
     await AsyncStorage.removeItem(DEVICE_AUTH_CACHE_KEY).catch(() => {});
     await AsyncStorage.removeItem(CACHED_PROFILE_KEY).catch(() => {});
     await supabase.auth.signOut();
-  }, []);
+  }, [isDemoMode, exitDemoMode]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -397,6 +427,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       checkDeviceAuth,
       refreshProfile,
       signOut,
+      isDemoMode,
+      enterDemoMode,
+      exitDemoMode,
     }),
     [
       session,
@@ -406,6 +439,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       checkDeviceAuth,
       refreshProfile,
       signOut,
+      isDemoMode,
+      enterDemoMode,
+      exitDemoMode,
     ]
   );
 

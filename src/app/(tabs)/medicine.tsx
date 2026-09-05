@@ -24,6 +24,9 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { usePageTour } from "@/hooks/usePageTour";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
+import { DEMO_MEDICINES } from "@/constants/demoData";
+import { useDemoAction } from "@/hooks/useDemoAction";
+import { DemoActionModal } from "@/components/demo/DemoActionModal";
 
 const getRelativeDateLabel = (dateStr: string) => {
   const d = dayjs(dateStr);
@@ -33,7 +36,8 @@ const getRelativeDateLabel = (dateStr: string) => {
 };
 
 export default function MedicineScreen() {
-  const { profile, session } = useAuth();
+  const { profile, session, isDemoMode } = useAuth();
+  const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -67,9 +71,27 @@ export default function MedicineScreen() {
   const fourteenDaysAgo = dayjs().subtract(14, "day").format("YYYY-MM-DD");
 
   const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ["medicine_data", coupleId],
-    enabled: !!coupleId && !!userId,
+    queryKey: ["medicine_data", coupleId, isDemoMode],
+    enabled: (!!coupleId && !!userId) || isDemoMode,
     queryFn: async () => {
+      if (isDemoMode) {
+        return {
+          medicines: DEMO_MEDICINES.map((m) => ({
+            id: m.id,
+            name: m.name,
+            time: m.time,
+            times: [m.time],
+            start_date: dayjs().subtract(10, "day").format("YYYY-MM-DD"),
+            end_date: dayjs().add(20, "day").format("YYYY-MM-DD"),
+            is_active: true,
+            user_id: userId,
+          })),
+          todayLogs: [
+            { medicine_id: 601, status: "DRANK", date: todayStr, time: "09:00", user_id: userId }
+          ],
+          historicalLogs: [],
+        };
+      }
       const [medsRes, todayLogsRes, historicalLogsRes] = await Promise.all([
         supabase
           .from("medicines")
@@ -157,6 +179,13 @@ export default function MedicineScreen() {
   });
 
   const handleLog = (medicineId: number, status: string, timeSlot: string) => {
+    if (executeOrIntercept(
+      () => {},
+      "İlaç Takibini Kullanmak İçin Kayıt Olun 💊",
+      "Günlük ilaç ve vitaminlerinizi kaydetmek ve partnerinizle eşleşmek için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
     updateLogMutation.mutate({ medicineId, status, timeSlot });
   };
 
@@ -444,6 +473,13 @@ export default function MedicineScreen() {
           <TouchableOpacity 
             style={[styles.quickActionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
             onPress={() => {
+              if (executeOrIntercept(
+                () => {},
+                "Yeni İlaç ve Hatırlatıcı Eklemek İçin Kayıt Olun 💊",
+                "Günlük ilaçlarınızı planlamak ve partnerinizle birbirinizi takip etmek için ücretsiz hesabınızı oluşturun."
+              )) {
+                return;
+              }
               resetForm();
               setShowManagerModal(true);
             }}
@@ -911,6 +947,12 @@ export default function MedicineScreen() {
         />
       )}
       <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <DemoActionModal
+        visible={isDemoModalOpen}
+        onClose={() => setIsDemoModalOpen(false)}
+        title={modalConfig.title}
+        description={modalConfig.description}
+      />
     </ScreenBackground>
   );
 }

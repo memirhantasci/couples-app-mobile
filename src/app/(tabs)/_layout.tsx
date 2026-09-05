@@ -121,14 +121,18 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   );
 }
 
+import { DemoModeBanner } from "@/components/demo/DemoModeBanner";
+
 export default function TabsLayout() {
   return (
-    <Tabs
-      tabBar={(props) => <CustomTabBar {...props} />}
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
+    <View style={{ flex: 1 }}>
+      <DemoModeBanner />
+      <Tabs
+        tabBar={(props) => <CustomTabBar {...props} />}
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
       {/* Kullanıcının seçebileceği tüm ana sekmeler */}
       <Tabs.Screen name="home" />
       <Tabs.Screen name="medicine" />
@@ -147,6 +151,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="add-photo" options={{ href: null }} />
       <Tabs.Screen name="add-daily-note" options={{ href: null }} />
     </Tabs>
+    </View>
   );
 }
 

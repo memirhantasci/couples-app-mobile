@@ -24,6 +24,9 @@ import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { usePageTour } from "@/hooks/usePageTour";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
+import { DEMO_PHOTOS } from "@/constants/demoData";
+import { useDemoAction } from "@/hooks/useDemoAction";
+import { DemoActionModal } from "@/components/demo/DemoActionModal";
 
 interface PhotoItem {
   id: number;
@@ -43,7 +46,8 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function PhotosScreen() {
   const router = useRouter();
-  const { session, profile } = useAuth();
+  const { session, profile, isDemoMode } = useAuth();
+  const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
@@ -70,10 +74,13 @@ export default function PhotosScreen() {
     refetch,
     isRefetching
   } = useInfiniteQuery({
-    queryKey: ["photo_archive", coupleId],
-    enabled: !!coupleId && isPremium,
+    queryKey: ["photo_archive", coupleId, isDemoMode],
+    enabled: (!!coupleId && isPremium) || isDemoMode,
     initialPageParam: 0,
     queryFn: async ({ pageParam = 0 }) => {
+      if (isDemoMode) {
+        return DEMO_PHOTOS as any;
+      }
       const { data, error } = await supabase
         .from("photo_archive")
         .select("id, image_url, taken_date, taken_time, title, description, user_id, created_at, storage_path")
@@ -98,6 +105,13 @@ export default function PhotosScreen() {
   const currentPhoto = selectedIndex !== null && photos[selectedIndex] ? photos[selectedIndex] : null;
 
   const goToUpload = () => {
+    if (executeOrIntercept(
+      () => router.push("/(tabs)/add-photo"),
+      "Ortak Fotoğraf Eklemek İçin Kayıt Olun 📸",
+      "Sevgilinizle ortak anı albümü oluşturmak ve fotoğraflarınızın çekildiği yerleri haritada görmek için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
     router.push("/(tabs)/add-photo");
   };
 
@@ -586,6 +600,12 @@ export default function PhotosScreen() {
         featureName="Fotoğraf Galerisi"
       />
       <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <DemoActionModal
+        visible={isDemoModalOpen}
+        onClose={() => setIsDemoModalOpen(false)}
+        title={modalConfig.title}
+        description={modalConfig.description}
+      />
     </ScreenBackground>
   );
 }
