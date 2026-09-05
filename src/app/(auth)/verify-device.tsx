@@ -17,7 +17,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { ArrowLeft, ShieldAlert } from "lucide-react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 
 const OTP_LENGTH = 6;
 

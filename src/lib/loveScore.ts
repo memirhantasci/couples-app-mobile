@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { todayString, dayjs } from "@/lib/date";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 
 /** Aşk Skoru: 15 (min) – 100 (max) arasında sınırlandırılmış sonuç */
 export interface LoveScoreResult {

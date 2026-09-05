@@ -23,7 +23,7 @@ import {
 import { getQuoteForDay } from "@/lib/quotes";
 import { decrypt, deterministicDecrypt } from "@/utils/crypto";
 import { computeLoveScore, getCachedLoveScore, LoveScoreResult } from "@/lib/loveScore";
-import { scheduleDateLocalNotification } from "@/lib/notifications";
+import { scheduleDateLocalNotification, cancelLocalNotification } from "@/lib/notifications";
 import { useRouter, useFocusEffect } from "expo-router";
 import { 
   AlignJustify, Sparkles, Heart, Images, 
@@ -38,6 +38,9 @@ import { DailyNoteCard } from "@/components/home/DailyNoteCard";
 import { MeetingCountdown } from "@/components/home/MeetingCountdown";
 import { PendingLettersCard } from "@/components/home/PendingLettersCard";
 import { BannerAd } from "@/components/ui/BannerAd";
+import { usePageTour } from "@/hooks/usePageTour";
+import { PageTourModal } from "@/components/tour/PageTourModal";
+import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { useInterstitialAd } from "@/hooks/useInterstitialAd";
 
 export default function HomeScreen() {
@@ -54,6 +57,7 @@ export default function HomeScreen() {
 
   const { showAdIfReady } = useInterstitialAd();
   const [cachedScore, setCachedScore] = useState<LoveScoreResult | null>(null);
+  const { isTourVisible, guide, openTour, closeTour } = usePageTour("home");
 
   useEffect(() => {
     if (coupleId) {
@@ -163,43 +167,61 @@ export default function HomeScreen() {
     initialData: cachedScore || undefined,
     staleTime: 1000 * 60 * 5,
     queryFn: async () => {
-      // Partneri bul ve premium bildirim kur
-      if (profile?.isPremium && userId) {
-        const { data: usersData } = await supabase
-          .from("users")
-          .select("id, gender")
-          .eq("couple_id", coupleId)
-          .neq("id", userId)
-          .limit(1);
-        const partnerData = usersData?.[0] ?? null;
-
-        if (partnerData && partnerData.gender === "female") {
-          const { data: periodLogs } = await supabase
-            .from("period_logs")
-            .select("date")
-            .eq("user_id", partnerData.id)
-            .order("date", { ascending: false })
-            .limit(1);
-
-          if (periodLogs && periodLogs.length > 0) {
-            const lastPeriodDate = dayjs(periodLogs[0].date);
-            const notifyDate = lastPeriodDate.add(26, "day").hour(10).minute(0).second(0).toDate();
-            
-            if (notifyDate.getTime() > Date.now()) {
-              scheduleDateLocalNotification(
-                "period_approach_alert",
-                "Regl Yaklaşıyor 🌸",
-                "Partnerinin regl dönemi yaklaşmak üzere. Ona destek olmak için harika bir zaman!",
-                notifyDate
-              );
-            }
-          }
-        }
-      }
-
       return computeLoveScore(coupleId!, userId, null);
     },
   });
+
+  // ─── Regl Yaklaşma Bildirimi (Sadece Premium Erkek İçin) ─────────────────────
+  useEffect(() => {
+    async function setupPeriodNotification() {
+      if (!userId || !coupleId) return;
+
+      if (!profile?.isPremium) {
+        // Premium bittiyse (veya hiç alınmadıysa) kuyruktaki bildirimi temizle
+        await cancelLocalNotification("period_approach_alert");
+        return;
+      }
+
+      // Premium ise partner bilgisini ve loglarını al
+      const { data: usersData } = await supabase
+        .from("users")
+        .select("id, gender, display_name, username")
+        .eq("couple_id", coupleId)
+        .neq("id", userId)
+        .limit(1);
+      
+      const partnerData = usersData?.[0] ?? null;
+
+      if (partnerData && partnerData.gender === "female") {
+        const decName = partnerData.display_name 
+          ? decrypt(partnerData.display_name) 
+          : (partnerData.username ? deterministicDecrypt(partnerData.username) : "");
+        const partnerName = (decName && !decName.startsWith("enc:") && !decName.startsWith("det:")) ? decName : "Partnerin";
+
+        const { data: periodLogs } = await supabase
+          .from("period_logs")
+          .select("date")
+          .eq("user_id", partnerData.id)
+          .order("date", { ascending: false })
+          .limit(1);
+
+        if (periodLogs && periodLogs.length > 0) {
+          const lastPeriodDate = dayjs(periodLogs[0].date);
+          const notifyDate = lastPeriodDate.add(26, "day").hour(10).minute(0).second(0).toDate();
+          
+          if (notifyDate.getTime() > Date.now()) {
+            scheduleDateLocalNotification(
+              "period_approach_alert",
+              "Regl Yaklaşıyor 🌸",
+              `${partnerName} için regl dönemi yaklaşmak üzere. Ona destek olmak için harika bir zaman!`,
+              notifyDate
+            );
+          }
+        }
+      }
+    }
+    setupPeriodNotification();
+  }, [profile?.isPremium, coupleId, userId]);
 
   // Dinamik Selamlama
   const getGreeting = () => {
@@ -270,20 +292,23 @@ export default function HomeScreen() {
               </View>
             </View>
 
-            <TouchableOpacity 
-              onPress={() => router.push("/menu")} 
-              style={[
-                styles.menuBtn, 
-                { 
-                  backgroundColor: isLight ? "rgba(0,0,0,0.05)" : theme.cardBg, 
-                  borderColor: theme.cardBorder 
-                }
-              ]}
-              activeOpacity={0.8}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <AlignJustify color={theme.textSecondary} size={20} />
-            </TouchableOpacity>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <TourGuideButton onPress={openTour} />
+              <TouchableOpacity 
+                onPress={() => router.push("/menu")} 
+                style={[
+                  styles.menuBtn, 
+                  { 
+                    backgroundColor: isLight ? "rgba(0,0,0,0.05)" : theme.cardBg, 
+                    borderColor: theme.cardBorder 
+                  }
+                ]}
+                activeOpacity={0.8}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <AlignJustify color={theme.textSecondary} size={20} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* ─── 2. HERO İLİŞKİ SAYACI KARTI ─── */}
@@ -402,6 +427,7 @@ export default function HomeScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
       <BannerAd />
+      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
     </ScreenBackground>
   );
 }

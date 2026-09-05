@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { safeStorage } from "@/lib/safeStorage";
 
 function generateUUID(): string {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
@@ -9,10 +9,10 @@ function generateUUID(): string {
 }
 
 export async function getOrCreateDeviceId(): Promise<string> {
-  let deviceId = await AsyncStorage.getItem("device_id");
+  let deviceId = await safeStorage.getItem("device_id");
   if (!deviceId) {
     deviceId = generateUUID();
-    await AsyncStorage.setItem("device_id", deviceId);
+    await safeStorage.setItem("device_id", deviceId);
   }
   return deviceId;
 }

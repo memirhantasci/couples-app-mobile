@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { 
   View, Text, TouchableOpacity, StyleSheet, 
-  ScrollView, Platform 
+  ScrollView, Platform, Alert, Modal 
 } from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useRouter } from "expo-router";
@@ -9,17 +9,20 @@ import {
   X, Heart, Settings, Home, Pill, CalendarHeart, 
   Droplet, MapPin, LogOut, ChevronRight, User, 
   BookOpen, Mail, Images, Camera, Sparkles, ShieldCheck,
-  Calendar, Clock
+  Calendar, Clock, ImagePlus, HelpCircle, Check
 } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 import { getTheme } from "@/lib/theme";
-import { decrypt } from "@/utils/crypto";
+import { decrypt, deterministicDecrypt } from "@/utils/crypto";
 import { dayjs, daysSince } from "@/lib/date";
 import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LegalModal } from "@/components/legal/LegalModal";
+import { FEATURE_GUIDES } from "@/constants/featureGuides";
+import { PageTourModal } from "@/components/tour/PageTourModal";
+import { resetAllPageTours } from "@/hooks/usePageTour";
 
 export default function MenuScreen() {
   const router = useRouter();
@@ -28,6 +31,8 @@ export default function MenuScreen() {
   const styles = React.useMemo(() => getMenuStyles(theme, isLight), [theme, isLight]);
   const insets = useSafeAreaInsets();
   const [legalVisible, setLegalVisible] = React.useState(false);
+  const [selectedTourPage, setSelectedTourPage] = useState<string | null>(null);
+  const [showGuideCatalog, setShowGuideCatalog] = useState(false);
 
   const handleRoute = (path: string) => {
     router.back();
@@ -56,11 +61,20 @@ export default function MenuScreen() {
     queryFn: async () => {
       const { data } = await supabase
         .from("users")
-        .select("display_name")
+        .select("display_name, username")
         .eq("couple_id", coupleId)
         .neq("id", currentUserId)
         .maybeSingle();
-      return data?.display_name ? decrypt(data.display_name) : "Sevgilin";
+
+      if (data?.display_name) {
+        const dec = decrypt(data.display_name);
+        if (dec && !dec.startsWith("enc:")) return dec;
+      }
+      if (data?.username) {
+        const dec = deterministicDecrypt(data.username);
+        if (dec && !dec.startsWith("det:")) return dec;
+      }
+      return "Sevgilin";
     },
     staleTime: 1000 * 60 * 60,
   });
@@ -133,6 +147,21 @@ export default function MenuScreen() {
               <View style={styles.menuTextContainer}>
                 <Text style={styles.menuTitle}>Ortak Galeri</Text>
                 <Text style={styles.menuSub}>Birlikte biriktirdiğiniz fotoğraflar</Text>
+              </View>
+              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              onPress={() => handleRoute("/(tabs)/add-photo")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <ImagePlus color={theme.accent} size={18} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>Fotoğraf Yükle</Text>
+                <Text style={styles.menuSub}>Yeni anı ve fotoğraf paylaş</Text>
               </View>
               <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
             </TouchableOpacity>
@@ -269,6 +298,21 @@ export default function MenuScreen() {
 
             <TouchableOpacity 
               style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              onPress={() => setShowGuideCatalog(true)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <HelpCircle color={theme.accent} size={18} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>Nasıl Çalışır? (Özellik Rehberi)</Text>
+                <Text style={styles.menuSub}>Her sayfa ve özelliğin detaylı tanıtımı</Text>
+              </View>
+              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
               onPress={() => handleRoute("/(tabs)/profile")}
               activeOpacity={0.8}
             >
@@ -320,6 +364,67 @@ export default function MenuScreen() {
         onClose={() => setLegalVisible(false)}
         accentColor={theme.accent}
       />
+
+      {/* REHBER KATALOĞU SEÇİM MODALI */}
+      <Modal
+        visible={showGuideCatalog}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowGuideCatalog(false)}
+      >
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.6)" }}>
+          <View style={{ backgroundColor: isLight ? "#fff" : "#1A1624", borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "80%", padding: 20, paddingBottom: insets.bottom + 20 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <View>
+                <Text style={{ fontSize: 18, fontWeight: "700", color: theme.text }}>Özellik Rehberleri</Text>
+                <Text style={{ fontSize: 12, color: theme.textMuted }}>İncelemek istediğiniz sayfayı seçin</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowGuideCatalog(false)} style={{ padding: 6 }}>
+                <X color={theme.text} size={20} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 16 }}>
+              {Object.values(FEATURE_GUIDES).map((g) => (
+                <TouchableOpacity
+                  key={g.pageKey}
+                  onPress={() => {
+                    setShowGuideCatalog(false);
+                    setTimeout(() => setSelectedTourPage(g.pageKey), 200);
+                  }}
+                  style={{ flexDirection: "row", alignItems: "center", padding: 12, borderRadius: 14, backgroundColor: isLight ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.05)", borderWidth: 1, borderColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)" }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 15, fontWeight: "700", color: theme.text }}>{g.title}</Text>
+                    <Text style={{ fontSize: 12, color: theme.textMuted }}>{g.tagline}</Text>
+                  </View>
+                  <ChevronRight size={16} color={theme.textMuted} />
+                </TouchableOpacity>
+              ))}
+
+              <TouchableOpacity
+                onPress={async () => {
+                  await resetAllPageTours();
+                  setShowGuideCatalog(false);
+                  Alert.alert("Sıfırlandı 🎉", "Tüm tanıtım turları sıfırlandı. Sayfalara girdiğinizde ilk defa giriyormuşsunuz gibi turlar otomatik açılacaktır.");
+                }}
+                style={{ marginTop: 12, padding: 14, borderRadius: 14, backgroundColor: theme.pillAccentBg, borderWidth: 1, borderColor: theme.pillAccentBorder, alignItems: "center" }}
+              >
+                <Text style={{ color: theme.accent, fontWeight: "700", fontSize: 14 }}>Tüm Tanıtımları Baştan Başlat 🔄</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* SEÇİLEN SAYFA TURU MODALI */}
+      {selectedTourPage && (
+        <PageTourModal
+          visible={!!selectedTourPage}
+          guide={FEATURE_GUIDES[selectedTourPage]}
+          onClose={() => setSelectedTourPage(null)}
+        />
+      )}
     </ScreenBackground>
   );
 }

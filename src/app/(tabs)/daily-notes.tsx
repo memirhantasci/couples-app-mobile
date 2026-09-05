@@ -29,6 +29,9 @@ import { useRouter } from "expo-router";
 import { getTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { usePageTour } from "@/hooks/usePageTour";
+import { PageTourModal } from "@/components/tour/PageTourModal";
+import { TourGuideButton } from "@/components/tour/TourGuideButton";
 
 dayjs.locale("tr");
 
@@ -50,9 +53,10 @@ export default function DailyNotesScreen() {
   const { session, profile } = useAuth();
   const { theme, isLight } = useTheme();
   const router = useRouter();
-  const queryClient = useQueryClient();
-  const userId = session?.user?.id ? session.user.id : null;
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
+  const { isTourVisible, guide, openTour, closeTour } = usePageTour("daily-notes");
+  const userId = session?.user?.id ? session.user.id : null;
 
   const [editingNote, setEditingNote] = useState<DailyNote | null>(null);
   const [editContent, setEditContent] = useState("");
@@ -72,7 +76,8 @@ export default function DailyNotesScreen() {
         .from("daily_notes")
         .select("id, date, content")
         .eq("user_id", userId)
-        .order("date", { ascending: false });
+        .order("date", { ascending: false })
+        .limit(90); // Son ~3 ay — sınırsız yükleme engellendi
 
       if (error) throw error;
 
@@ -87,7 +92,7 @@ export default function DailyNotesScreen() {
         })(),
       }));
     },
-    staleTime: 0,
+    staleTime: 1000 * 60 * 5, // 5 dk — invalidateQueries zaten yeni not eklenince günceller
   });
 
   const handleDelete = useCallback(async (id: number) => {
@@ -208,6 +213,7 @@ export default function DailyNotesScreen() {
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <TourGuideButton onPress={openTour} />
             <TouchableOpacity 
               onPress={() => router.push("/(tabs)/add-daily-note")}
               style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : theme.cardBg, borderColor: theme.cardBorder }]}
@@ -367,6 +373,7 @@ export default function DailyNotesScreen() {
           </View>
         </View>
       </Modal>
+      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
     </ScreenBackground>
   );
 }

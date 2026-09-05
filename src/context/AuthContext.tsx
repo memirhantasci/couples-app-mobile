@@ -2,13 +2,20 @@ import { registerForPushNotifications } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { RevenueCatService } from "@/lib/revenuecat";
-import React, { createContext, useCallback, useContext, useEffect, useState, useMemo } from "react";
-import { decrypt } from "@/utils/crypto";
+import React, { createContext, useCallback, useContext, useEffect, useState, useMemo, useRef } from "react";
+import { decrypt, deterministicDecrypt } from "@/utils/crypto";
 import { setAdLoggingOut } from "../utils/adFlags";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { getOrCreateDeviceId } from "@/utils/device";
 
 const CACHED_PROFILE_KEY = "@couples_app_cached_profile";
+const DEVICE_AUTH_CACHE_KEY = "@device_auth_cache";
+const DEVICE_AUTH_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+// Maximum time (ms) to wait for auth initialization before forcing loading=false
+const AUTH_INIT_TIMEOUT_MS = 8000;
+// Maximum time (ms) to wait for device auth check
+const DEVICE_AUTH_TIMEOUT_MS = 5000;
 
 export interface CoupleProfile {
   coupleId: number | null;   // integer — DB'de INTEGER tipinde
@@ -17,6 +24,7 @@ export interface CoupleProfile {
   isPaired: boolean;
   hasDates: boolean;
   displayName: string | null;
+  username: string | null;
   gender: string | null;
   isPremium: boolean;
   tokenBalance: number;
@@ -70,6 +78,7 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
   const { data: user, error } = await supabase
     .from("users")
     .select(`
+      username,
       display_name, 
       gender, 
       couple_id,
@@ -87,6 +96,7 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
       isPaired: false,
       hasDates: false,
       displayName: null,
+      username: null,
       gender: null,
       isPremium: false,
       tokenBalance: 0,
@@ -100,17 +110,32 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
   const premiumExpiresAt = coupleObj?.premium_expires_at;
   const isPremiumActive = !!(coupleObj?.is_premium && (!premiumExpiresAt || new Date(premiumExpiresAt) > new Date()));
 
+  const decDisplayName = user.display_name ? decrypt(user.display_name) : null;
+  const decUsername = user.username ? deterministicDecrypt(user.username) : null;
+
   return {
     coupleId: user.couple_id ? parseInt(String(user.couple_id), 10) : null,
     meetDate: coupleObj?.meet_date ?? null,
     relationshipStartDate: coupleObj?.relationship_start_date ?? null,
     isPaired: !!(user.couple_id && coupleObj?.member_count >= 2),
     hasDates: !!(coupleObj?.meet_date && coupleObj?.relationship_start_date),
-    displayName: user.display_name ? decrypt(user.display_name) : null,
+    displayName: decDisplayName || decUsername || null,
+    username: decUsername || null,
     gender: user.gender ?? null,
     isPremium: isPremiumActive,
     tokenBalance: user.token_balance ?? 0,
   };
+}
+
+/**
+ * Wraps a promise with a timeout. If the promise doesn't resolve within
+ * the given ms, the fallback value is returned instead.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -119,11 +144,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<CoupleProfile | null>(null);
   const [isDeviceAuthorized, setIsDeviceAuthorized] = useState<boolean | null>(null);
 
+  // Track whether initial session from getSession() has been processed
+  // to avoid onAuthStateChange duplicating work for the same session
+  const initialSessionProcessed = useRef(false);
+  // Track whether profile has been fetched at least once for current session
+  const profileFetchedForUser = useRef<string | null>(null);
+
   const checkDeviceAuth = useCallback(async (userId: string): Promise<boolean> => {
     try {
       const deviceId = await getOrCreateDeviceId();
       const lastUserId = await AsyncStorage.getItem("last_user_id");
 
+      // ⚡ Check 24-hour cache first — skip network call if result is fresh
+      const cachedRaw = await AsyncStorage.getItem(DEVICE_AUTH_CACHE_KEY);
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        const isExpired = Date.now() - cached.timestamp > DEVICE_AUTH_CACHE_TTL_MS;
+        if (!isExpired && cached.userId === userId && cached.deviceId === deviceId) {
+          const isAuth = (lastUserId === userId) && cached.isAuthorized;
+          setIsDeviceAuthorized(isAuth);
+          return isAuth;
+        }
+      }
+
+      // Cache miss or expired — hit the network
       const { data: auths, error } = await supabase
         .from("device_authorizations")
         .select("is_authorized")
@@ -131,7 +175,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq("device_id", deviceId)
         .maybeSingle();
 
-      const isAuth = (lastUserId === userId) && !error && !!auths?.is_authorized;
+      const isAuthorized = !error && !!auths?.is_authorized;
+      const isAuth = (lastUserId === userId) && isAuthorized;
+
+      // Save result to cache
+      await AsyncStorage.setItem(DEVICE_AUTH_CACHE_KEY, JSON.stringify({
+        userId,
+        deviceId,
+        isAuthorized,
+        timestamp: Date.now(),
+      })).catch(() => {});
+
       setIsDeviceAuthorized(isAuth);
       return isAuth;
     } catch {
@@ -141,66 +195,147 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Background initialization
-    RevenueCatService.initialize().catch(() => {});
+    let mounted = true;
+
+    // ⚡ Defer RevenueCat init by 2s — don't compete with auth on the JS thread at startup
+    const rcTimer = setTimeout(() => {
+      RevenueCatService.initialize().catch(() => {});
+    }, 2000);
+
+    // Safety fallback: if auth initialization takes too long, force isLoading=false
+    // This prevents the app from being stuck on a loading screen forever
+    const safetyTimer = setTimeout(() => {
+      if (mounted) {
+        setIsLoading((prev) => {
+          if (prev) {
+            console.warn("[AuthProvider] Safety timeout reached — forcing isLoading=false");
+          }
+          return false;
+        });
+      }
+    }, AUTH_INIT_TIMEOUT_MS);
 
     // 1. Load cached profile immediately to allow instant rendering without splash freeze
     getCachedProfile().then((cached) => {
+      if (!mounted) return;
       if (cached) {
         setProfile(cached);
-        setIsLoading(false);
       }
     });
 
-    // 2. Resolve Supabase session & check device authorization
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      if (!session) {
-        setIsLoading(false);
+    // 2. Resolve Supabase session & check device authorization + profile IN PARALLEL
+    supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
+      if (!mounted) return;
+
+      initialSessionProcessed.current = true;
+      setSession(initialSession);
+
+      if (!initialSession) {
         setIsDeviceAuthorized(null);
+        setIsLoading(false);
       } else {
-        await checkDeviceAuth(session.user.id);
+        const userId = initialSession.user.id;
+        profileFetchedForUser.current = userId;
+
+        // ⚡ Run device auth check AND profile fetch IN PARALLEL
+        // This cuts startup time roughly in half vs sequential execution
+        const [, freshProfile] = await Promise.all([
+          withTimeout(checkDeviceAuth(userId), DEVICE_AUTH_TIMEOUT_MS, false),
+          fetchProfile(userId).catch((err) => {
+            console.error("[AuthProvider] initial fetchProfile error:", err);
+            return null;
+          }),
+        ]);
+
+        if (!mounted) return;
+
+        if (freshProfile) {
+          setProfile(freshProfile);
+          saveCachedProfile(freshProfile);
+          // Non-blocking background syncs
+          RevenueCatService.logIn(userId).catch(() => {});
+          registerForPushNotifications(userId).catch(() => {});
+        }
+        setIsLoading(false);
+      }
+    }).catch((err) => {
+      console.error("[AuthProvider] getSession error:", err);
+      if (mounted) {
+        setIsLoading(false);
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      if (!session) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      if (!mounted) return;
+
+      // For the INITIAL_SESSION event that fires right after getSession,
+      // skip processing since getSession already handled it
+      if (event === 'INITIAL_SESSION' && initialSessionProcessed.current) {
+        return;
+      }
+
+      setSession(newSession);
+      if (!newSession) {
         setProfile(null);
         setIsDeviceAuthorized(null);
+        profileFetchedForUser.current = null;
         AsyncStorage.removeItem(CACHED_PROFILE_KEY).catch(() => {});
         setIsLoading(false);
         RevenueCatService.logOut();
       } else {
         setAdLoggingOut(false);
+        // For TOKEN_REFRESHED events, don't re-run device auth check
+        if (event === 'TOKEN_REFRESHED') return;
+        // Check device auth for new sign-in or session recovery
+        await withTimeout(
+          checkDeviceAuth(newSession.user.id),
+          DEVICE_AUTH_TIMEOUT_MS,
+          false
+        );
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      clearTimeout(safetyTimer);
+      clearTimeout(rcTimer);
+      subscription.unsubscribe();
+    };
   }, [checkDeviceAuth]);
 
   useEffect(() => {
-    if (session?.user?.id) {
-      // If we don't have a cached profile loaded yet, keep loading active until initial fetch
-      if (!profile) {
-        setIsLoading(true);
-      }
+    if (!session?.user?.id) return;
 
-      fetchProfile(session.user.id)
-        .then((p) => {
-          setProfile(p);
-          saveCachedProfile(p);
-          setIsLoading(false);
+    const userId = session.user.id;
 
-          // Non-blocking background syncs
-          RevenueCatService.logIn(session.user.id).catch(() => {});
-          registerForPushNotifications(session.user.id).catch(() => {});
-        })
-        .catch((err) => {
-          console.error("fetchProfile error:", err);
-          setIsLoading(false);
-        });
+    // Initial load is already handled in parallel inside getSession().then()
+    // Only run here for subsequent session changes (e.g. after sign-in from login screen)
+    if (profileFetchedForUser.current === userId) {
+      return;
     }
+
+    // If we don't have a cached profile loaded yet, keep loading active until fetch
+    if (!profile) {
+      setIsLoading(true);
+    }
+
+    profileFetchedForUser.current = userId;
+
+    fetchProfile(userId)
+      .then((p) => {
+        setProfile(p);
+        saveCachedProfile(p);
+        setIsLoading(false);
+
+        // Non-blocking background syncs
+        RevenueCatService.logIn(userId).catch(() => {});
+        registerForPushNotifications(userId).catch(() => {});
+      })
+      .catch((err) => {
+        console.error("fetchProfile error:", err);
+        // Even on error, we must stop loading. Use cached profile if available.
+        setIsLoading(false);
+      });
   }, [session?.user?.id]);
 
   const refreshProfile = useCallback(async () => {
@@ -245,6 +380,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     setAdLoggingOut(true);
+    profileFetchedForUser.current = null;
+    // Clear device auth cache on sign-out so next user gets a fresh check
+    await AsyncStorage.removeItem(DEVICE_AUTH_CACHE_KEY).catch(() => {});
     await AsyncStorage.removeItem(CACHED_PROFILE_KEY).catch(() => {});
     await supabase.auth.signOut();
   }, []);

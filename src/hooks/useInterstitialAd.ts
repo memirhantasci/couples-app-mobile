@@ -1,15 +1,32 @@
 import { useEffect, useState } from 'react';
-import { InterstitialAd, AdEventType, TestIds } from 'react-native-google-mobile-ads';
+import { TurboModuleRegistry } from 'react-native';
+import Constants from 'expo-constants';
 import { useAuth } from '@/context/AuthContext';
 import { logger } from '@/utils/logger';
 
-// Use Test ID in development, real ID in production
-const adUnitId = __DEV__ ? TestIds.INTERSTITIAL : "ca-app-pub-xxxxxxxxxxxxxxxx/yyyyyyyyyy";
+const isExpoGo = Constants.appOwnership === 'expo';
+const hasAdsModule = typeof TurboModuleRegistry?.get === 'function' && !!TurboModuleRegistry.get('RNGoogleMobileAdsModule');
 
-// Create instance outside to reuse
-const interstitial = InterstitialAd.createForAdRequest(adUnitId, {
-  requestNonPersonalizedAdsOnly: true,
-});
+let InterstitialAd: any = null;
+let AdEventType: any = null;
+let TestIds: any = null;
+let interstitial: any = null;
+
+if (hasAdsModule && !isExpoGo) {
+  try {
+    const ads = require('react-native-google-mobile-ads');
+    InterstitialAd = ads.InterstitialAd;
+    AdEventType = ads.AdEventType;
+    TestIds = ads.TestIds;
+
+    const adUnitId = __DEV__ ? TestIds.INTERSTITIAL : "ca-app-pub-xxxxxxxxxxxxxxxx/yyyyyyyyyy";
+    interstitial = InterstitialAd.createForAdRequest(adUnitId, {
+      requestNonPersonalizedAdsOnly: true,
+    });
+  } catch {
+    interstitial = null;
+  }
+}
 
 // A simple global state to track the last time an ad was shown to prevent spamming the user
 let lastAdShowTime = 0;
@@ -25,6 +42,7 @@ export function useInterstitialAd() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
+    if (isExpoGo || !interstitial) return;
     // If logging out, unauthenticated, loading, or premium: never load ads
     if (getIsAdLoggingOut() || !session || isLoading || !profile || isPremium) {
       setLoaded(false);

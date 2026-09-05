@@ -120,45 +120,60 @@ export default function PaywallScreen() {
           <ActivityIndicator color={theme.accent} size="large" style={{ marginTop: 40 }} />
         ) : (
           <View style={styles.packagesContainer}>
-            {packages.map((pkg) => {
-              const isSelected = selectedPackage?.identifier === pkg.identifier;
-              return (
-                <TouchableOpacity
-                  key={pkg.identifier}
-                  activeOpacity={0.8}
-                  style={[
-                    styles.packageCard,
-                    { backgroundColor: theme.cardBg, borderColor: isSelected ? theme.accent : "transparent" }
-                  ]}
-                  onPress={() => setSelectedPackage(pkg)}
-                >
-                  <View style={styles.packageInfo}>
-                    <Text style={styles.packageTitle}>{pkg.product.title.replace("(Couples App)", "")}</Text>
-                    <Text style={styles.packagePrice}>{pkg.product.priceString}</Text>
-                  </View>
-                  <View style={styles.radioOuter}>
-                    {isSelected && <View style={[styles.radioInner, { backgroundColor: theme.accent }]} />}
-                  </View>
+            {packages.length === 0 ? (
+              <View style={{ padding: 20, alignItems: "center", backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 16 }}>
+                <Text style={{ color: "rgba(255,255,255,0.8)", textAlign: "center", marginBottom: 12 }}>
+                  Şu anda mağazaya bağlanılamıyor veya paketler yüklenemedi. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.
+                </Text>
+                <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 8, paddingHorizontal: 16, backgroundColor: theme.accent, borderRadius: 8 }}>
+                  <Text style={{ color: "#fff", fontWeight: "bold" }}>Geri Dön</Text>
                 </TouchableOpacity>
-              );
-            })}
+              </View>
+            ) : (
+              packages.map((pkg) => {
+                const isSelected = selectedPackage?.identifier === pkg.identifier;
+                return (
+                  <TouchableOpacity
+                    key={pkg.identifier}
+                    activeOpacity={0.8}
+                    style={[
+                      styles.packageCard,
+                      { backgroundColor: theme.cardBg, borderColor: isSelected ? theme.accent : "transparent" }
+                    ]}
+                    onPress={() => setSelectedPackage(pkg)}
+                  >
+                    <View style={styles.packageInfo}>
+                      <Text style={styles.packageTitle}>{pkg.product.title.replace("(Couples App)", "")}</Text>
+                      <Text style={styles.packagePrice}>{pkg.product.priceString}</Text>
+                    </View>
+                    <View style={styles.radioOuter}>
+                      {isSelected && <View style={[styles.radioInner, { backgroundColor: theme.accent }]} />}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
+            )}
 
-            <TouchableOpacity 
-              style={[styles.ctaBtn, { backgroundColor: theme.accent }, purchasing && { opacity: 0.7 }]}
-              onPress={handlePurchase}
-              disabled={purchasing || !selectedPackage}
-            >
-              {purchasing ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.ctaBtnText}>14 Gün Ücretsiz Dene</Text>
-              )}
-            </TouchableOpacity>
+            {packages.length > 0 && (
+              <>
+                <TouchableOpacity 
+                  style={[styles.ctaBtn, { backgroundColor: theme.accent }, purchasing && { opacity: 0.7 }]}
+                  onPress={handlePurchase}
+                  disabled={purchasing || !selectedPackage}
+                >
+                  {purchasing ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.ctaBtnText}>14 Gün Ücretsiz Dene</Text>
+                  )}
+                </TouchableOpacity>
 
-            <TouchableOpacity style={styles.restoreBtn} onPress={handleRestore} disabled={purchasing}>
-              <ShieldCheck color="rgba(255,255,255,0.5)" size={16} />
-              <Text style={styles.restoreText}>Satın Alımları Geri Yükle</Text>
-            </TouchableOpacity>
+                <TouchableOpacity style={styles.restoreBtn} onPress={handleRestore} disabled={purchasing}>
+                  <ShieldCheck color="rgba(255,255,255,0.5)" size={16} />
+                  <Text style={styles.restoreText}>Satın Alımları Geri Yükle</Text>
+                </TouchableOpacity>
+              </>
+            )}
 
             {/* Yasal Abonelik ve İade Bilgilendirmesi */}
             <View style={styles.legalNoticeContainer}>

@@ -21,6 +21,9 @@ import { dayjs } from "@/lib/date";
 import { getTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
+import { usePageTour } from "@/hooks/usePageTour";
+import { PageTourModal } from "@/components/tour/PageTourModal";
+import { TourGuideButton } from "@/components/tour/TourGuideButton";
 
 interface PhotoItem {
   id: number;
@@ -31,6 +34,7 @@ interface PhotoItem {
   description?: string | null;
   user_id: string;
   created_at?: string;
+  storage_path?: string | null;
 }
 
 type ViewMode = "grid3" | "grid2" | "single";
@@ -48,6 +52,7 @@ export default function PhotosScreen() {
   const userId = session?.user?.id ? session.user.id : null;
   const isPremium = profile?.isPremium ?? false;
   const [showPaywall, setShowPaywall] = useState(false);
+  const { isTourVisible, guide, openTour, closeTour } = usePageTour("photos");
 
   // Görünüm Modu: 2'li (varsayılan dengeli), 3'lü (kompakt hızlı gezinti), single (büyük kartlar)
   const [viewMode, setViewMode] = useState<ViewMode>("grid2");
@@ -66,12 +71,12 @@ export default function PhotosScreen() {
     isRefetching
   } = useInfiniteQuery({
     queryKey: ["photo_archive", coupleId],
-    enabled: !!coupleId,
+    enabled: !!coupleId && isPremium,
     initialPageParam: 0,
     queryFn: async ({ pageParam = 0 }) => {
       const { data, error } = await supabase
         .from("photo_archive")
-        .select("id, image_url, taken_date, taken_time, title, description, user_id, created_at")
+        .select("id, image_url, taken_date, taken_time, title, description, user_id, created_at, storage_path")
         .eq("couple_id", coupleId)
         .order("taken_date", { ascending: false })
         .order("created_at", { ascending: false })
@@ -104,9 +109,16 @@ export default function PhotosScreen() {
         text: "Sil",
         style: "destructive",
         onPress: async () => {
+          // Silinecek fotoğrafı bul (storage_path için)
+          const photoToDelete = photos.find((p) => p.id === id);
           if (currentPhoto?.id === id) {
             setSelectedIndex(null);
           }
+          // 1. Önce Storage'dan dosyayı sil (orphan dosya birikimini önler)
+          if (photoToDelete?.storage_path) {
+            await supabase.storage.from("photos").remove([photoToDelete.storage_path]).catch(() => {});
+          }
+          // 2. Sonra veritabanı kaydını sil
           const { error } = await supabase.from("photo_archive").delete().eq("id", id);
           if (error) {
             Alert.alert("Hata", "Fotoğraf silinirken bir hata oluştu.");
@@ -293,6 +305,7 @@ export default function PhotosScreen() {
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <TourGuideButton onPress={openTour} />
             <TouchableOpacity 
               onPress={goToUpload} 
               style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : theme.cardBg, borderColor: theme.cardBorder }]}
@@ -572,6 +585,7 @@ export default function PhotosScreen() {
         onClose={() => setShowPaywall(false)}
         featureName="Fotoğraf Galerisi"
       />
+      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
     </ScreenBackground>
   );
 }

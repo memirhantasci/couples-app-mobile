@@ -27,8 +27,11 @@ configureAndroidNotificationChannel();
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      // Realtime subscriptions handle live updates — no need for aggressive refetching
+      staleTime: 1000 * 60 * 10, // 10 minutes
       retry: 1,
+      // Don't refetch on window focus (causes unnecessary flicker on tab switch)
+      refetchOnWindowFocus: false,
     },
   },
 });
@@ -49,18 +52,20 @@ function RootLayoutNav() {
     Inter_800ExtraBold,
   });
 
-  // Hide splash once auth state is resolved and fonts are loaded
+  // Hide splash as soon as auth state is resolved — don't wait for fonts
+  // Fonts load asynchronously in the background; system font fills in the gap (~200ms)
   useEffect(() => {
-    if (!isLoading && fontsLoaded) {
+    if (!isLoading) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [isLoading, fontsLoaded]);
+  }, [isLoading]);
 
   // Safety fallback: ensure splash screen never stays stuck under any network condition
+  // Reduced from 1200ms → 500ms since auth now resolves much faster
   useEffect(() => {
     const timer = setTimeout(() => {
       SplashScreen.hideAsync().catch(() => {});
-    }, 1200);
+    }, 500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -106,11 +111,6 @@ function RootLayoutNav() {
         params: { token_hash: queryParams.token_hash as string },
       });
     }
-  }
-
-  // While fonts are loading, keep splash screen visible and render null
-  if (!fontsLoaded) {
-    return null;
   }
 
   return (

@@ -13,7 +13,10 @@ import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
+import { usePageTour } from "@/hooks/usePageTour";
+import { PageTourModal } from "@/components/tour/PageTourModal";
+import { TourGuideButton } from "@/components/tour/TourGuideButton";
 
 export default function MemoriesScreen() {
   const { session, profile } = useAuth();
@@ -23,6 +26,7 @@ export default function MemoriesScreen() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const insets = useSafeAreaInsets();
+  const { isTourVisible, guide, openTour, closeTour } = usePageTour("memories");
 
   const coupleId = profile?.coupleId || null;
   const PAGE_SIZE = 15;
@@ -213,7 +217,8 @@ export default function MemoriesScreen() {
             <Text style={[styles.subtitle, { color: theme.textMuted, marginTop: 4 }]}>En tatlı anılarımızın milatları</Text>
           </View>
           
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <TourGuideButton onPress={openTour} />
             <TouchableOpacity 
               style={[styles.editBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}
               onPress={() => setIsEditMode(!isEditMode)}
@@ -286,6 +291,7 @@ export default function MemoriesScreen() {
           </TouchableOpacity>
         </Animated.View>
       )}
+      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
     </ScreenBackground>
   );
 }

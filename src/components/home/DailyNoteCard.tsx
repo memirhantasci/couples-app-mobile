@@ -56,7 +56,8 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
       
       if (coupleId && session?.user?.id) {
-        notifyPartner(coupleId, session.user.id, "Günün Notu 📖", "Sevgilin günlüğüne bir not bıraktı.");
+        const senderName = profile?.displayName || "Sevgilin";
+        notifyPartner(coupleId, session.user.id, "Günün Notu 📖", `${senderName} günün notunu paylaştı.`);
       }
     } else {
       logger.error("Note save error:", JSON.stringify(error, null, 2));

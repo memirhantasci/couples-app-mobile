@@ -1,85 +1,113 @@
-import crypto from 'react-native-quick-crypto';
-import Constants from 'expo-constants';
-import { Buffer } from '@craftzdog/react-native-buffer';
+const CryptoJS = require('crypto-js');
 import { logger } from '@/utils/logger';
 
-// Şifreleme anahtarı — üretimde EAS Secret olarak tanımlanmalı.
-// Fallback YOKTUR: anahtar eksikse uygulama başlamaz, böylece
-// zayıf/bilinen bir anahtarla çalışma riski ortadan kalkar.
-const ENCRYPTION_KEY = Constants.expoConfig?.extra?.encryptionKey;
-if (!ENCRYPTION_KEY) {
-  // Development ortamında uyarı, production'da hata fırlat
-  if (__DEV__) {
-    logger.warn(
-      "[SECURITY] ENCRYPTION_KEY bulunamadı! app.json extra.encryptionKey tanımlayın."
-    );
-  } else {
-    throw new Error("[SECURITY] Encryption key is not configured.");
+// Sabit şifreleme anahtarı (EXPO_PUBLIC_ENCRYPTION_KEY ile scryptSync türevi)
+// scryptSync("super-secret-encryption-key-for-couples-app", "salt", 32)
+const KEY_HEX = "3586ea4b5cd90cdb13366ae400da5f29463a257598515ca486615356de7283c3";
+// MD5(KEY) ile türetilen sabit IV
+const STATIC_IV_HEX = "02febf2c962068a78e99631707c8ef9d";
+
+const key = CryptoJS.enc.Hex.parse(KEY_HEX);
+const staticIv = CryptoJS.enc.Hex.parse(STATIC_IV_HEX);
+
+/**
+ * Dinamik IV ile rastgele şifreleme (Her seferinde farklı IV)
+ * Format: "enc:IV_HEX:CIPHERTEXT_HEX"
+ */
+export function encrypt(text: string): string {
+  if (!text) return text;
+  try {
+    const iv = CryptoJS.lib.WordArray.random(16);
+    const encrypted = CryptoJS.AES.encrypt(text, key, {
+      iv: iv,
+      mode: CryptoJS.mode.CBC,
+      padding: CryptoJS.pad.Pkcs7,
+    });
+    
+    return `enc:${iv.toString(CryptoJS.enc.Hex)}:${encrypted.ciphertext.toString(CryptoJS.enc.Hex)}`;
+  } catch (err) {
+    logger.error("Encryption error:", err);
+    return text;
   }
 }
-const key = crypto.scryptSync(ENCRYPTION_KEY ?? "dev-only-fallback", "salt", 32);
 
-const ALGORITHM = "aes-256-cbc";
-
-export function encrypt(text: string): string {
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
-  
-  let encrypted = cipher.update(text, "utf8", "hex");
-  encrypted += cipher.final("hex");
-  
-  // Format: "enc:IV:EncryptedText"
-  return `enc:${iv.toString("hex")}:${encrypted}`;
-}
-
+/**
+ * Dinamik IV ile şifrelenmiş metni çözme
+ */
 export function decrypt(text: string): string {
+  if (!text) return "";
   try {
-    if (!text.startsWith("enc:")) return text; // Not encrypted
+    if (!text.startsWith("enc:")) return text; // Şifrelenmemiş düz metin
 
     const parts = text.split(":");
     if (parts.length !== 3) return text;
 
-    const iv = Buffer.from(parts[1], "hex");
-    const encryptedText = Buffer.from(parts[2], "hex");
+    const iv = CryptoJS.enc.Hex.parse(parts[1]);
+    const ciphertext = CryptoJS.enc.Hex.parse(parts[2]);
 
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-    
-    let decrypted = decipher.update(encryptedText).toString("utf8");
-    decrypted += decipher.final().toString("utf8");
-    
-    return decrypted;
+    const decrypted = CryptoJS.AES.decrypt(
+      // @ts-ignore
+      { ciphertext: ciphertext },
+      key,
+      {
+        iv: iv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7,
+      }
+    );
+
+    return decrypted.toString(CryptoJS.enc.Utf8);
   } catch (err) {
     logger.error("Decryption error:", err);
-    return "";
+    return text;
   }
 }
 
-// Generate a static IV for deterministic encryption
-const STATIC_IV = crypto.createHash("md5").update(key).digest();
-
+/**
+ * Deterministik şifreleme (Aynı metin her zaman aynı şifreli çıktıyı verir)
+ * Kullanıcı adı, e-posta gibi veritabanında tam eşleşme aranacak alanlar için kullanılır.
+ * Format: "det:CIPHERTEXT_HEX"
+ */
 export function deterministicEncrypt(text: string): string {
   if (!text) return text;
-  
-  const cipher = crypto.createCipheriv(ALGORITHM, key, STATIC_IV);
-  let encrypted = cipher.update(text, "utf8", "hex");
-  encrypted += cipher.final("hex");
-  
-  return `det:${encrypted}`;
+  try {
+    const encrypted = CryptoJS.AES.encrypt(text, key, {
+      iv: staticIv,
+      mode: CryptoJS.mode.CBC,
+      padding: CryptoJS.pad.Pkcs7,
+    });
+
+    return `det:${encrypted.ciphertext.toString(CryptoJS.enc.Hex)}`;
+  } catch (err) {
+    logger.error("Deterministic encryption error:", err);
+    return text;
+  }
 }
 
+/**
+ * Deterministik şifrelenmiş metni çözme
+ */
 export function deterministicDecrypt(text: string): string {
+  if (!text) return "";
   try {
-    if (!text || !text.startsWith("det:")) return text;
+    if (!text.startsWith("det:")) return text;
 
-    const encryptedText = Buffer.from(text.substring(4), "hex");
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, STATIC_IV);
-    
-    let decrypted = decipher.update(encryptedText).toString("utf8");
-    decrypted += decipher.final().toString("utf8");
-    
-    return decrypted;
+    const ciphertext = CryptoJS.enc.Hex.parse(text.substring(4));
+
+    const decrypted = CryptoJS.AES.decrypt(
+      // @ts-ignore
+      { ciphertext: ciphertext },
+      key,
+      {
+        iv: staticIv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7,
+      }
+    );
+
+    return decrypted.toString(CryptoJS.enc.Utf8);
   } catch (err) {
     logger.error("Deterministic decryption error:", err);
-    return "";
+    return text;
   }
 }

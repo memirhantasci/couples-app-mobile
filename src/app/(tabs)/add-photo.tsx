@@ -26,6 +26,7 @@ import { getTheme } from "@/lib/theme";
 import { logger } from "@/utils/logger";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { MapPickerModal } from "@/components/MapPickerModal";
+import { extractPhotoExif, isValidCoordinate } from "@/utils/exifHelper";
 
 interface LocationData {
   latitude: number;
@@ -63,6 +64,11 @@ export default function AddPhotoScreen() {
   const [showMapPicker, setShowMapPicker] = useState(false);
 
   const handlePickImage = async () => {
+    if (!isPremium) {
+      setShowPaywall(true);
+      return;
+    }
+
     try {
       // base64:false — büyük fotoğrafları JS heap'e yüklemeyiz (OOM crash engeli)
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -78,39 +84,26 @@ export default function AddPhotoScreen() {
       setExifStatus("loading");
       setErrors(prev => ({ ...prev, photo: false }));
 
-      // EXIF tarih/saat okuma
-      let foundDate = false;
-      if (asset.exif && asset.exif.DateTimeOriginal) {
-        const parts = asset.exif.DateTimeOriginal.split(" ");
-        if (parts.length === 2) {
-          const dateParts = parts[0].split(":");
-          if (dateParts.length === 3) {
-            const formattedDate = `${dateParts[0]}-${dateParts[1]}-${dateParts[2]}`;
-            const formattedTime = parts[1].substring(0, 5);
-            setTakenDate(formattedDate);
-            setTakenTime(formattedTime);
-            setExifStatus("found");
-            foundDate = true;
-          }
-        }
-      }
-      if (!foundDate) {
+      // EXIF ve GPS bilgilerini derinlemesine oku (exifr binary + native fallback)
+      const exifResult = await extractPhotoExif(asset.uri, asset.exif);
+
+      // Tarih ve saat
+      if (exifResult.takenDate) {
+        setTakenDate(exifResult.takenDate);
+        setTakenTime(exifResult.takenTime || dayjs().format("HH:mm"));
+        setExifStatus("found");
+      } else {
         setTakenDate(todayString());
         setTakenTime(dayjs().format("HH:mm"));
         setExifStatus("not_found");
       }
 
-      // EXIF GPS konumu
-      const lat = asset.exif?.GPSLatitude;
-      const lng = asset.exif?.GPSLongitude;
-      const latRef = asset.exif?.GPSLatitudeRef;
-      const lngRef = asset.exif?.GPSLongitudeRef;
-      if (lat != null && lng != null) {
-        const finalLat = latRef === 'S' ? -Math.abs(lat) : Math.abs(lat);
-        const finalLng = lngRef === 'W' ? -Math.abs(lng) : Math.abs(lng);
-        setPhotoLocation({ latitude: finalLat, longitude: finalLng });
+      // GPS Konumu (Geçerli koordinat kontrolü - 0,0 Null Island kesinlikle kabul edilmez)
+      if (exifResult.location && isValidCoordinate(exifResult.location.latitude, exifResult.location.longitude)) {
+        setPhotoLocation(exifResult.location);
         setExifGpsFound(true);
       } else {
+        setPhotoLocation(null);
         setExifGpsFound(false);
       }
 
@@ -131,6 +124,11 @@ export default function AddPhotoScreen() {
   };
 
   const handleSave = async () => {
+    if (!isPremium) {
+      setShowPaywall(true);
+      return;
+    }
+
     const newErrors = {
       photo: !localImage,
       description: !description.trim()
@@ -175,6 +173,16 @@ export default function AddPhotoScreen() {
       const { data: publicUrlData } = supabase.storage.from("photos").getPublicUrl(filePath);
       const imageUrl = publicUrlData.publicUrl;
 
+      const validLat = photoLocation && isValidCoordinate(photoLocation.latitude, photoLocation.longitude)
+        ? photoLocation.latitude
+        : null;
+      const validLng = photoLocation && isValidCoordinate(photoLocation.latitude, photoLocation.longitude)
+        ? photoLocation.longitude
+        : null;
+      const validLocationName = (validLat != null && validLng != null)
+        ? (photoLocation?.locationName ?? null)
+        : null;
+
       const { error: dbError } = await supabase.from("photo_archive").insert({
         couple_id: coupleId,
         user_id: userId,
@@ -186,9 +194,9 @@ export default function AddPhotoScreen() {
         taken_time: takenTime || null,
         exif_found: exifStatus === "found",
         file_size: 0,
-        latitude: photoLocation?.latitude ?? null,
-        longitude: photoLocation?.longitude ?? null,
-        location_name: photoLocation?.locationName ?? null,
+        latitude: validLat,
+        longitude: validLng,
+        location_name: validLocationName,
       });
 
       if (dbError) throw dbError;
@@ -197,8 +205,13 @@ export default function AddPhotoScreen() {
       queryClient.invalidateQueries({ queryKey: ["map_photos", coupleId] });
       queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
 
-      if (coupleId && userId) {
-        notifyPartner(coupleId, userId, "Yeni Bir Anı 📸", "Galeriye yeni bir fotoğraf eklendi.");
+      if (isPremium && coupleId && userId) {
+        const senderName = profile?.displayName || "Sevgilin";
+        const photoTitle = title.trim();
+        const notificationBody = photoTitle 
+          ? `${senderName} galeriye yeni bir fotoğraf ekledi: "${photoTitle}"`
+          : `${senderName} galeriye yeni bir fotoğraf ekledi.`;
+        notifyPartner(coupleId, userId, "Yeni Bir Anı 📸", notificationBody);
       }
 
       Alert.alert("Başarılı", "Fotoğraf başarıyla ortak arşive eklendi! 🎉", [
@@ -358,8 +371,11 @@ export default function AddPhotoScreen() {
                     ? `GPS: ${photoLocation.locationName}` 
                     : `GPS: ${photoLocation.latitude.toFixed(4)}, ${photoLocation.longitude.toFixed(4)}`}
                 </Text>
-                <TouchableOpacity onPress={() => setShowMapPicker(true)} style={styles.changeLocBtn}>
-                  <Text style={styles.changeLocBtnText}>Değiştir</Text>
+                <TouchableOpacity onPress={() => setShowMapPicker(true)} style={[styles.changeLocBtn, { marginRight: 6 }]}>
+                  <Text style={styles.changeLocBtnText}>Düzelt</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => { setPhotoLocation(null); setExifGpsFound(false); }} style={[styles.changeLocBtn, { borderColor: "rgba(239,68,68,0.4)" }]}>
+                  <Text style={[styles.changeLocBtnText, { color: "#ef4444" }]}>Kaldır</Text>
                 </TouchableOpacity>
               </View>
             ) : photoLocation ? (
@@ -368,8 +384,11 @@ export default function AddPhotoScreen() {
                 <Text style={[styles.exifSuccessText, { flex: 1, color: "#60a5fa" }]}>
                   {photoLocation.locationName ?? `${photoLocation.latitude.toFixed(4)}, ${photoLocation.longitude.toFixed(4)}`}
                 </Text>
-                <TouchableOpacity onPress={() => { setPhotoLocation(null); }} style={[styles.changeLocBtn, { borderColor: "rgba(59,130,246,0.4)" }]}>
-                  <Text style={[styles.changeLocBtnText, { color: "#60a5fa" }]}>Kaldır</Text>
+                <TouchableOpacity onPress={() => setShowMapPicker(true)} style={[styles.changeLocBtn, { borderColor: "rgba(59,130,246,0.4)", marginRight: 6 }]}>
+                  <Text style={[styles.changeLocBtnText, { color: "#60a5fa" }]}>Düzelt</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => { setPhotoLocation(null); }} style={[styles.changeLocBtn, { borderColor: "rgba(239,68,68,0.4)" }]}>
+                  <Text style={[styles.changeLocBtnText, { color: "#ef4444" }]}>Kaldır</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -544,9 +563,17 @@ export default function AddPhotoScreen() {
         <MapPickerModal
           visible={showMapPicker}
           onClose={() => setShowMapPicker(false)}
-          initialLocation={photoLocation ?? undefined}
+          title="Fotoğraf Konumu"
+          initialLocation={
+            photoLocation && isValidCoordinate(photoLocation.latitude, photoLocation.longitude)
+              ? photoLocation
+              : undefined
+          }
           onSelectLocation={(loc) => {
-            setPhotoLocation(loc);
+            if (isValidCoordinate(loc.latitude, loc.longitude)) {
+              setPhotoLocation(loc);
+              setExifGpsFound(false);
+            }
             setShowMapPicker(false);
           }}
         />

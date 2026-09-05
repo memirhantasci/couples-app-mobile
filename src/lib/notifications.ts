@@ -5,6 +5,7 @@ import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { logger } from "@/utils/logger";
+import { decrypt, deterministicDecrypt } from "@/utils/crypto";
 import dayjs from "dayjs";
 
 /**
@@ -108,8 +109,52 @@ export function configureAndroidNotificationChannel() {
   }
 }
 
+/**
+ * Herhangi bir metin içinde bulunabilecek şifreli verileri (enc:... veya det:...)
+ * tespit edip otomatik olarak deşifre eder.
+ * Kesinlikle hiçbir bildirimde şifreli veri gitmemesini garanti eder.
+ */
+export function cleanNotificationText(text: string | null | undefined): string {
+  if (!text) return "";
+
+  let result = String(text);
+
+  // 1. Dinamik AES Şifreleme: "enc:IV_HEX:CIPHERTEXT_HEX"
+  result = result.replace(/enc:[a-fA-F0-9]+:[a-fA-F0-9]+/g, (match) => {
+    try {
+      const dec = decrypt(match);
+      if (dec && !dec.startsWith("enc:")) {
+        return dec;
+      }
+      return "";
+    } catch {
+      return "";
+    }
+  });
+
+  // 2. Deterministik AES Şifreleme: "det:CIPHERTEXT_HEX"
+  result = result.replace(/det:[a-fA-F0-9]+/g, (match) => {
+    try {
+      const dec = deterministicDecrypt(match);
+      if (dec && !dec.startsWith("det:")) {
+        return dec;
+      }
+      return "";
+    } catch {
+      return "";
+    }
+  });
+
+  return result.replace(/\s+/g, " ").trim();
+}
+
 export async function sendPushNotification(userId: string, title: string, body: string, data?: any) {
   try {
+    const cleanTitle = cleanNotificationText(title);
+    const cleanBody = cleanNotificationText(body);
+
+    if (!cleanTitle && !cleanBody) return;
+
     const { data: tokens } = await supabase
       .from("push_tokens")
       .select("token")
@@ -121,8 +166,8 @@ export async function sendPushNotification(userId: string, title: string, body: 
       const message = {
         to: t.token,
         sound: "default",
-        title,
-        body,
+        title: cleanTitle,
+        body: cleanBody,
         data: data || {},
       };
 
@@ -147,14 +192,17 @@ export async function sendPushNotification(userId: string, title: string, body: 
  */
 export async function scheduleDailyLocalNotification(id: string, title: string, body: string, hour: number, minute: number) {
   try {
+    const cleanTitle = cleanNotificationText(title);
+    const cleanBody = cleanNotificationText(body);
+
     // Önce aynı ID'ye sahip eski bildirimi temizle
     await cancelLocalNotification(id);
     
     await Notifications.scheduleNotificationAsync({
       identifier: id,
       content: {
-        title,
-        body,
+        title: cleanTitle,
+        body: cleanBody,
         sound: true,
       },
       trigger: {
@@ -175,6 +223,9 @@ export async function scheduleDailyLocalNotification(id: string, title: string, 
  */
 export async function scheduleDateLocalNotification(id: string, title: string, body: string, triggerDate: Date) {
   try {
+    const cleanTitle = cleanNotificationText(title);
+    const cleanBody = cleanNotificationText(body);
+
     await cancelLocalNotification(id);
     
     // Geçmiş bir tarihse kurma
@@ -183,8 +234,8 @@ export async function scheduleDateLocalNotification(id: string, title: string, b
     await Notifications.scheduleNotificationAsync({
       identifier: id,
       content: {
-        title,
-        body,
+        title: cleanTitle,
+        body: cleanBody,
         sound: true,
       },
       trigger: triggerDate as any,
@@ -208,19 +259,76 @@ export async function cancelLocalNotification(id: string) {
 
 /**
  * Mevcut kullanıcının partnerine bildirim gönderir.
- * Performans: İlgili partner ID'sini tek bir optimize sorguyla bulur.
+ *
+ * GÜVENLIK NOTU: push_tokens tablosunun RLS politikası (user_id = auth.uid())
+ * nedeniyle, Partner A doğrudan Partner B'nin token'ını sorgulayamaz.
+ * Bu yüzden 017_scalability_and_security_fixes.sql ile oluşturulan
+ * get_partner_push_tokens(couple_id) RPC fonksiyonu kullanılır.
+ * Bu fonksiyon SECURITY DEFINER yetkisiyle çalışır ve yalnızca aynı
+ * çifte ait partnerin token'larını döndürür.
  */
 export async function notifyPartner(coupleId: number, currentUserId: string, title: string, body: string, data?: any) {
   try {
-    const { data: partnerData } = await supabase
+    // Gönderen kullanıcının adını paralel olarak çek
+    const { data: senderData } = await supabase
       .from("users")
-      .select("id")
-      .eq("couple_id", coupleId)
-      .neq("id", currentUserId)
+      .select("display_name, username")
+      .eq("id", currentUserId)
       .maybeSingle();
 
-    if (partnerData?.id) {
-      await sendPushNotification(partnerData.id, title, body, data);
+    // Gönderen kullanıcının adını tamamen deşifre et
+    let senderName = "";
+    if (senderData?.display_name) {
+      senderName = cleanNotificationText(senderData.display_name);
+    }
+    if (!senderName && senderData?.username) {
+      senderName = cleanNotificationText(senderData.username);
+    }
+
+    let finalTitle = cleanNotificationText(title);
+    let finalBody = cleanNotificationText(body);
+
+    // Eğer gönderen adı mevcutsa ve genel 'Sevgilin'/'Partnerin' veya {sender} ifadesi varsa kişiselleştir
+    if (senderName) {
+      finalTitle = finalTitle
+        .replace(/\{sender\}/gi, senderName)
+        .replace(/\b(Sevgilin|Partnerin)\b/g, senderName);
+
+      finalBody = finalBody
+        .replace(/\{sender\}/gi, senderName)
+        .replace(/\b(Sevgilin|Partnerin)\b/g, senderName);
+    }
+
+    // Son temizlik: Başlık ve içerikte hiçbir şifreli ibare kalmadığından emin ol
+    finalTitle = cleanNotificationText(finalTitle);
+    finalBody = cleanNotificationText(finalBody);
+
+    if (!finalTitle && !finalBody) return;
+
+    // SECURITY DEFINER RPC ile partner'ın token'larını al (RLS kalkanı aşımı)
+    const { data: tokens, error } = await supabase.rpc("get_partner_push_tokens", {
+      p_couple_id: coupleId,
+    });
+
+    if (error || !tokens || tokens.length === 0) return;
+
+    for (const t of tokens) {
+      if (!t.token) continue;
+      await fetch("https://exp.host/--/api/v2/push/send", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Accept-encoding": "gzip, deflate",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          to: t.token,
+          sound: "default",
+          title: finalTitle,
+          body: finalBody,
+          data: data || {},
+        }),
+      });
     }
   } catch (error) {
     logger.error("[Push] Failed to notify partner:", error);

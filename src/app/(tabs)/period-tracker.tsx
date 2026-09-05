@@ -21,6 +21,9 @@ import { getTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { notifyPartner } from "@/lib/notifications";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
+import { usePageTour } from "@/hooks/usePageTour";
+import { PageTourModal } from "@/components/tour/PageTourModal";
+import { TourGuideButton } from "@/components/tour/TourGuideButton";
 
 LocaleConfig.locales['tr'] = {
   monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
@@ -46,6 +49,7 @@ export default function PeriodTrackerScreen() {
   const isFemale = profile?.gender === "female";
   const isPremium = profile?.isPremium ?? false;
   const [showPaywall, setShowPaywall] = useState(false);
+  const { isTourVisible, guide, openTour, closeTour } = usePageTour("period-tracker");
 
   // Erkek ve premium değilse kilitli görünüm
   const isMaleLocked = !isFemale && !isPremium;
@@ -54,14 +58,14 @@ export default function PeriodTrackerScreen() {
   // Eğer erkek ise partnerinin loglarını çekebilmesi için couple üzerinden sorguluyoruz
   const { data: logs, isLoading } = useQuery({
     queryKey: ["period_logs", coupleId, isFemale ? userId : "partner"],
-    enabled: !!coupleId,
+    enabled: !!coupleId && !isMaleLocked,
     queryFn: async () => {
-      let query = supabase.from("period_logs").select("id, date, user_id").order("date", { ascending: false });
+      let query = supabase.from("period_logs").select("id, date, user_id").eq("couple_id", coupleId).order("date", { ascending: false });
       
       if (isFemale && userId) {
         query = query.eq("user_id", userId);
       } else {
-        // Erkekse partnerin logları
+        // Erkekse partnerin logları — couple_id filtresiyle güvenli şekilde çek
         query = query.neq("user_id", userId);
       }
 
@@ -129,12 +133,13 @@ export default function PeriodTrackerScreen() {
         const { error } = await supabase.from("period_logs").insert({
           user_id: userId,
           date: selectedDate,
-          type: "period",
+          couple_id: coupleId,
         });
         if (error) throw error;
         
         if (isPremium && coupleId && userId) {
-          notifyPartner(coupleId, userId, "Regl Dönemi 🌸", "Partnerinin regl dönemi başladı. Ona biraz daha özen gösterme zamanı!");
+          const senderName = profile?.displayName || "Partnerin";
+          notifyPartner(coupleId, userId, "Regl Dönemi 🌸", `${senderName} için regl dönemi başladı. Ona biraz daha özen gösterme zamanı!`);
         }
       } else {
         const { error } = await supabase
@@ -177,13 +182,16 @@ export default function PeriodTrackerScreen() {
             </Text>
           </View>
 
-          <TouchableOpacity 
-            onPress={() => router.push("/menu")} 
-            style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <AlignJustify color={theme.textSecondary} size={20} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <TourGuideButton onPress={openTour} />
+            <TouchableOpacity 
+              onPress={() => router.push("/menu")} 
+              style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <AlignJustify color={theme.textSecondary} size={20} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView 
@@ -435,6 +443,7 @@ export default function PeriodTrackerScreen() {
         featureDescription="Sevgilinizin döngüsünü birlikte takip edin, hassas dönemlerinde ona en doğru şekilde destek olun."
         gender={profile?.gender}
       />
+      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
     </ScreenBackground>
   );
 }

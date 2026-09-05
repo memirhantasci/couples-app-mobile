@@ -22,6 +22,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/context/ThemeContext";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { usePageTour } from "@/hooks/usePageTour";
+import { PageTourModal } from "@/components/tour/PageTourModal";
+import { TourGuideButton } from "@/components/tour/TourGuideButton";
 
 LocaleConfig.locales['tr'] = {
   monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
@@ -58,6 +61,7 @@ export default function CalendarScreen() {
   const userId = session?.user?.id ? session.user.id : null;
   const isPremium = profile?.isPremium ?? false;
   const [showPaywall, setShowPaywall] = useState(false);
+  const { isTourVisible, guide, openTour, closeTour } = usePageTour("calendar");
 
   // Veri çekme
   const { data, isLoading, refetch, isRefetching } = useQuery({
@@ -80,13 +84,13 @@ export default function CalendarScreen() {
           .eq("couple_id", coupleId)
           .gte("date", threeMonthsAgo)
           .lte("date", threeMonthsLater),
-        supabase
+        isPremium ? supabase
           .from("photo_archive")
           .select("id, user_id, image_url, title, description, taken_date, taken_time")
           .eq("couple_id", coupleId)
           .gte("taken_date", threeMonthsAgo)
           .lte("taken_date", threeMonthsLater)
-          .order("taken_time", { ascending: false }),
+          .order("taken_time", { ascending: false }) : Promise.resolve({ data: [] }),
         supabase
           .from("users")
           .select("*")
@@ -139,7 +143,9 @@ export default function CalendarScreen() {
       const isMe = m.user_id === userId;
       addDot(m.date, isMe ? CALENDAR_COLORS.myMood : CALENDAR_COLORS.partnerMood, isMe ? "my-mood" : "partner-mood");
     });
-    data.photos.forEach((p: any) => addDot(p.taken_date, CALENDAR_COLORS.photo, "photo"));
+    if (isPremium) {
+      data.photos.forEach((p: any) => addDot(p.taken_date, CALENDAR_COLORS.photo, "photo"));
+    }
 
     if (marks[selectedDate]) {
       marks[selectedDate] = {
@@ -280,13 +286,16 @@ export default function CalendarScreen() {
             <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>Özel Günler & Hatıralar 📅</Text>
           </View>
 
-          <TouchableOpacity 
-            onPress={() => router.push("/menu")} 
-            style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <AlignJustify color={theme.textSecondary} size={20} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <TourGuideButton onPress={openTour} />
+            <TouchableOpacity 
+              onPress={() => router.push("/menu")} 
+              style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <AlignJustify color={theme.textSecondary} size={20} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* KAYDIRILABİLİR İÇERİK */}
@@ -731,6 +740,7 @@ export default function CalendarScreen() {
         onClose={() => setShowPaywall(false)} 
         featureName="Takvimdeki Fotoğraflar"
       />
+      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
     </ScreenBackground>
   );
 }

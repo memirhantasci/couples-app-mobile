@@ -1,53 +1,54 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  TextInput,
-  Alert,
-  Dimensions,
-  Platform,
-  KeyboardAvoidingView,
-  Linking,
-  ScrollView,
-  Modal,
-  StatusBar,
-} from "react-native";
-import MapView, { Marker } from "react-native-maps";
-import { Image } from "expo-image";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BlurView } from "expo-blur";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  MapPin,
-  Camera,
-  StickyNote,
-  X,
-  Trash2,
-  Check,
-  Navigation,
-  Image as ImageIcon,
-  MessageSquare,
-  Calendar,
-  Heart,
-  Sparkles,
-  Layers,
-  ChevronRight,
-  Maximize2,
-  ZoomIn,
-  AlignJustify,
-} from "lucide-react-native";
 import * as Location from "expo-location";
 import { useFocusEffect, useRouter } from "expo-router";
+import {
+  Calendar,
+  Camera,
+  Check,
+  ChevronRight,
+  Heart,
+  Layers,
+  MapPin,
+  Maximize2,
+  Navigation,
+  Sparkles,
+  StickyNote,
+  Trash2,
+  X,
+  ZoomIn
+} from "lucide-react-native";
+import { useCallback, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  KeyboardAvoidingView,
+  Linking,
+  Modal,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import MapView, { Marker } from "react-native-maps";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { useTheme } from "@/context/ThemeContext";
 import { dayjs } from "@/lib/date";
 import { notifyPartner } from "@/lib/notifications";
+import { usePageTour } from "@/hooks/usePageTour";
+import { PageTourModal } from "@/components/tour/PageTourModal";
+import { TourGuideButton } from "@/components/tour/TourGuideButton";
+import { supabase } from "@/lib/supabase";
+import { getTheme } from "@/lib/theme";
+import { isValidCoordinate } from "@/utils/exifHelper";
 
 const { width: SW, height: SH } = Dimensions.get("window");
 
@@ -187,7 +188,7 @@ function PhotoMarkerPin({
 export default function MapScreen() {
   const router = useRouter();
   const { session, profile } = useAuth();
-  const { theme, isLight: isAppLight } = useTheme();
+  const theme = getTheme(profile?.gender);
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const mapRef = useRef<MapView | null>(null);
@@ -196,18 +197,13 @@ export default function MapScreen() {
 
   const coupleId = profile?.coupleId ?? null;
   const userId = session?.user?.id ?? null;
+  const isPremium = profile?.isPremium ?? false;
+  const { isTourVisible, guide, openTour, closeTour } = usePageTour("map");
 
-  // Harita Tema ve Filtreleme:
-  // Beyaz modda varsayılan: "romantic", diğer tüm renk modlarında varsayılan: "midnight" (koyu)
-  const [mapTheme, setMapTheme] = useState<MapThemeType>(() => (isAppLight ? "romantic" : "midnight"));
+  // Harita Tema ve Filtreleme
+  const [mapTheme, setMapTheme] = useState<MapThemeType>("romantic");
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [showThemePicker, setShowThemePicker] = useState(false);
-  const [isMapReady, setIsMapReady] = useState(false);
-
-  // Uygulamanın tema modu değiştiğinde haritanın varsayılan temasını da otomatik senkronize et
-  useEffect(() => {
-    setMapTheme(isAppLight ? "romantic" : "midnight");
-  }, [isAppLight]);
 
   // Etkileşim, Detay Kartı ve Modal State'leri
   const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
@@ -225,8 +221,8 @@ export default function MapScreen() {
     refetch: refetchPhotos,
   } = useQuery({
     queryKey: ["map_photos", coupleId],
-    enabled: !!coupleId,
-    staleTime: 0,
+    enabled: !!coupleId && isPremium,
+    staleTime: 1000 * 30, // 30 sn — harita gerçek zamanlı his versin ama sorgu fırtınası durdurulsun
     queryFn: async () => {
       const { data, error } = await supabase
         .from("photo_archive")
@@ -235,7 +231,7 @@ export default function MapScreen() {
         .not("latitude", "is", null)
         .not("longitude", "is", null);
       if (error) throw error;
-      return (data ?? []) as PhotoPin[];
+      return ((data ?? []) as PhotoPin[]).filter((p) => isValidCoordinate(p.latitude, p.longitude));
     },
   });
 
@@ -247,7 +243,7 @@ export default function MapScreen() {
   } = useQuery({
     queryKey: ["map_notes", coupleId],
     enabled: !!coupleId,
-    staleTime: 0,
+    staleTime: 1000 * 30,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("map_notes")
@@ -255,7 +251,7 @@ export default function MapScreen() {
         .eq("couple_id", coupleId)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as MapNote[];
+      return ((data ?? []) as MapNote[]).filter((n) => isValidCoordinate(n.latitude, n.longitude));
     },
   });
 
@@ -267,7 +263,7 @@ export default function MapScreen() {
   } = useQuery({
     queryKey: ["map_meetings", coupleId],
     enabled: !!coupleId,
-    staleTime: 0,
+    staleTime: 1000 * 30,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("meetings")
@@ -277,7 +273,7 @@ export default function MapScreen() {
         .not("latitude", "is", null)
         .not("longitude", "is", null);
       if (error) throw error;
-      return (data ?? []) as MeetingPin[];
+      return ((data ?? []) as MeetingPin[]).filter((m) => isValidCoordinate(m.latitude, m.longitude));
     },
   });
 
@@ -314,14 +310,20 @@ export default function MapScreen() {
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["map_notes", coupleId] });
       setIsAddingNote(false);
       setNoteText("");
       setPendingCoord(null);
 
       if (coupleId && userId) {
-        notifyPartner(coupleId, userId, "Haritada Yeni Bir Aşk Notu 💌", "Sevgilin haritaya senin için bir not bıraktı.");
+        const senderName = profile?.displayName || "Sevgilin";
+        const noteStr = (variables as any)?.note || "";
+        const notePreview = noteStr.trim() || "";
+        const notificationBody = notePreview 
+          ? `${senderName} haritaya bir anı notu bıraktı: "${notePreview}"` 
+          : `${senderName} haritaya senin için bir aşk notu bıraktı.`;
+        notifyPartner(coupleId, userId, "Haritada Yeni Bir Aşk Notu 💌", notificationBody);
       }
     },
     onError: (e: any) => {
@@ -381,13 +383,25 @@ export default function MapScreen() {
   const fitAllPins = () => {
     const coords: { latitude: number; longitude: number }[] = [];
     if (activeFilter === "all" || activeFilter === "photos") {
-      photoPins.forEach((p) => coords.push({ latitude: p.latitude, longitude: p.longitude }));
+      photoPins.forEach((p) => {
+        if (isValidCoordinate(p.latitude, p.longitude)) {
+          coords.push({ latitude: p.latitude, longitude: p.longitude });
+        }
+      });
     }
     if (activeFilter === "all" || activeFilter === "notes") {
-      mapNotes.forEach((n) => coords.push({ latitude: n.latitude, longitude: n.longitude }));
+      mapNotes.forEach((n) => {
+        if (isValidCoordinate(n.latitude, n.longitude)) {
+          coords.push({ latitude: n.latitude, longitude: n.longitude });
+        }
+      });
     }
     if (activeFilter === "all" || activeFilter === "meetings") {
-      meetingPins.forEach((m) => coords.push({ latitude: m.latitude, longitude: m.longitude }));
+      meetingPins.forEach((m) => {
+        if (isValidCoordinate(m.latitude, m.longitude)) {
+          coords.push({ latitude: m.latitude, longitude: m.longitude });
+        }
+      });
     }
 
     if (coords.length === 0) {
@@ -442,22 +456,21 @@ export default function MapScreen() {
     mapTheme === "romantic"
       ? ROMANTIC_CREAM_STYLE
       : mapTheme === "midnight"
-      ? MIDNIGHT_VELVET_STYLE
-      : MINIMAL_SILVER_STYLE;
+        ? MIDNIGHT_VELVET_STYLE
+        : MINIMAL_SILVER_STYLE;
 
   const isLight = mapTheme === "romantic" || mapTheme === "silver";
   const isLoading = loadingPhotos || loadingNotes || loadingMeetings;
 
   return (
-    <View style={[styles.root, { backgroundColor: isLight ? "#F7F4EF" : "#0F131D" }]}>
+    <View style={styles.root}>
       <StatusBar barStyle={isLight ? "dark-content" : "light-content"} />
 
       {/* ─── HARİTA ─────────────────────────────────────────────────────── */}
       <MapView
         ref={mapRef}
-        style={[StyleSheet.absoluteFill, { opacity: isMapReady ? 1 : 0 }]}
+        style={StyleSheet.absoluteFill}
         customMapStyle={selectedMapStyle}
-        onMapReady={() => setIsMapReady(true)}
         initialRegion={{
           latitude: 41.0082,
           longitude: 28.9784,
@@ -548,19 +561,20 @@ export default function MapScreen() {
       {/* ─── ÜST KONTROL ÇUBUĞU (Başlık & Filtreler) ──────────────────── */}
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         <BlurView tint={isLight ? "light" : "dark"} intensity={80} style={StyleSheet.absoluteFill} />
-        
+
         <View style={styles.topBarMainRow}>
           <View>
             <Text style={[styles.topBarTitle, { color: isLight ? "#1A1528" : "#FFFFFF" }]}>
               Aşk Haritası
             </Text>
             <Text style={[styles.topBarSub, { color: isLight ? "#6B6577" : "rgba(255,255,255,0.55)" }]}>
-              {photoPins.length} Anı · {mapNotes.length} Not · {meetingPins.length} Buluşma
+              {isPremium ? `${photoPins.length} Anı · ` : ""}{mapNotes.length} Not · {meetingPins.length} Buluşma
             </Text>
           </View>
 
-          {/* Aksiyon Butonları (Tema, Sığdır, GPS) */}
+          {/* Aksiyon Butonları (Rehber, Tema, Sığdır, GPS) */}
           <View style={styles.topActionsGroup}>
+            <TourGuideButton onPress={openTour} />
             <TouchableOpacity
               style={[
                 styles.topActionBtn,
@@ -606,21 +620,6 @@ export default function MapScreen() {
                 <Navigation size={16} color={theme.accent} />
               )}
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.topActionBtn,
-                {
-                  backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.1)",
-                  borderColor: isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.15)",
-                },
-              ]}
-              onPress={() => router.push("/menu")}
-              activeOpacity={0.8}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <AlignJustify size={16} color={theme.accent} />
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -631,8 +630,8 @@ export default function MapScreen() {
           contentContainerStyle={styles.filterRow}
         >
           {([
-            { id: "all" as const, label: `Tümü (${photoPins.length + mapNotes.length + meetingPins.length})`, icon: Sparkles },
-            { id: "photos" as const, label: `Fotoğraflar (${photoPins.length})`, icon: Camera },
+            { id: "all" as const, label: `Tümü (${(isPremium ? photoPins.length : 0) + mapNotes.length + meetingPins.length})`, icon: Sparkles },
+            ...(isPremium ? [{ id: "photos" as const, label: `Fotoğraflar (${photoPins.length})`, icon: Camera }] : []),
             { id: "notes" as const, label: `Aşk Notları (${mapNotes.length})`, icon: StickyNote },
             { id: "meetings" as const, label: `Buluşmalar (${meetingPins.length})`, icon: Calendar },
           ]).map((item) => {
@@ -647,9 +646,9 @@ export default function MapScreen() {
                   isSelected
                     ? { backgroundColor: theme.accent, borderColor: theme.accent }
                     : {
-                        backgroundColor: isLight ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.08)",
-                        borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.12)",
-                      },
+                      backgroundColor: isLight ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.08)",
+                      borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.12)",
+                    },
                 ]}
                 activeOpacity={0.8}
               >
@@ -1120,6 +1119,8 @@ export default function MapScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
     </View>
   );
 }

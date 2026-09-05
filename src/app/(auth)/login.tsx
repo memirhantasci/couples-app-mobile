@@ -18,7 +18,7 @@ import { navigateAfterAuth } from "@/lib/navigate";
 import { registerForPushNotifications } from "@/lib/notifications";
 import { useAuth } from "@/context/AuthContext";
 import { encrypt, decrypt, deterministicEncrypt } from "@/utils/crypto";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { logger } from "@/utils/logger";
 import { 
   Eye, EyeOff, Heart, Link, 

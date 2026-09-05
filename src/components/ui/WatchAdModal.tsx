@@ -1,13 +1,43 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, Modal, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import { View, Text, TouchableOpacity, Modal, StyleSheet, ActivityIndicator, Alert, TurboModuleRegistry } from "react-native";
 import { X, PlayCircle, Coins } from "lucide-react-native";
-import { useRewardedAd, TestIds } from "react-native-google-mobile-ads";
+import Constants from "expo-constants";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { getTheme } from "@/lib/theme";
 import { logger } from "@/utils/logger";
 
-const adUnitId = __DEV__ ? TestIds.REWARDED : "ca-app-pub-xxxxxxxxxxxxxxxx/yyyyyyyyyy";
+const isExpoGo = Constants.appOwnership === 'expo';
+const hasAdsModule = typeof TurboModuleRegistry?.get === 'function' && !!TurboModuleRegistry.get('RNGoogleMobileAdsModule');
+
+let useRewardedAdReal: any = null;
+let TestIds: any = null;
+
+if (hasAdsModule && !isExpoGo) {
+  try {
+    const ads = require("react-native-google-mobile-ads");
+    useRewardedAdReal = ads.useRewardedAd;
+    TestIds = ads.TestIds;
+  } catch {
+    useRewardedAdReal = null;
+  }
+}
+
+const adUnitId = __DEV__ ? (TestIds?.REWARDED || "") : "ca-app-pub-xxxxxxxxxxxxxxxx/yyyyyyyyyy";
+
+// Mock hook for Expo Go where native ads binary is absent
+function useRewardedAdMock() {
+  return {
+    isLoaded: false,
+    isClosed: false,
+    load: () => {},
+    show: () => {},
+    error: null,
+    isEarnedReward: false,
+  };
+}
+
+const useRewardedAd = useRewardedAdReal || useRewardedAdMock;
 
 interface WatchAdModalProps {
   visible: boolean;

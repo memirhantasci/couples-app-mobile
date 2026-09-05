@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { 
   Home, CalendarHeart, Mail, Images, MapPin, 
   Pill, BookOpen, Clock, Sparkles, Droplet, Settings,

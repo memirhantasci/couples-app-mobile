@@ -21,6 +21,9 @@ import { dayjs, todayString } from "@/lib/date";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { usePageTour } from "@/hooks/usePageTour";
+import { PageTourModal } from "@/components/tour/PageTourModal";
+import { TourGuideButton } from "@/components/tour/TourGuideButton";
 
 const getRelativeDateLabel = (dateStr: string) => {
   const d = dayjs(dateStr);
@@ -41,6 +44,7 @@ export default function MedicineScreen() {
   const todayStr = todayString();
   const [loadingSlot, setLoadingSlot] = useState<string | null>(null);
   const [showManagerModal, setShowManagerModal] = useState(false);
+  const { isTourVisible, guide, openTour, closeTour } = usePageTour("medicine");
 
   // Form State
   const [medName, setMedName] = useState("");
@@ -419,13 +423,16 @@ export default function MedicineScreen() {
             <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>Günlük Sağlık Hatırlatıcısı 💊</Text>
           </View>
 
-          <TouchableOpacity 
-            onPress={() => router.push("/menu")} 
-            style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <AlignJustify color={theme.textSecondary} size={20} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <TourGuideButton onPress={openTour} />
+            <TouchableOpacity 
+              onPress={() => router.push("/menu")} 
+              style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <AlignJustify color={theme.textSecondary} size={20} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* SCROLLABLE İÇERİK */}
@@ -903,6 +910,7 @@ export default function MedicineScreen() {
           }}
         />
       )}
+      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
     </ScreenBackground>
   );
 }

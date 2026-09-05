@@ -23,6 +23,9 @@ import { useTheme } from "@/context/ThemeContext";
 import { encrypt, decrypt } from "@/utils/crypto";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { RevenueCatService } from "@/lib/revenuecat";
+import { usePageTour, resetAllPageTours } from "@/hooks/usePageTour";
+import { PageTourModal } from "@/components/tour/PageTourModal";
+import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import {
   User,
   Gift,
@@ -137,6 +140,7 @@ export default function ProfileScreen() {
   // Reklam & Premium Modal
   const [showAdModal, setShowAdModal] = useState(false);
   const [showPremiumSuccess, setShowPremiumSuccess] = useState(false);
+  const { isTourVisible, guide, openTour, closeTour } = usePageTour("profile");
 
   // Yasal Sözleşmeler Modal State
   const [legalModalVisible, setLegalModalVisible] = useState(false);
@@ -372,13 +376,16 @@ export default function ProfileScreen() {
             <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>Profil & Hesap Tercihleri ⚙️</Text>
           </View>
 
-          <TouchableOpacity 
-            onPress={() => router.push("/menu")} 
-            style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <AlignJustify color={theme.textSecondary} size={20} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <TourGuideButton onPress={openTour} />
+            <TouchableOpacity 
+              onPress={() => router.push("/menu")} 
+              style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <AlignJustify color={theme.textSecondary} size={20} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* KAYDIRILABİLİR İÇERİK */}
@@ -900,6 +907,52 @@ export default function ProfileScreen() {
             )}
           </ModernSection>
 
+          {/* ─── UYGULAMA REHBERLERİ & TANITIMLAR ─── */}
+          <ModernSection 
+            title="Tanıtımlar & Özellik Rehberleri" 
+            icon={<Sparkles size={18} color={theme.accent} />} 
+            theme={theme}
+            defaultOpen={false}
+          >
+            <Text style={[styles.sessionHintText, { color: theme.textMuted }]}>
+              Uygulamadaki tüm sayfaların ve özelliklerin ne işe yaradığını dilediğiniz an baştan inceleyebilirsiniz.
+            </Text>
+            
+            <View style={{ gap: 10 }}>
+              <TouchableOpacity
+                onPress={openTour}
+                style={[
+                  styles.logoutBtn, 
+                  { 
+                    backgroundColor: theme.pillAccentBg,
+                    borderColor: theme.pillAccentBorder
+                  }
+                ]}
+                activeOpacity={0.8}
+              >
+                <Sparkles size={16} color={theme.accent} />
+                <Text style={[styles.logoutBtnText, { color: theme.accent }]}>Bu Sayfanın Rehberini Aç 💡</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={async () => {
+                  await resetAllPageTours();
+                  Alert.alert("Sıfırlandı 🎉", "Tüm sayfaların ilk açılış tanıtım turları sıfırlandı. Sayfaları ziyaret ettiğinizde tanıtımlar baştan gösterilecektir.");
+                }}
+                style={[
+                  styles.logoutBtn, 
+                  { 
+                    backgroundColor: isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)",
+                    borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.1)"
+                  }
+                ]}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.logoutBtnText, { color: theme.text }]}>Tüm Sayfa Tanıtımlarını Baştan Başlat 🔄</Text>
+              </TouchableOpacity>
+            </View>
+          </ModernSection>
+
           {/* ─── OTURUM & GÜVENLİK ─── */}
           <ModernSection 
             title="Oturum & Güvenlik" 
@@ -1018,6 +1071,7 @@ export default function ProfileScreen() {
         initialDoc={selectedLegalDoc}
         accentColor={theme.accent}
       />
+      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
     </ScreenBackground>
   );
 }

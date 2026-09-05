@@ -22,6 +22,9 @@ import { dayjs } from "@/lib/date";
 import { getTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { MapPickerModal } from "@/components/MapPickerModal";
+import { usePageTour } from "@/hooks/usePageTour";
+import { PageTourModal } from "@/components/tour/PageTourModal";
+import { TourGuideButton } from "@/components/tour/TourGuideButton";
 
 export default function MeetingsScreen() {
   const router = useRouter();
@@ -32,6 +35,7 @@ export default function MeetingsScreen() {
   
   const coupleId = profile?.coupleId;
   const userId = session?.user?.id ? session.user.id : null;
+  const { isTourVisible, guide, openTour, closeTour } = usePageTour("meetings");
 
   const [showFormModal, setShowFormModal] = useState(false);
   const [title, setTitle] = useState("");
@@ -145,7 +149,14 @@ export default function MeetingsScreen() {
         if (error) throw error;
 
         if (coupleId && userId) {
-          notifyPartner(coupleId, userId, "Buluşma Planlandı! 📅", `Yeni bir buluşma eklendi: ${title.trim() || "Buluşma"}`);
+          const senderName = profile?.displayName || "Sevgilin";
+          const meetingTitle = title.trim() || "Buluşma";
+          notifyPartner(
+            coupleId, 
+            userId, 
+            "Buluşma Planlandı! 📅", 
+            `${senderName} yeni bir buluşma planladı: ${meetingTitle}`
+          );
         }
 
         Alert.alert("Başarılı 🎉", "Buluşma başarıyla planlandı!");
@@ -208,13 +219,16 @@ export default function MeetingsScreen() {
             <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>Randevular & Özel Anlar 📍</Text>
           </View>
 
-          <TouchableOpacity 
-            onPress={() => router.push("/menu")} 
-            style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <AlignJustify color={theme.textSecondary} size={20} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <TourGuideButton onPress={openTour} />
+            <TouchableOpacity 
+              onPress={() => router.push("/menu")} 
+              style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <AlignJustify color={theme.textSecondary} size={20} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView 
@@ -554,6 +568,7 @@ export default function MeetingsScreen() {
       <MapPickerModal 
         visible={showMapModal} 
         onClose={() => setShowMapModal(false)}
+        title="Buluşma Noktası"
         initialLocation={latitude && longitude ? { latitude, longitude } : undefined}
         onSelectLocation={(loc) => {
           setLatitude(loc.latitude);
@@ -561,6 +576,7 @@ export default function MeetingsScreen() {
           if (!locationName) setLocationName(loc.locationName || "");
         }}
       />
+      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
     </ScreenBackground>
   );
 }

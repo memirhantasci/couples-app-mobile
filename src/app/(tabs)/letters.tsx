@@ -28,6 +28,9 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { WatchAdModal } from "@/components/ui/WatchAdModal";
 import { OrigamiBirdAnimation } from "@/components/letters/OrigamiBirdAnimation";
+import { usePageTour } from "@/hooks/usePageTour";
+import { PageTourModal } from "@/components/tour/PageTourModal";
+import { TourGuideButton } from "@/components/tour/TourGuideButton";
 
 const safeDecrypt = (val: string | null | undefined): string => {
   if (!val) return "";
@@ -58,6 +61,7 @@ export default function LettersScreen() {
   const [showAdModal, setShowAdModal] = useState(false);
   const isPremium = profile?.isPremium ?? false;
   const tokenBalance = profile?.tokenBalance ?? 0;
+  const { isTourVisible, guide, openTour, closeTour } = usePageTour("letters");
 
   // --- Mektupları Getir (Sayfalamalı ve Korumalı) ---
   const { data, isLoading } = useQuery({
@@ -125,7 +129,7 @@ export default function LettersScreen() {
         all: [...received, ...sent].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
       };
     },
-    staleTime: 0,
+    staleTime: 1000 * 60 * 5, // 5 dk — invalidateQueries zaten yeni mektup yazılınca günceller
   });
 
   // --- Alıcı Kullanıcıları Getir ---
@@ -221,8 +225,13 @@ export default function LettersScreen() {
       setUnlockDate(todayString());
       setShowWriteModal(false);
 
-      if (coupleId && userId) {
-        notifyPartner(coupleId, userId, "Gelecekten Bir Mesaj 💌", "Sevgilin sana mühürlü bir mektup gönderdi.");
+      if (isPremium && coupleId && userId) {
+        const senderName = profile?.displayName || "Sevgilin";
+        const letterHeader = cleanTitle.trim();
+        const notificationBody = letterHeader 
+          ? `${senderName} sana mühürlü bir mektup gönderdi: "${letterHeader}"`
+          : `${senderName} sana mühürlü bir mektup gönderdi.`;
+        notifyPartner(coupleId, userId, "Gelecekten Bir Mektup 💌", notificationBody);
       }
 
       // Origami turna kuşu uçuş animasyonunu başlat! 🕊️✨
@@ -401,6 +410,7 @@ export default function LettersScreen() {
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <TourGuideButton onPress={openTour} />
             <TouchableOpacity 
               onPress={handleOpenWriteModal} 
               style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : theme.cardBg, borderColor: theme.cardBorder }]}
@@ -775,7 +785,7 @@ export default function LettersScreen() {
         onComplete={() => setShowOrigamiAnimation(false)}
         accentColor={theme.accent}
       />
-
+      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
     </ScreenBackground>
   );
 }
