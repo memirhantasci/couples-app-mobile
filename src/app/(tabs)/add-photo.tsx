@@ -84,7 +84,7 @@ export default function AddPhotoScreen() {
       setExifStatus("loading");
       setErrors(prev => ({ ...prev, photo: false }));
 
-      // EXIF ve GPS bilgilerini derinlemesine oku (exifr binary + native fallback)
+      // EXIF ve GPS bilgilerini derinlemesine oku (saf JS DataView binary + native fallback)
       const exifResult = await extractPhotoExif(asset.uri, asset.exif);
 
       // Tarih ve saat
