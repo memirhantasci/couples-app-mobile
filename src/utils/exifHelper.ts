@@ -1,4 +1,3 @@
-import exifr from "exifr";
 import * as Location from "expo-location";
 import { dayjs } from "@/lib/date";
 
@@ -103,8 +102,176 @@ export async function reverseGeocodeLocation(lat: number, lng: number): Promise<
   return undefined;
 }
 
+interface BinaryExifData {
+  latitude: number | null;
+  longitude: number | null;
+  dateTime: string | null;
+}
+
+function readString(view: DataView, offset: number, maxLen: number): string | null {
+  try {
+    if (offset + maxLen > view.byteLength) maxLen = view.byteLength - offset;
+    let str = "";
+    for (let i = 0; i < maxLen; i++) {
+      const charCode = view.getUint8(offset + i);
+      if (charCode === 0) break;
+      str += String.fromCharCode(charCode);
+    }
+    return str.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function readRationals(view: DataView, offset: number, count: number, littleEndian: boolean): number[] | null {
+  try {
+    const vals: number[] = [];
+    for (let i = 0; i < count; i++) {
+      const num = view.getUint32(offset + i * 8, littleEndian);
+      const den = view.getUint32(offset + i * 8 + 4, littleEndian);
+      if (den === 0) return null;
+      vals.push(num / den);
+    }
+    return vals;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Hem exifr binary taraması hem de expo-image-picker EXIF sözlüğünü kullanarak
+ * Saf JavaScript / DataView ile JPEG dosyasının APP1 (Exif) segmentinden
+ * GPS koordinatlarını ve çekim tarihini çözer. Hermes ve tüm mobil platformlarla %100 uyumludur.
+ */
+function parseBinaryExif(buffer: ArrayBuffer): BinaryExifData {
+  const result: BinaryExifData = { latitude: null, longitude: null, dateTime: null };
+  try {
+    const view = new DataView(buffer);
+    if (view.byteLength < 16 || view.getUint16(0, false) !== 0xffd8) {
+      return result;
+    }
+
+    let offset = 2;
+    let app1Offset = -1;
+
+    while (offset < view.byteLength - 4) {
+      const marker = view.getUint16(offset, false);
+      if (marker === 0xffe1) {
+        app1Offset = offset;
+        break;
+      }
+      if ((marker & 0xff00) !== 0xff00) {
+        break;
+      }
+      const length = view.getUint16(offset + 2, false);
+      offset += 2 + length;
+    }
+
+    if (app1Offset === -1) return result;
+
+    // "Exif\0\0" (0x45786966, 0x0000)
+    const exifHeader = view.getUint32(app1Offset + 4, false);
+    if (exifHeader !== 0x45786966 || view.getUint16(app1Offset + 8, false) !== 0x0000) {
+      return result;
+    }
+
+    const tiffStart = app1Offset + 10;
+    const byteOrder = view.getUint16(tiffStart, false);
+    const littleEndian = byteOrder === 0x4949; // 'II'
+
+    if (!littleEndian && byteOrder !== 0x4d4d) {
+      return result;
+    }
+
+    if (view.getUint16(tiffStart + 2, littleEndian) !== 0x002a) {
+      return result;
+    }
+
+    const firstIfdOffset = view.getUint32(tiffStart + 4, littleEndian);
+    if (firstIfdOffset < 8) return result;
+
+    const ifd0Offset = tiffStart + firstIfdOffset;
+    if (ifd0Offset >= view.byteLength) return result;
+
+    const numEntries0 = view.getUint16(ifd0Offset, littleEndian);
+    let exifIfdOffset = -1;
+    let gpsIfdOffset = -1;
+
+    for (let i = 0; i < numEntries0; i++) {
+      const entryOffset = ifd0Offset + 2 + i * 12;
+      if (entryOffset + 12 > view.byteLength) break;
+      const tag = view.getUint16(entryOffset, littleEndian);
+
+      if (tag === 0x8769) {
+        exifIfdOffset = tiffStart + view.getUint32(entryOffset + 8, littleEndian);
+      } else if (tag === 0x8825) {
+        gpsIfdOffset = tiffStart + view.getUint32(entryOffset + 8, littleEndian);
+      } else if (tag === 0x0132 && !result.dateTime) {
+        const valOffset = tiffStart + view.getUint32(entryOffset + 8, littleEndian);
+        result.dateTime = readString(view, valOffset, 20);
+      }
+    }
+
+    // Exif IFD (DateTimeOriginal: 0x9003)
+    if (exifIfdOffset > 0 && exifIfdOffset < view.byteLength) {
+      const numExifEntries = view.getUint16(exifIfdOffset, littleEndian);
+      for (let i = 0; i < numExifEntries; i++) {
+        const entryOffset = exifIfdOffset + 2 + i * 12;
+        if (entryOffset + 12 > view.byteLength) break;
+        const tag = view.getUint16(entryOffset, littleEndian);
+        if (tag === 0x9003) {
+          const valOffset = tiffStart + view.getUint32(entryOffset + 8, littleEndian);
+          const dt = readString(view, valOffset, 20);
+          if (dt) result.dateTime = dt;
+          break;
+        }
+      }
+    }
+
+    // GPS IFD
+    if (gpsIfdOffset > 0 && gpsIfdOffset < view.byteLength) {
+      const numGpsEntries = view.getUint16(gpsIfdOffset, littleEndian);
+      let latRef = "N";
+      let lngRef = "E";
+      let rawLat: number[] | null = null;
+      let rawLng: number[] | null = null;
+
+      for (let i = 0; i < numGpsEntries; i++) {
+        const entryOffset = gpsIfdOffset + 2 + i * 12;
+        if (entryOffset + 12 > view.byteLength) break;
+        const tag = view.getUint16(entryOffset, littleEndian);
+
+        if (tag === 0x0001) {
+          latRef = String.fromCharCode(view.getUint8(entryOffset + 8)).toUpperCase();
+        } else if (tag === 0x0002) {
+          const valOffset = tiffStart + view.getUint32(entryOffset + 8, littleEndian);
+          rawLat = readRationals(view, valOffset, 3, littleEndian);
+        } else if (tag === 0x0003) {
+          lngRef = String.fromCharCode(view.getUint8(entryOffset + 8)).toUpperCase();
+        } else if (tag === 0x0004) {
+          const valOffset = tiffStart + view.getUint32(entryOffset + 8, littleEndian);
+          rawLng = readRationals(view, valOffset, 3, littleEndian);
+        }
+      }
+
+      if (rawLat && rawLat.length === 3) {
+        let lat = rawLat[0] + rawLat[1] / 60 + rawLat[2] / 3600;
+        if (latRef === "S") lat = -lat;
+        result.latitude = lat;
+      }
+      if (rawLng && rawLng.length === 3) {
+        let lng = rawLng[0] + rawLng[1] / 60 + rawLng[2] / 3600;
+        if (lngRef === "W") lng = -lng;
+        result.longitude = lng;
+      }
+    }
+  } catch {
+    // Sessizce geç
+  }
+  return result;
+}
+
+/**
+ * Hem dosya binary'sini hem de expo-image-picker EXIF sözlüğünü kullanarak
  * fotoğrafın gerçek çekim tarihi, saati ve GPS konumunu çıkarır.
  */
 export async function extractPhotoExif(
@@ -116,64 +283,46 @@ export async function extractPhotoExif(
   let finalLat: number | null = null;
   let finalLng: number | null = null;
 
-  // 1. ADIM: exifr ile dosya binary'sinden gerçek EXIF / GPS okuma
+  // 1. ADIM: Ham dosya binary taraması (Saf JS DataView, sıfır harici bağımlılık)
   try {
     const response = await fetch(uri);
     const arrayBuffer = await response.arrayBuffer();
 
     if (arrayBuffer && arrayBuffer.byteLength > 0) {
-      // exifr parse
-      const parsed = await exifr.parse(arrayBuffer, {
-        gps: true,
-        tiff: true,
-        exif: true,
-      });
+      const binaryData = parseBinaryExif(arrayBuffer);
+      if (isValidCoordinate(binaryData.latitude, binaryData.longitude)) {
+        finalLat = binaryData.latitude;
+        finalLng = binaryData.longitude;
+      }
 
-      if (parsed) {
-        if (parsed.latitude != null && parsed.longitude != null) {
-          finalLat = parsed.latitude;
-          finalLng = parsed.longitude;
-        }
-
-        const dateCandidate = parsed.DateTimeOriginal || parsed.CreateDate || parsed.ModifyDate;
-        if (dateCandidate instanceof Date && !isNaN(dateCandidate.getTime())) {
-          finalDate = dayjs(dateCandidate).format("YYYY-MM-DD");
-          finalTime = dayjs(dateCandidate).format("HH:mm");
-        } else if (typeof dateCandidate === "string") {
-          const parts = dateCandidate.split(" ");
-          if (parts.length === 2) {
-            const dParts = parts[0].split(":");
-            if (dParts.length === 3) {
-              finalDate = `${dParts[0]}-${dParts[1]}-${dParts[2]}`;
-              finalTime = parts[1].substring(0, 5);
-            }
+      if (binaryData.dateTime) {
+        const parts = binaryData.dateTime.split(" ");
+        if (parts.length === 2) {
+          const dParts = parts[0].split(":");
+          if (dParts.length === 3) {
+            finalDate = `${dParts[0]}-${dParts[1]}-${dParts[2]}`;
+            finalTime = parts[1].substring(0, 5);
           }
         }
       }
-
-      // GPS ayrıntılı metot
-      if (!isValidCoordinate(finalLat, finalLng)) {
-        const gps = await exifr.gps(arrayBuffer);
-        if (gps && gps.latitude != null && gps.longitude != null) {
-          finalLat = gps.latitude;
-          finalLng = gps.longitude;
-        }
-      }
     }
-  } catch (err) {
-    // exifr okuması başarısız olursa nativeExif fallback'e devam et
+  } catch {
+    // Native fallback'e devam et
   }
 
   // 2. ADIM: Native ImagePicker asset.exif fallback'i
   if (nativeExif) {
     // Tarih fallback
-    if (!finalDate && nativeExif.DateTimeOriginal) {
-      const parts = String(nativeExif.DateTimeOriginal).split(" ");
-      if (parts.length === 2) {
-        const dParts = parts[0].split(":");
-        if (dParts.length === 3) {
-          finalDate = `${dParts[0]}-${dParts[1]}-${dParts[2]}`;
-          finalTime = parts[1].substring(0, 5);
+    if (!finalDate) {
+      const rawDt = nativeExif.DateTimeOriginal || nativeExif.DateTimeDigitized || nativeExif.DateTime;
+      if (rawDt) {
+        const parts = String(rawDt).split(" ");
+        if (parts.length === 2) {
+          const dParts = parts[0].split(":");
+          if (dParts.length === 3) {
+            finalDate = `${dParts[0]}-${dParts[1]}-${dParts[2]}`;
+            finalTime = parts[1].substring(0, 5);
+          }
         }
       }
     }
