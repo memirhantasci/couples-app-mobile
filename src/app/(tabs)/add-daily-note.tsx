@@ -13,6 +13,7 @@ import {
 } from "lucide-react-native";
 import { getTheme } from "@/lib/theme";
 import { encrypt } from "@/utils/crypto";
+import { sanitize } from "@/utils/sanitize";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 import { useQueryClient } from "@tanstack/react-query";
@@ -41,7 +42,13 @@ export default function AddDailyNoteScreen() {
 
     setIsSubmitting(true);
     try {
-      const encrypted = encrypt(content.trim());
+      const cleanContent = sanitize(content.trim());
+      if (!cleanContent) {
+        Alert.alert("Hata", "Geçersiz içerik. Lütfen notu tekrar yazın.");
+        setIsSubmitting(false);
+        return;
+      }
+      const encrypted = encrypt(cleanContent);
 
       const { error } = await supabase.from("daily_notes").insert({
         user_id: session.user.id,
@@ -130,8 +137,8 @@ export default function AddDailyNoteScreen() {
           <View style={styles.sectionBlock}>
             <View style={styles.editorLabelRow}>
               <Text style={styles.sectionLabel}>GÜNLÜK NOTUN</Text>
-              <Text style={[styles.charCountText, charCount >= 3800 && { color: "#f59e0b" }]}>
-                {charCount} / 4000 harf ({wordCount} kelime)
+              <Text style={[styles.charCountText, charCount >= 1800 && { color: "#f59e0b" }]}>
+                {charCount} / 2000 harf ({wordCount} kelime)
               </Text>
             </View>
             
@@ -143,7 +150,7 @@ export default function AddDailyNoteScreen() {
                 placeholderTextColor="rgba(255,255,255,0.3)"
                 value={content}
                 onChangeText={setContent}
-                maxLength={4000}
+                maxLength={2000}
                 textAlignVertical="top"
               />
             </View>

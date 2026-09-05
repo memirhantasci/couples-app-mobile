@@ -28,6 +28,7 @@ import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { DEMO_MEETINGS } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
+import { sanitizeStrict } from "@/utils/sanitize";
 
 export default function MeetingsScreen() {
   const router = useRouter();
@@ -129,12 +130,14 @@ export default function MeetingsScreen() {
 
     try {
       const utcDateTime = dayjs(meetingDate).toISOString();
+      const cleanTitle = sanitizeStrict(title.trim() || "Buluşma");
+      const cleanLocation = locationName.trim() ? sanitizeStrict(locationName.trim()) : null;
 
       if (editingMeetingId) {
         const { error } = await supabase.from("meetings").update({
           meeting_datetime: utcDateTime,
-          title: title.trim() || "Buluşma",
-          location_name: locationName.trim() || null,
+          title: cleanTitle,
+          location_name: cleanLocation,
           latitude: latitude,
           longitude: longitude,
         }).eq("id", editingMeetingId);
@@ -144,8 +147,8 @@ export default function MeetingsScreen() {
       } else {
         const { error } = await supabase.from("meetings").insert({
           meeting_datetime: utcDateTime,
-          title: title.trim() || "Buluşma",
-          location_name: locationName.trim() || null,
+          title: cleanTitle,
+          location_name: cleanLocation,
           latitude: latitude,
           longitude: longitude,
           is_active: true,
@@ -519,6 +522,7 @@ export default function MeetingsScreen() {
                     placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.3)"}
                     value={locationName}
                     onChangeText={setLocationName}
+                    maxLength={100}
                   />
                   <TouchableOpacity 
                     style={[styles.mapOpenBtn, { backgroundColor: theme.pillAccentBg }]} 

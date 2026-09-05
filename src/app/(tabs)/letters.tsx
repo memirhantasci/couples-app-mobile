@@ -716,6 +716,7 @@ export default function LettersScreen() {
                     }}
                     placeholder="Örn: 1. Yılımızda Açılacak Özel Bir Not..."
                     placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.3)"}
+                    maxLength={100}
                   />
                 </View>
 
@@ -744,6 +745,7 @@ export default function LettersScreen() {
                     placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.3)"}
                     multiline
                     numberOfLines={6}
+                    maxLength={4000}
                   />
                 </View>
 

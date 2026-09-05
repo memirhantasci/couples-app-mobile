@@ -27,6 +27,7 @@ import { logger } from "@/utils/logger";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { MapPickerModal } from "@/components/MapPickerModal";
 import { extractPhotoExif, isValidCoordinate } from "@/utils/exifHelper";
+import { sanitize, sanitizeStrict } from "@/utils/sanitize";
 
 interface LocationData {
   latitude: number;
@@ -46,7 +47,7 @@ export default function AddPhotoScreen() {
   const isPremium = profile?.isPremium ?? false;
   const [showPaywall, setShowPaywall] = useState(false);
 
-  const [localImage, setLocalImage] = useState<{ uri: string; fileSize?: number; exif?: any } | null>(null);
+  const [localImage, setLocalImage] = useState<{ uri: string; thumbUri?: string; fileSize?: number; exif?: any } | null>(null);
   const [takenDate, setTakenDate] = useState(todayString());
   const [takenTime, setTakenTime] = useState(dayjs().format("HH:mm"));
   const [title, setTitle] = useState("");
@@ -107,15 +108,21 @@ export default function AddPhotoScreen() {
         setExifGpsFound(false);
       }
 
-      // Görsel sıkıştırma: maks 1600px, JPEG %80 kalite
-      // 10MB fotoğraf → ~300KB'a iner, OOM crash imkansız hale gelir
+      // Tam boy görsel: maks 1600px, JPEG %80 kalite (OOM crash engeli)
       const compressed = await ImageManipulator.manipulateAsync(
         asset.uri,
         [{ resize: { width: 1600 } }],
         { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
       );
 
-      setLocalImage({ uri: compressed.uri, exif: asset.exif });
+      // Thumbnail: 300px WebP ~15-25 KB — galeri ızgarasının anında açılması için
+      const thumbnail = await ImageManipulator.manipulateAsync(
+        asset.uri,
+        [{ resize: { width: 300 } }],
+        { compress: 0.65, format: ImageManipulator.SaveFormat.WEBP }
+      );
+
+      setLocalImage({ uri: compressed.uri, thumbUri: thumbnail.uri, exif: asset.exif });
 
     } catch (error) {
       logger.error("Photo pick error:", error);
@@ -155,7 +162,17 @@ export default function AddPhotoScreen() {
     setUploading(true);
 
     try {
-      // URI'den binary blob al — base64 encode/decode yok, bellek patlaması yok
+      // Girdi sanitizasyonu — null-byte, kontrol karakterleri ve script taglerini filtrele
+      const cleanTitle = title.trim() ? sanitizeStrict(title.trim()) : null;
+      const cleanDescription = sanitize(description.trim());
+
+      if (!cleanDescription) {
+        Alert.alert("Hata", "Geçersiz içerik tespit edildi. Lütfen açıklamayı tekrar yazın.");
+        setUploading(false);
+        return;
+      }
+
+      // Tam boy görsel yükleme — base64 encode/decode yok, bellek patlaması yok
       const response = await fetch(localImage.uri);
       const blob = await response.arrayBuffer();
 
@@ -173,6 +190,27 @@ export default function AddPhotoScreen() {
       const { data: publicUrlData } = supabase.storage.from("photos").getPublicUrl(filePath);
       const imageUrl = publicUrlData.publicUrl;
 
+      // Thumbnail yükleme — galeri ızgarası için hızlı küçük resim (300px WebP ~15-25 KB)
+      let thumbUrl: string | null = null;
+      if (localImage.thumbUri) {
+        try {
+          const thumbFileName = `${Date.now()}_${Math.random().toString(36).substring(7)}_thumb.webp`;
+          const thumbFilePath = `${coupleId}/thumbs/${thumbFileName}`;
+          const thumbResponse = await fetch(localImage.thumbUri);
+          const thumbBlob = await thumbResponse.arrayBuffer();
+          const { error: thumbError } = await supabase.storage
+            .from("photos")
+            .upload(thumbFilePath, thumbBlob, { contentType: "image/webp" });
+          if (!thumbError) {
+            const { data: thumbUrlData } = supabase.storage.from("photos").getPublicUrl(thumbFilePath);
+            thumbUrl = thumbUrlData.publicUrl;
+          }
+        } catch (thumbErr) {
+          // Thumbnail başarısız olsa bile ana görsel yüklemeye devam et
+          logger.error("Thumbnail upload error (non-fatal):", thumbErr);
+        }
+      }
+
       const validLat = photoLocation && isValidCoordinate(photoLocation.latitude, photoLocation.longitude)
         ? photoLocation.latitude
         : null;
@@ -187,9 +225,10 @@ export default function AddPhotoScreen() {
         couple_id: coupleId,
         user_id: userId,
         image_url: imageUrl,
+        thumb_url: thumbUrl,
         storage_path: filePath,
-        title: title.trim() || null,
-        description: description.trim(),
+        title: cleanTitle,
+        description: cleanDescription,
         taken_date: takenDate,
         taken_time: takenTime || null,
         exif_found: exifStatus === "found",
@@ -480,6 +519,7 @@ export default function AddPhotoScreen() {
                 onChangeText={setTitle}
                 placeholder="Örn: Kapadokya Gün Batımı ✨"
                 placeholderTextColor="rgba(255,255,255,0.3)"
+                maxLength={80}
               />
             </View>
 
@@ -511,6 +551,7 @@ export default function AddPhotoScreen() {
                 placeholderTextColor="rgba(255,255,255,0.3)"
                 multiline
                 numberOfLines={4}
+                maxLength={500}
               />
             </View>
           </View>

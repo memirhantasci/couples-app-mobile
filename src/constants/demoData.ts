@@ -16,6 +16,7 @@ export const DEMO_PROFILE: CoupleProfile = {
   gender: "male",
   isPremium: true,
   tokenBalance: 350,
+  encryptionSalt: "demo-salt-123",
 };
 
 export const DEMO_SESSION = {

@@ -31,6 +31,7 @@ import { DemoActionModal } from "@/components/demo/DemoActionModal";
 interface PhotoItem {
   id: number;
   image_url: string;
+  thumb_url?: string | null;
   taken_date: string;
   taken_time?: string | null;
   title?: string | null;
@@ -83,7 +84,7 @@ export default function PhotosScreen() {
       }
       const { data, error } = await supabase
         .from("photo_archive")
-        .select("id, image_url, taken_date, taken_time, title, description, user_id, created_at, storage_path")
+        .select("id, image_url, thumb_url, taken_date, taken_time, title, description, user_id, created_at, storage_path")
         .eq("couple_id", coupleId)
         .order("taken_date", { ascending: false })
         .order("created_at", { ascending: false })
@@ -169,7 +170,7 @@ export default function PhotosScreen() {
         style={[styles.grid3Box, { width: itemSize, height: itemSize }]}
       >
         <Image 
-          source={{ uri: item.image_url }} 
+          source={{ uri: item.thumb_url ?? item.image_url }} 
           style={styles.grid3Img} 
           contentFit="cover" 
           cachePolicy="memory-disk"
@@ -194,7 +195,7 @@ export default function PhotosScreen() {
       >
         <View style={styles.grid2ImgContainer}>
           <Image 
-            source={{ uri: item.image_url }} 
+            source={{ uri: item.thumb_url ?? item.image_url }} 
             style={styles.grid2Img} 
             contentFit="cover" 
             cachePolicy="memory-disk"

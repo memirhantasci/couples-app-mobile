@@ -27,6 +27,7 @@ import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { DEMO_MEDICINES } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
+import { sanitizeStrict } from "@/utils/sanitize";
 
 const getRelativeDateLabel = (dateStr: string) => {
   const d = dayjs(dateStr);
@@ -222,6 +223,12 @@ export default function MedicineScreen() {
     }
     if (!coupleId || !userId) return;
 
+    const cleanMedName = sanitizeStrict(medName.trim());
+    if (!cleanMedName) {
+      setMedError(true);
+      return;
+    }
+
     const formattedTimes = medTimes.map(t => dayjs(t).format("HH:mm"));
     const uniqueTimes = new Set(formattedTimes);
     if (uniqueTimes.size !== formattedTimes.length) {
@@ -249,7 +256,7 @@ export default function MedicineScreen() {
       }
 
       const payload: any = {
-        name: medName.trim(),
+        name: cleanMedName,
         start_date: dayjs(medStartDate).format("YYYY-MM-DD"),
         end_date: dayjs(medEndDate).format("YYYY-MM-DD"),
         time: formattedTimes[0],
@@ -781,6 +788,7 @@ export default function MedicineScreen() {
                       setMedName(text);
                       setMedError(false);
                     }} 
+                    maxLength={50}
                   />
                 </View>
 

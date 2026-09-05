@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { RevenueCatService } from "@/lib/revenuecat";
 import React, { createContext, useCallback, useContext, useEffect, useState, useMemo, useRef } from "react";
-import { decrypt, deterministicDecrypt } from "@/utils/crypto";
+import { decrypt, deterministicDecrypt, setSessionEncryptionKey } from "@/utils/crypto";
 import { setAdLoggingOut } from "../utils/adFlags";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { getOrCreateDeviceId } from "@/utils/device";
@@ -29,6 +29,7 @@ export interface CoupleProfile {
   gender: string | null;
   isPremium: boolean;
   tokenBalance: number;
+  encryptionSalt: string | null;
 }
 
 interface AuthContextValue {
@@ -90,12 +91,13 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
       gender, 
       couple_id,
       token_balance,
-      couples!users_couple_id_fkey(meet_date, relationship_start_date, member_count, is_premium, premium_expires_at)
+      couples!users_couple_id_fkey(meet_date, relationship_start_date, member_count, is_premium, premium_expires_at, encryption_salt)
     `)
     .eq("id", userId)
     .single();
 
   if (error || !user) {
+    setSessionEncryptionKey(userId, null, null);
     return {
       coupleId: null,
       meetDate: null,
@@ -107,11 +109,16 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
       gender: null,
       isPremium: false,
       tokenBalance: 0,
+      encryptionSalt: null,
     };
   }
 
   // Handle both possible shapes from Supabase join (array or object depending on relation type)
   const coupleObj = Array.isArray(user.couples) ? user.couples[0] : user.couples;
+  
+  // Set the dynamic encryption key for this session before any decryption
+  const parsedCoupleId = user.couple_id ? parseInt(String(user.couple_id), 10) : null;
+  setSessionEncryptionKey(userId, parsedCoupleId, coupleObj?.encryption_salt ?? null);
 
   // Premium durumunu kontrol et (süresi dolmuş mu?)
   const premiumExpiresAt = coupleObj?.premium_expires_at;
@@ -121,7 +128,7 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
   const decUsername = user.username ? deterministicDecrypt(user.username) : null;
 
   return {
-    coupleId: user.couple_id ? parseInt(String(user.couple_id), 10) : null,
+    coupleId: parsedCoupleId,
     meetDate: coupleObj?.meet_date ?? null,
     relationshipStartDate: coupleObj?.relationship_start_date ?? null,
     isPaired: !!(user.couple_id && coupleObj?.member_count >= 2),
@@ -131,6 +138,7 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
     gender: user.gender ?? null,
     isPremium: isPremiumActive,
     tokenBalance: user.token_balance ?? 0,
+    encryptionSalt: coupleObj?.encryption_salt ?? null,
   };
 }
 
@@ -158,6 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(DEMO_PROFILE);
     setIsDeviceAuthorized(true);
     setIsLoading(false);
+    setSessionEncryptionKey(DEMO_SESSION.user.id, DEMO_PROFILE.coupleId, DEMO_PROFILE.encryptionSalt);
   }, []);
 
   const exitDemoMode = useCallback(() => {
@@ -166,6 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
     setIsDeviceAuthorized(null);
     setIsLoading(false);
+    setSessionEncryptionKey("", null, null);
   }, []);
 
   // Track whether initial session from getSession() has been processed

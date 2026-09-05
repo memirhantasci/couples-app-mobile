@@ -10,6 +10,26 @@ const STATIC_IV_HEX = "02febf2c962068a78e99631707c8ef9d";
 const key = CryptoJS.enc.Hex.parse(KEY_HEX);
 const staticIv = CryptoJS.enc.Hex.parse(STATIC_IV_HEX);
 
+// Uygulama çalışma zamanında çifte özel türetilen dinamik oturum anahtarı
+let sessionKey: any = null;
+
+export function setSessionEncryptionKey(userId: string, coupleId: number | null, salt: string | null) {
+  try {
+    if (coupleId && salt) {
+      // Çifte özel anahtar türetimi (256-bit)
+      sessionKey = CryptoJS.PBKDF2(coupleId.toString(), salt, { keySize: 256 / 32, iterations: 1000 });
+      logger.info(`Session encryption key set for couple ${coupleId}`);
+    } else {
+      // Çifti olmayan kullanıcılar için kendi ID'si üzerinden fallback anahtar
+      sessionKey = CryptoJS.PBKDF2(userId, "solo-fallback-salt", { keySize: 256 / 32, iterations: 1000 });
+      logger.info(`Session encryption key set for solo user`);
+    }
+  } catch (err) {
+    logger.error("Failed to set session encryption key:", err);
+    sessionKey = null;
+  }
+}
+
 /**
  * Dinamik IV ile rastgele şifreleme (Her seferinde farklı IV)
  * Format: "enc:IV_HEX:CIPHERTEXT_HEX"
@@ -18,7 +38,8 @@ export function encrypt(text: string): string {
   if (!text) return text;
   try {
     const iv = CryptoJS.lib.WordArray.random(16);
-    const encrypted = CryptoJS.AES.encrypt(text, key, {
+    const activeKey = sessionKey || key;
+    const encrypted = CryptoJS.AES.encrypt(text, activeKey, {
       iv: iv,
       mode: CryptoJS.mode.CBC,
       padding: CryptoJS.pad.Pkcs7,
@@ -44,11 +65,12 @@ export function decrypt(text: string): string {
 
     const iv = CryptoJS.enc.Hex.parse(parts[1]);
     const ciphertext = CryptoJS.enc.Hex.parse(parts[2]);
+    const activeKey = sessionKey || key;
 
     const decrypted = CryptoJS.AES.decrypt(
       // @ts-ignore
       { ciphertext: ciphertext },
-      key,
+      activeKey,
       {
         iv: iv,
         mode: CryptoJS.mode.CBC,

@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
 import { decrypt, deterministicDecrypt, encrypt } from "@/utils/crypto";
+import { sanitize } from "@/utils/sanitize";
 import { 
   ChevronRight, Heart, FileText, Sparkles, 
   ChevronLeft, X, Check, Trash2, AlignJustify, 
@@ -238,11 +239,13 @@ export default function CalendarScreen() {
     if (!coupleId || !userId) return;
     setSaving(true);
 
+    const cleanNote = sanitize(noteText.trim());
+
     let error;
     if (userNoteForSelectedDay?.id) {
       const res = await supabase
         .from("calendar_notes")
-        .update({ note: noteText.trim() })
+        .update({ note: cleanNote })
         .eq("id", userNoteForSelectedDay.id);
       error = res.error;
     } else {
@@ -252,7 +255,7 @@ export default function CalendarScreen() {
           couple_id: coupleId,
           user_id: userId,
           date: selectedDate,
-          note: noteText.trim(),
+          note: cleanNote,
         });
       error = res.error;
     }

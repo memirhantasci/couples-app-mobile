@@ -17,6 +17,7 @@ import { getTheme } from "@/lib/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
+import { sanitizeStrict, sanitize } from "@/utils/sanitize";
 
 export default function AddMemoryScreen() {
   const router = useRouter();
@@ -117,13 +118,16 @@ export default function AddMemoryScreen() {
       }
 
       // Save to database
+      const cleanTitle = sanitizeStrict(title.trim());
+      const cleanDescription = description.trim() ? sanitize(description.trim()) : null;
+
       let error;
       if (isEditing) {
         const res = await supabase.from("memories")
           .update({
             date: date,
-            title: title.trim(),
-            description: description.trim() || null,
+            title: cleanTitle,
+            description: cleanDescription,
             image_url: finalImageUrl || null,
           })
           .eq("id", Number(params.id));
@@ -131,8 +135,8 @@ export default function AddMemoryScreen() {
       } else {
         const payload: any = {
           date: date,
-          title: title.trim(),
-          description: description.trim() || null,
+          title: cleanTitle,
+          description: cleanDescription,
           image_url: finalImageUrl || null,
           is_default: false,
         };
@@ -181,6 +185,7 @@ export default function AddMemoryScreen() {
               }}
               placeholder="Örn: İlk Buluşmamız"
               placeholderTextColor="rgba(255,255,255,0.4)"
+              maxLength={100}
             />
           </View>
 
@@ -220,6 +225,7 @@ export default function AddMemoryScreen() {
               placeholder="O güne dair hatırlamak istediklerin..."
               placeholderTextColor="rgba(255,255,255,0.4)"
               multiline
+              maxLength={1000}
             />
           </View>
 

@@ -21,6 +21,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getTheme, AppTheme, getAvailableThemes, ThemeMode, setGlobalActiveTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { encrypt, decrypt } from "@/utils/crypto";
+import { sanitizeStrict } from "@/utils/sanitize";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { RevenueCatService } from "@/lib/revenuecat";
 import { usePageTour, resetAllPageTours } from "@/hooks/usePageTour";
@@ -214,9 +215,10 @@ export default function ProfileScreen() {
       return;
     }
     setProfileLoading(true);
+    const cleanDisplayName = sanitizeStrict(displayName.trim());
     const { error } = await supabase
       .from("users")
-      .update({ display_name: encrypt(displayName.trim()), gender })
+      .update({ display_name: encrypt(cleanDisplayName), gender })
       .eq("id", session.user.id);
     setProfileLoading(false);
 
@@ -739,6 +741,7 @@ export default function ProfileScreen() {
                 }}
                 placeholder="Adınız..."
                 placeholderTextColor={theme.textMuted}
+                maxLength={50}
               />
             </View>
 
@@ -909,6 +912,7 @@ export default function ProfileScreen() {
                 value={promoCode}
                 onChangeText={setPromoCode}
                 autoCapitalize="characters"
+                maxLength={20}
               />
               <TouchableOpacity
                 onPress={handleRedeemPromo}
