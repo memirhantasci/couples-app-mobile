@@ -10,7 +10,7 @@ import {
   X, Heart, Settings, Home, Pill, CalendarHeart, 
   Droplet, MapPin, LogOut, ChevronRight, User, 
   BookOpen, Mail, Images, Camera, Sparkles, ShieldCheck,
-  Calendar, Clock, ImagePlus, HelpCircle, Check, Bell
+  Calendar, Clock, ImagePlus, HelpCircle, Check, Bell, Orbit
 } from "lucide-react-native";
 import { NotificationShowcaseModal } from "@/components/notifications/NotificationShowcaseModal";
 import { useAuth } from "@/context/AuthContext";
@@ -167,6 +167,21 @@ export default function MenuScreen() {
           {/* ─── KATEGORİ 1: AŞK & ANILAR (ANA BÖLÜMLER) ─── */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionHeaderLabel}>AŞK & ORTAK ANILAR</Text>
+
+            <TouchableOpacity 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              onPress={() => handleRoute("/our-star")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: "rgba(56, 189, 248, 0.18)" }]}>
+                <Orbit color="#38BDF8" size={18} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>Bizim Yıldızımız ✨</Text>
+                <Text style={styles.menuSub}>Gökyüzündeki sonsuz dijital anıtınız</Text>
+              </View>
+              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+            </TouchableOpacity>
 
             <TouchableOpacity 
               style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
