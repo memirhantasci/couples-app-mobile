@@ -16,6 +16,7 @@ export function useProtectedRoute() {
     const inAuthGroup = segments[0] === "(auth)";
     const inSetupGroup = segments[0] === "(setup)";
     const currentRoute = segments.join("/");
+    const isAtRoot = !currentRoute || currentRoute === "index";
 
     // Verification screens (email confirmation or device OTP verification)
     const isVerifying = currentRoute.includes("verify-device") || currentRoute.includes("verify");
@@ -23,7 +24,7 @@ export function useProtectedRoute() {
     const timer = setTimeout(() => {
       // 0. Demo Mode: Guests exploring the app
       if (isDemoMode) {
-        if (inSetupGroup || isVerifying) {
+        if (inSetupGroup || isVerifying || isAtRoot) {
           router.replace("/(tabs)/home");
         }
         return;
@@ -81,7 +82,7 @@ export function useProtectedRoute() {
         } else {
           // Role: Fully setup user.
           // Prevent them from going to setup screens or auth screens unnecessarily.
-          if (isTryingToAccessAuth || inSetupGroup) {
+          if (isTryingToAccessAuth || inSetupGroup || isAtRoot) {
             // Send them to the main home tab
             router.replace("/(tabs)/home");
           }

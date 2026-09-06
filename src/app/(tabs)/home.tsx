@@ -238,18 +238,6 @@ export default function HomeScreen() {
     return { text: "İyi Geceler", emoji: "✨" };
   };
 
-  if ((!session && !isDemoMode) || (!dashboardData && isLoading && !isDemoMode)) {
-    return (
-      <ScreenBackground style={{ paddingTop: insets.top + 20, paddingHorizontal: 20 }}>
-        <Skeleton height={80} borderRadius={20} style={{ marginBottom: 16 }} />
-        <Skeleton height={140} borderRadius={24} style={{ marginBottom: 14 }} />
-        <Skeleton height={90} borderRadius={20} style={{ marginBottom: 14 }} />
-        <Skeleton height={120} borderRadius={20} style={{ marginBottom: 14 }} />
-        <Skeleton height={140} borderRadius={20} style={{ marginBottom: 14 }} />
-      </ScreenBackground>
-    );
-  }
-
   const meetDate = profile?.meetDate;
   const relDate = profile?.relationshipStartDate;
   const daysSinceMeeting = meetDate ? daysSince(dayjs(meetDate)) : 0;
@@ -275,7 +263,9 @@ export default function HomeScreen() {
       sad: { emoji: "🥺", label: "Şefkat İstiyor" },
       loved: { emoji: "💖", label: "Sevgi Dolu" },
     };
-    const moodObj = dashboardData.currentMood ? moodMap[dashboardData.currentMood] : { emoji: "🥰", label: "Aşk Dolu" };
+    const moodObj = (dashboardData.currentMood && moodMap[dashboardData.currentMood])
+      ? moodMap[dashboardData.currentMood]
+      : { emoji: "🥰", label: "Aşk Dolu" };
 
     let meetingDays: number | null = null;
     if (dashboardData.activeMeeting?.meeting_datetime) {
@@ -293,6 +283,18 @@ export default function HomeScreen() {
       loveScore: loveMeter,
     });
   }, [dashboardData, name, daysSinceTogether, daysSinceMeeting, loveMeter]);
+
+  if ((!session && !isDemoMode) || (!dashboardData && isLoading && !isDemoMode)) {
+    return (
+      <ScreenBackground style={{ paddingTop: insets.top + 20, paddingHorizontal: 20 }}>
+        <Skeleton height={80} borderRadius={20} style={{ marginBottom: 16 }} />
+        <Skeleton height={140} borderRadius={24} style={{ marginBottom: 14 }} />
+        <Skeleton height={90} borderRadius={20} style={{ marginBottom: 14 }} />
+        <Skeleton height={120} borderRadius={20} style={{ marginBottom: 14 }} />
+        <Skeleton height={140} borderRadius={20} style={{ marginBottom: 14 }} />
+      </ScreenBackground>
+    );
+  }
 
   return (
     <ScreenBackground>
