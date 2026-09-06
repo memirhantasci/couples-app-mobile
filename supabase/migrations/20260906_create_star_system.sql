@@ -479,7 +479,7 @@ RETURNS TABLE (
   catalog_id        BIGINT,
   catalog_code      VARCHAR(32),
   ra                NUMERIC(8,4),
-  dec               NUMERIC(8,4),
+  "dec"             NUMERIC(8,4),
   magnitude         NUMERIC(4,2),
   spectral_type     VARCHAR(16),
   base_color        VARCHAR(9),
