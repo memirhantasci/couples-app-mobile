@@ -113,6 +113,15 @@ export interface StarExoplanetRecord {
 }
 
 /**
+ * Yeni anı ötegezegeni oluşturma DTO'su.
+ * id, star_id, created_at, updated_at alanları sistem/DB tarafından üretilir.
+ */
+export type CreateExoplanetDto = Omit<
+  StarExoplanetRecord,
+  'id' | 'star_id' | 'created_at' | 'updated_at'
+>;
+
+/**
  * `star_sparks` tablosu satır tipi.
  */
 export interface StarSparkRecord {
