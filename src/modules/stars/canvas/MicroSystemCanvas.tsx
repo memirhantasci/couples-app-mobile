@@ -424,8 +424,10 @@ export function MicroSystemCanvas({
 
   function handlePointerUp(e: React.PointerEvent<HTMLCanvasElement>) {
     const rect = (e.target as HTMLElement).getBoundingClientRect();
-    const touchX = e.clientX - rect.left;
-    const touchY = e.clientY - rect.top;
+    const scaleX = canvasWidth / (rect.width || canvasWidth);
+    const scaleY = canvasHeight / (rect.height || canvasHeight);
+    const touchX = (e.clientX - rect.left) * scaleX;
+    const touchY = (e.clientY - rect.top) * scaleY;
 
     const cx = canvasWidth / 2;
     const cy = canvasHeight / 2;

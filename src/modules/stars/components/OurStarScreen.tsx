@@ -48,9 +48,11 @@ import {
   Clock,
   ArrowLeft,
   Sparkles,
+  X,
 } from 'lucide-react-native';
 
 import { useAuth } from '@/context/AuthContext';
+import { DEMO_STAR_DETAILS, DEMO_STAR_EXOPLANETS } from '@/constants/demoData';
 import { starService, SparkCooldownException } from '../api/starService';
 import { StarSparkManager } from '../services/StarSparkManager';
 import { MicroSystemCanvas } from '../canvas/MicroSystemCanvas';
@@ -75,7 +77,7 @@ const REALTIME_RECONCILIATION_WINDOW_MS = 5000;
 export const OurStarScreen: React.FC = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { profile, session } = useAuth();
+  const { profile, session, isDemoMode } = useAuth();
   const coupleId = profile?.coupleId ?? null;
   const currentUserId = session?.user?.id ?? '';
   const currentUserName = profile?.displayName || profile?.username || 'Partner';
@@ -86,6 +88,16 @@ export const OurStarScreen: React.FC = () => {
   const [starDetails, setStarDetails] = useState<CoupleStarDetails | null>(null);
   const [exoplanets, setExoplanets] = useState<StarExoplanetRecord[]>([]);
   const [viewportStars, setViewportStars] = useState<ViewportStarItem[]>([]);
+  const [selectedMacroStar, setSelectedMacroStar] = useState<ViewportStarItem | null>(null);
+
+  // Güvenli Geri Dönüş Fonksiyonu (Navigation Stack boşsa ana ekrana döner)
+  const handleBack = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)/home');
+    }
+  }, [router]);
 
   // Realtime & Rezonans State
   const [luminosityOverride, setLuminosityOverride] = useState<number | undefined>(undefined);
@@ -153,8 +165,21 @@ export const OurStarScreen: React.FC = () => {
   // ─── VERİ YÜKLEME VE RECONCILIATION ────────────────────────────────
   const loadStarData = useCallback(
     async (isSilent: boolean = false) => {
-      if (!coupleId) {
+      // 0. Demo Modu: Misafir kullanıcı için zengin örnek yıldız verisi
+      if (isDemoMode) {
+        setStarDetails(DEMO_STAR_DETAILS);
+        setExoplanets(DEMO_STAR_EXOPLANETS);
+        setLuminosityOverride(DEMO_STAR_DETAILS.luminosity_level);
+        setIsResonanceActive(DEMO_STAR_DETAILS.resonance_active);
+        setLiveCooldownSec(DEMO_STAR_DETAILS.cooldown_remaining_seconds || 0);
         setIsLoading(false);
+        return;
+      }
+
+      if (!coupleId) {
+        setStarDetails(null);
+        setIsLoading(false);
+        setIsClaimModalOpen(true);
         return;
       }
 
@@ -196,18 +221,16 @@ export const OurStarScreen: React.FC = () => {
         const planets = await starService.getStarExoplanets(details.star_id);
         setExoplanets(planets);
       } catch (err: any) {
-        // Yıldız tescilli değilse sessizce claim modalına yönlendir
-        if (err?.code === 'PGRST116' || (err?.message && err.message.includes('bulunamadı'))) {
-          setStarDetails(null);
-          setIsClaimModalOpen(true);
-        }
+        // Yıldız henüz tescilli değilse claim modalına yönlendir
+        setStarDetails(null);
+        setIsClaimModalOpen(true);
       } finally {
         if (!isSilent) {
           setIsLoading(false);
         }
       }
     },
-    [coupleId]
+    [coupleId, isDemoMode]
   );
 
   const isInitialMountRef = useRef(true);
@@ -284,6 +307,22 @@ export const OurStarScreen: React.FC = () => {
 
   // ─── MERKEZ YILDIZA DOKUNMA & KIVILCIM / PING YÖNETİMİ ──────────────
   const handleCenterStarTouch = async () => {
+    if (isDemoMode) {
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      } catch {}
+      triggerGlowWave();
+      setLuminosityOverride(1.0);
+      setIsResonanceActive(true);
+      if (liveCooldownSec <= 0) {
+        setLiveCooldownSec(72000);
+        showToast('Bugünkü ışığınız göğe yükseldi! Yıldızınız parladı ✨');
+      } else {
+        showToast('Yıldıza dokundun; sevgi titreşimi eşine iletildi 💫');
+      }
+      return;
+    }
+
     if (!starDetails || !sparkManagerRef.current) return;
 
     // 1. Günlük hak varsa Daily Spark dene
@@ -394,7 +433,7 @@ export const OurStarScreen: React.FC = () => {
       {/* ─── ÜST HUD BAR: GERİ DÖN VE STAR INFO BADGE ───────────────── */}
       <View style={[styles.hudTopBar, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={handleBack}
           style={styles.backButton}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           accessibilityLabel="Geri Dön"
@@ -435,25 +474,88 @@ export const OurStarScreen: React.FC = () => {
             initialCamera={{
               centerRa: starDetails ? Number(starDetails.ra) : 180,
               centerDec: starDetails ? Number(starDetails.dec) : 0,
-              zoom: 3.5,
+              zoom: 1.2,
             }}
             onBoundsChange={handleMacroBoundsChange}
             onSelectStar={(star) => {
               if (star.is_mine) {
                 // Kendi yıldızına tıklandığında Mikro Sisteme gir
                 setViewMode('micro');
-                showToast(`"${starDetails?.custom_name}" mikro sistemine girildi 🪐`);
+                setSelectedMacroStar(null);
+                showToast(`"${starDetails?.custom_name || star.custom_name}" mikro sistemine girildi 🪐`);
               } else {
-                showToast(
-                  star.is_claimed
-                    ? 'Bu yıldız başka bir çift tarafından tescillenmiş.'
-                    : `Katalog Yıldızı: ${star.catalog_code}`
-                );
+                setSelectedMacroStar(star);
               }
             }}
           />
         )}
       </View>
+
+      {/* ─── MAKRO MOD: SEÇİLEN YILDIZ BİLGİ VE SAHİPLENME KARTI ──────── */}
+      {viewMode === 'macro' && selectedMacroStar && (
+        <View style={[styles.macroStarCard, { bottom: insets.bottom + 80 }]}>
+          <View style={styles.macroStarHeader}>
+            <View style={styles.macroStarTitleRow}>
+              <View
+                style={[
+                  styles.macroStarColorDot,
+                  { backgroundColor: selectedMacroStar.base_color || '#9DB4FF' },
+                ]}
+              />
+              <Text style={styles.macroStarTitle}>
+                {selectedMacroStar.custom_name || selectedMacroStar.catalog_code}
+              </Text>
+              {selectedMacroStar.is_claimed ? (
+                <View style={styles.claimedBadge}>
+                  <Text style={styles.claimedBadgeText}>Tescilli</Text>
+                </View>
+              ) : (
+                <View style={styles.availableBadge}>
+                  <Text style={styles.availableBadgeText}>Boşta</Text>
+                </View>
+              )}
+            </View>
+            <TouchableOpacity
+              onPress={() => setSelectedMacroStar(null)}
+              style={styles.macroStarCloseBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <X size={16} color="rgba(255, 255, 255, 0.7)" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.macroStarDetailsRow}>
+            <Text style={styles.macroStarDetailText}>
+              Tayf: <Text style={styles.macroStarHighlight}>{selectedMacroStar.spectral_type}</Text>
+            </Text>
+            <Text style={styles.macroStarDetailText}>
+              Parlaklık: <Text style={styles.macroStarHighlight}>{selectedMacroStar.magnitude} mag</Text>
+            </Text>
+            <Text style={styles.macroStarDetailText}>
+              RA/DEC: <Text style={styles.macroStarHighlight}>{Number(selectedMacroStar.ra).toFixed(1)}° / {Number(selectedMacroStar.dec).toFixed(1)}°</Text>
+            </Text>
+          </View>
+
+          {/* Aksiyon */}
+          {!selectedMacroStar.is_claimed ? (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => {
+                setSelectedMacroStar(null);
+                setIsClaimModalOpen(true);
+              }}
+              style={styles.claimThisStarBtn}
+            >
+              <Sparkles size={14} color="#030207" />
+              <Text style={styles.claimThisStarBtnText}>Bu Yıldızı Sahiplen 💫</Text>
+            </TouchableOpacity>
+          ) : (
+            <Text style={styles.claimedInfoText}>
+              🔒 Bu yıldız başka bir çift tarafından gökyüzüne tescillenmiştir.
+            </Text>
+          )}
+        </View>
+      )}
 
       {/* ─── ALT KONTROL BAR VE AKSİYON BUTONLARI ─────────────────────── */}
       <View style={[styles.bottomControlBar, { paddingBottom: insets.bottom + 16 }]}>
@@ -513,6 +615,7 @@ export const OurStarScreen: React.FC = () => {
           onPress={() => {
             const nextMode = viewMode === 'micro' ? 'macro' : 'micro';
             setViewMode(nextMode);
+            setSelectedMacroStar(null);
             showToast(
               nextMode === 'macro'
                 ? 'Gök Kubbeye çıkıldı; tüm evreni keşfedebilirsiniz 🌌'
@@ -533,13 +636,13 @@ export const OurStarScreen: React.FC = () => {
       {/* ─── MODALLAR ────────────────────────────────────────────────── */}
 
       {/* 1. YILDIZ SAHİPLENME MODALI */}
-      {coupleId && (
+      {(coupleId || isDemoMode) && (
         <ClaimStarModal
           visible={isClaimModalOpen}
-          coupleId={coupleId}
+          coupleId={coupleId || 999999}
           onClose={() => {
             if (!starDetails) {
-              router.back();
+              handleBack();
             } else {
               setIsClaimModalOpen(false);
             }
@@ -549,12 +652,12 @@ export const OurStarScreen: React.FC = () => {
       )}
 
       {/* 2. ANİ ÖTEGEZEGENİ MODALI (VIEW / CREATE) */}
-      {starDetails && coupleId && (
+      {starDetails && (coupleId || isDemoMode) && (
         <ExoplanetModal
           visible={exoplanetModalMode !== null}
           mode={exoplanetModalMode || 'view'}
           starId={starDetails.star_id}
-          coupleId={coupleId}
+          coupleId={coupleId || 999999}
           selectedPlanet={selectedPlanet}
           onClose={() => setExoplanetModalMode(null)}
           onPlanetCreated={handlePlanetCreated}
@@ -565,7 +668,7 @@ export const OurStarScreen: React.FC = () => {
       {starDetails && (
         <ClaimStarModal
           visible={isCertificateModalOpen}
-          coupleId={coupleId || 0}
+          coupleId={coupleId || 999999}
           initialStar={starDetails}
           onClose={() => setIsCertificateModalOpen(false)}
           onSuccess={() => setIsCertificateModalOpen(false)}
@@ -764,6 +867,114 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 8,
     elevation: 6,
+  },
+  macroStarCard: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    zIndex: 25,
+    backgroundColor: 'rgba(10, 8, 24, 0.94)',
+    borderWidth: 1.2,
+    borderColor: 'rgba(56, 189, 248, 0.35)',
+    borderRadius: 18,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 6,
+    gap: 10,
+  },
+  macroStarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  macroStarTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  macroStarColorDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  macroStarTitle: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  claimedBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    borderWidth: 0.8,
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+  },
+  claimedBadgeText: {
+    color: '#FBBF24',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  availableBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+    backgroundColor: 'rgba(56, 189, 248, 0.18)',
+    borderWidth: 0.8,
+    borderColor: 'rgba(56, 189, 248, 0.4)',
+  },
+  availableBadgeText: {
+    color: '#38BDF8',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  macroStarCloseBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  macroStarDetailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  macroStarDetailText: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  macroStarHighlight: {
+    color: '#38BDF8',
+    fontWeight: '700',
+  },
+  claimThisStarBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#F59E0B',
+    borderRadius: 12,
+    paddingVertical: 10,
+  },
+  claimThisStarBtnText: {
+    color: '#030207',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  claimedInfoText: {
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 12,
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
 });
 

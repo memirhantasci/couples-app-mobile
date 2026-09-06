@@ -259,10 +259,35 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
     let errorOccurred: any = null;
 
     try {
-      resultStar = await starService.claimRandomStar({
-        coupleId,
-        customName: trimmed,
-      });
+      if (coupleId === 999999) {
+        resultStar = {
+          star_id: 'demo-star-sirius',
+          couple_id: 999999,
+          catalog_id: 1,
+          catalog_code: 'HIP-32349',
+          custom_name: trimmed,
+          ra: 101.2875,
+          dec: -16.7161,
+          magnitude: -1.46,
+          spectral_type: 'A1V',
+          base_color: '#9DB4FF',
+          luminosity_level: 0.95,
+          last_spark_at: new Date().toISOString(),
+          resonance_active: true,
+          resonance_until: null,
+          created_at: new Date().toISOString(),
+          can_spark_daily: true,
+          daily_spark_available_at: new Date().toISOString(),
+          cooldown_remaining_seconds: 0,
+          exoplanet_count: 0,
+          total_sparks_count: 1,
+        };
+      } else {
+        resultStar = await starService.claimRandomStar({
+          coupleId,
+          customName: trimmed,
+        });
+      }
     } catch (err: any) {
       errorOccurred = err;
     } finally {

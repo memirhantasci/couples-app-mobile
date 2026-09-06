@@ -68,7 +68,7 @@ export interface MacroSkyCanvasProps {
 
 const MIN_ZOOM = 1.0;
 const MAX_ZOOM = 8.0;
-const MIN_TOUCH_RADIUS_PX = 24;
+const MIN_TOUCH_RADIUS_PX = 32;
 const BOUNDS_DEBOUNCE_MS = 200;
 
 // Tayf sınıfına göre görsel yıldız yarıçapı (mantıksal piksel)
@@ -200,9 +200,11 @@ export function MacroSkyCanvas({
     active: boolean;
     startX: number;
     startY: number;
+    startClientX: number;
+    startClientY: number;
     startRa: number;
     startDec: number;
-  }>({ active: false, startX: 0, startY: 0, startRa: 180, startDec: 0 });
+  }>({ active: false, startX: 0, startY: 0, startClientX: 0, startClientY: 0, startRa: 180, startDec: 0 });
 
   // -------------------------------------------------------------------
   // BOUNDS DEĞİŞİMİ DEBOUNCE YARDIMCISI
@@ -419,13 +421,17 @@ export function MacroSkyCanvas({
   // -------------------------------------------------------------------
   function handlePointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
     const rect = (e.target as HTMLElement).getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const scaleX = width / (rect.width || width);
+    const scaleY = height / (rect.height || height);
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
 
     dragRef.current = {
       active: true,
       startX: x,
       startY: y,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
       startRa: cameraRef.current.centerRa,
       startDec: cameraRef.current.centerDec,
     };
@@ -435,8 +441,10 @@ export function MacroSkyCanvas({
     if (!dragRef.current.active) return;
 
     const rect = (e.target as HTMLElement).getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const scaleX = width / (rect.width || width);
+    const scaleY = height / (rect.height || height);
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
 
     const camera = cameraRef.current;
     const fovDec = 60 / camera.zoom;
@@ -457,14 +465,16 @@ export function MacroSkyCanvas({
     if (!dragRef.current.active) return;
 
     const rect = (e.target as HTMLElement).getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const dx = x - dragRef.current.startX;
-    const dy = y - dragRef.current.startY;
+    const scaleX = width / (rect.width || width);
+    const scaleY = height / (rect.height || height);
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    const dx = e.clientX - dragRef.current.startClientX;
+    const dy = e.clientY - dragRef.current.startClientY;
     const distance = Math.sqrt(dx * dx + dy * dy);
 
-    // 4px hareket eşiğinin altında tap sayılır → yıldız seç
-    if (distance < 4) {
+    // 12px hareket eşiğinin altında tap sayılır → yıldız seç
+    if (distance < 12) {
       const star = findNearestStar(x, y);
       if (star) onSelectStar?.(star);
     }

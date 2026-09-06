@@ -1,5 +1,6 @@
 import { dayjs } from "@/lib/date";
 import { CoupleProfile } from "@/context/AuthContext";
+import type { CoupleStarDetails, StarExoplanetRecord } from "@/modules/stars/types/star.types";
 
 export const DEMO_USER_ID = "demo-guest-user-id";
 export const DEMO_PARTNER_ID = "demo-partner-user-id";
@@ -398,3 +399,75 @@ export const DEMO_PERIOD_DATA = {
   phaseName: "Luteal Faz (Dinginlik Dönemi)",
   partnerTip: "Partnerin şu sıralar biraz yorgun veya duygusal olabilir. Ona sıcacık bir çikolata veya masajla sürpriz yapabilirsin! 🌸",
 };
+
+export const DEMO_STAR_DETAILS: CoupleStarDetails = {
+  star_id: "demo-star-sirius",
+  couple_id: DEMO_COUPLE_ID,
+  catalog_id: 1,
+  catalog_code: "HIP-32349",
+  custom_name: "Bizim Kutup Yıldızımız ✨",
+  ra: 101.2875,
+  dec: -16.7161,
+  magnitude: -1.46,
+  spectral_type: "A1V",
+  base_color: "#9DB4FF",
+  luminosity_level: 0.95,
+  last_spark_at: dayjs().subtract(3, "hour").toISOString(),
+  resonance_active: true,
+  resonance_until: null,
+  created_at: dayjs().subtract(120, "day").toISOString(),
+  can_spark_daily: true,
+  daily_spark_available_at: dayjs().toISOString(),
+  cooldown_remaining_seconds: 0,
+  exoplanet_count: 3,
+  total_sparks_count: 142,
+};
+
+export const DEMO_STAR_EXOPLANETS: StarExoplanetRecord[] = [
+  {
+    id: "demo-planet-1",
+    star_id: "demo-star-sirius",
+    title: "İlk Tanışmamız 🌸",
+    description: "Yağmurlu bir sonbahar günü Kadıköy'de bir kafede saatlerce sohbet etmiştik.",
+    milestone_date: dayjs().subtract(520, "day").format("YYYY-MM-DD"),
+    orbit_distance: 1,
+    orbit_speed: 1.0,
+    planet_type: "terrestrial",
+    palette: ["#FF6B8B", "#FF8E53", "#FFA07A"],
+    media_urls: ["https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=600&auto=format&fit=crop&q=80"],
+    custom_metadata: {},
+    created_at: dayjs().subtract(520, "day").toISOString(),
+    updated_at: dayjs().subtract(520, "day").toISOString(),
+  },
+  {
+    id: "demo-planet-2",
+    star_id: "demo-star-sirius",
+    title: "Kapadokya Gezimiz 🎈",
+    description: "Sabahın ilk ışıklarında rengarenk sıcak hava balonlarını izlediğimiz o büyüleyici an.",
+    milestone_date: dayjs().subtract(240, "day").format("YYYY-MM-DD"),
+    orbit_distance: 2,
+    orbit_speed: 1.0,
+    planet_type: "gas_giant",
+    palette: ["#F59E0B", "#EF4444", "#8B5CF6"],
+    media_urls: ["https://images.unsplash.com/photo-1570939274717-7eda259b50ed?w=600&auto=format&fit=crop&q=80"],
+    custom_metadata: {},
+    created_at: dayjs().subtract(240, "day").toISOString(),
+    updated_at: dayjs().subtract(240, "day").toISOString(),
+  },
+  {
+    id: "demo-planet-3",
+    star_id: "demo-star-sirius",
+    title: "Birlikte İlk Tatilimiz 🌊",
+    description: "Bodrum'da gün batımında denizin kokusu ve sonsuz huzur.",
+    milestone_date: dayjs().subtract(90, "day").format("YYYY-MM-DD"),
+    orbit_distance: 3,
+    orbit_speed: 1.0,
+    planet_type: "ocean_world",
+    palette: ["#00F2FE", "#4FACFE", "#00C6FF"],
+    media_urls: ["https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&auto=format&fit=crop&q=80"],
+    custom_metadata: {},
+    created_at: dayjs().subtract(90, "day").toISOString(),
+    updated_at: dayjs().subtract(90, "day").toISOString(),
+  },
+];
+

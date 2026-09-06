@@ -280,7 +280,18 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
         custom_metadata: {},
       };
 
-      const newPlanet = await starService.createExoplanet(starId, payload);
+      let newPlanet: StarExoplanetRecord;
+      if (coupleId === 999999 || starId.startsWith('demo-')) {
+        newPlanet = {
+          id: `demo-planet-${Date.now()}`,
+          star_id: starId,
+          ...payload,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+      } else {
+        newPlanet = await starService.createExoplanet(starId, payload);
+      }
 
       try {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
