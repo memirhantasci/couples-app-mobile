@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
@@ -97,7 +97,8 @@ function translatePairingError(msg: string): string {
 // ─── Pairing Screen ──────────────────────────────────────────────────────────
 
 export default function PairingScreen() {
-  const { session, refreshProfile, signOut } = useAuth();
+  const router = useRouter();
+  const { session, refreshProfile, signOut, enterDemoMode } = useAuth();
   const userId = session?.user?.id;
   const params = useLocalSearchParams<{ code?: string }>();
 
@@ -468,6 +469,31 @@ export default function PairingScreen() {
           </View>
           
           <TouchableOpacity
+            onPress={() => {
+              enterDemoMode();
+              router.replace("/(tabs)/home");
+            }}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              backgroundColor: "rgba(255, 77, 106, 0.12)",
+              borderWidth: 1.2,
+              borderColor: "rgba(255, 77, 106, 0.4)",
+              borderRadius: 20,
+              paddingVertical: 14,
+              paddingHorizontal: 20,
+              marginTop: 16,
+            }}
+          >
+            <Sparkles color="#FF4D6A" size={18} />
+            <Text style={{ color: "#FF4D6A", fontSize: 14, fontFamily: "Inter_700Bold" }}>
+              Uygulamayı Demo Modunda Keşfet ✨
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             onPress={async () => {
               try {
                 await signOut();
@@ -480,9 +506,9 @@ export default function PairingScreen() {
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
-              marginTop: 16,
+              marginTop: 12,
               marginBottom: 40,
-              padding: 16,
+              padding: 14,
             }}
           >
             <LogOut color="rgba(255,255,255,0.5)" size={18} />
