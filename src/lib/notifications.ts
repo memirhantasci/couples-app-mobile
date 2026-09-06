@@ -39,12 +39,18 @@ async function savePushToken(userId: string, token: string): Promise<void> {
  * a blocking gate per Apple Guideline 4.5.4.
  */
 export async function registerForPushNotifications(
-  userId: string
-): Promise<void> {
+  userId: string,
+  requestPermission: boolean = false
+): Promise<boolean> {
+  // Never register for demo guest user
+  if (!userId || userId === "demo-guest-user-id") {
+    return false;
+  }
+
   // Only real devices can get push tokens
   if (!Device.isDevice) {
     logger.log("[Push] Skipping — not a real device.");
-    return;
+    return false;
   }
 
   try {
@@ -52,14 +58,15 @@ export async function registerForPushNotifications(
       await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
 
-    if (existingStatus !== "granted") {
+    // Only prompt OS dialog if explicitly instructed (e.g. after a relevant user action)
+    if (existingStatus !== "granted" && requestPermission) {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
 
     if (finalStatus !== "granted") {
-      logger.log("[Push] Permission denied by user.");
-      return;
+      logger.log("[Push] Permission not granted.");
+      return false;
     }
 
     const projectId =
@@ -68,11 +75,10 @@ export async function registerForPushNotifications(
 
     if (!projectId) {
       console.warn("[Push] No EAS projectId found.");
-      return;
+      return false;
     }
 
     // Expo Go on Android uses host.exp.exponent as package name
-    // We must pass the applicationId explicitly so it uses Expo's own Firebase project
     const applicationId =
       Platform.OS === "android"
         ? Application.applicationId
@@ -81,7 +87,6 @@ export async function registerForPushNotifications(
     const isExpoGo = applicationId === "host.exp.exponent";
 
     const tokenOptions: any = { projectId };
-    // For Expo Go, do NOT pass applicationId — let Expo handle it internally
     if (!isExpoGo && applicationId) {
       tokenOptions.applicationId = applicationId;
     }
@@ -91,20 +96,68 @@ export async function registerForPushNotifications(
     if (tokenData) {
       await savePushToken(userId, tokenData);
       logger.log("[Push] Token registered:", tokenData);
+      return true;
     }
+    return false;
   } catch (err) {
     logger.log("[Push] Registration failed silently:", err);
+    return false;
   }
 }
 
-// Android channel setup (required for notifications to appear on Android)
+/**
+ * Silently syncs push token ONLY IF permission was already granted.
+ * Never displays a permission dialog to the user on startup.
+ */
+export async function syncPushTokenIfPermitted(userId: string): Promise<void> {
+  await registerForPushNotifications(userId, false);
+}
+
+/**
+ * Prompts user for notification permission with context.
+ * Call this only after a relevant user action (e.g. pairing, setting medicine, letter).
+ */
+export async function requestPushNotificationPermission(userId: string): Promise<boolean> {
+  return await registerForPushNotifications(userId, true);
+}
+
+
+// Foreground bildirim işleyicisi (Expo SDK 57 uyumlu)
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
+
+// Android kanalları kurulumu (Mektup, İlaç ve Genel tematik kanallar)
 export function configureAndroidNotificationChannel() {
   if (Platform.OS === "android") {
+    // 1. Genel Kanal
     Notifications.setNotificationChannelAsync("default", {
-      name: "Genel Bildirimler",
+      name: "Genel Bildirimler ❤️",
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#E8002D",
+      lightColor: "#FF5C77",
+    });
+
+    // 2. Mektuplar Kanalı (Altın Işıltı)
+    Notifications.setNotificationChannelAsync("letters_channel", {
+      name: "Mektuplar 💌",
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 150, 250],
+      lightColor: "#F5C563",
+    });
+
+    // 3. İlaç & Sağlık Kanalı (Zümrüt Yeşili)
+    Notifications.setNotificationChannelAsync("medicine_channel", {
+      name: "İlaç & Sağlık 💊",
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 200, 100, 200],
+      lightColor: "#34D399",
     });
   }
 }
@@ -162,12 +215,17 @@ export async function sendPushNotification(userId: string, title: string, body: 
 
     if (!tokens || tokens.length === 0) return;
 
+    let channelId = "default";
+    if (data?.type === "letter") channelId = "letters_channel";
+    else if (data?.type === "medicine" || data?.type === "medicine_reminder") channelId = "medicine_channel";
+
     for (const t of tokens) {
       const message = {
         to: t.token,
         sound: "default",
         title: cleanTitle,
         body: cleanBody,
+        channelId,
         data: data || {},
       };
 
@@ -268,6 +326,11 @@ export async function cancelLocalNotification(id: string) {
  * çifte ait partnerin token'larını döndürür.
  */
 export async function notifyPartner(coupleId: number, currentUserId: string, title: string, body: string, data?: any) {
+  // Demo modunda bildirim gönderilmez
+  if (coupleId === 999999 || currentUserId === "demo-guest-user-id") {
+    return;
+  }
+
   try {
     // Gönderen kullanıcının adını paralel olarak çek
     const { data: senderData } = await supabase
@@ -312,6 +375,15 @@ export async function notifyPartner(coupleId: number, currentUserId: string, tit
 
     if (error || !tokens || tokens.length === 0) return;
 
+    let channelId = "default";
+    if (data?.type === "letter") channelId = "letters_channel";
+    else if (data?.type === "medicine" || data?.type === "medicine_reminder") channelId = "medicine_channel";
+
+    const payloadData = {
+      ...(data || {}),
+      senderName: senderName || undefined,
+    };
+
     for (const t of tokens) {
       if (!t.token) continue;
       await fetch("https://exp.host/--/api/v2/push/send", {
@@ -326,7 +398,8 @@ export async function notifyPartner(coupleId: number, currentUserId: string, tit
           sound: "default",
           title: finalTitle,
           body: finalBody,
-          data: data || {},
+          channelId,
+          data: payloadData,
         }),
       });
     }

@@ -94,6 +94,13 @@ export default function MeetingsScreen() {
   };
 
   const handleEdit = (m: any) => {
+    if (executeOrIntercept(
+      () => {},
+      "Buluşmayı Düzenlemek İçin Kayıt Olun 📍",
+      "Buluşma detaylarını ve konumunu güncellemek için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
     setEditingMeetingId(m.id);
     setTitle(m.title);
     setMeetingDate(new Date(m.meeting_datetime));
@@ -114,6 +121,14 @@ export default function MeetingsScreen() {
   };
 
   const handleSave = async () => {
+    if (executeOrIntercept(
+      () => {},
+      "Buluşmayı Kaydetmek İçin Kayıt Olun 📅",
+      "Buluşmalarınızı kaydetmek ve partnerinizle paylaşmak için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
+
     if (!coupleId || !userId) return;
 
     if (meetingDate < new Date() && !editingMeetingId) {
@@ -165,7 +180,12 @@ export default function MeetingsScreen() {
             coupleId, 
             userId, 
             "Buluşma Planlandı! 📅", 
-            `${senderName} yeni bir buluşma planladı: ${meetingTitle}`
+            `${senderName} yeni bir buluşma planladı: ${meetingTitle}`,
+            {
+              type: "meeting",
+              route: "/(tabs)/meetings",
+              actionLabel: "Planı Gör 🗓️",
+            }
           );
         }
 
@@ -184,6 +204,14 @@ export default function MeetingsScreen() {
   };
 
   const handleDelete = (m: any) => {
+    if (executeOrIntercept(
+      () => {},
+      "Buluşmayı Silmek İçin Kayıt Olun 🗑️",
+      "Planlanan buluşmaları yönetmek ve silmek için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
+
     Alert.alert("Buluşmayı Sil", "Bu buluşmayı silmek istediğinize emin misiniz?", [
       { text: "Vazgeç", style: "cancel" },
       {

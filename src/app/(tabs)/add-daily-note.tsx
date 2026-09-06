@@ -14,6 +14,8 @@ import {
 import { getTheme } from "@/lib/theme";
 import { encrypt } from "@/utils/crypto";
 import { sanitize } from "@/utils/sanitize";
+import { useDemoAction } from "@/hooks/useDemoAction";
+import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 import { useQueryClient } from "@tanstack/react-query";
@@ -24,6 +26,7 @@ dayjs.locale("tr");
 
 export default function AddDailyNoteScreen() {
   const { session, profile } = useAuth();
+  const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const theme = getTheme(profile?.gender);
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -33,6 +36,14 @@ export default function AddDailyNoteScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSave = async () => {
+    if (executeOrIntercept(
+      () => {},
+      "Günlük Tutmak İçin Kayıt Olun 📖",
+      "Sadece sizin okuyabileceğiniz uçtan uca şifreli kişisel günlüğünüzü oluşturmak için ücretsiz hesabınızı başlatın."
+    )) {
+      return;
+    }
+
     if (!content.trim()) {
       Alert.alert("Eksik Bilgi", "Lütfen günlüğünüze bir şeyler yazın.");
       return;
@@ -177,6 +188,13 @@ export default function AddDailyNoteScreen() {
             )}
           </TouchableOpacity>
         </KeyboardAwareScrollView>
+
+        <DemoActionModal
+          visible={isDemoModalOpen}
+          onClose={() => setIsDemoModalOpen(false)}
+          title={modalConfig.title}
+          description={modalConfig.description}
+        />
       </View>
     </ScreenBackground>
   );

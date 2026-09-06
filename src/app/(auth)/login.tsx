@@ -37,16 +37,31 @@ type Mode = "login" | "register";
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
-  const { initialMode } = useLocalSearchParams<{ initialMode?: string }>();
+  const { initialMode, inviteCode } = useLocalSearchParams<{ initialMode?: string; inviteCode?: string }>();
   const { setIsDeviceAuthorized, enterDemoMode } = useAuth();
   const [mode, setMode] = useState<"login" | "register">(
-    initialMode === "register" ? "register" : "login"
+    initialMode === "register" || !!inviteCode ? "register" : "login"
   );
+  const [activeInviteCode, setActiveInviteCode] = useState<string | null>(inviteCode || null);
 
   React.useEffect(() => {
-    if (initialMode === "register") setMode("register");
+    async function loadInviteCode() {
+      const stored = await AsyncStorage.getItem("@pending_invite_code");
+      const effectiveCode = (inviteCode || stored || "").trim().toUpperCase();
+      if (effectiveCode) {
+        setActiveInviteCode(effectiveCode);
+        setRegPairingCode(effectiveCode);
+        setMode("register");
+        await AsyncStorage.setItem("@pending_invite_code", effectiveCode);
+      }
+    }
+    loadInviteCode();
+  }, [inviteCode]);
+
+  React.useEffect(() => {
+    if (initialMode === "register" || activeInviteCode) setMode("register");
     else if (initialMode === "login") setMode("login");
-  }, [initialMode]);
+  }, [initialMode, activeInviteCode]);
 
   // Login fields
   const [loginUsername, setLoginUsername] = useState("");
@@ -323,10 +338,9 @@ export default function LoginScreen() {
 
       // The user profile is automatically created in public.users via Supabase trigger
 
-      if (regPairingCode.trim()) {
-        await supabase.rpc("join_couple_by_code_uuid", {
-          p_code: regPairingCode.trim().toUpperCase(),
-        });
+      const cleanPairingCode = regPairingCode.trim().toUpperCase() || activeInviteCode?.trim().toUpperCase() || "";
+      if (cleanPairingCode) {
+        await AsyncStorage.setItem("@pending_invite_code", cleanPairingCode);
       }
 
       // If email confirmation is enabled in Supabase, session will be null
@@ -335,7 +349,10 @@ export default function LoginScreen() {
         setTimeout(() => {
           router.push({
             pathname: "/(auth)/verify",
-            params: { email: regEmail.trim().toLowerCase() },
+            params: { 
+              email: regEmail.trim().toLowerCase(),
+              inviteCode: cleanPairingCode || undefined
+            },
           });
         }, 1500);
         return;
@@ -573,6 +590,21 @@ export default function LoginScreen() {
           {/* ─── REGISTER FORM ─── */}
           {mode === "register" && (
             <View style={styles.formContainer}>
+              {/* Sevgilinin Daveti Rozeti */}
+              {activeInviteCode ? (
+                <View style={styles.inviteBannerCard}>
+                  <View style={styles.inviteBannerIconCircle}>
+                    <Heart size={16} color="#FF2E63" fill="#FF2E63" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inviteBannerTitle}>Sevgilinin Davetiyle Katılıyorsun 💕</Text>
+                    <Text style={styles.inviteBannerSub}>
+                      Eşleşme kodun ({activeInviteCode}) otomatik tanımlandı. Kayıt tamamlandığında kod girmene gerek kalmadan doğrudan sevgilinle eşleşeceksin!
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
+
               {/* Ad Soyad */}
               <View style={styles.inputGroup}>
                 <Text style={styles.fieldLabel}>AD SOYAD</Text>
@@ -1178,6 +1210,37 @@ const styles = StyleSheet.create({
   demoModeBtnText: {
     fontSize: 14,
     fontFamily: "Inter_600SemiBold",
+  },
+  inviteBannerCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "rgba(255, 46, 99, 0.12)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 46, 99, 0.35)",
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 16,
+  },
+  inviteBannerIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255, 46, 99, 0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  inviteBannerTitle: {
+    color: "#FFFFFF",
+    fontSize: 13.5,
+    fontFamily: "Inter_700Bold",
+    marginBottom: 2,
+  },
+  inviteBannerSub: {
+    color: "rgba(255, 255, 255, 0.7)",
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 16,
   },
 });
 

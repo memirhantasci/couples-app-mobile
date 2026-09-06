@@ -139,6 +139,14 @@ export default function PeriodTrackerScreen() {
   }
 
   async function handleToggle() {
+    if (executeOrIntercept(
+      () => {},
+      "Döngü Takibini Başlatmak İçin Kayıt Olun 🌸",
+      "Kişisel döngünüzü kaydetmek, bilimsel tahminler almak ve partnerinizle paylaşmak için ücretsiz hesabınızı oluşturun."
+    )) {
+      setSelectedDate(null);
+      return;
+    }
     if (!selectedDate || !userId) return;
     setLoading(true);
 
@@ -153,7 +161,11 @@ export default function PeriodTrackerScreen() {
         
         if (isPremium && coupleId && userId) {
           const senderName = profile?.displayName || "Partnerin";
-          notifyPartner(coupleId, userId, "Regl Dönemi 🌸", `${senderName} için regl dönemi başladı. Ona biraz daha özen gösterme zamanı!`);
+          notifyPartner(coupleId, userId, "Regl Dönemi 🌸", `${senderName} için regl dönemi başladı. Ona biraz daha özen gösterme zamanı!`, {
+            type: "period",
+            route: "/(tabs)/period-tracker",
+            actionLabel: "Yanındayım 🌸",
+          });
         }
       } else {
         const { error } = await supabase

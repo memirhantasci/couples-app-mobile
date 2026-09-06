@@ -1,4 +1,4 @@
-import { registerForPushNotifications } from "@/lib/notifications";
+import { registerForPushNotifications, syncPushTokenIfPermitted } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { RevenueCatService } from "@/lib/revenuecat";
@@ -266,7 +266,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!initialSession) {
         setIsDeviceAuthorized(null);
-        setIsLoading(false);
+        enterDemoMode();
       } else {
         const userId = initialSession.user.id;
         profileFetchedForUser.current = userId;
@@ -288,7 +288,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           saveCachedProfile(freshProfile);
           // Non-blocking background syncs
           RevenueCatService.logIn(userId).catch(() => {});
-          registerForPushNotifications(userId).catch(() => {});
+          syncPushTokenIfPermitted(userId).catch(() => {});
         }
         setIsLoading(false);
       }
@@ -364,7 +364,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Non-blocking background syncs
         RevenueCatService.logIn(userId).catch(() => {});
-        registerForPushNotifications(userId).catch(() => {});
+        syncPushTokenIfPermitted(userId).catch(() => {});
       })
       .catch((err) => {
         console.error("fetchProfile error:", err);

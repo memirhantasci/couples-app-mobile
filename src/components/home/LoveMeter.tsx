@@ -1,5 +1,5 @@
 import React, { useEffect, memo } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useSharedValue,
@@ -9,6 +9,7 @@ import Animated, {
   withDelay,
 } from "react-native-reanimated";
 import { AppTheme } from "@/lib/theme";
+import { playCelebration } from "@/lib/soundEffects";
 
 interface LoveMeterProps {
   value?: number | null; // 0-100
@@ -37,10 +38,14 @@ export const LoveMeter = memo(function LoveMeter({ value, theme, subtitle, isLoa
   const displaySubtitle = subtitle ?? "Bugün için ölçüldü 💝 · Harika bir uyum!";
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+    <TouchableOpacity
+      activeOpacity={0.88}
+      onPress={() => playCelebration()}
+      style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+    >
       {/* Başlık + yüzde */}
       <View style={styles.headerRow}>
-        <Text style={[styles.title, { color: theme.text }]}>Aşk Ölçer</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Aşk Ölçer ✨</Text>
         {isLoading && !hasValue ? (
           <Text style={[styles.percentLabel, { color: theme.accent, opacity: 0.5 }]}>--%</Text>
         ) : (
@@ -64,7 +69,7 @@ export const LoveMeter = memo(function LoveMeter({ value, theme, subtitle, isLoa
       <Text style={[styles.subtitle, { color: theme.textMuted }]}>
         {isLoading && !hasValue ? "Aşk skoru hesaplanıyor..." : displaySubtitle}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 });
 

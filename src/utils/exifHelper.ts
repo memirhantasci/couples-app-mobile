@@ -1,5 +1,6 @@
 import * as Location from "expo-location";
 import { dayjs } from "@/lib/date";
+import { logger } from "@/utils/logger";
 
 export interface ExtractedExifResult {
   takenDate: string | null;
@@ -82,24 +83,124 @@ export function parseCoordinate(val: any, ref?: string | null): number | null {
 }
 
 /**
- * Bir koordinatı adrese (ilçe, şehir) dönüştürür.
+ * expo-location tarafından döndürülen adres bileşenlerini
+ * Sokak, Mahalle, İlçe, İl, Ülke hiyerarşisinde düzenli bir metne dönüştürür.
+ */
+export function formatGeocodedAddress(item: Location.LocationGeocodedAddress): string {
+  const parts: string[] = [];
+
+  // Sokak / Cadde adı ve kapı no
+  const streetName = item.street ? item.street.trim() : null;
+  const streetNumber = item.streetNumber ? item.streetNumber.trim() : null;
+  const fullStreet = streetName 
+    ? (streetNumber ? `${streetName} No:${streetNumber}` : streetName)
+    : null;
+
+  // Mahalle / Semt
+  const rawDistrict = item.district ? item.district.trim() : null;
+  const district = rawDistrict 
+    ? (rawDistrict.toLowerCase().includes("mah") ? rawDistrict : `${rawDistrict} Mah.`)
+    : null;
+
+  // İlçe / Alt bölge
+  const subregion = item.subregion ? item.subregion.trim() : null;
+
+  // İl / Şehir
+  const city = item.city ? item.city.trim() : (item.region ? item.region.trim() : null);
+
+  // Mekan / Yer ismi (sokak veya ilçeden farklı ise, örn: "Galata Kulesi", "Bebek Parkı")
+  const name = item.name ? item.name.trim() : null;
+  if (name && name !== streetName && name !== rawDistrict && name !== subregion && name !== city && name !== streetNumber) {
+    parts.push(name);
+  }
+
+  if (fullStreet && !parts.includes(fullStreet)) {
+    parts.push(fullStreet);
+  }
+
+  if (district && !parts.includes(district)) {
+    if (rawDistrict !== subregion && rawDistrict !== city) {
+      parts.push(district);
+    }
+  }
+
+  if (subregion && !parts.includes(subregion) && subregion !== city) {
+    parts.push(subregion);
+  }
+
+  if (city && !parts.includes(city)) {
+    parts.push(city);
+  }
+
+  // Yurt dışı konumlar için ülke
+  if (item.country && item.country !== "Turkey" && item.country !== "Türkiye" && !parts.includes(item.country)) {
+    parts.push(item.country);
+  }
+
+  return parts.join(", ") || (city || subregion || "Özel Konum");
+}
+
+/**
+ * Bir koordinatı adrese (sokak, mahalle, ilçe, il) dönüştürür.
  */
 export async function reverseGeocodeLocation(lat: number, lng: number): Promise<string | undefined> {
   try {
     const results = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
     if (results && results.length > 0) {
-      const item = results[0];
-      const parts = [
-        item.district || item.subregion || item.name,
-        item.city || item.region,
-      ].filter(Boolean);
-
-      return parts.join(", ") || undefined;
+      return formatGeocodedAddress(results[0]);
     }
   } catch {
     // Sessizce geç
   }
   return undefined;
+}
+
+/**
+ * Metin olarak girilen adresi (İl, ilçe, mahalle, sokak, mekan adı)
+ * haritada gösterilebilir GPS koordinatlarına (enlem/boylam) çevirir (Forward Geocoding).
+ */
+export async function geocodeAddressString(address: string): Promise<{
+  latitude: number;
+  longitude: number;
+  locationName: string;
+} | null> {
+  const cleanQuery = address.trim();
+  if (!cleanQuery || cleanQuery.length < 2) return null;
+
+  try {
+    const results = await Location.geocodeAsync(cleanQuery);
+    if (!results || results.length === 0) {
+      return null;
+    }
+
+    const first = results[0];
+    if (!isValidCoordinate(first.latitude, first.longitude)) {
+      return null;
+    }
+
+    // Koordinatı doğrulanmış detaylı adres formatına çevir
+    let resolvedName = cleanQuery;
+    try {
+      const revResults = await Location.reverseGeocodeAsync({
+        latitude: first.latitude,
+        longitude: first.longitude,
+      });
+      if (revResults && revResults.length > 0) {
+        resolvedName = formatGeocodedAddress(revResults[0]);
+      }
+    } catch {
+      // Orijinal metni koru
+    }
+
+    return {
+      latitude: first.latitude,
+      longitude: first.longitude,
+      locationName: resolvedName,
+    };
+  } catch (error) {
+    logger.warn("Forward geocoding error:", error);
+    return null;
+  }
 }
 
 interface BinaryExifData {
@@ -345,7 +446,52 @@ export async function extractPhotoExif(
     }
   }
 
-  // 3. ADIM: Koordinat Kontrolü ve Reverse Geocode
+  // 3. ADIM: Sayısal GPS bulunamadıysa, metin tabanlı EXIF/IPTC etiketlerini (il, ilçe, mahalle, sokak) tara
+  if (!isValidCoordinate(finalLat, finalLng) && nativeExif) {
+    const textLocationCandidates: string[] = [];
+
+    // IPTC etiketleri (City, SubLocation, ProvinceState, Country)
+    const iptc = nativeExif["{IPTC}"] || nativeExif["IPTC"] || {};
+    const iptcSubLoc = iptc.SubLocation || nativeExif.SubLocation;
+    const iptcCity = iptc.City || nativeExif.City;
+    const iptcProvince = iptc.ProvinceState || iptc.Province || nativeExif.State || nativeExif.Province;
+    const iptcCountry = iptc.CountryName || iptc.Country || nativeExif.Country;
+
+    const iptcCombined = [iptcSubLoc, iptcCity, iptcProvince, iptcCountry].filter(Boolean).join(", ");
+    if (iptcCombined) {
+      textLocationCandidates.push(iptcCombined);
+    }
+    if (iptcCity && iptcProvince && iptcCity !== iptcProvince) {
+      textLocationCandidates.push(`${iptcCity}, ${iptcProvince}`);
+    } else if (iptcCity) {
+      textLocationCandidates.push(iptcCity);
+    }
+
+    // GPS Alan / Bölge Bilgisi
+    const gpsArea = nativeExif.GPSAreaInformation || nativeExif["{GPS}"]?.GPSAreaInformation;
+    if (typeof gpsArea === "string" && gpsArea.trim()) {
+      textLocationCandidates.push(gpsArea.trim());
+    }
+
+    // Açıklama / Yorum içinde konum ipuçları
+    const desc = nativeExif.ImageDescription || nativeExif["{TIFF}"]?.ImageDescription;
+    if (typeof desc === "string" && desc.trim()) {
+      textLocationCandidates.push(desc.trim());
+    }
+
+    // Aday metinlerden koordinat çıkar (Forward Geocoding)
+    for (const candidate of textLocationCandidates) {
+      if (!candidate || candidate.length < 2) continue;
+      const geocoded = await geocodeAddressString(candidate);
+      if (geocoded && isValidCoordinate(geocoded.latitude, geocoded.longitude)) {
+        finalLat = geocoded.latitude;
+        finalLng = geocoded.longitude;
+        break;
+      }
+    }
+  }
+
+  // 4. ADIM: Koordinat Kontrolü ve Reverse Geocode
   let locationResult: ExtractedExifResult["location"] = null;
 
   if (isValidCoordinate(finalLat, finalLng)) {

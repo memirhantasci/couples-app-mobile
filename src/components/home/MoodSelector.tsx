@@ -13,6 +13,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { notifyPartner } from "@/lib/notifications";
 import { logger } from "@/utils/logger";
 import { AppTheme } from "@/lib/theme";
+import { useDemoAction } from "@/hooks/useDemoAction";
+import { DemoActionModal } from "@/components/demo/DemoActionModal";
+import { playBubblePop } from "@/lib/soundEffects";
 
 const MOODS = [
   { emoji: "😍", label: "Çok Mutlu" },
@@ -31,6 +34,7 @@ interface MoodSelectorProps {
 
 export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked = false, theme }: MoodSelectorProps) {
   const { session, profile } = useAuth();
+  const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const queryClient = useQueryClient();
 
   const [selected, setSelected] = useState<string | null>(currentMood || null);
@@ -43,6 +47,14 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked
   }, [currentMood, moodLocked]);
 
   async function handleMoodSelect(emoji: string) {
+    playBubblePop();
+    if (executeOrIntercept(
+      () => {},
+      "Ruh Halinizi Paylaşmak İçin Kayıt Olun 😊",
+      "Bugün nasıl hissettiğinizi sevgilinizle paylaşmak ve duygusal bağınızı güçlendirmek için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
     if (locked || loading || !session?.user?.id) return;
     setLoading(true);
 
@@ -85,7 +97,13 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked
           coupleId,
           userId,
           "Mod Güncellemesi 💭",
-          `${myName} bugün kendini ${moodLabel} ${emoji} hissediyor.`
+          `${myName} bugün kendini ${moodLabel} ${emoji} hissediyor.`,
+          {
+            type: "mood",
+            moodEmoji: emoji,
+            route: "/(tabs)/home",
+            actionLabel: "Sarılarak Yanıtla 🫂",
+          }
         );
       }
     } else {
@@ -146,6 +164,13 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked
           Bugünkü modun kilitlendi ✨
         </Text>
       )}
+
+      <DemoActionModal
+        visible={isDemoModalOpen}
+        onClose={() => setIsDemoModalOpen(false)}
+        title={modalConfig.title}
+        description={modalConfig.description}
+      />
     </View>
   );
 });

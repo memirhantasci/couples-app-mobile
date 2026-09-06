@@ -103,6 +103,14 @@ export default function DailyNotesScreen() {
   });
 
   const handleDelete = useCallback(async (id: number) => {
+    if (executeOrIntercept(
+      () => {},
+      "Günlüğü Silmek İçin Kayıt Olun 🗑️",
+      "Günlük notlarınızı yönetmek ve silmek için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
+
     Alert.alert("Günlüğü Sil", "Bu günlük kaydını kalıcı olarak silmek istediğinize emin misiniz?", [
       { text: "Vazgeç", style: "cancel" },
       {
@@ -122,6 +130,15 @@ export default function DailyNotesScreen() {
   }, [queryClient, userId]);
 
   const handleUpdate = async () => {
+    if (executeOrIntercept(
+      () => {},
+      "Günlüğü Düzenlemek İçin Kayıt Olun ✏️",
+      "Günlük notlarınızı güncellemek için ücretsiz hesabınızı oluşturun."
+    )) {
+      setEditingNote(null);
+      return;
+    }
+
     if (!editingNote) return;
     if (!editContent.trim()) {
       setEditError(true);
@@ -174,6 +191,13 @@ export default function DailyNotesScreen() {
           <View style={styles.actionBtnsRow}>
             <TouchableOpacity
               onPress={() => {
+                if (executeOrIntercept(
+                  () => {},
+                  "Günlüğü Düzenlemek İçin Kayıt Olun ✏️",
+                  "Günlük notlarınızı güncellemek için ücretsiz hesabınızı oluşturun."
+                )) {
+                  return;
+                }
                 setEditingNote(note);
                 setEditContent(cleanContentText(note.content));
                 setEditError(false);

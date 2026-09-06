@@ -10,8 +10,9 @@ import {
   X, Heart, Settings, Home, Pill, CalendarHeart, 
   Droplet, MapPin, LogOut, ChevronRight, User, 
   BookOpen, Mail, Images, Camera, Sparkles, ShieldCheck,
-  Calendar, Clock, ImagePlus, HelpCircle, Check
+  Calendar, Clock, ImagePlus, HelpCircle, Check, Bell
 } from "lucide-react-native";
+import { NotificationShowcaseModal } from "@/components/notifications/NotificationShowcaseModal";
 import { useAuth } from "@/context/AuthContext";
 import { getTheme } from "@/lib/theme";
 import { decrypt, deterministicDecrypt } from "@/utils/crypto";
@@ -24,16 +25,31 @@ import { LegalModal } from "@/components/legal/LegalModal";
 import { FEATURE_GUIDES } from "@/constants/featureGuides";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { resetAllPageTours } from "@/hooks/usePageTour";
+import { useDemoAction } from "@/hooks/useDemoAction";
+import { DemoActionModal } from "@/components/demo/DemoActionModal";
+import { CoupleWrappedModal } from "@/components/wrapped/CoupleWrappedModal";
+import { computeCoupleWrapped, CoupleWrappedData } from "@/utils/wrappedCalculator";
 
 export default function MenuScreen() {
   const router = useRouter();
   const { profile, session, signOut, isDemoMode, exitDemoMode } = useAuth();
+  const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
   const styles = React.useMemo(() => getMenuStyles(theme, isLight), [theme, isLight]);
   const insets = useSafeAreaInsets();
   const [legalVisible, setLegalVisible] = React.useState(false);
   const [selectedTourPage, setSelectedTourPage] = useState<string | null>(null);
   const [showGuideCatalog, setShowGuideCatalog] = useState(false);
+  const [showWrapped, setShowWrapped] = useState(false);
+  const [wrappedData, setWrappedData] = useState<CoupleWrappedData | null>(null);
+  const [showNotificationShowcase, setShowNotificationShowcase] = useState(false);
+
+  const relDate = profile?.relationshipStartDate;
+  const coupleId = profile?.coupleId;
+
+  React.useEffect(() => {
+    computeCoupleWrapped(coupleId || null, relDate, isDemoMode).then((data) => setWrappedData(data));
+  }, [coupleId, relDate, isDemoMode]);
 
   const handleRoute = (path: string) => {
     router.back();
@@ -54,10 +70,7 @@ export default function MenuScreen() {
     }
   };
   
-  const relDate = profile?.relationshipStartDate;
   const daysSinceTogether = relDate ? daysSince(dayjs(relDate)) : 0;
-  
-  const coupleId = profile?.coupleId;
   const currentUserId = session?.user?.id;
 
   const { data: partnerName } = useQuery({
@@ -187,7 +200,16 @@ export default function MenuScreen() {
 
             <TouchableOpacity 
               style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
-              onPress={() => handleRoute("/(tabs)/add-photo")}
+              onPress={() => {
+                if (executeOrIntercept(
+                  () => handleRoute("/(tabs)/add-photo"),
+                  "Ortak Fotoğraf Eklemek İçin Kayıt Olun 📸",
+                  "Sevgilinizle ortak anı albümü oluşturmak ve fotoğraflarınızın çekildiği yerleri haritada görmek için ücretsiz hesabınızı oluşturun."
+                )) {
+                  return;
+                }
+                handleRoute("/(tabs)/add-photo");
+              }}
               activeOpacity={0.8}
             >
               <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
@@ -211,6 +233,21 @@ export default function MenuScreen() {
               <View style={styles.menuTextContainer}>
                 <Text style={styles.menuTitle}>Günlüğüm</Text>
                 <Text style={styles.menuSub}>Sana özel şifreli not defterin</Text>
+              </View>
+              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: "rgba(255, 77, 109, 0.35)" }]} 
+              onPress={() => setShowWrapped(true)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: "rgba(255, 77, 109, 0.2)" }]}>
+                <Sparkles color="#FF4D6D" size={18} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>Couple Wrapped ✨</Text>
+                <Text style={styles.menuSub}>Aylık ve yıllık romantik özetiniz</Text>
               </View>
               <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
             </TouchableOpacity>
@@ -332,6 +369,26 @@ export default function MenuScreen() {
 
             <TouchableOpacity 
               style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              onPress={() => setShowNotificationShowcase(true)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <Bell color={theme.accent} size={18} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Text style={styles.menuTitle}>Özel Bildirim Tasarımları</Text>
+                  <View style={{ backgroundColor: theme.accent, paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 6 }}>
+                    <Text style={{ fontSize: 9.5, fontWeight: "800", color: "#fff" }}>YENİ</Text>
+                  </View>
+                </View>
+                <Text style={styles.menuSub}>Mektup, ilaç ve anı bildirim vitrini</Text>
+              </View>
+              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
               onPress={() => setShowGuideCatalog(true)}
               activeOpacity={0.8}
             >
@@ -355,7 +412,7 @@ export default function MenuScreen() {
               </View>
               <View style={styles.menuTextContainer}>
                 <Text style={styles.menuTitle}>Ayarlar & Profil</Text>
-                <Text style={styles.menuSub}>Cüzdan, ilişki tarihleri ve güvenlik</Text>
+                <Text style={styles.menuSub}>Sesler, temalar, tarihler ve güvenlik</Text>
               </View>
               <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
             </TouchableOpacity>
@@ -397,6 +454,12 @@ export default function MenuScreen() {
         visible={legalVisible}
         onClose={() => setLegalVisible(false)}
         accentColor={theme.accent}
+      />
+
+      {/* ÖZEL BİLDİRİM TASARIMLARI VİTRİN MODALI */}
+      <NotificationShowcaseModal
+        visible={showNotificationShowcase}
+        onClose={() => setShowNotificationShowcase(false)}
       />
 
       {/* REHBER KATALOĞU SEÇİM MODALI */}
@@ -459,6 +522,21 @@ export default function MenuScreen() {
           onClose={() => setSelectedTourPage(null)}
         />
       )}
+
+      <DemoActionModal
+        visible={isDemoModalOpen}
+        onClose={() => setIsDemoModalOpen(false)}
+        title={modalConfig.title}
+        description={modalConfig.description}
+      />
+
+      <CoupleWrappedModal
+        visible={showWrapped}
+        onClose={() => setShowWrapped(false)}
+        data={wrappedData}
+        partnerName={partnerName || "Sevgilin"}
+        theme={theme}
+      />
     </ScreenBackground>
   );
 }

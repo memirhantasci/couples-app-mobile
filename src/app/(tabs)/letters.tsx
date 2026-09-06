@@ -17,7 +17,7 @@ import { encrypt, decrypt, deterministicDecrypt } from "@/utils/crypto";
 import { 
   Lock, ChevronRight, LockKeyhole, Calendar as CalendarIcon, 
   X, AlignJustify, PenLine, Send, ChevronLeft, 
-  Clock, Mail, Sparkles, Unlock, UserCheck
+  Clock, Mail, Sparkles, Unlock, UserCheck, ChevronDown
 } from "lucide-react-native";
 import { sanitize, sanitizeStrict } from "@/utils/sanitize";
 import { logger } from "@/utils/logger";
@@ -33,6 +33,7 @@ import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { DEMO_LETTERS } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
+import { playLetterSend } from "@/lib/soundEffects";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
 
 const safeDecrypt = (val: string | null | undefined): string => {
@@ -191,6 +192,15 @@ export default function LettersScreen() {
   };
 
   const handleSave = async () => {
+    if (executeOrIntercept(
+      () => {},
+      "Mektup Yazmak ve Mühürlemek İçin Kayıt Olun 💌",
+      "Partnerinize zaman kilitli mektuplar göndermek ve dilediğiniz tarihte açılmasını sağlamak için ücretsiz hesap oluşturun."
+    )) {
+      setShowWriteModal(false);
+      return;
+    }
+
     const newErrors = { 
       receiver: !receiverId, 
       title: !title.trim(), 
@@ -248,10 +258,16 @@ export default function LettersScreen() {
         const notificationBody = letterHeader 
           ? `${senderName} sana mühürlü bir mektup gönderdi: "${letterHeader}"`
           : `${senderName} sana mühürlü bir mektup gönderdi.`;
-        notifyPartner(coupleId, userId, "Gelecekten Bir Mektup 💌", notificationBody);
+        notifyPartner(coupleId, userId, "Gelecekten Bir Mektup 💌", notificationBody, {
+          type: "letter",
+          letterTitle: letterHeader,
+          route: "/(tabs)/letters",
+          actionLabel: "Mektubu Aç 📜",
+        });
       }
 
-      // Origami turna kuşu uçuş animasyonunu başlat! 🕊️✨
+      // Origami turna kuşu uçuş animasyonunu ve ses efektini başlat! 🕊️✨
+      playLetterSend();
       setShowOrigamiAnimation(true);
     } catch (error: any) {
       logger.error("Letter save error:", error);
@@ -359,7 +375,16 @@ export default function LettersScreen() {
               )}
             </View>
 
-            <Text style={[styles.cardDate, { color: theme.textMuted }]}>{relativeDate}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text style={[styles.cardDate, { color: theme.textMuted }]}>{relativeDate}</Text>
+              {canOpen && (
+                <ChevronDown 
+                  size={14} 
+                  color={theme.textMuted} 
+                  style={{ transform: [{ rotate: isOpen ? "180deg" : "0deg" }] }} 
+                />
+              )}
+            </View>
           </View>
 
           {/* Mektup Başlığı */}
@@ -374,27 +399,34 @@ export default function LettersScreen() {
             </Text>
           </View>
 
-          {/* Kısa Önizleme */}
-          <Text 
-            style={[
-              styles.previewText, 
-              { color: theme.textSecondary },
-              isLockedDate && itemType === "received" && styles.previewTextBlurred
-            ]} 
-            numberOfLines={isOpen ? undefined : 2}
-          >
-            {canOpen 
-              ? letter.content 
-              : "Bu mektup sevdiğin tarafından belirlenen tarihe kadar özel bir mühürle kilitlenmiştir..."}
-          </Text>
+          {/* Kapalı Durumdayken Kısa Önizleme */}
+          {!isOpen && (
+            <Text 
+              style={[
+                styles.previewText, 
+                { color: theme.textSecondary },
+                isLockedDate && itemType === "received" && styles.previewTextBlurred
+              ]} 
+              numberOfLines={2}
+            >
+              {canOpen 
+                ? letter.content 
+                : "Bu mektup sevdiğin tarafından belirlenen tarihe kadar özel bir mühürle kilitlenmiştir..."}
+            </Text>
+          )}
 
-          {/* Açık Durumdaki Tam Mektup */}
+          {/* Açık Durumdaki Tam Mektup İçeriği */}
           {canOpen && isOpen && (
             <View style={[styles.letterContentBox, { borderTopColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}>
+              <View style={styles.letterContentHeaderRow}>
+                <Text style={[styles.letterContentLabel, { color: theme.accent }]}>Mektup İçeriği</Text>
+              </View>
               <Text style={[styles.letterContentText, { color: theme.text }]}>{letter.content}</Text>
-              <Text style={[styles.letterFooterNote, { color: theme.textMuted }]}>
-                {unlockDateStr ? `Açılış Zamanı: ${dayjs(unlockDateStr).locale("tr").format("DD MMMM YYYY")}` : ""}
-              </Text>
+              {unlockDateStr ? (
+                <Text style={[styles.letterFooterNote, { color: theme.textMuted }]}>
+                  {`Açılış Zamanı: ${dayjs(unlockDateStr).locale("tr").format("DD MMMM YYYY")}`}
+                </Text>
+              ) : null}
             </View>
           )}
         </TouchableOpacity>
@@ -1020,6 +1052,18 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.08)",
+  },
+  letterContentHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  letterContentLabel: {
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
   },
   letterContentText: {
     fontSize: 14.5,

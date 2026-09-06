@@ -18,12 +18,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { sanitizeStrict, sanitize } from "@/utils/sanitize";
+import { useDemoAction } from "@/hooks/useDemoAction";
+import { DemoActionModal } from "@/components/demo/DemoActionModal";
 
 export default function AddMemoryScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const queryClient = useQueryClient();
   const { session, profile } = useAuth();
+  const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const insets = useSafeAreaInsets();
   const theme = getTheme(profile?.gender);
 
@@ -57,6 +60,14 @@ export default function AddMemoryScreen() {
   const coupleId = profile?.coupleId || null;
 
   async function pickImage() {
+    if (executeOrIntercept(
+      () => {},
+      "Özel Günlere Fotoğraf Eklemek İçin Kayıt Olun 📸",
+      "Özel gün ve yıldönümlerinize anı fotoğrafları eklemek için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
+
     if (!isPremium) {
       setShowPaywall(true);
       return;
@@ -74,6 +85,14 @@ export default function AddMemoryScreen() {
   }
 
   async function handleSave() {
+    if (executeOrIntercept(
+      () => {},
+      "Özel Gün Kaydetmek İçin Kayıt Olun 💖",
+      "Yıldönümleri ve özel günlerinizi kaydetmek ve geri sayım başlatmak için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
+
     const newErrors = {
       title: !title.trim(),
       date: !date.trim(),
@@ -268,6 +287,13 @@ export default function AddMemoryScreen() {
         featureName="Fotoğraflı Özel Gün"
         featureDescription="Özel günlerinize fotoğraf eklemek için Premium'a geçmeniz gerekmektedir."
         gender={profile?.gender}
+      />
+
+      <DemoActionModal
+        visible={isDemoModalOpen}
+        onClose={() => setIsDemoModalOpen(false)}
+        title={modalConfig.title}
+        description={modalConfig.description}
       />
     </ScreenBackground>
   );

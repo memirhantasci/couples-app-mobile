@@ -134,6 +134,14 @@ export default function MemoriesScreen() {
   const memories = data ? data.pages.flat() : [];
 
   const handleDelete = (id: number) => {
+    if (executeOrIntercept(
+      () => {},
+      "Özel Günü Silmek İçin Kayıt Olun 🗑️",
+      "Kaydettiğiniz özel günleri ve anıları yönetmek için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
+
     Alert.alert(
       "Anıyı Sil",
       "Bu özel günü silmek istediğine emin misin?",
@@ -158,6 +166,14 @@ export default function MemoriesScreen() {
   };
 
   const handleEdit = (memory: any) => {
+    if (executeOrIntercept(
+      () => {},
+      "Özel Günü Düzenlemek İçin Kayıt Olun ✏️",
+      "Anılarınızı ve özel günlerinizi düzenlemek için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
+
     router.push({
       pathname: "/(tabs)/add-memory",
       params: { 

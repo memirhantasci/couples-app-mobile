@@ -25,9 +25,10 @@ import { decrypt, deterministicDecrypt } from "@/utils/crypto";
 import { computeLoveScore, getCachedLoveScore, LoveScoreResult } from "@/lib/loveScore";
 import { scheduleDateLocalNotification, cancelLocalNotification } from "@/lib/notifications";
 import { useRouter, useFocusEffect } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { 
   AlignJustify, Sparkles, Heart, Images, 
-  BookOpen, Mail, MapPin, Calendar, Flame, Clock
+  BookOpen, Mail, MapPin, Calendar, Flame, Clock, ChevronRight
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/context/ThemeContext";
@@ -37,12 +38,13 @@ import { MoodSelector } from "@/components/home/MoodSelector";
 import { DailyNoteCard } from "@/components/home/DailyNoteCard";
 import { MeetingCountdown } from "@/components/home/MeetingCountdown";
 import { PendingLettersCard } from "@/components/home/PendingLettersCard";
-import { BannerAd } from "@/components/ui/BannerAd";
 import { usePageTour } from "@/hooks/usePageTour";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
-import { useInterstitialAd } from "@/hooks/useInterstitialAd";
 import { DEMO_HOME_DATA, DEMO_LOVE_SCORE } from "@/constants/demoData";
+import { CoupleWrappedModal } from "@/components/wrapped/CoupleWrappedModal";
+import { computeCoupleWrapped, CoupleWrappedData } from "@/utils/wrappedCalculator";
+import { syncCoupleWidget } from "@/utils/widgetBridge";
 
 export default function HomeScreen() {
   const { session, profile, isDemoMode } = useAuth();
@@ -56,23 +58,26 @@ export default function HomeScreen() {
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
 
-  const { showAdIfReady } = useInterstitialAd();
   const [cachedScore, setCachedScore] = useState<LoveScoreResult | null>(null);
+  const [isWrappedVisible, setIsWrappedVisible] = useState(false);
+  const [wrappedData, setWrappedData] = useState<CoupleWrappedData | null>(null);
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("home");
 
   useEffect(() => {
-    if (coupleId) {
+    if (coupleId && !isDemoMode) {
       getCachedLoveScore(coupleId).then((cached) => {
         if (cached) setCachedScore(cached);
       });
     }
-  }, [coupleId]);
+  }, [coupleId, isDemoMode]);
 
-  useFocusEffect(
-    useCallback(() => {
-      showAdIfReady();
-    }, [showAdIfReady])
-  );
+  useEffect(() => {
+    computeCoupleWrapped(
+      coupleId,
+      profile?.relationshipStartDate || profile?.meetDate,
+      isDemoMode
+    ).then((data) => setWrappedData(data));
+  }, [coupleId, profile?.relationshipStartDate, profile?.meetDate, isDemoMode]);
 
   const { data: dashboardData, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["home_dashboard", coupleId, userId, today, isDemoMode],
@@ -164,9 +169,9 @@ export default function HomeScreen() {
     staleTime: 1000 * 60 * 5,
   });
 
-  // ─── Dinamik Aşk Puanı (Çift için %100 simetrik ve eşit) ─────────────────────
+  // ─── Dinamik Aşk Puanı (Çift için %100 simetrik ve adil) ─────────────────────
   const { data: loveScoreData, isLoading: isLoveScoreLoading } = useQuery({
-    queryKey: ["love_score", coupleId, today, isDemoMode],
+    queryKey: ["love_score", coupleId, today, isDemoMode, profile?.isPremium],
     enabled: !!coupleId || isDemoMode,
     initialData: cachedScore || undefined,
     staleTime: 1000 * 60 * 5,
@@ -174,20 +179,14 @@ export default function HomeScreen() {
       if (isDemoMode) {
         return DEMO_LOVE_SCORE as any;
       }
-      return computeLoveScore(coupleId!, userId, null);
+      return computeLoveScore(coupleId!, userId, null, profile?.isPremium);
     },
   });
 
   // ─── Regl Yaklaşma Bildirimi (Sadece Premium Erkek İçin) ─────────────────────
   useEffect(() => {
     async function setupPeriodNotification() {
-      if (!userId || !coupleId) return;
-
-      if (!profile?.isPremium) {
-        // Premium bittiyse (veya hiç alınmadıysa) kuyruktaki bildirimi temizle
-        await cancelLocalNotification("period_approach_alert");
-        return;
-      }
+      if (isDemoMode || !profile?.isPremium || !coupleId || !userId) return;
 
       // Premium ise partner bilgisini ve loglarını al
       const { data: usersData } = await supabase
@@ -264,6 +263,36 @@ export default function HomeScreen() {
   const loveSubtitle = activeLoveScore?.subtitle;
   const dateLabel = useMemo(() => dayjs().format("D MMMM, dddd"), []);
   const greeting = useMemo(() => getGreeting(), []);
+
+  // ─── ANA EKRAN WIDGET SENKRONİZASYONU ───
+  useEffect(() => {
+    if (!dashboardData) return;
+    const moodMap: Record<string, { emoji: string; label: string }> = {
+      happy: { emoji: "🥰", label: "Aşk Dolu" },
+      calm: { emoji: "😌", label: "Huzurlu" },
+      excited: { emoji: "✨", label: "Heyecanlı" },
+      tired: { emoji: "😴", label: "Yorgun" },
+      sad: { emoji: "🥺", label: "Şefkat İstiyor" },
+      loved: { emoji: "💖", label: "Sevgi Dolu" },
+    };
+    const moodObj = dashboardData.currentMood ? moodMap[dashboardData.currentMood] : { emoji: "🥰", label: "Aşk Dolu" };
+
+    let meetingDays: number | null = null;
+    if (dashboardData.activeMeeting?.meeting_datetime) {
+      meetingDays = dayjs(dashboardData.activeMeeting.meeting_datetime).diff(dayjs(), "day");
+    }
+
+    syncCoupleWidget({
+      partnerName: name,
+      daysTogether: daysSinceTogether || daysSinceMeeting || 142,
+      moodEmoji: moodObj.emoji,
+      moodLabel: moodObj.label,
+      dailyNote: dashboardData.currentNote,
+      nextMeetingTitle: dashboardData.activeMeeting?.title,
+      nextMeetingDays: meetingDays,
+      loveScore: loveMeter,
+    });
+  }, [dashboardData, name, daysSinceTogether, daysSinceMeeting, loveMeter]);
 
   return (
     <ScreenBackground>
@@ -416,6 +445,33 @@ export default function HomeScreen() {
             isLoading={!activeLoveScore && isLoveScoreLoading} 
           />
 
+          {/* ─── COUPLE WRAPPED BANNER ─── */}
+          <TouchableOpacity
+            style={[styles.wrappedBanner, { borderColor: "rgba(255, 77, 109, 0.35)" }]}
+            onPress={() => setIsWrappedVisible(true)}
+            activeOpacity={0.88}
+          >
+            <LinearGradient
+              colors={["#2A0E1F", "#170B18"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.wrappedGradient}
+            >
+              <View style={styles.wrappedLeft}>
+                <View style={styles.wrappedIconBadge}>
+                  <Sparkles size={16} color="#FF4D6D" />
+                </View>
+                <View>
+                  <Text style={styles.wrappedTitle}>Couple Wrapped Hazır! ✨</Text>
+                  <Text style={styles.wrappedSub}>Aşk özetini ve anılarınızı keşfedin</Text>
+                </View>
+              </View>
+              <View style={styles.wrappedArrowCircle}>
+                <ChevronRight size={18} color="#FF8FA3" />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+
           {/* ─── 6. BULUŞMA GERİ SAYIMI ─── */}
           {dashboardData?.activeMeeting && (
             <MeetingCountdown meeting={dashboardData.activeMeeting} theme={theme} />
@@ -435,8 +491,14 @@ export default function HomeScreen() {
           <PendingLettersCard letters={dashboardData?.pendingLetters || []} theme={theme} />
         </ScrollView>
       </KeyboardAvoidingView>
-      <BannerAd />
       <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <CoupleWrappedModal
+        visible={isWrappedVisible}
+        onClose={() => setIsWrappedVisible(false)}
+        data={wrappedData}
+        partnerName={name}
+        theme={theme}
+      />
     </ScreenBackground>
   );
 }
@@ -445,6 +507,58 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     gap: 14,
+  },
+
+  // ─── Couple Wrapped Banner ─────────────────────────────────────────────
+  wrappedBanner: {
+    borderRadius: 20,
+    overflow: "hidden",
+    borderWidth: 1,
+    shadowColor: "#FF4D6D",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  wrappedGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  wrappedLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  wrappedIconBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255, 77, 109, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  wrappedTitle: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+  },
+  wrappedSub: {
+    color: "rgba(255, 255, 255, 0.65)",
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
+  },
+  wrappedArrowCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   // ─── Header ────────────────────────────────────────────────────────────

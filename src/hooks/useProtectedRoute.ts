@@ -3,7 +3,7 @@ import { useRouter, useSegments, useRootNavigationState } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 
 export function useProtectedRoute() {
-  const { session, isLoading, profile, isDeviceAuthorized, isDemoMode } = useAuth();
+  const { session, isLoading, profile, isDeviceAuthorized, isDemoMode, enterDemoMode } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const navigationState = useRootNavigationState();
@@ -31,9 +31,10 @@ export function useProtectedRoute() {
 
       if (!session) {
         // 1. Unauthenticated users (Guests)
-        // They can only access (auth) routes like login, register, reset-password, verify
+        // If not explicitly on (auth) screen (login/register), enter demo mode so guests can freely explore
         if (!inAuthGroup) {
-          router.replace("/(auth)/login");
+          enterDemoMode();
+          router.replace("/(tabs)/home");
         }
       } else {
         // 2. Authenticated Users
@@ -89,5 +90,5 @@ export function useProtectedRoute() {
     }, 0);
 
     return () => clearTimeout(timer);
-  }, [session, isLoading, profile, isDeviceAuthorized, isDemoMode, segments, navigationState?.key]);
+  }, [session, isLoading, profile, isDeviceAuthorized, isDemoMode, enterDemoMode, segments, navigationState?.key]);
 }

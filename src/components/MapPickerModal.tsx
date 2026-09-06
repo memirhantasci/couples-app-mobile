@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   StatusBar,
+  TextInput,
 } from "react-native";
 import MapView, { Marker, Region, UserLocationChangeEvent } from "react-native-maps";
 import { BlurView } from "expo-blur";
@@ -24,10 +25,11 @@ import {
   Layers,
   Heart,
   Maximize2,
+  Search,
 } from "lucide-react-native";
 import * as Location from "expo-location";
 import { useTheme } from "@/context/ThemeContext";
-import { isValidCoordinate } from "@/utils/exifHelper";
+import { isValidCoordinate, geocodeAddressString, formatGeocodedAddress } from "@/utils/exifHelper";
 
 const { width: SW, height: SH } = Dimensions.get("window");
 
@@ -143,6 +145,8 @@ export function MapPickerModal({
   );
   const [isLocating, setIsLocating] = useState(false);
   const [isResolvingAddress, setIsResolvingAddress] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
 
   // Adres Çözümleme (Reverse Geocode)
   const fetchAddress = async (lat: number, lng: number) => {
@@ -150,14 +154,7 @@ export function MapPickerModal({
       setIsResolvingAddress(true);
       const results = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
       if (results && results.length > 0) {
-        const item = results[0];
-        const parts = [
-          item.name || item.street,
-          item.district || item.subregion,
-          item.city || item.region,
-        ].filter(Boolean);
-
-        const fullAddr = parts.join(", ");
+        const fullAddr = formatGeocodedAddress(results[0]);
         setResolvedAddress(fullAddr || "Seçilen Konum");
       } else {
         setResolvedAddress("Seçilen Konum");
@@ -166,6 +163,29 @@ export function MapPickerModal({
       setResolvedAddress("Seçilen Konum");
     } finally {
       setIsResolvingAddress(false);
+    }
+  };
+
+  // Adres Arama (Forward Geocode - İl, ilçe, mahalle, sokak, mekan adı)
+  const handleSearchAddress = async () => {
+    const query = searchQuery.trim();
+    if (!query) return;
+    setIsSearching(true);
+    try {
+      const res = await geocodeAddressString(query);
+      if (res && isValidCoordinate(res.latitude, res.longitude)) {
+        await handleSelectCoordinate({ latitude: res.latitude, longitude: res.longitude });
+        setResolvedAddress(res.locationName);
+      } else {
+        Alert.alert(
+          "Adres Bulunamadı",
+          "Girdiğiniz il, ilçe, mahalle veya sokak bulunamadı. Lütfen yazımı kontrol edin veya harita üzerinden bir noktaya dokunun."
+        );
+      }
+    } catch {
+      Alert.alert("Hata", "Adres aranırken bir hata oluştu.");
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -416,6 +436,47 @@ export function MapPickerModal({
             </View>
           </View>
 
+          {/* ─── ADRES / SEMT / MAHALLE / SOKAK ARAMA ÇUBUĞU ─── */}
+          <View
+            style={[
+              styles.searchBarWrapper,
+              {
+                backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)",
+                borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.12)",
+              },
+            ]}
+          >
+            <Search size={15} color={theme.accent} style={{ marginLeft: 10 }} />
+            <TextInput
+              style={[styles.searchInput, { color: isLight ? "#1A1528" : "#FFFFFF" }]}
+              placeholder="İl, ilçe, mahalle veya sokak ara..."
+              placeholderTextColor={isLight ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.4)"}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={handleSearchAddress}
+              returnKeyType="search"
+            />
+            {isSearching ? (
+              <ActivityIndicator size="small" color={theme.accent} style={{ marginRight: 10 }} />
+            ) : searchQuery.length > 0 ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginRight: 6 }}>
+                <TouchableOpacity
+                  onPress={() => setSearchQuery("")}
+                  style={styles.searchClearBtn}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <X size={13} color={isLight ? "#666" : "#aaa"} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleSearchAddress}
+                  style={[styles.searchGoBtn, { backgroundColor: theme.accent }]}
+                >
+                  <Text style={styles.searchGoBtnText}>Bul</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+          </View>
+
           {/* ─── TEMA SEÇİCİ AÇILIR MENÜ ────────────────────────────────────── */}
           {showThemePicker && (
             <View style={[styles.themePickerMenu, { backgroundColor: isLight ? "#FFFFFF" : "#1A1626" }]}>
@@ -574,6 +635,36 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
+  },
+
+  // ─── ARAMA ÇUBUĞU ───────────────────────────────────────────────────────
+  searchBarWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 16,
+    marginTop: 10,
+    height: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  searchInput: {
+    flex: 1,
+    paddingHorizontal: 8,
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+  },
+  searchClearBtn: {
+    padding: 4,
+  },
+  searchGoBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  searchGoBtnText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
   },
 
   // ─── TEMA MENÜSÜ ───────────────────────────────────────────────────────

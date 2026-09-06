@@ -25,7 +25,7 @@ export function DemoModeBanner() {
         style={[
           styles.container,
           {
-            top: Platform.OS === "ios" ? Math.max(insets.top, 20) + 4 : insets.top + 8,
+            bottom: (Platform.OS === "ios" ? Math.max(insets.bottom, 16) : insets.bottom + 12) + 72,
           },
         ]}
       >

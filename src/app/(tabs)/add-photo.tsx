@@ -13,21 +13,25 @@ import { useQueryClient } from "@tanstack/react-query";
 import { 
   ChevronLeft, ImagePlus, CheckCircle2, 
   AlertCircle, Calendar as CalendarIcon, Clock, AlignJustify, 
-  UploadCloud, RefreshCw, MapPin, Navigation
+  UploadCloud, RefreshCw, MapPin, Navigation, Search
 } from "lucide-react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { useDemoAction } from "@/hooks/useDemoAction";
+import { DemoActionModal } from "@/components/demo/DemoActionModal";
+import { decode } from "base64-arraybuffer";
 import { notifyPartner } from "@/lib/notifications";
 import { dayjs, todayString } from "@/lib/date";
 import { getTheme } from "@/lib/theme";
 import { logger } from "@/utils/logger";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { MapPickerModal } from "@/components/MapPickerModal";
-import { extractPhotoExif, isValidCoordinate } from "@/utils/exifHelper";
+import { extractPhotoExif, isValidCoordinate, geocodeAddressString } from "@/utils/exifHelper";
 import { sanitize, sanitizeStrict } from "@/utils/sanitize";
+import { playCameraClick } from "@/lib/soundEffects";
 
 interface LocationData {
   latitude: number;
@@ -37,7 +41,8 @@ interface LocationData {
 
 export default function AddPhotoScreen() {
   const router = useRouter();
-  const { session, profile } = useAuth();
+  const { session, profile, isDemoMode } = useAuth();
+  const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const theme = getTheme(profile?.gender);
@@ -47,7 +52,14 @@ export default function AddPhotoScreen() {
   const isPremium = profile?.isPremium ?? false;
   const [showPaywall, setShowPaywall] = useState(false);
 
-  const [localImage, setLocalImage] = useState<{ uri: string; thumbUri?: string; fileSize?: number; exif?: any } | null>(null);
+  const [localImage, setLocalImage] = useState<{ 
+    uri: string; 
+    base64?: string;
+    thumbUri?: string; 
+    thumbBase64?: string;
+    fileSize?: number; 
+    exif?: any;
+  } | null>(null);
   const [takenDate, setTakenDate] = useState(todayString());
   const [takenTime, setTakenTime] = useState(dayjs().format("HH:mm"));
   const [title, setTitle] = useState("");
@@ -63,8 +75,41 @@ export default function AddPhotoScreen() {
   const [photoLocation, setPhotoLocation] = useState<LocationData | null>(null);
   const [exifGpsFound, setExifGpsFound] = useState(false);
   const [showMapPicker, setShowMapPicker] = useState(false);
+  const [manualAddressInput, setManualAddressInput] = useState("");
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+
+  const handleQuickGeocode = async () => {
+    const query = manualAddressInput.trim();
+    if (!query) return;
+    setIsSearchingAddress(true);
+    try {
+      const res = await geocodeAddressString(query);
+      if (res && isValidCoordinate(res.latitude, res.longitude)) {
+        setPhotoLocation(res);
+        setExifGpsFound(false);
+        setManualAddressInput("");
+      } else {
+        Alert.alert(
+          "Adres Bulunamadı",
+          "Girdiğiniz il, ilçe, mahalle veya sokak bulunamadı. Lütfen yazımı kontrol edin veya harita üzerinden seçmeyi deneyin."
+        );
+      }
+    } catch {
+      Alert.alert("Hata", "Adres aranırken bir sorun oluştu.");
+    } finally {
+      setIsSearchingAddress(false);
+    }
+  };
 
   const handlePickImage = async () => {
+    if (executeOrIntercept(
+      () => {},
+      "Ortak Fotoğraf Eklemek İçin Kayıt Olun 📸",
+      "Sevgilinizle ortak anı albümü oluşturmak ve fotoğraflarınızın çekildiği yerleri haritada görmek için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
+
     if (!isPremium) {
       setShowPaywall(true);
       return;
@@ -108,21 +153,27 @@ export default function AddPhotoScreen() {
         setExifGpsFound(false);
       }
 
-      // Tam boy görsel: maks 1600px, JPEG %80 kalite (OOM crash engeli)
+      // Tam boy görsel: maks 1600px, JPEG %80 kalite, base64: true
       const compressed = await ImageManipulator.manipulateAsync(
         asset.uri,
         [{ resize: { width: 1600 } }],
-        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true }
       );
 
-      // Thumbnail: 300px WebP ~15-25 KB — galeri ızgarasının anında açılması için
+      // Thumbnail: 300px JPEG %70 kalite, base64: true
       const thumbnail = await ImageManipulator.manipulateAsync(
         asset.uri,
         [{ resize: { width: 300 } }],
-        { compress: 0.65, format: ImageManipulator.SaveFormat.WEBP }
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true }
       );
 
-      setLocalImage({ uri: compressed.uri, thumbUri: thumbnail.uri, exif: asset.exif });
+      setLocalImage({ 
+        uri: compressed.uri, 
+        base64: compressed.base64,
+        thumbUri: thumbnail.uri, 
+        thumbBase64: thumbnail.base64,
+        exif: asset.exif 
+      });
 
     } catch (error) {
       logger.error("Photo pick error:", error);
@@ -131,6 +182,14 @@ export default function AddPhotoScreen() {
   };
 
   const handleSave = async () => {
+    if (executeOrIntercept(
+      () => {},
+      "Ortak Fotoğraf Eklemek İçin Kayıt Olun 📸",
+      "Sevgilinizle ortak anı albümü oluşturmak ve fotoğraflarınızın çekildiği yerleri haritada görmek için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
+
     if (!isPremium) {
       setShowPaywall(true);
       return;
@@ -172,16 +231,17 @@ export default function AddPhotoScreen() {
         return;
       }
 
-      // Tam boy görsel yükleme — base64 encode/decode yok, bellek patlaması yok
-      const response = await fetch(localImage.uri);
-      const blob = await response.arrayBuffer();
+      if (!localImage.base64) {
+        throw new Error("Fotoğraf işlenemedi. Lütfen fotoğrafı tekrar seçin.");
+      }
 
+      // Tam boy görsel yükleme — base64 decode ile doğrudan ArrayBuffer yüklemesi
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
       const filePath = `${coupleId}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("photos")
-        .upload(filePath, blob, {
+        .upload(filePath, decode(localImage.base64), {
           contentType: "image/jpeg",
         });
 
@@ -190,17 +250,15 @@ export default function AddPhotoScreen() {
       const { data: publicUrlData } = supabase.storage.from("photos").getPublicUrl(filePath);
       const imageUrl = publicUrlData.publicUrl;
 
-      // Thumbnail yükleme — galeri ızgarası için hızlı küçük resim (300px WebP ~15-25 KB)
+      // Thumbnail yükleme — galeri ızgarası için hızlı küçük resim
       let thumbUrl: string | null = null;
-      if (localImage.thumbUri) {
+      if (localImage.thumbBase64) {
         try {
-          const thumbFileName = `${Date.now()}_${Math.random().toString(36).substring(7)}_thumb.webp`;
+          const thumbFileName = `${Date.now()}_${Math.random().toString(36).substring(7)}_thumb.jpg`;
           const thumbFilePath = `${coupleId}/thumbs/${thumbFileName}`;
-          const thumbResponse = await fetch(localImage.thumbUri);
-          const thumbBlob = await thumbResponse.arrayBuffer();
           const { error: thumbError } = await supabase.storage
             .from("photos")
-            .upload(thumbFilePath, thumbBlob, { contentType: "image/webp" });
+            .upload(thumbFilePath, decode(localImage.thumbBase64), { contentType: "image/jpeg" });
           if (!thumbError) {
             const { data: thumbUrlData } = supabase.storage.from("photos").getPublicUrl(thumbFilePath);
             thumbUrl = thumbUrlData.publicUrl;
@@ -243,6 +301,7 @@ export default function AddPhotoScreen() {
       queryClient.invalidateQueries({ queryKey: ["photo_archive", coupleId] });
       queryClient.invalidateQueries({ queryKey: ["map_photos", coupleId] });
       queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
+      playCameraClick();
 
       if (isPremium && coupleId && userId) {
         const senderName = profile?.displayName || "Sevgilin";
@@ -250,7 +309,11 @@ export default function AddPhotoScreen() {
         const notificationBody = photoTitle 
           ? `${senderName} galeriye yeni bir fotoğraf ekledi: "${photoTitle}"`
           : `${senderName} galeriye yeni bir fotoğraf ekledi.`;
-        notifyPartner(coupleId, userId, "Yeni Bir Anı 📸", notificationBody);
+        notifyPartner(coupleId, userId, "Yeni Bir Anı 📸", notificationBody, {
+          type: "photo",
+          route: "/(tabs)/memories",
+          actionLabel: "Anıyı Gör 📸",
+        });
       }
 
       Alert.alert("Başarılı", "Fotoğraf başarıyla ortak arşive eklendi! 🎉", [
@@ -402,48 +465,72 @@ export default function AddPhotoScreen() {
           <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
             <Text style={styles.cardHeaderTitle}>Konum Bilgisi</Text>
 
-            {exifGpsFound && photoLocation ? (
-              <View style={styles.exifSuccessBox}>
-                <Navigation size={15} color="#22c55e" />
-                <Text style={[styles.exifSuccessText, { flex: 1 }]}>
-                  {photoLocation.locationName 
-                    ? `GPS: ${photoLocation.locationName}` 
-                    : `GPS: ${photoLocation.latitude.toFixed(4)}, ${photoLocation.longitude.toFixed(4)}`}
-                </Text>
-                <TouchableOpacity onPress={() => setShowMapPicker(true)} style={[styles.changeLocBtn, { marginRight: 6 }]}>
-                  <Text style={styles.changeLocBtnText}>Düzelt</Text>
+            {photoLocation ? (
+              <View style={[styles.exifSuccessBox, { backgroundColor: exifGpsFound ? "rgba(34,197,94,0.12)" : "rgba(59,130,246,0.12)", borderColor: exifGpsFound ? "rgba(34,197,94,0.3)" : "rgba(59,130,246,0.3)" }]}>
+                {exifGpsFound ? (
+                  <Navigation size={16} color="#22c55e" />
+                ) : (
+                  <MapPin size={16} color="#60a5fa" />
+                )}
+                <View style={{ flex: 1, paddingRight: 6 }}>
+                  <Text style={[styles.exifSuccessText, { color: exifGpsFound ? "#22c55e" : "#60a5fa", fontFamily: "Inter_700Bold", fontSize: 11.5 }]}>
+                    {exifGpsFound ? "Fotoğraftan Otomatik Algılandı" : "Belirlenen Konum"}
+                  </Text>
+                  <Text style={[styles.locationDetailText, { color: theme.textSecondary }]} numberOfLines={2}>
+                    {photoLocation.locationName ?? `${photoLocation.latitude.toFixed(4)}, ${photoLocation.longitude.toFixed(4)}`}
+                  </Text>
+                </View>
+                <TouchableOpacity 
+                  onPress={() => setShowMapPicker(true)} 
+                  style={[styles.changeLocBtn, { borderColor: exifGpsFound ? "rgba(34,197,94,0.4)" : "rgba(59,130,246,0.4)", marginRight: 6 }]}
+                >
+                  <Text style={[styles.changeLocBtnText, { color: exifGpsFound ? "#22c55e" : "#60a5fa" }]}>Harita</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => { setPhotoLocation(null); setExifGpsFound(false); }} style={[styles.changeLocBtn, { borderColor: "rgba(239,68,68,0.4)" }]}>
-                  <Text style={[styles.changeLocBtnText, { color: "#ef4444" }]}>Kaldır</Text>
-                </TouchableOpacity>
-              </View>
-            ) : photoLocation ? (
-              <View style={[styles.exifSuccessBox, { backgroundColor: "rgba(59,130,246,0.12)", borderColor: "rgba(59,130,246,0.3)" }]}>
-                <MapPin size={15} color="#60a5fa" />
-                <Text style={[styles.exifSuccessText, { flex: 1, color: "#60a5fa" }]}>
-                  {photoLocation.locationName ?? `${photoLocation.latitude.toFixed(4)}, ${photoLocation.longitude.toFixed(4)}`}
-                </Text>
-                <TouchableOpacity onPress={() => setShowMapPicker(true)} style={[styles.changeLocBtn, { borderColor: "rgba(59,130,246,0.4)", marginRight: 6 }]}>
-                  <Text style={[styles.changeLocBtnText, { color: "#60a5fa" }]}>Düzelt</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => { setPhotoLocation(null); }} style={[styles.changeLocBtn, { borderColor: "rgba(239,68,68,0.4)" }]}>
+                <TouchableOpacity 
+                  onPress={() => { setPhotoLocation(null); setExifGpsFound(false); }} 
+                  style={[styles.changeLocBtn, { borderColor: "rgba(239,68,68,0.4)" }]}
+                >
                   <Text style={[styles.changeLocBtnText, { color: "#ef4444" }]}>Kaldır</Text>
                 </TouchableOpacity>
               </View>
             ) : (
-              <TouchableOpacity
-                style={[styles.locationPickerBtn, { backgroundColor: theme.unitBg }]}
-                onPress={() => setShowMapPicker(true)}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg, width: 40, height: 40, borderRadius: 20 }]}>
-                  <MapPin size={18} color={theme.accent} />
+              <View style={{ gap: 10 }}>
+                {/* Hızlı Adres / İl / İlçe / Mahalle / Sokak Girişi */}
+                <View style={[styles.quickAddressRow, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder }]}>
+                  <Search size={15} color={theme.textMuted} style={{ marginLeft: 12 }} />
+                  <TextInput
+                    style={[styles.quickAddressInput, { color: theme.text }]}
+                    placeholder="İl, ilçe, mahalle veya sokak yazın..."
+                    placeholderTextColor={theme.textMuted}
+                    value={manualAddressInput}
+                    onChangeText={setManualAddressInput}
+                    onSubmitEditing={handleQuickGeocode}
+                    returnKeyType="search"
+                  />
+                  {isSearchingAddress ? (
+                    <ActivityIndicator size="small" color={theme.accent} style={{ marginRight: 10 }} />
+                  ) : manualAddressInput.trim().length > 0 ? (
+                    <TouchableOpacity onPress={handleQuickGeocode} style={[styles.quickFindBtn, { backgroundColor: theme.accent }]}>
+                      <Text style={styles.quickFindBtnText}>Bul</Text>
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.locationPickerTitle}>Konum Ekle</Text>
-                  <Text style={styles.locationPickerSub}>Haritadan veya adresten seçin (opsiyonel)</Text>
-                </View>
-              </TouchableOpacity>
+
+                {/* Haritadan Seç Butonu */}
+                <TouchableOpacity
+                  style={[styles.locationPickerBtn, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder }]}
+                  onPress={() => setShowMapPicker(true)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg, width: 38, height: 38, borderRadius: 19 }]}>
+                    <MapPin size={17} color={theme.accent} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.locationPickerTitle, { color: theme.text }]}>Haritadan Nokta Seç</Text>
+                    <Text style={[styles.locationPickerSub, { color: theme.textMuted }]}>Haritaya dokunarak tam konumu işaretleyin</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
 
@@ -618,6 +705,13 @@ export default function AddPhotoScreen() {
             setShowMapPicker(false);
           }}
         />
+
+        <DemoActionModal
+          visible={isDemoModalOpen}
+          onClose={() => setIsDemoModalOpen(false)}
+          title={modalConfig.title}
+          description={modalConfig.description}
+        />
       </View>
     </ScreenBackground>
   );
@@ -719,6 +813,36 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     fontFamily: "Inter_600SemiBold",
     color: "#22c55e",
+  },
+  locationDetailText: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  quickAddressRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 44,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  quickAddressInput: {
+    flex: 1,
+    paddingHorizontal: 8,
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+  },
+  quickFindBtn: {
+    marginRight: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  quickFindBtnText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
   },
   pickerPlaceholder: {
     alignItems: "center",

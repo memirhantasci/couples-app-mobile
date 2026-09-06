@@ -16,7 +16,8 @@ import { useTheme } from "@/context/ThemeContext";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { scheduleDailyLocalNotification, cancelLocalNotification } from "@/lib/notifications";
+import { scheduleDailyLocalNotification, cancelLocalNotification, notifyPartner } from "@/lib/notifications";
+import { useCustomNotification } from "@/context/NotificationContext";
 import { dayjs, todayString } from "@/lib/date";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -28,6 +29,7 @@ import { DEMO_MEDICINES } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { sanitizeStrict } from "@/utils/sanitize";
+import { playSuccessChime } from "@/lib/soundEffects";
 
 const getRelativeDateLabel = (dateStr: string) => {
   const d = dayjs(dateStr);
@@ -40,6 +42,7 @@ export default function MedicineScreen() {
   const { profile, session, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
+  const { showNotification } = useCustomNotification();
   const router = useRouter();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
@@ -167,6 +170,43 @@ export default function MedicineScreen() {
 
       return { previousData };
     },
+    onSuccess: (_, variables) => {
+      const { medicineId, status } = variables;
+      if (status === "DRANK") {
+        playSuccessChime();
+        const med = data?.medicines?.find((m: any) => m.id === medicineId);
+        const medName = med?.name || "İlaç";
+        const senderName = profile?.displayName || "Sevgilin";
+
+        if (!isDemoMode && coupleId && userId) {
+          notifyPartner(
+            coupleId,
+            userId,
+            "İlacını İçti! 💊✨",
+            `${senderName}, ${medName} ilacını içti. İçin rahat olsun! 🌿`,
+            {
+              type: "medicine",
+              medicineName: medName,
+              status: "DRANK",
+              route: "/(tabs)/medicine",
+              actionLabel: "İlaç Takibine Git 💊",
+            }
+          );
+        } else {
+          showNotification({
+            type: "medicine",
+            title: "İlacını İçti! 💊✨",
+            body: `${senderName}, ${medName} ilacını içti. İçin rahat olsun! 🌿`,
+            senderName,
+            route: "/(tabs)/medicine",
+            actionLabel: "İlaç Takibine Git 💊",
+            metadata: {
+              medicineName: medName,
+            },
+          });
+        }
+      }
+    },
     onError: (err, variables, context) => {
       if (context?.previousData) {
         queryClient.setQueryData(["medicine_data", coupleId], context.previousData);
@@ -217,6 +257,15 @@ export default function MedicineScreen() {
   };
 
   const handleSaveMedicine = async () => {
+    if (executeOrIntercept(
+      () => {},
+      "İlaç Eklemek İçin Kayıt Olun 💊",
+      "İlaç ve vitaminlerinizi düzenli takip etmek ve bildirim almak için ücretsiz hesabınızı oluşturun."
+    )) {
+      setShowManagerModal(false);
+      return;
+    }
+
     if (!medName.trim()) {
       setMedError(true);
       return;
@@ -321,6 +370,13 @@ export default function MedicineScreen() {
   };
 
   const handleEditMedicine = (med: any) => {
+    if (executeOrIntercept(
+      () => {},
+      "İlacı Düzenlemek İçin Kayıt Olun 💊",
+      "İlaç bilgilerinizi ve saatlerinizi güncellemek için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
     setEditingMedicineId(med.id);
     setMedName(med.name);
     setMedStartDate(new Date(med.start_date));
@@ -348,6 +404,14 @@ export default function MedicineScreen() {
   };
 
   const handleDeleteMedicine = async (id: number) => {
+    if (executeOrIntercept(
+      () => {},
+      "İlacı Silmek İçin Kayıt Olun 🗑️",
+      "İlaç takviminizi yönetmek için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
+
     Alert.alert("İlacı Sil", "Bu ilacı silmek istediğinize emin misiniz?", [
       { text: "Vazgeç", style: "cancel" },
       {

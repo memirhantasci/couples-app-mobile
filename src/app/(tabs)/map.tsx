@@ -20,7 +20,7 @@ import {
   X,
   ZoomIn
 } from "lucide-react-native";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -43,15 +43,17 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { dayjs } from "@/lib/date";
 import { notifyPartner } from "@/lib/notifications";
+import { playStampDrop } from "@/lib/soundEffects";
 import { usePageTour } from "@/hooks/usePageTour";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { supabase } from "@/lib/supabase";
 import { getTheme } from "@/lib/theme";
 import { isValidCoordinate } from "@/utils/exifHelper";
-import { DEMO_PHOTOS, DEMO_MAP_LOCATIONS, DEMO_HOME_DATA } from "@/constants/demoData";
+import { DEMO_PHOTOS, DEMO_MAP_LOCATIONS, DEMO_HOME_DATA, DEMO_MEETINGS } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
+import { MapStoryModal } from "@/components/map/MapStoryModal";
 
 const { width: SW, height: SH } = Dimensions.get("window");
 
@@ -217,6 +219,7 @@ export default function MapScreen() {
   const [isLocating, setIsLocating] = useState(false);
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [fullScreenPhoto, setFullScreenPhoto] = useState<PhotoPin | null>(null);
+  const [showMapStory, setShowMapStory] = useState(false);
 
   // ─── 1. Fotoğraf Pinlerini Çek (description dahil) ────────────────────────
   const {
@@ -293,16 +296,16 @@ export default function MapScreen() {
     staleTime: 1000 * 30,
     queryFn: async () => {
       if (isDemoMode) {
-        return DEMO_HOME_DATA.activeMeeting ? [{
-          id: DEMO_HOME_DATA.activeMeeting.id,
-          title: DEMO_HOME_DATA.activeMeeting.title,
-          location_name: DEMO_HOME_DATA.activeMeeting.location_name,
-          latitude: DEMO_HOME_DATA.activeMeeting.latitude,
-          longitude: DEMO_HOME_DATA.activeMeeting.longitude,
-          meeting_datetime: DEMO_HOME_DATA.activeMeeting.meeting_datetime,
-          is_active: true,
+        return DEMO_MEETINGS.map((m) => ({
+          id: m.id,
+          title: m.title,
+          location_name: m.location_name,
+          latitude: m.latitude,
+          longitude: m.longitude,
+          meeting_datetime: m.meeting_datetime,
+          is_active: m.is_active,
           user_id: "demo",
-        }] : [];
+        })).filter((m) => isValidCoordinate(m.latitude, m.longitude));
       }
       const { data, error } = await supabase
         .from("meetings")
@@ -324,6 +327,41 @@ export default function MapScreen() {
       refetchMeetings();
     }, [refetchPhotos, refetchNotes, refetchMeetings])
   );
+
+  const allMapPinItems = useMemo(() => {
+    const items: any[] = [];
+    photoPins.forEach((p) =>
+      items.push({
+        id: p.id,
+        latitude: p.latitude,
+        longitude: p.longitude,
+        location_name: p.location_name,
+        date: p.taken_date,
+        type: "photo",
+      })
+    );
+    mapNotes.forEach((n) =>
+      items.push({
+        id: n.id,
+        latitude: n.latitude,
+        longitude: n.longitude,
+        location_name: "Aşk Notu",
+        date: n.created_at,
+        type: "note",
+      })
+    );
+    meetingPins.forEach((m) =>
+      items.push({
+        id: m.id,
+        latitude: m.latitude,
+        longitude: m.longitude,
+        location_name: m.location_name || m.title,
+        date: m.meeting_datetime,
+        type: "meeting",
+      })
+    );
+    return items;
+  }, [photoPins, mapNotes, meetingPins]);
 
   // ─── Marker Tıklama (Tıklamanın MapView tarafından ezilmesini önler) ─────
   const handleMarkerPress = (item: SelectedItem) => {
@@ -350,6 +388,7 @@ export default function MapScreen() {
       if (error) throw error;
     },
     onSuccess: (_data, variables) => {
+      playStampDrop();
       queryClient.invalidateQueries({ queryKey: ["map_notes", coupleId] });
       setIsAddingNote(false);
       setNoteText("");
@@ -362,7 +401,11 @@ export default function MapScreen() {
         const notificationBody = notePreview 
           ? `${senderName} haritaya bir anı notu bıraktı: "${notePreview}"` 
           : `${senderName} haritaya senin için bir aşk notu bıraktı.`;
-        notifyPartner(coupleId, userId, "Haritada Yeni Bir Aşk Notu 💌", notificationBody);
+        notifyPartner(coupleId, userId, "Haritada Yeni Bir Aşk Notu 💌", notificationBody, {
+          type: "map",
+          route: "/(tabs)/map",
+          actionLabel: "Haritada Keşfet 🗺️",
+        });
       }
     },
     onError: (e: any) => {
@@ -474,6 +517,15 @@ export default function MapScreen() {
   };
 
   const handleSaveNote = async () => {
+    if (executeOrIntercept(
+      () => {},
+      "Haritaya Aşk Notu Bırakmak İçin Kayıt Olun 📍",
+      "Partnerinizle gittiğiniz özel konumlara hatıra notları bırakmak için ücretsiz hesabınızı oluşturun."
+    )) {
+      setIsAddingNote(false);
+      setPendingCoord(null);
+      return;
+    }
     if (!pendingCoord || !noteText.trim()) return;
     setIsSavingNote(true);
     await saveNoteMutation.mutateAsync({
@@ -618,9 +670,22 @@ export default function MapScreen() {
             </Text>
           </View>
 
-          {/* Aksiyon Butonları (Rehber, Tema, Sığdır, GPS) */}
+          {/* Aksiyon Butonları (Rehber, Tema, Sığdır, GPS, Hikaye) */}
           <View style={styles.topActionsGroup}>
             <TourGuideButton onPress={openTour} />
+            <TouchableOpacity
+              style={[
+                styles.topActionBtn,
+                {
+                  backgroundColor: "rgba(255, 77, 109, 0.16)",
+                  borderColor: "rgba(255, 77, 109, 0.35)",
+                },
+              ]}
+              onPress={() => setShowMapStory(true)}
+              activeOpacity={0.8}
+            >
+              <Sparkles size={16} color="#FF4D6D" />
+            </TouchableOpacity>
             <TouchableOpacity
               style={[
                 styles.topActionBtn,
@@ -853,6 +918,13 @@ export default function MapScreen() {
                   <TouchableOpacity
                     style={styles.deleteActionBtn}
                     onPress={() => {
+                      if (executeOrIntercept(
+                        () => {},
+                        "Fotoğrafı Silmek İçin Kayıt Olun 🗑️",
+                        "Haritadaki fotoğrafları yönetmek ve silmek için ücretsiz hesabınızı oluşturun."
+                      )) {
+                        return;
+                      }
                       Alert.alert("Fotoğrafı Sil", "Bu fotoğrafı haritadan ve galeriden silmek istiyor musunuz?", [
                         { text: "Vazgeç", style: "cancel" },
                         {
@@ -922,6 +994,13 @@ export default function MapScreen() {
                   <TouchableOpacity
                     style={styles.deleteActionBtn}
                     onPress={() => {
+                      if (executeOrIntercept(
+                        () => {},
+                        "Notu Silmek İçin Kayıt Olun 🗑️",
+                        "Haritadaki aşk notlarını yönetmek ve silmek için ücretsiz hesabınızı oluşturun."
+                      )) {
+                        return;
+                      }
                       Alert.alert("Notu Sil", "Bu notu haritadan silmek istiyor musunuz?", [
                         { text: "Vazgeç", style: "cancel" },
                         {
@@ -1172,6 +1251,12 @@ export default function MapScreen() {
         onClose={() => setIsDemoModalOpen(false)}
         title={modalConfig.title}
         description={modalConfig.description}
+      />
+      <MapStoryModal
+        visible={showMapStory}
+        onClose={() => setShowMapStory(false)}
+        pins={allMapPinItems}
+        theme={theme}
       />
     </View>
   );

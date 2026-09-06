@@ -118,6 +118,14 @@ export default function PhotosScreen() {
 
   // Fotoğraf Sil
   const handleDelete = (id: number) => {
+    if (executeOrIntercept(
+      () => {},
+      "Fotoğrafı Silmek İçin Kayıt Olun 🗑️",
+      "Fotoğraf arşivinizi yönetmek ve silmek için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
+
     Alert.alert("Fotoğrafı Sil", "Bu fotoğrafı galeriden kalıcı olarak silmek istediğinize emin misiniz?", [
       { text: "Vazgeç", style: "cancel" },
       {

@@ -16,7 +16,8 @@ import { useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { Link, Clipboard as ClipboardIcon, Share as ShareIcon, LogOut } from "lucide-react-native";
+import { Link, Clipboard as ClipboardIcon, Share2, LogOut, Heart, Sparkles, Check, Copy } from "lucide-react-native";
+import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -103,13 +104,14 @@ export default function PairingScreen() {
   const [inputCode, setInputCode] = useState(params.code ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
 
   const { data: status, isLoading } = useQuery<PairingStatus>({
     queryKey: ["pairing-status", userId],
     queryFn: () => fetchPairingStatus(userId!),
     enabled: !!userId,
-    refetchInterval: 4000,
+    refetchInterval: 3500,
     refetchIntervalInBackground: false,
   });
     
@@ -120,18 +122,58 @@ export default function PairingScreen() {
     }
   }, [status, refreshProfile]);
 
-  async function handleCopy() {
+  // Hafızada bekleyen davet kodu varsa veya route param gelmişse otomatik eşleş
+  useEffect(() => {
+    async function checkAutoPair() {
+      if (!userId || status?.isPaired) return;
+      const pending = (params.code || (await AsyncStorage.getItem("@pending_invite_code")))?.trim().toUpperCase();
+      if (pending && pending.length >= 4) {
+        setIsSubmitting(true);
+        setSubmitError("");
+        try {
+          const { data, error } = await supabase.rpc("join_couple_by_code_uuid", {
+            p_code: pending,
+          });
+          if (!error) {
+            await AsyncStorage.removeItem("@pending_invite_code");
+            const result = Array.isArray(data) ? data[0] : data;
+            if (result?.result_is_paired) {
+              await refreshProfile();
+            }
+          }
+        } catch {
+          // sessiz fallback
+        } finally {
+          setIsSubmitting(false);
+        }
+      }
+    }
+    checkAutoPair();
+  }, [userId, params.code, status?.isPaired, refreshProfile]);
+
+  async function handleShareInvite() {
     if (!status?.pairingCode) return;
-    await Clipboard.setStringAsync(status.pairingCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    const inviteLink = `couplesapp://invite?code=${status.pairingCode}`;
+    await Share.share({
+      title: "Couples App Daveti 💕",
+      message: `Canım, Couples App'te aşkımıza özel bir alan kurdum! 💖\n\nOtomatik bağlanmak için bu bağlantıya tıkla:\n${inviteLink}\n\n(Uygulama içinden girmek istersen Eşleşme Kodumuz: ${status.pairingCode})`,
+      url: inviteLink,
+    });
   }
 
-  async function handleShare() {
+  async function handleCopyLink() {
     if (!status?.pairingCode) return;
-    await Share.share({
-      message: `Benimle eşleş! Kodum: ${status.pairingCode}. Ya da direkt tıkla: couplesapp://pair?code=${status.pairingCode}`,
-    });
+    const inviteLink = `couplesapp://invite?code=${status.pairingCode}`;
+    await Clipboard.setStringAsync(inviteLink);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+  }
+
+  async function handleCopyCode() {
+    if (!status?.pairingCode) return;
+    await Clipboard.setStringAsync(status.pairingCode);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
   }
 
   async function handleSubmit() {
@@ -162,6 +204,7 @@ export default function PairingScreen() {
     setIsSubmitting(false);
 
     if (isPaired) {
+      await AsyncStorage.removeItem("@pending_invite_code");
       await refreshProfile();
     }
   }
@@ -181,7 +224,7 @@ export default function PairingScreen() {
         <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 60, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
           
           {/* Header */}
-          <View style={{ marginBottom: 40 }}>
+          <View style={{ marginBottom: 32 }}>
             <Text
               style={{
                 color: "#FFFFFF",
@@ -191,7 +234,7 @@ export default function PairingScreen() {
                 marginBottom: 8,
               }}
             >
-              Eşleşme Kodu
+              Sevgilinle Eşleş 💕
             </Text>
             <Text
               style={{
@@ -200,98 +243,139 @@ export default function PairingScreen() {
                 lineHeight: 22,
               }}
             >
-              Partnerinle bağlanmak için kodunu paylaş veya onun kodunu gir.
+              Davet bağlantısını sevgiline gönder. Linke tıkladığında kod girmesine gerek kalmadan doğrudan seninle eşleşecek!
             </Text>
           </View>
 
-          {/* Your Code Card */}
+          {/* ─── 1. BÜYÜK DAVET ET KARTI (ÖNERİLEN & KOLAY YÖNTEM) ─── */}
           <View
             style={{
-              borderWidth: 1,
-              borderColor: "rgba(255, 77, 106, 0.2)",
+              borderWidth: 1.5,
+              borderColor: "rgba(255, 77, 106, 0.35)",
               borderRadius: 24,
               padding: 24,
-              backgroundColor: "rgba(255,255,255,0.02)",
-              marginBottom: 24,
+              backgroundColor: "rgba(255, 77, 106, 0.05)",
+              marginBottom: 28,
             }}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 20 }}>
-              <Link color="#FF4D6A" size={18} />
-              <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: "600", letterSpacing: 1 }}>
-                SENİN KODUN
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 14 }}>
+              <Sparkles color="#FF4D6A" size={18} />
+              <Text style={{ color: "#FF4D6A", fontSize: 13, fontFamily: "Inter_700Bold", letterSpacing: 1 }}>
+                TEK TIKLA DAVET ET
               </Text>
             </View>
 
-            <View
+            <Text style={{ color: "#FFFFFF", fontSize: 18, fontFamily: "Inter_700Bold", marginBottom: 6 }}>
+              Sevgiline Davet Bağlantısı Gönder
+            </Text>
+            <Text style={{ color: "rgba(255,255,255,0.65)", fontSize: 13.5, lineHeight: 20, marginBottom: 20 }}>
+              WhatsApp veya herhangi bir mesajlaşma uygulamasından paylaş. Sevgilin bağlantıyı açıp kayıt olduğunda otomatik bağlanacaksınız!
+            </Text>
+
+            {/* Büyük Ana Paylaş Butonu */}
+            <TouchableOpacity
+              onPress={handleShareInvite}
+              activeOpacity={0.88}
               style={{
-                backgroundColor: "rgba(0,0,0,0.3)",
-                borderRadius: 16,
-                paddingVertical: 20,
+                backgroundColor: "#FF4D6A",
+                borderRadius: 18,
+                paddingVertical: 16,
+                flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "center",
-                marginBottom: 20,
+                gap: 10,
+                marginBottom: 12,
+                shadowColor: "#FF4D6A",
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.35,
+                shadowRadius: 12,
+                elevation: 6,
               }}
             >
-              <Text
-                style={{
-                  color: "#FFFFFF",
-                  fontSize: 36,
-                  fontWeight: "800",
-                  letterSpacing: 4,
-                }}
-              >
-                {status?.pairingCode ?? "------"}
+              <Share2 color="#FFFFFF" size={18} />
+              <Text style={{ color: "#FFFFFF", fontFamily: "Inter_700Bold", fontSize: 15 }}>
+                Sevgilini Davet Et (Paylaş) 💕
               </Text>
-            </View>
+            </TouchableOpacity>
 
-            <View style={{ flexDirection: "row", gap: 12, marginBottom: 24 }}>
+            {/* Yan Yana İkincil Aksiyonlar: Bağlantıyı Kopyala & Kodu Kopyala */}
+            <View style={{ flexDirection: "row", gap: 10, marginBottom: 20 }}>
               <TouchableOpacity
-                onPress={handleCopy}
+                onPress={handleCopyLink}
+                activeOpacity={0.8}
                 style={{
                   flex: 1,
                   backgroundColor: "rgba(255,255,255,0.06)",
-                  borderRadius: 20,
-                  paddingVertical: 14,
+                  borderRadius: 16,
+                  paddingVertical: 12,
                   flexDirection: "row",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 8,
+                  gap: 6,
+                  borderWidth: 1,
+                  borderColor: "rgba(255,255,255,0.1)",
                 }}
               >
-                <Text style={{ fontSize: 16 }}>{copied ? "✅" : "📋"}</Text>
-                <Text style={{ color: "#FFFFFF", fontWeight: "600", fontSize: 14 }}>
-                  {copied ? "Kopyalandı" : "Kopyala"}
-                </Text>
+                {copiedLink ? (
+                  <>
+                    <Check color="#10B981" size={15} />
+                    <Text style={{ color: "#10B981", fontFamily: "Inter_600SemiBold", fontSize: 12.5 }}>
+                      Kopyalandı ✨
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Link color="rgba(255,255,255,0.7)" size={15} />
+                    <Text style={{ color: "#FFFFFF", fontFamily: "Inter_600SemiBold", fontSize: 12.5 }}>
+                      Bağlantıyı Kopyala
+                    </Text>
+                  </>
+                )}
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={handleShare}
+                onPress={handleCopyCode}
+                activeOpacity={0.8}
                 style={{
                   flex: 1,
                   backgroundColor: "rgba(255,255,255,0.06)",
-                  borderRadius: 20,
-                  paddingVertical: 14,
+                  borderRadius: 16,
+                  paddingVertical: 12,
                   flexDirection: "row",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 8,
+                  gap: 6,
+                  borderWidth: 1,
+                  borderColor: "rgba(255,255,255,0.1)",
                 }}
               >
-                <Text style={{ fontSize: 16 }}>📤</Text>
-                <Text style={{ color: "#FFFFFF", fontWeight: "600", fontSize: 14 }}>
-                  Paylaş
-                </Text>
+                {copiedCode ? (
+                  <>
+                    <Check color="#10B981" size={15} />
+                    <Text style={{ color: "#10B981", fontFamily: "Inter_600SemiBold", fontSize: 12.5 }}>
+                      Kopyalandı ✨
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Copy color="rgba(255,255,255,0.7)" size={15} />
+                    <Text style={{ color: "#FFFFFF", fontFamily: "Inter_600SemiBold", fontSize: 12.5 }}>
+                      Kodu Kopyala ({status?.pairingCode ?? "------"})
+                    </Text>
+                  </>
+                )}
               </TouchableOpacity>
             </View>
 
+            {/* Bekleniyor Göstergesi */}
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center" }}
             >
               <View
                 style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#FF4D6A" }}
               />
-              <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>
-                Partnerin bekleniyor...
+              <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 12.5 }}>
+                Partnerin bekleniyor (bağlantıyı açtığında otomatik algılanır)...
               </Text>
             </View>
           </View>

@@ -18,6 +18,7 @@ import { navigateAfterAuth } from "@/lib/navigate";
 import { registerForPushNotifications } from "@/lib/notifications";
 import { ArrowLeft, Mail } from "lucide-react-native";
 import { decrypt } from "@/utils/crypto";
+import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 
 const OTP_LENGTH = 6;
 
@@ -26,6 +27,7 @@ export default function VerifyScreen() {
     email?: string;
     token_hash?: string;
     type?: string;
+    inviteCode?: string;
   }>();
 
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""));
@@ -134,6 +136,24 @@ export default function VerifyScreen() {
   }
 
   async function routeUser(userId: string) {
+    // 1. Bekleyen bir davet kodu var mı kontrol et
+    const pendingCode = (params.inviteCode || (await AsyncStorage.getItem("@pending_invite_code")))?.trim().toUpperCase();
+    if (pendingCode && pendingCode.length >= 4) {
+      try {
+        const { error: joinError } = await supabase.rpc("join_couple_by_code_uuid", {
+          p_code: pendingCode,
+        });
+        if (!joinError) {
+          await AsyncStorage.removeItem("@pending_invite_code");
+          // Eşleşme tamamlandı! Doğrudan ilişki tarihi seçme ekranına yönlendir
+          router.replace("/(setup)/dates");
+          return;
+        }
+      } catch {
+        // Hata durumunda standart akışa devam et
+      }
+    }
+
     const { data: userData } = await supabase
       .from("users")
       .select("display_name, couple_id")

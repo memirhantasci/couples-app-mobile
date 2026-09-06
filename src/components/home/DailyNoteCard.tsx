@@ -17,7 +17,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { BookOpen } from "lucide-react-native";
 import { AppTheme } from "@/lib/theme";
-import { notifyPartner } from "@/lib/notifications";
+import { useDemoAction } from "@/hooks/useDemoAction";
+import { DemoActionModal } from "@/components/demo/DemoActionModal";
 
 interface DailyNoteCardProps {
   existingNote?: string | null;
@@ -26,6 +27,7 @@ interface DailyNoteCardProps {
 
 export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }: DailyNoteCardProps) {
   const { session, profile } = useAuth();
+  const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -34,6 +36,13 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSave() {
+    if (executeOrIntercept(
+      () => {},
+      "Günün Notunu Kaydetmek İçin Kayıt Olun 📖",
+      "Gününüzü, hislerinizi ve sadece size özel kişisel günlüğünüzü güvenle saklamak için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
     if (saved || !content.trim() || !session?.user?.id) return;
     setSubmitting(true);
 
@@ -54,11 +63,6 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
     if (!error) {
       setSaved(true);
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
-      
-      if (coupleId && session?.user?.id) {
-        const senderName = profile?.displayName || "Sevgilin";
-        notifyPartner(coupleId, session.user.id, "Günün Notu 📖", `${senderName} günün notunu paylaştı.`);
-      }
     } else {
       logger.error("Note save error:", JSON.stringify(error, null, 2));
       alert("Not kaydedilemedi: " + (error?.message || "Bilinmeyen hata"));
@@ -118,6 +122,13 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
           </TouchableOpacity>
         </View>
       )}
+
+      <DemoActionModal
+        visible={isDemoModalOpen}
+        onClose={() => setIsDemoModalOpen(false)}
+        title={modalConfig.title}
+        description={modalConfig.description}
+      />
     </View>
   );
 });

@@ -7,11 +7,11 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
-  StyleSheet
+  StyleSheet,
+  Switch
 } from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { WatchAdModal } from "@/components/ui/WatchAdModal";
 import { PremiumSuccessModal } from "@/components/ui/PremiumSuccessModal";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -55,7 +55,23 @@ import {
   Check,
   LayoutGrid,
   RotateCcw,
+  Volume2,
+  VolumeX,
+  Vibrate,
 } from "lucide-react-native";
+import {
+  getSoundEffectsEnabled,
+  setSoundEffectsEnabled,
+  getHapticFeedbackEnabled,
+  setHapticFeedbackEnabled,
+  triggerHaptic,
+  playBubblePop,
+  playLetterSend,
+  playSuccessChime,
+  playStampDrop,
+  playCameraClick,
+  playCelebration,
+} from "@/lib/soundEffects";
 import { useTabBar } from "@/context/TabBarContext";
 import { LegalModal } from "@/components/legal/LegalModal";
 import { LegalDocType } from "@/constants/legalTexts";
@@ -141,8 +157,7 @@ export default function ProfileScreen() {
   const [promoCode, setPromoCode] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
 
-  // Reklam & Premium Modal
-  const [showAdModal, setShowAdModal] = useState(false);
+  // Premium Modal
   const [showPremiumSuccess, setShowPremiumSuccess] = useState(false);
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("profile");
 
@@ -153,6 +168,27 @@ export default function ProfileScreen() {
   const openLegal = (doc: LegalDocType) => {
     setSelectedLegalDoc(doc);
     setLegalModalVisible(true);
+  };
+
+  // Ses & Titreşim Ayarları
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [hapticEnabled, setHapticEnabled] = useState(true);
+
+  React.useEffect(() => {
+    getSoundEffectsEnabled().then(setSoundEnabled);
+    getHapticFeedbackEnabled().then(setHapticEnabled);
+  }, []);
+
+  const toggleSound = async (val: boolean) => {
+    setSoundEnabled(val);
+    await setSoundEffectsEnabled(val);
+    if (val) playBubblePop();
+  };
+
+  const toggleHaptic = async (val: boolean) => {
+    setHapticEnabled(val);
+    await setHapticFeedbackEnabled(val);
+    if (val) triggerHaptic("bubble_pop");
   };
 
   // Verileri yükle
@@ -289,6 +325,13 @@ export default function ProfileScreen() {
 
   // Promosyon Kodu
   async function handleRedeemPromo() {
+    if (executeOrIntercept(
+      () => {},
+      "Promosyon Kodu Kullanmak İçin Kayıt Olun 🎁",
+      "Kazanacağınız token ve ayrıcalıkları hesabınıza tanımlamak için ücretsiz hesap oluşturun."
+    )) {
+      return;
+    }
     const code = promoCode.trim().toUpperCase();
     if (!code) return;
 
@@ -348,6 +391,13 @@ export default function ProfileScreen() {
 
   // Hesap Silme
   async function handleDeleteAccount() {
+    if (executeOrIntercept(
+      () => {},
+      "Hesap İşlemleri İçin Giriş Yapın 👤",
+      "Hesabınızı yönetmek veya silmek için geçerli bir hesabınız olmalıdır."
+    )) {
+      return;
+    }
     Alert.alert(
       "⚠️ Hesabını Sil",
       "Eğer hesabınızı silerseniz, tüm fotoğraflarınız, mektuplarınız ve hatıralarınız 1 hafta sonra kalıcı olarak silinir.\n\nBu 1 hafta içinde herhangi biriniz giriş yaparsa silinme otomatik iptal edilir.\n\nOnaylıyor musunuz?",
@@ -483,19 +533,6 @@ export default function ProfileScreen() {
                 <Text style={styles.tokenAmountText}>{tokenBalance}</Text>
               </View>
             </View>
-
-            <View style={styles.walletDivider} />
-
-            <TouchableOpacity
-              onPress={() => setShowAdModal(true)}
-              activeOpacity={0.85}
-              style={[styles.watchAdBtn, { borderColor: `${theme.accent}40`, backgroundColor: `${theme.accent}12` }]}
-            >
-              <PlayCircle color={theme.accent} size={18} />
-              <Text style={[styles.watchAdBtnText, { color: theme.accent }]}>
-                Reklam İzle & +100 Token Kazan
-              </Text>
-            </TouchableOpacity>
           </View>
 
           {/* SİLİNME UYARISI */}
@@ -943,6 +980,120 @@ export default function ProfileScreen() {
             )}
           </ModernSection>
 
+          {/* ─── SES & DOKUNSAL EFEKTLER (AUDIO & HAPTICS) ─── */}
+          <ModernSection 
+            title="Ses & Dokunsal Efektler" 
+            icon={<Volume2 size={18} color={theme.accent} />} 
+            theme={theme}
+            defaultOpen={false}
+          >
+            <Text style={[styles.sessionHintText, { color: theme.textMuted }]}>
+              Uygulamadaki eylemler (mektup gönderme, ruh hali seçimi, ilaç takibi) için özel mikro sesleri ve dokunsal titreşimleri yönetin. Telefonunuz sessiz moddayken sesler çalmaz.
+            </Text>
+
+            <View style={{ gap: 12 }}>
+              {/* Ses Efektleri Toggle */}
+              <View style={[styles.settingToggleCard, { backgroundColor: theme.unitBg, borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flex: 1 }}>
+                  <View style={[styles.settingIconBox, { backgroundColor: theme.pillAccentBg }]}>
+                    {soundEnabled ? <Volume2 size={18} color={theme.accent} /> : <VolumeX size={18} color={theme.textMuted} />}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.settingToggleTitle, { color: theme.text }]}>Uygulama İçi Sesler</Text>
+                    <Text style={[styles.settingToggleSub, { color: theme.textMuted }]}>Mektup, ruh hali ve ilaç başarı tınıları</Text>
+                  </View>
+                </View>
+                <Switch
+                  value={soundEnabled}
+                  onValueChange={toggleSound}
+                  trackColor={{ false: isLight ? "#d1d5db" : "#374151", true: theme.accent }}
+                  thumbColor="#ffffff"
+                />
+              </View>
+
+              {/* Haptic Titreşim Toggle */}
+              <View style={[styles.settingToggleCard, { backgroundColor: theme.unitBg, borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flex: 1 }}>
+                  <View style={[styles.settingIconBox, { backgroundColor: theme.pillAccentBg }]}>
+                    <Vibrate size={18} color={theme.accent} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.settingToggleTitle, { color: theme.text }]}>Dokunsal Titreşim (Haptics)</Text>
+                    <Text style={[styles.settingToggleSub, { color: theme.textMuted }]}>Dokunmalarda yumuşak premium geri bildirim</Text>
+                  </View>
+                </View>
+                <Switch
+                  value={hapticEnabled}
+                  onValueChange={toggleHaptic}
+                  trackColor={{ false: isLight ? "#d1d5db" : "#374151", true: theme.accent }}
+                  thumbColor="#ffffff"
+                />
+              </View>
+
+              {/* Sesleri Önizle & Dene */}
+              <View style={{ marginTop: 4 }}>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary, marginBottom: 8 }]}>
+                  MİKRO SESLERİ DENE 🎧
+                </Text>
+                <View style={styles.soundTestGrid}>
+                  <TouchableOpacity
+                    onPress={() => playBubblePop()}
+                    style={[styles.soundTestBtn, { backgroundColor: theme.unitBg, borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.soundTestEmoji}>🥰</Text>
+                    <Text style={[styles.soundTestLabel, { color: theme.text }]}>Ruh Hali</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => playLetterSend()}
+                    style={[styles.soundTestBtn, { backgroundColor: theme.unitBg, borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.soundTestEmoji}>💌</Text>
+                    <Text style={[styles.soundTestLabel, { color: theme.text }]}>Mektup</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => playSuccessChime()}
+                    style={[styles.soundTestBtn, { backgroundColor: theme.unitBg, borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.soundTestEmoji}>💊</Text>
+                    <Text style={[styles.soundTestLabel, { color: theme.text }]}>İlaç</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => playStampDrop()}
+                    style={[styles.soundTestBtn, { backgroundColor: theme.unitBg, borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.soundTestEmoji}>📍</Text>
+                    <Text style={[styles.soundTestLabel, { color: theme.text }]}>Harita</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => playCameraClick()}
+                    style={[styles.soundTestBtn, { backgroundColor: theme.unitBg, borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.soundTestEmoji}>📸</Text>
+                    <Text style={[styles.soundTestLabel, { color: theme.text }]}>Fotoğraf</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => playCelebration()}
+                    style={[styles.soundTestBtn, { backgroundColor: theme.unitBg, borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.soundTestEmoji}>💖</Text>
+                    <Text style={[styles.soundTestLabel, { color: theme.text }]}>Uyum</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </ModernSection>
+
           {/* ─── UYGULAMA REHBERLERİ & TANITIMLAR ─── */}
           <ModernSection 
             title="Tanıtımlar & Özellik Rehberleri" 
@@ -1089,12 +1240,6 @@ export default function ProfileScreen() {
           <View style={{ height: 120 }} />
         </KeyboardAwareScrollView>
       </View>
-
-      <WatchAdModal
-        visible={showAdModal}
-        onClose={() => setShowAdModal(false)}
-        onSuccess={() => setShowAdModal(false)}
-      />
 
       <PremiumSuccessModal
         visible={showPremiumSuccess}
@@ -1778,6 +1923,56 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 1.5,
+  },
+
+  /* SES & TITREŞİM AYARLARI */
+  settingToggleCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 12,
+  },
+  settingIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  settingToggleTitle: {
+    fontSize: 13.5,
+    fontFamily: "Inter_600SemiBold",
+    marginBottom: 2,
+  },
+  settingToggleSub: {
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+  },
+  soundTestGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  soundTestBtn: {
+    width: "31.5%",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  soundTestEmoji: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  soundTestLabel: {
+    fontSize: 11.5,
+    fontFamily: "Inter_600SemiBold",
   },
 });
 

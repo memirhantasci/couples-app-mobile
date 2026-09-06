@@ -44,6 +44,19 @@
     },
     "plugins": [
       "expo-router",
+      "expo-sharing",
+      "expo-audio",
+      [
+        "expo-widgets",
+        {
+          "widgets": [
+            {
+              "name": "CoupleWidget"
+            }
+          ]
+        }
+      ],
+      "./plugins/withAndroidWidget",
       [
         "expo-splash-screen",
         {

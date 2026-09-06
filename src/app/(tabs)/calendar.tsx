@@ -236,6 +236,15 @@ export default function CalendarScreen() {
   };
 
   const handleSaveNote = async () => {
+    if (executeOrIntercept(
+      () => {},
+      "Takvime Not Eklemek İçin Kayıt Olun 📅",
+      "Özel günlerinizi, hatıralarınızı ve planlarınızı ortak takviminize kaydetmek için ücretsiz hesabınızı oluşturun."
+    )) {
+      setShowNoteModal(false);
+      return;
+    }
+
     if (!coupleId || !userId) return;
     setSaving(true);
 
@@ -268,6 +277,15 @@ export default function CalendarScreen() {
   };
 
   const handleDeleteNote = async () => {
+    if (executeOrIntercept(
+      () => {},
+      "Notu Silmek İçin Kayıt Olun 🗑️",
+      "Takvimdeki notlarınızı yönetmek ve silmek için ücretsiz hesabınızı oluşturun."
+    )) {
+      setShowNoteModal(false);
+      return;
+    }
+
     if (!userNoteForSelectedDay?.id) return;
     setSaving(true);
     const { error } = await supabase

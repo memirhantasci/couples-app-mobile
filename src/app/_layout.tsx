@@ -36,10 +36,12 @@ const queryClient = new QueryClient({
   },
 });
 
+import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
+
 // ─── Inner layout: has access to AuthContext ──────────────────────────────────
 
 function RootLayoutNav() {
-  const { session, isLoading, profile } = useAuth();
+  const { session, isLoading, profile, isDemoMode, exitDemoMode, refreshProfile } = useAuth();
 
   // Enforce role-based routing
   useProtectedRoute();
@@ -69,17 +71,22 @@ function RootLayoutNav() {
     return () => clearTimeout(timer);
   }, []);
 
-  // ── Deep link listener (Foreground deep links) ──────────────────────────
-  // Cold-start URLs are automatically handled by Expo Router's navigation container
+  // ── Deep link listener (Foreground and cold-start deep links) ─────────────
   useEffect(() => {
+    // 1. Cold-start URL
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink(url);
+    });
+
+    // 2. Foreground / background URL listener
     const subscription = Linking.addEventListener("url", ({ url }) => {
       handleDeepLink(url);
     });
 
     return () => subscription.remove();
-  }, []);
+  }, [session?.user?.id, isDemoMode]);
 
-  function handleDeepLink(url: string) {
+  async function handleDeepLink(url: string) {
     const parsed = Linking.parse(url);
     const { hostname, queryParams } = parsed;
 
@@ -95,11 +102,40 @@ function RootLayoutNav() {
       return;
     }
 
-    // couplesapp://pair?code=...
-    if (hostname === "pair" && queryParams?.code) {
+    // couplesapp://invite?code=... OR couplesapp://pair?code=...
+    if ((hostname === "invite" || hostname === "pair") && queryParams?.code) {
+      const code = (queryParams.code as string).trim().toUpperCase();
+      await AsyncStorage.setItem("@pending_invite_code", code);
+
+      // If user is already authenticated with an active session:
+      if (session?.user?.id) {
+        try {
+          const { error } = await supabase.rpc("join_couple_by_code_uuid", { p_code: code });
+          if (!error) {
+            await AsyncStorage.removeItem("@pending_invite_code");
+            await refreshProfile();
+            router.replace("/(setup)/dates");
+            return;
+          }
+        } catch {
+          // fallback
+        }
+        router.push({
+          pathname: "/(setup)/pairing",
+          params: { code },
+        });
+        return;
+      }
+
+      // If user is in demo mode, exit demo mode
+      if (isDemoMode) {
+        exitDemoMode();
+      }
+
+      // Navigate directly to registration screen with the invite code
       router.push({
-        pathname: "/(setup)/pairing",
-        params: { code: queryParams.code as string },
+        pathname: "/(auth)/login",
+        params: { initialMode: "register", inviteCode: code },
       });
       return;
     }
@@ -137,6 +173,7 @@ function RootLayoutNav() {
 
 import { ThemeProvider } from "@/context/ThemeContext";
 import { TabBarProvider } from "@/context/TabBarContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 
 export default function RootLayout() {
   return (
@@ -144,7 +181,9 @@ export default function RootLayout() {
       <AuthProvider>
         <ThemeProvider>
           <TabBarProvider>
-            <RootLayoutNav />
+            <NotificationProvider>
+              <RootLayoutNav />
+            </NotificationProvider>
           </TabBarProvider>
         </ThemeProvider>
       </AuthProvider>
