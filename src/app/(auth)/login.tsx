@@ -340,6 +340,11 @@ export default function LoginScreen() {
         return;
       }
 
+      const cleanPairingCode = regPairingCode.trim().toUpperCase() || activeInviteCode?.trim().toUpperCase() || "";
+      if (cleanPairingCode) {
+        await AsyncStorage.setItem("@pending_invite_code", cleanPairingCode);
+      }
+
       // Supabase Kuralı: Eğer e-posta zaten kayıtlıysa, Supabase identities: [] döner ve güvenlik sebebiyle mail GÖNDERMEZ!
       const isAlreadyRegistered = Array.isArray(data.user.identities) && data.user.identities.length === 0;
 
@@ -368,13 +373,6 @@ export default function LoginScreen() {
           });
         }, 1200);
         return;
-      }
-
-      // The user profile is automatically created in public.users via Supabase trigger
-
-      const cleanPairingCode = regPairingCode.trim().toUpperCase() || activeInviteCode?.trim().toUpperCase() || "";
-      if (cleanPairingCode) {
-        await AsyncStorage.setItem("@pending_invite_code", cleanPairingCode);
       }
 
       // If email confirmation is enabled in Supabase, session will be null

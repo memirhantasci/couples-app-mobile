@@ -199,11 +199,28 @@ export default function VerifyScreen() {
       }
     }
 
-    const { data: userData } = await supabase
+    let { data: userData } = await supabase
       .from("users")
       .select("display_name, couple_id")
       .eq("id", userId)
-      .single();
+      .maybeSingle();
+
+    if (!userData) {
+      const fallbackName = (params.email || "user").split("@")[0].replace(/[^a-zA-Z0-9_]/g, "");
+      const { data: createdUser } = await supabase
+        .from("users")
+        .insert({
+          id: userId,
+          username: fallbackName || `user_${userId.slice(0, 6)}`,
+          display_name: params.email?.split("@")[0] || "Kullanıcı",
+        })
+        .select("display_name, couple_id")
+        .maybeSingle();
+
+      if (createdUser) {
+        userData = createdUser;
+      }
+    }
 
     let couple: any = null;
     if (userData?.couple_id) {
