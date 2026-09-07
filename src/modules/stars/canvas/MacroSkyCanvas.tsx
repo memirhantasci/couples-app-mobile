@@ -12,8 +12,8 @@
  * - Re-render Stabilitesi: Yeni stars prop'u geldiğinde cameraRef.current ASLA
  *   sıfırlanmaz; mevcut kamera konumu korunur.
  * - initialCamera: Yalnızca ilk mount anında (isInitializedRef.current === false) okunur.
- * - 4-Aşamalı Multi-Pass Rendering: 4 bağımsız for döngüsü ile Z-index katmanları
- *   birbirini asla kesmez ve context state geçişleri minimize edilir.
+ * - 7-Aşamalı Multi-Pass Rendering: Nebula → SectorLabel → Constellation → Connection → Glow → Core → Ring → Label
+ *   Z-index katmanları birbirini asla kesmez ve context state geçişleri minimize edilir.
  * - Hit-Testing: Minimum 24px dokunmatik yarıçap; en yakın yıldız seçilir.
  * - 200ms Debounce: onBoundsChange yalnızca hareket tamamlandıktan 200ms sonra tetiklenir.
  */
@@ -21,9 +21,12 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import type {
+  ActiveStarConnection,
   ViewportStarItem,
   SkyCameraState,
 } from '@/modules/stars/types/star.types';
+import { CONSTELLATION_LINES } from '../config/constellationLines.data';
+import { SKY_SECTORS_LIST, getSectorByCoords } from '../config/skySectors.data';
 
 // ============================================================================
 // TİP TANIMLAMALARI
@@ -56,6 +59,10 @@ export interface MacroSkyCanvasProps {
   readonly onBoundsChange?: (bounds: MacroSkyBounds) => void;
   /** Anlık kamera durumunu üst bileşene bildirir (HUD koordinat göstergesi vb. için). */
   readonly onCameraChange?: (camera: SkyCameraState) => void;
+  /** Çiftin kabul edilmiş aktif arkadaş yıldız bağlantıları (takımyıldızı çizgileri için). */
+  readonly connections?: ActiveStarConnection[];
+  /** Kullanıcının kendi yıldızının gökyüzü koordinatları (bağlantı çizgisi kaynağı). */
+  readonly myStarCoords?: { readonly ra: number; readonly dec: number };
   readonly width?: number;
   readonly height?: number;
   readonly style?: object;
@@ -167,6 +174,8 @@ export function MacroSkyCanvas({
   onSelectStar,
   onBoundsChange,
   onCameraChange,
+  connections = [],
+  myStarCoords,
   width = 390,
   height = 844,
 }: MacroSkyCanvasProps) {
@@ -194,6 +203,10 @@ export function MacroSkyCanvas({
 
   // Debounce timer referansı
   const boundsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // rAF coalesce: Pan/wheel sırasında aynı frame'de birden fazla renderFrame çağrısını önler.
+  // Tüm senkron render istekleri bir sonraki animasyon frame'ine ertelenir.
+  const rafPendingRef = useRef<number | null>(null);
 
   // Sürükleme durum referansı
   const dragRef = useRef<{
@@ -237,6 +250,20 @@ export function MacroSkyCanvas({
   // -------------------------------------------------------------------
   // 4-AŞAMALI MULTI-PASS RENDER MOTORU
   // -------------------------------------------------------------------
+  /**
+   * rAF Kuyruğu: Aynı event tick'inde birden fazla render isteğini tek bir
+   * animasyon frame'ine coalesce eder. Pan ve zoom sırasında özellikle kritik:
+   * nebula (24 sektör) + takımyıldızı (31 segment) geçişlerinin her pointermove'da
+   * senkron yeniden hesaplanmasını önler ve düşük uçlu cihazlarda FPS'yi korur.
+   */
+  function scheduleRender() {
+    if (rafPendingRef.current !== null) return; // zaten kuyruğa alınmış
+    rafPendingRef.current = requestAnimationFrame(() => {
+      rafPendingRef.current = null;
+      renderFrame();
+    });
+  }
+
   function renderFrame() {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -280,6 +307,141 @@ export function MacroSkyCanvas({
       const { x, y } = projectToScreen(star.ra, star.dec, camera, logicalW, logicalH);
       const radius = magnitudeToRadius(star.magnitude, star.spectral_type, camera.zoom);
       screenPositionsRef.current[i] = { x, y, radius };
+    }
+
+    // ─── PASS N-2: Sektör Nebula Gradyanları ──────────────────────────
+    // Kameranın FOV'una giren sektörlerin nebula renkleriyle hafif radyal gradyan.
+    // Performans: Yalnızca görünür sektörler çizilir (max ~4-6 aynı anda).
+    const currentFovDec = 60 / camera.zoom;
+    const currentFovRa = currentFovDec * (logicalW / logicalH);
+    for (const sector of SKY_SECTORS_LIST) {
+      const sCenter = projectToScreen(
+        sector.center.ra, sector.center.dec, camera, logicalW, logicalH,
+      );
+      // Sektör merkezi ekranın 2x genişliği dışındaysa atla
+      if (
+        sCenter.x < -logicalW || sCenter.x > logicalW * 2 ||
+        sCenter.y < -logicalH || sCenter.y > logicalH * 2
+      ) continue;
+
+      const nebulaRadius = Math.max(logicalW, logicalH) * (0.25 / camera.zoom);
+      const nGrad = ctx.createRadialGradient(
+        sCenter.x, sCenter.y, 0,
+        sCenter.x, sCenter.y, nebulaRadius,
+      );
+      nGrad.addColorStop(0, sector.nebulaPalette[1] + '12'); // çok sönük merkez
+      nGrad.addColorStop(0.6, sector.nebulaPalette[0] + '08');
+      nGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = nGrad;
+      ctx.beginPath();
+      ctx.arc(sCenter.x, sCenter.y, nebulaRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // ─── PASS N-1.5: Sektör Merkez Etiketleri ─────────────────────────
+    // Yalnızca zoom < 1.8 iken (makro görünüm) sektör merkez koordinatında
+    // sektör sembolü ve kısa adı gösterilir. Yüksek zoom'da gürültü yaratmaz.
+    if (camera.zoom < 1.8) {
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (const sector of SKY_SECTORS_LIST) {
+        const sCenter = projectToScreen(sector.center.ra, sector.center.dec, camera, logicalW, logicalH);
+        // Ekran dışındaysa atla
+        if (
+          sCenter.x < -60 || sCenter.x > logicalW + 60 ||
+          sCenter.y < -60 || sCenter.y > logicalH + 60
+        ) continue;
+
+        const labelAlpha = Math.max(0, Math.min(0.75, (1.8 - camera.zoom) * 1.2));
+
+        // Sembol (emoji)
+        ctx.globalAlpha = labelAlpha;
+        ctx.font = '18px sans-serif';
+        ctx.shadowColor = 'rgba(0,0,0,0.8)';
+        ctx.shadowBlur = 8;
+        ctx.fillText(sector.symbol, sCenter.x, sCenter.y - 12);
+
+        // Sektör kısa adı
+        ctx.font = '500 9px -apple-system, "SF Pro Text", "Inter", sans-serif';
+        ctx.fillStyle = sector.themeColor;
+        ctx.globalAlpha = labelAlpha * 0.9;
+        ctx.fillText(sector.name, sCenter.x, sCenter.y + 8);
+
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+      }
+      ctx.globalAlpha = 1.0;
+      ctx.restore();
+    }
+
+    // ─── PASS N-1: Takımyıldızı Çizgileri ─────────────────────────────
+    // Gerçek Hipparcos koordinatlarından türetilen 7 takımyıldızının çizgi segmentleri.
+    ctx.save();
+    ctx.lineWidth = 0.6;
+    ctx.globalAlpha = 0.25;
+    for (const line of CONSTELLATION_LINES) {
+      const fromPos = projectToScreen(line.from.ra, line.from.dec, camera, logicalW, logicalH);
+      const toPos = projectToScreen(line.to.ra, line.to.dec, camera, logicalW, logicalH);
+
+      // Her iki uç da ekran dışındaysa atla
+      const pad = 100;
+      if (
+        (fromPos.x < -pad || fromPos.x > logicalW + pad || fromPos.y < -pad || fromPos.y > logicalH + pad) &&
+        (toPos.x < -pad || toPos.x > logicalW + pad || toPos.y < -pad || toPos.y > logicalH + pad)
+      ) continue;
+
+      // Sektör temasına uygun renk (fallback beyaz)
+      const sectorConfig = SKY_SECTORS_LIST.find(s => s.id === line.constellationId);
+      const lineColor = sectorConfig?.themeColor ?? '#FFFFFF';
+
+      ctx.beginPath();
+      ctx.moveTo(fromPos.x, fromPos.y);
+      ctx.lineTo(toPos.x, toPos.y);
+      ctx.strokeStyle = lineColor;
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // ─── PASS 0: Bağlantı Çizgileri (En altta, yıldızların arkasında) ──
+    if (myStarCoords && connections && connections.length > 0) {
+      const myPos = projectToScreen(myStarCoords.ra, myStarCoords.dec, camera, logicalW, logicalH);
+      const margin = 200;
+      const myInView =
+        myPos.x >= -margin && myPos.x <= logicalW + margin &&
+        myPos.y >= -margin && myPos.y <= logicalH + margin;
+
+      connections.forEach((conn) => {
+        const otherPos = projectToScreen(conn.other_star_ra, conn.other_star_dec, camera, logicalW, logicalH);
+        const otherInView =
+          otherPos.x >= -margin && otherPos.x <= logicalW + margin &&
+          otherPos.y >= -margin && otherPos.y <= logicalH + margin;
+
+        if (!myInView && !otherInView) return;
+
+        ctx.save();
+        const gradient = ctx.createLinearGradient(myPos.x, myPos.y, otherPos.x, otherPos.y);
+        gradient.addColorStop(0, 'rgba(245, 158, 11, 0.6)'); // altın
+        gradient.addColorStop(1, 'rgba(168, 85, 247, 0.6)'); // mor
+
+        ctx.beginPath();
+        ctx.moveTo(myPos.x, myPos.y);
+        ctx.lineTo(otherPos.x, otherPos.y);
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 0.8;
+        ctx.setLineDash([3, 6]); // kesikli — takımyıldızı hissi
+        ctx.stroke();
+        ctx.setLineDash([]); // ← sıfırla
+
+        // Bağlı yıldız düğüm hare rozeti
+        ctx.strokeStyle = 'rgba(168, 85, 247, 0.4)';
+        ctx.lineWidth = 1.0;
+        ctx.beginPath();
+        ctx.arc(otherPos.x, otherPos.y, 6, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.restore();
+      });
     }
 
     // ─── PASS 1: Işımalar (Glows) ─────────────────────────────────────
@@ -390,6 +552,26 @@ export function MacroSkyCanvas({
 
     ctx.restore();
 
+    // ─── PASS 4.1: Bağlı Yıldız İsim Etiketleri ──────────────────────
+    if (connections.length > 0) {
+      ctx.save();
+      ctx.font = '600 10px -apple-system, "SF Pro Text", "Inter", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      for (let i = 0; i < connections.length; i++) {
+        const conn = connections[i];
+        const { x, y } = projectToScreen(conn.other_star_ra, conn.other_star_dec, camera, logicalW, logicalH);
+        if (x < -50 || x > logicalW + 50 || y < -50 || y > logicalH + 50) continue;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+        ctx.shadowBlur = 5;
+        ctx.fillStyle = 'rgba(244, 114, 182, 0.95)';
+        ctx.fillText(`🔗 ${conn.other_star_name}`, x, y + 16);
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+      }
+      ctx.restore();
+    }
+
     // Restore DPR scale
     ctx.restore();
   }
@@ -458,7 +640,7 @@ export function MacroSkyCanvas({
 
     cameraRef.current = { ...camera, centerRa: newRa, centerDec: newDec };
     onCameraChange?.(cameraRef.current);
-    renderFrame();
+    scheduleRender(); // rAF ile coalesce — her pointermove'da senkron render YOK
   }
 
   function handlePointerUp(e: React.PointerEvent<HTMLCanvasElement>) {
@@ -489,7 +671,7 @@ export function MacroSkyCanvas({
     const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, cameraRef.current.zoom * zoomFactor));
     cameraRef.current = { ...cameraRef.current, zoom: newZoom };
     onCameraChange?.(cameraRef.current);
-    renderFrame();
+    scheduleRender(); // rAF ile coalesce — birden fazla wheel tick tek frame'e indirilir
     fireBoundsChange();
   }
 
@@ -509,12 +691,12 @@ export function MacroSkyCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // stars prop'u her güncellendiğinde canvas yeniden çizilir.
+  // stars veya connections prop'u güncellendiğinde canvas yeniden çizilir.
   // cameraRef.current DEĞİŞTİRİLMEZ — kamera konumu korunur.
   useEffect(() => {
     renderFrame();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stars]);
+  }, [stars, connections, myStarCoords]);
 
   // Boyut değişikliklerinde yeniden çiz
   useEffect(() => {
@@ -528,6 +710,9 @@ export function MacroSkyCanvas({
     return () => {
       if (boundsDebounceRef.current) {
         clearTimeout(boundsDebounceRef.current);
+      }
+      if (rafPendingRef.current !== null) {
+        cancelAnimationFrame(rafPendingRef.current);
       }
     };
   }, []);

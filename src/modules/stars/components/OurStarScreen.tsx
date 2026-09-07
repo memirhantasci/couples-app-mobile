@@ -44,11 +44,13 @@ import {
   Orbit,
   Globe,
   Plus,
+  Share2,
   Zap,
   Clock,
   ArrowLeft,
   Sparkles,
   X,
+  AlertCircle,
 } from 'lucide-react-native';
 
 import { useAuth } from '@/context/AuthContext';
@@ -61,9 +63,16 @@ import { StarInfoBadge } from './StarInfoBadge';
 import { ClaimStarModal } from './ClaimStarModal';
 import { StarDemoAuthModal } from './StarDemoAuthModal';
 import { ExoplanetModal } from './ExoplanetModal';
+import { StarConnectionModal, StarConnectionsModal } from './StarConnectionModal';
+import { ConnectionRequestBadge } from './ConnectionRequestBadge';
+import { SectorHUD } from './SectorHUD';
+import { SectorAtlasModal } from './SectorAtlasModal';
 
 import type {
+  ActiveStarConnection,
+  PendingConnectionDetail,
   CoupleStarDetails,
+  FlyToTarget,
   StarExoplanetRecord,
   ViewportStarItem,
   SparkBroadcastPayload,
@@ -116,6 +125,24 @@ export const OurStarScreen: React.FC = () => {
   const [exoplanetModalMode, setExoplanetModalMode] = useState<'view' | 'edit' | 'create' | null>(null);
   const [selectedPlanet, setSelectedPlanet] = useState<StarExoplanetRecord | null>(null);
   const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
+  const [isConnectionsModalOpen, setIsConnectionsModalOpen] = useState(false);
+
+  // Yıldız bağlantıları (canvas takımyıldızı çizgileri için)
+  const [starConnections, setStarConnections] = useState<ActiveStarConnection[]>([]);
+  // Bekleyen bağlantı istekleri listesi
+  const [pendingRequests, setPendingRequests] = useState<PendingConnectionDetail[]>([]);
+  // Gelen bekleyen isteklerin sayısı (Kozmik Bağlar butonu üzerindeki bildirim rozeti için)
+  const [pendingIncomingCount, setPendingIncomingCount] = useState<number>(0);
+  // Gökyüzünde seçilen yıldıza istek gönderme yükleniyor durumu
+  const [isConnectingStar, setIsConnectingStar] = useState<boolean>(false);
+
+  // ─── AŞAMA 6: SEKTÖR DURUMU ────────────────────────────────────
+  const [isAtlasModalOpen, setIsAtlasModalOpen] = useState(false);
+  const [claimSectorId, setClaimSectorId] = useState<string | null>(null);
+  const [cameraRa, setCameraRa] = useState(180);
+  const [cameraDec, setCameraDec] = useState(0);
+  const [flyToTarget, setFlyToTarget] = useState<FlyToTarget | undefined>(undefined);
+
 
   // ─── REFERANSLAR (LWW & MANAGER) ───────────────────────────────────
   const sparkManagerRef = useRef<StarSparkManager | null>(null);
@@ -226,6 +253,15 @@ export const OurStarScreen: React.FC = () => {
         // Anı ötegezegenlerini çek
         const planets = await starService.getStarExoplanets(details.star_id);
         setExoplanets(planets);
+
+        // Aktif bağlantıları ve bekleyen istekleri çek
+        const [connections, pending] = await Promise.all([
+          starService.getMyStarConnections(),
+          starService.getPendingConnections(),
+        ]);
+        setStarConnections(connections);
+        setPendingRequests(pending);
+        setPendingIncomingCount(pending.filter((p) => p.is_incoming).length);
       } catch {
         // Yıldız henüz tescilli değilse macro kanvasa yönlendir (otomatik modal yok)
         setStarDetails(null);
@@ -417,6 +453,44 @@ export const OurStarScreen: React.FC = () => {
     showToast('Anı gezegeni yörüngeden kaldırıldı.');
   };
 
+  // ─── GÖKYÜZÜNDE SEÇİLEN YILDIZA BAĞLANTI İSTEĞİ GÖNDER ───────────────
+  const handleConnectSelectedMacroStar = async () => {
+    if (!selectedMacroStar || !starDetails) return;
+    if (starConnections.length >= 3) {
+      showToast('Maksimum 3 bağlantı limitine ulaştınız (3/3).');
+      return;
+    }
+    setIsConnectingStar(true);
+    try {
+      const targetStarId = await starService.getStarIdByCatalogId(selectedMacroStar.catalog_id);
+      if (!targetStarId) {
+        showToast('Hedef yıldız bilgisi alınamadı.');
+        return;
+      }
+      await starService.requestStarConnection(targetStarId);
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      showToast(
+        `"${selectedMacroStar.custom_name || selectedMacroStar.catalog_code}" yıldızına bağlantı isteği gönderildi ✨`
+      );
+      const [connections, pending] = await Promise.all([
+        starService.getMyStarConnections(),
+        starService.getPendingConnections(),
+      ]);
+      setStarConnections(connections);
+      setPendingRequests(pending);
+      setPendingIncomingCount(pending.filter((p) => p.is_incoming).length);
+    } catch (err: any) {
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+      showToast(err?.message || 'Bağlantı isteği gönderilemedi.');
+    } finally {
+      setIsConnectingStar(false);
+    }
+  };
+
   // ─── YÜKLENİYOR EKRANI ─────────────────────────────────────────────
   if (isLoading) {
     return (
@@ -454,7 +528,7 @@ export const OurStarScreen: React.FC = () => {
         </View>
       )}
 
-      {/* ─── ÜST HUD BAR: GERİ DÖN VE STAR INFO BADGE ───────────────── */}
+      {/* ─── ÜST HUD BAR: GERİ DÖN, STAR INFO BADGE VE KOZMİK BAĞLAR ─── */}
       <View style={[styles.hudTopBar, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity
           onPress={handleBack}
@@ -473,6 +547,44 @@ export const OurStarScreen: React.FC = () => {
             viewMode={viewMode}
             onPressCertificate={() => setIsCertificateModalOpen(true)}
           />
+        </View>
+
+        <View style={styles.topRightActions}>
+          {/* Gelen Bağlantı İstekleri Rozeti */}
+          {starDetails && !isDemoMode && (
+            <ConnectionRequestBadge
+              pendingRequests={pendingRequests}
+              onConnectionChanged={() => {
+                Promise.all([
+                  starService.getMyStarConnections(),
+                  starService.getPendingConnections(),
+                ])
+                  .then(([connections, pending]) => {
+                    setStarConnections(connections);
+                    setPendingRequests(pending);
+                    setPendingIncomingCount(pending.filter((p) => p.is_incoming).length);
+                  })
+                  .catch(() => {});
+              }}
+            />
+          )}
+
+          {/* KOZMİK BAĞLAR BUTONU — yalnızca tescilli yıldız varsa göster */}
+          {starDetails && !isDemoMode && (
+            <TouchableOpacity
+              activeOpacity={0.82}
+              onPress={() => setIsConnectionsModalOpen(true)}
+              style={styles.cosmicBagBtn}
+              accessibilityLabel="Kozmik Bağlar"
+            >
+              <Share2 size={16} color="#EC4899" />
+              {pendingIncomingCount > 0 && (
+                <View style={styles.cosmicBagBadge}>
+                  <Text style={styles.cosmicBagBadgeText}>{pendingIncomingCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -495,12 +607,23 @@ export const OurStarScreen: React.FC = () => {
             stars={viewportStars}
             width={SCREEN_WIDTH}
             height={SCREEN_HEIGHT}
+            connections={starConnections}
+            myStarCoords={
+              starDetails
+                ? { ra: Number(starDetails.ra), dec: Number(starDetails.dec) }
+                : undefined
+            }
             initialCamera={{
               centerRa: starDetails ? Number(starDetails.ra) : 180,
               centerDec: starDetails ? Number(starDetails.dec) : 0,
               zoom: 1.2,
             }}
+            targetCamera={flyToTarget}
             onBoundsChange={handleMacroBoundsChange}
+            onCameraChange={(cam) => {
+              setCameraRa(cam.centerRa);
+              setCameraDec(cam.centerDec);
+            }}
             onSelectStar={(star) => {
               if (isDemoMode) {
                 // Demo / misafir modu: ClaimStarModal (radar/sertifika) AÇILMAZ!
@@ -538,6 +661,16 @@ export const OurStarScreen: React.FC = () => {
           />
         )}
       </View>
+
+      {/* ─── MAKRO MOD: SEKTÖR HUD (Pusula Göstergesi) ──────────────── */}
+      {viewMode === 'macro' && (
+        <SectorHUD
+          centerRa={cameraRa}
+          centerDec={cameraDec}
+          topInset={insets.top + 54}
+          onPress={() => setIsAtlasModalOpen(true)}
+        />
+      )}
 
       {/* ─── MAKRO MOD: SEÇİLEN YILDIZ BİLGİ VE SAHİPLENME KARTI ──────── */}
       {viewMode === 'macro' && selectedMacroStar && (
@@ -623,11 +756,72 @@ export const OurStarScreen: React.FC = () => {
                 Zaten bir yıldızınız var — her çift yalnızca bir yıldıza sahip olabilir ✨
               </Text>
             </View>
-          ) : (
-            // Başkasının tescilli yıldızı: kilit
+          ) : isDemoMode ? (
+            // Başkasının tescilli yıldızı (Demo modu)
             <Text style={styles.claimedInfoText}>
               🔒 Bu yıldız başka bir çift tarafından gökyüzüne tescillenmiştir.
             </Text>
+          ) : starDetails === null ? (
+            // Başkasının tescilli yıldızı ama kullanıcının kendi yıldızı henüz yok
+            <View style={styles.alreadyOwnedBanner}>
+              <Sparkles size={13} color="#FBBF24" />
+              <Text style={styles.alreadyOwnedText}>
+                Bağlantı kurabilmek için önce aşkınıza ait bir yıldız tescil etmelisiniz ✨
+              </Text>
+            </View>
+          ) : starConnections.some(
+              (c) =>
+                c.other_star_name === selectedMacroStar.custom_name ||
+                (Math.abs(c.other_star_ra - Number(selectedMacroStar.ra)) < 0.001 &&
+                  Math.abs(c.other_star_dec - Number(selectedMacroStar.dec)) < 0.001)
+            ) ? (
+            // Zaten bağlı yıldız
+            <View style={styles.alreadyConnectedBanner}>
+              <Sparkles size={13} color="#EC4899" />
+              <Text style={styles.alreadyConnectedText}>
+                ✨ Bu yıldızla zaten parıldayan bir takımyıldızı bağınız var.
+              </Text>
+            </View>
+          ) : pendingRequests.some(
+              (p) => p.other_star_name === selectedMacroStar.custom_name
+            ) ? (
+            // Onay bekleyen istek
+            <View style={styles.alreadyConnectedBanner}>
+              <Clock size={13} color="#FBBF24" />
+              <Text style={styles.alreadyConnectedText}>
+                ⏳ Bu yıldıza bağlantı isteği gönderildi; onay bekleniyor.
+              </Text>
+            </View>
+          ) : starConnections.length >= 3 ? (
+            // Limit dolu (3/3)
+            <View style={styles.limitReachedBanner}>
+              <AlertCircle size={13} color="#FBBF24" />
+              <Text style={styles.limitReachedText}>
+                Maksimum 3 bağlantı limitine ulaştınız (3/3).
+              </Text>
+            </View>
+          ) : (
+            // Tescilli yıldıza doğrudan bağlantı kur
+            <TouchableOpacity
+              activeOpacity={0.85}
+              disabled={isConnectingStar}
+              onPress={handleConnectSelectedMacroStar}
+              style={styles.connectStarBtn}
+            >
+              {isConnectingStar ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <LinearGradient
+                  colors={['#EC4899', '#8B5CF6']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.connectStarBtnGradient}
+                >
+                  <Sparkles size={14} color="#FFFFFF" />
+                  <Text style={styles.connectStarBtnText}>Yıldızımızı Bağla ✨</Text>
+                </LinearGradient>
+              )}
+            </TouchableOpacity>
           )}
         </View>
       )}
@@ -637,7 +831,7 @@ export const OurStarScreen: React.FC = () => {
         <View style={[styles.instructionBanner, { top: insets.top + 64 }]}>
           <Sparkles size={16} color="#FBBF24" />
           <Text style={styles.instructionBannerText}>
-            Aşkınız için bir yıldız seçin ✨
+            Aşkınız için bir yıldız seçin veya üst puslaya dokunarak Atlas'ı açın ✨
           </Text>
         </View>
       )}
@@ -726,9 +920,11 @@ export const OurStarScreen: React.FC = () => {
           visible={isClaimModalOpen}
           coupleId={coupleId}
           preSelectedStar={claimTargetStar ?? undefined}
+          preSelectedSectorId={claimSectorId ?? undefined}
           onClose={() => {
             setIsClaimModalOpen(false);
             setClaimTargetStar(null);
+            setClaimSectorId(null);
             // Yıldızı hâlâ yoksa geri git
             if (!starDetails) {
               handleBack();
@@ -775,6 +971,49 @@ export const OurStarScreen: React.FC = () => {
           onSuccess={() => setIsCertificateModalOpen(false)}
         />
       )}
+
+      {/* 4. KOZMİK BAĞLAR MODALI */}
+      {starDetails && coupleId && !isDemoMode && (
+        <StarConnectionModal
+          visible={isConnectionsModalOpen}
+          coupleId={coupleId}
+          onClose={() => setIsConnectionsModalOpen(false)}
+          onNavigateToSky={() => {
+            setViewMode('macro');
+            showToast('Gök Kubbede tescilli bir yıldıza dokunarak bağ kurabilirsiniz 🌌');
+          }}
+          onConnectionChanged={() => {
+            // Aktif bağlantıları ve rozeti yenile (canvas güncellemesi için)
+            Promise.all([
+              starService.getMyStarConnections(),
+              starService.getPendingConnections(),
+            ])
+              .then(([connections, pending]) => {
+                setStarConnections(connections);
+                setPendingRequests(pending);
+                setPendingIncomingCount(pending.filter((p) => p.is_incoming).length);
+              })
+              .catch(() => {});
+          }}
+        />
+      )}
+
+      {/* 5. GÖKYÜZÜ ATLASI MODALI */}
+      <SectorAtlasModal
+        visible={isAtlasModalOpen}
+        onClose={() => setIsAtlasModalOpen(false)}
+        hasOwnStar={starDetails !== null}
+        onFlyTo={(target) => {
+          setFlyToTarget(target);
+          setViewMode('macro');
+        }}
+        onClaimFromSector={(sectorId) => {
+          if (!coupleId || isDemoMode) return;
+          setClaimSectorId(sectorId);
+          setClaimTargetStar(null);
+          setIsClaimModalOpen(true);
+        }}
+      />
     </View>
   );
 };
@@ -834,6 +1073,36 @@ const styles = StyleSheet.create({
   },
   badgeWrapper: {
     flex: 1,
+  },
+  cosmicBagBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(7, 5, 18, 0.65)',
+    borderWidth: 1.2,
+    borderColor: 'rgba(236, 72, 153, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#EC4899',
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  cosmicBagBadge: {
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#EC4899',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cosmicBagBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#FFF',
   },
   canvasContainer: {
     flex: 1,
@@ -1090,6 +1359,66 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   alreadyOwnedText: {
+    color: '#FBBF24',
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'center',
+    flexShrink: 1,
+  },
+  topRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  connectStarBtn: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  connectStarBtnGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  connectStarBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  alreadyConnectedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(236, 72, 153, 0.12)',
+    borderWidth: 0.8,
+    borderColor: 'rgba(236, 72, 153, 0.35)',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  alreadyConnectedText: {
+    color: '#EC4899',
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'center',
+    flexShrink: 1,
+  },
+  limitReachedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderWidth: 0.8,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  limitReachedText: {
     color: '#FBBF24',
     fontSize: 11,
     fontWeight: '600',

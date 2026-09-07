@@ -538,3 +538,79 @@ export function getResponsiveOrbitRadius(
   const scaleFactor = Math.min(1.3, Math.max(0.75, screenWidth / referenceWidth));
   return ORBIT_CONFIG.BASE_RADII_PX[zone] * scaleFactor;
 }
+
+// ============================================================================
+// 9. YILDIZ BAĞLANTILARI (STAGE 5 — ARKADAŞ ÇİFT BAĞLANTILARI)
+// ============================================================================
+
+export type StarConnectionStatus = 'pending' | 'accepted' | 'rejected';
+
+export interface StarConnectionRecord {
+  readonly id: string;
+  readonly star_a_id: string;
+  readonly star_b_id: string;
+  readonly status: StarConnectionStatus;
+  readonly requested_by_couple_id: number;
+  readonly created_at: string;
+  readonly responded_at: string | null;
+}
+
+export interface StarSearchResult {
+  readonly star_id: string;
+  readonly custom_name: string;
+  readonly catalog_code: string;
+  readonly ra: number;
+  readonly dec: number;
+}
+
+export interface ActiveStarConnection {
+  readonly connection_id: string;
+  readonly other_star_id: string;
+  readonly other_star_name: string;
+  readonly other_star_ra: number;
+  readonly other_star_dec: number;
+}
+
+export interface PendingConnectionDetail {
+  readonly connection_id: string;
+  readonly other_star_id: string;
+  readonly other_star_name: string;
+  readonly is_incoming: boolean;
+  readonly created_at: string;
+}
+
+
+// ============================================================================
+// 10. GÖKYÜZÜ SEKTÖRLERİ (STAGE 6 — SANAL GÖKYÜZÜ SEKTÖRLERİ)
+// ============================================================================
+
+/**
+ * `claim_star_in_sector` RPC parametreleri.
+ * Sınır koordinatları client'tan gönderilmez; fonksiyon bunları sky_sectors tablosundan çeker.
+ */
+export interface ClaimStarInSectorParams {
+  readonly coupleId: number;
+  readonly sectorId: string;
+  readonly customName: string;
+}
+
+/**
+ * `get_sectors_overview` RPC'sinden dönen her bir sektörün dinamik verileri.
+ * Statik veriler (isim, renk, açıklama) client-side skySectors.data.ts içindedir.
+ */
+export interface SectorDynamicOverview {
+  readonly sector_id: string;
+  readonly claimed_stars_count: number;
+  readonly available_stars_count: number;
+  readonly sector_energy: number;
+  readonly has_friends_here: boolean;
+}
+
+/**
+ * Sinematik kamera uçuş hedef koordinatları.
+ */
+export interface FlyToTarget {
+  readonly centerRa: number;
+  readonly centerDec: number;
+  readonly zoom?: number;
+}

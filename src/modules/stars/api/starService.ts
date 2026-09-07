@@ -13,15 +13,21 @@
 
 import { supabase } from '@/lib/supabase';
 import type {
+  ActiveStarConnection,
   ClaimRandomStarParams,
   ClaimSpecificStarParams,
+  ClaimStarInSectorParams,
   CoupleStarDetails,
   CreateExoplanetDto,
   CreateExoplanetFromMediaParams,
   GetStarsViewportParams,
+  PendingConnectionDetail,
+  SectorDynamicOverview,
   SendStarSparkParams,
   SparkCooldownError,
+  StarConnectionRecord,
   StarExoplanetRecord,
+  StarSearchResult,
   ViewportStarItem,
 } from '../types/star.types';
 
@@ -108,6 +114,34 @@ function handleSupabaseError(error: any): never {
     );
   }
 
+  // P0010: Bağlantı için önce yıldız sahiplenilmeli
+  if (error?.code === 'P0010') {
+    throw new Error(
+      error.message || 'Bağlantı kurabilmek için önce bir yıldız sahiplenmelisiniz.',
+    );
+  }
+
+  // P0011: Maksimum 3 yıldız bağlantısı sınırı
+  if (error?.code === 'P0011') {
+    throw new Error(
+      error.message || 'Maksimum 3 yıldız bağlantısı sınırına ulaşıldı.',
+    );
+  }
+
+  // P0012: Zaten aktif veya bekleyen bağlantı var
+  if (error?.code === 'P0012') {
+    throw new Error(
+      error.message || 'Bu yıldızla zaten aktif veya bekleyen bir bağlantı mevcut.',
+    );
+  }
+
+  // P0014: İstek zaten yanıtlanmış
+  if (error?.code === 'P0014') {
+    throw new Error(
+      error.message || 'Bu bağlantı isteği zaten yanıtlanmış.',
+    );
+  }
+
   throw error;
 }
 
@@ -126,6 +160,10 @@ const NON_RETRYABLE_CODES = new Set([
   'P0005', // Bu çiftin zaten bir yıldızı var
   'P0006', // Moderasyon ihlali
   'P0007', // Manuel gezegen limiti aşıldı (frontend koruması atlanırsa)
+  'P0010', // Bağlantı için önce yıldız sahiplenilmeli
+  'P0011', // Maksimum 3 bağlantı sınırı
+  'P0012', // Zaten aktif veya bekleyen bağlantı var
+  'P0014', // İstek zaten yanıtlanmış
   '42501', // Yetkisiz işlem / RLS engeli
   '22023', // Geçersiz parametre değeri
   '23505', // Unique constraint ihlali
@@ -553,6 +591,206 @@ export async function sendSpark(params: SendStarSparkParams): Promise<CoupleStar
   });
 }
 
+// ============================================================================
+// 7. YILDIZ BAĞLANTILARI (STAGE 5 — ARKADAŞ ÇİFT BAĞLANTILARI)
+// ============================================================================
+
+/**
+ * İsme göre tescilli çift yıldızlarını arar (kendi yıldızı hariç, escape korumalı).
+ */
+export async function searchStarByName(query: string): Promise<StarSearchResult[]> {
+  const trimmed = query.trim();
+  if (!trimmed || trimmed.length < 2) return [];
+
+  return withSmartRetry(async () => {
+    const { data, error } = await supabase.rpc('search_star_by_name', {
+      p_query: trimmed,
+    });
+
+    if (error) {
+      handleSupabaseError(error);
+    }
+
+    return (data || []) as StarSearchResult[];
+  });
+}
+
+/**
+ * Hedef yıldıza bağlantı isteği gönderir (Atomik RPC, simetrik lock & 3 limit).
+ */
+export async function requestStarConnection(targetStarId: string): Promise<StarConnectionRecord> {
+  return withSmartRetry(async () => {
+    const { data, error } = await supabase.rpc('request_star_connection', {
+      p_target_star_id: targetStarId,
+    });
+
+    if (error) {
+      handleSupabaseError(error);
+    }
+
+    return data as StarConnectionRecord;
+  });
+}
+
+/**
+ * Gelen bağlantı isteğini onaylar (accept=true) veya reddeder (accept=false).
+ */
+export async function respondToConnection(connectionId: string, accept: boolean): Promise<void> {
+  return withSmartRetry(async () => {
+    const { error } = await supabase.rpc('respond_to_star_connection', {
+      p_connection_id: connectionId,
+      p_accept: accept,
+    });
+
+    if (error) {
+      handleSupabaseError(error);
+    }
+  });
+}
+
+/**
+ * Var olan bir yıldız bağlantısını sonlandırır veya bekleyen isteği siler.
+ * RLS delete politikası uyarınca authenticated kullanıcı kendi bağlantısını silebilir.
+ */
+export async function removeStarConnection(connectionId: string): Promise<void> {
+  return withSmartRetry(async () => {
+    const { error } = await supabase
+      .from('star_connections')
+      .delete()
+      .eq('id', connectionId);
+
+    if (error) {
+      handleSupabaseError(error);
+    }
+  });
+}
+
+/**
+ * Çiftin kabul edilmiş aktif bağlantılarını (diğer yıldızın ad ve koordinatlarıyla) getirir.
+ */
+export async function getMyStarConnections(): Promise<ActiveStarConnection[]> {
+  return withSmartRetry(async () => {
+    const { data, error } = await supabase.rpc('get_my_star_connections');
+
+    if (error) {
+      handleSupabaseError(error);
+    }
+
+    return (data || []) as ActiveStarConnection[];
+  });
+}
+
+/**
+ * Çiftin bekleyen (gelen ve giden) bağlantı isteklerini listeler.
+ */
+export async function getPendingConnections(): Promise<PendingConnectionDetail[]> {
+  return withSmartRetry(async () => {
+    const { data, error } = await supabase.rpc('get_my_pending_connections');
+
+    if (error) {
+      handleSupabaseError(error);
+    }
+
+    return (data || []) as PendingConnectionDetail[];
+  });
+}
+
+/**
+ * Çiftin bağlantı limitinin (3 adet) dolu olup olmadığını sorgular (Client UI helper).
+ */
+export async function checkConnectionLimit(coupleId: number): Promise<boolean> {
+  return withSmartRetry(async () => {
+    const { data, error } = await supabase.rpc('check_connection_limit', {
+      p_couple_id: coupleId,
+    });
+
+    if (error) {
+      handleSupabaseError(error);
+    }
+
+    return Boolean(data);
+  });
+}
+
+/**
+ * Katalog ID'sine göre tescilli çift yıldızının UUID'sini (star_id) sorgular.
+ * MacroSkyCanvas üzerinden yıldız seçilip doğrudan bağlantı kurulurken kullanılır.
+ */
+export async function getStarIdByCatalogId(catalogId: number): Promise<string | null> {
+  return withSmartRetry(async () => {
+    const { data, error } = await supabase
+      .from('couple_stars')
+      .select('id')
+      .eq('catalog_id', catalogId)
+      .maybeSingle();
+
+    if (error || !data) return null;
+    return (data as { id: string }).id;
+  });
+}
+
+// ============================================================================
+// 8. GÖKYÜZÜ SEKTÖRLERİ API (STAGE 6)
+// ============================================================================
+
+/**
+ * Sektör dinamik verilerini (doluluk, enerji, arkadaş varlığı) çeker.
+ * Yalnızca SectorAtlasModal açıldığında çağrılır.
+ * 5 dakikalık client-side bellek içi önbellek ile gereksiz Supabase trafiği engellenir.
+ */
+let sectorsOverviewCache: { data: SectorDynamicOverview[]; fetchedAt: number } | null = null;
+const SECTORS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 dakika
+
+export async function getSectorsOverview(): Promise<SectorDynamicOverview[]> {
+  // Cache kontrolü
+  if (sectorsOverviewCache && Date.now() - sectorsOverviewCache.fetchedAt < SECTORS_CACHE_TTL_MS) {
+    return sectorsOverviewCache.data;
+  }
+
+  return withSmartRetry(async () => {
+    const { data, error } = await supabase.rpc('get_sectors_overview');
+
+    if (error) {
+      handleSupabaseError(error);
+    }
+
+    const result = (data as SectorDynamicOverview[]) || [];
+    sectorsOverviewCache = { data: result, fetchedAt: Date.now() };
+    return result;
+  });
+}
+
+/**
+ * Belirtilen sektörden bir yıldız sahiplenir.
+ * Sektörde boş katalog yıldızı kalmadıysa otomatik prosedürel sanal yıldız üretir.
+ * Koordinat parametresi ALINMAZ; fonksiyon sınırları sky_sectors tablosundan çeker.
+ */
+export async function claimStarInSector(
+  params: ClaimStarInSectorParams,
+): Promise<CoupleStarDetails> {
+  return withSmartRetry(async () => {
+    const { data, error } = await supabase.rpc('claim_star_in_sector', {
+      p_couple_id: params.coupleId,
+      p_sector_id: params.sectorId,
+      p_custom_name: params.customName,
+    });
+
+    if (error) {
+      handleSupabaseError(error);
+    }
+
+    return data as CoupleStarDetails;
+  });
+}
+
+/**
+ * Sektör önbelleğini temizler (tescil sonrası güncel veri çekmek için).
+ */
+export function invalidateSectorsCache(): void {
+  sectorsOverviewCache = null;
+}
+
+
 export const starService = {
   fetchStarsInViewport,
   claimRandomStar,
@@ -565,4 +803,16 @@ export const starService = {
   canAddManualExoplanet,
   createExoplanetFromMedia,
   sendSpark,
+  searchStarByName,
+  requestStarConnection,
+  respondToConnection,
+  removeStarConnection,
+  getMyStarConnections,
+  getPendingConnections,
+  checkConnectionLimit,
+  getStarIdByCatalogId,
+  getSectorsOverview,
+  claimStarInSector,
+  invalidateSectorsCache,
 };
+

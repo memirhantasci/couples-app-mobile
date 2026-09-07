@@ -44,6 +44,7 @@ import {
 import { starService } from '../api/starService';
 import { moderateStarName } from '../utils/nameModeration';
 import type { CoupleStarDetails, ViewportStarItem } from '../types/star.types';
+import { SKY_SECTORS, type SectorConfig } from '../config/skySectors.data';
 
 // ============================================================================
 // TİPLER VE SABİTLER
@@ -64,6 +65,11 @@ export interface ClaimStarModalProps {
    * Sağlanmışsa modal 'input' modunda açılır ve claim_specific_star RPC kullanılır.
    */
   readonly preSelectedStar?: ViewportStarItem;
+  /**
+   * SectorAtlasModal'dan gelen sektör ID'si.
+   * Sağlanmışsa modal 'input' modunda açılır ve claim_star_in_sector RPC kullanılır.
+   */
+  readonly preSelectedSectorId?: string;
   readonly onClose?: () => void;
   readonly onSuccess?: (star: CoupleStarDetails) => void;
 }
@@ -202,6 +208,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
   coupleId,
   initialStar,
   preSelectedStar,
+  preSelectedSectorId,
   onClose,
   onSuccess,
 }) => {
@@ -218,6 +225,10 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
 
   // preSelectedStar varken scanning süresi kısaltılır (0.8s vs 1.5s)
   const isSpecificMode = preSelectedStar != null;
+  const isSectorMode = preSelectedSectorId != null && !isSpecificMode;
+  const sectorConfig: SectorConfig | undefined = isSectorMode
+    ? SKY_SECTORS[preSelectedSectorId]
+    : undefined;
 
   const slowWarningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -300,6 +311,15 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
           starCatalogId: preSelectedStar.catalog_id,
           customName: trimmed,
         });
+      } else if (isSectorMode && preSelectedSectorId) {
+        // Sektör bazlı tescil (claim_star_in_sector RPC)
+        resultStar = await starService.claimStarInSector({
+          coupleId,
+          sectorId: preSelectedSectorId,
+          customName: trimmed,
+        });
+        // Tescil sonrası sektör cache'ini temizle
+        starService.invalidateSectorsCache();
       } else {
         // Rastgele yıldız tescili (claim_random_available_star RPC)
         resultStar = await starService.claimRandomStar({
@@ -416,6 +436,21 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                       <Text style={styles.preSelectedStarSpectralText}>{preSelectedStar.spectral_type.charAt(0)}</Text>
                     </View>
                   </View>
+                ) : isSectorMode && sectorConfig ? (
+                  <View style={[styles.preSelectedStarCard, { borderColor: sectorConfig.themeColor + '40' }]}>
+                    <Text style={{ fontSize: 24 }}>{sectorConfig.symbol}</Text>
+                    <View style={styles.preSelectedStarInfo}>
+                      <Text style={[styles.preSelectedStarCode, { color: sectorConfig.themeColor }]}>
+                        {sectorConfig.name}
+                      </Text>
+                      <Text style={styles.preSelectedStarCommon}>
+                        {sectorConfig.latinName} • {sectorConfig.code3}
+                      </Text>
+                      <Text style={styles.preSelectedStarCoords}>
+                        {sectorConfig.description}
+                      </Text>
+                    </View>
+                  </View>
                 ) : (
                   <Text style={styles.modalSubtitle}>
                     Gerçek astronomik katalogdan (Gaia &amp; Hipparcos), gökyüzünde gerçek koordinatlara sahip
@@ -463,7 +498,11 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                   >
                     <Sparkles size={18} color="#FFFFFF" />
                     <Text style={styles.primaryButtonText}>
-                      {preSelectedStar ? 'Bu Yıldızı Tescille ✨' : 'Gökyüzünü Tara & Yıldızımızı Bul ✨'}
+                      {preSelectedStar
+                        ? 'Bu Yıldızı Tescille ✨'
+                        : isSectorMode
+                        ? `${sectorConfig?.name ?? 'Sektör'}'den Yıldız Bul ✨`
+                        : 'Gökyüzünü Tara & Yıldızımızı Bul ✨'}
                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>
