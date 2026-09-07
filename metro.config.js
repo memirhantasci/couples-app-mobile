@@ -9,16 +9,17 @@ const config = getDefaultConfig(__dirname);
 // worker sayısını sınırlandırıyoruz.
 config.maxWorkers = process.platform === 'win32' ? Math.min(2, os.cpus().length) : os.cpus().length;
 
-// Metro'nun yerel android ve ios derleme klasörlerini (özellikle Windows'ta silinen/geçici build dizinlerini)
-// izleyerek 'ENOENT: watch android/build/generated' hatası vermesini engellemek için blockList'e ekliyoruz.
+// Metro'nun yerel Android/iOS geçici derleme klasörlerini izleyip Windows'ta 'ENOENT: watch android/build/generated'
+// gibi hatalar vermesini engellemek için bu klasörleri blockList'e ekliyoruz.
+// Not: node_modules içindeki paketleri (örn. expo-symbols/build/android) engellememek için spesifik desenler kullanıyoruz.
 const existingBlockList = Array.isArray(config.resolver.blockList)
   ? config.resolver.blockList
   : [config.resolver.blockList].filter(Boolean);
 
 config.resolver.blockList = [
   ...existingBlockList,
-  /^(?:.*[\\/])?android(?=[\\/]|$)/,
-  /^(?:.*[\\/])?ios(?=[\\/]|$)/,
+  /^(?:.*[\\/])?android[\\/](?:build|\.gradle|app[\\/]build)(?:[\\/]|$)/,
+  /^(?:.*[\\/])?ios[\\/](?:build|Pods)(?:[\\/]|$)/,
 ];
 
 module.exports = config;
