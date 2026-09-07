@@ -729,6 +729,7 @@ function MacroSkyCanvasSkia({
         minDist = dist;
         nearest = star;
       }
+    }
     if (nearest) {
       try {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -739,6 +740,67 @@ function MacroSkyCanvasSkia({
       onSelectStar(null as any);
     }
   }, [stars, width, height, onSelectStar, offsetX, committedX, offsetY, committedY]);
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // GESTURE DEFINITIONS
+  // ═══════════════════════════════════════════════════════════════════════
+  const tap = Gesture.Tap()
+    .maxDuration(350)
+    .maxDistance(25)
+    .onEnd((e) => {
+      runOnJS(handleTap)(e.x, e.y);
+    });
+
+  const pan = Gesture.Pan()
+    .minDistance(6)
+    .onStart(() => {
+      startX.value = offsetX.value;
+      startY.value = offsetY.value;
+      runOnJS(beginCanvasGesture)();
+    })
+    .onUpdate((e) => {
+      offsetX.value = startX.value + e.translationX;
+      offsetY.value = startY.value + e.translationY;
+      // Hermes/Reanimated worklets expose performance.now(). Keep a monotonic
+      // shared-value fallback for older runtimes that do not.
+      const now = typeof performance !== 'undefined'
+        ? performance.now()
+        : lastRunTimeRef.value + 34;
+      if (now - lastRunTimeRef.value > 33) {
+        lastRunTimeRef.value = now;
+        runOnJS(recordPanDeltaLive)(e.translationX, e.translationY);
+      }
+    })
+    .onEnd(() => {
+      const dx = offsetX.value - committedX.value;
+      const dy = offsetY.value - committedY.value;
+      runOnJS(commitPanDelta)(dx, dy);
+    })
+    .onFinalize(() => {
+      runOnJS(endCanvasGesture)();
+    });
+
+  const pinch = Gesture.Pinch()
+    .onStart((e) => {
+      focalX.value = e.focalX;
+      focalY.value = e.focalY;
+      scale.value = 1;
+      runOnJS(beginCanvasGesture)();
+    })
+    .onUpdate((e) => {
+      focalX.value = e.focalX;
+      focalY.value = e.focalY;
+      scale.value = e.scale;
+    })
+    .onEnd((e) => {
+      runOnJS(commitPinch)(e.scale, e.focalX, e.focalY);
+    })
+    .onFinalize(() => {
+      runOnJS(endCanvasGesture)();
+    });
+
+  const panOrTap = Gesture.Exclusive(pan, tap);
+  const composed = Gesture.Simultaneous(panOrTap, pinch);
 
   // ═══════════════════════════════════════════════════════════════════════
   // LAYER 2: STAR TILE PICTURES
