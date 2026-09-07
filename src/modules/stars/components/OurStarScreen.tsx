@@ -226,7 +226,7 @@ export const OurStarScreen: React.FC = () => {
         // Anı ötegezegenlerini çek
         const planets = await starService.getStarExoplanets(details.star_id);
         setExoplanets(planets);
-      } catch (err: any) {
+      } catch {
         // Yıldız henüz tescilli değilse macro kanvasa yönlendir (otomatik modal yok)
         setStarDetails(null);
         setViewMode('macro');
@@ -254,6 +254,9 @@ export const OurStarScreen: React.FC = () => {
   const currentStarLum = starDetails?.luminosity_level;
 
   // ─── REALTIME RESONANCE & SPARK SUBSCRIPTION ────────────────────────
+  // StarSparkManager Realtime WebSocket kanalı yalnızca yıldız veya kullanıcı
+  // kimliği değiştiğinde yeniden kurulur. Canlı parlaklık güncellemeleri aşağıdaki
+  // ayrı effect tarafından WebSocket koparılmadan güncellenir.
   useEffect(() => {
     if (!currentStarId) return;
 
@@ -302,6 +305,7 @@ export const OurStarScreen: React.FC = () => {
       manager.unsubscribe();
       sparkManagerRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStarId, currentUserId, currentUserName, showToast]);
 
   // Canlı parlaklık değiştiğinde manager'ın iç değerini güncelle

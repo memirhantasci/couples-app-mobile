@@ -353,12 +353,11 @@ export interface ExoplanetRenderData {
   readonly screenX: number;               // Merkeze göre X (piksel)
   readonly screenY: number;               // Merkeze göre Y (piksel)
   readonly depthZ: number;                // z > 0: yıldızın önünde, z < 0: arkasında
-  readonly scale: number;                 // Derinlik perspektif ölçeği (0.85–1.15)
-  readonly trailPoints: ReadonlyArray<{
+  readonly trailPoints: readonly {
     readonly x: number;
     readonly y: number;
     readonly alpha: number;
-  }>;
+  }[];
 }
 
 
@@ -410,7 +409,7 @@ export interface IParticlePool {
   acquire(): Particle | null;
   release(particle: Particle): void;
   update(deltaTimeSec: number): void;
-  getActiveParticles(): ReadonlyArray<Particle>;
+  getActiveParticles(): readonly Particle[];
   getActiveCount(): number;
   reset(): void;
 }

@@ -182,12 +182,12 @@ export function MicroSystemCanvas({
   );
 
   // Gezegen ekran koordinatları — hit-testing için render dışında referans
-  const planetScreensRef = useRef<Array<{
+  const planetScreensRef = useRef<{
     planet: StarExoplanetRecord;
     x: number;
     y: number;
     radius: number;
-  }>>([]);
+  }[]>([]);
 
   // ─── ANA RENDER FONKSİYONU ─────────────────────────────────────────
 
@@ -498,11 +498,12 @@ export function MicroSystemCanvas({
   // deltaTimeSec kesintiye uğramaz ve gereksiz rAF döngü iptalleri engellenir.
   useEffect(() => {
     animFrameRef.current = requestAnimationFrame(drawFrame);
+    const pool = poolRef.current;
 
     return () => {
       // Unmount: döngü ve bellek temizliği — sıfır sızıntı garantisi
       cancelAnimationFrame(animFrameRef.current);
-      poolRef.current.reset();
+      pool.reset();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

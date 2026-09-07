@@ -190,7 +190,7 @@ export function MacroSkyCanvas({
 
   // Yıldızların hesaplanmış ekran koordinatları; render'da referans için kullanılır.
   // Obje tahsisi render döngüsü dışında yapılır.
-  const screenPositionsRef = useRef<Array<{ x: number; y: number; radius: number }>>([]);
+  const screenPositionsRef = useRef<{ x: number; y: number; radius: number }[]>([]);
 
   // Debounce timer referansı
   const boundsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);

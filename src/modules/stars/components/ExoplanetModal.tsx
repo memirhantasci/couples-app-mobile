@@ -44,7 +44,6 @@ import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import dayjs from 'dayjs';
 import 'dayjs/locale/tr';
-dayjs.locale('tr');
 import {
   X,
   Orbit,
@@ -52,7 +51,6 @@ import {
   ImagePlus,
   Trash2,
   Sparkles,
-  Layers,
   ChevronRight,
   Maximize2,
   Check,
@@ -68,6 +66,8 @@ import type {
   PlanetType,
   CreateExoplanetDto,
 } from '../types/star.types';
+
+dayjs.locale('tr');
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -162,63 +162,73 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
   // Tam ekran fotoğraf önizleme state'i (View Mode)
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
-  // Modal görünürlüğü veya mod prop'u değiştiğinde senkronize et
-  useEffect(() => {
+  // Modal görünürlüğü veya mod prop'u değiştiğinde render aşamasında form state'ini senkronize et
+  const [prevProps, setPrevProps] = useState({ visible, mode, selectedPlanet });
+  if (
+    visible !== prevProps.visible ||
+    mode !== prevProps.mode ||
+    selectedPlanet !== prevProps.selectedPlanet
+  ) {
+    setPrevProps({ visible, mode, selectedPlanet });
     if (visible) {
-      setActiveMode(mode);
-    }
-  }, [visible, mode]);
-
-  // Mod veya görünürlük değiştiğinde form alanlarını hazırla
-  useEffect(() => {
-    if (!visible) return;
-
-    if (activeMode === 'create') {
-      setTitle('');
-      setDescription('');
-      setMilestoneDate(dayjs().format('YYYY-MM-DD'));
-      setOrbitZone(3);
-      setPlanetType('terrestrial');
-      setExistingPhotos([]);
-      setSelectedPhotos([]);
-      setFormError('');
-      setIsSubmitting(false);
-      setUploadProgressText('');
-
-      // Manuel gezegen limitini sorgula
-      setIsCheckingLimit(true);
-      if (coupleId === 999999 || starId.startsWith('demo-')) {
-        setCanAddManual(true);
-        setIsCheckingLimit(false);
-      } else {
-        starService
-          .canAddManualExoplanet(starId)
-          .then((allowed) => {
-            setCanAddManual(allowed);
-          })
-          .catch(() => {
-            setCanAddManual(true);
-          })
-          .finally(() => {
-            setIsCheckingLimit(false);
-          });
+      const nextMode = (mode !== prevProps.mode || visible !== prevProps.visible) ? mode : activeMode;
+      if (nextMode !== activeMode) {
+        setActiveMode(nextMode);
       }
-    } else if (activeMode === 'edit' && selectedPlanet) {
-      setTitle(selectedPlanet.title || '');
-      setDescription(selectedPlanet.description || '');
-      setMilestoneDate(selectedPlanet.milestone_date || dayjs().format('YYYY-MM-DD'));
-      setOrbitZone((selectedPlanet.orbit_distance as OrbitZone) || 3);
-      setPlanetType((selectedPlanet.planet_type as PlanetType) || 'terrestrial');
-      setExistingPhotos(selectedPlanet.media_urls || []);
-      setSelectedPhotos([]);
-      setFormError('');
-      setIsSubmitting(false);
-      setUploadProgressText('');
-    } else if (activeMode === 'view') {
-      setFullscreenImage(null);
-      setIsDeleting(false);
+      if (nextMode === 'create') {
+        setTitle('');
+        setDescription('');
+        setMilestoneDate(dayjs().format('YYYY-MM-DD'));
+        setOrbitZone(3);
+        setPlanetType('terrestrial');
+        setExistingPhotos([]);
+        setSelectedPhotos([]);
+        setFormError('');
+        setIsSubmitting(false);
+        setUploadProgressText('');
+        const isDemo = coupleId === 999999 || starId.startsWith('demo-');
+        setCanAddManual(true);
+        setIsCheckingLimit(!isDemo);
+      } else if (nextMode === 'edit' && selectedPlanet) {
+        setTitle(selectedPlanet.title || '');
+        setDescription(selectedPlanet.description || '');
+        setMilestoneDate(selectedPlanet.milestone_date || dayjs().format('YYYY-MM-DD'));
+        setOrbitZone((selectedPlanet.orbit_distance as OrbitZone) || 3);
+        setPlanetType((selectedPlanet.planet_type as PlanetType) || 'terrestrial');
+        setExistingPhotos(selectedPlanet.media_urls || []);
+        setSelectedPhotos([]);
+        setFormError('');
+        setIsSubmitting(false);
+        setUploadProgressText('');
+      } else if (nextMode === 'view') {
+        setFullscreenImage(null);
+        setIsDeleting(false);
+      }
     }
-  }, [visible, activeMode, selectedPlanet, starId, coupleId]);
+  }
+
+  // Yalnızca create modunda ve modal açıkken asenkron limit kontrolü yap
+  useEffect(() => {
+    if (!visible || activeMode !== 'create') return;
+    if (coupleId === 999999 || starId.startsWith('demo-')) return;
+
+    let isMounted = true;
+    starService
+      .canAddManualExoplanet(starId)
+      .then((allowed) => {
+        if (isMounted) setCanAddManual(allowed);
+      })
+      .catch(() => {
+        if (isMounted) setCanAddManual(true);
+      })
+      .finally(() => {
+        if (isMounted) setIsCheckingLimit(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [visible, activeMode, starId, coupleId]);
 
   // ─── FOTOĞRAF SEÇİCİ ───────────────────────────────────────────────
   const totalPhotosCount = existingPhotos.length + selectedPhotos.length;
@@ -245,7 +255,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
 
       const newUris = result.assets.map((asset) => asset.uri);
       setSelectedPhotos((prev) => [...prev, ...newUris].slice(0, remainingSlots));
-    } catch (err) {
+    } catch {
       Alert.alert('Hata', 'Fotoğraf seçilirken bir sorun oluştu.');
     }
   };
@@ -346,6 +356,11 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
 
   // ─── GEZEGEN OLUŞTURMA (Create Modu) ──────────────────────────────
   const handleCreatePlanet = async () => {
+    if (isCheckingLimit) {
+      setFormError('Gezegen limiti doğrulanıyor, lütfen bekleyin...');
+      return;
+    }
+
     if (!canAddManual) {
       setFormError('Maksimum 10 anı gezegeni sınırına ulaşıldı.');
       return;
@@ -878,7 +893,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                     >
                       <ImagePlus size={24} color="rgba(255, 255, 255, 0.4)" />
                       <Text style={styles.photoPlaceholderText}>
-                        Galeri'den en fazla 5 fotoğraf seçin
+                        {"Galeri'den en fazla 5 fotoğraf seçin"}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -933,15 +948,15 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                   <TouchableOpacity
                     activeOpacity={0.85}
                     onPress={handleCreatePlanet}
-                    disabled={isSubmitting || !canAddManual}
+                    disabled={isSubmitting || !canAddManual || isCheckingLimit}
                     style={[
                       styles.saveBtn,
-                      (isSubmitting || !canAddManual) && styles.saveBtnDisabled,
+                      (isSubmitting || !canAddManual || isCheckingLimit) && styles.saveBtnDisabled,
                     ]}
                   >
                     <LinearGradient
                       colors={
-                        !canAddManual
+                        !canAddManual || isCheckingLimit
                           ? ['#475569', '#334155']
                           : ['#0284C7', '#2563EB', '#7C3AED']
                       }
@@ -951,7 +966,9 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                     >
                       <Sparkles size={18} color="#FFFFFF" />
                       <Text style={styles.saveBtnText}>
-                        {isSubmitting
+                        {isCheckingLimit
+                          ? 'Limit Kontrol Ediliyor...'
+                          : isSubmitting
                           ? 'Yörüngeye Yerleştiriliyor...'
                           : !canAddManual
                           ? 'Gezegen Limiti Dolu (10/10)'

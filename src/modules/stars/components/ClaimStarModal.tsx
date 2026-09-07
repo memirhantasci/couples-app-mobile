@@ -18,7 +18,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   Platform,
   Dimensions,
   KeyboardAvoidingView,
@@ -37,14 +36,10 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import {
   Sparkles,
-  Compass,
   Award,
   AlertCircle,
-  X,
   Radio,
   CheckCircle2,
-  Calendar,
-  Layers,
 } from 'lucide-react-native';
 import { starService } from '../api/starService';
 import { moderateStarName } from '../utils/nameModeration';
@@ -226,8 +221,10 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
 
   const slowWarningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Modal açıldığında state'i ayarla (initialStar varsa direkt sertifika aç)
-  useEffect(() => {
+  // Modal açıldığında state'i senkronize et (initialStar varsa direkt sertifika aç)
+  const [prevProps, setPrevProps] = useState({ visible, initialStar });
+  if (visible !== prevProps.visible || initialStar !== prevProps.initialStar) {
+    setPrevProps({ visible, initialStar });
     if (visible) {
       if (initialStar) {
         setClaimedStar(initialStar);
@@ -241,12 +238,16 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
         setClaimedStar(null);
       }
     }
+  }
+
+  // Unmount anında slow warning timer'ını temizle
+  useEffect(() => {
     return () => {
       if (slowWarningTimerRef.current) {
         clearTimeout(slowWarningTimerRef.current);
       }
     };
-  }, [visible, initialStar]);
+  }, []);
 
   // Yıldız sahiplenme tetikleyicisi
   const handleStartClaim = async () => {

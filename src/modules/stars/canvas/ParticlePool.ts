@@ -16,7 +16,6 @@
 import type {
   IParticlePool,
   Particle,
-  ParticleBlendMode,
   ParticlePoolConfig,
 } from '@/modules/stars/types/star.types';
 
@@ -210,7 +209,7 @@ export class ParticlePool implements IExtendedParticlePool {
     }
   }
 
-  getActiveParticles(): ReadonlyArray<Particle> {
+  getActiveParticles(): readonly Particle[] {
     return this.active;
   }
 
