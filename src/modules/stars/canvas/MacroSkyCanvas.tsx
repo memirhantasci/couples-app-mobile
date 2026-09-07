@@ -58,6 +58,15 @@ type TilePictureEntry = {
   readonly picture: any;
 };
 
+type StarTilePicture = {
+  readonly key: string;
+  readonly picture: any;
+  readonly x: number;
+  readonly y: number;
+};
+
+const EMPTY_STARS: ViewportStarItem[] = [];
+
 function createPaintPool(): PaintPool {
   const lowPaint = Skia.Paint();
   const lowRingPaint = Skia.Paint();
@@ -387,12 +396,19 @@ function MacroSkyCanvasSkia({
 
   // pictureVersion: the ONLY state that triggers SkPicture rebuild
   const [pictureVersion, setPictureVersion] = React.useState(0);
+  // A network response can arrive while a UI-thread gesture is in progress.
+  // Rendering that response against the pre-commit camera then clearing the
+  // transform is what caused the visible jump. Hold it until the gesture ends.
+  const [pictureStars, setPictureStars] = React.useState(stars);
+  const pendingStarsRef = useRef<ViewportStarItem[] | null>(null);
+  const activeGestureCountRef = useRef(0);
 
-  // Server data is authoritative and must never wait for the pan/zoom throttle.
-  // Tile entries include a content signature, so unchanged tiles survive a
-  // neighbouring tile update while changed data receives a new picture key.
+  // Server data is authoritative and bypasses the pan/zoom throttle when the
+  // canvas is idle. While moving, it is applied atomically after camera commit.
   useEffect(() => {
-    setPictureVersion((version) => version + 1);
+    pendingStarsRef.current = stars;
+    if (activeGestureCountRef.current > 0) return;
+    setPictureStars((current) => (current === stars ? current : stars));
   }, [stars]);
 
   useEffect(() => () => {
@@ -419,6 +435,26 @@ function MacroSkyCanvasSkia({
       setPictureVersion((v) => v + 1);
     }, 60);
   }, []);
+
+  const beginCanvasGesture = useCallback(() => {
+    activeGestureCountRef.current += 1;
+    // A delayed rebuild from a previous gesture must never fire mid-gesture.
+    if (pictureTimerRef.current) clearTimeout(pictureTimerRef.current);
+  }, []);
+
+  const endCanvasGesture = useCallback(() => {
+    activeGestureCountRef.current = Math.max(0, activeGestureCountRef.current - 1);
+    if (activeGestureCountRef.current > 0) return;
+
+    const pendingStars = pendingStarsRef.current;
+    pendingStarsRef.current = null;
+    if (pendingStars) {
+      setPictureStars((current) => (current === pendingStars ? current : pendingStars));
+    }
+    // Camera commit has already reached JS at this point; now it is safe to
+    // record one picture and reset the transient UI-thread transform.
+    requestPictureRebuild();
+  }, [requestPictureRebuild]);
 
   // Request debounced bounds change (350ms — triggers Supabase RPC)
   const requestBoundsChange = React.useCallback(() => {
@@ -514,12 +550,12 @@ function MacroSkyCanvasSkia({
     requestBoundsChange();
   }, [width, height, notifyCameraChange, requestPictureRebuild, requestBoundsChange]);
 
-  // Called at most 30 times/second from the gesture worklet. Rendering itself
-  // stays on the UI thread; this merely primes the debounced picture rebuild so
-  // a long pan cannot leave a stale recorded picture behind.
-  const commitPanDeltaLive = useCallback((_translationX: number, _translationY: number) => {
-    requestPictureRebuild();
-  }, [requestPictureRebuild]);
+  // Called at most 30 times/second from the worklet. It deliberately does not
+  // rebuild SkPicture: the Group transform owns every in-flight frame.
+  const latestPanTranslationRef = useRef({ x: 0, y: 0 });
+  const recordPanDeltaLive = useCallback((translationX: number, translationY: number) => {
+    latestPanTranslationRef.current = { x: translationX, y: translationY };
+  }, []);
 
   const commitPinch = useCallback((scaleFactor: number, fx: number, fy: number) => {
     if (!scaleFactor || scaleFactor <= 0) return;
@@ -625,6 +661,7 @@ function MacroSkyCanvasSkia({
     .onStart(() => {
       startX.value = offsetX.value;
       startY.value = offsetY.value;
+      runOnJS(beginCanvasGesture)();
     })
     .onUpdate((e) => {
       offsetX.value = startX.value + e.translationX;
@@ -636,13 +673,16 @@ function MacroSkyCanvasSkia({
         : lastRunTimeRef.value + 34;
       if (now - lastRunTimeRef.value > 33) {
         lastRunTimeRef.value = now;
-        runOnJS(commitPanDeltaLive)(e.translationX, e.translationY);
+        runOnJS(recordPanDeltaLive)(e.translationX, e.translationY);
       }
     })
     .onEnd(() => {
       const dx = offsetX.value - committedX.value;
       const dy = offsetY.value - committedY.value;
       runOnJS(commitPanDelta)(dx, dy);
+    })
+    .onFinalize(() => {
+      runOnJS(endCanvasGesture)();
     });
 
   const pinch = Gesture.Pinch()
@@ -650,6 +690,7 @@ function MacroSkyCanvasSkia({
       focalX.value = e.focalX;
       focalY.value = e.focalY;
       scale.value = 1;
+      runOnJS(beginCanvasGesture)();
     })
     .onUpdate((e) => {
       focalX.value = e.focalX;
@@ -658,10 +699,69 @@ function MacroSkyCanvasSkia({
     })
     .onEnd((e) => {
       runOnJS(commitPinch)(e.scale, e.focalX, e.focalY);
+    })
+    .onFinalize(() => {
+      runOnJS(endCanvasGesture)();
     });
 
   const panOrTap = Gesture.Exclusive(pan, tap);
   const composed = Gesture.Simultaneous(panOrTap, pinch);
+
+  // Dynamic stars are never recorded into the background picture at LOW/MEDIUM
+  // detail. Each tile stays as an independent native SkPicture, so receiving a
+  // neighbouring tile cannot replace or flash the sky already on screen.
+  const starTilePictures = useMemo<StarTilePicture[]>(() => {
+    const camera = cameraRef.current;
+    const lod = getRenderLod(camera.zoom);
+    if (!font || camera.zoom < 0.5 || lod === 'high') return [];
+
+    const tileGroups = new Map<string, ViewportStarItem[]>();
+    for (const star of pictureStars) {
+      const pos = projectToScreen(star.ra, star.dec, camera, width, height);
+      if (!isInFrustum(pos.x, pos.y, width, height)) continue;
+      const key = tileKeyForStar(star);
+      const group = tileGroups.get(key);
+      if (group) group.push(star);
+      else tileGroups.set(key, [star]);
+    }
+
+    const tiles: StarTilePicture[] = [];
+    for (const [tileKey, tileStars] of tileGroups) {
+      const center = tileCenterFromKey(tileKey);
+      const cacheKey = `${tileKey}@${lod}@${camera.zoom.toFixed(3)}@${tileContentSignature(tileStars)}`;
+      let entry = tilePictureCacheRef.current.get(cacheKey);
+
+      if (entry) {
+        tilePictureCacheRef.current.delete(cacheKey);
+        tilePictureCacheRef.current.set(cacheKey, entry);
+      } else {
+        if (tilePictureCacheRef.current.size >= MAX_TILE_PICTURES) {
+          const oldestKey = tilePictureCacheRef.current.keys().next().value as string | undefined;
+          if (oldestKey) {
+            const oldest = tilePictureCacheRef.current.get(oldestKey);
+            tilePictureCacheRef.current.delete(oldestKey);
+            disposePicture(oldest?.picture);
+          }
+        }
+        entry = {
+          picture: buildLodTilePicture(tileStars, center, camera, width, height, lod, paintPoolRef.current!, starNameFont || font),
+        };
+        tilePictureCacheRef.current.set(cacheKey, entry);
+      }
+
+      const anchor = projectToScreen(center.ra, center.dec, camera, width, height);
+      tiles.push({ key: cacheKey, picture: entry.picture, x: anchor.x, y: anchor.y });
+    }
+
+    return tiles;
+  }, [pictureVersion, pictureStars, width, height, font, starNameFont]);
+
+  // Star input only belongs to the base picture at clustering/HIGH detail.
+  // At LOW/MEDIUM the base picture remains byte-for-byte independent from
+  // network tile responses.
+  const starsForBasePicture = cameraRef.current.zoom < 0.5 || getRenderLod(cameraRef.current.zoom) === 'high'
+    ? pictureStars
+    : EMPTY_STARS;
 
   // ═══════════════════════════════════════════════════════════════════════
   // SkPicture: Rebuilt only on pictureVersion / star data changes
@@ -785,55 +885,13 @@ function MacroSkyCanvasSkia({
       const clusterTextPaint = paintPoolRef.current!.labelPaint;
       clusterPaint.setColor(Skia.Color('#7DD3FC'));
       clusterTextPaint.setColor(Skia.Color('#E0F2FE'));
-      for (const cluster of clusterVisibleStars(stars, camera, width, height)) {
+      for (const cluster of clusterVisibleStars(starsForBasePicture, camera, width, height)) {
         canvas.drawCircle(cluster.x, cluster.y, Math.min(12, 4 + Math.log2(cluster.count + 1) * 2), clusterPaint);
         if (font) canvas.drawText(`● ${cluster.count}`, cluster.x + 10, cluster.y + 4, clusterTextPaint, font);
       }
-    } else if (lod !== 'high') {
-      const tileGroups = new Map<string, ViewportStarItem[]>();
-      for (const star of stars) {
-        const pos = projectToScreen(star.ra, star.dec, camera, width, height);
-        if (!isInFrustum(pos.x, pos.y, width, height)) continue;
-        const key = tileKeyForStar(star);
-        const group = tileGroups.get(key);
-        if (group) group.push(star);
-        else tileGroups.set(key, [star]);
-      }
-
-      for (const [tileKey, tileStars] of tileGroups) {
-        const center = tileCenterFromKey(tileKey);
-        const cacheKey = `${tileKey}@${lod}@${camera.zoom.toFixed(3)}@${tileContentSignature(tileStars)}`;
-        let entry = tilePictureCacheRef.current.get(cacheKey);
-
-        if (entry) {
-          // Move a hit to the end of the insertion-ordered map (LRU).
-          tilePictureCacheRef.current.delete(cacheKey);
-          entry = { picture: entry.picture };
-          tilePictureCacheRef.current.set(cacheKey, entry);
-        } else {
-          if (tilePictureCacheRef.current.size >= MAX_TILE_PICTURES) {
-            const oldestKey = tilePictureCacheRef.current.keys().next().value as string | undefined;
-            if (oldestKey) {
-              const oldest = tilePictureCacheRef.current.get(oldestKey);
-              tilePictureCacheRef.current.delete(oldestKey);
-              disposePicture(oldest?.picture);
-            }
-          }
-          entry = {
-            picture: buildLodTilePicture(tileStars, center, camera, width, height, lod, paintPoolRef.current!, starNameFont || font),
-          };
-          tilePictureCacheRef.current.set(cacheKey, entry);
-        }
-
-        const anchor = projectToScreen(center.ra, center.dec, camera, width, height);
-        canvas.save();
-        canvas.translate(anchor.x, anchor.y);
-        canvas.drawPicture(entry.picture);
-        canvas.restore();
-      }
-    } else {
+    } else if (lod === 'high') {
     // ─── PASS 5: Claimed Stars Glowing Halos (HIGH only) ──────────────
-    stars.forEach((star) => {
+    starsForBasePicture.forEach((star) => {
       if (!star.is_claimed) return;
       const pos = projectToScreen(star.ra, star.dec, camera, width, height);
       if (!isInFrustum(pos.x, pos.y, width, height)) return;
@@ -865,7 +923,7 @@ function MacroSkyCanvasSkia({
     });
 
     // ─── PASS 6: Star Cores & Vivid Spectral Colors (Matching Web Exactly) ───
-    stars.forEach((star) => {
+    starsForBasePicture.forEach((star) => {
       const pos = projectToScreen(star.ra, star.dec, camera, width, height);
       if (!isInFrustum(pos.x, pos.y, width, height)) return;
 
@@ -909,7 +967,7 @@ function MacroSkyCanvasSkia({
     });
 
     // ─── PASS 7: My Own Star (Golden Focus Ring & Halo) ───────────────
-    stars.forEach((star) => {
+    starsForBasePicture.forEach((star) => {
       if (!star.is_mine) return;
       const pos = projectToScreen(star.ra, star.dec, camera, width, height);
       if (!isInFrustum(pos.x, pos.y, width, height)) return;
@@ -934,7 +992,7 @@ function MacroSkyCanvasSkia({
     });
 
     // ─── PASS 8: My Own Star Custom Name Tag ──────────────────────────
-    stars.forEach((star) => {
+    starsForBasePicture.forEach((star) => {
       if (!star.is_mine || !star.custom_name) return;
       const pos = projectToScreen(star.ra, star.dec, camera, width, height);
       if (!isInFrustum(pos.x, pos.y, width, height)) return;
@@ -1131,7 +1189,7 @@ function MacroSkyCanvasSkia({
     });
 
     return recorder.finishRecordingAsPicture();
-  }, [pictureVersion, stars, width, height, font, starNameFont, sectorFont, connections, myStarCoords]);
+  }, [pictureVersion, starsForBasePicture, width, height, font, starNameFont, sectorFont, connections, myStarCoords]);
 
   const transform = useDerivedValue(() => [
     { translateX: offsetX.value - committedX.value },
@@ -1159,6 +1217,11 @@ function MacroSkyCanvasSkia({
              <Canvas style={{ flex: 1 }}>
                 <Group origin={originPoint} transform={transform}>
                    {picture && <Picture picture={picture} />}
+                   {starTilePictures.map((tile) => (
+                     <Group key={tile.key} transform={[{ translateX: tile.x }, { translateY: tile.y }]}>
+                       <Picture picture={tile.picture} />
+                     </Group>
+                   ))}
                 </Group>
              </Canvas>
           </Animated.View>
