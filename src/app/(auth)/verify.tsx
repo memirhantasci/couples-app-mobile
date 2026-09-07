@@ -16,11 +16,9 @@ import { useLocalSearchParams, router } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { navigateAfterAuth } from "@/lib/navigate";
 import { registerForPushNotifications } from "@/lib/notifications";
-import { ArrowLeft, Mail, Sparkles, LogOut } from "lucide-react-native";
+import { ArrowLeft, Mail } from "lucide-react-native";
 import { decrypt } from "@/utils/crypto";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
-import { getOrCreateDeviceId } from "@/utils/device";
-import { useAuth } from "@/context/AuthContext";
 
 const OTP_LENGTH = 6;
 
@@ -32,11 +30,9 @@ export default function VerifyScreen() {
     inviteCode?: string;
   }>();
 
-  const { setIsDeviceAuthorized, enterDemoMode } = useAuth();
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [resendStatus, setResendStatus] = useState("");
   const [autoVerified, setAutoVerified] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState<number>(0);
   const inputRefs = useRef<(TextInput | null)[]>([]);
@@ -68,19 +64,6 @@ export default function VerifyScreen() {
     }
 
     if (data.user) {
-      try {
-        const deviceId = await getOrCreateDeviceId();
-        await supabase.from("device_authorizations").upsert({
-          user_id: data.user.id,
-          device_id: deviceId,
-          is_authorized: true,
-        });
-        await AsyncStorage.setItem("last_user_id", data.user.id);
-        setIsDeviceAuthorized(true);
-      } catch (devErr) {
-        console.warn("[verify] device auth error:", devErr);
-      }
-
       await registerForPushNotifications(data.user.id).catch(() => {});
       await routeUser(data.user.id);
     }
@@ -130,25 +113,11 @@ export default function VerifyScreen() {
     setIsLoading(true);
     setErrorMsg("");
 
-    // 1. Önce type: "signup" ile dene
-    let { data, error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabase.auth.verifyOtp({
       email: params.email,
       token: otp,
-      type: "signup",
+      type: "email",
     });
-
-    // 2. Eğer başarısız olursa type: "email" ile tekrar dene
-    if (error) {
-      const retry = await supabase.auth.verifyOtp({
-        email: params.email,
-        token: otp,
-        type: "email",
-      });
-      if (!retry.error) {
-        data = retry.data;
-        error = null;
-      }
-    }
 
     setIsLoading(false);
 
@@ -161,20 +130,6 @@ export default function VerifyScreen() {
     }
 
     if (data.user) {
-      // ⚡ KRİTİK ADIM: Bu cihazı yetkilendir ki 'yeni cihaz doğrulaması' döngüsüne düşmesin!
-      try {
-        const deviceId = await getOrCreateDeviceId();
-        await supabase.from("device_authorizations").upsert({
-          user_id: data.user.id,
-          device_id: deviceId,
-          is_authorized: true,
-        });
-        await AsyncStorage.setItem("last_user_id", data.user.id);
-        setIsDeviceAuthorized(true);
-      } catch (devErr) {
-        console.warn("[verify] device auth error:", devErr);
-      }
-
       await registerForPushNotifications(data.user.id).catch(() => {});
       await routeUser(data.user.id);
     }
@@ -199,28 +154,11 @@ export default function VerifyScreen() {
       }
     }
 
-    let { data: userData } = await supabase
+    const { data: userData } = await supabase
       .from("users")
       .select("display_name, couple_id")
       .eq("id", userId)
-      .maybeSingle();
-
-    if (!userData) {
-      const fallbackName = (params.email || "user").split("@")[0].replace(/[^a-zA-Z0-9_]/g, "");
-      const { data: createdUser } = await supabase
-        .from("users")
-        .insert({
-          id: userId,
-          username: fallbackName || `user_${userId.slice(0, 6)}`,
-          display_name: params.email?.split("@")[0] || "Kullanıcı",
-        })
-        .select("display_name, couple_id")
-        .maybeSingle();
-
-      if (createdUser) {
-        userData = createdUser;
-      }
-    }
+      .single();
 
     let couple: any = null;
     if (userData?.couple_id) {
@@ -247,8 +185,6 @@ export default function VerifyScreen() {
   async function handleResend() {
     if (!params.email) return;
     setIsLoading(true);
-    setResendStatus("");
-    setErrorMsg("");
     const { error } = await supabase.auth.resend({
       type: "signup",
       email: params.email,
@@ -256,11 +192,25 @@ export default function VerifyScreen() {
     });
     setIsLoading(false);
     if (error) {
-      setErrorMsg("Kod gönderilemedi. Lütfen kısa bir süre sonra tekrar dene.");
+      Alert.alert("Hata", "Kod gönderilemedi. Lütfen tekrar dene.");
     } else {
-      setResendStatus("Yeni doğrulama kodu gönderildi! (Spam klasörünü de kontrol et ✨)");
-      setTimeout(() => setResendStatus(""), 6000);
+      Alert.alert("Gönderildi!", "Yeni doğrulama kodu e-postana gönderildi.");
     }
+  }
+
+  if (autoVerified && isLoading) {
+    return (
+      <View
+        style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#080811" }}
+      >
+        <ActivityIndicator color="#FF4D6A" size="large" />
+        <Text
+          style={{ color: "rgba(255,255,255,0.6)", marginTop: 16, fontSize: 15 }}
+        >
+          Doğrulanıyor...
+        </Text>
+      </View>
+    );
   }
 
   return (
@@ -269,27 +219,23 @@ export default function VerifyScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 60, paddingBottom: 40 }}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Back Button */}
+        <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 60, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
+          
           <TouchableOpacity
             onPress={() => router.back()}
             style={{
               width: 42,
               height: 42,
               borderRadius: 21,
-              backgroundColor: "rgba(255,255,255,0.07)",
+              backgroundColor: "rgba(255,255,255,0.04)",
               alignItems: "center",
               justifyContent: "center",
-              marginBottom: 32,
+              marginBottom: 48,
             }}
           >
             <ArrowLeft color="#fff" size={22} />
           </TouchableOpacity>
 
-          {/* Email Icon & Title */}
           <View style={{ alignItems: "center", marginBottom: 36 }}>
             <View
               style={{
@@ -334,10 +280,10 @@ export default function VerifyScreen() {
                   <Text style={{ color: "#FFFFFF", fontFamily: "Inter_600SemiBold" }}>
                     {params.email}
                   </Text>
-                  {" adresine gönderilen 6 haneli kodu gir."}
+                  {" adresine kod gönderdik"}
                 </>
               ) : (
-                "E-posta adresinize gönderilen 6 haneli kodu gir."
+                "E-posta adresinize kod gönderdik"
               )}
             </Text>
           </View>
@@ -347,7 +293,7 @@ export default function VerifyScreen() {
               flexDirection: "row",
               justifyContent: "center",
               gap: 8,
-              marginBottom: 36,
+              marginBottom: 40,
             }}
           >
             {digits.map((digit, index) => (
@@ -387,20 +333,14 @@ export default function VerifyScreen() {
             </Text>
           )}
 
-          {!!resendStatus && (
-            <Text style={{ color: "#10B981", textAlign: "center", marginBottom: 20, fontSize: 14, fontFamily: "Inter_600SemiBold" }}>
-              {resendStatus}
-            </Text>
-          )}
-
           <TouchableOpacity
             onPress={() => handleManualVerify()}
             disabled={isLoading}
-            style={{ borderRadius: 30, overflow: "hidden", marginBottom: 20, opacity: isLoading ? 0.7 : 1 }}
+            style={{ borderRadius: 30, overflow: "hidden", marginBottom: 24, opacity: isLoading ? 0.7 : 1 }}
             activeOpacity={0.85}
           >
             <LinearGradient
-              colors={["#FF4D6A", "#E8002D"]}
+              colors={["#FF4D6A", "#FF4D6A"]} // Mockup shows solid looking pink/red, let's use the exact color from mockup or similar gradient
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={{
@@ -417,13 +357,13 @@ export default function VerifyScreen() {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={{ color: "#fff", fontWeight: "700", fontSize: 17 }}>
-                  Doğrula ve Devam Et
+                  Doğrula
                 </Text>
               )}
             </LinearGradient>
           </TouchableOpacity>
 
-          <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 16 }}>
+          <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center" }}>
             <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>
               Kod gelmedi mi?{" "}
             </Text>
@@ -433,51 +373,6 @@ export default function VerifyScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-
-          {/* ─── Beklemek İstemeyenler İçin Demo Modu ─── */}
-          <TouchableOpacity
-            onPress={() => {
-              enterDemoMode();
-              router.replace("/(tabs)/home");
-            }}
-            activeOpacity={0.85}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              backgroundColor: "rgba(255, 77, 106, 0.1)",
-              borderWidth: 1.2,
-              borderColor: "rgba(255, 77, 106, 0.35)",
-              borderRadius: 20,
-              paddingVertical: 13,
-              paddingHorizontal: 20,
-              marginTop: 10,
-              marginBottom: 12,
-            }}
-          >
-            <Sparkles color="#FF4D6A" size={16} />
-            <Text style={{ color: "#FF4D6A", fontSize: 13.5, fontFamily: "Inter_700Bold" }}>
-              Beklemek İstemiyorum (Demo Modunda Keşfet ✨)
-            </Text>
-          </TouchableOpacity>
-
-          {/* Giriş Ekranına Dön */}
-          <TouchableOpacity
-            onPress={() => router.replace("/(auth)/login")}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 6,
-              padding: 10,
-            }}
-          >
-            <LogOut color="rgba(255,255,255,0.4)" size={15} />
-            <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, fontWeight: "600" }}>
-              Giriş Ekranına Dön
-            </Text>
-          </TouchableOpacity>
 
         </ScrollView>
       </KeyboardAvoidingView>

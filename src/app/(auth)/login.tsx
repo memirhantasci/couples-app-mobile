@@ -153,14 +153,14 @@ export default function LoginScreen() {
         
         let { data: emailData, error: rpcError } = await supabase.rpc(
           "get_email_by_username",
-          { p_username: plainUsername }
+          { p_username: encryptedUsername }
         );
 
-        // Fallback for older test accounts that were registered with encryption
+        // Fallback for older test accounts that were registered before encryption was added
         if (!emailData && !rpcError) {
           const { data: fallbackData } = await supabase.rpc(
             "get_email_by_username",
-            { p_username: encryptedUsername }
+            { p_username: plainUsername }
           );
           if (fallbackData) {
             emailData = fallbackData;
@@ -292,13 +292,12 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
-      const plainUsername = regUsername.trim().toLowerCase();
-      const encryptedUsername = deterministicEncrypt(plainUsername);
+      const encryptedUsername = deterministicEncrypt(regUsername.trim().toLowerCase());
 
       const { data: existing } = await supabase
         .from("users")
         .select("id")
-        .or(`username.eq.${plainUsername},username.eq.${encryptedUsername}`)
+        .eq("username", encryptedUsername)
         .maybeSingle();
 
       if (existing) {
@@ -307,26 +306,23 @@ export default function LoginScreen() {
         return;
       }
 
+      const encryptedDisplayName = encrypt(regDisplayName.trim());
+      
       const { data, error } = await supabase.auth.signUp({
         email: regEmail.trim().toLowerCase(),
         password: regPassword.trim(),
         options: {
-          emailRedirectTo: "couplesapp://verify",
           data: {
-            username: plainUsername,
-            display_name: regDisplayName.trim(),
+            username: encryptedUsername,
+            display_name: encryptedDisplayName,
             gender: regGender,
           }
         }
       });
 
       if (error) {
-        if (
-          error.message.includes("already registered") ||
-          error.message.includes("Database error saving new user") ||
-          error.message.includes("unique")
-        ) {
-          setErrorMsg("Bu e-posta veya kullanıcı adı zaten kullanımda. Lütfen giriş yapın.");
+        if (error.message.includes("already registered")) {
+          setErrorMsg("Bu e-posta zaten kayıtlı.");
         } else {
           setErrorMsg(error.message);
         }
@@ -340,39 +336,11 @@ export default function LoginScreen() {
         return;
       }
 
+      // The user profile is automatically created in public.users via Supabase trigger
+
       const cleanPairingCode = regPairingCode.trim().toUpperCase() || activeInviteCode?.trim().toUpperCase() || "";
       if (cleanPairingCode) {
         await AsyncStorage.setItem("@pending_invite_code", cleanPairingCode);
-      }
-
-      // Supabase Kuralı: Eğer e-posta zaten kayıtlıysa, Supabase identities: [] döner ve güvenlik sebebiyle mail GÖNDERMEZ!
-      const isAlreadyRegistered = Array.isArray(data.user.identities) && data.user.identities.length === 0;
-
-      if (isAlreadyRegistered) {
-        // Bu e-posta zaten kayıtlı! Kullanıcıya yeni onay maili göndermek için resend tetikliyoruz:
-        const { error: resendErr } = await supabase.auth.resend({
-          type: "signup",
-          email: regEmail.trim().toLowerCase(),
-          options: { emailRedirectTo: "couplesapp://verify" },
-        });
-
-        if (resendErr && resendErr.message.toLowerCase().includes("already confirmed")) {
-          setErrorMsg("Bu e-posta adresi zaten kayıtlı ve onaylanmış! Lütfen Giriş Yap sekmesini kullanın.");
-          setIsLoading(false);
-          return;
-        }
-
-        setSuccessMsg("Bu e-posta zaten kayıtlı. Doğrulama kodunuz tekrar gönderildi!");
-        setTimeout(() => {
-          router.push({
-            pathname: "/(auth)/verify",
-            params: { 
-              email: regEmail.trim().toLowerCase(),
-              inviteCode: cleanPairingCode || undefined
-            },
-          });
-        }, 1200);
-        return;
       }
 
       // If email confirmation is enabled in Supabase, session will be null

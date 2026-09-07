@@ -67,47 +67,21 @@ export function decrypt(text: string): string {
     const ciphertext = CryptoJS.enc.Hex.parse(parts[2]);
     const activeKey = sessionKey || key;
 
-    // 1. Önce aktif anahtar ile çözmeyi dene
-    let str = "";
-    try {
-      const decrypted = CryptoJS.AES.decrypt(
-        // @ts-ignore
-        { ciphertext: ciphertext },
-        activeKey,
-        {
-          iv: iv,
-          mode: CryptoJS.mode.CBC,
-          padding: CryptoJS.pad.Pkcs7,
-        }
-      );
-      str = decrypted.toString(CryptoJS.enc.Utf8);
-    } catch {
-      str = "";
-    }
-
-    // 2. Eğer UTF-8 hatası alındıysa ve aktif anahtar master key değilse, master key ile dene
-    if (!str && sessionKey) {
-      try {
-        const decMaster = CryptoJS.AES.decrypt(
-          // @ts-ignore
-          { ciphertext: ciphertext },
-          key,
-          {
-            iv: iv,
-            mode: CryptoJS.mode.CBC,
-            padding: CryptoJS.pad.Pkcs7,
-          }
-        );
-        str = decMaster.toString(CryptoJS.enc.Utf8);
-      } catch {
-        str = "";
+    const decrypted = CryptoJS.AES.decrypt(
+      // @ts-ignore
+      { ciphertext: ciphertext },
+      activeKey,
+      {
+        iv: iv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7,
       }
-    }
+    );
 
-    return str || "";
+    return decrypted.toString(CryptoJS.enc.Utf8);
   } catch (err) {
-    logger.warn("Decryption fallback:", err);
-    return "";
+    logger.error("Decryption error:", err);
+    return text;
   }
 }
 
@@ -153,13 +127,9 @@ export function deterministicDecrypt(text: string): string {
       }
     );
 
-    try {
-      return decrypted.toString(CryptoJS.enc.Utf8) || "";
-    } catch {
-      return "";
-    }
+    return decrypted.toString(CryptoJS.enc.Utf8);
   } catch (err) {
-    logger.warn("Deterministic decryption fallback:", err);
-    return "";
+    logger.error("Deterministic decryption error:", err);
+    return text;
   }
 }
