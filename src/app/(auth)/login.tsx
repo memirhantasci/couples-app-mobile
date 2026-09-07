@@ -153,14 +153,14 @@ export default function LoginScreen() {
         
         let { data: emailData, error: rpcError } = await supabase.rpc(
           "get_email_by_username",
-          { p_username: encryptedUsername }
+          { p_username: plainUsername }
         );
 
-        // Fallback for older test accounts that were registered before encryption was added
+        // Fallback for older test accounts that were registered with encryption
         if (!emailData && !rpcError) {
           const { data: fallbackData } = await supabase.rpc(
             "get_email_by_username",
-            { p_username: plainUsername }
+            { p_username: encryptedUsername }
           );
           if (fallbackData) {
             emailData = fallbackData;
@@ -292,12 +292,13 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
-      const encryptedUsername = deterministicEncrypt(regUsername.trim().toLowerCase());
+      const plainUsername = regUsername.trim().toLowerCase();
+      const encryptedUsername = deterministicEncrypt(plainUsername);
 
       const { data: existing } = await supabase
         .from("users")
         .select("id")
-        .eq("username", encryptedUsername)
+        .or(`username.eq.${plainUsername},username.eq.${encryptedUsername}`)
         .maybeSingle();
 
       if (existing) {
@@ -306,16 +307,14 @@ export default function LoginScreen() {
         return;
       }
 
-      const encryptedDisplayName = encrypt(regDisplayName.trim());
-      
       const { data, error } = await supabase.auth.signUp({
         email: regEmail.trim().toLowerCase(),
         password: regPassword.trim(),
         options: {
           emailRedirectTo: "couplesapp://verify",
           data: {
-            username: encryptedUsername,
-            display_name: encryptedDisplayName,
+            username: plainUsername,
+            display_name: regDisplayName.trim(),
             gender: regGender,
           }
         }
