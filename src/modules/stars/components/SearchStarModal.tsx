@@ -14,11 +14,12 @@ import {
 import { BlurView } from 'expo-blur';
 import { Search, X, Star } from 'lucide-react-native';
 import { starService } from '../api/starService';
+import { CelestialSearchResult } from '../types/star.types';
 
 interface SearchStarModalProps {
   visible: boolean;
   onClose: () => void;
-  onSelectStar: (catalogId: string) => void;
+  onSelectStar: (item: CelestialSearchResult) => void;
 }
 
 export const SearchStarModal: React.FC<SearchStarModalProps> = ({
@@ -51,7 +52,7 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
   const performSearch = async (searchTerm: string) => {
     setLoading(true);
     try {
-      const data = await starService.searchStarByName(searchTerm);
+      const data = await starService.searchCelestialUniverse(searchTerm);
       setResults(data);
     } catch (error) {
       console.warn('Search failed:', error);
@@ -96,25 +97,54 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
             ) : (
               <FlatList
                 data={results}
-                keyExtractor={(item, index) => item.catalog_id || index.toString()}
+                keyExtractor={(item, index) => item.entity_id || index.toString()}
                 contentContainerStyle={styles.listContainer}
                 ListEmptyComponent={
                   query.trim().length >= 2 ? (
                     <Text style={styles.emptyText}>Sonuç bulunamadı.</Text>
                   ) : null
                 }
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.resultItem}
-                    onPress={() => onSelectStar(item.catalog_id)}
-                  >
-                    <Star size={18} color="#FBBF24" />
-                    <View style={styles.resultTextContainer}>
-                      <Text style={styles.resultName}>{item.custom_name || item.common_name}</Text>
-                      <Text style={styles.resultCode}>{item.catalog_code}</Text>
-                    </View>
-                  </TouchableOpacity>
-                )}
+                renderItem={({ item }) => {
+                  const celestialItem = item as CelestialSearchResult;
+                  let typeLabel = '';
+                  let typeColor = '#888';
+                  if (celestialItem.entity_type === 'common') {
+                    typeLabel = 'Sistem Cisimleri';
+                    typeColor = '#FBBF24';
+                  } else if (celestialItem.entity_type === 'custom') {
+                    typeLabel = 'Tescilli Yıldız';
+                    typeColor = '#38BDF8';
+                  } else if (celestialItem.entity_type === 'exoplanet') {
+                    typeLabel = 'Anı Gezegeni';
+                    typeColor = '#A78BFA';
+                  } else {
+                    typeLabel = 'Katalog Yıldızı';
+                    typeColor = '#9CA3AF';
+                  }
+
+                  return (
+                    <TouchableOpacity
+                      style={styles.resultItem}
+                      onPress={() => onSelectStar(celestialItem)}
+                    >
+                      <Star size={18} color={typeColor} />
+                      <View style={styles.resultTextContainer}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Text style={styles.resultName}>{celestialItem.display_name}</Text>
+                          {celestialItem.is_own_star && (
+                            <Text style={styles.ownStarBadge}> (Senin Yıldızın)</Text>
+                          )}
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                          <Text style={[styles.typeBadge, { color: typeColor, borderColor: typeColor }]}>
+                            {typeLabel}
+                          </Text>
+                          <Text style={styles.resultCode}>{celestialItem.catalog_code}</Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }}
               />
             )}
           </View>
@@ -209,5 +239,19 @@ const styles = StyleSheet.create({
   resultCode: {
     color: '#888',
     fontSize: 12,
+  },
+  typeBadge: {
+    fontSize: 10,
+    borderWidth: 1,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  ownStarBadge: {
+    fontSize: 12,
+    color: '#10B981',
+    fontWeight: 'bold',
+    marginLeft: 6,
   },
 });

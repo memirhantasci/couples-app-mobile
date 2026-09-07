@@ -613,4 +613,15 @@ export interface FlyToTarget {
   readonly centerRa: number;
   readonly centerDec: number;
   readonly zoom?: number;
+  readonly nonce?: number;
+}
+
+export interface CelestialSearchResult {
+  readonly entity_id: string;
+  readonly entity_type: 'common' | 'custom' | 'catalog' | 'exoplanet';
+  readonly display_name: string;
+  readonly catalog_code: string;
+  readonly ra: number;
+  readonly dec: number;
+  readonly is_own_star: boolean;
 }

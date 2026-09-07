@@ -148,6 +148,14 @@ export const OurStarScreen: React.FC = () => {
   const [flyToTarget, setFlyToTarget] = useState<FlyToTarget | undefined>(undefined);
   const [showInstructionBanner, setShowInstructionBanner] = useState(true);
 
+  // Eve Dönüş Radarı Hesaplaması
+  const myStarRa = starDetails ? Number(starDetails.ra) : 0;
+  const myStarDec = starDetails ? Number(starDetails.dec) : 0;
+  const deltaRa = ((myStarRa - cameraRa + 540) % 360) - 180;
+  const deltaDec = myStarDec - cameraDec;
+  const angularDistance = Math.sqrt(deltaRa * deltaRa + deltaDec * deltaDec);
+  const showHomeRadar = viewMode === 'macro' && starDetails !== null && angularDistance > 5;
+
 
   // ─── REFERANSLAR (LWW & MANAGER) ───────────────────────────────────
   const sparkManagerRef = useRef<StarSparkManager | null>(null);
@@ -877,6 +885,29 @@ export const OurStarScreen: React.FC = () => {
           </TouchableOpacity>
         )}
 
+        {/* EVE DÖNÜŞ RADARI BUTONU (Sadece Makro modda ve yıldıza uzakken) */}
+        {showHomeRadar && (
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => {
+              try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
+              setFlyToTarget({ centerRa: myStarRa, centerDec: myStarDec, zoom: 3.5, nonce: Date.now() });
+            }}
+            style={styles.radarLaunchBtn}
+            accessibilityLabel="Evine Dön"
+          >
+            <LinearGradient
+              colors={['#10B981', '#059669']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.radarLaunchGradient}
+            >
+              <Radio size={16} color="#FFFFFF" />
+              <Text style={styles.radarLaunchBtnText}>Evine Dön ✨</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
         {/* SOL/ORTA AKSİYON 1: YENİ ANİ GEZEGENİ EKLE (Sadece Mikro Modda) */}
         {viewMode === 'micro' && starDetails && (
           <TouchableOpacity
@@ -1053,14 +1084,15 @@ export const OurStarScreen: React.FC = () => {
       <SearchStarModal
         visible={isSearchModalOpen}
         onClose={() => setIsSearchModalOpen(false)}
-        onSelectStar={(catalogId) => {
+        onSelectStar={(item) => {
           setIsSearchModalOpen(false);
-          // Makro moduna geç ve seçilen yıldızı tescil hedefine al veya oraya git
           setViewMode('macro');
-          // TODO: If we want to focus on the selected star, we can set target RA/DEC or open claim modal
-          setClaimTargetStar(null); // Just resetting it so user can claim
-          setClaimSectorId(null);
-          setIsClaimModalOpen(true);
+          setFlyToTarget({
+            centerRa: Number(item.ra),
+            centerDec: Number(item.dec),
+            zoom: 3.5,
+            nonce: Date.now(),
+          });
         }}
       />
     </View>

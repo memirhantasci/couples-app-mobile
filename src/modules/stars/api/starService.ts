@@ -28,6 +28,7 @@ import type {
   StarConnectionRecord,
   StarExoplanetRecord,
   StarSearchResult,
+  CelestialSearchResult,
   ViewportStarItem,
 } from '../types/star.types';
 
@@ -616,6 +617,26 @@ export async function searchStarByName(query: string): Promise<StarSearchResult[
 }
 
 /**
+ * Genel Harita / Evren Araması yapar (yaygın isim, katalog, ötegezegen vs).
+ */
+export async function searchCelestialUniverse(query: string): Promise<CelestialSearchResult[]> {
+  const trimmed = query.trim();
+  if (!trimmed || trimmed.length < 2) return [];
+
+  return withSmartRetry(async () => {
+    const { data, error } = await supabase.rpc('search_celestial_universe', {
+      p_query: trimmed,
+    });
+
+    if (error) {
+      handleSupabaseError(error);
+    }
+
+    return (data || []) as CelestialSearchResult[];
+  });
+}
+
+/**
  * Hedef yıldıza bağlantı isteği gönderir (Atomik RPC, simetrik lock & 3 limit).
  */
 export async function requestStarConnection(targetStarId: string): Promise<StarConnectionRecord> {
@@ -804,6 +825,7 @@ export const starService = {
   createExoplanetFromMedia,
   sendSpark,
   searchStarByName,
+  searchCelestialUniverse,
   requestStarConnection,
   respondToConnection,
   removeStarConnection,

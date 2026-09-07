@@ -24,7 +24,7 @@ export interface MacroSkyBounds {
 export interface MacroSkyCanvasProps {
   readonly stars: ViewportStarItem[];
   readonly initialCamera?: Partial<SkyCameraState>;
-  readonly targetCamera?: { readonly centerRa: number; readonly centerDec: number; readonly zoom?: number };
+  readonly targetCamera?: { readonly centerRa: number; readonly centerDec: number; readonly zoom?: number; readonly nonce?: number };
   readonly onSelectStar?: (star: ViewportStarItem) => void;
   readonly onBoundsChange?: (bounds: MacroSkyBounds) => void;
   readonly onCameraChange?: (camera: SkyCameraState) => void;
@@ -124,6 +124,22 @@ function MacroSkyCanvasSkia({
     viewportHeight: height,
   });
 
+  React.useEffect(() => {
+    if (!targetCamera) return;
+    setCamera((prev) => {
+      const newCamera = {
+        ...prev,
+        centerRa: ((targetCamera.centerRa % 360) + 360) % 360,
+        centerDec: Math.max(-90, Math.min(90, targetCamera.centerDec)),
+        zoom: targetCamera.zoom ? Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, targetCamera.zoom)) : prev.zoom,
+      };
+      onBoundsChange?.(computeBounds(newCamera));
+      onCameraChange?.(newCamera);
+      return newCamera;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetCamera?.centerRa, targetCamera?.centerDec, targetCamera?.zoom, targetCamera?.nonce]);
+
   // Reanimated Shared Values for Gestures (UI Thread)
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -210,7 +226,7 @@ function MacroSkyCanvasSkia({
     canvas.drawRect(Skia.XYWHRect(0, 0, width, height), bgPaint);
 
     // ─── PASS 4.0: Dünya / Güneş Sistemi Göstergesi ─────────────────
-    const earthPos = projectToScreen(0, 0, camera, width, height);
+    const earthPos = projectToScreen(100.4600, 23.4400, camera, width, height);
     if (earthPos.x > -50 && earthPos.x < width + 50 && earthPos.y > -50 && earthPos.y < height + 50) {
       const earthGlow = Skia.Paint();
       earthGlow.setColor(Skia.Color('rgba(56, 189, 248, 0.9)'));
