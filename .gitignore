@@ -54,3 +54,7 @@ google-service-account.json
 
 # Expo yerel yapılandırma
 eas.json
+
+# Supabase CLI temp files & logs
+supabase/.temp/
+*.log

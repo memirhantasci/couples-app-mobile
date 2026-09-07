@@ -15,9 +15,11 @@ import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, router } from "expo-router";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/context/AuthContext";
-import { ArrowLeft, ShieldAlert } from "lucide-react-native";
+import { useAuth, DEVICE_AUTH_CACHE_KEY } from "@/context/AuthContext";
+import { ArrowLeft, ShieldAlert, RefreshCw } from "lucide-react-native";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
+import { navigateAfterAuth } from "@/lib/navigate";
+import { decrypt } from "@/utils/crypto";
 
 const OTP_LENGTH = 6;
 
@@ -35,7 +37,16 @@ export default function VerifyDeviceScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [focusedIndex, setFocusedIndex] = useState<number>(0);
+  const [resendCooldown, setResendCooldown] = useState(60);
+  const [isResending, setIsResending] = useState(false);
   const inputRefs = useRef<(TextInput | null)[]>([]);
+
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
 
   useEffect(() => {
     const handleBackAction = () => {
@@ -125,12 +136,71 @@ export default function VerifyDeviceScreen() {
       }
 
       await AsyncStorage.setItem("last_user_id", userId);
+      await AsyncStorage.setItem(DEVICE_AUTH_CACHE_KEY, JSON.stringify({
+        userId,
+        deviceId,
+        isAuthorized: true,
+        timestamp: Date.now(),
+      }));
       setIsDeviceAuthorized(true);
       await refreshProfile();
-      router.replace("/(tabs)/home");
+
+      // Route user correctly based on couple state
+      const { data: userData } = await supabase
+        .from("users")
+        .select("display_name, couple_id")
+        .eq("id", userId)
+        .single();
+
+      let couple: any = null;
+      if (userData?.couple_id) {
+        const { data: cData } = await supabase
+          .from("couples")
+          .select("meet_date, relationship_start_date")
+          .eq("id", userData.couple_id)
+          .single();
+        if (cData) {
+          couple = cData;
+        }
+      }
+
+      navigateAfterAuth({
+        coupleId: userData?.couple_id ?? null,
+        meetDate: couple?.meet_date ?? null,
+        relationshipStartDate: couple?.relationship_start_date ?? null,
+        isPaired: !!userData?.couple_id,
+        hasDates: !!(couple?.meet_date && couple?.relationship_start_date),
+        displayName: userData?.display_name ? decrypt(userData.display_name) : null,
+      });
     } catch (e: any) {
       setErrorMsg("Beklenmedik bir hata oluştu.");
       setIsLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (resendCooldown > 0 || isResending) return;
+    if (!targetEmail) {
+      setErrorMsg("E-posta adresi bulunamadı.");
+      return;
+    }
+    setIsResending(true);
+    setErrorMsg("");
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: targetEmail,
+        options: { shouldCreateUser: false },
+      });
+      if (error) {
+        setErrorMsg("Kod gönderilemedi: " + error.message);
+      } else {
+        setResendCooldown(60);
+        Alert.alert("Kod Gönderildi", "Yeni doğrulama kodu e-postanıza gönderildi.");
+      }
+    } catch {
+      setErrorMsg("Kod gönderilirken bir hata oluştu.");
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -288,6 +358,27 @@ export default function VerifyDeviceScreen() {
                 </Text>
               )}
             </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleResend}
+            disabled={resendCooldown > 0 || isResending}
+            style={{ alignItems: "center", paddingVertical: 12 }}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={{
+                color: resendCooldown > 0 ? "rgba(255,255,255,0.4)" : "#FF4D6A",
+                fontSize: 14,
+                fontFamily: "Inter_500Medium",
+              }}
+            >
+              {isResending
+                ? "Gönderiliyor..."
+                : resendCooldown > 0
+                ? `Kodu tekrar gönder (${resendCooldown}s)`
+                : "Kodu tekrar gönder"}
+            </Text>
           </TouchableOpacity>
 
         </ScrollView>

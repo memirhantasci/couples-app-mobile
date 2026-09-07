@@ -16,7 +16,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { navigateAfterAuth } from "@/lib/navigate";
 import { registerForPushNotifications } from "@/lib/notifications";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, DEVICE_AUTH_CACHE_KEY } from "@/context/AuthContext";
 import { encrypt, decrypt, deterministicEncrypt } from "@/utils/crypto";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { logger } from "@/utils/logger";
@@ -209,7 +209,6 @@ export default function LoginScreen() {
       // --- Device Verification ---
       const userId = data.user.id;
       const deviceId = await getOrCreateDeviceId();
-      const lastUserId = await AsyncStorage.getItem("last_user_id");
 
       const { data: auths, error: authError } = await supabase
         .from("device_authorizations")
@@ -218,12 +217,34 @@ export default function LoginScreen() {
         .eq("device_id", deviceId)
         .maybeSingle();
 
-      const isAuthorized = (lastUserId === userId) && !authError && !!auths?.is_authorized;
+      let isAuthorized = !authError && !!auths?.is_authorized;
+
+      // If this device is not recorded yet, check if the user has ANY authorized devices at all
+      if (!isAuthorized && !authError && !auths) {
+        const { count, error: countErr } = await supabase
+          .from("device_authorizations")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", userId);
+
+        if (!countErr && (count === 0 || count === null)) {
+          // First device ever for this account! Auto-authorize as primary device
+          await supabase.from("device_authorizations").upsert({
+            user_id: userId,
+            device_id: deviceId,
+            device_name: Platform.OS,
+            is_authorized: true,
+          });
+          isAuthorized = true;
+        }
+      }
 
       if (!isAuthorized) {
         // Send OTP email while spinner is active on the login button
         const { error: otpError } = await supabase.auth.signInWithOtp({
           email: emailToUse,
+          options: {
+            shouldCreateUser: false,
+          },
         });
 
         if (otpError) {
@@ -243,10 +264,44 @@ export default function LoginScreen() {
       }
 
       // Device is authorized!
-      setIsDeviceAuthorized(true);
       await AsyncStorage.setItem("last_user_id", userId);
+      await AsyncStorage.setItem(DEVICE_AUTH_CACHE_KEY, JSON.stringify({
+        userId,
+        deviceId,
+        isAuthorized: true,
+        timestamp: Date.now(),
+      }));
+      setIsDeviceAuthorized(true);
       setLoginAttempts(0);
       setLockedUntil(null);
+
+      // Route user according to couple & profile status
+      const { data: userData } = await supabase
+        .from("users")
+        .select("display_name, couple_id")
+        .eq("id", userId)
+        .single();
+
+      let couple: any = null;
+      if (userData?.couple_id) {
+        const { data: cData } = await supabase
+          .from("couples")
+          .select("meet_date, relationship_start_date")
+          .eq("id", userData.couple_id)
+          .single();
+        if (cData) {
+          couple = cData;
+        }
+      }
+
+      navigateAfterAuth({
+        coupleId: userData?.couple_id ?? null,
+        meetDate: couple?.meet_date ?? null,
+        relationshipStartDate: couple?.relationship_start_date ?? null,
+        isPaired: !!userData?.couple_id,
+        hasDates: !!(couple?.meet_date && couple?.relationship_start_date),
+        displayName: userData?.display_name ? decrypt(userData.display_name) : null,
+      });
     } catch (e: any) {
       setErrorMsg("Beklenmedik bir hata oluştu.");
     } finally {
@@ -375,10 +430,17 @@ export default function LoginScreen() {
       await supabase.from("device_authorizations").upsert({
         user_id: data.user.id,
         device_id: deviceId,
+        device_name: Platform.OS,
         is_authorized: true,
       });
 
       await AsyncStorage.setItem("last_user_id", data.user.id);
+      await AsyncStorage.setItem(DEVICE_AUTH_CACHE_KEY, JSON.stringify({
+        userId: data.user.id,
+        deviceId,
+        isAuthorized: true,
+        timestamp: Date.now(),
+      }));
       setIsDeviceAuthorized(true);
     } catch (e: any) {
       setErrorMsg("Beklenmedik bir hata oluştu.");

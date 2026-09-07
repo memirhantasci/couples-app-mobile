@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -29,6 +29,43 @@ function displayDate(date: Date): string {
   return `${day}.${month}.${year}`; // Matching mockup 14.02.2024
 }
 
+function WebDateInput({
+  value,
+  max,
+  onChange,
+}: {
+  value: string;
+  max: string;
+  onChange: (val: string) => void;
+}) {
+  if (Platform.OS !== "web") return null;
+  return React.createElement("input", {
+    type: "date",
+    value,
+    max,
+    onChange: (e: any) => onChange(e.target.value),
+    onClick: (e: any) => {
+      try {
+        if (typeof e.target.showPicker === "function") {
+          e.target.showPicker();
+        }
+      } catch {
+        // silent catch
+      }
+    },
+    style: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      opacity: 0,
+      cursor: "pointer",
+      zIndex: 10,
+    },
+  });
+}
+
 export default function DatesScreen() {
   const { session, refreshProfile } = useAuth();
   const userId = session?.user?.id;
@@ -41,6 +78,46 @@ export default function DatesScreen() {
   const [error, setError] = useState("");
 
   const today = new Date();
+
+  useEffect(() => {
+    async function loadExistingDates() {
+      if (!userId) return;
+      try {
+        const { data: user } = await supabase
+          .from("users")
+          .select("couple_id")
+          .eq("id", userId)
+          .single();
+
+        if (user?.couple_id) {
+          const { data: couple } = await supabase
+            .from("couples")
+            .select("meet_date, relationship_start_date")
+            .eq("id", user.couple_id)
+            .single();
+
+          if (couple) {
+            if (couple.meet_date && couple.relationship_start_date) {
+              await refreshProfile();
+              router.replace("/(tabs)/home");
+              return;
+            }
+            if (couple.meet_date) {
+              const [y, m, d] = couple.meet_date.split("-").map(Number);
+              setMeetDate(new Date(y, m - 1, d));
+            }
+            if (couple.relationship_start_date) {
+              const [y, m, d] = couple.relationship_start_date.split("-").map(Number);
+              setRelDate(new Date(y, m - 1, d));
+            }
+          }
+        }
+      } catch {
+        // silent catch
+      }
+    }
+    loadExistingDates();
+  }, [userId, refreshProfile]);
 
   function onMeetDateChange(_: DateTimePickerEvent, selected?: Date) {
     setShowMeetPicker(Platform.OS === "ios");
@@ -65,57 +142,59 @@ export default function DatesScreen() {
       return;
     }
 
-    if (!userId) return;
+    if (!userId) {
+      setError("Oturum bulunamadı. Lütfen tekrar giriş yapın.");
+      return;
+    }
     setIsLoading(true);
     setError("");
 
-    const { data: user, error: userError } = await supabase
-      .from("users")
-      .select("couple_id")
-      .eq("id", userId)
-      .single();
+    try {
+      const { data: user, error: userError } = await supabase
+        .from("users")
+        .select("couple_id")
+        .eq("id", userId)
+        .single();
 
-    if (userError || !user?.couple_id) {
-      setError("Eşleşme bilgisi alınamadı. Lütfen tekrar dene.");
-      setIsLoading(false);
-      return;
-    }
+      if (userError || !user?.couple_id) {
+        setError("Eşleşme bilgisi alınamadı. Lütfen tekrar dene.");
+        setIsLoading(false);
+        return;
+      }
 
-    const { data: couple, error: coupleError } = await supabase
-      .from("couples")
-      .select("meet_date, relationship_start_date")
-      .eq("id", user.couple_id)
-      .single();
+      const { data: couple, error: coupleError } = await supabase
+        .from("couples")
+        .select("meet_date, relationship_start_date")
+        .eq("id", user.couple_id)
+        .single();
 
-    if (coupleError) {
-      setError("Eşleşme bilgileri alınırken hata oluştu.");
-      setIsLoading(false);
-      return;
-    }
+      if (coupleError) {
+        setError("Eşleşme bilgileri alınırken hata oluştu: " + coupleError.message);
+        setIsLoading(false);
+        return;
+      }
 
-    if (couple.meet_date && couple.relationship_start_date) {
+      const { error: updateError } = await supabase
+        .from("couples")
+        .update({
+          meet_date: formatDate(meetDate),
+          relationship_start_date: formatDate(relDate),
+        })
+        .eq("id", user.couple_id);
+
+      if (updateError) {
+        setError("Tarihler kaydedilirken bir hata oluştu: " + updateError.message);
+        setIsLoading(false);
+        return;
+      }
+
       await refreshProfile();
       router.replace("/(tabs)/home");
-      return;
+    } catch (err: any) {
+      setError("Beklenmedik bir hata oluştu: " + (err?.message || ""));
+    } finally {
+      setIsLoading(false);
     }
-
-    const { error: updateError } = await supabase
-      .from("couples")
-      .update({
-        meet_date: formatDate(meetDate),
-        relationship_start_date: formatDate(relDate),
-      })
-      .eq("id", user.couple_id);
-
-    setIsLoading(false);
-
-    if (updateError) {
-      setError("Tarihler kaydedilirken bir hata oluştu.");
-      return;
-    }
-
-    await refreshProfile();
-    router.replace("/(tabs)/home");
   }
 
   return (
@@ -165,7 +244,9 @@ export default function DatesScreen() {
 
         {/* Meet Date Picker */}
         <TouchableOpacity
-          onPress={() => setShowMeetPicker(true)}
+          onPress={() => {
+            if (Platform.OS !== "web") setShowMeetPicker(true);
+          }}
           activeOpacity={0.8}
           style={{
             backgroundColor: "rgba(255,255,255,0.02)",
@@ -176,8 +257,22 @@ export default function DatesScreen() {
             flexDirection: "row",
             alignItems: "center",
             marginBottom: 16,
+            position: "relative",
           }}
         >
+          <WebDateInput
+            value={formatDate(meetDate)}
+            max={formatDate(relDate < today ? relDate : today)}
+            onChange={(val) => {
+              if (val) {
+                const [y, m, d] = val.split("-").map(Number);
+                const newD = new Date(y, m - 1, d);
+                setMeetDate(newD);
+                if (newD > relDate) setRelDate(newD);
+              }
+            }}
+          />
+
           <View
             style={{
               width: 48,
@@ -211,7 +306,9 @@ export default function DatesScreen() {
 
         {/* Relationship Date Picker */}
         <TouchableOpacity
-          onPress={() => setShowRelPicker(true)}
+          onPress={() => {
+            if (Platform.OS !== "web") setShowRelPicker(true);
+          }}
           activeOpacity={0.8}
           style={{
             backgroundColor: "rgba(255,255,255,0.02)",
@@ -222,8 +319,20 @@ export default function DatesScreen() {
             flexDirection: "row",
             alignItems: "center",
             marginBottom: 40,
+            position: "relative",
           }}
         >
+          <WebDateInput
+            value={formatDate(relDate)}
+            max={formatDate(today)}
+            onChange={(val) => {
+              if (val) {
+                const [y, m, d] = val.split("-").map(Number);
+                setRelDate(new Date(y, m - 1, d));
+              }
+            }}
+          />
+
           <View
             style={{
               width: 48,
@@ -304,8 +413,8 @@ export default function DatesScreen() {
 
       </ScrollView>
 
-      {/* Keep picker components offscreen but rendered */}
-      {showMeetPicker && (
+      {/* Native pickers for iOS and Android */}
+      {Platform.OS !== "web" && showMeetPicker && (
         <DateTimePicker
           value={meetDate}
           mode="date"
@@ -315,7 +424,7 @@ export default function DatesScreen() {
           locale="tr-TR"
         />
       )}
-      {showRelPicker && (
+      {Platform.OS !== "web" && showRelPicker && (
         <DateTimePicker
           value={relDate}
           mode="date"

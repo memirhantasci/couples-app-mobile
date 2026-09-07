@@ -45,7 +45,22 @@ async function fetchPairingStatus(userId: string): Promise<PairingStatus> {
 
     let coupleId = user?.couple_id;
 
-    // 2. Eğer user'da couple_id yoksa, yerel hafızada daha önce oluşturulmuş bir coupleId var mı kontrol et
+    // 2. Eğer user'da couple_id yoksa, bekleyen bir davet kodu var mı kontrol et ve eşleşmeyi dene
+    if (!coupleId) {
+      const pendingCode = (await AsyncStorage.getItem("@pending_invite_code"))?.trim().toUpperCase();
+      if (pendingCode && pendingCode.length >= 4) {
+        const { data: joinData, error: joinErr } = await supabase.rpc("join_couple_by_code_uuid", {
+          p_code: pendingCode,
+        });
+        if (!joinErr) {
+          await AsyncStorage.removeItem("@pending_invite_code");
+          const res = Array.isArray(joinData) ? joinData[0] : joinData;
+          coupleId = res?.result_couple_id;
+        }
+      }
+    }
+
+    // 3. Eğer user'da hala couple_id yoksa, yerel hafızada daha önce oluşturulmuş bir coupleId var mı kontrol et
     if (!coupleId) {
       const cachedCoupleId = await AsyncStorage.getItem(`@user_couple_id_${userId}`);
       if (cachedCoupleId) {
@@ -63,7 +78,7 @@ async function fetchPairingStatus(userId: string): Promise<PairingStatus> {
       }
     }
 
-    // 3. Hala coupleId yoksa yeni bir couple oluştur
+    // 4. Hala coupleId yoksa ve bekleyen kod da yoksa yeni bir couple oluştur
     if (!coupleId) {
       const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
       let code = "";
@@ -175,11 +190,13 @@ async function fetchPairingStatus(userId: string): Promise<PairingStatus> {
 }
 
 function translatePairingError(msg: string): string {
+  if (!msg) return "Bir hata oluştu, lütfen tekrar deneyin.";
   if (msg.includes("INVALID_CODE")) return "Girdiğin kod geçersiz veya kullanım dışı.";
   if (msg.includes("CODE_ALREADY_USED")) return "Bu eşleşme kodu daha önce kullanılmış.";
   if (msg.includes("SELF_CODE")) return "Kendi eşleşme kodunu kullanamazsın.";
   if (msg.includes("COUPLE_FULL")) return "Bu kod artık kullanılamıyor.";
-  return "Bir hata oluştu, tekrar dene.";
+  if (msg.includes("doğrudan değiştirilemez")) return "Eşleşme işlemi tamamlanamadı, lütfen tekrar deneyin.";
+  return msg;
 }
 
 // ─── Pairing Screen ──────────────────────────────────────────────────────────
@@ -208,8 +225,9 @@ export default function PairingScreen() {
     if (!status) return;
     if (status.isPaired) {
       refreshProfile();
+      router.replace("/(setup)/dates");
     }
-  }, [status, refreshProfile]);
+  }, [status?.isPaired, refreshProfile, router]);
 
   // Hafızada bekleyen davet kodu varsa veya route param gelmişse otomatik eşleş
   useEffect(() => {
@@ -228,6 +246,7 @@ export default function PairingScreen() {
             const result = Array.isArray(data) ? data[0] : data;
             if (result?.result_is_paired) {
               await refreshProfile();
+              router.replace("/(setup)/dates");
             }
           }
         } catch {
@@ -238,7 +257,7 @@ export default function PairingScreen() {
       }
     }
     checkAutoPair();
-  }, [userId, params.code, status?.isPaired, refreshProfile]);
+  }, [userId, params.code, status?.isPaired, refreshProfile, router]);
 
   async function handleShareInvite() {
     const code = status?.pairingCode;
@@ -298,6 +317,7 @@ export default function PairingScreen() {
     if (isPaired) {
       await AsyncStorage.removeItem("@pending_invite_code");
       await refreshProfile();
+      router.replace("/(setup)/dates");
     }
   }
 

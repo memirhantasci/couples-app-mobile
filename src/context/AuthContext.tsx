@@ -8,8 +8,10 @@ import { setAdLoggingOut } from "../utils/adFlags";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { getOrCreateDeviceId } from "@/utils/device";
 
+import { Platform } from "react-native";
+
 const CACHED_PROFILE_KEY = "@couples_app_cached_profile";
-const DEVICE_AUTH_CACHE_KEY = "@device_auth_cache";
+export const DEVICE_AUTH_CACHE_KEY = "@device_auth_cache";
 const DEVICE_AUTH_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 import { DEMO_PROFILE, DEMO_SESSION } from "@/constants/demoData";
 
@@ -187,7 +189,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkDeviceAuth = useCallback(async (userId: string): Promise<boolean> => {
     try {
       const deviceId = await getOrCreateDeviceId();
-      const lastUserId = await AsyncStorage.getItem("last_user_id");
 
       // ⚡ Check 24-hour cache first — skip network call if result is fresh
       const cachedRaw = await AsyncStorage.getItem(DEVICE_AUTH_CACHE_KEY);
@@ -195,7 +196,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const cached = JSON.parse(cachedRaw);
         const isExpired = Date.now() - cached.timestamp > DEVICE_AUTH_CACHE_TTL_MS;
         if (!isExpired && cached.userId === userId && cached.deviceId === deviceId) {
-          const isAuth = (lastUserId === userId) && cached.isAuthorized;
+          const isAuth = !!cached.isAuthorized;
           setIsDeviceAuthorized(isAuth);
           return isAuth;
         }
@@ -209,14 +210,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq("device_id", deviceId)
         .maybeSingle();
 
-      const isAuthorized = !error && !!auths?.is_authorized;
-      const isAuth = (lastUserId === userId) && isAuthorized;
+      let isAuth = !error && !!auths?.is_authorized;
+
+      // If this device is not recorded yet, check if the user has ANY authorized devices at all
+      if (!isAuth && !error && !auths) {
+        const { count, error: countErr } = await supabase
+          .from("device_authorizations")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", userId);
+
+        if (!countErr && (count === 0 || count === null)) {
+          // First device ever for this account! Auto-authorize as primary device
+          await supabase.from("device_authorizations").upsert({
+            user_id: userId,
+            device_id: deviceId,
+            device_name: Platform.OS,
+            is_authorized: true,
+          });
+          isAuth = true;
+        }
+      }
+
+      if (isAuth) {
+        await AsyncStorage.setItem("last_user_id", userId);
+      }
 
       // Save result to cache
       await AsyncStorage.setItem(DEVICE_AUTH_CACHE_KEY, JSON.stringify({
         userId,
         deviceId,
-        isAuthorized,
+        isAuthorized: isAuth,
         timestamp: Date.now(),
       })).catch(() => {});
 

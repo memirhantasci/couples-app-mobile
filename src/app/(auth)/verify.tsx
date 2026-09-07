@@ -19,10 +19,13 @@ import { registerForPushNotifications } from "@/lib/notifications";
 import { ArrowLeft, Mail } from "lucide-react-native";
 import { decrypt } from "@/utils/crypto";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
+import { getOrCreateDeviceId } from "@/utils/device";
+import { useAuth, DEVICE_AUTH_CACHE_KEY } from "@/context/AuthContext";
 
 const OTP_LENGTH = 6;
 
 export default function VerifyScreen() {
+  const { setIsDeviceAuthorized } = useAuth();
   const params = useLocalSearchParams<{
     email?: string;
     token_hash?: string;
@@ -64,6 +67,27 @@ export default function VerifyScreen() {
     }
 
     if (data.user) {
+      try {
+        const deviceId = await getOrCreateDeviceId();
+        await AsyncStorage.setItem("last_user_id", data.user.id);
+        await AsyncStorage.setItem(DEVICE_AUTH_CACHE_KEY, JSON.stringify({
+          userId: data.user.id,
+          deviceId,
+          isAuthorized: true,
+          timestamp: Date.now(),
+        }));
+        setIsDeviceAuthorized(true);
+
+        await supabase.from("device_authorizations").upsert({
+          user_id: data.user.id,
+          device_id: deviceId,
+          device_name: Platform.OS,
+          is_authorized: true,
+        });
+      } catch (devErr) {
+        console.warn("[verify] device auth error:", devErr);
+      }
+
       await registerForPushNotifications(data.user.id).catch(() => {});
       await routeUser(data.user.id);
     }
@@ -130,6 +154,27 @@ export default function VerifyScreen() {
     }
 
     if (data.user) {
+      try {
+        const deviceId = await getOrCreateDeviceId();
+        await AsyncStorage.setItem("last_user_id", data.user.id);
+        await AsyncStorage.setItem(DEVICE_AUTH_CACHE_KEY, JSON.stringify({
+          userId: data.user.id,
+          deviceId,
+          isAuthorized: true,
+          timestamp: Date.now(),
+        }));
+        setIsDeviceAuthorized(true);
+
+        await supabase.from("device_authorizations").upsert({
+          user_id: data.user.id,
+          device_id: deviceId,
+          device_name: Platform.OS,
+          is_authorized: true,
+        });
+      } catch (devErr) {
+        console.warn("[verify] device auth error:", devErr);
+      }
+
       await registerForPushNotifications(data.user.id).catch(() => {});
       await routeUser(data.user.id);
     }

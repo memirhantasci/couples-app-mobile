@@ -45,9 +45,14 @@ export function useProtectedRoute() {
           return;
         }
 
+        // If user is currently on verification screen (email confirmation or device verification), let them stay and finish it
+        if (isVerifying) {
+          return;
+        }
+
         // If the device is not authorized for this user, force them to verify-device screen
         if (isDeviceAuthorized === false) {
-          if (!currentRoute.includes("verify-device") && !currentRoute.includes("login")) {
+          if (!currentRoute.includes("verify-device") && !currentRoute.includes("verify") && !currentRoute.includes("login")) {
             router.replace({
               pathname: "/(auth)/verify-device",
               params: {
@@ -56,11 +61,6 @@ export function useProtectedRoute() {
               },
             });
           }
-          return;
-        }
-
-        // If user is currently on verification screen, let them stay and finish it
-        if (isVerifying) {
           return;
         }
 

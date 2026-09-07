@@ -18,7 +18,7 @@ import {
   StickyNote,
   Trash2,
   X,
-  ZoomIn
+  ZoomIn,
 } from "lucide-react-native";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
@@ -50,7 +50,12 @@ import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { supabase } from "@/lib/supabase";
 import { getTheme } from "@/lib/theme";
 import { isValidCoordinate } from "@/utils/exifHelper";
-import { DEMO_PHOTOS, DEMO_MAP_LOCATIONS, DEMO_HOME_DATA, DEMO_MEETINGS } from "@/constants/demoData";
+import {
+  DEMO_PHOTOS,
+  DEMO_MAP_LOCATIONS,
+  DEMO_HOME_DATA,
+  DEMO_MEETINGS,
+} from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { MapStoryModal } from "@/components/map/MapStoryModal";
@@ -106,39 +111,145 @@ type SelectedItem =
 const ROMANTIC_CREAM_STYLE = [
   { elementType: "geometry", stylers: [{ color: "#F9F6F0" }] },
   { elementType: "labels.text.fill", stylers: [{ color: "#4A4356" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#F9F6F0" }, { weight: 2 }] },
-  { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#9E4A68" }] },
-  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#F0E9DF" }] },
-  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#E7EFE6" }] },
-  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#5E8467" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#FFFFFF" }] },
-  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#E8DFD8" }, { weight: 0.8 }] },
-  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#FCEEE9" }] },
-  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#F2D7CD" }, { weight: 1 }] },
-  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#8E6058" }] },
-  { featureType: "transit", elementType: "geometry", stylers: [{ color: "#EAE3DC" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#C6DCF2" }] },
-  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#4E7294" }] },
+  {
+    elementType: "labels.text.stroke",
+    stylers: [{ color: "#F9F6F0" }, { weight: 2 }],
+  },
+  {
+    featureType: "administrative.locality",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#9E4A68" }],
+  },
+  {
+    featureType: "poi",
+    elementType: "geometry",
+    stylers: [{ color: "#F0E9DF" }],
+  },
+  {
+    featureType: "poi.park",
+    elementType: "geometry",
+    stylers: [{ color: "#E7EFE6" }],
+  },
+  {
+    featureType: "poi.park",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#5E8467" }],
+  },
+  {
+    featureType: "road",
+    elementType: "geometry",
+    stylers: [{ color: "#FFFFFF" }],
+  },
+  {
+    featureType: "road",
+    elementType: "geometry.stroke",
+    stylers: [{ color: "#E8DFD8" }, { weight: 0.8 }],
+  },
+  {
+    featureType: "road.highway",
+    elementType: "geometry",
+    stylers: [{ color: "#FCEEE9" }],
+  },
+  {
+    featureType: "road.highway",
+    elementType: "geometry.stroke",
+    stylers: [{ color: "#F2D7CD" }, { weight: 1 }],
+  },
+  {
+    featureType: "road.highway",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#8E6058" }],
+  },
+  {
+    featureType: "transit",
+    elementType: "geometry",
+    stylers: [{ color: "#EAE3DC" }],
+  },
+  {
+    featureType: "water",
+    elementType: "geometry",
+    stylers: [{ color: "#C6DCF2" }],
+  },
+  {
+    featureType: "water",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#4E7294" }],
+  },
 ];
 
 // 2. Geceyarısı Kadife Tema (Sade, zengin lacivert/antrasit koyu tema)
 const MIDNIGHT_VELVET_STYLE = [
   { elementType: "geometry", stylers: [{ color: "#0F131D" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#0F131D" }, { weight: 2 }] },
+  {
+    elementType: "labels.text.stroke",
+    stylers: [{ color: "#0F131D" }, { weight: 2 }],
+  },
   { elementType: "labels.text.fill", stylers: [{ color: "#9BA5B9" }] },
-  { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#E0A8BA" }] },
-  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#8E99AF" }] },
-  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#161F26" }] },
-  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#618F71" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#1C2232" }] },
-  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#131722" }, { weight: 0.8 }] },
-  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#7B879D" }] },
-  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#2A3249" }] },
-  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1A1F2E" }] },
-  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#C9D4EC" }] },
-  { featureType: "transit", elementType: "geometry", stylers: [{ color: "#192030" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0A0D15" }] },
-  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#3B5270" }] },
+  {
+    featureType: "administrative.locality",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#E0A8BA" }],
+  },
+  {
+    featureType: "poi",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#8E99AF" }],
+  },
+  {
+    featureType: "poi.park",
+    elementType: "geometry",
+    stylers: [{ color: "#161F26" }],
+  },
+  {
+    featureType: "poi.park",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#618F71" }],
+  },
+  {
+    featureType: "road",
+    elementType: "geometry",
+    stylers: [{ color: "#1C2232" }],
+  },
+  {
+    featureType: "road",
+    elementType: "geometry.stroke",
+    stylers: [{ color: "#131722" }, { weight: 0.8 }],
+  },
+  {
+    featureType: "road",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#7B879D" }],
+  },
+  {
+    featureType: "road.highway",
+    elementType: "geometry",
+    stylers: [{ color: "#2A3249" }],
+  },
+  {
+    featureType: "road.highway",
+    elementType: "geometry.stroke",
+    stylers: [{ color: "#1A1F2E" }],
+  },
+  {
+    featureType: "road.highway",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#C9D4EC" }],
+  },
+  {
+    featureType: "transit",
+    elementType: "geometry",
+    stylers: [{ color: "#192030" }],
+  },
+  {
+    featureType: "water",
+    elementType: "geometry",
+    stylers: [{ color: "#0A0D15" }],
+  },
+  {
+    featureType: "water",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#3B5270" }],
+  },
 ];
 
 // 3. Minimalist Gümüş Tema (Temiz, nötr Apple Maps tarzı)
@@ -147,10 +258,26 @@ const MINIMAL_SILVER_STYLE = [
   { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
   { elementType: "labels.text.fill", stylers: [{ color: "#5F6368" }] },
   { elementType: "labels.text.stroke", stylers: [{ color: "#F2F4F7" }] },
-  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#E3ECE2" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#FFFFFF" }] },
-  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#E0E3E8" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#D2E2F0" }] },
+  {
+    featureType: "poi.park",
+    elementType: "geometry",
+    stylers: [{ color: "#E3ECE2" }],
+  },
+  {
+    featureType: "road",
+    elementType: "geometry",
+    stylers: [{ color: "#FFFFFF" }],
+  },
+  {
+    featureType: "road",
+    elementType: "geometry.stroke",
+    stylers: [{ color: "#E0E3E8" }],
+  },
+  {
+    featureType: "water",
+    elementType: "geometry",
+    stylers: [{ color: "#D2E2F0" }],
+  },
 ];
 
 function PhotoMarkerPin({
@@ -193,12 +320,19 @@ function PhotoMarkerPin({
 export default function MapScreen() {
   const router = useRouter();
   const { session, profile, isDemoMode } = useAuth();
-  const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
+  const {
+    executeOrIntercept,
+    isDemoModalOpen,
+    setIsDemoModalOpen,
+    modalConfig,
+  } = useDemoAction();
   const theme = getTheme(profile?.gender);
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const mapRef = useRef<MapView | null>(null);
-  const userLocRef = useRef<{ latitude: number; longitude: number } | null>(null);
+  const userLocRef = useRef<{ latitude: number; longitude: number } | null>(
+    null,
+  );
   const lastMarkerPressRef = useRef<number>(0);
 
   const coupleId = profile?.coupleId ?? null;
@@ -214,7 +348,10 @@ export default function MapScreen() {
   // Etkileşim, Detay Kartı ve Modal State'leri
   const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
   const [isAddingNote, setIsAddingNote] = useState(false);
-  const [pendingCoord, setPendingCoord] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [pendingCoord, setPendingCoord] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   const [noteText, setNoteText] = useState("");
   const [isLocating, setIsLocating] = useState(false);
   const [isSavingNote, setIsSavingNote] = useState(false);
@@ -246,12 +383,16 @@ export default function MapScreen() {
       }
       const { data, error } = await supabase
         .from("photo_archive")
-        .select("id, image_url, latitude, longitude, location_name, taken_date, title, description, user_id")
+        .select(
+          "id, image_url, latitude, longitude, location_name, taken_date, title, description, user_id",
+        )
         .eq("couple_id", coupleId)
         .not("latitude", "is", null)
         .not("longitude", "is", null);
       if (error) throw error;
-      return ((data ?? []) as PhotoPin[]).filter((p) => isValidCoordinate(p.latitude, p.longitude));
+      return ((data ?? []) as PhotoPin[]).filter((p) =>
+        isValidCoordinate(p.latitude, p.longitude),
+      );
     },
   });
 
@@ -281,7 +422,9 @@ export default function MapScreen() {
         .eq("couple_id", coupleId)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return ((data ?? []) as MapNote[]).filter((n) => isValidCoordinate(n.latitude, n.longitude));
+      return ((data ?? []) as MapNote[]).filter((n) =>
+        isValidCoordinate(n.latitude, n.longitude),
+      );
     },
   });
 
@@ -309,13 +452,17 @@ export default function MapScreen() {
       }
       const { data, error } = await supabase
         .from("meetings")
-        .select("id, title, location_name, latitude, longitude, meeting_datetime, is_active, user_id")
+        .select(
+          "id, title, location_name, latitude, longitude, meeting_datetime, is_active, user_id",
+        )
         .eq("couple_id", coupleId)
         .eq("is_active", true)
         .not("latitude", "is", null)
         .not("longitude", "is", null);
       if (error) throw error;
-      return ((data ?? []) as MeetingPin[]).filter((m) => isValidCoordinate(m.latitude, m.longitude));
+      return ((data ?? []) as MeetingPin[]).filter((m) =>
+        isValidCoordinate(m.latitude, m.longitude),
+      );
     },
   });
 
@@ -325,7 +472,7 @@ export default function MapScreen() {
       refetchPhotos();
       refetchNotes();
       refetchMeetings();
-    }, [refetchPhotos, refetchNotes, refetchMeetings])
+    }, [refetchPhotos, refetchNotes, refetchMeetings]),
   );
 
   const allMapPinItems = useMemo(() => {
@@ -338,7 +485,7 @@ export default function MapScreen() {
         location_name: p.location_name,
         date: p.taken_date,
         type: "photo",
-      })
+      }),
     );
     mapNotes.forEach((n) =>
       items.push({
@@ -348,7 +495,7 @@ export default function MapScreen() {
         location_name: "Aşk Notu",
         date: n.created_at,
         type: "note",
-      })
+      }),
     );
     meetingPins.forEach((m) =>
       items.push({
@@ -358,7 +505,7 @@ export default function MapScreen() {
         location_name: m.location_name || m.title,
         date: m.meeting_datetime,
         type: "meeting",
-      })
+      }),
     );
     return items;
   }, [photoPins, mapNotes, meetingPins]);
@@ -377,7 +524,15 @@ export default function MapScreen() {
 
   // ─── Not Kaydetme ─────────────────────────────────────────────────────────
   const saveNoteMutation = useMutation({
-    mutationFn: async ({ lat, lng, note }: { lat: number; lng: number; note: string }) => {
+    mutationFn: async ({
+      lat,
+      lng,
+      note,
+    }: {
+      lat: number;
+      lng: number;
+      note: string;
+    }) => {
       const { error } = await supabase.from("map_notes").insert({
         couple_id: coupleId,
         user_id: userId,
@@ -398,14 +553,20 @@ export default function MapScreen() {
         const senderName = profile?.displayName || "Sevgilin";
         const noteStr = (variables as any)?.note || "";
         const notePreview = noteStr.trim() || "";
-        const notificationBody = notePreview 
-          ? `${senderName} haritaya bir anı notu bıraktı: "${notePreview}"` 
+        const notificationBody = notePreview
+          ? `${senderName} haritaya bir anı notu bıraktı: "${notePreview}"`
           : `${senderName} haritaya senin için bir aşk notu bıraktı.`;
-        notifyPartner(coupleId, userId, "Haritada Yeni Bir Aşk Notu 💌", notificationBody, {
-          type: "map",
-          route: "/(tabs)/map",
-          actionLabel: "Haritada Keşfet 🗺️",
-        });
+        notifyPartner(
+          coupleId,
+          userId,
+          "Haritada Yeni Bir Aşk Notu 💌",
+          notificationBody,
+          {
+            type: "map",
+            route: "/(tabs)/map",
+            actionLabel: "Haritada Keşfet 🗺️",
+          },
+        );
       }
     },
     onError: (e: any) => {
@@ -416,7 +577,10 @@ export default function MapScreen() {
   // ─── Not Silme ────────────────────────────────────────────────────────────
   const deleteNoteMutation = useMutation({
     mutationFn: async (noteId: number) => {
-      const { error } = await supabase.from("map_notes").delete().eq("id", noteId);
+      const { error } = await supabase
+        .from("map_notes")
+        .delete()
+        .eq("id", noteId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -430,11 +594,13 @@ export default function MapScreen() {
 
   // ─── Haritada Not Bırakma (Uzun Basış) ────────────────────────────────────
   const handleMapLongPress = (e: any) => {
-    if (executeOrIntercept(
-      () => {},
-      "Haritaya Aşk Notu Bırakmak İçin Kayıt Olun 📍",
-      "Partnerinizle gittiğiniz özel konumlara hatıra notları bırakmak için ücretsiz hesabınızı oluşturun."
-    )) {
+    if (
+      executeOrIntercept(
+        () => {},
+        "Haritaya Aşk Notu Bırakmak İçin Kayıt Olun 📍",
+        "Partnerinizle gittiğiniz özel konumlara hatıra notları bırakmak için ücretsiz hesabınızı oluşturun.",
+      )
+    ) {
       return;
     }
     const coord = e.nativeEvent?.coordinate;
@@ -452,14 +618,25 @@ export default function MapScreen() {
       setIsLocating(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Konum İzni", "Konumunuza gidebilmek için lütfen konum izni verin.");
+        Alert.alert(
+          "Konum İzni",
+          "Konumunuza gidebilmek için lütfen konum izni verin.",
+        );
         return;
       }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
       if (loc?.coords) {
-        const coord = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+        const coord = {
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        };
         userLocRef.current = coord;
-        mapRef.current?.animateToRegion({ ...coord, latitudeDelta: 0.03, longitudeDelta: 0.03 }, 750);
+        mapRef.current?.animateToRegion(
+          { ...coord, latitudeDelta: 0.03, longitudeDelta: 0.03 },
+          750,
+        );
       }
     } catch {
       // sessizce geç
@@ -510,18 +687,24 @@ export default function MapScreen() {
       ios: `maps://app?daddr=${lat},${lng}`,
       android: `google.navigation:q=${lat},${lng}`,
     });
-    const url = scheme || `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    const url =
+      scheme ||
+      `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
     Linking.openURL(url).catch(() => {
-      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
+      Linking.openURL(
+        `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
+      );
     });
   };
 
   const handleSaveNote = async () => {
-    if (executeOrIntercept(
-      () => {},
-      "Haritaya Aşk Notu Bırakmak İçin Kayıt Olun 📍",
-      "Partnerinizle gittiğiniz özel konumlara hatıra notları bırakmak için ücretsiz hesabınızı oluşturun."
-    )) {
+    if (
+      executeOrIntercept(
+        () => {},
+        "Haritaya Aşk Notu Bırakmak İçin Kayıt Olun 📍",
+        "Partnerinizle gittiğiniz özel konumlara hatıra notları bırakmak için ücretsiz hesabınızı oluşturun.",
+      )
+    ) {
       setIsAddingNote(false);
       setPendingCoord(null);
       return;
@@ -597,7 +780,10 @@ export default function MapScreen() {
           mapNotes.map((note) => (
             <Marker
               key={`note-${note.id}`}
-              coordinate={{ latitude: note.latitude, longitude: note.longitude }}
+              coordinate={{
+                latitude: note.latitude,
+                longitude: note.longitude,
+              }}
               onPress={(e) => {
                 e.stopPropagation?.();
                 handleMarkerPress({ type: "note", data: note });
@@ -611,7 +797,9 @@ export default function MapScreen() {
                 >
                   <Text style={{ fontSize: 13 }}>💌</Text>
                 </LinearGradient>
-                <View style={[styles.markerStem, { borderTopColor: "#E01E5A" }]} />
+                <View
+                  style={[styles.markerStem, { borderTopColor: "#E01E5A" }]}
+                />
               </View>
             </Marker>
           ))}
@@ -621,7 +809,10 @@ export default function MapScreen() {
           meetingPins.map((meeting) => (
             <Marker
               key={`meeting-${meeting.id}`}
-              coordinate={{ latitude: meeting.latitude, longitude: meeting.longitude }}
+              coordinate={{
+                latitude: meeting.latitude,
+                longitude: meeting.longitude,
+              }}
               onPress={(e) => {
                 e.stopPropagation?.();
                 handleMarkerPress({ type: "meeting", data: meeting });
@@ -638,7 +829,9 @@ export default function MapScreen() {
                     {meeting.title}
                   </Text>
                 </LinearGradient>
-                <View style={[styles.markerStem, { borderTopColor: "#6D28D9" }]} />
+                <View
+                  style={[styles.markerStem, { borderTopColor: "#6D28D9" }]}
+                />
               </View>
             </Marker>
           ))}
@@ -648,7 +841,12 @@ export default function MapScreen() {
           <Marker coordinate={pendingCoord}>
             <View style={styles.pendingMarkerWrapper}>
               <View style={styles.pendingMarkerPulse} />
-              <View style={[styles.pendingMarkerCore, { backgroundColor: theme.accent }]}>
+              <View
+                style={[
+                  styles.pendingMarkerCore,
+                  { backgroundColor: theme.accent },
+                ]}
+              >
                 <MapPin size={16} color="#fff" />
               </View>
             </View>
@@ -658,15 +856,30 @@ export default function MapScreen() {
 
       {/* ─── ÜST KONTROL ÇUBUĞU (Başlık & Filtreler) ──────────────────── */}
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-        <BlurView tint={isLight ? "light" : "dark"} intensity={80} style={StyleSheet.absoluteFill} />
+        <BlurView
+          tint={isLight ? "light" : "dark"}
+          intensity={80}
+          style={StyleSheet.absoluteFill}
+        />
 
         <View style={styles.topBarMainRow}>
           <View>
-            <Text style={[styles.topBarTitle, { color: isLight ? "#1A1528" : "#FFFFFF" }]}>
+            <Text
+              style={[
+                styles.topBarTitle,
+                { color: isLight ? "#1A1528" : "#FFFFFF" },
+              ]}
+            >
               Aşk Haritası
             </Text>
-            <Text style={[styles.topBarSub, { color: isLight ? "#6B6577" : "rgba(255,255,255,0.55)" }]}>
-              {isPremium ? `${photoPins.length} Anı · ` : ""}{mapNotes.length} Not · {meetingPins.length} Buluşma
+            <Text
+              style={[
+                styles.topBarSub,
+                { color: isLight ? "#6B6577" : "rgba(255,255,255,0.55)" },
+              ]}
+            >
+              {isPremium ? `${photoPins.length} Anı · ` : ""}
+              {mapNotes.length} Not · {meetingPins.length} Buluşma
             </Text>
           </View>
 
@@ -690,8 +903,12 @@ export default function MapScreen() {
               style={[
                 styles.topActionBtn,
                 {
-                  backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.1)",
-                  borderColor: isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.15)",
+                  backgroundColor: isLight
+                    ? "rgba(0,0,0,0.06)"
+                    : "rgba(255,255,255,0.1)",
+                  borderColor: isLight
+                    ? "rgba(0,0,0,0.1)"
+                    : "rgba(255,255,255,0.15)",
                 },
               ]}
               onPress={() => setShowThemePicker(!showThemePicker)}
@@ -704,8 +921,12 @@ export default function MapScreen() {
               style={[
                 styles.topActionBtn,
                 {
-                  backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.1)",
-                  borderColor: isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.15)",
+                  backgroundColor: isLight
+                    ? "rgba(0,0,0,0.06)"
+                    : "rgba(255,255,255,0.1)",
+                  borderColor: isLight
+                    ? "rgba(0,0,0,0.1)"
+                    : "rgba(255,255,255,0.15)",
                 },
               ]}
               onPress={fitAllPins}
@@ -718,8 +939,12 @@ export default function MapScreen() {
               style={[
                 styles.topActionBtn,
                 {
-                  backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.1)",
-                  borderColor: isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.15)",
+                  backgroundColor: isLight
+                    ? "rgba(0,0,0,0.06)"
+                    : "rgba(255,255,255,0.1)",
+                  borderColor: isLight
+                    ? "rgba(0,0,0,0.1)"
+                    : "rgba(255,255,255,0.15)",
                 },
               ]}
               onPress={goToUserLocation}
@@ -740,12 +965,32 @@ export default function MapScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterRow}
         >
-          {([
-            { id: "all" as const, label: `Tümü (${(isPremium ? photoPins.length : 0) + mapNotes.length + meetingPins.length})`, icon: Sparkles },
-            ...(isPremium ? [{ id: "photos" as const, label: `Fotoğraflar (${photoPins.length})`, icon: Camera }] : []),
-            { id: "notes" as const, label: `Aşk Notları (${mapNotes.length})`, icon: StickyNote },
-            { id: "meetings" as const, label: `Buluşmalar (${meetingPins.length})`, icon: Calendar },
-          ]).map((item) => {
+          {[
+            {
+              id: "all" as const,
+              label: `Tümü (${(isPremium ? photoPins.length : 0) + mapNotes.length + meetingPins.length})`,
+              icon: Sparkles,
+            },
+            ...(isPremium
+              ? [
+                  {
+                    id: "photos" as const,
+                    label: `Fotoğraflar (${photoPins.length})`,
+                    icon: Camera,
+                  },
+                ]
+              : []),
+            {
+              id: "notes" as const,
+              label: `Aşk Notları (${mapNotes.length})`,
+              icon: StickyNote,
+            },
+            {
+              id: "meetings" as const,
+              label: `Buluşmalar (${meetingPins.length})`,
+              icon: Calendar,
+            },
+          ].map((item) => {
             const isSelected = activeFilter === item.id;
             const ItemIcon = item.icon;
             return (
@@ -755,19 +1000,35 @@ export default function MapScreen() {
                 style={[
                   styles.filterChip,
                   isSelected
-                    ? { backgroundColor: theme.accent, borderColor: theme.accent }
+                    ? {
+                        backgroundColor: theme.accent,
+                        borderColor: theme.accent,
+                      }
                     : {
-                      backgroundColor: isLight ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.08)",
-                      borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.12)",
-                    },
+                        backgroundColor: isLight
+                          ? "rgba(255,255,255,0.85)"
+                          : "rgba(255,255,255,0.08)",
+                        borderColor: isLight
+                          ? "rgba(0,0,0,0.08)"
+                          : "rgba(255,255,255,0.12)",
+                      },
                 ]}
                 activeOpacity={0.8}
               >
-                <ItemIcon size={12} color={isSelected ? "#fff" : isLight ? "#555" : "#aaa"} />
+                <ItemIcon
+                  size={12}
+                  color={isSelected ? "#fff" : isLight ? "#555" : "#aaa"}
+                />
                 <Text
                   style={[
                     styles.filterChipText,
-                    { color: isSelected ? "#fff" : isLight ? "#333" : "rgba(255,255,255,0.75)" },
+                    {
+                      color: isSelected
+                        ? "#fff"
+                        : isLight
+                          ? "#333"
+                          : "rgba(255,255,255,0.75)",
+                    },
                   ]}
                 >
                   {item.label}
@@ -779,26 +1040,58 @@ export default function MapScreen() {
 
         {/* ─── TEMA SEÇİCİ AÇILIR MENÜ ────────────────────────────────────── */}
         {showThemePicker && (
-          <View style={[styles.themePickerMenu, { backgroundColor: isLight ? "#FFFFFF" : "#1A1626" }]}>
-            <Text style={[styles.themeMenuHeader, { color: isLight ? "#333" : "#fff" }]}>Harita Teması</Text>
+          <View
+            style={[
+              styles.themePickerMenu,
+              { backgroundColor: isLight ? "#FFFFFF" : "#1A1626" },
+            ]}
+          >
+            <Text
+              style={[
+                styles.themeMenuHeader,
+                { color: isLight ? "#333" : "#fff" },
+              ]}
+            >
+              Harita Teması
+            </Text>
             <View style={styles.themeOptionsRow}>
               {[
-                { id: "romantic" as const, label: "🌸 Romantik", desc: "Sıcak & Krem" },
-                { id: "midnight" as const, label: "🌙 Gece", desc: "Kadife Koyu" },
-                { id: "silver" as const, label: "✨ Sade", desc: "Gümüş Minimal" },
+                {
+                  id: "romantic" as const,
+                  label: "🌸 Romantik",
+                  desc: "Sıcak & Krem",
+                },
+                {
+                  id: "midnight" as const,
+                  label: "🌙 Gece",
+                  desc: "Kadife Koyu",
+                },
+                {
+                  id: "silver" as const,
+                  label: "✨ Sade",
+                  desc: "Gümüş Minimal",
+                },
               ].map((t) => (
                 <TouchableOpacity
                   key={t.id}
                   style={[
                     styles.themeOptionBtn,
-                    mapTheme === t.id && { borderColor: theme.accent, backgroundColor: `${theme.accent}15` },
+                    mapTheme === t.id && {
+                      borderColor: theme.accent,
+                      backgroundColor: `${theme.accent}15`,
+                    },
                   ]}
                   onPress={() => {
                     setMapTheme(t.id);
                     setShowThemePicker(false);
                   }}
                 >
-                  <Text style={[styles.themeOptionTitle, mapTheme === t.id && { color: theme.accent }]}>
+                  <Text
+                    style={[
+                      styles.themeOptionTitle,
+                      mapTheme === t.id && { color: theme.accent },
+                    ]}
+                  >
                     {t.label}
                   </Text>
                   <Text style={styles.themeOptionDesc}>{t.desc}</Text>
@@ -819,9 +1112,15 @@ export default function MapScreen() {
       {/* ─── HIZLI NOT EKLEME REHBERİ (Floating Pill) ──────────────────── */}
       {!isLoading && !selectedItem && !isAddingNote && (
         <View style={[styles.hintPill, { bottom: insets.bottom + 90 }]}>
-          <BlurView tint={isLight ? "light" : "dark"} intensity={85} style={StyleSheet.absoluteFill} />
+          <BlurView
+            tint={isLight ? "light" : "dark"}
+            intensity={85}
+            style={StyleSheet.absoluteFill}
+          />
           <Heart size={14} color={theme.accent} fill={theme.accent} />
-          <Text style={[styles.hintPillText, { color: isLight ? "#222" : "#fff" }]}>
+          <Text
+            style={[styles.hintPillText, { color: isLight ? "#222" : "#fff" }]}
+          >
             Not bırakmak için haritaya uzun basın
           </Text>
         </View>
@@ -829,8 +1128,14 @@ export default function MapScreen() {
 
       {/* ─── DETAY KARTI (Floating Glass Card with High zIndex) ─────────── */}
       {selectedItem && (
-        <View style={[styles.detailCardOverlay, { bottom: insets.bottom + 85 }]}>
-          <BlurView tint="dark" intensity={95} style={StyleSheet.absoluteFill} />
+        <View
+          style={[styles.detailCardOverlay, { bottom: insets.bottom + 85 }]}
+        >
+          <BlurView
+            tint="dark"
+            intensity={95}
+            style={StyleSheet.absoluteFill}
+          />
 
           {/* 1. FOTOĞRAF DETAYI */}
           {selectedItem.type === "photo" && (
@@ -870,7 +1175,10 @@ export default function MapScreen() {
                     {selectedItem.data.title || "Fotoğraf Anısı"}
                   </Text>
                   <Text style={styles.photoDetailDate}>
-                    📅 {dayjs(selectedItem.data.taken_date).locale("tr").format("D MMMM YYYY")}
+                    📅{" "}
+                    {dayjs(selectedItem.data.taken_date)
+                      .locale("tr")
+                      .format("D MMMM YYYY")}
                   </Text>
                   {selectedItem.data.location_name ? (
                     <Text style={styles.photoDetailLocation} numberOfLines={1}>
@@ -896,7 +1204,7 @@ export default function MapScreen() {
                     openDirections(
                       selectedItem.data.latitude,
                       selectedItem.data.longitude,
-                      selectedItem.data.title || "Anı Konumu"
+                      selectedItem.data.title || "Anı Konumu",
                     )
                   }
                   activeOpacity={0.85}
@@ -918,26 +1226,39 @@ export default function MapScreen() {
                   <TouchableOpacity
                     style={styles.deleteActionBtn}
                     onPress={() => {
-                      if (executeOrIntercept(
-                        () => {},
-                        "Fotoğrafı Silmek İçin Kayıt Olun 🗑️",
-                        "Haritadaki fotoğrafları yönetmek ve silmek için ücretsiz hesabınızı oluşturun."
-                      )) {
+                      if (
+                        executeOrIntercept(
+                          () => {},
+                          "Fotoğrafı Silmek İçin Kayıt Olun 🗑️",
+                          "Haritadaki fotoğrafları yönetmek ve silmek için ücretsiz hesabınızı oluşturun.",
+                        )
+                      ) {
                         return;
                       }
-                      Alert.alert("Fotoğrafı Sil", "Bu fotoğrafı haritadan ve galeriden silmek istiyor musunuz?", [
-                        { text: "Vazgeç", style: "cancel" },
-                        {
-                          text: "Sil",
-                          style: "destructive",
-                          onPress: async () => {
-                            await supabase.from("photo_archive").delete().eq("id", selectedItem.data.id);
-                            queryClient.invalidateQueries({ queryKey: ["map_photos", coupleId] });
-                            queryClient.invalidateQueries({ queryKey: ["photo_archive", coupleId] });
-                            setSelectedItem(null);
+                      Alert.alert(
+                        "Fotoğrafı Sil",
+                        "Bu fotoğrafı haritadan ve galeriden silmek istiyor musunuz?",
+                        [
+                          { text: "Vazgeç", style: "cancel" },
+                          {
+                            text: "Sil",
+                            style: "destructive",
+                            onPress: async () => {
+                              await supabase
+                                .from("photo_archive")
+                                .delete()
+                                .eq("id", selectedItem.data.id);
+                              queryClient.invalidateQueries({
+                                queryKey: ["map_photos", coupleId],
+                              });
+                              queryClient.invalidateQueries({
+                                queryKey: ["photo_archive", coupleId],
+                              });
+                              setSelectedItem(null);
+                            },
                           },
-                        },
-                      ]);
+                        ],
+                      );
                     }}
                     activeOpacity={0.8}
                   >
@@ -952,7 +1273,12 @@ export default function MapScreen() {
           {selectedItem.type === "note" && (
             <View style={styles.detailCardBody}>
               <View style={styles.detailCardHeader}>
-                <View style={[styles.detailBadge, { backgroundColor: "rgba(224, 30, 90, 0.85)" }]}>
+                <View
+                  style={[
+                    styles.detailBadge,
+                    { backgroundColor: "rgba(224, 30, 90, 0.85)" },
+                  ]}
+                >
                   <StickyNote size={12} color="#fff" />
                   <Text style={styles.detailBadgeText}>Harita Aşk Notu</Text>
                 </View>
@@ -968,9 +1294,13 @@ export default function MapScreen() {
               {/* Not Mesajı Parşömeni */}
               <View style={styles.noteMessageCard}>
                 <Text style={styles.quoteMark}>“</Text>
-                <Text style={styles.noteMessageText}>{selectedItem.data.note}</Text>
+                <Text style={styles.noteMessageText}>
+                  {selectedItem.data.note}
+                </Text>
                 <Text style={styles.noteDateMeta}>
-                  {dayjs(selectedItem.data.created_at).locale("tr").format("D MMMM YYYY, HH:mm")}
+                  {dayjs(selectedItem.data.created_at)
+                    .locale("tr")
+                    .format("D MMMM YYYY, HH:mm")}
                 </Text>
               </View>
 
@@ -981,7 +1311,7 @@ export default function MapScreen() {
                     openDirections(
                       selectedItem.data.latitude,
                       selectedItem.data.longitude,
-                      "Aşk Notu Konumu"
+                      "Aşk Notu Konumu",
                     )
                   }
                   activeOpacity={0.85}
@@ -994,21 +1324,28 @@ export default function MapScreen() {
                   <TouchableOpacity
                     style={styles.deleteActionBtn}
                     onPress={() => {
-                      if (executeOrIntercept(
-                        () => {},
-                        "Notu Silmek İçin Kayıt Olun 🗑️",
-                        "Haritadaki aşk notlarını yönetmek ve silmek için ücretsiz hesabınızı oluşturun."
-                      )) {
+                      if (
+                        executeOrIntercept(
+                          () => {},
+                          "Notu Silmek İçin Kayıt Olun 🗑️",
+                          "Haritadaki aşk notlarını yönetmek ve silmek için ücretsiz hesabınızı oluşturun.",
+                        )
+                      ) {
                         return;
                       }
-                      Alert.alert("Notu Sil", "Bu notu haritadan silmek istiyor musunuz?", [
-                        { text: "Vazgeç", style: "cancel" },
-                        {
-                          text: "Sil",
-                          style: "destructive",
-                          onPress: () => deleteNoteMutation.mutate(selectedItem.data.id),
-                        },
-                      ]);
+                      Alert.alert(
+                        "Notu Sil",
+                        "Bu notu haritadan silmek istiyor musunuz?",
+                        [
+                          { text: "Vazgeç", style: "cancel" },
+                          {
+                            text: "Sil",
+                            style: "destructive",
+                            onPress: () =>
+                              deleteNoteMutation.mutate(selectedItem.data.id),
+                          },
+                        ],
+                      );
                     }}
                     activeOpacity={0.8}
                   >
@@ -1023,7 +1360,12 @@ export default function MapScreen() {
           {selectedItem.type === "meeting" && (
             <View style={styles.detailCardBody}>
               <View style={styles.detailCardHeader}>
-                <View style={[styles.detailBadge, { backgroundColor: "rgba(109, 40, 217, 0.85)" }]}>
+                <View
+                  style={[
+                    styles.detailBadge,
+                    { backgroundColor: "rgba(109, 40, 217, 0.85)" },
+                  ]}
+                >
                   <Calendar size={12} color="#fff" />
                   <Text style={styles.detailBadgeText}>Buluşma Planı</Text>
                 </View>
@@ -1038,7 +1380,9 @@ export default function MapScreen() {
 
               <View style={styles.meetingDetailsBox}>
                 <View style={styles.meetingTopRow}>
-                  <Text style={styles.meetingTitleText}>{selectedItem.data.title}</Text>
+                  <Text style={styles.meetingTitleText}>
+                    {selectedItem.data.title}
+                  </Text>
                   <View style={styles.meetingCountdownBadge}>
                     <Text style={styles.meetingCountdownText}>
                       {getMeetingCountdown(selectedItem.data.meeting_datetime)}
@@ -1047,7 +1391,10 @@ export default function MapScreen() {
                 </View>
 
                 <Text style={styles.meetingDatetimeText}>
-                  🗓️ {dayjs(selectedItem.data.meeting_datetime).locale("tr").format("D MMMM YYYY, dddd · HH:mm")}
+                  🗓️{" "}
+                  {dayjs(selectedItem.data.meeting_datetime)
+                    .locale("tr")
+                    .format("D MMMM YYYY, dddd · HH:mm")}
                 </Text>
                 {selectedItem.data.location_name ? (
                   <Text style={styles.meetingLocationText} numberOfLines={2}>
@@ -1063,7 +1410,7 @@ export default function MapScreen() {
                     openDirections(
                       selectedItem.data.latitude,
                       selectedItem.data.longitude,
-                      selectedItem.data.title
+                      selectedItem.data.title,
                     )
                   }
                   activeOpacity={0.85}
@@ -1077,7 +1424,9 @@ export default function MapScreen() {
                   onPress={() => router.push("/(tabs)/meetings")}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.actionBtnSecondaryText}>Buluşmaları Gör</Text>
+                  <Text style={styles.actionBtnSecondaryText}>
+                    Buluşmaları Gör
+                  </Text>
                   <ChevronRight size={14} color="#fff" />
                 </TouchableOpacity>
               </View>
@@ -1095,9 +1444,15 @@ export default function MapScreen() {
       >
         {fullScreenPhoto && (
           <View style={styles.lightboxContainer}>
-            <BlurView tint="dark" intensity={95} style={StyleSheet.absoluteFill} />
+            <BlurView
+              tint="dark"
+              intensity={95}
+              style={StyleSheet.absoluteFill}
+            />
 
-            <View style={[styles.lightboxHeader, { paddingTop: insets.top + 10 }]}>
+            <View
+              style={[styles.lightboxHeader, { paddingTop: insets.top + 10 }]}
+            >
               <TouchableOpacity
                 style={styles.lightboxCloseBtn}
                 onPress={() => setFullScreenPhoto(null)}
@@ -1118,27 +1473,44 @@ export default function MapScreen() {
               />
             </View>
 
-            <View style={[styles.lightboxFooter, { paddingBottom: insets.bottom + 16 }]}>
+            <View
+              style={[
+                styles.lightboxFooter,
+                { paddingBottom: insets.bottom + 16 },
+              ]}
+            >
               <Text style={styles.lightboxDate}>
-                📅 {dayjs(fullScreenPhoto.taken_date).locale("tr").format("D MMMM YYYY")}
-                {fullScreenPhoto.location_name ? ` · 📍 ${fullScreenPhoto.location_name}` : ""}
+                📅{" "}
+                {dayjs(fullScreenPhoto.taken_date)
+                  .locale("tr")
+                  .format("D MMMM YYYY")}
+                {fullScreenPhoto.location_name
+                  ? ` · 📍 ${fullScreenPhoto.location_name}`
+                  : ""}
               </Text>
               {fullScreenPhoto.description ? (
-                <Text style={styles.lightboxDesc}>{fullScreenPhoto.description}</Text>
+                <Text style={styles.lightboxDesc}>
+                  {fullScreenPhoto.description}
+                </Text>
               ) : null}
 
               <TouchableOpacity
-                style={[styles.lightboxDirectionsBtn, { backgroundColor: theme.accent }]}
+                style={[
+                  styles.lightboxDirectionsBtn,
+                  { backgroundColor: theme.accent },
+                ]}
                 onPress={() =>
                   openDirections(
                     fullScreenPhoto.latitude,
                     fullScreenPhoto.longitude,
-                    fullScreenPhoto.title || "Fotoğraf Konumu"
+                    fullScreenPhoto.title || "Fotoğraf Konumu",
                   )
                 }
               >
                 <Navigation size={15} color="#fff" />
-                <Text style={styles.lightboxDirectionsText}>Bu Konuma Yol Tarifi Al</Text>
+                <Text style={styles.lightboxDirectionsText}>
+                  Bu Konuma Yol Tarifi Al
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1167,16 +1539,32 @@ export default function MapScreen() {
               setPendingCoord(null);
             }}
           >
-            <BlurView tint="dark" intensity={70} style={StyleSheet.absoluteFill} />
+            <BlurView
+              tint="dark"
+              intensity={70}
+              style={StyleSheet.absoluteFill}
+            />
           </TouchableOpacity>
 
-          <View style={[styles.modalNoteCard, { marginBottom: Platform.OS === "ios" ? 40 : 20 }]}>
+          <View
+            style={[
+              styles.modalNoteCard,
+              { marginBottom: Platform.OS === "ios" ? 40 : 20 },
+            ]}
+          >
             <View style={styles.modalNoteHeader}>
-              <View style={[styles.modalNoteIconCircle, { backgroundColor: `${theme.accent}20` }]}>
+              <View
+                style={[
+                  styles.modalNoteIconCircle,
+                  { backgroundColor: `${theme.accent}20` },
+                ]}
+              >
                 <StickyNote size={20} color={theme.accent} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.modalNoteTitle}>Buraya Bir Aşk Notu Bırak 💌</Text>
+                <Text style={styles.modalNoteTitle}>
+                  Buraya Bir Aşk Notu Bırak 💌
+                </Text>
                 <Text style={styles.modalNoteSubtitle}>
                   Sevgilin haritayı açtığında burada senin notunu görecek.
                 </Text>
@@ -1223,7 +1611,9 @@ export default function MapScreen() {
                 style={[
                   styles.modalSaveBtn,
                   {
-                    backgroundColor: noteText.trim() ? theme.accent : "rgba(255,255,255,0.15)",
+                    backgroundColor: noteText.trim()
+                      ? theme.accent
+                      : "rgba(255,255,255,0.15)",
                     opacity: isSavingNote ? 0.7 : 1,
                   },
                 ]}
@@ -1236,7 +1626,9 @@ export default function MapScreen() {
                 ) : (
                   <>
                     <Check size={16} color="#fff" />
-                    <Text style={styles.modalSaveBtnText}>Notu Mühürle & Bırak</Text>
+                    <Text style={styles.modalSaveBtnText}>
+                      Notu Mühürle & Bırak
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -1245,7 +1637,11 @@ export default function MapScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <PageTourModal
+        visible={isTourVisible}
+        guide={guide}
+        onClose={closeTour}
+      />
       <DemoActionModal
         visible={isDemoModalOpen}
         onClose={() => setIsDemoModalOpen(false)}
