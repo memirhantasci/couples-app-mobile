@@ -40,6 +40,11 @@ const MAX_ZOOM = 35.0;
 // Keep enough world-space coverage around a committed camera that a long swipe
 // cannot reveal an unpainted edge while its replacement picture is recorded.
 const OVERSCAN_PAD = 2400;
+// Rebase only after the retained world transform nears the overscan edge. This
+// keeps ordinary gestures repaint-free while allowing unlimited exploration.
+const WORLD_REBASE_PAN_PX = 1440;
+const WORLD_REBASE_MIN_SCALE = 0.55;
+const WORLD_REBASE_MAX_SCALE = 2.2;
 const FRUSTUM_PADDING = 50;
 const RENDER_TILE_DEGREES = 30;
 const MAX_TILE_PICTURES = 50;
@@ -580,7 +585,26 @@ function MacroSkyCanvasSkia({
     if (pendingStars) {
       setPictureStars((current) => (current === pendingStars ? current : pendingStars));
     }
-  }, []);
+
+    // Keep ordinary gestures repaint-free. At the finite overscan boundary,
+    // make the logical camera the next world base and let the existing 50-tile
+    // LRU discard the old area instead of retaining an unbounded universe.
+    const mustRebase =
+      Math.abs(offsetX.value) >= WORLD_REBASE_PAN_PX ||
+      Math.abs(offsetY.value) >= WORLD_REBASE_PAN_PX ||
+      scale.value <= WORLD_REBASE_MIN_SCALE ||
+      scale.value >= WORLD_REBASE_MAX_SCALE;
+    if (!mustRebase) return;
+
+    renderCameraRef.current = { ...cameraRef.current };
+    offsetX.value = 0;
+    offsetY.value = 0;
+    scale.value = 1;
+    pinchStartX.value = 0;
+    pinchStartY.value = 0;
+    pinchStartScale.value = 1;
+    setPictureVersion((version) => version + 1);
+  }, [offsetX, offsetY, scale, pinchStartX, pinchStartY, pinchStartScale]);
 
   // ═══════════════════════════════════════════════════════════════════════
   // INITIAL MOUNT: fire first bounds change
@@ -682,23 +706,34 @@ function MacroSkyCanvasSkia({
   }, [commitPinch, endCanvasGesture]);
 
   // ═══════════════════════════════════════════════════════════════════════
-  // HIT-TESTING: tap → find nearest star (reads cameraRef directly)
+  // HIT-TESTING: use the exact base-world transform rendered by Skia.
+  // Reprojecting through cameraRef after a persistent pinch/pan is subtly
+  // different around wraps and clamps, making a visible planet untappable.
   // ═══════════════════════════════════════════════════════════════════════
   const handleTap = useCallback((tx: number, ty: number) => {
     if (!onSelectStar) return;
-    const camera = cameraRef.current;
+    const camera = renderCameraRef.current;
+    const renderedScale = scale.value;
+    const renderedOffsetX = offsetX.value;
+    const renderedOffsetY = offsetY.value;
+    const centerX = width / 2;
+    const centerY = height / 2;
     let minDist = Infinity;
     let nearest: ViewportStarItem | null = null;
     const MIN_TOUCH_RADIUS = 46;
 
     const allTargets = [...SOLAR_SYSTEM_OBJECTS, ...stars];
     for (const star of allTargets) {
-      const pos = projectToScreen(star.ra, star.dec, camera, width, height);
+      const basePos = projectToScreen(star.ra, star.dec, camera, width, height);
+      const pos = {
+        x: centerX + (basePos.x - centerX) * renderedScale + renderedOffsetX,
+        y: centerY + (basePos.y - centerY) * renderedScale + renderedOffsetY,
+      };
       const isMine = star.is_mine;
       const isSun = star.catalog_code === 'SOL-SUN';
-      const baseRadius = magnitudeToRadius(star.magnitude, star.spectral_type || 'G', camera.zoom);
+      const baseRadius = magnitudeToRadius(star.magnitude, star.spectral_type || 'G', camera.zoom) * renderedScale;
       const r = baseRadius * (isSun ? 3.0 : (isMine ? 1.6 : 1.0));
-      const touchRadius = Math.max(r + 30, MIN_TOUCH_RADIUS);
+      const touchRadius = Math.max(r + 30, star.catalog_code.startsWith('SOL-') ? 56 : MIN_TOUCH_RADIUS);
       const dx = tx - pos.x;
       const dy = ty - pos.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
@@ -717,7 +752,7 @@ function MacroSkyCanvasSkia({
       // User tapped empty sky -> dismiss selection card
       onSelectStar(null as any);
     }
-  }, [stars, width, height, onSelectStar]);
+  }, [stars, width, height, onSelectStar, scale, offsetX, offsetY]);
 
   // ═══════════════════════════════════════════════════════════════════════
   // GESTURE DEFINITIONS
@@ -728,6 +763,11 @@ function MacroSkyCanvasSkia({
     .onEnd((e) => {
       runOnJS(handleTap)(e.x, e.y);
     });
+
+  // These are relative to the currently recorded world. They are captured by
+  // the UI worklet, so visual zoom cannot pass the same limits as cameraRef.
+  const minRenderScale = MIN_ZOOM / renderCameraRef.current.zoom;
+  const maxRenderScale = MAX_ZOOM / renderCameraRef.current.zoom;
 
   const pan = Gesture.Pan()
     .minDistance(6)
@@ -760,12 +800,21 @@ function MacroSkyCanvasSkia({
       // Compose the incremental pinch with the world transform already on
       // screen. A second pinch therefore never resets the first one's scale or
       // moves its focal point.
-      scale.value = pinchStartScale.value * e.scale;
-      offsetX.value = e.scale * pinchStartX.value + (1 - e.scale) * (e.focalX - width / 2);
-      offsetY.value = e.scale * pinchStartY.value + (1 - e.scale) * (e.focalY - height / 2);
+      const totalScale = Math.max(
+        minRenderScale,
+        Math.min(maxRenderScale, pinchStartScale.value * e.scale),
+      );
+      const appliedGestureScale = totalScale / pinchStartScale.value;
+      scale.value = totalScale;
+      offsetX.value = appliedGestureScale * pinchStartX.value + (1 - appliedGestureScale) * (e.focalX - width / 2);
+      offsetY.value = appliedGestureScale * pinchStartY.value + (1 - appliedGestureScale) * (e.focalY - height / 2);
     })
     .onEnd((e) => {
-      runOnJS(finishPinch)(e.scale, e.focalX, e.focalY);
+      const totalScale = Math.max(
+        minRenderScale,
+        Math.min(maxRenderScale, pinchStartScale.value * e.scale),
+      );
+      runOnJS(finishPinch)(totalScale / pinchStartScale.value, e.focalX, e.focalY);
     })
     .onFinalize((_event, success) => {
       if (!success) runOnJS(endCanvasGesture)();
