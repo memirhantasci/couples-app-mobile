@@ -341,6 +341,36 @@ export default function LoginScreen() {
         return;
       }
 
+      // Supabase Kuralı: Eğer e-posta zaten kayıtlıysa, Supabase identities: [] döner ve güvenlik sebebiyle mail GÖNDERMEZ!
+      const isAlreadyRegistered = Array.isArray(data.user.identities) && data.user.identities.length === 0;
+
+      if (isAlreadyRegistered) {
+        // Bu e-posta zaten kayıtlı! Kullanıcıya yeni onay maili göndermek için resend tetikliyoruz:
+        const { error: resendErr } = await supabase.auth.resend({
+          type: "signup",
+          email: regEmail.trim().toLowerCase(),
+          options: { emailRedirectTo: "couplesapp://verify" },
+        });
+
+        if (resendErr && resendErr.message.toLowerCase().includes("already confirmed")) {
+          setErrorMsg("Bu e-posta adresi zaten kayıtlı ve onaylanmış! Lütfen Giriş Yap sekmesini kullanın.");
+          setIsLoading(false);
+          return;
+        }
+
+        setSuccessMsg("Bu e-posta zaten kayıtlı. Doğrulama kodunuz tekrar gönderildi!");
+        setTimeout(() => {
+          router.push({
+            pathname: "/(auth)/verify",
+            params: { 
+              email: regEmail.trim().toLowerCase(),
+              inviteCode: cleanPairingCode || undefined
+            },
+          });
+        }, 1200);
+        return;
+      }
+
       // The user profile is automatically created in public.users via Supabase trigger
 
       const cleanPairingCode = regPairingCode.trim().toUpperCase() || activeInviteCode?.trim().toUpperCase() || "";

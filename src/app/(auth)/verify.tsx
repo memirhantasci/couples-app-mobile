@@ -36,6 +36,7 @@ export default function VerifyScreen() {
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [resendStatus, setResendStatus] = useState("");
   const [autoVerified, setAutoVerified] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState<number>(0);
   const inputRefs = useRef<(TextInput | null)[]>([]);
@@ -229,6 +230,8 @@ export default function VerifyScreen() {
   async function handleResend() {
     if (!params.email) return;
     setIsLoading(true);
+    setResendStatus("");
+    setErrorMsg("");
     const { error } = await supabase.auth.resend({
       type: "signup",
       email: params.email,
@@ -236,9 +239,10 @@ export default function VerifyScreen() {
     });
     setIsLoading(false);
     if (error) {
-      Alert.alert("Hata", "Kod gönderilemedi. Lütfen bir süre sonra tekrar dene.");
+      setErrorMsg("Kod gönderilemedi. Lütfen kısa bir süre sonra tekrar dene.");
     } else {
-      Alert.alert("Gönderildi!", "Yeni doğrulama kodu e-postana gönderildi.");
+      setResendStatus("Yeni doğrulama kodu gönderildi! (Spam klasörünü de kontrol et ✨)");
+      setTimeout(() => setResendStatus(""), 6000);
     }
   }
 
@@ -363,6 +367,12 @@ export default function VerifyScreen() {
           {!!errorMsg && (
             <Text style={{ color: "#FF4D6A", textAlign: "center", marginBottom: 20, fontSize: 14 }}>
               {errorMsg}
+            </Text>
+          )}
+
+          {!!resendStatus && (
+            <Text style={{ color: "#10B981", textAlign: "center", marginBottom: 20, fontSize: 14, fontFamily: "Inter_600SemiBold" }}>
+              {resendStatus}
             </Text>
           )}
 
