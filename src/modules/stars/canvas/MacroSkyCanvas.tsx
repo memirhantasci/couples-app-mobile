@@ -51,6 +51,13 @@ type PaintPool = {
   resonancePurplePaint: any;
   mediumGlowPaint: any;
   mediumCorePaint: any;
+  highGlowPaint: any;
+  highCorePaint: any;
+  highClaimPaint: any;
+  highHotCenterPaint: any;
+  myStarRingPaint: any;
+  pillBgPaint: any;
+  pillBorderPaint: any;
   labelPaint: any;
 };
 
@@ -81,6 +88,16 @@ function createPaintPool(): PaintPool {
   resonancePurplePaint.setStyle(1);
   resonancePurplePaint.setStrokeWidth(1.25);
 
+  const myStarRingPaint = Skia.Paint();
+  myStarRingPaint.setStyle(1);
+  myStarRingPaint.setStrokeWidth(1.8);
+  const myDash = Skia.PathEffect.MakeDash([4, 4], 0);
+  if (myDash) myStarRingPaint.setPathEffect(myDash);
+
+  const pillBorderPaint = Skia.Paint();
+  pillBorderPaint.setStyle(1);
+  pillBorderPaint.setStrokeWidth(1.2);
+
   return {
     lowPaint,
     lowRingPaint,
@@ -88,6 +105,13 @@ function createPaintPool(): PaintPool {
     resonancePurplePaint,
     mediumGlowPaint: Skia.Paint(),
     mediumCorePaint: Skia.Paint(),
+    highGlowPaint: Skia.Paint(),
+    highCorePaint: Skia.Paint(),
+    highClaimPaint: Skia.Paint(),
+    highHotCenterPaint: Skia.Paint(),
+    myStarRingPaint,
+    pillBgPaint: Skia.Paint(),
+    pillBorderPaint,
     labelPaint: Skia.Paint(),
   };
 }
@@ -295,20 +319,25 @@ function buildLodTilePicture(
   camera: SkyCameraState,
   width: number,
   height: number,
-  lod: Exclude<RenderLod, 'high'>,
+  lod: RenderLod,
   paintPool: PaintPool,
   font: any,
+  starNameFont?: any,
 ) {
   const recorder = Skia.PictureRecorder();
   const canvas = recorder.beginRecording(Skia.XYWHRect(-30000, -30000, 60000, 60000));
   const pixelsPerDegree = height / (60 / camera.zoom);
 
   for (const star of tileStars) {
-    const localX = (star.ra - tileCenter.ra) * pixelsPerDegree;
+    let dRa = star.ra - tileCenter.ra;
+    if (dRa > 180) dRa -= 360;
+    if (dRa < -180) dRa += 360;
+    const localX = dRa * pixelsPerDegree;
     const localY = -(star.dec - tileCenter.dec) * pixelsPerDegree;
     const radius = magnitudeToRadius(star.magnitude, star.spectral_type || 'G', camera.zoom);
     const baseColor = star.base_color || '#FFFFFF';
     const alpha = magnitudeToAlpha(star.magnitude, star.luminosity_level ?? 1);
+    const lum = star.luminosity_level ?? 1.0;
 
     if (lod === 'low') {
       if (star.resonance_active && !star.is_mine) {
@@ -334,21 +363,88 @@ function buildLodTilePicture(
       continue;
     }
 
-    // Medium LOD intentionally uses only concentric solid circles. Do not add
-    // MaskFilter.MakeBlur here: it is measurably expensive during map browsing.
-    paintPool.mediumGlowPaint.setColor(hexToRgba(baseColor, 1));
-    paintPool.mediumGlowPaint.setAlphaf(0.25);
-    canvas.drawCircle(localX, localY, radius * 2.5, paintPool.mediumGlowPaint);
-    paintPool.mediumGlowPaint.setAlphaf(0.45);
-    canvas.drawCircle(localX, localY, radius * 1.6, paintPool.mediumGlowPaint);
-    paintPool.mediumCorePaint.setColor(hexToRgba(baseColor, alpha));
-    canvas.drawCircle(localX, localY, star.is_mine ? radius * 1.35 : radius, paintPool.mediumCorePaint);
+    if (lod === 'medium') {
+      // Medium LOD uses concentric solid circles
+      paintPool.mediumGlowPaint.setColor(hexToRgba(baseColor, 1));
+      paintPool.mediumGlowPaint.setAlphaf(0.25);
+      canvas.drawCircle(localX, localY, radius * 2.5, paintPool.mediumGlowPaint);
+      paintPool.mediumGlowPaint.setAlphaf(0.45);
+      canvas.drawCircle(localX, localY, radius * 1.6, paintPool.mediumGlowPaint);
+      paintPool.mediumCorePaint.setColor(hexToRgba(baseColor, alpha));
+      canvas.drawCircle(localX, localY, star.is_mine ? radius * 1.35 : radius, paintPool.mediumCorePaint);
 
+      if (star.resonance_active) {
+        paintPool.resonanceGoldPaint.setColor(hexToRgba('#F59E0B', 0.9));
+        paintPool.resonancePurplePaint.setColor(hexToRgba('#A855F7', 0.8));
+        canvas.drawCircle(localX, localY, radius * 2.2, paintPool.resonanceGoldPaint);
+        canvas.drawCircle(localX, localY, radius * 1.75, paintPool.resonancePurplePaint);
+      } else if (star.is_mine) {
+        paintPool.lowRingPaint.setColor(Skia.Color('#F59E0B'));
+        canvas.drawCircle(localX, localY, radius * 1.35 + 4, paintPool.lowRingPaint);
+        if (font && star.custom_name) {
+          paintPool.labelPaint.setColor(Skia.Color('#FDE68A'));
+          const label = star.custom_name;
+          canvas.drawText(label, localX - font.getTextWidth(label) / 2, localY + radius * 1.35 + 16, paintPool.labelPaint, font);
+        }
+      }
+      continue;
+    }
+
+    // ─── HIGH LOD (zoom >= 4.0) ──────────────────────────────────────
+    const isMine = star.is_mine;
+    const r = radius * (isMine ? 1.6 : 1.0);
+
+    // 1. Claimed / Resonance Halos
     if (star.resonance_active) {
-      paintPool.resonanceGoldPaint.setColor(hexToRgba('#F59E0B', 0.9));
-      paintPool.resonancePurplePaint.setColor(hexToRgba('#A855F7', 0.8));
-      canvas.drawCircle(localX, localY, radius * 2.2, paintPool.resonanceGoldPaint);
-      canvas.drawCircle(localX, localY, radius * 1.75, paintPool.resonancePurplePaint);
+      paintPool.resonanceGoldPaint.setColor(hexToRgba('#F59E0B', 0.5 * lum));
+      canvas.drawCircle(localX, localY, r + 20, paintPool.resonanceGoldPaint);
+      paintPool.resonancePurplePaint.setColor(hexToRgba('#A855F7', 0.6 * lum));
+      canvas.drawCircle(localX, localY, r + 10, paintPool.resonancePurplePaint);
+    } else if (star.is_claimed) {
+      paintPool.highClaimPaint.setColor(hexToRgba(baseColor, 0.4 * lum));
+      canvas.drawCircle(localX, localY, r + 14, paintPool.highClaimPaint);
+    }
+
+    // 2. Core & Aura
+    paintPool.highGlowPaint.setColor(hexToRgba(baseColor, alpha * 0.45));
+    canvas.drawCircle(localX, localY, r * 2.2, paintPool.highGlowPaint);
+
+    paintPool.highCorePaint.setColor(hexToRgba(baseColor, alpha));
+    canvas.drawCircle(localX, localY, r, paintPool.highCorePaint);
+
+    if (star.magnitude <= 3.5 || isMine) {
+      paintPool.highHotCenterPaint.setColor(hexToRgba('#FFFFFF', Math.min(1, alpha * 1.2)));
+      canvas.drawCircle(localX, localY, Math.max(1, r * 0.35), paintPool.highHotCenterPaint);
+    }
+
+    // 3. My Star Golden Ring
+    if (isMine) {
+      paintPool.myStarRingPaint.setColor(Skia.Color('#F59E0B'));
+      canvas.drawCircle(localX, localY, r + 6, paintPool.myStarRingPaint);
+    }
+
+    // 4. Name Tag
+    const activeFont = starNameFont || font;
+    if (activeFont && ((isMine && star.custom_name) || (star.is_claimed && star.custom_name))) {
+      const labelText = isMine ? `⭐ ${star.custom_name}` : star.custom_name;
+      const textWidth = activeFont.getTextWidth(labelText);
+      const labelX = localX - textWidth / 2;
+      const labelY = localY + r + 20;
+
+      paintPool.pillBgPaint.setColor(Skia.Color('rgba(15, 23, 42, 0.9)'));
+      canvas.drawRRect(
+        Skia.RRectXY(Skia.XYWHRect(labelX - 8, labelY - 12, textWidth + 16, 20), 10, 10),
+        paintPool.pillBgPaint
+      );
+
+      paintPool.pillBorderPaint.setColor(isMine ? Skia.Color('rgba(245, 158, 11, 0.7)') : Skia.Color('rgba(147, 197, 253, 0.5)'));
+      canvas.drawRRect(
+        Skia.RRectXY(Skia.XYWHRect(labelX - 8, labelY - 12, textWidth + 16, 20), 10, 10),
+        paintPool.pillBorderPaint
+      );
+
+      paintPool.labelPaint.setColor(isMine ? Skia.Color('#FDE68A') : Skia.Color('#E0F2FE'));
+      canvas.drawText(labelText, labelX, labelY + 2, paintPool.labelPaint, activeFont);
     }
   }
 
@@ -633,8 +729,6 @@ function MacroSkyCanvasSkia({
         minDist = dist;
         nearest = star;
       }
-    }
-
     if (nearest) {
       try {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -647,73 +741,14 @@ function MacroSkyCanvasSkia({
   }, [stars, width, height, onSelectStar, offsetX, committedX, offsetY, committedY]);
 
   // ═══════════════════════════════════════════════════════════════════════
-  // GESTURE DEFINITIONS
+  // LAYER 2: STAR TILE PICTURES
+  // Every star (LOW, MEDIUM, HIGH LOD) is recorded into independent native
+  // SkPictures per 30-degree tile. Panning reuses cached tiles without rebuild.
   // ═══════════════════════════════════════════════════════════════════════
-  const tap = Gesture.Tap()
-    .maxDuration(350)
-    .maxDistance(25)
-    .onEnd((e) => {
-      runOnJS(handleTap)(e.x, e.y);
-    });
-
-  const pan = Gesture.Pan()
-    .minDistance(6)
-    .onStart(() => {
-      startX.value = offsetX.value;
-      startY.value = offsetY.value;
-      runOnJS(beginCanvasGesture)();
-    })
-    .onUpdate((e) => {
-      offsetX.value = startX.value + e.translationX;
-      offsetY.value = startY.value + e.translationY;
-      // Hermes/Reanimated worklets expose performance.now(). Keep a monotonic
-      // shared-value fallback for older runtimes that do not.
-      const now = typeof performance !== 'undefined'
-        ? performance.now()
-        : lastRunTimeRef.value + 34;
-      if (now - lastRunTimeRef.value > 33) {
-        lastRunTimeRef.value = now;
-        runOnJS(recordPanDeltaLive)(e.translationX, e.translationY);
-      }
-    })
-    .onEnd(() => {
-      const dx = offsetX.value - committedX.value;
-      const dy = offsetY.value - committedY.value;
-      runOnJS(commitPanDelta)(dx, dy);
-    })
-    .onFinalize(() => {
-      runOnJS(endCanvasGesture)();
-    });
-
-  const pinch = Gesture.Pinch()
-    .onStart((e) => {
-      focalX.value = e.focalX;
-      focalY.value = e.focalY;
-      scale.value = 1;
-      runOnJS(beginCanvasGesture)();
-    })
-    .onUpdate((e) => {
-      focalX.value = e.focalX;
-      focalY.value = e.focalY;
-      scale.value = e.scale;
-    })
-    .onEnd((e) => {
-      runOnJS(commitPinch)(e.scale, e.focalX, e.focalY);
-    })
-    .onFinalize(() => {
-      runOnJS(endCanvasGesture)();
-    });
-
-  const panOrTap = Gesture.Exclusive(pan, tap);
-  const composed = Gesture.Simultaneous(panOrTap, pinch);
-
-  // Dynamic stars are never recorded into the background picture at LOW/MEDIUM
-  // detail. Each tile stays as an independent native SkPicture, so receiving a
-  // neighbouring tile cannot replace or flash the sky already on screen.
   const starTilePictures = useMemo<StarTilePicture[]>(() => {
     const camera = cameraRef.current;
     const lod = getRenderLod(camera.zoom);
-    if (!font || camera.zoom < 0.5 || lod === 'high') return [];
+    if (!font) return [];
 
     const tileGroups = new Map<string, ViewportStarItem[]>();
     for (const star of pictureStars) {
@@ -744,7 +779,17 @@ function MacroSkyCanvasSkia({
           }
         }
         entry = {
-          picture: buildLodTilePicture(tileStars, center, camera, width, height, lod, paintPoolRef.current!, starNameFont || font),
+          picture: buildLodTilePicture(
+            tileStars,
+            center,
+            camera,
+            width,
+            height,
+            lod,
+            paintPoolRef.current!,
+            font,
+            starNameFont
+          ),
         };
         tilePictureCacheRef.current.set(cacheKey, entry);
       }
@@ -756,18 +801,12 @@ function MacroSkyCanvasSkia({
     return tiles;
   }, [pictureVersion, pictureStars, width, height, font, starNameFont]);
 
-  // Star input only belongs to the base picture at clustering/HIGH detail.
-  // At LOW/MEDIUM the base picture remains byte-for-byte independent from
-  // network tile responses.
-  const starsForBasePicture = cameraRef.current.zoom < 0.5 || getRenderLod(cameraRef.current.zoom) === 'high'
-    ? pictureStars
-    : EMPTY_STARS;
-
   // ═══════════════════════════════════════════════════════════════════════
-  // SkPicture: Rebuilt only on pictureVersion / star data changes
-  // During gestures, Group transform handles ALL visual movement (60fps)
+  // LAYER 1: STATIC SKY BACKGROUND PICTURE
+  // Nebulas, constellation lines, sector labels, solar system bodies, and
+  // friend connections. ZERO dependency on dynamic star catalog data.
   // ═══════════════════════════════════════════════════════════════════════
-  const picture = useMemo(() => {
+  const skyBackgroundPicture = useMemo(() => {
     const camera = cameraRef.current;
     if (!font || !sectorFont) return null;
     const recorder = Skia.PictureRecorder();
@@ -849,7 +888,7 @@ function MacroSkyCanvasSkia({
       canvas.drawLine(p1.x, p1.y, p2.x, p2.y, constPaint);
     });
 
-    // ─── PASS 4: Active Star Connection Lines ─────────────────────────
+    // ─── PASS 4: Active Star Connection Lines & Badges ────────────────
     if (myStarCoords && connections.length > 0) {
       const p1 = projectToScreen(myStarCoords.ra, myStarCoords.dec, camera, width, height);
       const connLinePaint = Skia.Paint();
@@ -870,206 +909,30 @@ function MacroSkyCanvasSkia({
         nodePaint.setStyle(1);
         nodePaint.setStrokeWidth(1.2);
         canvas.drawCircle(p2.x, p2.y, 7, nodePaint);
+
+        // Connected Star Name Tag
+        if (font) {
+          const labelText = `🔗 ${conn.other_star_name}`;
+          const textWidth = font.getTextWidth(labelText);
+          const labelX = p2.x - textWidth / 2;
+          const labelY = p2.y + 22;
+
+          const pillBg = Skia.Paint();
+          pillBg.setColor(Skia.Color('rgba(24, 15, 36, 0.85)'));
+          canvas.drawRRect(
+            Skia.RRectXY(
+              Skia.XYWHRect(labelX - 6, labelY - 10, textWidth + 12, 16),
+              8,
+              8
+            ),
+            pillBg
+          );
+
+          const textP = Skia.Paint();
+          textP.setColor(Skia.Color('#F472B6'));
+          canvas.drawText(labelText, labelX, labelY + 2, textP, font);
+        }
       });
-    }
-
-    const lod = getRenderLod(camera.zoom);
-
-    // ─── PASS 5: Cached low/medium tile pictures ──────────────────────
-    // A tile picture is recorded around its world-space centre and translated
-    // into place. Panning at the same zoom therefore reuses native SkPictures.
-    // MIN_ZOOM remains 0.6 by product requirement. The cluster branch is kept
-    // at the specified <0.5 threshold for any future expanded map mode.
-    if (camera.zoom < 0.5) {
-      const clusterPaint = paintPoolRef.current!.lowPaint;
-      const clusterTextPaint = paintPoolRef.current!.labelPaint;
-      clusterPaint.setColor(Skia.Color('#7DD3FC'));
-      clusterTextPaint.setColor(Skia.Color('#E0F2FE'));
-      for (const cluster of clusterVisibleStars(starsForBasePicture, camera, width, height)) {
-        canvas.drawCircle(cluster.x, cluster.y, Math.min(12, 4 + Math.log2(cluster.count + 1) * 2), clusterPaint);
-        if (font) canvas.drawText(`● ${cluster.count}`, cluster.x + 10, cluster.y + 4, clusterTextPaint, font);
-      }
-    } else if (lod === 'high') {
-    // ─── PASS 5: Claimed Stars Glowing Halos (HIGH only) ──────────────
-    starsForBasePicture.forEach((star) => {
-      if (!star.is_claimed) return;
-      const pos = projectToScreen(star.ra, star.dec, camera, width, height);
-      if (!isInFrustum(pos.x, pos.y, width, height)) return;
-
-      const r = magnitudeToRadius(star.magnitude, star.spectral_type || 'G', camera.zoom);
-      const baseColor = star.base_color || '#9DB4FF';
-      const lum = star.luminosity_level ?? 1.0;
-
-      if (star.resonance_active) {
-        // Double resonance halo: Golden outer + Purple inner
-        const resOuterPaint = Skia.Paint();
-        resOuterPaint.setColor(hexToRgba('#F59E0B', 0.35 * lum));
-        const b1 = Skia.MaskFilter.MakeBlur(0, 12, true);
-        if (b1) resOuterPaint.setMaskFilter(b1);
-        canvas.drawCircle(pos.x, pos.y, r + 20, resOuterPaint);
-
-        const resInnerPaint = Skia.Paint();
-        resInnerPaint.setColor(hexToRgba('#A855F7', 0.45 * lum));
-        const b2 = Skia.MaskFilter.MakeBlur(0, 6, true);
-        if (b2) resInnerPaint.setMaskFilter(b2);
-        canvas.drawCircle(pos.x, pos.y, r + 10, resInnerPaint);
-      } else {
-        const claimGlowPaint = Skia.Paint();
-        claimGlowPaint.setColor(hexToRgba(baseColor, 0.35 * lum));
-        const b = Skia.MaskFilter.MakeBlur(0, 10, true);
-        if (b) claimGlowPaint.setMaskFilter(b);
-        canvas.drawCircle(pos.x, pos.y, r + 14, claimGlowPaint);
-      }
-    });
-
-    // ─── PASS 6: Star Cores & Vivid Spectral Colors (Matching Web Exactly) ───
-    starsForBasePicture.forEach((star) => {
-      const pos = projectToScreen(star.ra, star.dec, camera, width, height);
-      if (!isInFrustum(pos.x, pos.y, width, height)) return;
-
-      const isMine = star.is_mine;
-      const baseRadius = magnitudeToRadius(star.magnitude, star.spectral_type || 'G', camera.zoom);
-      const r = baseRadius * (isMine ? 1.6 : 1.0);
-      const alpha = magnitudeToAlpha(star.magnitude, star.luminosity_level ?? 1.0);
-      const baseColor = star.base_color || '#FFFFFF';
-
-      // 1. Soft atmospheric colored aura using star's real spectral color
-      const glowPaint = Skia.Paint();
-      glowPaint.setColor(hexToRgba(baseColor, alpha * 0.45));
-      canvas.drawCircle(pos.x, pos.y, r * 2.2, glowPaint);
-
-      // 2. Star core with radial gradient: Pure white center, vibrant spectral color edge (Web exact parity)
-      const coreShader = Skia.Shader.MakeRadialGradient(
-        Skia.Point(pos.x, pos.y),
-        r,
-        [
-          hexToRgba('#FFFFFF', Math.min(1, alpha * 1.2)),
-          hexToRgba(baseColor, alpha),
-          hexToRgba(baseColor, alpha * 0.6)
-        ],
-        [0, 0.4, 1.0],
-        3
-      );
-      const corePaint = Skia.Paint();
-      if (coreShader) {
-        corePaint.setShader(coreShader);
-      } else {
-        corePaint.setColor(hexToRgba(baseColor, alpha));
-      }
-      canvas.drawCircle(pos.x, pos.y, r, corePaint);
-
-      // 3. Bright white-hot center pinpoint
-      if (star.magnitude <= 3.5 || isMine) {
-        const hotCenterPaint = Skia.Paint();
-        hotCenterPaint.setColor(hexToRgba('#FFFFFF', Math.min(1, alpha * 1.2)));
-        canvas.drawCircle(pos.x, pos.y, Math.max(1, r * 0.35), hotCenterPaint);
-      }
-    });
-
-    // ─── PASS 7: My Own Star (Golden Focus Ring & Halo) ───────────────
-    starsForBasePicture.forEach((star) => {
-      if (!star.is_mine) return;
-      const pos = projectToScreen(star.ra, star.dec, camera, width, height);
-      if (!isInFrustum(pos.x, pos.y, width, height)) return;
-
-      const r = magnitudeToRadius(star.magnitude, star.spectral_type || 'G', camera.zoom) * 1.5;
-
-      // Golden glow halo
-      const myGlow = Skia.Paint();
-      myGlow.setColor(Skia.Color('rgba(245, 158, 11, 0.45)'));
-      const b = Skia.MaskFilter.MakeBlur(0, 10, true);
-      if (b) myGlow.setMaskFilter(b);
-      canvas.drawCircle(pos.x, pos.y, r + 14, myGlow);
-
-      // Dashed golden focus ring
-      const ringPaint = Skia.Paint();
-      ringPaint.setColor(Skia.Color('#F59E0B'));
-      ringPaint.setStyle(1); // Stroke
-      ringPaint.setStrokeWidth(1.8);
-      const dash = Skia.PathEffect.MakeDash([4, 4], 0);
-      if (dash) ringPaint.setPathEffect(dash);
-      canvas.drawCircle(pos.x, pos.y, r + 6, ringPaint);
-    });
-
-    // ─── PASS 8: My Own Star Custom Name Tag ──────────────────────────
-    starsForBasePicture.forEach((star) => {
-      if (!star.is_mine || !star.custom_name) return;
-      const pos = projectToScreen(star.ra, star.dec, camera, width, height);
-      if (!isInFrustum(pos.x, pos.y, width, height)) return;
-
-      const r = magnitudeToRadius(star.magnitude, star.spectral_type || 'G', camera.zoom) * 1.5;
-      const activeFont = starNameFont || font;
-      if (!activeFont) return;
-
-      const labelText = `⭐ ${star.custom_name}`;
-      const textWidth = activeFont.getTextWidth(labelText);
-      const labelX = pos.x - textWidth / 2;
-      const labelY = pos.y + r + 20;
-
-      // Dark glass pill backing
-      const pillBgPaint = Skia.Paint();
-      pillBgPaint.setColor(Skia.Color('rgba(15, 23, 42, 0.9)'));
-      canvas.drawRRect(
-        Skia.RRectXY(
-          Skia.XYWHRect(labelX - 8, labelY - 12, textWidth + 16, 20),
-          10,
-          10
-        ),
-        pillBgPaint
-      );
-
-      // Golden border on pill
-      const pillBorderPaint = Skia.Paint();
-      pillBorderPaint.setColor(Skia.Color('rgba(245, 158, 11, 0.7)'));
-      pillBorderPaint.setStyle(1);
-      pillBorderPaint.setStrokeWidth(1.2);
-      canvas.drawRRect(
-        Skia.RRectXY(
-          Skia.XYWHRect(labelX - 8, labelY - 12, textWidth + 16, 20),
-          10,
-          10
-        ),
-        pillBorderPaint
-      );
-
-      // Text itself
-      const textPaint = Skia.Paint();
-      textPaint.setColor(Skia.Color('#FDE68A'));
-      canvas.drawText(labelText, labelX, labelY + 2, textPaint, activeFont);
-    });
-
-    // ─── PASS 8.1: Connected Star Name Tags ───────────────────────────
-    if (connections.length > 0 && font) {
-      connections.forEach((conn) => {
-        if (!conn.other_star_ra || !conn.other_star_dec) return;
-        const pos = projectToScreen(conn.other_star_ra, conn.other_star_dec, camera, width, height);
-        if (
-          pos.x < -OVERSCAN_PAD || pos.x > width + OVERSCAN_PAD ||
-          pos.y < -OVERSCAN_PAD || pos.y > height + OVERSCAN_PAD
-        ) return;
-
-        const labelText = `🔗 ${conn.other_star_name}`;
-        const textWidth = font.getTextWidth(labelText);
-        const labelX = pos.x - textWidth / 2;
-        const labelY = pos.y + 22;
-
-        const pillBg = Skia.Paint();
-        pillBg.setColor(Skia.Color('rgba(24, 15, 36, 0.85)'));
-        canvas.drawRRect(
-          Skia.RRectXY(
-            Skia.XYWHRect(labelX - 6, labelY - 10, textWidth + 12, 16),
-            8,
-            8
-          ),
-          pillBg
-        );
-
-        const textP = Skia.Paint();
-        textP.setColor(Skia.Color('#F472B6'));
-        canvas.drawText(labelText, labelX, labelY + 2, textP, font);
-      });
-    }
-
     }
 
     // ─── PASS 9: Güneş Sistemi Cisimleri (Güneş, Dünya, Venüs, Ay) ─────
@@ -1189,7 +1052,7 @@ function MacroSkyCanvasSkia({
     });
 
     return recorder.finishRecordingAsPicture();
-  }, [pictureVersion, starsForBasePicture, width, height, font, starNameFont, sectorFont, connections, myStarCoords]);
+  }, [pictureVersion, width, height, font, sectorFont, connections, myStarCoords]);
 
   const transform = useDerivedValue(() => [
     { translateX: offsetX.value - committedX.value },
@@ -1216,7 +1079,7 @@ function MacroSkyCanvasSkia({
           <Animated.View style={{ width, height }}>
              <Canvas style={{ flex: 1 }}>
                 <Group origin={originPoint} transform={transform}>
-                   {picture && <Picture picture={picture} />}
+                   {skyBackgroundPicture && <Picture picture={skyBackgroundPicture} />}
                    {starTilePictures.map((tile) => (
                      <Group key={tile.key} transform={[{ translateX: tile.x }, { translateY: tile.y }]}>
                        <Picture picture={tile.picture} />
