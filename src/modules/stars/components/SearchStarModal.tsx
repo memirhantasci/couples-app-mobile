@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Search, X, Star } from 'lucide-react-native';
+import { Search, X, Star, Sun, Globe } from 'lucide-react-native';
 import { starService } from '../api/starService';
 import { CelestialSearchResult } from '../types/star.types';
 
@@ -22,13 +22,102 @@ interface SearchStarModalProps {
   onSelectStar: (item: CelestialSearchResult) => void;
 }
 
+const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = [
+  {
+    entity_id: '999901',
+    entity_type: 'common',
+    display_name: 'Güneş ☀️',
+    catalog_code: 'SOL-SUN',
+    ra: 280.4600,
+    dec: -23.4400,
+    is_own_star: false,
+  },
+  {
+    entity_id: '999902',
+    entity_type: 'common',
+    display_name: 'Dünya 🌍',
+    catalog_code: 'SOL-EARTH',
+    ra: 100.4600,
+    dec: 23.4400,
+    is_own_star: false,
+  },
+  {
+    entity_id: '999903',
+    entity_type: 'common',
+    display_name: 'Venüs ✨',
+    catalog_code: 'SOL-VENUS',
+    ra: 243.6000,
+    dec: -19.9000,
+    is_own_star: false,
+  },
+  {
+    entity_id: '999904',
+    entity_type: 'common',
+    display_name: 'Ay 🌙',
+    catalog_code: 'SOL-MOON',
+    ra: 101.2000,
+    dec: 23.1000,
+    is_own_star: false,
+  },
+  {
+    entity_id: 'hip-32349',
+    entity_type: 'common',
+    display_name: 'Sirius (Akyıldız)',
+    catalog_code: 'HIP-32349',
+    ra: 101.2872,
+    dec: -16.7161,
+    is_own_star: false,
+  },
+  {
+    entity_id: 'hip-91262',
+    entity_type: 'common',
+    display_name: 'Vega',
+    catalog_code: 'HIP-91262',
+    ra: 279.2347,
+    dec: 38.7837,
+    is_own_star: false,
+  },
+  {
+    entity_id: 'hip-27989',
+    entity_type: 'common',
+    display_name: 'Betelgeuse',
+    catalog_code: 'HIP-27989',
+    ra: 88.7929,
+    dec: 7.4071,
+    is_own_star: false,
+  },
+  {
+    entity_id: 'hip-11767',
+    entity_type: 'common',
+    display_name: 'Polaris (Kutup Yıldızı)',
+    catalog_code: 'HIP-11767',
+    ra: 37.9545,
+    dec: 89.2641,
+    is_own_star: false,
+  },
+];
+
+function normalizeText(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/[İIı]/g, 'i')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[çc]/g, 'c')
+    .replace(/[ğg]/g, 'g')
+    .replace(/[öo]/g, 'o')
+    .replace(/[şs]/g, 's')
+    .replace(/[üu]/g, 'u');
+}
+
 export const SearchStarModal: React.FC<SearchStarModalProps> = ({
   visible,
   onClose,
   onSelectStar,
 }) => {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<CelestialSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -39,27 +128,51 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
   }, [visible]);
 
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (query.trim().length >= 2) {
-        performSearch(query.trim());
-      } else {
-        setResults([]);
-      }
-    }, 500);
-    return () => clearTimeout(delayDebounceFn);
-  }, [query]);
-
-  const performSearch = async (searchTerm: string) => {
-    setLoading(true);
-    try {
-      const data = await starService.searchCelestialUniverse(searchTerm);
-      setResults(data);
-    } catch (error) {
-      console.warn('Search failed:', error);
-    } finally {
-      setLoading(false);
+    const trimmed = query.trim();
+    if (trimmed.length < 1) {
+      setResults([]);
+      return;
     }
-  };
+
+    // 1. Instant local match for high responsiveness
+    const norm = normalizeText(trimmed);
+    const localMatches = LOCAL_CELESTIAL_OBJECTS.filter((obj) => {
+      const nName = normalizeText(obj.display_name);
+      const nCode = normalizeText(obj.catalog_code);
+      return nName.includes(norm) || nCode.includes(norm);
+    });
+
+    if (trimmed.length < 2) {
+      setResults(localMatches);
+      return;
+    }
+
+    // 2. Debounced remote search
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const remoteData = await starService.searchCelestialUniverse(trimmed);
+        // Deduplicate local + remote results
+        const seen = new Set<string>();
+        const merged: CelestialSearchResult[] = [];
+
+        for (const item of [...localMatches, ...remoteData]) {
+          const key = item.catalog_code || item.entity_id;
+          if (!seen.has(key)) {
+            seen.add(key);
+            merged.push(item);
+          }
+        }
+        setResults(merged);
+      } catch {
+        setResults(localMatches);
+      } finally {
+        setLoading(false);
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [query]);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -82,7 +195,7 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
               <Search size={18} color="#888" style={styles.searchIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Yıldız adı veya kodu..."
+                placeholder="Güneş, Dünya, Venüs, Sirius, yıldız adı..."
                 placeholderTextColor="#888"
                 value={query}
                 onChangeText={setQuery}
@@ -92,7 +205,7 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
             </View>
 
             {/* Results */}
-            {loading ? (
+            {loading && results.length === 0 ? (
               <ActivityIndicator size="large" color="#38BDF8" style={styles.loader} />
             ) : (
               <FlatList
@@ -100,21 +213,23 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
                 keyExtractor={(item, index) => item.entity_id || index.toString()}
                 contentContainerStyle={styles.listContainer}
                 ListEmptyComponent={
-                  query.trim().length >= 2 ? (
+                  query.trim().length >= 1 ? (
                     <Text style={styles.emptyText}>Sonuç bulunamadı.</Text>
                   ) : null
                 }
                 renderItem={({ item }) => {
-                  const celestialItem = item as CelestialSearchResult;
                   let typeLabel = '';
                   let typeColor = '#888';
-                  if (celestialItem.entity_type === 'common') {
+                  const isSun = item.catalog_code === 'SOL-SUN';
+                  const isEarth = item.catalog_code === 'SOL-EARTH';
+
+                  if (item.entity_type === 'common') {
                     typeLabel = 'Sistem Cisimleri';
                     typeColor = '#FBBF24';
-                  } else if (celestialItem.entity_type === 'custom') {
+                  } else if (item.entity_type === 'custom') {
                     typeLabel = 'Tescilli Yıldız';
                     typeColor = '#38BDF8';
-                  } else if (celestialItem.entity_type === 'exoplanet') {
+                  } else if (item.entity_type === 'exoplanet') {
                     typeLabel = 'Anı Gezegeni';
                     typeColor = '#A78BFA';
                   } else {
@@ -124,14 +239,21 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
 
                   return (
                     <TouchableOpacity
+                      activeOpacity={0.8}
                       style={styles.resultItem}
-                      onPress={() => onSelectStar(celestialItem)}
+                      onPress={() => onSelectStar(item)}
                     >
-                      <Star size={18} color={typeColor} />
+                      {isSun ? (
+                        <Sun size={20} color="#FBBF24" />
+                      ) : isEarth ? (
+                        <Globe size={20} color="#38BDF8" />
+                      ) : (
+                        <Star size={18} color={typeColor} />
+                      )}
                       <View style={styles.resultTextContainer}>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <Text style={styles.resultName}>{celestialItem.display_name}</Text>
-                          {celestialItem.is_own_star && (
+                          <Text style={styles.resultName}>{item.display_name}</Text>
+                          {item.is_own_star && (
                             <Text style={styles.ownStarBadge}> (Senin Yıldızın)</Text>
                           )}
                         </View>
@@ -139,7 +261,7 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
                           <Text style={[styles.typeBadge, { color: typeColor, borderColor: typeColor }]}>
                             {typeLabel}
                           </Text>
-                          <Text style={styles.resultCode}>{celestialItem.catalog_code}</Text>
+                          <Text style={styles.resultCode}>{item.catalog_code}</Text>
                         </View>
                       </View>
                     </TouchableOpacity>
@@ -167,6 +289,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
+    paddingHorizontal: 16,
   },
   modalContent: {
     backgroundColor: 'rgba(15, 12, 30, 0.95)',
@@ -224,16 +347,21 @@ const styles = StyleSheet.create({
   resultItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   resultTextContainer: {
+    flex: 1,
     marginLeft: 12,
   },
   resultName: {
     color: '#FFF',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
   resultCode: {
@@ -243,10 +371,10 @@ const styles = StyleSheet.create({
   typeBadge: {
     fontSize: 10,
     borderWidth: 1,
-    paddingHorizontal: 4,
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
-    marginRight: 6,
+    borderRadius: 6,
+    marginRight: 8,
   },
   ownStarBadge: {
     fontSize: 12,

@@ -53,6 +53,8 @@ import {
   AlertCircle,
   Radio,
   Search,
+  Award,
+  Sun,
 } from 'lucide-react-native';
 
 import { useAuth } from '@/context/AuthContext';
@@ -60,7 +62,7 @@ import { DEMO_STAR_DETAILS, DEMO_STAR_EXOPLANETS } from '@/constants/demoData';
 import { starService, SparkCooldownException } from '../api/starService';
 import { StarSparkManager } from '../services/StarSparkManager';
 import { MicroSystemCanvas } from '../canvas/MicroSystemCanvas';
-import { MacroSkyCanvas, MacroSkyBounds } from '../canvas/MacroSkyCanvas';
+import { MacroSkyCanvas, MacroSkyBounds, SOLAR_SYSTEM_OBJECTS } from '../canvas/MacroSkyCanvas';
 import { StarInfoBadge } from './StarInfoBadge';
 import { ClaimStarModal } from './ClaimStarModal';
 import { StarDemoAuthModal } from './StarDemoAuthModal';
@@ -70,6 +72,13 @@ import { ConnectionRequestBadge } from './ConnectionRequestBadge';
 import { SectorHUD } from './SectorHUD';
 import { SectorAtlasModal } from './SectorAtlasModal';
 import { SearchStarModal } from './SearchStarModal';
+import {
+  areSameViewportStars,
+  getTilesInBounds,
+  isStarInBounds,
+  LruTtlCache,
+  mergeViewportStars,
+} from '../utils/skyTiles';
 
 import type {
   ActiveStarConnection,
@@ -80,6 +89,7 @@ import type {
   ViewportStarItem,
   SparkBroadcastPayload,
   ResonanceEvent,
+  SkyCameraState,
 } from '../types/star.types';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -102,6 +112,11 @@ export const OurStarScreen: React.FC = () => {
   const [exoplanets, setExoplanets] = useState<StarExoplanetRecord[]>([]);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [viewportStars, setViewportStars] = useState<ViewportStarItem[]>([]);
+  // Other couples' stars are fetched by tile after the canvas's 350ms bounds
+  // debounce. Only the user's own star keeps a realtime subscription.
+  const viewportTileCacheRef = useRef(new LruTtlCache<ViewportStarItem[]>(50, 30_000));
+  const viewportTileRequestRef = useRef(new Map<string, Promise<ViewportStarItem[]>>());
+  const viewportRequestVersionRef = useRef(0);
   const [selectedMacroStar, setSelectedMacroStar] = useState<ViewportStarItem | null>(null);
 
   // Güvenli Geri Dönüş Fonksiyonu (Navigation Stack boşsa ana ekrana döner)
@@ -420,18 +435,56 @@ export const OurStarScreen: React.FC = () => {
 
   // ─── MAKRO GÖKYÜZÜ VIEWPORT GÜNCELLEMESİ ────────────────────────────
   const handleMacroBoundsChange = useCallback(async (bounds: MacroSkyBounds) => {
+    const requestVersion = ++viewportRequestVersionRef.current;
+    const tiles = getTilesInBounds(bounds);
+
     try {
-      const stars = await starService.fetchStarsInViewport({
-        minRa: bounds.minRa,
-        maxRa: bounds.maxRa,
-        minDec: bounds.minDec,
-        maxDec: bounds.maxDec,
-        zoomLevel: bounds.zoomLevel,
-      });
-      setViewportStars(stars);
+      const lodKey = bounds.zoomLevel < 1.5 ? 'low' : bounds.zoomLevel < 4 ? 'medium' : 'high';
+      const tileResults = await Promise.all(tiles.map(async (tile) => {
+        const cacheKey = `${tile.key}@${lodKey}`;
+        const cached = viewportTileCacheRef.current.get(cacheKey);
+        if (cached) return cached;
+
+        const inFlight = viewportTileRequestRef.current.get(cacheKey);
+        if (inFlight) return inFlight;
+
+        const request = starService.fetchStarsInViewport({
+          minRa: tile.minRa,
+          maxRa: tile.maxRa,
+          minDec: tile.minDec,
+          maxDec: tile.maxDec,
+          zoomLevel: bounds.zoomLevel,
+        })
+          .then((stars) => {
+            viewportTileCacheRef.current.set(cacheKey, stars);
+            return stars;
+          })
+          .finally(() => {
+            viewportTileRequestRef.current.delete(cacheKey);
+          });
+
+        viewportTileRequestRef.current.set(cacheKey, request);
+        return request;
+      }));
+
+      // Ignore a slower response from a viewport the user has already left.
+      if (requestVersion !== viewportRequestVersionRef.current) return;
+      const visibleTileResults = tileResults.map((stars) =>
+        stars.filter((star) => isStarInBounds(star, bounds))
+      );
+      const nextStars = mergeViewportStars(visibleTileResults);
+      setViewportStars((previousStars) =>
+        areSameViewportStars(previousStars, nextStars) ? previousStars : nextStars
+      );
     } catch {
       // Sessiz geç
     }
+  }, []);
+
+  // Kamera değiştiğinde koordinatları sadece anlamlı değişimlerde güncelle (re-render döngüsünü önler)
+  const handleCameraChange = useCallback((cam: SkyCameraState) => {
+    setCameraRa((prevRa) => (Math.abs(prevRa - cam.centerRa) > 0.08 ? cam.centerRa : prevRa));
+    setCameraDec((prevDec) => (Math.abs(prevDec - cam.centerDec) > 0.08 ? cam.centerDec : prevDec));
   }, []);
 
   // ─── TESCİL BAŞARISI (Claim Callback) ──────────────────────────────
@@ -651,30 +704,29 @@ export const OurStarScreen: React.FC = () => {
             }}
             targetCamera={flyToTarget}
             onBoundsChange={handleMacroBoundsChange}
-            onCameraChange={(cam) => {
-              setCameraRa(cam.centerRa);
-              setCameraDec(cam.centerDec);
-            }}
+            onCameraChange={handleCameraChange}
             onSelectStar={(star) => {
+              if (!star) {
+                setSelectedMacroStar(null);
+                return;
+              }
+              if (typeof star !== 'object' || !('is_claimed' in star)) return;
               if (isDemoMode) {
                 // Demo / misafir modu: ClaimStarModal (radar/sertifika) AÇILMAZ!
                 if (star.is_claimed) {
                   // Tescilli yabancı yıldız: sadece bilgi kartı
                   setSelectedMacroStar(star);
                 } else {
-                  // Boşta olan yıldıza tıklandı: Yönlendirme kartını aç
+                  // Boşta olan yıldıza tıklandı: Bilgi kartını aç (kart içinde yönlendirme butonu var)
                   setDemoTargetStar(star);
-                  setSelectedMacroStar(null);
-                  setIsDemoAuthModalOpen(true);
+                  setSelectedMacroStar(star);
                 }
                 return;
               }
 
               if (star.is_mine) {
-                // Kendi yıldızı: mikro sisteme dön
-                setViewMode('micro');
-                setSelectedMacroStar(null);
-                showToast(`"${starDetails?.custom_name || star.custom_name}" mikro sistemine girildi 🪐`);
+                // Kendi yıldızı: Bilgi kartını aç (kullanıcı kart içinden mikro sisteme veya sertifikaya gidebilir)
+                setSelectedMacroStar(star);
               } else if (star.is_claimed) {
                 // Başka çiftin tescilli yıldızı: bilgi kartı, sahiplenme YOK
                 setSelectedMacroStar(star);
@@ -683,10 +735,9 @@ export const OurStarScreen: React.FC = () => {
                 // Bilgi kartını aç (yıldız detaylarını inceler, kart altında kural uyarısı verilir)
                 setSelectedMacroStar(star);
               } else {
-                // Kullanıcının yıldızı yok, boş yıldız: sahiplenme akışı
+                // Kullanıcının yıldızı yok, boş yıldıza tıklandı: Bilgi kartını aç (kart içinde 'Bu Yıldızı Seç 💫' butonu yer alır)
                 setClaimTargetStar(star);
-                setSelectedMacroStar(null);
-                setIsClaimModalOpen(true);
+                setSelectedMacroStar(star);
               }
             }}
           />
@@ -705,22 +756,38 @@ export const OurStarScreen: React.FC = () => {
 
       {/* ─── MAKRO MOD: SEÇİLEN YILDIZ BİLGİ VE SAHİPLENME KARTI ──────── */}
       {viewMode === 'macro' && selectedMacroStar && (
-        <View style={[styles.macroStarCard, { bottom: insets.bottom + 80 }]}>
+        <View
+          style={[
+            styles.macroStarCard,
+            { bottom: insets.bottom + 80 },
+            selectedMacroStar.is_mine && styles.macroStarCardMine,
+          ]}
+        >
           <View style={styles.macroStarHeader}>
             <View style={styles.macroStarTitleRow}>
               <View
                 style={[
                   styles.macroStarColorDot,
-                  { backgroundColor: selectedMacroStar.base_color || '#9DB4FF' },
+                  {
+                    backgroundColor: selectedMacroStar.is_mine
+                      ? '#F59E0B'
+                      : selectedMacroStar.base_color || '#9DB4FF',
+                  },
                 ]}
               />
-              <Text style={styles.macroStarTitle}>
-                {selectedMacroStar.custom_name ||
-                  (selectedMacroStar.common_name
-                    ? `${selectedMacroStar.common_name} (${selectedMacroStar.catalog_code})`
-                    : selectedMacroStar.catalog_code)}
+              <Text style={[styles.macroStarTitle, selectedMacroStar.is_mine && styles.macroStarTitleMine]}>
+                {selectedMacroStar.is_mine
+                  ? `⭐ ${selectedMacroStar.custom_name || starDetails?.custom_name || 'Bizim Yıldızımız'}`
+                  : (selectedMacroStar.custom_name ||
+                    (selectedMacroStar.common_name
+                      ? `${selectedMacroStar.common_name} (${selectedMacroStar.catalog_code})`
+                      : selectedMacroStar.catalog_code))}
               </Text>
-              {selectedMacroStar.is_claimed ? (
+              {selectedMacroStar.is_mine ? (
+                <View style={styles.myStarBadge}>
+                  <Text style={styles.myStarBadgeText}>Bizim Yıldızımız 💫</Text>
+                </View>
+              ) : selectedMacroStar.is_claimed ? (
                 <View style={styles.claimedBadge}>
                   <Text style={styles.claimedBadgeText}>Tescilli</Text>
                 </View>
@@ -752,7 +819,32 @@ export const OurStarScreen: React.FC = () => {
           </View>
 
           {/* Aksiyon */}
-          {!selectedMacroStar.is_claimed && isDemoMode ? (
+          {selectedMacroStar.is_mine ? (
+            <View style={styles.myStarActionsRow}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => {
+                  setViewMode('micro');
+                  setSelectedMacroStar(null);
+                  showToast(`"${starDetails?.custom_name || selectedMacroStar.custom_name}" mikro sistemine girildi 🪐`);
+                }}
+                style={styles.enterMicroBtn}
+              >
+                <Orbit size={15} color="#030207" />
+                <Text style={styles.enterMicroBtnText}>Mikro Sisteme Gir 🪐</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => {
+                  setIsCertificateModalOpen(true);
+                }}
+                style={styles.viewCertBtn}
+              >
+                <Award size={15} color="#FBBF24" />
+                <Text style={styles.viewCertBtnText}>Sertifika 📜</Text>
+              </TouchableOpacity>
+            </View>
+          ) : !selectedMacroStar.is_claimed && isDemoMode ? (
             // Demo modu: Yönlendirme kartını aç
             <TouchableOpacity
               activeOpacity={0.85}
@@ -821,6 +913,20 @@ export const OurStarScreen: React.FC = () => {
               <Clock size={13} color="#FBBF24" />
               <Text style={styles.alreadyConnectedText}>
                 ⏳ Bu yıldıza bağlantı isteği gönderildi; onay bekleniyor.
+              </Text>
+            </View>
+          ) : selectedMacroStar.catalog_code?.startsWith('SOL-') ? (
+            // Güneş Sistemi Referans Cismi
+            <View style={styles.solarObjectBanner}>
+              <Sun size={14} color="#FBBF24" />
+              <Text style={styles.solarObjectText}>
+                {selectedMacroStar.catalog_code === 'SOL-SUN'
+                  ? 'Güneş Sistemimizin kalbi, tüm evrenin yaşam kaynağı ☀️'
+                  : selectedMacroStar.catalog_code === 'SOL-EARTH'
+                  ? 'Tüm anılarımızın ve sevgimizin filizlendiği mavi gezegen 🌍'
+                  : selectedMacroStar.catalog_code === 'SOL-VENUS'
+                  ? 'Aşkın ve güzelliğin simgesi, Çoban Yıldızı ✨'
+                  : 'Gecelerimizin aydınlatıcısı, sadık uydumuz Ay 🌙'}
               </Text>
             </View>
           ) : starConnections.length >= 3 ? (
@@ -1087,10 +1193,40 @@ export const OurStarScreen: React.FC = () => {
         onSelectStar={(item) => {
           setIsSearchModalOpen(false);
           setViewMode('macro');
+
+          // 1. Check if it matches a solar system body (Güneş, Dünya, Venüs, Ay)
+          const solarObj = SOLAR_SYSTEM_OBJECTS.find(
+            (s) => s.catalog_code === item.catalog_code
+          );
+          // 2. Check if already loaded in viewportStars
+          const existing = viewportStars.find(
+            (s) => s.catalog_code === item.catalog_code
+          );
+
+          const starItem: ViewportStarItem =
+            solarObj ||
+            existing || {
+              catalog_id: Number(item.entity_id) || 0,
+              catalog_code: item.catalog_code,
+              common_name: item.display_name,
+              ra: Number(item.ra),
+              dec: Number(item.dec),
+              magnitude: 2.0,
+              spectral_type: 'G' as const,
+              base_color: '#FDE68A',
+              is_claimed: true,
+              is_mine: item.is_own_star,
+              custom_name: item.display_name,
+              luminosity_level: 1.0,
+              resonance_active: false,
+            };
+
+          setSelectedMacroStar(starItem);
+
           setFlyToTarget({
             centerRa: Number(item.ra),
             centerDec: Number(item.dec),
-            zoom: 3.5,
+            zoom: 2.5,
             nonce: Date.now(),
           });
         }}
@@ -1335,6 +1471,66 @@ const styles = StyleSheet.create({
     elevation: 6,
     gap: 10,
   },
+  macroStarCardMine: {
+    borderColor: 'rgba(245, 158, 11, 0.6)',
+    backgroundColor: 'rgba(18, 14, 5, 0.95)',
+    shadowColor: '#F59E0B',
+    shadowOpacity: 0.25,
+  },
+  macroStarTitleMine: {
+    color: '#FDE68A',
+  },
+  myStarBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    backgroundColor: 'rgba(245, 158, 11, 0.25)',
+    borderWidth: 0.8,
+    borderColor: 'rgba(245, 158, 11, 0.5)',
+  },
+  myStarBadgeText: {
+    color: '#FBBF24',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  myStarActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 2,
+  },
+  enterMicroBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#F59E0B',
+    borderRadius: 12,
+    paddingVertical: 10,
+  },
+  enterMicroBtnText: {
+    color: '#030207',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  viewCertBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  viewCertBtnText: {
+    color: '#FDE68A',
+    fontSize: 13,
+    fontWeight: '700',
+  },
   macroStarHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1445,6 +1641,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     flexShrink: 1,
+  },
+  solarObjectBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(251, 191, 36, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.45)',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  solarObjectText: {
+    color: '#FDE68A',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+    flexShrink: 1,
+    lineHeight: 16,
   },
   topRightActions: {
     flexDirection: 'row',

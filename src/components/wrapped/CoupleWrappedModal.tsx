@@ -6,11 +6,11 @@ import {
   Modal,
   TouchableOpacity,
   Dimensions,
-  SafeAreaView,
   ActivityIndicator,
   Share,
   Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { Image } from "expo-image";

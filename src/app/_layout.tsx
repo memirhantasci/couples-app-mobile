@@ -1,3 +1,4 @@
+import "react-native-gesture-handler";
 import "../global.css";
 import React, { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
@@ -171,23 +172,26 @@ function RootLayoutNav() {
   );
 }
 
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { TabBarProvider } from "@/context/TabBarContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 
 export default function RootLayout() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ThemeProvider>
-          <TabBarProvider>
-            <NotificationProvider>
-              <RootLayoutNav />
-            </NotificationProvider>
-          </TabBarProvider>
-        </ThemeProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <ThemeProvider>
+            <TabBarProvider>
+              <NotificationProvider>
+                <RootLayoutNav />
+              </NotificationProvider>
+            </TabBarProvider>
+          </ThemeProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }
 

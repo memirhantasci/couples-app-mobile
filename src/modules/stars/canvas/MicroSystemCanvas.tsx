@@ -226,6 +226,11 @@ function MicroSystemCanvasSkia({
   // Resonance Path factory
   const createArc = (start: number, sweep: number) => {
     if (!isSkiaAvailable) return Skia.Path.Make();
+    if (Skia.PathBuilder) {
+      const builder = Skia.PathBuilder.Make();
+      builder.addArc({ x: -100, y: -100, width: 200, height: 200 }, start, sweep);
+      return builder.build();
+    }
     const path = Skia.Path.Make();
     path.addArc({ x: -100, y: -100, width: 200, height: 200 }, start, sweep); // scaled dynamically
     return path;
