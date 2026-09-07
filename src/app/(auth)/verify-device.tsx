@@ -16,7 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, router } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { ArrowLeft, ShieldAlert } from "lucide-react-native";
+import { ArrowLeft, ShieldAlert, Sparkles } from "lucide-react-native";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 
 const OTP_LENGTH = 6;
@@ -28,7 +28,7 @@ export default function VerifyDeviceScreen() {
     email?: string;
   }>();
 
-  const { refreshProfile, setIsDeviceAuthorized, session } = useAuth();
+  const { refreshProfile, setIsDeviceAuthorized, session, enterDemoMode } = useAuth();
   const targetEmail = email || session?.user?.email || "";
 
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""));
@@ -127,7 +127,18 @@ export default function VerifyDeviceScreen() {
       await AsyncStorage.setItem("last_user_id", userId);
       setIsDeviceAuthorized(true);
       await refreshProfile();
-      router.replace("/(tabs)/home");
+
+      const { data: userRow } = await supabase
+        .from("users")
+        .select("couple_id")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (!userRow?.couple_id) {
+        router.replace("/(setup)/pairing");
+      } else {
+        router.replace("/(tabs)/home");
+      }
     } catch (e: any) {
       setErrorMsg("Beklenmedik bir hata oluştu.");
       setIsLoading(false);
@@ -290,6 +301,32 @@ export default function VerifyDeviceScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
+          {/* ─── Beklemek İstemeyenler İçin Demo Modu ─── */}
+          <TouchableOpacity
+            onPress={() => {
+              enterDemoMode();
+              router.replace("/(tabs)/home");
+            }}
+            activeOpacity={0.85}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              backgroundColor: "rgba(155, 77, 255, 0.1)",
+              borderWidth: 1.2,
+              borderColor: "rgba(155, 77, 255, 0.35)",
+              borderRadius: 20,
+              paddingVertical: 13,
+              paddingHorizontal: 20,
+              marginBottom: 14,
+            }}
+          >
+            <Sparkles color="#9B4DFF" size={16} />
+            <Text style={{ color: "#9B4DFF", fontSize: 13.5, fontFamily: "Inter_700Bold" }}>
+              Beklemek İstemiyorum (Demo Modunda Keşfet ✨)
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </ScreenBackground>

@@ -312,6 +312,7 @@ export default function LoginScreen() {
         email: regEmail.trim().toLowerCase(),
         password: regPassword.trim(),
         options: {
+          emailRedirectTo: "couplesapp://verify",
           data: {
             username: encryptedUsername,
             display_name: encryptedDisplayName,
@@ -321,8 +322,12 @@ export default function LoginScreen() {
       });
 
       if (error) {
-        if (error.message.includes("already registered")) {
-          setErrorMsg("Bu e-posta zaten kayıtlı.");
+        if (
+          error.message.includes("already registered") ||
+          error.message.includes("Database error saving new user") ||
+          error.message.includes("unique")
+        ) {
+          setErrorMsg("Bu e-posta veya kullanıcı adı zaten kullanımda. Lütfen giriş yapın.");
         } else {
           setErrorMsg(error.message);
         }
