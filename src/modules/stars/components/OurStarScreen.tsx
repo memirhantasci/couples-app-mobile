@@ -51,6 +51,8 @@ import {
   Sparkles,
   X,
   AlertCircle,
+  Radio,
+  Search,
 } from 'lucide-react-native';
 
 import { useAuth } from '@/context/AuthContext';
@@ -67,6 +69,7 @@ import { StarConnectionModal, StarConnectionsModal } from './StarConnectionModal
 import { ConnectionRequestBadge } from './ConnectionRequestBadge';
 import { SectorHUD } from './SectorHUD';
 import { SectorAtlasModal } from './SectorAtlasModal';
+import { SearchStarModal } from './SearchStarModal';
 
 import type {
   ActiveStarConnection,
@@ -97,6 +100,7 @@ export const OurStarScreen: React.FC = () => {
   const [viewMode, setViewMode] = useState<'micro' | 'macro'>('micro');
   const [starDetails, setStarDetails] = useState<CoupleStarDetails | null>(null);
   const [exoplanets, setExoplanets] = useState<StarExoplanetRecord[]>([]);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [viewportStars, setViewportStars] = useState<ViewportStarItem[]>([]);
   const [selectedMacroStar, setSelectedMacroStar] = useState<ViewportStarItem | null>(null);
 
@@ -142,6 +146,7 @@ export const OurStarScreen: React.FC = () => {
   const [cameraRa, setCameraRa] = useState(180);
   const [cameraDec, setCameraDec] = useState(0);
   const [flyToTarget, setFlyToTarget] = useState<FlyToTarget | undefined>(undefined);
+  const [showInstructionBanner, setShowInstructionBanner] = useState(true);
 
 
   // ─── REFERANSLAR (LWW & MANAGER) ───────────────────────────────────
@@ -223,8 +228,8 @@ export const OurStarScreen: React.FC = () => {
         const details = await starService.getMyStarDetails(coupleId);
         if (!details) {
           setStarDetails(null);
-          // Yıldız yok: macro kanvas + talimat banner'ı göster
           setViewMode('macro');
+          setIsClaimModalOpen(true);
           return;
         }
 
@@ -540,13 +545,22 @@ export const OurStarScreen: React.FC = () => {
         </TouchableOpacity>
 
         <View style={styles.badgeWrapper}>
-          <StarInfoBadge
-            starDetails={starDetails}
-            luminosityOverride={luminosityOverride}
-            isResonanceActive={isResonanceActive}
-            viewMode={viewMode}
-            onPressCertificate={() => setIsCertificateModalOpen(true)}
-          />
+          {starDetails ? (
+            <StarInfoBadge
+              starDetails={starDetails}
+              luminosityOverride={luminosityOverride}
+              isResonanceActive={isResonanceActive}
+              viewMode={viewMode}
+              onPressCertificate={() => setIsCertificateModalOpen(true)}
+            />
+          ) : viewMode === 'macro' ? (
+            <SectorHUD
+              centerRa={cameraRa}
+              centerDec={cameraDec}
+              onPress={() => setIsAtlasModalOpen(true)}
+              embedded
+            />
+          ) : null}
         </View>
 
         <View style={styles.topRightActions}>
@@ -585,6 +599,15 @@ export const OurStarScreen: React.FC = () => {
               )}
             </TouchableOpacity>
           )}
+
+          <TouchableOpacity
+            activeOpacity={0.82}
+            onPress={() => setIsSearchModalOpen(true)}
+            style={styles.cosmicBagBtn}
+            accessibilityLabel="Yıldız Ara"
+          >
+            <Search size={16} color="#38BDF8" />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -662,8 +685,8 @@ export const OurStarScreen: React.FC = () => {
         )}
       </View>
 
-      {/* ─── MAKRO MOD: SEKTÖR HUD (Pusula Göstergesi) ──────────────── */}
-      {viewMode === 'macro' && (
+      {/* ─── MAKRO MOD: SEKTÖR HUD (Yalnızca tescilli yıldızı olan kullanıcı makro moddayken standalone gösterilir) ─── */}
+      {viewMode === 'macro' && starDetails !== null && (
         <SectorHUD
           centerRa={cameraRa}
           centerDec={cameraDec}
@@ -826,18 +849,34 @@ export const OurStarScreen: React.FC = () => {
         </View>
       )}
 
-      {/* ─── MAKRO MOD: YILDIZI OLMAYAN KULLANICI TALİMAT BANNER ──── */}
-      {viewMode === 'macro' && starDetails === null && !isLoading && (
-        <View style={[styles.instructionBanner, { top: insets.top + 64 }]}>
-          <Sparkles size={16} color="#FBBF24" />
-          <Text style={styles.instructionBannerText}>
-            Aşkınız için bir yıldız seçin veya üst puslaya dokunarak Atlas'ı açın ✨
-          </Text>
-        </View>
-      )}
+      {/* Instruction Banner Removed to prevent overlap */}
 
       {/* ─── ALT KONTROL BAR VE AKSİYON BUTONLARI ─────────────────────── */}
       <View style={[styles.bottomControlBar, { paddingBottom: insets.bottom + 16 }]}>
+        {/* YILDIZI OLMAYAN KULLANICI İÇİN: KOZMİK RADAR BUTONU */}
+        {starDetails === null && (
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => {
+              setClaimTargetStar(null);
+              setClaimSectorId(null);
+              setIsClaimModalOpen(true);
+            }}
+            style={styles.radarLaunchBtn}
+            accessibilityLabel="Kozmik Radarla Yıldız Bul"
+          >
+            <LinearGradient
+              colors={['#0284C7', '#4F46E5']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.radarLaunchGradient}
+            >
+              <Radio size={16} color="#FFFFFF" />
+              <Text style={styles.radarLaunchBtnText}>Kozmik Radarla Yıldız Bul ✨</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
         {/* SOL/ORTA AKSİYON 1: YENİ ANİ GEZEGENİ EKLE (Sadece Mikro Modda) */}
         {viewMode === 'micro' && starDetails && (
           <TouchableOpacity
@@ -925,10 +964,6 @@ export const OurStarScreen: React.FC = () => {
             setIsClaimModalOpen(false);
             setClaimTargetStar(null);
             setClaimSectorId(null);
-            // Yıldızı hâlâ yoksa geri git
-            if (!starDetails) {
-              handleBack();
-            }
           }}
           onSuccess={handleClaimSuccess}
         />
@@ -1011,6 +1046,20 @@ export const OurStarScreen: React.FC = () => {
           if (!coupleId || isDemoMode) return;
           setClaimSectorId(sectorId);
           setClaimTargetStar(null);
+          setIsClaimModalOpen(true);
+        }}
+      />
+      {/* ─── ARAMA MODAL'I ────────────────────────────────────────────── */}
+      <SearchStarModal
+        visible={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        onSelectStar={(catalogId) => {
+          setIsSearchModalOpen(false);
+          // Makro moduna geç ve seçilen yıldızı tescil hedefine al veya oraya git
+          setViewMode('macro');
+          // TODO: If we want to focus on the selected star, we can set target RA/DEC or open claim modal
+          setClaimTargetStar(null); // Just resetting it so user can claim
+          setClaimSectorId(null);
           setIsClaimModalOpen(true);
         }}
       />
@@ -1425,6 +1474,34 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     flexShrink: 1,
   },
+  headerSpacer: {
+    width: 40,
+    height: 40,
+  },
+  radarLaunchBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+    shadowColor: '#38BDF8',
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  radarLaunchGradient: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+  },
+  radarLaunchBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
   instructionBanner: {
     position: 'absolute',
     left: 20,
@@ -1432,13 +1509,12 @@ const styles = StyleSheet.create({
     zIndex: 22,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(15, 12, 30, 0.88)',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(15, 12, 30, 0.90)',
     borderWidth: 1,
     borderColor: 'rgba(251, 191, 36, 0.4)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
     shadowColor: '#F59E0B',
     shadowOpacity: 0.3,
@@ -1447,9 +1523,15 @@ const styles = StyleSheet.create({
   },
   instructionBannerText: {
     color: '#FCD34D',
-    fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: -0.2,
+    fontSize: 12,
+    fontWeight: '600',
+    flex: 1,
+    marginHorizontal: 8,
+  },
+  instructionCloseBtn: {
+    padding: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
 });
 

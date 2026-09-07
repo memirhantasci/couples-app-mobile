@@ -1,36 +1,17 @@
-/**
- * @file MacroSkyCanvas.tsx
- * @module modules/stars/canvas
- * @description Makro Gökyüzü 2D Harita Motoru
- *
- * Mimari İlkeler:
- * - Filtreleme Yasaktır: Backend `get_stars_in_viewport` RPC'sinden gelen
- *   ViewportStarItem[] dizisi üzerinde istemci taraflı ASLA ek filtreleme yapılmaz.
- * - HiDPI Ölçekleme: window.devicePixelRatio ile mantıksal piksel koordinatları sabitleniir.
- * - Kamera State Sahipliği: Pan/zoom sırasında React re-render darboğazını önlemek
- *   için cameraRef = useRef<SkyCameraState> kullanılır.
- * - Re-render Stabilitesi: Yeni stars prop'u geldiğinde cameraRef.current ASLA
- *   sıfırlanmaz; mevcut kamera konumu korunur.
- * - initialCamera: Yalnızca ilk mount anında (isInitializedRef.current === false) okunur.
- * - 7-Aşamalı Multi-Pass Rendering: Nebula → SectorLabel → Constellation → Connection → Glow → Core → Ring → Label
- *   Z-index katmanları birbirini asla kesmez ve context state geçişleri minimize edilir.
- * - Hit-Testing: Minimum 24px dokunmatik yarıçap; en yakın yıldız seçilir.
- * - 200ms Debounce: onBoundsChange yalnızca hareket tamamlandıktan 200ms sonra tetiklenir.
- */
-
-import React, { useCallback, useEffect, useRef } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useSharedValue, runOnJS, useDerivedValue } from 'react-native-reanimated';
+import { Inter_400Regular } from '@expo-google-fonts/inter';
+import { Sparkles } from 'lucide-react-native';
+import { Canvas, Group, Picture, Skia, useFont, isSkiaAvailable } from './skiaBridge';
 import type {
   ActiveStarConnection,
   ViewportStarItem,
   SkyCameraState,
 } from '@/modules/stars/types/star.types';
 import { CONSTELLATION_LINES } from '../config/constellationLines.data';
-import { SKY_SECTORS_LIST, getSectorByCoords } from '../config/skySectors.data';
-
-// ============================================================================
-// TİP TANIMLAMALARI
-// ============================================================================
+import { SKY_SECTORS_LIST } from '../config/skySectors.data';
 
 export interface MacroSkyBounds {
   readonly minRa: number;
@@ -41,133 +22,81 @@ export interface MacroSkyBounds {
 }
 
 export interface MacroSkyCanvasProps {
-  /** Backend'den gelen, bounding box içindeki yıldızlar. İstemci tarafında filtreleme YAPILMAZ. */
   readonly stars: ViewportStarItem[];
-  /** Yalnızca ilk mount anında okunur; sonraki re-render'larda kamera konumu korunur. */
   readonly initialCamera?: Partial<SkyCameraState>;
-  /**
-   * Ebeveyn bileşenin haritayı programatik olarak belirli bir noktaya taşımasını sağlar.
-   * (ör. "Yıldızıma Git" butonu). Değiştiğinde kamera pürüzsüz animasyonla hedefe taşınır.
-   */
   readonly targetCamera?: { readonly centerRa: number; readonly centerDec: number; readonly zoom?: number };
-  /** Hit-testing ile seçilen yıldızın tam ViewportStarItem verisini iletir. */
   readonly onSelectStar?: (star: ViewportStarItem) => void;
-  /**
-   * Pan/zoom durduğunda 200ms debounce ile tetiklenir.
-   * Üst bileşen bu bounds ile yeni Supabase RPC çağrısı yapar.
-   */
   readonly onBoundsChange?: (bounds: MacroSkyBounds) => void;
-  /** Anlık kamera durumunu üst bileşene bildirir (HUD koordinat göstergesi vb. için). */
   readonly onCameraChange?: (camera: SkyCameraState) => void;
-  /** Çiftin kabul edilmiş aktif arkadaş yıldız bağlantıları (takımyıldızı çizgileri için). */
   readonly connections?: ActiveStarConnection[];
-  /** Kullanıcının kendi yıldızının gökyüzü koordinatları (bağlantı çizgisi kaynağı). */
   readonly myStarCoords?: { readonly ra: number; readonly dec: number };
   readonly width?: number;
   readonly height?: number;
-  readonly style?: object;
-  readonly className?: string;
 }
-
-// ============================================================================
-// SABİTLER
-// ============================================================================
 
 const MIN_ZOOM = 1.0;
 const MAX_ZOOM = 8.0;
-const MIN_TOUCH_RADIUS_PX = 32;
-const BOUNDS_DEBOUNCE_MS = 200;
 
-// Tayf sınıfına göre görsel yıldız yarıçapı (mantıksal piksel)
 const STAR_BASE_RADIUS_PX: Record<string, number> = {
   O: 3.5, B: 3.2, A: 3.0, F: 2.8, G: 2.6, K: 2.4, M: 2.2,
 };
 const FALLBACK_STAR_RADIUS = 2.4;
 
-// ============================================================================
-// YARDIMCI FONKSİYONLAR
-// ============================================================================
-
-/**
- * Mevcut kamera durumundan görünür RA/Dec sınır kutusunu hesaplar.
- * 0°/360° meridyen sarmalını min_ra > max_ra şeklinde kodlar (backend uyumlu).
- */
 function computeBounds(camera: SkyCameraState): MacroSkyBounds {
   const fovDec = 60 / camera.zoom;
   const fovRa = fovDec * (camera.viewportWidth / camera.viewportHeight);
-
   let minRa = camera.centerRa - fovRa / 2;
   let maxRa = camera.centerRa + fovRa / 2;
   const minDec = Math.max(-90, camera.centerDec - fovDec / 2);
   const maxDec = Math.min(90, camera.centerDec + fovDec / 2);
 
-  // 0°/360° meridyen sarmalı: negatif ve 360°'yi aşan değerleri normalize et
   if (minRa < 0) minRa = ((minRa % 360) + 360) % 360;
   if (maxRa > 360) maxRa = maxRa % 360;
 
   return { minRa, maxRa, minDec, maxDec, zoomLevel: camera.zoom };
 }
 
-/**
- * RA/Dec astronomik koordinatlarını Canvas ekran koordinatlarına dönüştürür.
- * Δra = ((ra - centerRa + 540) mod 360) - 180 formülü ile 0°/360° dikişini zarif kapatır.
- */
 function projectToScreen(
   ra: number,
   dec: number,
   camera: SkyCameraState,
   width: number,
   height: number,
-): { x: number; y: number } {
+) {
   const fovDec = 60 / camera.zoom;
   const fovRa = fovDec * (width / height);
-
   const deltaRa = ((ra - camera.centerRa + 540) % 360) - 180;
   const deltaDec = dec - camera.centerDec;
-
   const x = width / 2 + (deltaRa / fovRa) * width;
   const y = height / 2 - (deltaDec / fovDec) * height;
-
   return { x, y };
 }
 
-/**
- * Magnitude değerini [0.0, 1.0] parlaklık alfa değerine dönüştürür.
- * Düşük magnitude = parlak yıldız.
- */
+function magnitudeToRadius(magnitude: number, spectralType: string, zoom: number): number {
+  const baseClass = spectralType.charAt(0).toUpperCase();
+  const baseRadius = STAR_BASE_RADIUS_PX[baseClass] ?? FALLBACK_STAR_RADIUS;
+  const scale = Math.max(0.5, Math.min(2.5, 1 + (3 - magnitude) * 0.2));
+  const zoomBonus = Math.min(1.4, 1 + (zoom - 1) * 0.08);
+  return baseRadius * scale * zoomBonus;
+}
+
+function hexToRgba(hex: string, alpha: number): Float32Array {
+  const clean = hex.replace('#', '');
+  let r = 255, g = 255, b = 255;
+  if (clean.length >= 6) {
+    r = parseInt(clean.substring(0, 2), 16);
+    g = parseInt(clean.substring(2, 4), 16);
+    b = parseInt(clean.substring(4, 6), 16);
+  }
+  return Skia.Color(`rgba(${r}, ${g}, ${b}, ${alpha})`);
+}
+
 function magnitudeToAlpha(magnitude: number, luminosity: number): number {
-  // Magnitude -2 (çok parlak) ile 9 (sönük) arasında normalize et
   const normalized = Math.max(0, Math.min(1, 1 - (magnitude + 2) / 11));
   return 0.4 + normalized * 0.6 * luminosity;
 }
 
-/**
- * Magnitude değerini görünür yıldız yarıçapına (px) dönüştürür.
- */
-function magnitudeToRadius(magnitude: number, spectralType: string, zoom: number): number {
-  const baseClass = spectralType.charAt(0).toUpperCase();
-  const baseRadius = STAR_BASE_RADIUS_PX[baseClass] ?? FALLBACK_STAR_RADIUS;
-
-  // Parlak yıldızlar daha büyük; magnitude ne kadar düşükse o kadar büyük
-  const scale = Math.max(0.5, Math.min(2.5, 1 + (3 - magnitude) * 0.2));
-  const zoomBonus = Math.min(1.4, 1 + (zoom - 1) * 0.08);
-
-  return baseRadius * scale * zoomBonus;
-}
-
-// ============================================================================
-// ANA BILEŞEN
-// ============================================================================
-
-/**
- * Makro Gökyüzü 2D Canvas Render Motoru.
- *
- * React Native ortamında Canvas yerine HTML <canvas> elemanı kullanmak için
- * Expo SDK 57+ ile birlikte gelen expo-webview veya React Native Web gerektiren
- * senaryolarda `Platform.select` ile uygun implementasyon seçilebilir.
- * Bu dosya, Web (expo web) ve web tabanlı test ortamları için optimize edilmiştir.
- */
-export function MacroSkyCanvas({
+function MacroSkyCanvasSkia({
   stars,
   initialCamera,
   targetCamera,
@@ -179,11 +108,13 @@ export function MacroSkyCanvas({
   width = 390,
   height = 844,
 }: MacroSkyCanvasProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  // Font loading from the bundle
+  const font = useFont(Inter_400Regular, 10);
+  const sectorFont = useFont(Inter_400Regular, 14);
 
-  // Kamera durumu useRef ile yönetilir; React re-render'ını tetiklemez ve
-  // yeni stars prop'u geldiğinde (onBoundsChange → RPC → yeni veri) ASLA sıfırlanmaz.
-  const cameraRef = useRef<SkyCameraState>({
+  // Camera State (Committed for Picture)
+  const [camera, setCamera] = useState<SkyCameraState>({
     centerRa: initialCamera?.centerRa ?? 180,
     centerDec: initialCamera?.centerDec ?? 0,
     zoom: Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, initialCamera?.zoom ?? 1.0)),
@@ -193,582 +124,366 @@ export function MacroSkyCanvas({
     viewportHeight: height,
   });
 
-  // initialCamera yalnızca ilk mount anında okunur. Sonraki prop değişimlerinde
-  // kamera konumu korunur — yeni stars verisi geldiğinde pan/zoom kaybı OLMAZ.
-  const isInitializedRef = useRef(false);
+  // Reanimated Shared Values for Gestures (UI Thread)
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const scale = useSharedValue(1);
 
-  // Yıldızların hesaplanmış ekran koordinatları; render'da referans için kullanılır.
-  // Obje tahsisi render döngüsü dışında yapılır.
-  const screenPositionsRef = useRef<{ x: number; y: number; radius: number }[]>([]);
+  const savedTranslateX = useSharedValue(0);
+  const savedTranslateY = useSharedValue(0);
+  const savedScale = useSharedValue(1);
 
-  // Debounce timer referansı
-  const boundsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // rAF coalesce: Pan/wheel sırasında aynı frame'de birden fazla renderFrame çağrısını önler.
-  // Tüm senkron render istekleri bir sonraki animasyon frame'ine ertelenir.
-  const rafPendingRef = useRef<number | null>(null);
-
-  // Sürükleme durum referansı
-  const dragRef = useRef<{
-    active: boolean;
-    startX: number;
-    startY: number;
-    startClientX: number;
-    startClientY: number;
-    startRa: number;
-    startDec: number;
-  }>({ active: false, startX: 0, startY: 0, startClientX: 0, startClientY: 0, startRa: 180, startDec: 0 });
-
-  // -------------------------------------------------------------------
-  // BOUNDS DEĞİŞİMİ DEBOUNCE YARDIMCISI
-  // -------------------------------------------------------------------
-  const fireBoundsChange = useCallback(() => {
-    if (!onBoundsChange) return;
-    if (boundsDebounceRef.current) clearTimeout(boundsDebounceRef.current);
-    boundsDebounceRef.current = setTimeout(() => {
-      onBoundsChange(computeBounds(cameraRef.current));
-    }, BOUNDS_DEBOUNCE_MS);
-  }, [onBoundsChange]);
-
-  // -------------------------------------------------------------------
-  // HEDEF KAMERA DEĞİŞİMİ (Programatik Odaklama)
-  // -------------------------------------------------------------------
-  useEffect(() => {
-    if (!targetCamera) return;
-    cameraRef.current = {
-      ...cameraRef.current,
-      centerRa: targetCamera.centerRa,
-      centerDec: targetCamera.centerDec,
-      zoom: targetCamera.zoom ?? cameraRef.current.zoom,
-    };
-    onCameraChange?.(cameraRef.current);
-    fireBoundsChange();
-    renderFrame();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetCamera?.centerRa, targetCamera?.centerDec, targetCamera?.zoom]);
-
-  // -------------------------------------------------------------------
-  // 4-AŞAMALI MULTI-PASS RENDER MOTORU
-  // -------------------------------------------------------------------
-  /**
-   * rAF Kuyruğu: Aynı event tick'inde birden fazla render isteğini tek bir
-   * animasyon frame'ine coalesce eder. Pan ve zoom sırasında özellikle kritik:
-   * nebula (24 sektör) + takımyıldızı (31 segment) geçişlerinin her pointermove'da
-   * senkron yeniden hesaplanmasını önler ve düşük uçlu cihazlarda FPS'yi korur.
-   */
-  function scheduleRender() {
-    if (rafPendingRef.current !== null) return; // zaten kuyruğa alınmış
-    rafPendingRef.current = requestAnimationFrame(() => {
-      rafPendingRef.current = null;
-      renderFrame();
+  // Commit Gesture to JS Thread
+  const commitGesture = useCallback((tx: number, ty: number, s: number) => {
+    setCamera((prev) => {
+       const fovDec = 60 / prev.zoom;
+       const fovRa = fovDec * (width / height);
+       
+       // Calculate new RA and Dec
+       const dRa = -(tx / width) * fovRa;
+       const dDec = (ty / height) * fovDec;
+       
+       let newRa = (prev.centerRa + dRa) % 360;
+       if (newRa < 0) newRa += 360;
+       const newDec = Math.max(-90, Math.min(90, prev.centerDec + dDec));
+       
+       const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev.zoom * s));
+       
+       const newCamera = { ...prev, centerRa: newRa, centerDec: newDec, zoom: newZoom };
+       
+       // Notify parent
+       onBoundsChange?.(computeBounds(newCamera));
+       onCameraChange?.(newCamera);
+       
+       return newCamera;
     });
-  }
+    
+    // Reset Shared Values for the newly recorded picture
+    translateX.value = 0;
+    translateY.value = 0;
+    scale.value = 1;
+    savedTranslateX.value = 0;
+    savedTranslateY.value = 0;
+    savedScale.value = 1;
+  }, [width, height, onBoundsChange, onCameraChange, translateX, translateY, scale, savedTranslateX, savedTranslateY, savedScale]);
 
-  function renderFrame() {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  // UI Thread Gesture Handlers
+  const pan = Gesture.Pan()
+    .onUpdate((e) => {
+      translateX.value = savedTranslateX.value + e.translationX;
+      translateY.value = savedTranslateY.value + e.translationY;
+    })
+    .onEnd(() => {
+      savedTranslateX.value = translateX.value;
+      savedTranslateY.value = translateY.value;
+      runOnJS(commitGesture)(translateX.value, translateY.value, scale.value);
+    });
 
-    const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+  const pinch = Gesture.Pinch()
+    .onUpdate((e) => {
+      scale.value = savedScale.value * e.scale;
+    })
+    .onEnd(() => {
+      savedScale.value = scale.value;
+      runOnJS(commitGesture)(translateX.value, translateY.value, scale.value);
+    });
 
-    // HiDPI: Canvas piksel boyutunu cihaz DPR'ı ile büyüt, mantıksal koordinatları sabitle
-    const logicalW = width;
-    const logicalH = height;
+  const composed = Gesture.Simultaneous(pan, pinch);
 
-    if (canvas.width !== Math.floor(logicalW * dpr) || canvas.height !== Math.floor(logicalH * dpr)) {
-      canvas.width = Math.floor(logicalW * dpr);
-      canvas.height = Math.floor(logicalH * dpr);
-    }
+  // SkPicture Recording (Triggered when `stars` array changes or `camera` commits)
+  const picture = useMemo(() => {
+    if (!font || !sectorFont) return null;
+    const recorder = Skia.PictureRecorder();
+    const canvas = recorder.beginRecording(Skia.XYWHRect(0, 0, width, height));
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.save();
-    ctx.scale(dpr, dpr);
-
-    // Gökyüzü arka planı
-    ctx.clearRect(0, 0, logicalW, logicalH);
-    const bgGradient = ctx.createRadialGradient(
-      logicalW / 2, logicalH / 2, 0,
-      logicalW / 2, logicalH / 2, Math.max(logicalW, logicalH) * 0.7,
+    // Fill Background
+    const bgPaint = Skia.Paint();
+    bgPaint.setShader(
+      Skia.Shader.MakeRadialGradient(
+        Skia.Point(width / 2, height / 2),
+        Math.max(width, height) * 0.7,
+        [Skia.Color('#0A0F1E'), Skia.Color('#020408')],
+        null,
+        3 // TileMode.Clamp
+      )
     );
-    bgGradient.addColorStop(0, '#0A0F1E');
-    bgGradient.addColorStop(1, '#020408');
-    ctx.fillStyle = bgGradient;
-    ctx.fillRect(0, 0, logicalW, logicalH);
+    canvas.drawRect(Skia.XYWHRect(0, 0, width, height), bgPaint);
 
-    const camera = cameraRef.current;
+    // ─── PASS 4.0: Dünya / Güneş Sistemi Göstergesi ─────────────────
+    const earthPos = projectToScreen(0, 0, camera, width, height);
+    if (earthPos.x > -50 && earthPos.x < width + 50 && earthPos.y > -50 && earthPos.y < height + 50) {
+      const earthGlow = Skia.Paint();
+      earthGlow.setColor(Skia.Color('rgba(56, 189, 248, 0.9)'));
+      earthGlow.setMaskFilter(Skia.MaskFilter.MakeBlur(0, 8, true));
+      canvas.drawCircle(earthPos.x, earthPos.y, 4.5, earthGlow);
 
-    // Ekran koordinatlarını hesapla ve ref'te sakla (tahsis render dışında)
-    if (screenPositionsRef.current.length !== stars.length) {
-      screenPositionsRef.current = new Array(stars.length);
-    }
-    for (let i = 0; i < stars.length; i++) {
-      const star = stars[i];
-      const { x, y } = projectToScreen(star.ra, star.dec, camera, logicalW, logicalH);
-      const radius = magnitudeToRadius(star.magnitude, star.spectral_type, camera.zoom);
-      screenPositionsRef.current[i] = { x, y, radius };
-    }
+      const earthCore = Skia.Paint();
+      earthCore.setColor(Skia.Color('#38BDF8'));
+      canvas.drawCircle(earthPos.x, earthPos.y, 4.5, earthCore);
+      
+      const dot = Skia.Paint();
+      dot.setColor(Skia.Color('#FFFFFF'));
+      canvas.drawCircle(earthPos.x, earthPos.y, 2, dot);
 
-    // ─── PASS N-2: Sektör Nebula Gradyanları ──────────────────────────
-    // Kameranın FOV'una giren sektörlerin nebula renkleriyle hafif radyal gradyan.
-    // Performans: Yalnızca görünür sektörler çizilir (max ~4-6 aynı anda).
-    const currentFovDec = 60 / camera.zoom;
-    const currentFovRa = currentFovDec * (logicalW / logicalH);
-    for (const sector of SKY_SECTORS_LIST) {
-      const sCenter = projectToScreen(
-        sector.center.ra, sector.center.dec, camera, logicalW, logicalH,
-      );
-      // Sektör merkezi ekranın 2x genişliği dışındaysa atla
-      if (
-        sCenter.x < -logicalW || sCenter.x > logicalW * 2 ||
-        sCenter.y < -logicalH || sCenter.y > logicalH * 2
-      ) continue;
-
-      const nebulaRadius = Math.max(logicalW, logicalH) * (0.25 / camera.zoom);
-      const nGrad = ctx.createRadialGradient(
-        sCenter.x, sCenter.y, 0,
-        sCenter.x, sCenter.y, nebulaRadius,
-      );
-      nGrad.addColorStop(0, sector.nebulaPalette[1] + '12'); // çok sönük merkez
-      nGrad.addColorStop(0.6, sector.nebulaPalette[0] + '08');
-      nGrad.addColorStop(1, 'transparent');
-      ctx.fillStyle = nGrad;
-      ctx.beginPath();
-      ctx.arc(sCenter.x, sCenter.y, nebulaRadius, 0, Math.PI * 2);
-      ctx.fill();
+      const earthLabelPaint = Skia.Paint();
+      earthLabelPaint.setColor(Skia.Color('#93C5FD'));
+      canvas.drawText('Dünya', earthPos.x - 14, earthPos.y + 18, earthLabelPaint, font);
     }
 
-    // ─── PASS N-1.5: Sektör Merkez Etiketleri ─────────────────────────
-    // Yalnızca zoom < 1.8 iken (makro görünüm) sektör merkez koordinatında
-    // sektör sembolü ve kısa adı gösterilir. Yüksek zoom'da gürültü yaratmaz.
+    // PASS 1: Nebula Gradients
+    SKY_SECTORS_LIST.forEach((sector) => {
+       const center = projectToScreen(sector.center.ra, sector.center.dec, camera, width, height);
+       const radius = magnitudeToRadius(-2, 'O', camera.zoom) * 20;
+       const color = sector.nebulaPalette?.[0] ?? '#FFFFFF';
+       
+       const paint = Skia.Paint();
+       paint.setBlendMode(12); // Screen
+       paint.setShader(
+         Skia.Shader.MakeRadialGradient(
+           Skia.Point(center.x, center.y),
+           radius,
+           [hexToRgba(color, 0.25), hexToRgba(color, 0.08), hexToRgba(color, 0)],
+           null,
+           3
+         )
+       );
+       canvas.drawRect(Skia.XYWHRect(center.x - radius, center.y - radius, radius * 2, radius * 2), paint);
+    });
+
+    // PASS 2: Sector Labels (Zoom < 1.8)
     if (camera.zoom < 1.8) {
-      ctx.save();
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      for (const sector of SKY_SECTORS_LIST) {
-        const sCenter = projectToScreen(sector.center.ra, sector.center.dec, camera, logicalW, logicalH);
-        // Ekran dışındaysa atla
-        if (
-          sCenter.x < -60 || sCenter.x > logicalW + 60 ||
-          sCenter.y < -60 || sCenter.y > logicalH + 60
-        ) continue;
-
-        const labelAlpha = Math.max(0, Math.min(0.75, (1.8 - camera.zoom) * 1.2));
-
-        // Sembol (emoji)
-        ctx.globalAlpha = labelAlpha;
-        ctx.font = '18px sans-serif';
-        ctx.shadowColor = 'rgba(0,0,0,0.8)';
-        ctx.shadowBlur = 8;
-        ctx.fillText(sector.symbol, sCenter.x, sCenter.y - 12);
-
-        // Sektör kısa adı
-        ctx.font = '500 9px -apple-system, "SF Pro Text", "Inter", sans-serif';
-        ctx.fillStyle = sector.themeColor;
-        ctx.globalAlpha = labelAlpha * 0.9;
-        ctx.fillText(sector.name, sCenter.x, sCenter.y + 8);
-
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur = 0;
-      }
-      ctx.globalAlpha = 1.0;
-      ctx.restore();
-    }
-
-    // ─── PASS N-1: Takımyıldızı Çizgileri ─────────────────────────────
-    // Gerçek Hipparcos koordinatlarından türetilen 7 takımyıldızının çizgi segmentleri.
-    ctx.save();
-    ctx.lineWidth = 0.6;
-    ctx.globalAlpha = 0.25;
-    for (const line of CONSTELLATION_LINES) {
-      const fromPos = projectToScreen(line.from.ra, line.from.dec, camera, logicalW, logicalH);
-      const toPos = projectToScreen(line.to.ra, line.to.dec, camera, logicalW, logicalH);
-
-      // Her iki uç da ekran dışındaysa atla
-      const pad = 100;
-      if (
-        (fromPos.x < -pad || fromPos.x > logicalW + pad || fromPos.y < -pad || fromPos.y > logicalH + pad) &&
-        (toPos.x < -pad || toPos.x > logicalW + pad || toPos.y < -pad || toPos.y > logicalH + pad)
-      ) continue;
-
-      // Sektör temasına uygun renk (fallback beyaz)
-      const sectorConfig = SKY_SECTORS_LIST.find(s => s.id === line.constellationId);
-      const lineColor = sectorConfig?.themeColor ?? '#FFFFFF';
-
-      ctx.beginPath();
-      ctx.moveTo(fromPos.x, fromPos.y);
-      ctx.lineTo(toPos.x, toPos.y);
-      ctx.strokeStyle = lineColor;
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    // ─── PASS 0: Bağlantı Çizgileri (En altta, yıldızların arkasında) ──
-    if (myStarCoords && connections && connections.length > 0) {
-      const myPos = projectToScreen(myStarCoords.ra, myStarCoords.dec, camera, logicalW, logicalH);
-      const margin = 200;
-      const myInView =
-        myPos.x >= -margin && myPos.x <= logicalW + margin &&
-        myPos.y >= -margin && myPos.y <= logicalH + margin;
-
-      connections.forEach((conn) => {
-        const otherPos = projectToScreen(conn.other_star_ra, conn.other_star_dec, camera, logicalW, logicalH);
-        const otherInView =
-          otherPos.x >= -margin && otherPos.x <= logicalW + margin &&
-          otherPos.y >= -margin && otherPos.y <= logicalH + margin;
-
-        if (!myInView && !otherInView) return;
-
-        ctx.save();
-        const gradient = ctx.createLinearGradient(myPos.x, myPos.y, otherPos.x, otherPos.y);
-        gradient.addColorStop(0, 'rgba(245, 158, 11, 0.6)'); // altın
-        gradient.addColorStop(1, 'rgba(168, 85, 247, 0.6)'); // mor
-
-        ctx.beginPath();
-        ctx.moveTo(myPos.x, myPos.y);
-        ctx.lineTo(otherPos.x, otherPos.y);
-        ctx.strokeStyle = gradient;
-        ctx.lineWidth = 0.8;
-        ctx.setLineDash([3, 6]); // kesikli — takımyıldızı hissi
-        ctx.stroke();
-        ctx.setLineDash([]); // ← sıfırla
-
-        // Bağlı yıldız düğüm hare rozeti
-        ctx.strokeStyle = 'rgba(168, 85, 247, 0.4)';
-        ctx.lineWidth = 1.0;
-        ctx.beginPath();
-        ctx.arc(otherPos.x, otherPos.y, 6, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.restore();
+      SKY_SECTORS_LIST.forEach((sector) => {
+        const center = projectToScreen(sector.center.ra, sector.center.dec, camera, width, height);
+        const text = `${sector.symbol} ${sector.name}`;
+        const textWidth = sectorFont.getTextWidth(text);
+        const paint = Skia.Paint();
+        paint.setColor(Skia.Color('rgba(255,255,255,0.4)'));
+        canvas.drawText(text, center.x - textWidth / 2, center.y + 10, paint, sectorFont);
       });
     }
 
-    // ─── PASS 1: Işımalar (Glows) ─────────────────────────────────────
-    // is_claimed === true olan tüm yıldızlar için arka ışıma çizilir.
-    // Bu geçiş önce yapılır; böylece diğer katmanlar (core, ring, label)
-    // asla ışıma tarafından örtülmez.
-    ctx.globalCompositeOperation = 'lighter';
-    for (let i = 0; i < stars.length; i++) {
-      const star = stars[i];
-      if (!star.is_claimed) continue;
+    // PASS 3: Constellation Lines
+    const constPaint = Skia.Paint();
+    constPaint.setColor(Skia.Color('rgba(255, 255, 255, 0.15)'));
+    constPaint.setStrokeWidth(1);
+    constPaint.setStyle(1); // Stroke
 
-      const { x, y, radius } = screenPositionsRef.current[i];
-      const glowRadius = radius + 16;
+    CONSTELLATION_LINES.forEach((line) => {
+      const p1 = projectToScreen(line.from.ra, line.from.dec, camera, width, height);
+      const p2 = projectToScreen(line.to.ra, line.to.dec, camera, width, height);
+      const path = Skia.Path.Make();
+      path.moveTo(p1.x, p1.y);
+      path.lineTo(p2.x, p2.y);
+      canvas.drawPath(path, constPaint);
+    });
 
-      const baseColor = star.base_color || '#9DB4FF';
-      const luminosity = star.luminosity_level ?? 1.0;
+    // PASS 4: Active Connections
+    const connPaint = Skia.Paint();
+    connPaint.setColor(Skia.Color('rgba(251, 191, 36, 0.6)'));
+    connPaint.setStrokeWidth(2);
+    connPaint.setStyle(1); // Stroke
+    const connBlur = Skia.MaskFilter.MakeBlur(0, 4, true); // Normal blur
+    if (connBlur) connPaint.setMaskFilter(connBlur);
 
-      // Rezonans aktifse altın/eflatun, yoksa yıldız rengiyle ışıma
-      const innerColor = star.resonance_active
-        ? `rgba(245, 158, 11, ${0.4 * luminosity})`
-        : `rgba(${hexToRgb(baseColor)}, ${0.3 * luminosity})`;
-      const outerColor = star.resonance_active
-        ? `rgba(168, 85, 247, ${0.15 * luminosity})`
-        : `rgba(${hexToRgb(baseColor)}, 0)`;
+    connections.forEach((conn) => {
+      if (!myStarCoords || !conn.other_star_ra || !conn.other_star_dec) return;
+      const p1 = projectToScreen(myStarCoords.ra, myStarCoords.dec, camera, width, height);
+      const p2 = projectToScreen(conn.other_star_ra, conn.other_star_dec, camera, width, height);
+      const path = Skia.Path.Make();
+      path.moveTo(p1.x, p1.y);
+      path.lineTo(p2.x, p2.y);
+      canvas.drawPath(path, connPaint);
+    });
 
-      const glow = ctx.createRadialGradient(x, y, 0, x, y, glowRadius);
-      glow.addColorStop(0, innerColor);
-      glow.addColorStop(1, outerColor);
+    // STAR PASSES (Glow + Core)
+    const starGlowPaint = Skia.Paint();
+    starGlowPaint.setColor(Skia.Color('white')); // updated per star
+    const glowFilter = Skia.MaskFilter.MakeBlur(0, 3, true);
+    if (glowFilter) starGlowPaint.setMaskFilter(glowFilter);
 
-      ctx.beginPath();
-      ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
-      ctx.fillStyle = glow;
-      ctx.fill();
-    }
-    ctx.globalCompositeOperation = 'source-over';
+    const starCorePaint = Skia.Paint();
 
-    // ─── PASS 2: Çekirdekler (Cores) ──────────────────────────────────
-    // Tüm yıldızlar için ana çekirdek dairesi çizilir.
-    for (let i = 0; i < stars.length; i++) {
-      const star = stars[i];
-      const { x, y, radius } = screenPositionsRef.current[i];
-      const alpha = magnitudeToAlpha(star.magnitude, star.luminosity_level ?? 1.0);
-      const baseColor = star.base_color || '#FFFFFF';
+    stars.forEach(star => {
+       const pos = projectToScreen(star.ra, star.dec, camera, width, height);
+       const r = magnitudeToRadius(star.magnitude, star.spectral_type || 'G', camera.zoom);
+       const alpha = magnitudeToAlpha(star.magnitude, 1.0);
+       
+       // PASS 5: Glow
+       starGlowPaint.setColor(hexToRgba('#FFFFFF', alpha * 0.4));
+       canvas.drawCircle(pos.x, pos.y, r * 2.5, starGlowPaint);
 
-      ctx.save();
-      ctx.globalAlpha = alpha;
+       // PASS 6: Core
+       starCorePaint.setColor(hexToRgba('#FFFFFF', alpha));
+       canvas.drawCircle(pos.x, pos.y, r, starCorePaint);
+    });
 
-      // Çekirdek radyal gradyanı: merkezde parlak, kenarda yıldız rengi
-      const coreGrad = ctx.createRadialGradient(x, y, 0, x, y, radius);
-      coreGrad.addColorStop(0, '#FFFFFF');
-      coreGrad.addColorStop(0.4, baseColor);
-      coreGrad.addColorStop(1, `rgba(${hexToRgb(baseColor)}, 0.6)`);
+    return recorder.finishRecordingAsPicture();
+  }, [stars, camera, width, height, font, sectorFont, connections, myStarCoords]);
 
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.fillStyle = coreGrad;
-      ctx.fill();
-
-      ctx.restore();
-    }
-
-    // ─── PASS 3: Odak Halkaları (Focus Rings) ─────────────────────────
-    // Yalnızca is_mine === true olan yıldızlar için altın hedefleme halkası.
-    // lineDash ayarının diğer çizimleri etkilememesi için save/restore gereklidir.
-    ctx.save();
-    ctx.strokeStyle = '#F59E0B'; // Altın sarısı
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([3, 4]);
-
-    for (let i = 0; i < stars.length; i++) {
-      const star = stars[i];
-      if (!star.is_mine) continue;
-
-      const { x, y, radius } = screenPositionsRef.current[i];
-      ctx.beginPath();
-      ctx.arc(x, y, radius + 3, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-
-    // lineDash'i sıfırla — sonraki hiçbir çizim kesik görünmez
-    ctx.setLineDash([]);
-    ctx.restore();
-
-    // ─── PASS 4: İsim Etiketleri (Name Tags) ──────────────────────────
-    // Yalnızca is_mine === true ve custom_name var olan yıldızlar için.
-    ctx.save();
-    ctx.font = '600 11px -apple-system, "SF Pro Text", "Inter", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-
-    for (let i = 0; i < stars.length; i++) {
-      const star = stars[i];
-      if (!star.is_mine || !star.custom_name) continue;
-
-      const { x, y, radius } = screenPositionsRef.current[i];
-      const labelY = y + radius + 14;
-
-      // Metin gölgesi (okunabilirlik için koyu arka plan)
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
-      ctx.shadowBlur = 6;
-      ctx.fillStyle = '#F59E0B';
-      ctx.fillText(star.custom_name, x, labelY);
-
-      // Gölgeyi temizle
-      ctx.shadowColor = 'transparent';
-      ctx.shadowBlur = 0;
-    }
-
-    ctx.restore();
-
-    // ─── PASS 4.1: Bağlı Yıldız İsim Etiketleri ──────────────────────
-    if (connections.length > 0) {
-      ctx.save();
-      ctx.font = '600 10px -apple-system, "SF Pro Text", "Inter", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      for (let i = 0; i < connections.length; i++) {
-        const conn = connections[i];
-        const { x, y } = projectToScreen(conn.other_star_ra, conn.other_star_dec, camera, logicalW, logicalH);
-        if (x < -50 || x > logicalW + 50 || y < -50 || y > logicalH + 50) continue;
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
-        ctx.shadowBlur = 5;
-        ctx.fillStyle = 'rgba(244, 114, 182, 0.95)';
-        ctx.fillText(`🔗 ${conn.other_star_name}`, x, y + 16);
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur = 0;
-      }
-      ctx.restore();
-    }
-
-    // Restore DPR scale
-    ctx.restore();
+  if (!font || !sectorFont) {
+    return (
+      <View style={[styles.container, { width, height, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator color="#FBBF24" />
+      </View>
+    );
   }
 
-  // -------------------------------------------------------------------
-  // HIT-TESTING: Dokunma → En Yakın Yıldız Seçimi
-  // -------------------------------------------------------------------
-  function findNearestStar(touchX: number, touchY: number): ViewportStarItem | null {
-    let minDist = Infinity;
-    let nearest: ViewportStarItem | null = null;
-
-    for (let i = 0; i < stars.length; i++) {
-      const { x, y, radius } = screenPositionsRef.current[i];
-      const touchRadius = Math.max(radius + MIN_TOUCH_RADIUS_PX, MIN_TOUCH_RADIUS_PX);
-      const dx = touchX - x;
-      const dy = touchY - y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      if (dist <= touchRadius && dist < minDist) {
-        minDist = dist;
-        nearest = stars[i];
-      }
-    }
-    return nearest;
-  }
-
-  // -------------------------------------------------------------------
-  // GESTURELER: PAN & ZOOM
-  // -------------------------------------------------------------------
-  function handlePointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
-    const scaleX = width / (rect.width || width);
-    const scaleY = height / (rect.height || height);
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
-
-    dragRef.current = {
-      active: true,
-      startX: x,
-      startY: y,
-      startClientX: e.clientX,
-      startClientY: e.clientY,
-      startRa: cameraRef.current.centerRa,
-      startDec: cameraRef.current.centerDec,
-    };
-  }
-
-  function handlePointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
-    if (!dragRef.current.active) return;
-
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
-    const scaleX = width / (rect.width || width);
-    const scaleY = height / (rect.height || height);
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
-
-    const camera = cameraRef.current;
-    const fovDec = 60 / camera.zoom;
-    const fovRa = fovDec * (width / height);
-
-    const deltaRaDeg = -((x - dragRef.current.startX) / width) * fovRa;
-    const deltaDecDeg = ((y - dragRef.current.startY) / height) * fovDec;
-
-    let newRa = ((dragRef.current.startRa + deltaRaDeg) % 360 + 360) % 360;
-    const newDec = Math.max(-85, Math.min(85, dragRef.current.startDec + deltaDecDeg));
-
-    cameraRef.current = { ...camera, centerRa: newRa, centerDec: newDec };
-    onCameraChange?.(cameraRef.current);
-    scheduleRender(); // rAF ile coalesce — her pointermove'da senkron render YOK
-  }
-
-  function handlePointerUp(e: React.PointerEvent<HTMLCanvasElement>) {
-    if (!dragRef.current.active) return;
-
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
-    const scaleX = width / (rect.width || width);
-    const scaleY = height / (rect.height || height);
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
-    const dx = e.clientX - dragRef.current.startClientX;
-    const dy = e.clientY - dragRef.current.startClientY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-
-    // 12px hareket eşiğinin altında tap sayılır → yıldız seç
-    if (distance < 12) {
-      const star = findNearestStar(x, y);
-      if (star) onSelectStar?.(star);
-    }
-
-    dragRef.current.active = false;
-    fireBoundsChange();
-  }
-
-  function handleWheel(e: React.WheelEvent<HTMLCanvasElement>) {
-    e.preventDefault();
-    const zoomFactor = e.deltaY > 0 ? 0.85 : 1.18;
-    const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, cameraRef.current.zoom * zoomFactor));
-    cameraRef.current = { ...cameraRef.current, zoom: newZoom };
-    onCameraChange?.(cameraRef.current);
-    scheduleRender(); // rAF ile coalesce — birden fazla wheel tick tek frame'e indirilir
-    fireBoundsChange();
-  }
-
-  // -------------------------------------------------------------------
-  // ETKİLER (EFFECTS)
-  // -------------------------------------------------------------------
-
-  // İlk mount: kamera state'i başlat ve ilk render
-  useEffect(() => {
-    if (!isInitializedRef.current) {
-      isInitializedRef.current = true;
-      // initialCamera zaten cameraRef.current'ta; bounds değişikliğini bildir
-      if (onBoundsChange) {
-        onBoundsChange(computeBounds(cameraRef.current));
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // stars veya connections prop'u güncellendiğinde canvas yeniden çizilir.
-  // cameraRef.current DEĞİŞTİRİLMEZ — kamera konumu korunur.
-  useEffect(() => {
-    renderFrame();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stars, connections, myStarCoords]);
-
-  // Boyut değişikliklerinde yeniden çiz
-  useEffect(() => {
-    cameraRef.current = { ...cameraRef.current, viewportWidth: width, viewportHeight: height };
-    renderFrame();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [width, height]);
-
-  // Cleanup
-  useEffect(() => {
-    return () => {
-      if (boundsDebounceRef.current) {
-        clearTimeout(boundsDebounceRef.current);
-      }
-      if (rafPendingRef.current !== null) {
-        cancelAnimationFrame(rafPendingRef.current);
-      }
-    };
-  }, []);
-
-  // -------------------------------------------------------------------
-  // RENDER
-  // -------------------------------------------------------------------
-
-  // React Native / Expo ortamında Platform.OS === 'web' ise <canvas> render edilir.
-  // Native build'de bu bileşen ayrı bir implementasyona bağlanmalıdır.
-  if (Platform.OS !== 'web') {
-    // Placeholder: Native implementasyon için expo-skia veya react-native-canvas kullanılabilir.
-    return <View style={[styles.container, { width, height }]} />;
-  }
+  const transform = useDerivedValue(() => [
+    { translateX: translateX.value },
+    { translateY: translateY.value },
+    { scale: scale.value },
+  ]);
 
   return (
     <View style={[styles.container, { width, height }]}>
-      <canvas
-        ref={canvasRef}
-        style={{ width, height, display: 'block', touchAction: 'none' }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
-        onWheel={handleWheel}
-      />
+       <GestureDetector gesture={composed}>
+          <Animated.View style={{ width, height }}>
+             <Canvas style={{ flex: 1 }}>
+                <Group transform={transform}>
+                   {picture && <Picture picture={picture} />}
+                </Group>
+             </Canvas>
+          </Animated.View>
+       </GestureDetector>
     </View>
   );
 }
 
-// ============================================================================
-// YARDIMCI: HEX'TEN RGB'YE DÖNÜŞÜM
-// ============================================================================
-
-/**
- * '#RRGGBB' formatındaki hex renk kodunu 'r, g, b' string'ine çevirir.
- * Canvas createRadialGradient içinde `rgba(${hexToRgb(color)}, alpha)` olarak kullanılır.
- */
-function hexToRgb(hex: string): string {
-  const clean = hex.replace('#', '');
-  if (clean.length < 6) return '255, 255, 255';
-  const r = parseInt(clean.substring(0, 2), 16);
-  const g = parseInt(clean.substring(2, 4), 16);
-  const b = parseInt(clean.substring(4, 6), 16);
-  return `${r}, ${g}, ${b}`;
+function MacroSkyCanvasFallback({
+  stars,
+  width = 390,
+  height = 844,
+}: MacroSkyCanvasProps) {
+  return (
+    <View style={[styles.container, styles.fallbackContainer, { width, height }]}>
+      <View style={styles.fallbackCard}>
+        <View style={styles.fallbackIconBadge}>
+          <Sparkles size={28} color="#FBBF24" />
+        </View>
+        <Text style={styles.fallbackTitle}>Makro Gökyüzü Haritası</Text>
+        <Text style={styles.fallbackSubtitle}>Skia Graphics Engine</Text>
+        <Text style={styles.fallbackDescription}>
+          10.000+ yıldız ve nebulayı 60 FPS akıcılıkla çizmek için donanım hızlandırmalı Skia C++ motoru kullanılır.
+        </Text>
+        <View style={styles.fallbackNoticeBox}>
+          <Text style={styles.fallbackNoticeTitle}>Development Build Gereklidir</Text>
+          <Text style={styles.fallbackNoticeText}>
+            Projenizdeki özel native modüller (RevenueCat, Ads, QuickCrypto vb.) nedeniyle bu haritayı tam performanslı görüntülemek için terminalden uygulamayı derleyin:
+          </Text>
+          <View style={styles.fallbackCodeBadge}>
+            <Text style={styles.fallbackCodeText}>npx expo run:android</Text>
+          </View>
+        </View>
+        <Text style={styles.fallbackMetaText}>
+          Yüklü Yıldız: {stars.length} adet
+        </Text>
+      </View>
+    </View>
+  );
 }
 
-// ============================================================================
-// STİLLER
-// ============================================================================
+export function MacroSkyCanvas(props: MacroSkyCanvasProps) {
+  if (!isSkiaAvailable) {
+    return <MacroSkyCanvasFallback {...props} />;
+  }
+  return <MacroSkyCanvasSkia {...props} />;
+}
 
 const styles = StyleSheet.create({
   container: {
-    overflow: 'hidden',
     backgroundColor: '#020408',
+    overflow: 'hidden',
+  },
+  fallbackContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  fallbackCard: {
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.25)',
+    padding: 24,
+    alignItems: 'center',
+    maxWidth: 340,
+    width: '100%',
+  },
+  fallbackIconBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(251, 191, 36, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  fallbackTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  fallbackSubtitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FBBF24',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 12,
+  },
+  fallbackDescription: {
+    fontSize: 13,
+    color: '#94A3B8',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  fallbackNoticeBox: {
+    backgroundColor: 'rgba(2, 6, 23, 0.75)',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.15)',
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  fallbackNoticeTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#F87171',
+    marginBottom: 6,
+  },
+  fallbackNoticeText: {
+    fontSize: 12,
+    color: '#CBD5E1',
+    textAlign: 'center',
+    lineHeight: 16,
+    marginBottom: 10,
+  },
+  fallbackCodeBadge: {
+    backgroundColor: '#0F172A',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.4)',
+  },
+  fallbackCodeText: {
+    color: '#FBBF24',
+    fontFamily: 'monospace',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  fallbackMetaText: {
+    fontSize: 11,
+    color: '#64748B',
   },
 });
 
 export default MacroSkyCanvas;
+

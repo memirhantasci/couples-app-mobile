@@ -154,7 +154,7 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
       <BlurView
         intensity={Platform.OS === 'ios' ? 45 : 90}
         tint="dark"
-        style={styles.blurWrapper}
+        style={[styles.blurWrapper, viewMode === 'macro' && { paddingVertical: 7 }]}
       >
         <TouchableOpacity
           activeOpacity={0.82}
@@ -190,34 +190,36 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
             )}
           </View>
 
-          {/* ALT SATIR: Koordinatlar, Katalog ve Parlaklık Çubuğu */}
-          <View style={styles.bottomRow}>
-            <View style={styles.coordsBlock}>
-              <Text style={styles.catalogCode}>{starDetails.catalog_code}</Text>
-              <View style={styles.coordDivider} />
-              <Compass size={11} color="rgba(255, 255, 255, 0.4)" style={styles.compassIcon} />
-              <Text style={styles.coordsText}>
-                {raFormatted} / {decFormatted}
-              </Text>
-            </View>
+          {/* ALT SATIR: Koordinatlar, Katalog ve Parlaklık Çubuğu (Yalnızca Mikro Sistem Modunda) */}
+          {viewMode === 'micro' && (
+            <View style={styles.bottomRow}>
+              <View style={styles.coordsBlock}>
+                <Text style={styles.catalogCode}>{starDetails.catalog_code}</Text>
+                <View style={styles.coordDivider} />
+                <Compass size={11} color="rgba(255, 255, 255, 0.4)" style={styles.compassIcon} />
+                <Text style={styles.coordsText}>
+                  {raFormatted} / {decFormatted}
+                </Text>
+              </View>
 
-            {/* Parlaklık Yüzdesi ve Mikro Çubuk */}
-            <View style={styles.luminosityBlock}>
-              <Sparkles size={11} color={luminosity >= 0.8 ? '#FCD34D' : '#94A3B8'} />
-              <Text style={styles.luminosityText}>%{luminosityPercent}</Text>
-              <View style={styles.progressBarBg}>
-                <View
-                  style={[
-                    styles.progressBarFill,
-                    {
-                      width: `${luminosityPercent}%`,
-                      backgroundColor: luminosity >= 0.8 ? '#F59E0B' : '#38BDF8',
-                    },
-                  ]}
-                />
+              {/* Parlaklık Yüzdesi ve Mikro Çubuk */}
+              <View style={styles.luminosityBlock}>
+                <Sparkles size={11} color={luminosity >= 0.8 ? '#FCD34D' : '#94A3B8'} />
+                <Text style={styles.luminosityText}>%{luminosityPercent}</Text>
+                <View style={styles.progressBarBg}>
+                  <View
+                    style={[
+                      styles.progressBarFill,
+                      {
+                        width: `${luminosityPercent}%`,
+                        backgroundColor: luminosity >= 0.8 ? '#F59E0B' : '#38BDF8',
+                      },
+                    ]}
+                  />
+                </View>
               </View>
             </View>
-          </View>
+          )}
         </TouchableOpacity>
       </BlurView>
     </Animated.View>
