@@ -10,9 +10,14 @@ export {
   SparkCooldownException,
   fetchStarsInViewport,
   claimRandomStar,
+  claimSpecificStar,
   getMyStarDetails,
   getStarExoplanets,
   createExoplanet,
+  updateExoplanet,
+  deleteExoplanet,
+  canAddManualExoplanet,
+  createExoplanetFromMedia,
   sendSpark,
 } from './api/starService';
 

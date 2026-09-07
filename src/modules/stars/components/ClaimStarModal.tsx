@@ -47,7 +47,8 @@ import {
   Layers,
 } from 'lucide-react-native';
 import { starService } from '../api/starService';
-import type { CoupleStarDetails } from '../types/star.types';
+import { moderateStarName } from '../utils/nameModeration';
+import type { CoupleStarDetails, ViewportStarItem } from '../types/star.types';
 
 // ============================================================================
 // TİPLER VE SABİTLER
@@ -55,22 +56,22 @@ import type { CoupleStarDetails } from '../types/star.types';
 
 export type ClaimModalState = 'input' | 'scanning' | 'error' | 'certificate';
 
-export type ClaimStarModalProps =
-  | {
-      readonly visible: boolean;
-      readonly coupleId: number;
-      readonly initialStar?: null;
-      readonly onClose?: () => void;
-      readonly onSuccess: (star: CoupleStarDetails) => void;
-    }
-  | {
-      readonly visible: boolean;
-      readonly coupleId: number;
-      /** Mevcut tescilli yıldız sertifikasını salt-okunur görüntülemek için (onClose zorunludur) */
-      readonly initialStar: CoupleStarDetails;
-      readonly onClose: () => void;
-      readonly onSuccess?: (star: CoupleStarDetails) => void;
-    };
+export interface ClaimStarModalProps {
+  readonly visible: boolean;
+  readonly coupleId: number;
+  /**
+   * Mevcut tescilli yıldız sertifikasını salt-okunur görüntülemek için.
+   * Sağlanmışsa modal doğrudan 'certificate' durumunda açılır.
+   */
+  readonly initialStar?: CoupleStarDetails | null;
+  /**
+   * MacroSkyCanvas üzerinde seçilen belirli bir yıldız.
+   * Sağlanmışsa modal 'input' modunda açılır ve claim_specific_star RPC kullanılır.
+   */
+  readonly preSelectedStar?: ViewportStarItem;
+  readonly onClose?: () => void;
+  readonly onSuccess?: (star: CoupleStarDetails) => void;
+}
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -78,29 +79,32 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // RADAR ANİMASYON BİLEŞENİ
 // ============================================================================
 
-const CosmicRadarSweep: React.FC<{ isSlowWarning: boolean }> = ({ isSlowWarning }) => {
+const CosmicRadarSweep: React.FC<{ isSlowWarning: boolean; isConfirming?: boolean; confirmedRa?: number; confirmedDec?: number }> = ({
+  isSlowWarning,
+  isConfirming = false,
+  confirmedRa,
+  confirmedDec,
+}) => {
   const rotation = useSharedValue(0);
   const pulse1 = useSharedValue(0);
   const pulse2 = useSharedValue(0);
 
+  // Rastgele telemetri — yalnızca tarama modunda gösterilir
   const [telemetry, setTelemetry] = useState({ ra: '184.2140', dec: '+12.4300', mag: '5.20' });
 
   useEffect(() => {
-    // 360 derece sürekli radar süpürmesi (2.4 saniye tam tur)
     rotation.value = withRepeat(
       withTiming(360, { duration: 2400, easing: Easing.linear }),
       -1,
       false
     );
 
-    // Eşmerkezli genişleyen dalga 1
     pulse1.value = withRepeat(
       withTiming(1, { duration: 2000, easing: Easing.out(Easing.ease) }),
       -1,
       false
     );
 
-    // Eşmerkezli genişleyen dalga 2 (faz farkıyla)
     const timeout = setTimeout(() => {
       pulse2.value = withRepeat(
         withTiming(1, { duration: 2000, easing: Easing.out(Easing.ease) }),
@@ -109,20 +113,23 @@ const CosmicRadarSweep: React.FC<{ isSlowWarning: boolean }> = ({ isSlowWarning 
       );
     }, 1000);
 
-    // Sahte telemetri koordinat kayması
-    const telemetryInterval = setInterval(() => {
-      setTelemetry({
-        ra: (Math.random() * 360).toFixed(4),
-        dec: ((Math.random() * 180) - 90).toFixed(4),
-        mag: (Math.random() * 5 + 1.5).toFixed(2),
-      });
-    }, 120);
+    // Rastgele telemetri yalnızca tarama (rastgele) modunda çalışır
+    let telemetryInterval: ReturnType<typeof setInterval> | null = null;
+    if (!isConfirming) {
+      telemetryInterval = setInterval(() => {
+        setTelemetry({
+          ra: (Math.random() * 360).toFixed(4),
+          dec: ((Math.random() * 180) - 90).toFixed(4),
+          mag: (Math.random() * 5 + 1.5).toFixed(2),
+        });
+      }, 120);
+    }
 
     return () => {
       clearTimeout(timeout);
-      clearInterval(telemetryInterval);
+      if (telemetryInterval) clearInterval(telemetryInterval);
     };
-  }, [rotation, pulse1, pulse2]);
+  }, [rotation, pulse1, pulse2, isConfirming]);
 
   const radarSweepStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotation.value}deg` }],
@@ -138,9 +145,16 @@ const CosmicRadarSweep: React.FC<{ isSlowWarning: boolean }> = ({ isSlowWarning 
     opacity: interpolate(pulse2.value, [0, 0.7, 1], [0.8, 0.4, 0]),
   }));
 
+  // Onay modu: sabit gerçek koordinatlar | Tarama modu: rastgele akan telemetri
+  const displayRa = isConfirming && confirmedRa != null
+    ? Number(confirmedRa).toFixed(4)
+    : telemetry.ra;
+  const displayDec = isConfirming && confirmedDec != null
+    ? (Number(confirmedDec) >= 0 ? '+' : '') + Number(confirmedDec).toFixed(4)
+    : telemetry.dec;
+
   return (
     <View style={styles.radarWrapper}>
-      {/* Radar Çerçevesi ve Eşmerkezli Halkalar */}
       <View style={styles.radarCircle}>
         <Animated.View style={[styles.radarWave, wave1Style]} />
         <Animated.View style={[styles.radarWave, wave2Style]} />
@@ -150,30 +164,32 @@ const CosmicRadarSweep: React.FC<{ isSlowWarning: boolean }> = ({ isSlowWarning 
         <View style={styles.radarCrossH} />
         <View style={styles.radarCrossV} />
 
-        {/* Dönen Radar Işını */}
         <Animated.View style={[styles.sweepContainer, radarSweepStyle]}>
           <LinearGradient
-            colors={['rgba(56, 189, 248, 0.55)', 'rgba(56, 189, 248, 0)']}
+            colors={[
+              isConfirming ? 'rgba(251, 191, 36, 0.55)' : 'rgba(56, 189, 248, 0.55)',
+              isConfirming ? 'rgba(251, 191, 36, 0)' : 'rgba(56, 189, 248, 0)',
+            ]}
             start={{ x: 1, y: 0.5 }}
             end={{ x: 0, y: 0.5 }}
             style={styles.sweepBeam}
           />
         </Animated.View>
 
-        {/* Merkez Odak Noktası */}
-        <View style={styles.radarCenterBlip} />
+        <View style={[styles.radarCenterBlip, isConfirming && styles.radarCenterBlipGold]} />
       </View>
 
-      {/* Telemetri Göstergesi */}
       <View style={styles.telemetryBox}>
         <View style={styles.telemetryRow}>
-          <Radio size={12} color="#38BDF8" />
-          <Text style={styles.telemetryText}>
-            RA: {telemetry.ra}° | DEC: {telemetry.dec}° | MAG: {telemetry.mag}
+          <Radio size={12} color={isConfirming ? '#FBBF24' : '#38BDF8'} />
+          <Text style={[styles.telemetryText, isConfirming && styles.telemetryTextGold]}>
+            RA: {displayRa}° | DEC: {displayDec}°
           </Text>
         </View>
         <Text style={styles.scanningSubText}>
-          {isSlowWarning
+          {isConfirming
+            ? 'Yıldızınız evrene kazınıyor...'
+            : isSlowWarning
             ? 'Kozmik sinyal taranıyor, derin uzay katalogları inceleniyor...'
             : 'Gaia DR3 ve Hipparcos kataloğunda boşta duran yıldızlar taranıyor...'}
         </Text>
@@ -190,6 +206,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
   visible,
   coupleId,
   initialStar,
+  preSelectedStar,
   onClose,
   onSuccess,
 }) => {
@@ -198,10 +215,14 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
   );
   const [customName, setCustomName] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isP0005Error, setIsP0005Error] = useState(false); // zaten yıldızı var hatası
   const [isSlowWarning, setIsSlowWarning] = useState(false);
   const [claimedStar, setClaimedStar] = useState<CoupleStarDetails | null>(
     initialStar ?? null
   );
+
+  // preSelectedStar varken scanning süresi kısaltılır (0.8s vs 1.5s)
+  const isSpecificMode = preSelectedStar != null;
 
   const slowWarningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -216,6 +237,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
         setCustomName('');
         setErrorMessage('');
         setIsSlowWarning(false);
+        setIsP0005Error(false);
         setClaimedStar(null);
       }
     }
@@ -238,7 +260,14 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
       return;
     }
 
+    const modResult = moderateStarName(trimmed);
+    if (!modResult.isValid) {
+      setErrorMessage(modResult.message || 'Yıldız ismi topluluk kurallarına aykırı kelimeler içeremez.');
+      return;
+    }
+
     setErrorMessage('');
+    setIsP0005Error(false);
     setModalState('scanning');
     setIsSlowWarning(false);
 
@@ -248,41 +277,30 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
       // Haptics desteği yoksa devam et
     }
 
-    // 10 saniye uyarı sayacı
-    slowWarningTimerRef.current = setTimeout(() => {
-      setIsSlowWarning(true);
-    }, 10000);
+    // Yavaş bağlantı uyarısı — yalnızca rastgele tescil modunda (10s)
+    if (!isSpecificMode) {
+      slowWarningTimerRef.current = setTimeout(() => {
+        setIsSlowWarning(true);
+      }, 10000);
+    }
 
-    // Minimum 1.5s sinematik bekleme garantisi
-    const minDelayPromise = new Promise((resolve) => setTimeout(resolve, 1500));
+    // Minimum bekleme: spesifik modda 0.8s, rastgele modda 1.5s
+    const minMs = isSpecificMode ? 800 : 1500;
+    const minDelayPromise = new Promise((resolve) => setTimeout(resolve, minMs));
+
     let resultStar: CoupleStarDetails | null = null;
     let errorOccurred: any = null;
 
     try {
-      if (coupleId === 999999) {
-        resultStar = {
-          star_id: 'demo-star-sirius',
-          couple_id: 999999,
-          catalog_id: 1,
-          catalog_code: 'HIP-32349',
-          custom_name: trimmed,
-          ra: 101.2875,
-          dec: -16.7161,
-          magnitude: -1.46,
-          spectral_type: 'A1V',
-          base_color: '#9DB4FF',
-          luminosity_level: 0.95,
-          last_spark_at: new Date().toISOString(),
-          resonance_active: true,
-          resonance_until: null,
-          created_at: new Date().toISOString(),
-          can_spark_daily: true,
-          daily_spark_available_at: new Date().toISOString(),
-          cooldown_remaining_seconds: 0,
-          exoplanet_count: 0,
-          total_sparks_count: 1,
-        };
+      if (isSpecificMode && preSelectedStar) {
+        // Belirli yıldız tescili (claim_specific_star RPC)
+        resultStar = await starService.claimSpecificStar({
+          coupleId,
+          starCatalogId: preSelectedStar.catalog_id,
+          customName: trimmed,
+        });
       } else {
+        // Rastgele yıldız tescili (claim_random_available_star RPC)
         resultStar = await starService.claimRandomStar({
           coupleId,
           customName: trimmed,
@@ -294,14 +312,23 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
       if (slowWarningTimerRef.current) {
         clearTimeout(slowWarningTimerRef.current);
       }
-      // Hata olsa da olmasa da en az 1.5s radar döner
       await minDelayPromise;
     }
 
     if (errorOccurred) {
+      const errCode = errorOccurred?.code;
+      const isAlreadyOwnedErr =
+        errCode === 'P0005' ||
+        (errorOccurred?.message || '').includes('zaten bir yıldızınız var');
+
+      setIsP0005Error(isAlreadyOwnedErr);
       setModalState('error');
       setErrorMessage(
-        errorOccurred.code === 'P0003'
+        errCode === 'P0004'
+          ? 'Bu yıldız az önce başka bir çift tarafından seçildi, lütfen başka bir yıldız seçin.'
+          : isAlreadyOwnedErr
+          ? 'Zaten bir yıldızınız var — her çift yalnızca bir yıldıza sahip olabilir.'
+          : errCode === 'P0003'
           ? 'Gökkubbede bu parlaklıkta uygun boşta yıldız bulunamadı. Lütfen tekrar deneyin.'
           : errorOccurred.message || 'Yıldız tescil edilirken kozmik bir parazit oluştu.'
       );
@@ -349,7 +376,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                 style={styles.closeButton}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <X size={18} color="rgba(255, 255, 255, 0.7)" />
+                <Text style={{ color: '#FFF' }}>✕</Text>
               </TouchableOpacity>
             )}
 
@@ -366,10 +393,34 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                 </View>
 
                 <Text style={styles.modalTitle}>Bizim Yıldızımız</Text>
-                <Text style={styles.modalSubtitle}>
-                  Gerçek astronomik katalogdan (Gaia & Hipparcos), gökyüzünde gerçek koordinatlara sahip
-                  tekil bir yıldızı aşkınız adına tescil edin.
-                </Text>
+
+                {/* Seçili yıldız önizleme kartı (preSelectedStar varsa) */}
+                {preSelectedStar ? (
+                  <View style={styles.preSelectedStarCard}>
+                    <View style={[styles.preSelectedStarDot, { backgroundColor: preSelectedStar.base_color || '#9DB4FF' }]} />
+                    <View style={styles.preSelectedStarInfo}>
+                      <Text style={styles.preSelectedStarCode}>
+                        {preSelectedStar.catalog_code}
+                      </Text>
+                      {preSelectedStar.common_name ? (
+                        <Text style={styles.preSelectedStarCommon}>
+                          {preSelectedStar.common_name}
+                        </Text>
+                      ) : null}
+                      <Text style={styles.preSelectedStarCoords}>
+                        RA {Number(preSelectedStar.ra).toFixed(2)}° / DEC {Number(preSelectedStar.dec) >= 0 ? '+' : ''}{Number(preSelectedStar.dec).toFixed(2)}° • {preSelectedStar.magnitude} mag
+                      </Text>
+                    </View>
+                    <View style={styles.preSelectedStarSpectral}>
+                      <Text style={styles.preSelectedStarSpectralText}>{preSelectedStar.spectral_type.charAt(0)}</Text>
+                    </View>
+                  </View>
+                ) : (
+                  <Text style={styles.modalSubtitle}>
+                    Gerçek astronomik katalogdan (Gaia &amp; Hipparcos), gökyüzünde gerçek koordinatlara sahip
+                    tekil bir yıldızı aşkınız adına tescil edin.
+                  </Text>
+                )}
 
                 {/* İSİM GİRDİSİ */}
                 <View style={styles.inputWrapper}>
@@ -397,7 +448,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                   </View>
                 ) : null}
 
-                {/* SAHİPLEN BUTONU */}
+                {/* SAHIPLEN BUTONU */}
                 <TouchableOpacity
                   activeOpacity={0.85}
                   onPress={handleStartClaim}
@@ -410,7 +461,9 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                     style={styles.buttonGradient}
                   >
                     <Sparkles size={18} color="#FFFFFF" />
-                    <Text style={styles.primaryButtonText}>Gökyüzünü Tara & Yıldızımızı Bul ✨</Text>
+                    <Text style={styles.primaryButtonText}>
+                      {preSelectedStar ? 'Bu Yıldızı Tescille ✨' : 'Gökyüzünü Tara & Yıldızımızı Bul ✨'}
+                    </Text>
                   </LinearGradient>
                 </TouchableOpacity>
 
@@ -423,8 +476,15 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
             {/* ─── DURUM 2: SİNEMATİK RADAR TARAMASI ─── */}
             {modalState === 'scanning' && (
               <View style={styles.cardContainer}>
-                <Text style={styles.modalTitle}>Gökkubbe Taranıyor</Text>
-                <CosmicRadarSweep isSlowWarning={isSlowWarning} />
+                <Text style={styles.modalTitle}>
+                  {isSpecificMode ? 'Tescil Ediliyor' : 'Gökkubbe Taranıyor'}
+                </Text>
+                <CosmicRadarSweep
+                  isSlowWarning={isSlowWarning}
+                  isConfirming={isSpecificMode}
+                  confirmedRa={preSelectedStar?.ra}
+                  confirmedDec={preSelectedStar?.dec}
+                />
               </View>
             )}
 
@@ -438,18 +498,36 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                 <Text style={styles.modalTitle}>Kozmik Bağlantı Kesintisi</Text>
                 <Text style={styles.modalSubtitle}>{errorMessage}</Text>
 
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={handleStartClaim}
-                  style={styles.primaryButton}
-                >
-                  <LinearGradient
-                    colors={['#4F46E5', '#7C3AED']}
-                    style={styles.buttonGradient}
+                {/* P0005 hatası: tekrar deneme anlamsız, sadece kapat */}
+                {isP0005Error ? (
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={onClose}
+                    style={styles.primaryButton}
                   >
-                    <Text style={styles.primaryButtonText}>Tekrar Dene</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
+                    <LinearGradient
+                      colors={['#374151', '#4B5563']}
+                      style={styles.buttonGradient}
+                    >
+                      <Text style={styles.primaryButtonText}>Kapat</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={isSpecificMode ? onClose : handleStartClaim}
+                    style={styles.primaryButton}
+                  >
+                    <LinearGradient
+                      colors={['#4F46E5', '#7C3AED']}
+                      style={styles.buttonGradient}
+                    >
+                      <Text style={styles.primaryButtonText}>
+                        {isSpecificMode ? 'Başka Yıldız Seç' : 'Tekrar Dene'}
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
 
@@ -468,6 +546,10 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                 </View>
 
                 <Text style={styles.certStarName}>{claimedStar.custom_name}</Text>
+                {/* Gerçek astronomi adı — yalnızca doluysa göster */}
+                {claimedStar.common_name ? (
+                  <Text style={styles.certCommonName}>({claimedStar.common_name})</Text>
+                ) : null}
                 <Text style={styles.certSubText}>
                   Aşkınızın Işığı Evrende Sonsuza Kadar Parlamak Üzere Tescillendi
                 </Text>
@@ -897,6 +979,80 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
     lineHeight: 16,
+  },
+  certCommonName: {
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 13,
+    fontWeight: '500',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginBottom: 8,
+    marginTop: -2,
+  },
+  // Seçili yıldız önizleme kartı (preSelectedStar)
+  preSelectedStarCard: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.25)',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 16,
+  },
+  preSelectedStarDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    shadowOpacity: 0.8,
+    shadowRadius: 5,
+    flexShrink: 0,
+  },
+  preSelectedStarInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  preSelectedStarCode: {
+    color: '#38BDF8',
+    fontSize: 11,
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    letterSpacing: 0.3,
+  },
+  preSelectedStarCommon: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  preSelectedStarCoords: {
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 10.5,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  preSelectedStarSpectral: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 0.8,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  preSelectedStarSpectralText: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  radarCenterBlipGold: {
+    backgroundColor: '#FBBF24',
+    shadowColor: '#FBBF24',
+  },
+  telemetryTextGold: {
+    color: '#FBBF24',
   },
 });
 

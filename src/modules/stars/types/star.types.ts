@@ -95,6 +95,7 @@ export interface CoupleStarRecord {
 
 /**
  * `star_exoplanets` tablosu satır tipi.
+ * is_auto_generated ve window_started_at: 20260907_stage3_exoplanet_crud.sql ile eklendi.
  */
 export interface StarExoplanetRecord {
   readonly id: string;
@@ -108,18 +109,43 @@ export interface StarExoplanetRecord {
   readonly palette: string[];            // Gradiyent renk hex dizisi
   readonly media_urls: string[];
   readonly custom_metadata: Record<string, unknown>;
+  /**
+   * TRUE → `get_or_create_auto_exoplanet` RPC tarafından otomatik oluşturuldu.
+   * FALSE → kullanıcı UI üzerinden manuel olarak oluşturdu.
+   */
+  readonly is_auto_generated: boolean;
+  /**
+   * Otomatik gezegen penceresinin başlangıç zamanı (ISO 8601 UTC).
+   * 45 gün geçtikten sonra `get_or_create_auto_exoplanet` yeni pencere açar.
+   * Manuel gezegenler için NULL.
+   */
+  readonly window_started_at: string | null;
   readonly created_at: string;
   readonly updated_at: string;
 }
 
 /**
- * Yeni anı ötegezegeni oluşturma DTO'su.
- * id, star_id, created_at, updated_at alanları sistem/DB tarafından üretilir.
+ * Manuel gezegen oluştururken kullanılan DTO.
+ * id, star_id, is_auto_generated, window_started_at, created_at, updated_at
+ * alanları sistem/DB tarafından üretilir — DTO'dan çıkarılmıştır.
  */
 export type CreateExoplanetDto = Omit<
   StarExoplanetRecord,
-  'id' | 'star_id' | 'created_at' | 'updated_at'
+  'id' | 'star_id' | 'is_auto_generated' | 'window_started_at' | 'created_at' | 'updated_at'
 >;
+
+/**
+ * Medya veya mektuptan otomatik gezegen tetiklemek için kullanılan parametre tipi.
+ * `createExoplanetFromMedia` servis metoduna iletilir.
+ */
+export interface CreateExoplanetFromMediaParams {
+  /** Gezegenin ekleneceği `couple_stars.id` (UUID) */
+  readonly starId: string;
+  /** Storage'a yüklenen medya URL'si (couple-memories/{coupleId}/...) */
+  readonly photoUrl?: string;
+  /** Gezegenle ilişkilendirilecek mektup UUID'si */
+  readonly letterId?: string;
+}
 
 /**
  * `star_sparks` tablosu satır tipi.
@@ -148,14 +174,29 @@ export interface ClaimRandomStarParams {
 }
 
 /**
- * `get_my_couple_star_details` ve `claim_random_available_star` dönüş tipi.
- * Frontend detay panelinde doğrudan kullanılır.
+ * `claim_specific_star` RPC parametreleri.
+ * Kullanıcının MacroSkyCanvas'ta seçtiği belirli yıldıza özel tescil için kullanılır.
+ */
+export interface ClaimSpecificStarParams {
+  readonly coupleId: number;
+  readonly starCatalogId: number;   // celestial_catalog.id (BIGINT)
+  readonly customName: string;
+}
+
+/**
+ * `get_my_couple_star_details`, `claim_random_available_star` ve
+ * `claim_specific_star` dönüş tipi. Frontend detay panelinde doğrudan kullanılır.
  */
 export interface CoupleStarDetails {
   readonly star_id: string;
   readonly couple_id: number;
   readonly catalog_id: number;
   readonly catalog_code: string;
+  /**
+   * Yıldızın yaygın astronomi adı (Sirius, Vega, Polaris vb.).
+   * NULL ise UI'da gösterilmez; yalnızca tanınan parlak yıldızlar için dolu.
+   */
+  readonly common_name?: string | null;
   readonly custom_name: string;
   readonly ra: number;
   readonly dec: number;
@@ -197,6 +238,11 @@ export interface ViewportStarItem {
   readonly magnitude: number;
   readonly spectral_type: SpectralType;
   readonly base_color: string;
+  /**
+   * Yıldızın yaygın astronomi adı (Sirius, Vega, Polaris vb.).
+   * NULL ise UI'da gösterilmez; çoğu katalog yıldızı için NULL.
+   */
+  readonly common_name?: string | null;
   readonly is_claimed: boolean;
   readonly is_mine: boolean;
   /**

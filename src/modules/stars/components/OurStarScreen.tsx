@@ -59,6 +59,7 @@ import { MicroSystemCanvas } from '../canvas/MicroSystemCanvas';
 import { MacroSkyCanvas, MacroSkyBounds } from '../canvas/MacroSkyCanvas';
 import { StarInfoBadge } from './StarInfoBadge';
 import { ClaimStarModal } from './ClaimStarModal';
+import { StarDemoAuthModal } from './StarDemoAuthModal';
 import { ExoplanetModal } from './ExoplanetModal';
 
 import type {
@@ -109,7 +110,10 @@ export const OurStarScreen: React.FC = () => {
 
   // Modallar
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
-  const [exoplanetModalMode, setExoplanetModalMode] = useState<'view' | 'create' | null>(null);
+  const [claimTargetStar, setClaimTargetStar] = useState<ViewportStarItem | null>(null);
+  const [isDemoAuthModalOpen, setIsDemoAuthModalOpen] = useState(false);
+  const [demoTargetStar, setDemoTargetStar] = useState<ViewportStarItem | null>(null);
+  const [exoplanetModalMode, setExoplanetModalMode] = useState<'view' | 'edit' | 'create' | null>(null);
   const [selectedPlanet, setSelectedPlanet] = useState<StarExoplanetRecord | null>(null);
   const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
 
@@ -179,7 +183,8 @@ export const OurStarScreen: React.FC = () => {
       if (!coupleId) {
         setStarDetails(null);
         setIsLoading(false);
-        setIsClaimModalOpen(true);
+        // Otomatik modal açma: kullanıcı macro kanvasta yıldız seçerek akışı başlatır
+        setViewMode('macro');
         return;
       }
 
@@ -191,7 +196,8 @@ export const OurStarScreen: React.FC = () => {
         const details = await starService.getMyStarDetails(coupleId);
         if (!details) {
           setStarDetails(null);
-          setIsClaimModalOpen(true);
+          // Yıldız yok: macro kanvas + talimat banner'ı göster
+          setViewMode('macro');
           return;
         }
 
@@ -221,9 +227,9 @@ export const OurStarScreen: React.FC = () => {
         const planets = await starService.getStarExoplanets(details.star_id);
         setExoplanets(planets);
       } catch (err: any) {
-        // Yıldız henüz tescilli değilse claim modalına yönlendir
+        // Yıldız henüz tescilli değilse macro kanvasa yönlendir (otomatik modal yok)
         setStarDetails(null);
-        setIsClaimModalOpen(true);
+        setViewMode('macro');
       } finally {
         if (!isSilent) {
           setIsLoading(false);
@@ -387,10 +393,24 @@ export const OurStarScreen: React.FC = () => {
     showToast('Yıldızınız gökyüzüne tescillendi! Hoş geldiniz ✨');
   };
 
-  // ─── YENİ ANİ GEZEGENİ OLUŞTUĞUNDA ─────────────────────────────────
+  // ─── ANİ GEZEGENİ HANDLER'LARI ─────────────────────────────────────
   const handlePlanetCreated = (newPlanet: StarExoplanetRecord) => {
     setExoplanets((prev) => [newPlanet, ...prev]);
     showToast(`"${newPlanet.title}" anı gezegeni yörüngede dönmeye başladı! 🪐`);
+  };
+
+  const handlePlanetUpdated = (updatedPlanet: StarExoplanetRecord) => {
+    setExoplanets((prev) =>
+      prev.map((p) => (p.id === updatedPlanet.id ? updatedPlanet : p))
+    );
+    setSelectedPlanet(updatedPlanet);
+    showToast(`"${updatedPlanet.title}" gezegeni güncellendi! ✨`);
+  };
+
+  const handlePlanetDeleted = (planetId: string) => {
+    setExoplanets((prev) => prev.filter((p) => p.id !== planetId));
+    setSelectedPlanet(null);
+    showToast('Anı gezegeni yörüngeden kaldırıldı.');
   };
 
   // ─── YÜKLENİYOR EKRANI ─────────────────────────────────────────────
@@ -478,13 +498,37 @@ export const OurStarScreen: React.FC = () => {
             }}
             onBoundsChange={handleMacroBoundsChange}
             onSelectStar={(star) => {
+              if (isDemoMode) {
+                // Demo / misafir modu: ClaimStarModal (radar/sertifika) AÇILMAZ!
+                if (star.is_claimed) {
+                  // Tescilli yabancı yıldız: sadece bilgi kartı
+                  setSelectedMacroStar(star);
+                } else {
+                  // Boşta olan yıldıza tıklandı: Yönlendirme kartını aç
+                  setDemoTargetStar(star);
+                  setSelectedMacroStar(null);
+                  setIsDemoAuthModalOpen(true);
+                }
+                return;
+              }
+
               if (star.is_mine) {
-                // Kendi yıldızına tıklandığında Mikro Sisteme gir
+                // Kendi yıldızı: mikro sisteme dön
                 setViewMode('micro');
                 setSelectedMacroStar(null);
                 showToast(`"${starDetails?.custom_name || star.custom_name}" mikro sistemine girildi 🪐`);
-              } else {
+              } else if (star.is_claimed) {
+                // Başka çiftin tescilli yıldızı: bilgi kartı, sahiplenme YOK
                 setSelectedMacroStar(star);
+              } else if (starDetails !== null) {
+                // Kullanıcının zaten yıldızı var, boş yıldıza tıklandı:
+                // Bilgi kartını aç (yıldız detaylarını inceler, kart altında kural uyarısı verilir)
+                setSelectedMacroStar(star);
+              } else {
+                // Kullanıcının yıldızı yok, boş yıldız: sahiplenme akışı
+                setClaimTargetStar(star);
+                setSelectedMacroStar(null);
+                setIsClaimModalOpen(true);
               }
             }}
           />
@@ -503,7 +547,10 @@ export const OurStarScreen: React.FC = () => {
                 ]}
               />
               <Text style={styles.macroStarTitle}>
-                {selectedMacroStar.custom_name || selectedMacroStar.catalog_code}
+                {selectedMacroStar.custom_name ||
+                  (selectedMacroStar.common_name
+                    ? `${selectedMacroStar.common_name} (${selectedMacroStar.catalog_code})`
+                    : selectedMacroStar.catalog_code)}
               </Text>
               {selectedMacroStar.is_claimed ? (
                 <View style={styles.claimedBadge}>
@@ -537,23 +584,57 @@ export const OurStarScreen: React.FC = () => {
           </View>
 
           {/* Aksiyon */}
-          {!selectedMacroStar.is_claimed ? (
+          {!selectedMacroStar.is_claimed && isDemoMode ? (
+            // Demo modu: Yönlendirme kartını aç
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={() => {
+                setDemoTargetStar(selectedMacroStar);
+                setIsDemoAuthModalOpen(true);
+              }}
+              style={styles.claimThisStarBtn}
+            >
+              <Sparkles size={14} color="#030207" />
+              <Text style={styles.claimThisStarBtnText}>Bu Yıldızı Seç 💫</Text>
+            </TouchableOpacity>
+          ) : !selectedMacroStar.is_claimed && starDetails === null ? (
+            // Kullanıcının yıldızı yok ve yıldız boşta: sahiplenme butonu
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => {
+                setClaimTargetStar(selectedMacroStar);
                 setSelectedMacroStar(null);
                 setIsClaimModalOpen(true);
               }}
               style={styles.claimThisStarBtn}
             >
               <Sparkles size={14} color="#030207" />
-              <Text style={styles.claimThisStarBtnText}>Bu Yıldızı Sahiplen 💫</Text>
+              <Text style={styles.claimThisStarBtnText}>Bu Yıldızı Seç 💫</Text>
             </TouchableOpacity>
+          ) : !selectedMacroStar.is_claimed && starDetails !== null ? (
+            // Kullanıcının zaten yıldızı var ama boş yıldıza tıklandı: yıldız bilgisi + nazik bilgilendirme
+            <View style={styles.alreadyOwnedBanner}>
+              <Sparkles size={13} color="#FBBF24" />
+              <Text style={styles.alreadyOwnedText}>
+                Zaten bir yıldızınız var — her çift yalnızca bir yıldıza sahip olabilir ✨
+              </Text>
+            </View>
           ) : (
+            // Başkasının tescilli yıldızı: kilit
             <Text style={styles.claimedInfoText}>
               🔒 Bu yıldız başka bir çift tarafından gökyüzüne tescillenmiştir.
             </Text>
           )}
+        </View>
+      )}
+
+      {/* ─── MAKRO MOD: YILDIZI OLMAYAN KULLANICI TALİMAT BANNER ──── */}
+      {viewMode === 'macro' && starDetails === null && !isLoading && (
+        <View style={[styles.instructionBanner, { top: insets.top + 64 }]}>
+          <Sparkles size={16} color="#FBBF24" />
+          <Text style={styles.instructionBannerText}>
+            Aşkınız için bir yıldız seçin ✨
+          </Text>
         </View>
       )}
 
@@ -635,19 +716,33 @@ export const OurStarScreen: React.FC = () => {
 
       {/* ─── MODALLAR ────────────────────────────────────────────────── */}
 
-      {/* 1. YILDIZ SAHİPLENME MODALI */}
-      {(coupleId || isDemoMode) && (
+      {/* 1. YILDIZ SAHİPLENME MODALI (Yalnızca Kayıtlı Kullanıcılar İçin) */}
+      {coupleId && !isDemoMode && (
         <ClaimStarModal
           visible={isClaimModalOpen}
-          coupleId={coupleId || 999999}
+          coupleId={coupleId}
+          preSelectedStar={claimTargetStar ?? undefined}
           onClose={() => {
+            setIsClaimModalOpen(false);
+            setClaimTargetStar(null);
+            // Yıldızı hâlâ yoksa geri git
             if (!starDetails) {
               handleBack();
-            } else {
-              setIsClaimModalOpen(false);
             }
           }}
           onSuccess={handleClaimSuccess}
+        />
+      )}
+
+      {/* 1.1 DEMO MODU YÖNLENDİRME KARTI */}
+      {isDemoMode && (
+        <StarDemoAuthModal
+          visible={isDemoAuthModalOpen}
+          targetStar={demoTargetStar}
+          onClose={() => {
+            setIsDemoAuthModalOpen(false);
+            setDemoTargetStar(null);
+          }}
         />
       )}
 
@@ -661,6 +756,8 @@ export const OurStarScreen: React.FC = () => {
           selectedPlanet={selectedPlanet}
           onClose={() => setExoplanetModalMode(null)}
           onPlanetCreated={handlePlanetCreated}
+          onPlanetUpdated={handlePlanetUpdated}
+          onPlanetDeleted={handlePlanetDeleted}
         />
       )}
 
@@ -975,6 +1072,51 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontStyle: 'italic',
     textAlign: 'center',
+  },
+  alreadyOwnedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderWidth: 0.8,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  alreadyOwnedText: {
+    color: '#FBBF24',
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'center',
+    flexShrink: 1,
+  },
+  instructionBanner: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    zIndex: 22,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(15, 12, 30, 0.88)',
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.4)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    shadowColor: '#F59E0B',
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  instructionBannerText: {
+    color: '#FCD34D',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
 });
 

@@ -169,6 +169,11 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
               <Text style={styles.starName} numberOfLines={1}>
                 {starDetails.custom_name || 'Bizim Yıldızımız'}
               </Text>
+              {starDetails.common_name ? (
+                <Text style={styles.starCommonName} numberOfLines={1}>
+                  ({starDetails.common_name})
+                </Text>
+              ) : null}
               {effectiveResonance && (
                 <View style={styles.resonancePill}>
                   <Flame size={10} color="#F59E0B" />
@@ -267,6 +272,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     letterSpacing: -0.3,
+    flexShrink: 1,
+  },
+  starCommonName: {
+    color: 'rgba(255, 255, 255, 0.45)',
+    fontSize: 11,
+    fontStyle: 'italic',
     flexShrink: 1,
   },
   resonancePill: {

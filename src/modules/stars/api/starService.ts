@@ -14,8 +14,10 @@
 import { supabase } from '@/lib/supabase';
 import type {
   ClaimRandomStarParams,
+  ClaimSpecificStarParams,
   CoupleStarDetails,
   CreateExoplanetDto,
+  CreateExoplanetFromMediaParams,
   GetStarsViewportParams,
   SendStarSparkParams,
   SparkCooldownError,
@@ -85,6 +87,27 @@ function handleSupabaseError(error: any): never {
     );
   }
 
+  // P0004: Hedef yıldız race condition ile başkaca alındı
+  if (error?.code === 'P0004') {
+    throw new Error(
+      error.message || 'Bu yıldız az önce başka bir çift tarafından seçildi, lütfen başka bir yıldız seçin.',
+    );
+  }
+
+  // P0005: Bu çiftin zaten bir yıldızı var (frontend engelini atlatma / race)
+  if (error?.code === 'P0005') {
+    throw new Error(
+      error.message || 'Zaten bir yıldızınız var — her çift yalnızca bir yıldıza sahip olabilir.',
+    );
+  }
+
+  // P0006: İçerik moderasyonu ihlali
+  if (error?.code === 'P0006') {
+    throw new Error(
+      error.message || 'Yıldız ismi topluluk kurallarına aykırı kelimeler içeremez.',
+    );
+  }
+
   throw error;
 }
 
@@ -99,6 +122,10 @@ const NON_RETRYABLE_CODES = new Set([
   'P0001', // Günlük kıvılcım 20h cooldown
   'P0002', // Love ping 60s anti-spam
   'P0003', // Uygun kriterde boşta yıldız kalmadı
+  'P0004', // Hedef yıldız az önce başkaca tescillendi (race condition)
+  'P0005', // Bu çiftin zaten bir yıldızı var
+  'P0006', // Moderasyon ihlali
+  'P0007', // Manuel gezegen limiti aşıldı (frontend koruması atlanırsa)
   '42501', // Yetkisiz işlem / RLS engeli
   '22023', // Geçersiz parametre değeri
   '23505', // Unique constraint ihlali
@@ -223,6 +250,32 @@ export async function claimRandomStar(
 }
 
 /**
+ * Kullanıcının MacroSkyCanvas üzerinde seçtiği belirli bir yıldızı atomik olarak tesciller.
+ * FOR UPDATE kilidi ile race condition korunması sağlanır.
+ * P0004: Yıldız az önce başkaca alındı.
+ * P0005: Bu çiftin zaten bir yıldızı var.
+ *
+ * KRİTİK KURAL: coupleId INTEGER tipinde olmalıdır (couples.id int4 uyumu).
+ */
+export async function claimSpecificStar(
+  params: ClaimSpecificStarParams,
+): Promise<CoupleStarDetails> {
+  return withSmartRetry(async () => {
+    const { data, error } = await supabase.rpc('claim_specific_star', {
+      p_couple_id: params.coupleId,
+      p_star_catalog_id: params.starCatalogId,
+      p_custom_name: params.customName.trim(),
+    });
+
+    if (error) {
+      handleSupabaseError(error);
+    }
+
+    return data as CoupleStarDetails;
+  });
+}
+
+/**
  * Kullanıcının kendi çiftine ait tescilli yıldızın tüm detaylarını,
  * canlı rezonans durumunu ve kıvılcım geri sayım bilgilerini çeker.
  *
@@ -265,6 +318,7 @@ export async function getStarExoplanets(starId: string): Promise<StarExoplanetRe
 /**
  * Yıldızın yörüngesine yeni bir anı ötegezegeni (Exoplanet) ekler.
  * id, star_id, created_at, updated_at alanları sistem tarafından otomatik atanır.
+ * is_auto_generated = FALSE, window_started_at = NULL olarak ayarlanır.
  */
 export async function createExoplanet(
   starId: string,
@@ -284,6 +338,7 @@ export async function createExoplanet(
         palette: payload.palette ?? ['#4facfe', '#00f2fe'],
         media_urls: payload.media_urls ?? [],
         custom_metadata: payload.custom_metadata ?? {},
+        is_auto_generated: false,
       })
       .select()
       .single();
@@ -293,6 +348,184 @@ export async function createExoplanet(
     }
 
     return data as StarExoplanetRecord;
+  });
+}
+
+/**
+ * Var olan bir gezegen kaydını günceller (başlık, açıklama, tip vb.).
+ * is_auto_generated ve window_started_at değiştirilemez (DB seviyesinde sahiplik korumalı).
+ */
+export async function updateExoplanet(
+  planetId: string,
+  payload: Partial<CreateExoplanetDto>,
+): Promise<StarExoplanetRecord> {
+  return withSmartRetry(async () => {
+    const updateData: Record<string, unknown> = {};
+    if (payload.title !== undefined) updateData.title = payload.title.trim();
+    if (payload.description !== undefined)
+      updateData.description = payload.description ? payload.description.trim() : null;
+    if (payload.milestone_date !== undefined) updateData.milestone_date = payload.milestone_date;
+    if (payload.orbit_distance !== undefined) updateData.orbit_distance = payload.orbit_distance;
+    if (payload.orbit_speed !== undefined) updateData.orbit_speed = payload.orbit_speed;
+    if (payload.planet_type !== undefined) updateData.planet_type = payload.planet_type;
+    if (payload.palette !== undefined) updateData.palette = payload.palette;
+    if (payload.media_urls !== undefined) updateData.media_urls = payload.media_urls;
+    if (payload.custom_metadata !== undefined) updateData.custom_metadata = payload.custom_metadata;
+
+    const { data, error } = await supabase
+      .from('star_exoplanets')
+      .update(updateData)
+      .eq('id', planetId)
+      .select()
+      .single();
+
+    if (error) {
+      handleSupabaseError(error);
+    }
+
+    return data as StarExoplanetRecord;
+  });
+}
+
+/**
+ * Gezegeni siler; Storage'daki medya dosyalarını da temizler.
+ *
+ * İşlem sırası:
+ *   1. media_urls listesini çek
+ *   2. Storage'dan dosyaları sil (depolama çöpü birikmesin)
+ *   3. DB kaydını sil (RLS politikası sahipliği doğrular)
+ *
+ * NOT: Storage silme kısmen başarısız olsa bile DB kaydı silinir;
+ * bu kabul edilebilir bir trade-off'tur (orphan dosya > kırık UI).
+ */
+export async function deleteExoplanet(planetId: string): Promise<void> {
+  return withSmartRetry(async () => {
+    // 1. Medya URL'lerini çek
+    const { data: planet, error: fetchError } = await supabase
+      .from('star_exoplanets')
+      .select('media_urls')
+      .eq('id', planetId)
+      .single();
+
+    if (fetchError) {
+      handleSupabaseError(fetchError);
+    }
+
+    // 2. Storage'dan medya dosyalarını temizle
+    if (planet?.media_urls && planet.media_urls.length > 0) {
+      const storagePaths = planet.media_urls
+        .map((url: string) => {
+          // Signed URL format: ".../object/sign/couple-memories/{path}?token=..."
+          const match = url.match(/couple-memories\/([^?]+)/);
+          return match ? match[1] : null;
+        })
+        .filter((p: string | null): p is string => p !== null);
+
+      if (storagePaths.length > 0) {
+        // Storage hatası DB silme işlemini engellemez — best-effort
+        await supabase.storage.from('couple-memories').remove(storagePaths);
+      }
+    }
+
+    // 3. DB kaydını sil (RLS: yalnızca kendi çiftinin gezegeni)
+    const { error: deleteError } = await supabase
+      .from('star_exoplanets')
+      .delete()
+      .eq('id', planetId);
+
+    if (deleteError) {
+      handleSupabaseError(deleteError);
+    }
+  });
+}
+
+/**
+ * Belirtilen yıldıza daha fazla manuel gezegen eklenip eklenemeyeceğini kontrol eder.
+ * DB'deki sahiplik kontrolü sayesinde başkasının star_id'si ile çağrılırsa hata fırlatır.
+ *
+ * @returns TRUE → limit aşılmamış (10 altında), FALSE → limit dolu
+ */
+export async function canAddManualExoplanet(starId: string): Promise<boolean> {
+  return withSmartRetry(async () => {
+    const { data, error } = await supabase.rpc('check_manual_exoplanet_limit', {
+      p_star_id: starId,
+    });
+
+    if (error) {
+      handleSupabaseError(error);
+    }
+
+    return data as boolean;
+  });
+}
+
+/**
+ * Medya upload'u veya mektup bağlamadan otomatik gezegen oluşturur/bulur,
+ * ardından medya/mektup referansını o gezegene ekler.
+ *
+ * Akış:
+ *   1. `get_or_create_auto_exoplanet` RPC → mevcut aktif pencerede varsa döner,
+ *      yoksa yeni otomatik gezegen oluşturur (45 günlük pencere).
+ *   2. photoUrl varsa `append_media_to_exoplanet` RPC → media_urls dizisine ekler.
+ *   3. letterId varsa `append_letter_to_exoplanet` RPC → custom_metadata.linked_letter_ids dizisine ekler.
+ *   4. Güncel gezegen kaydını DB'den çekip döndürür.
+ *
+ * En az bir parametre (photoUrl veya letterId) sağlanmalıdır.
+ */
+export async function createExoplanetFromMedia(
+  params: CreateExoplanetFromMediaParams,
+): Promise<StarExoplanetRecord> {
+  if (!params.photoUrl && !params.letterId) {
+    throw new Error('createExoplanetFromMedia: photoUrl veya letterId sağlanmalıdır.');
+  }
+
+  return withSmartRetry(async () => {
+    // 1. Otomatik gezegen al veya oluştur
+    const { data: planetId, error: rpcError } = await supabase.rpc(
+      'get_or_create_auto_exoplanet',
+      { p_star_id: params.starId },
+    );
+
+    if (rpcError) {
+      handleSupabaseError(rpcError);
+    }
+
+    const resolvedPlanetId = planetId as string;
+
+    // 2. Fotoğraf URL'sini gezegene ekle
+    if (params.photoUrl) {
+      const { error: mediaError } = await supabase.rpc('append_media_to_exoplanet', {
+        p_planet_id: resolvedPlanetId,
+        p_media_url: params.photoUrl,
+      });
+      if (mediaError) {
+        handleSupabaseError(mediaError);
+      }
+    }
+
+    // 3. Mektup referansını gezegene ekle
+    if (params.letterId) {
+      const { error: letterError } = await supabase.rpc('append_letter_to_exoplanet', {
+        p_planet_id: resolvedPlanetId,
+        p_letter_id: params.letterId,
+      });
+      if (letterError) {
+        handleSupabaseError(letterError);
+      }
+    }
+
+    // 4. Güncel gezegen kaydını döndür
+    const { data: planet, error: fetchError } = await supabase
+      .from('star_exoplanets')
+      .select('*')
+      .eq('id', resolvedPlanetId)
+      .single();
+
+    if (fetchError) {
+      handleSupabaseError(fetchError);
+    }
+
+    return planet as StarExoplanetRecord;
   });
 }
 
@@ -323,8 +556,13 @@ export async function sendSpark(params: SendStarSparkParams): Promise<CoupleStar
 export const starService = {
   fetchStarsInViewport,
   claimRandomStar,
+  claimSpecificStar,
   getMyStarDetails,
   getStarExoplanets,
   createExoplanet,
+  updateExoplanet,
+  deleteExoplanet,
+  canAddManualExoplanet,
+  createExoplanetFromMedia,
   sendSpark,
 };
