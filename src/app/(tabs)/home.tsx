@@ -319,12 +319,16 @@ export default function HomeScreen() {
         >
           {/* ─── 1. MODERN HEADER ─── */}
           <View style={styles.headerRow}>
-            <View style={{ flex: 1 }}>
-              <View style={styles.greetingRow}>
-                <Text style={[styles.greetingText, { color: theme.text }]}>
+            <View style={{ flex: 1, marginRight: 10, minWidth: 0 }}>
+              <View style={[styles.greetingRow, { flexShrink: 1 }]}>
+                <Text 
+                  style={[styles.greetingText, { color: theme.text, flexShrink: 1 }]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
                   {greeting.text}, {name}
                 </Text>
-                <Text style={styles.greetingEmoji}>{greeting.emoji}</Text>
+                <Text style={[styles.greetingEmoji, { flexShrink: 0 }]}>{greeting.emoji}</Text>
               </View>
               <View style={styles.dateBadgeRow}>
                 <Calendar size={13} color={theme.textMuted} />
@@ -332,7 +336,7 @@ export default function HomeScreen() {
               </View>
             </View>
 
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 0 }}>
               <TourGuideButton onPress={openTour} />
               <TouchableOpacity 
                 onPress={() => router.push("/menu")} 

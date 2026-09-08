@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, Dimensions, Text } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS, useDerivedValue, useSharedValue, useFrameCallback } from 'react-native-reanimated';
@@ -100,9 +100,9 @@ const PlanetNode = React.memo(({
   const theta0 = deterministicInitialPhase(planet.id);
   const pRadius = PLANET_RADIUS_BY_TYPE[planet.planet_type] ?? 8;
 
-  // UI Thread Derived Transform
+  // UI Thread Derived Transform — kesintisiz 360 derece tam tur yörünge
   const transform = useDerivedValue(() => {
-    const angle = (t.value * omega + theta0) % (Math.PI * 2);
+    const angle = t.value * omega + theta0;
     const px = cx + Math.cos(angle) * orbitRadius;
     const py = cy + Math.sin(angle) * orbitRadius;
     return [{ translateX: px }, { translateY: py }];
@@ -173,31 +173,22 @@ function MicroSystemCanvasSkia({
     isResonanceActive: starDetails.resonance_active,
   });
 
-  // Battery/Perf Optimization: Pause loop when unfocused
-  frameCallback.setActive(isFocused);
-
-  // Sync particle loop to local `t`
-  useDerivedValue(() => {
-    // Reanimated's useFrameCallback passes state via frameCallback context,
-    // but we can also just use a separate useDerivedValue to track t.
-    // Actually, it's easier to let frameCallback update `t`.
-    // We already do this by just reading the particle hook's frame info if we wanted, 
-    // but wait, useParticleSystem doesn't expose `t`. Let's just track `t` here!
-  });
-
-  // Let's hook our own `t` value updater
-  useDerivedValue(() => {
-    // A clean trick: since frameCallback from particle system runs every frame, 
-    // we can't easily sync without our own frame callback. Let's create one for `t`.
-  });
-
-  // Wait, useFrameCallback is easier!
+  // Smooth continuous time accumulator: adds delta time each frame so that
+  // re-renders of the parent (e.g. 1-second cooldown intervals) NEVER reset
+  // the orbit or prevent exoplanets from completing full 360-degree turns!
   const timeCallback = useFrameCallback((frameInfo) => {
-    if (frameInfo.timeSinceFirstFrame) {
-      t.value = frameInfo.timeSinceFirstFrame / 1000;
+    'worklet';
+    if (frameInfo.timeSincePreviousFrame) {
+      const dt = Math.min(0.1, frameInfo.timeSincePreviousFrame / 1000);
+      t.value += dt;
     }
   });
-  timeCallback.setActive(isFocused);
+
+  // Battery/Perf Optimization: Pause loop only when screen focus changes
+  useEffect(() => {
+    frameCallback.setActive(isFocused);
+    timeCallback.setActive(isFocused);
+  }, [isFocused, frameCallback, timeCallback]);
 
   // Corona & Core
   const luminosity = starDetails.luminosity_level ?? 1.0;
@@ -278,7 +269,7 @@ function MicroSystemCanvasSkia({
       const omega = calculateOrbitalAngularVelocity(zone, planet.orbit_speed);
       const theta0 = deterministicInitialPhase(planet.id);
       
-      const angle = (currentT * omega + theta0) % (Math.PI * 2);
+      const angle = currentT * omega + theta0;
       const px = cx + Math.cos(angle) * orbitRadius;
       const py = cy + Math.sin(angle) * orbitRadius;
       

@@ -22,4 +22,7 @@ export type { ConnectionRequestBadgeProps } from './ConnectionRequestBadge';
 export { SectorHUD } from './SectorHUD';
 export { SectorAtlasModal } from './SectorAtlasModal';
 
+export { HomeRadarOverlay } from './HomeRadarOverlay';
+export type { HomeRadarOverlayProps } from './HomeRadarOverlay';
+
 export { OurStarScreen } from './OurStarScreen';

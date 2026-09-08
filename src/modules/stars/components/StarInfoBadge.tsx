@@ -258,8 +258,10 @@ const styles = StyleSheet.create({
   nameBlock: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     flex: 1,
+    minWidth: 0,
+    marginRight: 6,
   },
   spectralDot: {
     width: 8,
@@ -268,10 +270,11 @@ const styles = StyleSheet.create({
     shadowColor: '#FFFFFF',
     shadowOpacity: 0.8,
     shadowRadius: 4,
+    flexShrink: 0,
   },
   starName: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     letterSpacing: -0.3,
     flexShrink: 1,
@@ -292,6 +295,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 0.8,
     borderColor: 'rgba(245, 158, 11, 0.4)',
+    flexShrink: 0,
   },
   resonancePillText: {
     color: '#FCD34D',
@@ -308,7 +312,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(251, 191, 36, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
+    flexShrink: 0,
   },
   bottomRow: {
     flexDirection: 'row',

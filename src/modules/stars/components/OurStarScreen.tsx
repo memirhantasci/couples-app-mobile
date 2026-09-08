@@ -72,6 +72,7 @@ import { ConnectionRequestBadge } from './ConnectionRequestBadge';
 import { SectorHUD } from './SectorHUD';
 import { SectorAtlasModal } from './SectorAtlasModal';
 import { SearchStarModal } from './SearchStarModal';
+import { HomeRadarOverlay } from './HomeRadarOverlay';
 import {
   areSameViewportStars,
   getTilesInBounds,
@@ -135,7 +136,6 @@ export const OurStarScreen: React.FC = () => {
 
   // Canlı Geri Sayım Sayacı (Saniye)
   const [liveCooldownSec, setLiveCooldownSec] = useState<number>(0);
-
   // Modallar
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
   const [claimTargetStar, setClaimTargetStar] = useState<ViewportStarItem | null>(null);
@@ -145,6 +145,7 @@ export const OurStarScreen: React.FC = () => {
   const [selectedPlanet, setSelectedPlanet] = useState<StarExoplanetRecord | null>(null);
   const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
   const [isConnectionsModalOpen, setIsConnectionsModalOpen] = useState(false);
+  const [isHomeRadarOpen, setIsHomeRadarOpen] = useState(false);
 
   // Yıldız bağlantıları (canvas takımyıldızı çizgileri için)
   const [starConnections, setStarConnections] = useState<ActiveStarConnection[]>([]);
@@ -169,8 +170,7 @@ export const OurStarScreen: React.FC = () => {
   const deltaRa = ((myStarRa - cameraRa + 540) % 360) - 180;
   const deltaDec = myStarDec - cameraDec;
   const angularDistance = Math.sqrt(deltaRa * deltaRa + deltaDec * deltaDec);
-  const showHomeRadar = viewMode === 'macro' && starDetails !== null && angularDistance > 5;
-
+  const showHomeRadar = viewMode === 'macro' && starDetails !== null && angularDistance > 1.5;
 
   // ─── REFERANSLAR (LWW & MANAGER) ───────────────────────────────────
   const sparkManagerRef = useRef<StarSparkManager | null>(null);
@@ -199,6 +199,37 @@ export const OurStarScreen: React.FC = () => {
       setToastMessage(null);
     }, 3800);
   }, []);
+
+  // Eve Dönüş Radarı Tetikleyici
+  const handleReturnHome = useCallback(() => {
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
+    setIsHomeRadarOpen(true);
+  }, []);
+
+  const handleHomeRadarComplete = useCallback(() => {
+    setIsHomeRadarOpen(false);
+    // Gök Kubbe (makro mod) korunur; kamera yıldızımıza uçurulur ve bilgi kartı açılır
+    setFlyToTarget({ centerRa: myStarRa, centerDec: myStarDec, zoom: 3.0, nonce: Date.now() });
+    if (starDetails) {
+      const myStarItem: ViewportStarItem = {
+        catalog_id: starDetails.catalog_id,
+        catalog_code: starDetails.catalog_code,
+        common_name: starDetails.common_name ?? null,
+        ra: Number(starDetails.ra),
+        dec: Number(starDetails.dec),
+        magnitude: starDetails.magnitude,
+        spectral_type: starDetails.spectral_type,
+        base_color: starDetails.base_color,
+        is_claimed: true,
+        is_mine: true,
+        custom_name: starDetails.custom_name,
+        luminosity_level: starDetails.luminosity_level,
+        resonance_active: starDetails.resonance_active,
+      };
+      setSelectedMacroStar(myStarItem);
+    }
+    showToast('Gök Kubbede yıldızınıza odaklanıldı ✨');
+  }, [myStarRa, myStarDec, starDetails, showToast]);
 
   // ─── CANLI COOLDOWN SAYACI (TICKER) ────────────────────────────────
   useEffect(() => {
@@ -584,7 +615,16 @@ export const OurStarScreen: React.FC = () => {
 
       {/* ─── TOAST BİLDİRİM BANNERI ──────────────────────────────────── */}
       {toastMessage && (
-        <View style={[styles.toastContainer, { top: insets.top + 74 }]}>
+        <View
+          style={[
+            styles.toastContainer,
+            {
+              top: insets.top + (viewMode === 'macro' && starDetails !== null ? 98 : 64),
+              zIndex: 999,
+            },
+          ]}
+          pointerEvents="none"
+        >
           <View style={styles.toastInner}>
             <Sparkles size={14} color="#F59E0B" />
             <Text style={styles.toastText} numberOfLines={2}>
@@ -995,12 +1035,9 @@ export const OurStarScreen: React.FC = () => {
         {showHomeRadar && (
           <TouchableOpacity
             activeOpacity={0.85}
-            onPress={() => {
-              try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
-              setFlyToTarget({ centerRa: myStarRa, centerDec: myStarDec, zoom: 3.5, nonce: Date.now() });
-            }}
+            onPress={handleReturnHome}
             style={styles.radarLaunchBtn}
-            accessibilityLabel="Evine Dön"
+            accessibilityLabel="Evimize Dön"
           >
             <LinearGradient
               colors={['#10B981', '#059669']}
@@ -1009,7 +1046,7 @@ export const OurStarScreen: React.FC = () => {
               style={styles.radarLaunchGradient}
             >
               <Radio size={16} color="#FFFFFF" />
-              <Text style={styles.radarLaunchBtnText}>Evine Dön ✨</Text>
+              <Text style={styles.radarLaunchBtnText}>Evimize Dön ✨</Text>
             </LinearGradient>
           </TouchableOpacity>
         )}
@@ -1187,6 +1224,14 @@ export const OurStarScreen: React.FC = () => {
         }}
       />
       {/* ─── ARAMA MODAL'I ────────────────────────────────────────────── */}
+      {/* 6. EVE DÖNÜŞ RADARI OVERLAY */}
+      <HomeRadarOverlay
+        visible={isHomeRadarOpen}
+        starDetails={starDetails}
+        onComplete={handleHomeRadarComplete}
+        onClose={() => setIsHomeRadarOpen(false)}
+      />
+
       <SearchStarModal
         visible={isSearchModalOpen}
         onClose={() => setIsSearchModalOpen(false)}
@@ -1290,6 +1335,7 @@ const styles = StyleSheet.create({
   },
   badgeWrapper: {
     flex: 1,
+    minWidth: 0,
   },
   cosmicBagBtn: {
     width: 40,
@@ -1328,7 +1374,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 20,
     right: 20,
-    zIndex: 30,
+    zIndex: 999,
     alignItems: 'center',
   },
   toastInner: {
@@ -1666,6 +1712,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flexShrink: 0,
   },
   connectStarBtn: {
     borderRadius: 12,

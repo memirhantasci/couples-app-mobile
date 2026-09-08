@@ -173,8 +173,8 @@ export default function MenuScreen() {
               onPress={() => handleRoute("/our-star")}
               activeOpacity={0.8}
             >
-              <View style={[styles.iconCircle, { backgroundColor: "rgba(56, 189, 248, 0.18)" }]}>
-                <Orbit color="#38BDF8" size={18} />
+              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <Orbit color={theme.accent} size={18} />
               </View>
               <View style={styles.menuTextContainer}>
                 <Text style={styles.menuTitle}>Bizim Yıldızımız ✨</Text>
