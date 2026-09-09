@@ -8,7 +8,7 @@ import { setAdLoggingOut } from "../utils/adFlags";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { getOrCreateDeviceId } from "@/utils/device";
 
-import { Platform } from "react-native";
+import { Platform, AppState } from "react-native";
 
 const CACHED_PROFILE_KEY = "@couples_app_cached_profile";
 export const DEVICE_AUTH_CACHE_KEY = "@device_auth_cache";
@@ -441,6 +441,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [session?.user?.id, profile?.coupleId, refreshProfile]);
 
+  const foregroundRefreshInFlightRef = useRef(false);
+
   // A timestamp expiration does not create a database UPDATE, therefore a
   // realtime subscription alone cannot flip the UI to locked mode. Transition
   // locally at the exact expiry moment, then refresh to reconcile the source
@@ -475,6 +477,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => clearTimeout(timer);
   }, [isDemoMode, profile?.premiumExpiresAt, refreshProfile]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState !== 'active') return;
+
+      const observedExpiresAt = profile?.premiumExpiresAt;
+      const expiryMs = observedExpiresAt ? Date.parse(observedExpiresAt) : Number.POSITIVE_INFINITY;
+      const expired = Number.isFinite(expiryMs) && Date.now() >= expiryMs;
+
+      if (expired) {
+        setProfile((current) => {
+          // Callback oluşturulduktan sonra üyelik yenilenmiş olabilir.
+          if (!current || current.premiumExpiresAt !== observedExpiresAt) {
+            return current;
+          }
+          return current.isPremium ? { ...current, isPremium: false } : current;
+        });
+      }
+
+      if (foregroundRefreshInFlightRef.current) return;
+      foregroundRefreshInFlightRef.current = true;
+
+      void refreshProfile()
+        .catch((error) => {
+          console.warn('Premium profile refresh failed on foreground', { error });
+        })
+        .finally(() => {
+          foregroundRefreshInFlightRef.current = false;
+        });
+    });
+
+    return () => subscription.remove();
+  }, [profile?.premiumExpiresAt, refreshProfile]);
 
   const signOut = useCallback(async () => {
     if (isDemoMode) {

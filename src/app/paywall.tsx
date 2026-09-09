@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
-import { getTheme } from "@/lib/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { RevenueCatService } from "@/lib/revenuecat";
 import { PurchasesPackage } from "react-native-purchases";
@@ -13,8 +13,8 @@ import { LegalDocType } from "@/constants/legalTexts";
 
 export default function PaywallScreen() {
   const router = useRouter();
-  const { profile, refreshProfile } = useAuth();
-  const theme = getTheme(profile?.gender);
+  const { refreshProfile } = useAuth();
+  const { theme, isLight } = useTheme();
   const insets = useSafeAreaInsets();
 
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
@@ -42,6 +42,14 @@ export default function PaywallScreen() {
     fetchOfferings();
   }, []);
 
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)/home');
+    }
+  };
+
   const handlePurchase = async () => {
     if (!selectedPackage) return;
     setPurchasing(true);
@@ -51,7 +59,7 @@ export default function PaywallScreen() {
       if (customerInfo && typeof customerInfo.entitlements.active['Premium'] !== "undefined") {
         await refreshProfile();
         Alert.alert("Tebrikler!", "Premium aboneliğiniz başarıyla aktif edildi.");
-        router.back();
+        handleBack();
       }
     } catch (e: any) {
       Alert.alert("Satın Alma Başarısız", e.message || "Bir hata oluştu.");
@@ -67,7 +75,7 @@ export default function PaywallScreen() {
       if (customerInfo && typeof customerInfo.entitlements.active['Premium'] !== "undefined") {
         await refreshProfile();
         Alert.alert("Başarılı", "Satın alımlarınız geri yüklendi.");
-        router.back();
+        handleBack();
       } else {
         Alert.alert("Bilgi", "Aktif bir aboneliğiniz bulunamadı.");
       }
@@ -84,34 +92,51 @@ export default function PaywallScreen() {
     "Erkekler için regl takvimi görünümü",
     "Takvimde geçmiş günlerin fotoğrafları",
     "Sınırsız geleceğe mektup yazma",
-    "Tüm reklamlardan arınmış deneyim"
+    "Tüm reklamlardan arınmış deneyim",
   ];
 
   return (
     <ScreenBackground>
       <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 20 }]}>
         
-        <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
-          <View style={styles.closeBtnCircle}>
-            <X color="rgba(255,255,255,0.7)" size={20} />
+        <TouchableOpacity style={styles.closeBtn} onPress={handleBack} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <View
+            style={[
+              styles.closeBtnCircle,
+              {
+                backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.1)",
+                borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.14)",
+              },
+            ]}
+          >
+            <X color={theme.text} size={20} />
           </View>
         </TouchableOpacity>
 
         <View style={styles.header}>
-          <View style={[styles.crownCircle, { backgroundColor: `${theme.accent}20` }]}>
+          <View style={[styles.crownCircle, { backgroundColor: `${theme.accent}18` }]}>
             <Crown color={theme.accent} size={48} />
           </View>
-          <Text style={styles.title}>Couples Premium</Text>
-          <Text style={styles.subtitle}>İkiniz için de geçerli tek abonelik</Text>
+          <Text style={[styles.title, { color: theme.text }]}>Couples Premium</Text>
+          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>İkiniz için de geçerli tek abonelik</Text>
         </View>
 
-        <View style={styles.featuresBox}>
+        <View
+          style={[
+            styles.featuresBox,
+            {
+              backgroundColor: isLight ? theme.unitBg : "rgba(255,255,255,0.03)",
+              borderColor: isLight ? "rgba(0,0,0,0.06)" : theme.cardBorder,
+              borderWidth: 1,
+            },
+          ]}
+        >
           {features.map((f, i) => (
             <View key={i} style={styles.featureRow}>
               <View style={[styles.checkCircle, { backgroundColor: theme.accent }]}>
                 <Check color="#fff" size={14} />
               </View>
-              <Text style={styles.featureText}>{f}</Text>
+              <Text style={[styles.featureText, { color: theme.text }]}>{f}</Text>
             </View>
           ))}
         </View>
@@ -121,11 +146,20 @@ export default function PaywallScreen() {
         ) : (
           <View style={styles.packagesContainer}>
             {packages.length === 0 ? (
-              <View style={{ padding: 20, alignItems: "center", backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 16 }}>
-                <Text style={{ color: "rgba(255,255,255,0.8)", textAlign: "center", marginBottom: 12 }}>
+              <View
+                style={{
+                  padding: 20,
+                  alignItems: "center",
+                  backgroundColor: isLight ? theme.unitBg : "rgba(255,255,255,0.05)",
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: theme.cardBorder,
+                }}
+              >
+                <Text style={{ color: theme.textSecondary, textAlign: "center", marginBottom: 12, fontSize: 13.5 }}>
                   Şu anda mağazaya bağlanılamıyor veya paketler yüklenemedi. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.
                 </Text>
-                <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 8, paddingHorizontal: 16, backgroundColor: theme.accent, borderRadius: 8 }}>
+                <TouchableOpacity onPress={handleBack} style={{ paddingVertical: 8, paddingHorizontal: 16, backgroundColor: theme.accent, borderRadius: 8 }}>
                   <Text style={{ color: "#fff", fontWeight: "bold" }}>Geri Dön</Text>
                 </TouchableOpacity>
               </View>
@@ -138,15 +172,34 @@ export default function PaywallScreen() {
                     activeOpacity={0.8}
                     style={[
                       styles.packageCard,
-                      { backgroundColor: theme.cardBg, borderColor: isSelected ? theme.accent : "transparent" }
+                      {
+                        backgroundColor: theme.cardBg,
+                        borderColor: isSelected ? theme.accent : isLight ? "rgba(0,0,0,0.08)" : theme.cardBorder,
+                        shadowColor: isLight ? "#000" : theme.accent,
+                      },
                     ]}
                     onPress={() => setSelectedPackage(pkg)}
                   >
                     <View style={styles.packageInfo}>
-                      <Text style={styles.packageTitle}>{pkg.product.title.replace("(Couples App)", "")}</Text>
-                      <Text style={styles.packagePrice}>{pkg.product.priceString}</Text>
+                      <Text style={[styles.packageTitle, { color: theme.text }]}>
+                        {pkg.product.title.replace("(Couples App)", "")}
+                      </Text>
+                      <Text style={[styles.packagePrice, { color: theme.textSecondary }]}>
+                        {pkg.product.priceString}
+                      </Text>
                     </View>
-                    <View style={styles.radioOuter}>
+                    <View
+                      style={[
+                        styles.radioOuter,
+                        {
+                          borderColor: isSelected
+                            ? theme.accent
+                            : isLight
+                            ? "rgba(0,0,0,0.2)"
+                            : "rgba(255,255,255,0.25)",
+                        },
+                      ]}
+                    >
                       {isSelected && <View style={[styles.radioInner, { backgroundColor: theme.accent }]} />}
                     </View>
                   </TouchableOpacity>
@@ -160,6 +213,7 @@ export default function PaywallScreen() {
                   style={[styles.ctaBtn, { backgroundColor: theme.accent }, purchasing && { opacity: 0.7 }]}
                   onPress={handlePurchase}
                   disabled={purchasing || !selectedPackage}
+                  activeOpacity={0.85}
                 >
                   {purchasing ? (
                     <ActivityIndicator color="#fff" />
@@ -169,15 +223,20 @@ export default function PaywallScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.restoreBtn} onPress={handleRestore} disabled={purchasing}>
-                  <ShieldCheck color="rgba(255,255,255,0.5)" size={16} />
-                  <Text style={styles.restoreText}>Satın Alımları Geri Yükle</Text>
+                  <ShieldCheck color={theme.textMuted} size={16} />
+                  <Text style={[styles.restoreText, { color: theme.textMuted }]}>Satın Alımları Geri Yükle</Text>
                 </TouchableOpacity>
               </>
             )}
 
             {/* Yasal Abonelik ve İade Bilgilendirmesi */}
-            <View style={styles.legalNoticeContainer}>
-              <Text style={styles.legalNoticeText}>
+            <View
+              style={[
+                styles.legalNoticeContainer,
+                { borderTopColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" },
+              ]}
+            >
+              <Text style={[styles.legalNoticeText, { color: theme.textMuted }]}>
                 Aboneliğiniz onaylandığında ödeme mağaza hesabınızdan tahsil edilir. Cari dönemin bitiminden en az 24 saat önce iptal edilmediği sürece abonelik otomatik olarak yenilenir. Satın alımdan sonra hesap ayarlarınızdan dilediğiniz an iptal edebilirsiniz.
               </Text>
 
@@ -185,11 +244,11 @@ export default function PaywallScreen() {
                 <TouchableOpacity onPress={() => openLegal("terms")}>
                   <Text style={[styles.legalLinkText, { color: theme.accent }]}>Kullanım Koşulları (EULA)</Text>
                 </TouchableOpacity>
-                <Text style={styles.legalLinkDot}>•</Text>
+                <Text style={[styles.legalLinkDot, { color: theme.textMuted }]}>•</Text>
                 <TouchableOpacity onPress={() => openLegal("privacy")}>
                   <Text style={[styles.legalLinkText, { color: theme.accent }]}>Gizlilik Politikası</Text>
                 </TouchableOpacity>
-                <Text style={styles.legalLinkDot}>•</Text>
+                <Text style={[styles.legalLinkDot, { color: theme.textMuted }]}>•</Text>
                 <TouchableOpacity onPress={() => openLegal("subscription")}>
                   <Text style={[styles.legalLinkText, { color: theme.accent }]}>Abonelik Koşulları</Text>
                 </TouchableOpacity>
@@ -221,14 +280,14 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    borderWidth: 1,
     justifyContent: "center",
     alignItems: "center",
   },
   header: {
     alignItems: "center",
     marginTop: 10,
-    marginBottom: 30,
+    marginBottom: 28,
   },
   crownCircle: {
     width: 80,
@@ -241,18 +300,17 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "800",
-    color: "#fff",
     marginBottom: 8,
+    letterSpacing: -0.4,
   },
   subtitle: {
     fontSize: 16,
-    color: "rgba(255,255,255,0.6)",
+    letterSpacing: -0.2,
   },
   featuresBox: {
-    backgroundColor: "rgba(255,255,255,0.03)",
     padding: 20,
     borderRadius: 20,
-    marginBottom: 30,
+    marginBottom: 28,
   },
   featureRow: {
     flexDirection: "row",
@@ -268,8 +326,8 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   featureText: {
-    color: "rgba(255,255,255,0.85)",
     fontSize: 15,
+    fontWeight: "600",
     flex: 1,
   },
   packagesContainer: {
@@ -279,29 +337,31 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 20,
-    borderRadius: 16,
-    borderWidth: 2,
+    padding: 18,
+    borderRadius: 18,
+    borderWidth: 1.8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
   },
   packageInfo: {
     flex: 1,
   },
   packageTitle: {
-    color: "#fff",
     fontSize: 16,
     fontWeight: "700",
     marginBottom: 4,
   },
   packagePrice: {
-    color: "rgba(255,255,255,0.6)",
     fontSize: 14,
+    fontWeight: "600",
   },
   radioOuter: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.2)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -312,14 +372,20 @@ const styles = StyleSheet.create({
   },
   ctaBtn: {
     paddingVertical: 18,
-    borderRadius: 16,
+    borderRadius: 18,
     alignItems: "center",
     marginTop: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   ctaBtnText: {
     color: "#fff",
     fontSize: 17,
     fontWeight: "bold",
+    letterSpacing: -0.2,
   },
   restoreBtn: {
     flexDirection: "row",
@@ -329,19 +395,17 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   restoreText: {
-    color: "rgba(255,255,255,0.5)",
     fontSize: 14,
+    fontWeight: "600",
   },
   legalNoticeContainer: {
     marginTop: 24,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.08)",
     gap: 12,
     alignItems: "center",
   },
   legalNoticeText: {
-    color: "rgba(255,255,255,0.4)",
     fontSize: 11,
     lineHeight: 16,
     textAlign: "center",
@@ -360,7 +424,6 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
   legalLinkDot: {
-    color: "rgba(255,255,255,0.3)",
     fontSize: 11,
   },
 });

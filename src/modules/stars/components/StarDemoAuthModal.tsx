@@ -20,6 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Sparkles, UserPlus, LogIn, X } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import type { ViewportStarItem } from '../types/star.types';
 
 export interface StarDemoAuthModalProps {
@@ -37,6 +38,7 @@ export const StarDemoAuthModal: React.FC<StarDemoAuthModalProps> = ({
 }) => {
   const router = useRouter();
   const { exitDemoMode } = useAuth();
+  const { theme, isLight } = useTheme();
 
   const handleRegister = () => {
     onClose();
@@ -63,22 +65,31 @@ export const StarDemoAuthModal: React.FC<StarDemoAuthModalProps> = ({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.5)' : 'rgba(3, 2, 7, 0.75)' }]}>
         <BlurView
           intensity={Platform.OS === 'ios' ? 70 : 100}
-          tint="dark"
+          tint={isLight ? 'light' : 'dark'}
           style={StyleSheet.absoluteFill}
         />
 
-        <View style={styles.card}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: isLight ? '#FFFFFF' : theme.cardBg,
+              borderColor: isLight ? 'rgba(0, 0, 0, 0.08)' : theme.cardBorder,
+              shadowColor: isLight ? '#000000' : theme.accent,
+            },
+          ]}
+        >
           {/* Kapat Butonu (X) */}
           <TouchableOpacity
             onPress={onClose}
-            style={styles.closeBtn}
+            style={[styles.closeBtn, isLight && { backgroundColor: 'rgba(0,0,0,0.05)' }]}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             accessibilityLabel="Kapat"
           >
-            <X size={18} color="rgba(255, 255, 255, 0.6)" />
+            <X size={18} color={theme.text} />
           </TouchableOpacity>
 
           {/* İkon */}
@@ -95,31 +106,31 @@ export const StarDemoAuthModal: React.FC<StarDemoAuthModalProps> = ({
 
           {/* Hedef Yıldız Rozeti (Eğer seçilen yıldız varsa) */}
           {targetStar && (
-            <View style={styles.starBadge}>
+            <View style={[styles.starBadge, isLight && { backgroundColor: theme.unitBg, borderColor: 'rgba(0,0,0,0.06)' }]}>
               <View
                 style={[
                   styles.starColorDot,
                   { backgroundColor: targetStar.base_color || '#9DB4FF' },
                 ]}
               />
-              <Text style={styles.starBadgeName} numberOfLines={1}>
+              <Text style={[styles.starBadgeName, { color: theme.text }]} numberOfLines={1}>
                 {targetStar.common_name
                   ? `${targetStar.common_name} (${targetStar.catalog_code})`
                   : targetStar.catalog_code}
               </Text>
-              <Text style={styles.starBadgeMag}>
+              <Text style={[styles.starBadgeMag, { color: theme.textMuted }]}>
                 {targetStar.magnitude} mag
               </Text>
             </View>
           )}
 
           {/* Başlık / Mesaj */}
-          <Text style={styles.title}>
+          <Text style={[styles.title, { color: theme.text }]}>
             Bu yıldızı sahiplenmek için kayıt olmanız gerekiyor ✨
           </Text>
 
           {/* Açıklama */}
-          <Text style={styles.description}>
+          <Text style={[styles.description, { color: theme.textSecondary }]}>
             Aşkınızı gökyüzüne mühürlemek, yıldızınızı adlandırmak ve partnerinizle ortak alanınızı başlatmak için ücretsiz hesabınızı oluşturun.
           </Text>
 
@@ -146,10 +157,13 @@ export const StarDemoAuthModal: React.FC<StarDemoAuthModalProps> = ({
             <TouchableOpacity
               onPress={handleLogin}
               activeOpacity={0.75}
-              style={styles.loginBtn}
+              style={[
+                styles.loginBtn,
+                isLight && { backgroundColor: theme.unitBg, borderColor: 'rgba(0,0,0,0.08)' },
+              ]}
             >
-              <LogIn size={16} color="#38BDF8" style={{ marginRight: 6 }} />
-              <Text style={styles.loginBtnText}>Giriş Yap</Text>
+              <LogIn size={16} color={isLight ? theme.accent : '#38BDF8'} style={{ marginRight: 6 }} />
+              <Text style={[styles.loginBtnText, { color: isLight ? theme.accent : '#38BDF8' }]}>Giriş Yap</Text>
             </TouchableOpacity>
 
             {/* 3. Buton: Kapat */}
@@ -158,7 +172,7 @@ export const StarDemoAuthModal: React.FC<StarDemoAuthModalProps> = ({
               activeOpacity={0.65}
               style={styles.dismissBtn}
             >
-              <Text style={styles.dismissBtnText}>Kapat</Text>
+              <Text style={[styles.dismissBtnText, { color: theme.textMuted }]}>Kapat</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -170,22 +184,18 @@ export const StarDemoAuthModal: React.FC<StarDemoAuthModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(3, 2, 7, 0.75)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
   },
   card: {
     width: Math.min(SCREEN_WIDTH - 48, 360),
-    backgroundColor: '#0C0A1D',
     borderRadius: 24,
     borderWidth: 1.2,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
     padding: 24,
     alignItems: 'center',
-    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.55,
+    shadowOpacity: 0.25,
     shadowRadius: 28,
     elevation: 20,
   },
@@ -232,18 +242,15 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   starBadgeName: {
-    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
     marginRight: 8,
     maxWidth: 160,
   },
   starBadgeMag: {
-    color: 'rgba(255, 255, 255, 0.5)',
     fontSize: 11,
   },
   title: {
-    color: '#FFFFFF',
     fontSize: 17,
     fontWeight: '700',
     textAlign: 'center',
@@ -251,7 +258,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   description: {
-    color: 'rgba(255, 255, 255, 0.65)',
     fontSize: 13,
     textAlign: 'center',
     lineHeight: 18,
@@ -297,7 +303,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   loginBtnText: {
-    color: '#38BDF8',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -308,7 +313,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dismissBtnText: {
-    color: 'rgba(255, 255, 255, 0.45)',
     fontSize: 13,
     fontWeight: '500',
   },

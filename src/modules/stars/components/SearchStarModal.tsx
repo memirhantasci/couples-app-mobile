@@ -1,3 +1,11 @@
+/**
+ * @file SearchStarModal.tsx
+ * @module modules/stars/components
+ * @description Evrende tescilli veya katalog yıldızlarını arama modalı.
+ *
+ * Tüm tema modlarıyla (Beyaz, Mavi, Pembe, Gece) tam uyumludur.
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -13,6 +21,7 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Search, X, Star, Sun, Globe } from 'lucide-react-native';
+import { useTheme } from '@/context/ThemeContext';
 import { starService } from '../api/starService';
 import { CelestialSearchResult } from '../types/star.types';
 
@@ -116,6 +125,7 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
   onClose,
   onSelectStar,
 }) => {
+  const { theme, isLight } = useTheme();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<CelestialSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -176,27 +186,53 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill}>
+      <BlurView
+        intensity={Platform.OS === 'ios' ? 45 : 85}
+        tint={isLight ? 'light' : 'dark'}
+        style={StyleSheet.absoluteFill}
+      >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.container}
         >
-          <View style={styles.modalContent}>
+          <View
+            style={[
+              styles.modalContent,
+              {
+                backgroundColor: theme.cardBg,
+                borderColor: theme.cardBorder,
+              },
+            ]}
+          >
             {/* Header */}
             <View style={styles.header}>
-              <Text style={styles.title}>Evrende Ara</Text>
-              <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                <X size={20} color="#FFF" />
+              <Text style={[styles.title, { color: theme.text }]}>Evrende Ara</Text>
+              <TouchableOpacity
+                onPress={onClose}
+                style={[
+                  styles.closeBtn,
+                  { backgroundColor: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.08)' },
+                ]}
+              >
+                <X size={18} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
 
             {/* Search Input */}
-            <View style={styles.inputContainer}>
-              <Search size={18} color="#888" style={styles.searchIcon} />
+            <View
+              style={[
+                styles.inputContainer,
+                {
+                  backgroundColor: theme.inputBg,
+                  borderColor: theme.inputBorder,
+                },
+              ]}
+            >
+              <Search size={18} color={theme.textMuted} style={styles.searchIcon} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: theme.text }]}
                 placeholder="Güneş, Dünya, Venüs, Sirius, yıldız adı..."
-                placeholderTextColor="#888"
+                placeholderTextColor={theme.textMuted}
                 value={query}
                 onChangeText={setQuery}
                 autoFocus
@@ -206,7 +242,7 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
 
             {/* Results */}
             {loading && results.length === 0 ? (
-              <ActivityIndicator size="large" color="#38BDF8" style={styles.loader} />
+              <ActivityIndicator size="large" color={theme.accent} style={styles.loader} />
             ) : (
               <FlatList
                 data={results}
@@ -214,12 +250,12 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
                 contentContainerStyle={styles.listContainer}
                 ListEmptyComponent={
                   query.trim().length >= 1 ? (
-                    <Text style={styles.emptyText}>Sonuç bulunamadı.</Text>
+                    <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Sonuç bulunamadı.</Text>
                   ) : null
                 }
                 renderItem={({ item }) => {
                   let typeLabel = '';
-                  let typeColor = '#888';
+                  let typeColor = theme.textMuted;
                   const isSun = item.catalog_code === 'SOL-SUN';
                   const isEarth = item.catalog_code === 'SOL-EARTH';
 
@@ -234,13 +270,19 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
                     typeColor = '#A78BFA';
                   } else {
                     typeLabel = 'Katalog Yıldızı';
-                    typeColor = '#9CA3AF';
+                    typeColor = theme.textMuted;
                   }
 
                   return (
                     <TouchableOpacity
                       activeOpacity={0.8}
-                      style={styles.resultItem}
+                      style={[
+                        styles.resultItem,
+                        {
+                          backgroundColor: theme.unitBg,
+                          borderColor: theme.cardBorder,
+                        },
+                      ]}
                       onPress={() => onSelectStar(item)}
                     >
                       {isSun ? (
@@ -252,7 +294,7 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
                       )}
                       <View style={styles.resultTextContainer}>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <Text style={styles.resultName}>{item.display_name}</Text>
+                          <Text style={[styles.resultName, { color: theme.text }]}>{item.display_name}</Text>
                           {item.is_own_star && (
                             <Text style={styles.ownStarBadge}> (Senin Yıldızın)</Text>
                           )}
@@ -261,7 +303,7 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
                           <Text style={[styles.typeBadge, { color: typeColor, borderColor: typeColor }]}>
                             {typeLabel}
                           </Text>
-                          <Text style={styles.resultCode}>{item.catalog_code}</Text>
+                          <Text style={[styles.resultCode, { color: theme.textMuted }]}>{item.catalog_code}</Text>
                         </View>
                       </View>
                     </TouchableOpacity>
@@ -276,31 +318,22 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
   );
 };
 
+export default SearchStarModal;
+
 const styles = StyleSheet.create({
-  absoluteFill: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    padding: 20,
-  },
   container: {
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 16,
   },
   modalContent: {
-    backgroundColor: 'rgba(15, 12, 30, 0.95)',
-    borderRadius: 20,
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.4)',
-    padding: 20,
+    padding: 18,
     maxHeight: '80%',
-    shadowColor: '#000',
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
     elevation: 8,
   },
   header: {
@@ -310,63 +343,62 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   title: {
-    color: '#FFF',
     fontSize: 18,
     fontWeight: 'bold',
   },
   closeBtn: {
-    padding: 4,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
     paddingHorizontal: 12,
     marginBottom: 16,
+    borderWidth: 1,
   },
   searchIcon: {
     marginRight: 8,
   },
   input: {
     flex: 1,
-    color: '#FFF',
     height: 44,
+    fontSize: 14,
   },
   loader: {
     marginVertical: 20,
   },
   listContainer: {
-    paddingBottom: 20,
+    paddingBottom: 16,
   },
   emptyText: {
-    color: '#888',
     textAlign: 'center',
     marginTop: 20,
+    fontSize: 13,
   },
   resultItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 14,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   resultTextContainer: {
     flex: 1,
     marginLeft: 12,
   },
   resultName: {
-    color: '#FFF',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
   },
   resultCode: {
-    color: '#888',
-    fontSize: 12,
+    fontSize: 11,
   },
   typeBadge: {
     fontSize: 10,

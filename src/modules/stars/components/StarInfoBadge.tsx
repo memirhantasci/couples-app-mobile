@@ -4,11 +4,12 @@
  * @description Cam efektli (glassmorphic) ve canlı rezonans nabız ışımasına sahip Star HUD rozeti.
  *
  * Özellikler:
- * - Cam morfolojisi: BlurView tint="dark", yarı saydam arka plan ve mikro-border.
+ * - Cam morfolojisi: BlurView dinamik tint, tema uyumlu yarı saydam arka plan ve mikro-border.
  * - Astronomik Bilgi: Katalog kodu (HIP-XXXXX), RA/DEC koordinatları, tayf türü rengi.
  * - Çift Detayı: Yıldızın özel ismi ve canlı parlaklık yüzdesi (%XX).
  * - Rezonans Işıması: resonance_active açıkken Reanimated ile altın (#F59E0B) ve mor (#8B5CF6) nabız.
  * - Dokunma Etkileşimi: Sertifika veya astronomik künyeyi açmak için tıklama geri bildirimi.
+ * - Tüm tema modlarıyla (Beyaz, Mavi, Pembe, Gece) tam uyumludur.
  */
 
 import React, { useEffect } from 'react';
@@ -32,6 +33,7 @@ import Animated, {
   interpolateColor,
 } from 'react-native-reanimated';
 import { Sparkles, Compass, Flame, Award } from 'lucide-react-native';
+import { useTheme } from '@/context/ThemeContext';
 import type { CoupleStarDetails } from '../types/star.types';
 
 // ============================================================================
@@ -86,6 +88,8 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
   onPressCertificate,
   style,
 }) => {
+  const { theme, isLight } = useTheme();
+
   // Rezonans nabız animasyonu değeri (0 -> 1 -> 0)
   const pulseAnim = useSharedValue(0);
 
@@ -110,8 +114,8 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
   const animatedBorderStyle = useAnimatedStyle(() => {
     if (!effectiveResonance) {
       return {
-        borderColor: 'rgba(255, 255, 255, 0.12)',
-        shadowOpacity: 0.15,
+        borderColor: isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.12)',
+        shadowOpacity: isLight ? 0.1 : 0.25,
       };
     }
 
@@ -150,10 +154,19 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
     : '--';
 
   return (
-    <Animated.View style={[styles.outerContainer, animatedBorderStyle, style]}>
+    <Animated.View
+      style={[
+        styles.outerContainer,
+        {
+          backgroundColor: isLight ? 'rgba(255, 255, 255, 0.88)' : 'rgba(7, 5, 18, 0.55)',
+        },
+        animatedBorderStyle,
+        style,
+      ]}
+    >
       <BlurView
         intensity={Platform.OS === 'ios' ? 45 : 90}
-        tint="dark"
+        tint={isLight ? 'light' : 'dark'}
         style={[styles.blurWrapper, viewMode === 'macro' && { paddingVertical: 7 }]}
       >
         <TouchableOpacity
@@ -166,11 +179,11 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
           <View style={styles.topRow}>
             <View style={styles.nameBlock}>
               <View style={[styles.spectralDot, { backgroundColor: spectralColor }]} />
-              <Text style={styles.starName} numberOfLines={1}>
+              <Text style={[styles.starName, { color: theme.text }]} numberOfLines={1}>
                 {starDetails.custom_name || 'Bizim Yıldızımız'}
               </Text>
               {starDetails.common_name ? (
-                <Text style={styles.starCommonName} numberOfLines={1}>
+                <Text style={[styles.starCommonName, { color: theme.textMuted }]} numberOfLines={1}>
                   ({starDetails.common_name})
                 </Text>
               ) : null}
@@ -184,8 +197,16 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
 
             {/* Sertifika Butonu Kısayolu */}
             {onPressCertificate && (
-              <View style={styles.certIconBtn}>
-                <Award size={14} color="#FBBF24" />
+              <View
+                style={[
+                  styles.certIconBtn,
+                  {
+                    backgroundColor: isLight ? 'rgba(245, 158, 11, 0.12)' : 'rgba(251, 191, 36, 0.12)',
+                    borderColor: isLight ? 'rgba(245, 158, 11, 0.35)' : 'rgba(251, 191, 36, 0.3)',
+                  },
+                ]}
+              >
+                <Award size={14} color="#F59E0B" />
               </View>
             )}
           </View>
@@ -194,19 +215,35 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
           {viewMode === 'micro' && (
             <View style={styles.bottomRow}>
               <View style={styles.coordsBlock}>
-                <Text style={styles.catalogCode}>{starDetails.catalog_code}</Text>
-                <View style={styles.coordDivider} />
-                <Compass size={11} color="rgba(255, 255, 255, 0.4)" style={styles.compassIcon} />
-                <Text style={styles.coordsText}>
+                <Text style={[styles.catalogCode, { color: isLight ? '#0284C7' : '#38BDF8' }]}>
+                  {starDetails.catalog_code}
+                </Text>
+                <View
+                  style={[
+                    styles.coordDivider,
+                    { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.15)' },
+                  ]}
+                />
+                <Compass
+                  size={11}
+                  color={theme.textMuted}
+                  style={styles.compassIcon}
+                />
+                <Text style={[styles.coordsText, { color: theme.textSecondary }]}>
                   {raFormatted} / {decFormatted}
                 </Text>
               </View>
 
               {/* Parlaklık Yüzdesi ve Mikro Çubuk */}
               <View style={styles.luminosityBlock}>
-                <Sparkles size={11} color={luminosity >= 0.8 ? '#FCD34D' : '#94A3B8'} />
-                <Text style={styles.luminosityText}>%{luminosityPercent}</Text>
-                <View style={styles.progressBarBg}>
+                <Sparkles size={11} color={luminosity >= 0.8 ? '#F59E0B' : theme.textMuted} />
+                <Text style={[styles.luminosityText, { color: theme.text }]}>%{luminosityPercent}</Text>
+                <View
+                  style={[
+                    styles.progressBarBg,
+                    { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.12)' },
+                  ]}
+                >
                   <View
                     style={[
                       styles.progressBarFill,
@@ -234,12 +271,9 @@ const styles = StyleSheet.create({
   outerContainer: {
     borderRadius: 22,
     borderWidth: 1.2,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
     overflow: 'hidden',
-    backgroundColor: 'rgba(7, 5, 18, 0.45)',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
     shadowRadius: 10,
     elevation: 8,
   },
@@ -273,14 +307,12 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   starName: {
-    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: -0.3,
     flexShrink: 1,
   },
   starCommonName: {
-    color: 'rgba(255, 255, 255, 0.45)',
     fontSize: 11,
     fontStyle: 'italic',
     flexShrink: 1,
@@ -298,7 +330,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   resonancePillText: {
-    color: '#FCD34D',
+    color: '#F59E0B',
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: -0.2,
@@ -307,9 +339,7 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: 'rgba(251, 191, 36, 0.12)',
     borderWidth: 0.8,
-    borderColor: 'rgba(251, 191, 36, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -326,7 +356,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   catalogCode: {
-    color: '#38BDF8',
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0.3,
@@ -335,13 +364,11 @@ const styles = StyleSheet.create({
   coordDivider: {
     width: 1,
     height: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   compassIcon: {
     marginLeft: -2,
   },
   coordsText: {
-    color: 'rgba(255, 255, 255, 0.65)',
     fontSize: 11,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
@@ -351,7 +378,6 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   luminosityText: {
-    color: 'rgba(255, 255, 255, 0.85)',
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: -0.2,
@@ -360,7 +386,6 @@ const styles = StyleSheet.create({
     width: 38,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     overflow: 'hidden',
   },
   progressBarFill: {

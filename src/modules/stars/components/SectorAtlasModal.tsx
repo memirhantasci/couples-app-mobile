@@ -7,6 +7,8 @@
  * - "Oraya Uç 🚀" butonu: Modalı kapatır, kamerayı sektör merkezine uçurur.
  * - "Bu Sektörden Yıldız Seç ✨" butonu: ClaimStarModal'a sektör seçili olarak yönlendirir.
  * - getSectorsOverview() çağrısı yalnızca modal açıldığında yapılır (5 dk cache).
+ *
+ * Tüm tema modlarıyla (Beyaz, Mavi, Pembe, Gece) tam uyumludur.
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -18,15 +20,13 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Rocket, Sparkles, Users, Zap } from 'lucide-react-native';
+import { useTheme } from '@/context/ThemeContext';
 import { SKY_SECTORS_LIST, type SectorConfig } from '../config/skySectors.data';
 import { starService } from '../api/starService';
 import type { SectorDynamicOverview, FlyToTarget } from '../types/star.types';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface SectorAtlasModalProps {
   readonly visible: boolean;
@@ -46,6 +46,7 @@ export const SectorAtlasModal: React.FC<SectorAtlasModalProps> = ({
   onClaimFromSector,
   hasOwnStar = false,
 }) => {
+  const { theme, isLight } = useTheme();
   const [dynamicData, setDynamicData] = useState<SectorDynamicOverview[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -111,22 +112,47 @@ export const SectorAtlasModal: React.FC<SectorAtlasModalProps> = ({
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      <View style={styles.backdrop}>
-        <View style={styles.modalContainer}>
+      <View
+        style={[
+          styles.backdrop,
+          { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.45)' : 'rgba(0, 0, 0, 0.85)' },
+        ]}
+      >
+        <View
+          style={[
+            styles.modalContainer,
+            {
+              backgroundColor: theme.cardBg,
+              borderColor: theme.cardBorder,
+            },
+          ]}
+        >
           {/* Başlık */}
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>🌌 Gökyüzü Atlası</Text>
-            <Text style={styles.headerSubtitle}>24 Astronomik Sektör</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <X size={22} color="rgba(255,255,255,0.7)" />
+          <View
+            style={[
+              styles.header,
+              { borderBottomColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.06)' },
+            ]}
+          >
+            <Text style={[styles.headerTitle, { color: theme.text }]}>🌌 Gökyüzü Atlası</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>24 Astronomik Sektör</Text>
+            <TouchableOpacity
+              onPress={onClose}
+              style={[
+                styles.closeButton,
+                { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.08)' },
+              ]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <X size={20} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
 
           {/* İçerik */}
           {isLoading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#A78BFA" />
-              <Text style={styles.loadingText}>Sektörler taranıyor...</Text>
+              <ActivityIndicator size="large" color={theme.accent} />
+              <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Sektörler taranıyor...</Text>
             </View>
           ) : (
             <ScrollView
@@ -143,13 +169,20 @@ export const SectorAtlasModal: React.FC<SectorAtlasModalProps> = ({
                 const energy = dyn?.sector_energy ?? 0;
                 const hasFriends = dyn?.has_friends_here ?? false;
 
+                const cardBgGradient = isLight
+                  ? [sector.nebulaPalette[0] + '20', theme.unitBg]
+                  : [sector.nebulaPalette[0] + '35', theme.unitBg];
+
                 return (
                   <View key={sector.id} style={styles.sectorCard}>
                     <LinearGradient
-                      colors={[sector.nebulaPalette[0] + '40', 'rgba(15, 15, 25, 0.9)']}
+                      colors={cardBgGradient as [string, string]}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
-                      style={styles.cardGradient}
+                      style={[
+                        styles.cardGradient,
+                        { borderColor: theme.cardBorder },
+                      ]}
                     >
                       {/* Üst kısım: İsim ve Sembol */}
                       <View style={styles.cardHeader}>
@@ -159,7 +192,7 @@ export const SectorAtlasModal: React.FC<SectorAtlasModalProps> = ({
                             <Text style={[styles.sectorName, { color: sector.themeColor }]}>
                               {sector.name}
                             </Text>
-                            <Text style={styles.sectorLatin}>{sector.latinName}</Text>
+                            <Text style={[styles.sectorLatin, { color: theme.textMuted }]}>{sector.latinName}</Text>
                           </View>
                         </View>
 
@@ -181,13 +214,18 @@ export const SectorAtlasModal: React.FC<SectorAtlasModalProps> = ({
                       </View>
 
                       {/* Açıklama */}
-                      <Text style={styles.sectorDesc} numberOfLines={2}>
+                      <Text style={[styles.sectorDesc, { color: theme.textSecondary }]} numberOfLines={2}>
                         {sector.description}
                       </Text>
 
                       {/* Doluluk barı */}
                       <View style={styles.fillBarContainer}>
-                        <View style={styles.fillBarTrack}>
+                        <View
+                          style={[
+                            styles.fillBarTrack,
+                            { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)' },
+                          ]}
+                        >
                           <View
                             style={[
                               styles.fillBarFill,
@@ -198,7 +236,7 @@ export const SectorAtlasModal: React.FC<SectorAtlasModalProps> = ({
                             ]}
                           />
                         </View>
-                        <Text style={styles.fillBarLabel}>
+                        <Text style={[styles.fillBarLabel, { color: theme.textMuted }]}>
                           {claimed} / {total} yıldız • %{fillPercent}
                         </Text>
                       </View>
@@ -217,7 +255,13 @@ export const SectorAtlasModal: React.FC<SectorAtlasModalProps> = ({
                         {!hasOwnStar && (
                           <TouchableOpacity
                             onPress={() => handleClaimFromSector(sector.id)}
-                            style={[styles.actionButton, { backgroundColor: sector.themeColor + '30', borderColor: sector.themeColor + '60' }]}
+                            style={[
+                              styles.actionButton,
+                              {
+                                backgroundColor: sector.themeColor + '25',
+                                borderColor: sector.themeColor + '60',
+                              },
+                            ]}
                             activeOpacity={0.7}
                           >
                             <Sparkles size={14} color={sector.themeColor} />
@@ -239,43 +283,44 @@ export const SectorAtlasModal: React.FC<SectorAtlasModalProps> = ({
   );
 };
 
+export default SectorAtlasModal;
 
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     justifyContent: 'flex-end',
   },
   modalContainer: {
-    backgroundColor: '#0D0D1A',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    borderTopWidth: 1,
     maxHeight: '90%',
     paddingBottom: 34,
   },
   header: {
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 12,
+    paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#FFF',
     letterSpacing: 0.5,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.4)',
     marginTop: 2,
   },
   closeButton: {
     position: 'absolute',
     right: 16,
     top: 18,
-    padding: 6,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   loadingContainer: {
     paddingVertical: 60,
@@ -283,7 +328,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    color: 'rgba(255, 255, 255, 0.4)',
     fontSize: 13,
   },
   scrollView: {
@@ -303,7 +347,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -330,7 +373,6 @@ const styles = StyleSheet.create({
   },
   sectorLatin: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.35)',
     fontStyle: 'italic',
     marginTop: 1,
   },
@@ -368,7 +410,6 @@ const styles = StyleSheet.create({
   },
   sectorDesc: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.45)',
     lineHeight: 17,
     marginBottom: 10,
   },
@@ -377,7 +418,6 @@ const styles = StyleSheet.create({
   },
   fillBarTrack: {
     height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 2,
     overflow: 'hidden',
     marginBottom: 4,
@@ -389,7 +429,6 @@ const styles = StyleSheet.create({
   },
   fillBarLabel: {
     fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.3)',
     letterSpacing: 0.2,
   },
   cardActions: {
@@ -406,8 +445,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   flyToButton: {
-    backgroundColor: 'rgba(99, 102, 241, 0.2)',
-    borderColor: 'rgba(99, 102, 241, 0.4)',
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
   },
   actionButtonText: {
     fontSize: 12,

@@ -194,7 +194,13 @@ export default function PeriodTrackerScreen() {
         {/* HEADER */}
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity 
-            onPress={() => router.back()} 
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/(tabs)/home");
+              }
+            }} 
             style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >

@@ -267,7 +267,13 @@ export default function VerifyScreen() {
         <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 60, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
           
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/(auth)/login");
+              }
+            }}
             style={{
               width: 42,
               height: 42,

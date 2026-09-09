@@ -41,6 +41,7 @@ import {
   Radio,
   CheckCircle2,
 } from 'lucide-react-native';
+import { useTheme } from '@/context/ThemeContext';
 import { starService } from '../api/starService';
 import { moderateStarName } from '../utils/nameModeration';
 import type { CoupleStarDetails, ViewportStarItem } from '../types/star.types';
@@ -89,6 +90,7 @@ const CosmicRadarSweep: React.FC<{ isSlowWarning: boolean; isConfirming?: boolea
   confirmedRa,
   confirmedDec,
 }) => {
+  const { theme, isLight } = useTheme();
   const rotation = useSharedValue(0);
   const pulse1 = useSharedValue(0);
   const pulse2 = useSharedValue(0);
@@ -118,22 +120,24 @@ const CosmicRadarSweep: React.FC<{ isSlowWarning: boolean; isConfirming?: boolea
     }, 1000);
 
     // Rastgele telemetri yalnızca tarama (rastgele) modunda çalışır
-    let telemetryInterval: ReturnType<typeof setInterval> | null = null;
     if (!isConfirming) {
-      telemetryInterval = setInterval(() => {
-        setTelemetry({
-          ra: (Math.random() * 360).toFixed(4),
-          dec: ((Math.random() * 180) - 90).toFixed(4),
-          mag: (Math.random() * 5 + 1.5).toFixed(2),
-        });
-      }, 120);
+      const interval = setInterval(() => {
+        const fakeRa = (180 + Math.random() * 8).toFixed(4);
+        const fakeDec = (Math.random() > 0.5 ? '+' : '-') + (10 + Math.random() * 15).toFixed(4);
+        const fakeMag = (4.5 + Math.random() * 2.5).toFixed(2);
+        setTelemetry({ ra: fakeRa, dec: fakeDec, mag: fakeMag });
+      }, 180);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
     }
 
     return () => {
       clearTimeout(timeout);
-      if (telemetryInterval) clearInterval(telemetryInterval);
     };
-  }, [rotation, pulse1, pulse2, isConfirming]);
+  }, [isConfirming]);
 
   const radarSweepStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotation.value}deg` }],
@@ -159,20 +163,20 @@ const CosmicRadarSweep: React.FC<{ isSlowWarning: boolean; isConfirming?: boolea
 
   return (
     <View style={styles.radarWrapper}>
-      <View style={styles.radarCircle}>
-        <Animated.View style={[styles.radarWave, wave1Style]} />
-        <Animated.View style={[styles.radarWave, wave2Style]} />
+      <View style={[styles.radarCircle, isLight && { backgroundColor: 'rgba(224, 242, 254, 0.75)', borderColor: 'rgba(2, 132, 199, 0.35)' }]}>
+        <Animated.View style={[styles.radarWave, wave1Style, isLight && { borderColor: '#0284C7' }]} />
+        <Animated.View style={[styles.radarWave, wave2Style, isLight && { borderColor: '#0284C7' }]} />
 
-        <View style={styles.radarRing1} />
-        <View style={styles.radarRing2} />
-        <View style={styles.radarCrossH} />
-        <View style={styles.radarCrossV} />
+        <View style={[styles.radarRing1, isLight && { borderColor: 'rgba(2, 132, 199, 0.2)' }]} />
+        <View style={[styles.radarRing2, isLight && { borderColor: 'rgba(2, 132, 199, 0.25)' }]} />
+        <View style={[styles.radarCrossH, isLight && { backgroundColor: 'rgba(2, 132, 199, 0.15)' }]} />
+        <View style={[styles.radarCrossV, isLight && { backgroundColor: 'rgba(2, 132, 199, 0.15)' }]} />
 
         <Animated.View style={[styles.sweepContainer, radarSweepStyle]}>
           <LinearGradient
             colors={[
-              isConfirming ? 'rgba(251, 191, 36, 0.55)' : 'rgba(56, 189, 248, 0.55)',
-              isConfirming ? 'rgba(251, 191, 36, 0)' : 'rgba(56, 189, 248, 0)',
+              isConfirming ? 'rgba(251, 191, 36, 0.55)' : isLight ? 'rgba(2, 132, 199, 0.55)' : 'rgba(56, 189, 248, 0.55)',
+              isConfirming ? 'rgba(251, 191, 36, 0)' : isLight ? 'rgba(2, 132, 199, 0)' : 'rgba(56, 189, 248, 0)',
             ]}
             start={{ x: 1, y: 0.5 }}
             end={{ x: 0, y: 0.5 }}
@@ -180,17 +184,17 @@ const CosmicRadarSweep: React.FC<{ isSlowWarning: boolean; isConfirming?: boolea
           />
         </Animated.View>
 
-        <View style={[styles.radarCenterBlip, isConfirming && styles.radarCenterBlipGold]} />
+        <View style={[styles.radarCenterBlip, isConfirming && styles.radarCenterBlipGold, isLight && !isConfirming && { backgroundColor: '#0284C7' }]} />
       </View>
 
       <View style={styles.telemetryBox}>
-        <View style={styles.telemetryRow}>
-          <Radio size={12} color={isConfirming ? '#FBBF24' : '#38BDF8'} />
-          <Text style={[styles.telemetryText, isConfirming && styles.telemetryTextGold]}>
+        <View style={[styles.telemetryRow, isLight && { backgroundColor: 'rgba(2, 132, 199, 0.1)', borderColor: 'rgba(2, 132, 199, 0.25)' }]}>
+          <Radio size={12} color={isConfirming ? '#FBBF24' : isLight ? '#0284C7' : '#38BDF8'} />
+          <Text style={[styles.telemetryText, isConfirming && styles.telemetryTextGold, isLight && !isConfirming && { color: '#0284C7' }]}>
             RA: {displayRa}° | DEC: {displayDec}°
           </Text>
         </View>
-        <Text style={styles.scanningSubText}>
+        <Text style={[styles.scanningSubText, { color: theme.textMuted }]}>
           {isConfirming
             ? 'Yıldızınız evrene kazınıyor...'
             : isSlowWarning
@@ -217,6 +221,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { theme, isLight } = useTheme();
   const [modalState, setModalState] = useState<ClaimModalState>(
     initialStar ? 'certificate' : 'input'
   );
@@ -387,8 +392,8 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
       animationType="fade"
       onRequestClose={modalState === 'scanning' ? undefined : onClose}
     >
-      <View style={styles.modalBackdrop}>
-        <BlurView intensity={Platform.OS === 'ios' ? 70 : 100} tint="dark" style={StyleSheet.absoluteFill} />
+      <View style={[styles.modalBackdrop, { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.55)' : 'rgba(3, 2, 7, 0.88)' }]}>
+        <BlurView intensity={Platform.OS === 'ios' ? 70 : 100} tint={isLight ? 'light' : 'dark'} style={StyleSheet.absoluteFill} />
 
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -403,18 +408,33 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
             {modalState !== 'scanning' && onClose && (
               <TouchableOpacity
                 onPress={onClose}
-                style={styles.closeButton}
+                style={[
+                  styles.closeButton,
+                  {
+                    backgroundColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)',
+                    borderColor: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.15)',
+                  },
+                ]}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Text style={{ color: '#FFF' }}>✕</Text>
+                <Text style={{ color: theme.text, fontSize: 16, fontWeight: '700' }}>✕</Text>
               </TouchableOpacity>
             )}
 
             {/* ─── DURUM 1: İSİM GİRME FORMU ─── */}
             {modalState === 'input' && (
-              <View style={styles.cardContainer}>
+              <View
+                style={[
+                  styles.cardContainer,
+                  {
+                    backgroundColor: isLight ? '#FFFFFF' : theme.cardBg,
+                    borderColor: isLight ? 'rgba(0, 0, 0, 0.08)' : theme.cardBorder,
+                    shadowColor: isLight ? '#000' : theme.accent,
+                  },
+                ]}
+              >
                 <LinearGradient
-                  colors={['rgba(99, 102, 241, 0.15)', 'rgba(168, 85, 247, 0.05)']}
+                  colors={isLight ? ['rgba(99, 102, 241, 0.06)', 'rgba(168, 85, 247, 0.02)'] : ['rgba(99, 102, 241, 0.15)', 'rgba(168, 85, 247, 0.05)']}
                   style={styles.cardGlowBg}
                 />
 
@@ -422,46 +442,62 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                   <Sparkles size={28} color="#FBBF24" />
                 </View>
 
-                <Text style={styles.modalTitle}>Bizim Yıldızımız</Text>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Bizim Yıldızımız</Text>
 
                 {/* Seçili yıldız önizleme kartı (preSelectedStar varsa) */}
                 {preSelectedStar ? (
-                  <View style={styles.preSelectedStarCard}>
+                  <View
+                    style={[
+                      styles.preSelectedStarCard,
+                      {
+                        backgroundColor: isLight ? theme.unitBg : 'rgba(56, 189, 248, 0.08)',
+                        borderColor: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(56, 189, 248, 0.25)',
+                      },
+                    ]}
+                  >
                     <View style={[styles.preSelectedStarDot, { backgroundColor: preSelectedStar.base_color || '#9DB4FF' }]} />
                     <View style={styles.preSelectedStarInfo}>
                       <Text style={styles.preSelectedStarCode}>
                         {preSelectedStar.catalog_code}
                       </Text>
                       {preSelectedStar.common_name ? (
-                        <Text style={styles.preSelectedStarCommon}>
+                        <Text style={[styles.preSelectedStarCommon, { color: theme.text }]}>
                           {preSelectedStar.common_name}
                         </Text>
                       ) : null}
-                      <Text style={styles.preSelectedStarCoords}>
+                      <Text style={[styles.preSelectedStarCoords, { color: theme.textMuted }]}>
                         RA {Number(preSelectedStar.ra).toFixed(2)}° / DEC {Number(preSelectedStar.dec) >= 0 ? '+' : ''}{Number(preSelectedStar.dec).toFixed(2)}° • {preSelectedStar.magnitude} mag
                       </Text>
                     </View>
-                    <View style={styles.preSelectedStarSpectral}>
-                      <Text style={styles.preSelectedStarSpectralText}>{preSelectedStar.spectral_type.charAt(0)}</Text>
+                    <View style={[styles.preSelectedStarSpectral, isLight && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]}>
+                      <Text style={[styles.preSelectedStarSpectralText, isLight && { color: theme.text }]}>{preSelectedStar.spectral_type.charAt(0)}</Text>
                     </View>
                   </View>
                 ) : isSectorMode && sectorConfig ? (
-                  <View style={[styles.preSelectedStarCard, { borderColor: sectorConfig.themeColor + '40' }]}>
+                  <View
+                    style={[
+                      styles.preSelectedStarCard,
+                      {
+                        backgroundColor: isLight ? theme.unitBg : 'rgba(255, 255, 255, 0.04)',
+                        borderColor: sectorConfig.themeColor + '50',
+                      },
+                    ]}
+                  >
                     <Text style={{ fontSize: 24 }}>{sectorConfig.symbol}</Text>
                     <View style={styles.preSelectedStarInfo}>
                       <Text style={[styles.preSelectedStarCode, { color: sectorConfig.themeColor }]}>
                         {sectorConfig.name}
                       </Text>
-                      <Text style={styles.preSelectedStarCommon}>
+                      <Text style={[styles.preSelectedStarCommon, { color: theme.text }]}>
                         {sectorConfig.latinName} • {sectorConfig.code3}
                       </Text>
-                      <Text style={styles.preSelectedStarCoords}>
+                      <Text style={[styles.preSelectedStarCoords, { color: theme.textMuted }]}>
                         {sectorConfig.description}
                       </Text>
                     </View>
                   </View>
                 ) : (
-                  <Text style={styles.modalSubtitle}>
+                  <Text style={[styles.modalSubtitle, { color: theme.textSecondary }]}>
                     Gerçek astronomik katalogdan (Gaia &amp; Hipparcos), gökyüzünde gerçek koordinatlara sahip
                     tekil bir yıldızı aşkınız adına tescil edin.
                   </Text>
@@ -469,11 +505,18 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
 
                 {/* İSİM GİRDİSİ */}
                 <View style={styles.inputWrapper}>
-                  <Text style={styles.inputLabel}>YILDIZINIZIN İSMİ</Text>
+                  <Text style={[styles.inputLabel, { color: theme.textMuted }]}>YILDIZINIZIN İSMİ</Text>
                   <TextInput
-                    style={styles.textInput}
+                    style={[
+                      styles.textInput,
+                      {
+                        backgroundColor: isLight ? theme.inputBg : 'rgba(255, 255, 255, 0.06)',
+                        borderColor: isLight ? theme.inputBorder : 'rgba(255, 255, 255, 0.16)',
+                        color: theme.text,
+                      },
+                    ]}
                     placeholder="Örn: Sonsuz Aşkımız, Vega & Sirius..."
-                    placeholderTextColor="rgba(255, 255, 255, 0.3)"
+                    placeholderTextColor={isLight ? 'rgba(0, 0, 0, 0.35)' : 'rgba(255, 255, 255, 0.3)'}
                     value={customName}
                     onChangeText={(text) => {
                       setCustomName(text);
@@ -483,7 +526,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                     autoCapitalize="words"
                     autoCorrect={false}
                   />
-                  <Text style={styles.charCount}>{customName.trim().length} / 40</Text>
+                  <Text style={[styles.charCount, { color: theme.textMuted }]}>{customName.trim().length} / 40</Text>
                 </View>
 
                 {errorMessage ? (
@@ -516,7 +559,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                   </LinearGradient>
                 </TouchableOpacity>
 
-                <Text style={styles.footnoteText}>
+                <Text style={[styles.footnoteText, { color: theme.textMuted }]}>
                   * Tescillenen yıldız dünyada yalnızca sizin çiftinize ait olur ve asla ölmez.
                 </Text>
               </View>
@@ -524,8 +567,17 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
 
             {/* ─── DURUM 2: SİNEMATİK RADAR TARAMASI ─── */}
             {modalState === 'scanning' && (
-              <View style={styles.cardContainer}>
-                <Text style={styles.modalTitle}>
+              <View
+                style={[
+                  styles.cardContainer,
+                  {
+                    backgroundColor: isLight ? '#FFFFFF' : theme.cardBg,
+                    borderColor: isLight ? 'rgba(0, 0, 0, 0.08)' : theme.cardBorder,
+                    shadowColor: isLight ? '#000' : theme.accent,
+                  },
+                ]}
+              >
+                <Text style={[styles.modalTitle, { color: theme.text }]}>
                   {isSpecificMode ? 'Tescil Ediliyor' : 'Gökkubbe Taranıyor'}
                 </Text>
                 <CosmicRadarSweep
@@ -539,13 +591,22 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
 
             {/* ─── DURUM 3: HATA EKRANI ─── */}
             {modalState === 'error' && (
-              <View style={styles.cardContainer}>
+              <View
+                style={[
+                  styles.cardContainer,
+                  {
+                    backgroundColor: isLight ? '#FFFFFF' : theme.cardBg,
+                    borderColor: isLight ? 'rgba(0, 0, 0, 0.08)' : theme.cardBorder,
+                    shadowColor: isLight ? '#000' : theme.accent,
+                  },
+                ]}
+              >
                 <View style={[styles.headerIconCircle, { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
                   <AlertCircle size={32} color="#EF4444" />
                 </View>
 
-                <Text style={styles.modalTitle}>Kozmik Bağlantı Kesintisi</Text>
-                <Text style={styles.modalSubtitle}>{errorMessage}</Text>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Kozmik Bağlantı Kesintisi</Text>
+                <Text style={[styles.modalSubtitle, { color: theme.textSecondary }]}>{errorMessage}</Text>
 
                 {/* P0005 hatası: tekrar deneme anlamsız, sadece kapat */}
                 {isP0005Error ? (
@@ -582,53 +643,71 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
 
             {/* ─── DURUM 4: TESCİL SERTİFİKASI ─── */}
             {modalState === 'certificate' && claimedStar && (
-              <View style={[styles.cardContainer, styles.certificateContainer]}>
+              <View
+                style={[
+                  styles.cardContainer,
+                  styles.certificateContainer,
+                  {
+                    backgroundColor: isLight ? '#FFFFFF' : theme.cardBg,
+                    borderColor: isLight ? 'rgba(217, 119, 6, 0.5)' : 'rgba(251, 191, 36, 0.4)',
+                    shadowColor: isLight ? '#D97706' : '#F59E0B',
+                  },
+                ]}
+              >
                 {/* Altın Işıltı Gradyanı */}
                 <LinearGradient
-                  colors={['rgba(251, 191, 36, 0.18)', 'rgba(124, 58, 237, 0.08)']}
+                  colors={isLight ? ['rgba(245, 158, 11, 0.08)', 'rgba(217, 119, 6, 0.02)'] : ['rgba(251, 191, 36, 0.18)', 'rgba(124, 58, 237, 0.08)']}
                   style={styles.cardGlowBg}
                 />
 
-                <View style={styles.certBadge}>
-                  <Award size={20} color="#F59E0B" />
-                  <Text style={styles.certBadgeText}>GÖKSEL TESCİL SERTİFİKASI</Text>
+                <View
+                  style={[
+                    styles.certBadge,
+                    {
+                      backgroundColor: isLight ? 'rgba(245, 158, 11, 0.12)' : 'rgba(251, 191, 36, 0.15)',
+                      borderColor: isLight ? 'rgba(217, 119, 6, 0.35)' : 'rgba(251, 191, 36, 0.4)',
+                    },
+                  ]}
+                >
+                  <Award size={20} color={isLight ? '#D97706' : '#F59E0B'} />
+                  <Text style={[styles.certBadgeText, { color: isLight ? '#B45309' : '#FBBF24' }]}>GÖKSEL TESCİL SERTİFİKASI</Text>
                 </View>
 
-                <Text style={styles.certStarName}>{claimedStar.custom_name}</Text>
+                <Text style={[styles.certStarName, { color: theme.text }]}>{claimedStar.custom_name}</Text>
                 {/* Gerçek astronomi adı — yalnızca doluysa göster */}
                 {claimedStar.common_name ? (
-                  <Text style={styles.certCommonName}>({claimedStar.common_name})</Text>
+                  <Text style={[styles.certCommonName, { color: theme.textSecondary }]}>({claimedStar.common_name})</Text>
                 ) : null}
-                <Text style={styles.certSubText}>
+                <Text style={[styles.certSubText, { color: theme.textMuted }]}>
                   Aşkınızın Işığı Evrende Sonsuza Kadar Parlamak Üzere Tescillendi
                 </Text>
 
                 {/* ASTRONOMİK KÜNYE TABLOSU */}
                 <View style={styles.certInfoGrid}>
-                  <View style={styles.gridItem}>
-                    <Text style={styles.gridLabel}>KATALOG KODU</Text>
-                    <Text style={styles.gridValueHighlight}>{claimedStar.catalog_code}</Text>
+                  <View style={[styles.gridItem, { backgroundColor: isLight ? theme.unitBg : 'rgba(255, 255, 255, 0.05)', borderColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.1)' }]}>
+                    <Text style={[styles.gridLabel, { color: theme.textMuted }]}>KATALOG KODU</Text>
+                    <Text style={[styles.gridValueHighlight, { color: isLight ? '#D97706' : '#38BDF8' }]}>{claimedStar.catalog_code}</Text>
                   </View>
-                  <View style={styles.gridItem}>
-                    <Text style={styles.gridLabel}>TAYF SINIFI</Text>
-                    <Text style={styles.gridValue}>{claimedStar.spectral_type}</Text>
+                  <View style={[styles.gridItem, { backgroundColor: isLight ? theme.unitBg : 'rgba(255, 255, 255, 0.05)', borderColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.1)' }]}>
+                    <Text style={[styles.gridLabel, { color: theme.textMuted }]}>TAYF SINIFI</Text>
+                    <Text style={[styles.gridValue, { color: theme.text }]}>{claimedStar.spectral_type}</Text>
                   </View>
-                  <View style={styles.gridItem}>
-                    <Text style={styles.gridLabel}>RIGHT ASCENSION</Text>
-                    <Text style={styles.gridValue}>{Number(claimedStar.ra).toFixed(4)}°</Text>
+                  <View style={[styles.gridItem, { backgroundColor: isLight ? theme.unitBg : 'rgba(255, 255, 255, 0.05)', borderColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.1)' }]}>
+                    <Text style={[styles.gridLabel, { color: theme.textMuted }]}>RIGHT ASCENSION</Text>
+                    <Text style={[styles.gridValue, { color: theme.text }]}>{Number(claimedStar.ra).toFixed(4)}°</Text>
                   </View>
-                  <View style={styles.gridItem}>
-                    <Text style={styles.gridLabel}>DECLINATION</Text>
-                    <Text style={styles.gridValue}>
+                  <View style={[styles.gridItem, { backgroundColor: isLight ? theme.unitBg : 'rgba(255, 255, 255, 0.05)', borderColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.1)' }]}>
+                    <Text style={[styles.gridLabel, { color: theme.textMuted }]}>DECLINATION</Text>
+                    <Text style={[styles.gridValue, { color: theme.text }]}>
                       {Number(claimedStar.dec) >= 0 ? '+' : ''}{Number(claimedStar.dec).toFixed(4)}°
                     </Text>
                   </View>
                 </View>
 
                 {/* İLK IŞIK BİLGİLENDİRMESİ */}
-                <View style={styles.firstSparkNote}>
+                <View style={[styles.firstSparkNote, { backgroundColor: isLight ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.12)', borderColor: isLight ? 'rgba(16, 185, 129, 0.25)' : 'rgba(16, 185, 129, 0.3)' }]}>
                   <CheckCircle2 size={16} color="#10B981" />
-                  <Text style={styles.firstSparkText}>
+                  <Text style={[styles.firstSparkText, { color: isLight ? '#065F46' : '#A7F3D0' }]}>
                     Bugünkü İlk Işığınız Göğe Yükseldi! Yıldızınız %100 parlaklıkla parlıyor.
                   </Text>
                 </View>

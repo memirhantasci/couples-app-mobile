@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { 
   View, Text, TouchableOpacity, StyleSheet, 
-  ScrollView, Platform, Alert, Modal 
+  ScrollView, Platform, Alert, Modal, ActivityIndicator 
 } from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useRouter } from "expo-router";
@@ -43,19 +43,49 @@ export default function MenuScreen() {
   const [showWrapped, setShowWrapped] = useState(false);
   const [wrappedData, setWrappedData] = useState<CoupleWrappedData | null>(null);
   const [showNotificationShowcase, setShowNotificationShowcase] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   const relDate = profile?.relationshipStartDate;
   const coupleId = profile?.coupleId;
 
   React.useEffect(() => {
-    computeCoupleWrapped(coupleId || null, relDate, isDemoMode).then((data) => setWrappedData(data));
-  }, [coupleId, relDate, isDemoMode]);
+    // Menü açılış animasyonunun pürüzsüz akması için bir sonraki karede hazır et
+    let animFrame: number;
+    const timer = setTimeout(() => {
+      animFrame = requestAnimationFrame(() => {
+        setIsReady(true);
+      });
+    }, 16);
+
+    return () => {
+      clearTimeout(timer);
+      if (animFrame) cancelAnimationFrame(animFrame);
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (isReady) {
+      computeCoupleWrapped(coupleId || null, relDate, isDemoMode).then((data) => setWrappedData(data));
+    }
+  }, [coupleId, relDate, isDemoMode, isReady]);
+
+  const handleClose = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(tabs)/home");
+    }
+  };
 
   const handleRoute = (path: string) => {
-    router.back();
-    setTimeout(() => {
-      router.push(path as any);
-    }, 120);
+    if (router.canGoBack()) {
+      router.back();
+      setTimeout(() => {
+        router.push(path as any);
+      }, 100);
+    } else {
+      router.replace(path as any);
+    }
   };
 
   const handleSignOut = async () => {
@@ -107,7 +137,7 @@ export default function MenuScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <Text style={[styles.headerTitle, { color: theme.text }]}>Uygulama Menüsü</Text>
           <TouchableOpacity 
-            onPress={() => router.back()} 
+            onPress={handleClose} 
             style={[styles.closeBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : theme.cardBg, borderColor: theme.cardBorder }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
@@ -119,7 +149,13 @@ export default function MenuScreen() {
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 60 }]}
           showsVerticalScrollIndicator={false}
         >
-          {/* ─── DEMO SÜRÜMÜ BİLGİLENDİRME KARTI ─── */}
+          {!isReady ? (
+            <View style={{ flex: 1, justifyContent: "center", alignItems: "center", marginTop: 50 }}>
+              <ActivityIndicator size="large" color={theme.accent} />
+            </View>
+          ) : (
+            <>
+              {/* ─── DEMO SÜRÜMÜ BİLGİLENDİRME KARTI ─── */}
           {isDemoMode && (
             <View style={styles.demoCard}>
               <LinearGradient
@@ -135,7 +171,9 @@ export default function MenuScreen() {
                 </Text>
                 <TouchableOpacity
                   onPress={() => {
-                    router.back();
+                    if (router.canGoBack()) {
+                      router.back();
+                    }
                     exitDemoMode();
                     router.replace({ pathname: "/(auth)/login", params: { initialMode: "register" } });
                   }}
@@ -462,6 +500,8 @@ export default function MenuScreen() {
               <ChevronRight color="rgba(255, 77, 106, 0.4)" size={18} />
             </TouchableOpacity>
           </View>
+            </>
+          )}
         </ScrollView>
       </View>
 

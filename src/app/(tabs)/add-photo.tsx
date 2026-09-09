@@ -317,7 +317,16 @@ export default function AddPhotoScreen() {
       }
 
       Alert.alert("Başarılı", "Fotoğraf başarıyla ortak arşive eklendi! 🎉", [
-        { text: "Harika", onPress: () => router.back() }
+        {
+          text: "Harika",
+          onPress: () => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace("/(tabs)/photos");
+            }
+          },
+        },
       ]);
     } catch (error: any) {
       logger.error("Photo save error:", error);
@@ -369,7 +378,13 @@ export default function AddPhotoScreen() {
         {/* HEADER - Diğer tüm sayfalarla tam uyumlu ve simetrik */}
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity 
-            onPress={() => router.back()} 
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/(tabs)/photos");
+              }
+            }} 
             style={styles.headerBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >

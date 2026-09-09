@@ -51,7 +51,16 @@ export function PageHeader({ title = "", showBack = true, showMenu = true }: Pag
     <View style={styles.headerContainer}>
       <View style={styles.side}>
         {showBack && (
-          <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+          <TouchableOpacity
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/(tabs)/home");
+              }
+            }}
+            style={styles.iconBtn}
+          >
             <ChevronLeft color={theme.text} size={24} />
           </TouchableOpacity>
         )}

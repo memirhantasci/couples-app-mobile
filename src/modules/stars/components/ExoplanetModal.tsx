@@ -59,6 +59,7 @@ import {
   Mail,
 } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/context/ThemeContext';
 import { starService } from '../api/starService';
 import type {
   StarExoplanetRecord,
@@ -141,6 +142,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
   onPremiumRequired,
 }) => {
   const router = useRouter();
+  const { theme, isLight } = useTheme();
 
   // Aktif mod (Prop ile başlar, 'view' içinden 'edit'e geçebilir)
   const [activeMode, setActiveMode] = useState<'view' | 'edit' | 'create'>(mode);
@@ -540,16 +542,16 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalBackdrop}>
-        <BlurView intensity={Platform.OS === 'ios' ? 70 : 100} tint="dark" style={StyleSheet.absoluteFill} />
+      <View style={[styles.modalBackdrop, { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.5)' : 'rgba(3, 2, 7, 0.75)' }]}>
+        <BlurView intensity={Platform.OS === 'ios' ? 70 : 100} tint={isLight ? 'light' : 'dark'} style={StyleSheet.absoluteFill} />
 
-        <View style={styles.sheetContainer}>
+        <View style={[styles.sheetContainer, { backgroundColor: isLight ? '#FFFFFF' : theme.cardBg, borderColor: isLight ? 'rgba(0,0,0,0.08)' : theme.cardBorder }]}>
           {/* DRAG HANDLE & HEADER */}
-          <View style={styles.dragHandle} />
-          <View style={styles.headerRow}>
+          <View style={[styles.dragHandle, isLight && { backgroundColor: 'rgba(0,0,0,0.18)' }]} />
+          <View style={[styles.headerRow, isLight && { borderBottomColor: 'rgba(0,0,0,0.06)' }]}>
             <View style={styles.headerTitleBlock}>
               <Orbit size={18} color="#38BDF8" />
-              <Text style={styles.headerTitle}>
+              <Text style={[styles.headerTitle, { color: theme.text }]}>
                 {activeMode === 'view'
                   ? 'Anı Ötegezegeni'
                   : activeMode === 'edit'
@@ -557,8 +559,8 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                   : 'Yeni Anı Gezegeni İnşa Et'}
               </Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={18} color="rgba(255, 255, 255, 0.7)" />
+            <TouchableOpacity onPress={onClose} style={[styles.closeBtn, isLight && { backgroundColor: 'rgba(0,0,0,0.05)' }]}>
+              <X size={18} color={theme.text} />
             </TouchableOpacity>
           </View>
 
@@ -572,10 +574,10 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
             {/* ========================================================== */}
             {activeMode === 'view' && selectedPlanet && !isPremium && (
               <View style={styles.viewContent}>
-                <View style={styles.noPhotosBox}>
+                <View style={[styles.noPhotosBox, isLight && { backgroundColor: theme.unitBg, borderColor: 'rgba(0,0,0,0.06)' }]}>
                   <Sparkles size={24} color="#94A3B8" />
-                  <Text style={styles.noPhotosText}>Bu anı gezegeni kilitli.</Text>
-                  <Text style={styles.lockedContentText}>
+                  <Text style={[styles.noPhotosText, { color: theme.textSecondary }]}>Bu anı gezegeni kilitli.</Text>
+                  <Text style={[styles.lockedContentText, { color: theme.textMuted }]}>
                     Fotoğraflar, mektuplar ve ayrıntılar Premium üyeliğiniz yeniden aktif olduğunda açılır.
                   </Text>
                 </View>
@@ -583,7 +585,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                   activeOpacity={0.82}
                   onPress={handleDeletePlanet}
                   disabled={isDeleting}
-                  style={styles.deleteBtn}
+                  style={[styles.deleteBtn, isLight && { backgroundColor: 'rgba(239, 68, 68, 0.08)', borderColor: 'rgba(239, 68, 68, 0.2)' }]}
                 >
                   {isDeleting ? <ActivityIndicator size="small" color="#EF4444" /> : <><Trash2 size={15} color="#EF4444" /><Text style={styles.deleteBtnText}>Gezegeni Sil</Text></>}
                 </TouchableOpacity>
@@ -603,16 +605,16 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                     ]}
                   />
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.viewTitle}>{selectedPlanet.title}</Text>
+                    <Text style={[styles.viewTitle, { color: theme.text }]}>{selectedPlanet.title}</Text>
                     <View style={styles.badgeRow}>
-                      <View style={styles.pillBadge}>
-                        <Calendar size={11} color="#94A3B8" />
-                        <Text style={styles.pillText}>
+                      <View style={[styles.pillBadge, isLight && { backgroundColor: theme.unitBg, borderColor: 'rgba(0,0,0,0.06)' }]}>
+                        <Calendar size={11} color={theme.textMuted} />
+                        <Text style={[styles.pillText, isLight && { color: theme.textSecondary }]}>
                           {dayjs(selectedPlanet.milestone_date).format('DD MMMM YYYY')}
                         </Text>
                       </View>
-                      <View style={[styles.pillBadge, styles.zoneBadge]}>
-                        <Text style={styles.zoneBadgeText}>Kuşak {selectedPlanet.orbit_distance}</Text>
+                      <View style={[styles.pillBadge, styles.zoneBadge, isLight && { backgroundColor: 'rgba(56, 189, 248, 0.12)', borderColor: 'rgba(56, 189, 248, 0.25)' }]}>
+                        <Text style={[styles.zoneBadgeText, isLight && { color: '#0284C7' }]}>Kuşak {selectedPlanet.orbit_distance}</Text>
                       </View>
                       {selectedPlanet.is_auto_generated && (
                         <View style={[styles.pillBadge, styles.autoBadge]}>
@@ -636,17 +638,17 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                       setActiveMode('edit');
                     }}
                     disabled={isDeleting}
-                    style={styles.editBtn}
+                    style={[styles.editBtn, isLight && { backgroundColor: 'rgba(56, 189, 248, 0.1)', borderColor: 'rgba(56, 189, 248, 0.25)' }]}
                   >
-                    <Edit3 size={15} color="#38BDF8" />
-                    <Text style={styles.editBtnText}>Düzenle</Text>
+                    <Edit3 size={15} color={isLight ? '#0284C7' : '#38BDF8'} />
+                    <Text style={[styles.editBtnText, isLight && { color: '#0284C7' }]}>Düzenle</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     activeOpacity={0.82}
                     onPress={handleDeletePlanet}
                     disabled={isDeleting}
-                    style={styles.deleteBtn}
+                    style={[styles.deleteBtn, isLight && { backgroundColor: 'rgba(239, 68, 68, 0.08)', borderColor: 'rgba(239, 68, 68, 0.2)' }]}
                   >
                     {isDeleting ? (
                       <ActivityIndicator size="small" color="#EF4444" />
@@ -661,15 +663,15 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
 
                 {/* Açıklama / Aşk Hikayesi */}
                 {selectedPlanet.description && (
-                  <View style={styles.descriptionCard}>
-                    <Text style={styles.descriptionText}>{selectedPlanet.description}</Text>
+                  <View style={[styles.descriptionCard, isLight && { backgroundColor: theme.unitBg, borderColor: 'rgba(0,0,0,0.06)' }]}>
+                    <Text style={[styles.descriptionText, { color: theme.text }]}>{selectedPlanet.description}</Text>
                   </View>
                 )}
 
                 {/* FOTOĞRAF GALERİSİ */}
                 {selectedPlanet.media_urls && selectedPlanet.media_urls.length > 0 ? (
                   <View style={styles.gallerySection}>
-                    <Text style={styles.sectionLabel}>
+                    <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>
                       ANILAR VE FOTOĞRAFLAR ({selectedPlanet.media_urls.length})
                     </Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryScroll}>
@@ -689,15 +691,15 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                     </ScrollView>
                   </View>
                 ) : (
-                  <View style={styles.noPhotosBox}>
-                    <Text style={styles.noPhotosText}>Bu gezegene henüz fotoğraf eklenmemiş.</Text>
+                  <View style={[styles.noPhotosBox, isLight && { backgroundColor: theme.unitBg, borderColor: 'rgba(0,0,0,0.06)' }]}>
+                    <Text style={[styles.noPhotosText, { color: theme.textSecondary }]}>Bu gezegene henüz fotoğraf eklenmemiş.</Text>
                   </View>
                 )}
 
                 {/* İLİŞKİLİ MEKTUPLAR ALANI */}
                 {linkedLetterIds.length > 0 && (
                   <View style={styles.lettersSection}>
-                    <Text style={styles.sectionLabel}>
+                    <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>
                       İLİŞKİLİ MEKTUPLAR ({linkedLetterIds.length})
                     </Text>
                     <View style={styles.lettersContainer}>
@@ -705,7 +707,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                         <TouchableOpacity
                           key={letterId || idx}
                           activeOpacity={0.82}
-                          style={styles.letterCard}
+                          style={[styles.letterCard, isLight && { backgroundColor: theme.unitBg, borderColor: 'rgba(0,0,0,0.06)' }]}
                           onPress={() => {
                             onClose();
                             try {
@@ -720,13 +722,13 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                               <Mail size={16} color="#C084FC" />
                             </View>
                             <View>
-                              <Text style={styles.letterCardTitle}>
+                              <Text style={[styles.letterCardTitle, { color: theme.text }]}>
                                 Mektup #{idx + 1}
                               </Text>
-                              <Text style={styles.letterCardSub}>Mektubu Görüntüle</Text>
+                              <Text style={[styles.letterCardSub, { color: theme.textMuted }]}>Mektubu Görüntüle</Text>
                             </View>
                           </View>
-                          <ChevronRight size={16} color="rgba(255, 255, 255, 0.4)" />
+                          <ChevronRight size={16} color={isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255, 255, 255, 0.4)'} />
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -755,11 +757,18 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
 
                 {/* 1. BAŞLIK GİRDİSİ */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>ANI BAŞLIĞI (ZORUNLU)</Text>
+                  <Text style={[styles.inputLabel, { color: theme.textMuted }]}>ANI BAŞLIĞI (ZORUNLU)</Text>
                   <TextInput
-                    style={styles.textInput}
+                    style={[
+                      styles.textInput,
+                      {
+                        backgroundColor: isLight ? theme.inputBg : 'rgba(255, 255, 255, 0.06)',
+                        borderColor: isLight ? theme.inputBorder : 'rgba(255, 255, 255, 0.14)',
+                        color: theme.text,
+                      },
+                    ]}
                     placeholder="Örn: İlk Tatilimiz, Kapadokya Balonları..."
-                    placeholderTextColor="rgba(255, 255, 255, 0.3)"
+                    placeholderTextColor={isLight ? 'rgba(0, 0, 0, 0.35)' : 'rgba(255, 255, 255, 0.3)'}
                     value={title}
                     onChangeText={setTitle}
                     maxLength={60}
@@ -769,11 +778,18 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
 
                 {/* 2. TARİH GİRDİSİ */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>ANI TARİHİ (BUGÜN VEYA GEÇMİŞ: YYYY-AA-GG)</Text>
+                  <Text style={[styles.inputLabel, { color: theme.textMuted }]}>ANI TARİHİ (BUGÜN VEYA GEÇMİŞ: YYYY-AA-GG)</Text>
                   <TextInput
-                    style={styles.textInput}
+                    style={[
+                      styles.textInput,
+                      {
+                        backgroundColor: isLight ? theme.inputBg : 'rgba(255, 255, 255, 0.06)',
+                        borderColor: isLight ? theme.inputBorder : 'rgba(255, 255, 255, 0.14)',
+                        color: theme.text,
+                      },
+                    ]}
                     placeholder="YYYY-AA-GG"
-                    placeholderTextColor="rgba(255, 255, 255, 0.3)"
+                    placeholderTextColor={isLight ? 'rgba(0, 0, 0, 0.35)' : 'rgba(255, 255, 255, 0.3)'}
                     value={milestoneDate}
                     onChangeText={setMilestoneDate}
                     maxLength={10}
@@ -783,7 +799,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
 
                 {/* 3. YÖRÜNGE KUŞAĞI SEÇİMİ (1-5) */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>YÖRÜNGE KUŞAĞI (1: EN HIZLI - 5: EN SAKİN)</Text>
+                  <Text style={[styles.inputLabel, { color: theme.textMuted }]}>YÖRÜNGE KUŞAĞI (1: EN HIZLI - 5: EN SAKİN)</Text>
                   <View style={styles.zoneSelectorRow}>
                     {ORBIT_ZONE_OPTIONS.map((item) => (
                       <TouchableOpacity
@@ -793,12 +809,14 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                         disabled={isSubmitting}
                         style={[
                           styles.zoneBtn,
+                          isLight && { backgroundColor: theme.unitBg, borderColor: 'rgba(0,0,0,0.08)' },
                           orbitZone === item.zone && styles.zoneBtnActive,
                         ]}
                       >
                         <Text
                           style={[
                             styles.zoneBtnText,
+                            isLight && { color: theme.textSecondary },
                             orbitZone === item.zone && styles.zoneBtnTextActive,
                           ]}
                         >
@@ -807,14 +825,14 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                       </TouchableOpacity>
                     ))}
                   </View>
-                  <Text style={styles.zoneHelpText}>
+                  <Text style={[styles.zoneHelpText, { color: theme.textMuted }]}>
                     {ORBIT_ZONE_OPTIONS.find((z) => z.zone === orbitZone)?.periodDesc}
                   </Text>
                 </View>
 
                 {/* 4. GEZEGEN TÜRÜ SEÇİMİ */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>GEZEGEN TÜRÜ</Text>
+                  <Text style={[styles.inputLabel, { color: theme.textMuted }]}>GEZEGEN TÜRÜ</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeScroll}>
                     {PLANET_TYPE_OPTIONS.map((pt) => {
                       const isSelected = planetType === pt.type;
@@ -826,6 +844,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                           disabled={isSubmitting}
                           style={[
                             styles.typeChip,
+                            isLight && { backgroundColor: theme.unitBg, borderColor: 'rgba(0,0,0,0.08)' },
                             isSelected && styles.typeChipActive,
                           ]}
                         >
@@ -835,7 +854,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                               { backgroundColor: pt.palette[0] },
                             ]}
                           />
-                          <Text style={[styles.typeChipText, isSelected && styles.typeChipTextActive]}>
+                          <Text style={[styles.typeChipText, isLight && { color: theme.textSecondary }, isSelected && styles.typeChipTextActive]}>
                             {pt.label}
                           </Text>
                         </TouchableOpacity>
@@ -846,11 +865,19 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
 
                 {/* 5. AÇIKLAMA / NOT GİRDİSİ */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>ANI HİKAYESİ / NOT (İSTEĞE BAĞLI)</Text>
+                  <Text style={[styles.inputLabel, { color: theme.textMuted }]}>ANI HİKAYESİ / NOT (İSTEĞE BAĞLI)</Text>
                   <TextInput
-                    style={[styles.textInput, styles.textArea]}
+                    style={[
+                      styles.textInput,
+                      styles.textArea,
+                      {
+                        backgroundColor: isLight ? theme.inputBg : 'rgba(255, 255, 255, 0.06)',
+                        borderColor: isLight ? theme.inputBorder : 'rgba(255, 255, 255, 0.14)',
+                        color: theme.text,
+                      },
+                    ]}
                     placeholder="Bu anıyı sevgiliniz için ölümsüzleştiren satırları yazın..."
-                    placeholderTextColor="rgba(255, 255, 255, 0.3)"
+                    placeholderTextColor={isLight ? 'rgba(0, 0, 0, 0.35)' : 'rgba(255, 255, 255, 0.3)'}
                     value={description}
                     onChangeText={setDescription}
                     multiline
@@ -863,15 +890,15 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                 {/* 6. FOTOĞRAF ALANI */}
                 <View style={styles.inputGroup}>
                   <View style={styles.photoHeaderRow}>
-                    <Text style={styles.inputLabel}>FOTOĞRAFLAR ({totalPhotosCount}/5)</Text>
+                    <Text style={[styles.inputLabel, { color: theme.textMuted }]}>FOTOĞRAFLAR ({totalPhotosCount}/5)</Text>
                     {totalPhotosCount < 5 && (
                       <TouchableOpacity
                         onPress={handlePickPhotos}
                         disabled={isSubmitting}
-                        style={styles.addPhotoBtn}
+                        style={[styles.addPhotoBtn, isLight && { backgroundColor: 'rgba(56, 189, 248, 0.1)' }]}
                       >
-                        <ImagePlus size={14} color="#38BDF8" />
-                        <Text style={styles.addPhotoBtnText}>Fotoğraf Ekle</Text>
+                        <ImagePlus size={14} color={isLight ? '#0284C7' : '#38BDF8'} />
+                        <Text style={[styles.addPhotoBtnText, isLight && { color: '#0284C7' }]}>Fotoğraf Ekle</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -915,10 +942,10 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                       activeOpacity={0.75}
                       onPress={handlePickPhotos}
                       disabled={isSubmitting}
-                      style={styles.photoPlaceholderBox}
+                      style={[styles.photoPlaceholderBox, isLight && { backgroundColor: theme.unitBg, borderColor: 'rgba(0,0,0,0.1)' }]}
                     >
-                      <ImagePlus size={24} color="rgba(255, 255, 255, 0.4)" />
-                      <Text style={styles.photoPlaceholderText}>
+                      <ImagePlus size={24} color={isLight ? 'rgba(0, 0, 0, 0.35)' : 'rgba(255, 255, 255, 0.4)'} />
+                      <Text style={[styles.photoPlaceholderText, isLight && { color: theme.textMuted }]}>
                         {"Galeri'den en fazla 5 fotoğraf seçin"}
                       </Text>
                     </TouchableOpacity>
@@ -946,9 +973,9 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                       activeOpacity={0.82}
                       onPress={() => setActiveMode('view')}
                       disabled={isSubmitting}
-                      style={styles.cancelBtn}
+                      style={[styles.cancelBtn, isLight && { backgroundColor: theme.unitBg, borderColor: 'rgba(0,0,0,0.08)' }]}
                     >
-                      <Text style={styles.cancelBtnText}>Vazgeç</Text>
+                      <Text style={[styles.cancelBtnText, isLight && { color: theme.textSecondary }]}>Vazgeç</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity

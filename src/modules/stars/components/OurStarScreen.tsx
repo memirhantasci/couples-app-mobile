@@ -58,6 +58,7 @@ import {
 } from 'lucide-react-native';
 
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import { DEMO_STAR_DETAILS, DEMO_STAR_EXOPLANETS } from '@/constants/demoData';
 import { starService, PremiumRequiredError, SparkCooldownException } from '../api/starService';
 import { StarSparkManager } from '../services/StarSparkManager';
@@ -116,6 +117,7 @@ export const OurStarScreen: React.FC = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { profile, session, isDemoMode, isLoading: isAuthLoading } = useAuth();
+  const { theme, isLight } = useTheme();
   const coupleId = profile?.coupleId ?? null;
   const isPremium = isDemoMode || profile?.isPremium === true;
   const currentUserId = session?.user?.id ?? '';
@@ -694,9 +696,23 @@ export const OurStarScreen: React.FC = () => {
           ]}
           pointerEvents="none"
         >
-          <View style={styles.toastInner}>
+          <View
+            style={[
+              styles.toastInner,
+              {
+                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 12, 30, 0.92)',
+                borderColor: isLight ? 'rgba(245, 158, 11, 0.5)' : 'rgba(245, 158, 11, 0.4)',
+              },
+            ]}
+          >
             <Sparkles size={14} color="#F59E0B" />
-            <Text style={styles.toastText} numberOfLines={2}>
+            <Text
+              style={[
+                styles.toastText,
+                { color: isLight ? '#92400E' : '#FCD34D' },
+              ]}
+              numberOfLines={2}
+            >
               {toastMessage}
             </Text>
           </View>
@@ -707,11 +723,17 @@ export const OurStarScreen: React.FC = () => {
       <View style={[styles.hudTopBar, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity
           onPress={handleBack}
-          style={styles.backButton}
+          style={[
+            styles.backButton,
+            {
+              backgroundColor: isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(7, 5, 18, 0.65)',
+              borderColor: isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.14)',
+            },
+          ]}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           accessibilityLabel="Geri Dön"
         >
-          <ArrowLeft size={18} color="#FFFFFF" />
+          <ArrowLeft size={18} color={isLight ? theme.text : '#FFFFFF'} />
         </TouchableOpacity>
 
         <View style={styles.badgeWrapper}>
@@ -758,12 +780,18 @@ export const OurStarScreen: React.FC = () => {
             <TouchableOpacity
               activeOpacity={0.82}
               onPress={() => setIsConnectionsModalOpen(true)}
-              style={styles.cosmicBagBtn}
+              style={[
+                styles.cosmicBagBtn,
+                {
+                  backgroundColor: isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(7, 5, 18, 0.65)',
+                  borderColor: isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(236, 72, 153, 0.35)',
+                },
+              ]}
               accessibilityLabel="Kozmik Bağlar"
             >
-              <Share2 size={16} color="#EC4899" />
+              <Share2 size={16} color={theme.accent} />
               {pendingIncomingCount > 0 && (
-                <View style={styles.cosmicBagBadge}>
+                <View style={[styles.cosmicBagBadge, { backgroundColor: theme.accent }]}>
                   <Text style={styles.cosmicBagBadgeText}>{pendingIncomingCount}</Text>
                 </View>
               )}
@@ -773,10 +801,16 @@ export const OurStarScreen: React.FC = () => {
           <TouchableOpacity
             activeOpacity={0.82}
             onPress={() => setIsSearchModalOpen(true)}
-            style={styles.cosmicBagBtn}
+            style={[
+              styles.cosmicBagBtn,
+              {
+                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(7, 5, 18, 0.65)',
+                borderColor: isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(56, 189, 248, 0.35)',
+              },
+            ]}
             accessibilityLabel="Yıldız Ara"
           >
-            <Search size={16} color="#38BDF8" />
+            <Search size={16} color={isLight ? '#0284C7' : '#38BDF8'} />
           </TouchableOpacity>
         </View>
       </View>
@@ -892,8 +926,16 @@ export const OurStarScreen: React.FC = () => {
         <View
           style={[
             styles.macroStarCard,
-            { bottom: insets.bottom + 80 },
-            selectedMacroStar.is_mine && styles.macroStarCardMine,
+            {
+              bottom: insets.bottom + 80,
+              backgroundColor: isLight ? 'rgba(255, 255, 255, 0.96)' : 'rgba(10, 8, 24, 0.94)',
+              borderColor: selectedMacroStar.is_mine
+                ? 'rgba(245, 158, 11, 0.6)'
+                : isLight
+                ? 'rgba(0, 0, 0, 0.1)'
+                : 'rgba(56, 189, 248, 0.35)',
+            },
+            selectedMacroStar.is_mine && (isLight ? { backgroundColor: '#FFFDF7' } : styles.macroStarCardMine),
           ]}
         >
           <View style={styles.macroStarHeader}>
@@ -908,7 +950,13 @@ export const OurStarScreen: React.FC = () => {
                   },
                 ]}
               />
-              <Text style={[styles.macroStarTitle, selectedMacroStar.is_mine && styles.macroStarTitleMine]}>
+              <Text
+                style={[
+                  styles.macroStarTitle,
+                  { color: theme.text },
+                  selectedMacroStar.is_mine && [styles.macroStarTitleMine, isLight && { color: '#B45309' }],
+                ]}
+              >
                 {selectedMacroStar.is_mine
                   ? `⭐ ${selectedMacroStar.custom_name || starDetails?.custom_name || 'Bizim Yıldızımız'}`
                   : (selectedMacroStar.custom_name ||
@@ -932,21 +980,29 @@ export const OurStarScreen: React.FC = () => {
             </View>
             <TouchableOpacity
               onPress={() => setSelectedMacroStar(null)}
-              style={styles.macroStarCloseBtn}
+              style={[
+                styles.macroStarCloseBtn,
+                { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)' },
+              ]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <X size={16} color="rgba(255, 255, 255, 0.7)" />
+              <X size={16} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.macroStarDetailsRow}>
-            <Text style={styles.macroStarDetailText}>
+          <View
+            style={[
+              styles.macroStarDetailsRow,
+              { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.04)' },
+            ]}
+          >
+            <Text style={[styles.macroStarDetailText, { color: theme.textSecondary }]}>
               Tayf: <Text style={styles.macroStarHighlight}>{selectedMacroStar.spectral_type}</Text>
             </Text>
-            <Text style={styles.macroStarDetailText}>
+            <Text style={[styles.macroStarDetailText, { color: theme.textSecondary }]}>
               Parlaklık: <Text style={styles.macroStarHighlight}>{selectedMacroStar.magnitude} mag</Text>
             </Text>
-            <Text style={styles.macroStarDetailText}>
+            <Text style={[styles.macroStarDetailText, { color: theme.textSecondary }]}>
               RA/DEC: <Text style={styles.macroStarHighlight}>{Number(selectedMacroStar.ra).toFixed(1)}° / {Number(selectedMacroStar.dec).toFixed(1)}°</Text>
             </Text>
           </View>
@@ -1179,10 +1235,18 @@ export const OurStarScreen: React.FC = () => {
               setSelectedPlanet(null);
               setExoplanetModalMode('create');
             })}
-            style={styles.actionPillBtn}
+            style={[
+              styles.actionPillBtn,
+              {
+                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.92)' : 'rgba(7, 5, 18, 0.75)',
+                borderColor: isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(56, 189, 248, 0.3)',
+              },
+            ]}
           >
-            <Plus size={16} color="#38BDF8" />
-            <Text style={styles.actionPillBtnText}>Anı Gezegeni Ekle</Text>
+            <Plus size={16} color={isLight ? '#0284C7' : '#38BDF8'} />
+            <Text style={[styles.actionPillBtnText, { color: isLight ? '#0284C7' : '#38BDF8' }]}>
+              Anı Gezegeni Ekle
+            </Text>
           </TouchableOpacity>
         )}
 
@@ -1234,7 +1298,13 @@ export const OurStarScreen: React.FC = () => {
                 : 'Yıldızınızın mikro çekim alanına girildi 🪐'
             );
           }}
-          style={styles.modeSwitchFab}
+          style={[
+            styles.modeSwitchFab,
+            {
+              backgroundColor: isLight ? 'rgba(255, 255, 255, 0.92)' : 'rgba(7, 5, 18, 0.8)',
+              borderColor: isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.18)',
+            },
+          ]}
           accessibilityLabel="Görünüm Modunu Değiştir"
         >
           {viewMode === 'micro' ? (

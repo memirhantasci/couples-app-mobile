@@ -3,6 +3,8 @@
  * @module modules/stars/components
  * @description Makro gökyüzünden kullanıcının kendi yıldız sistemine dönüşte
  * gösterilen fütüristik kozmik radar intikal ve kilitlenme ekranı (HUD).
+ *
+ * Tüm tema modlarıyla (Beyaz, Mavi, Pembe, Gece) tam uyumludur.
  */
 
 import React, { useEffect, useState } from 'react';
@@ -27,6 +29,7 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Radio, Crosshair, Sparkles, Navigation, X, Orbit } from 'lucide-react-native';
+import { useTheme } from '@/context/ThemeContext';
 import { getSectorByCoords } from '../config/skySectors.data';
 import type { CoupleStarDetails } from '../types/star.types';
 
@@ -46,6 +49,7 @@ export const HomeRadarOverlay: React.FC<HomeRadarOverlayProps> = ({
   onComplete,
   onClose,
 }) => {
+  const { theme, isLight } = useTheme();
   const [phaseText, setPhaseText] = useState('Kozmik koordinatlar taranıyor...');
   const [phaseStep, setPhaseStep] = useState(1);
 
@@ -176,7 +180,12 @@ export const HomeRadarOverlay: React.FC<HomeRadarOverlayProps> = ({
       statusBarTranslucent
       onRequestClose={onClose || onComplete}
     >
-      <View style={styles.backdrop}>
+      <View
+        style={[
+          styles.backdrop,
+          { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.55)' : 'rgba(2, 6, 23, 0.88)' },
+        ]}
+      >
         {/* Üst HUD Çubuğu */}
         <View style={styles.topHud}>
           <View style={styles.radarStatusPill}>
@@ -186,10 +195,13 @@ export const HomeRadarOverlay: React.FC<HomeRadarOverlayProps> = ({
           {onClose && (
             <TouchableOpacity
               onPress={onClose}
-              style={styles.closeBtn}
+              style={[
+                styles.closeBtn,
+                { backgroundColor: isLight ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.08)' },
+              ]}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <X size={18} color="rgba(255, 255, 255, 0.7)" />
+              <X size={18} color="#FFFFFF" />
             </TouchableOpacity>
           )}
         </View>
@@ -229,40 +241,63 @@ export const HomeRadarOverlay: React.FC<HomeRadarOverlayProps> = ({
         </View>
 
         {/* Telemetri & Bilgi Kartı */}
-        <View style={styles.infoCard}>
+        <View
+          style={[
+            styles.infoCard,
+            {
+              backgroundColor: theme.cardBg,
+              borderColor: isLight ? 'rgba(16, 185, 129, 0.4)' : 'rgba(16, 185, 129, 0.3)',
+            },
+          ]}
+        >
           <View style={styles.targetHeader}>
             <View style={styles.targetBadge}>
               <Navigation size={12} color="#10B981" />
               <Text style={styles.targetBadgeText}>HEDEF KİLİTLENDİ</Text>
             </View>
-            <Text style={styles.sectorText}>{sector}</Text>
+            <Text style={[styles.sectorText, { color: theme.textSecondary }]}>{sector}</Text>
           </View>
 
-          <Text style={styles.starNameText} numberOfLines={1}>
+          <Text style={[styles.starNameText, { color: theme.text }]} numberOfLines={1}>
             {starName} ✨
           </Text>
 
           {/* Koordinat Grid */}
-          <View style={styles.coordsGrid}>
+          <View
+            style={[
+              styles.coordsGrid,
+              { backgroundColor: theme.unitBg },
+            ]}
+          >
             <View style={styles.coordItem}>
-              <Text style={styles.coordLabel}>SAĞ AÇIKLIK (RA)</Text>
-              <Text style={styles.coordValue}>{starRa}°</Text>
+              <Text style={[styles.coordLabel, { color: theme.textMuted }]}>SAĞ AÇIKLIK (RA)</Text>
+              <Text style={[styles.coordValue, { color: isLight ? '#0284C7' : '#38BDF8' }]}>{starRa}°</Text>
             </View>
-            <View style={styles.coordDivider} />
+            <View
+              style={[
+                styles.coordDivider,
+                { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.1)' },
+              ]}
+            />
             <View style={styles.coordItem}>
-              <Text style={styles.coordLabel}>DİK AÇIKLIK (DEC)</Text>
-              <Text style={styles.coordValue}>{starDec}°</Text>
+              <Text style={[styles.coordLabel, { color: theme.textMuted }]}>DİK AÇIKLIK (DEC)</Text>
+              <Text style={[styles.coordValue, { color: isLight ? '#0284C7' : '#38BDF8' }]}>{starDec}°</Text>
             </View>
           </View>
 
           {/* İlerleme ve Aşama Durumu */}
           <View style={styles.progressContainer}>
-            <View style={styles.progressTrack}>
+            <View
+              style={[
+                styles.progressTrack,
+                { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)' },
+              ]}
+            >
               <Animated.View style={[styles.progressBar, progressBarStyle]} />
             </View>
             <View style={styles.phaseRow}>
-              <Text style={styles.phaseText}>{phaseText}</Text>
-              <Text style={styles.phasePercent}>{phaseStep}/3</Text>
+              <Text style={[styles.phaseText, { color: theme.textSecondary }]}>{phaseText}</Text>
+              <Text style={styles.phasePercent}>%{Math.round(phaseStep * 33.3)}</Text>
             </View>
           </View>
         </View>
@@ -274,44 +309,45 @@ export const HomeRadarOverlay: React.FC<HomeRadarOverlayProps> = ({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(3, 2, 7, 0.92)',
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    justifyContent: 'space-between',
+    paddingVertical: 50,
+    paddingHorizontal: 20,
   },
   topHud: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 56 : 36,
-    left: 24,
-    right: 24,
+    width: '100%',
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
   },
   radarStatusPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(16, 185, 129, 0.3)',
   },
   radarStatusText: {
+    color: '#10B981',
     fontSize: 11,
     fontWeight: '700',
-    color: '#10B981',
-    letterSpacing: 1.2,
+    letterSpacing: 0.5,
   },
   closeBtn: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   radarContainer: {
-    marginBottom: 32,
+    width: RADAR_SIZE,
+    height: RADAR_SIZE,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -320,8 +356,8 @@ const styles = StyleSheet.create({
     height: RADAR_SIZE,
     borderRadius: RADAR_SIZE / 2,
     borderWidth: 1.5,
-    borderColor: 'rgba(16, 185, 129, 0.5)',
-    backgroundColor: 'rgba(6, 30, 20, 0.4)',
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+    backgroundColor: 'rgba(6, 78, 59, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -338,8 +374,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     borderRadius: 9999,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.22)',
-    borderStyle: 'dashed',
+    borderColor: 'rgba(16, 185, 129, 0.2)',
   },
   crossH: {
     position: 'absolute',
@@ -383,11 +418,13 @@ const styles = StyleSheet.create({
   infoCard: {
     width: '100%',
     maxWidth: 340,
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 6,
   },
   targetHeader: {
     flexDirection: 'row',
@@ -412,19 +449,16 @@ const styles = StyleSheet.create({
   },
   sectorText: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
     fontWeight: '500',
   },
   starNameText: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F8FAFC',
     marginBottom: 16,
     letterSpacing: 0.3,
   },
   coordsGrid: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(3, 7, 18, 0.6)',
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -437,20 +471,17 @@ const styles = StyleSheet.create({
   coordLabel: {
     fontSize: 9,
     fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.45)',
     marginBottom: 2,
     letterSpacing: 0.5,
   },
   coordValue: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#38BDF8',
     fontVariant: ['tabular-nums'],
   },
   coordDivider: {
     width: 1,
     height: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     marginHorizontal: 10,
   },
   progressContainer: {
@@ -458,7 +489,6 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 2,
     overflow: 'hidden',
   },
@@ -474,7 +504,6 @@ const styles = StyleSheet.create({
   },
   phaseText: {
     fontSize: 12,
-    color: '#E2E8F0',
     fontWeight: '500',
   },
   phasePercent: {
@@ -483,3 +512,5 @@ const styles = StyleSheet.create({
     color: '#10B981',
   },
 });
+
+export default HomeRadarOverlay;

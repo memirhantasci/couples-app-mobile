@@ -13,6 +13,8 @@
  * 2. Gökyüzünde Seç:
  *    Gök kubbe haritası üzerinden doğrudan tescilli yıldız seçimi için rehber
  *    ve "Gökyüzüne Git 🌌" yönlendirmesi.
+ *
+ * Tüm tema modlarıyla (Beyaz, Mavi, Pembe, Gece) tam uyumludur.
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -42,6 +44,7 @@ import {
   CheckCircle2,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '@/context/ThemeContext';
 import { starService } from '../api/starService';
 import type {
   ActiveStarConnection,
@@ -68,6 +71,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
   onConnectionChanged,
   onNavigateToSky,
 }) => {
+  const { theme, isLight } = useTheme();
   const [activeTab, setActiveTab] = useState<TabType>('search');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -222,26 +226,43 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.sheet}>
+      <View style={[styles.overlay, { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.45)' : 'rgba(3, 2, 7, 0.85)' }]}>
+        <View
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: theme.cardBg,
+              borderColor: theme.cardBorder,
+              shadowColor: theme.accent,
+            },
+          ]}
+        >
           {/* ─── BAŞLIK ─────────────────────────────────────────────── */}
-          <View style={styles.headerRow}>
+          <View
+            style={[
+              styles.headerRow,
+              { borderBottomColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)' },
+            ]}
+          >
             <View style={styles.titleBlock}>
               <View style={styles.titleRow}>
-                <Share2 size={18} color="#EC4899" />
-                <Text style={styles.title}>Kozmik Bağlar</Text>
+                <Share2 size={18} color={theme.accent} />
+                <Text style={[styles.title, { color: theme.text }]}>Kozmik Bağlar</Text>
               </View>
-              <Text style={styles.subtitle}>
+              <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
                 Takımyıldızı arkadaşlıkları • ({activeConnections.length}/3 aktif bağ)
               </Text>
             </View>
 
             <TouchableOpacity
               onPress={onClose}
-              style={styles.closeButton}
+              style={[
+                styles.closeButton,
+                { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)' },
+              ]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <X size={20} color="rgba(255, 255, 255, 0.7)" />
+              <X size={20} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -252,10 +273,29 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                 setActiveTab('search');
                 setErrorMessage(null);
               }}
-              style={[styles.tabButton, activeTab === 'search' && styles.tabButtonActive]}
+              style={[
+                styles.tabButton,
+                {
+                  backgroundColor: isLight ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.04)',
+                  borderColor: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)',
+                },
+                activeTab === 'search' && {
+                  backgroundColor: theme.pillAccentBg,
+                  borderColor: theme.accent,
+                },
+              ]}
             >
-              <Search size={14} color={activeTab === 'search' ? '#EC4899' : 'rgba(255, 255, 255, 0.5)'} />
-              <Text style={[styles.tabText, activeTab === 'search' && styles.tabTextActive]}>
+              <Search
+                size={14}
+                color={activeTab === 'search' ? theme.accent : theme.textSecondary}
+              />
+              <Text
+                style={[
+                  styles.tabText,
+                  { color: theme.textSecondary },
+                  activeTab === 'search' && [styles.tabTextActive, { color: theme.text }],
+                ]}
+              >
                 Yıldız Adıyla Ara
               </Text>
             </TouchableOpacity>
@@ -265,10 +305,29 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                 setActiveTab('sky');
                 setErrorMessage(null);
               }}
-              style={[styles.tabButton, activeTab === 'sky' && styles.tabButtonActive]}
+              style={[
+                styles.tabButton,
+                {
+                  backgroundColor: isLight ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.04)',
+                  borderColor: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)',
+                },
+                activeTab === 'sky' && {
+                  backgroundColor: theme.pillAccentBg,
+                  borderColor: theme.accent,
+                },
+              ]}
             >
-              <Compass size={14} color={activeTab === 'sky' ? '#EC4899' : 'rgba(255, 255, 255, 0.5)'} />
-              <Text style={[styles.tabText, activeTab === 'sky' && styles.tabTextActive]}>
+              <Compass
+                size={14}
+                color={activeTab === 'sky' ? theme.accent : theme.textSecondary}
+              />
+              <Text
+                style={[
+                  styles.tabText,
+                  { color: theme.textSecondary },
+                  activeTab === 'sky' && [styles.tabTextActive, { color: theme.text }],
+                ]}
+              >
                 Gökyüzünde Seç
               </Text>
             </TouchableOpacity>
@@ -303,19 +362,27 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
           <ScrollView style={styles.contentScroll} contentContainerStyle={styles.contentContainer}>
             {isLoading && !searchPerformed ? (
               <View style={styles.loadingBox}>
-                <ActivityIndicator size="large" color="#EC4899" />
-                <Text style={styles.loadingText}>Yıldız bağları yükleniyor...</Text>
+                <ActivityIndicator size="large" color={theme.accent} />
+                <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Yıldız bağları yükleniyor...</Text>
               </View>
             ) : activeTab === 'search' ? (
               /* ─── SEKME 1: YILDIZ ADIYLA ARA ─────────────────────── */
               <View style={styles.searchSection}>
                 <View style={styles.searchInputRow}>
-                  <View style={styles.searchBox}>
-                    <Search size={16} color="rgba(255, 255, 255, 0.5)" />
+                  <View
+                    style={[
+                      styles.searchBox,
+                      {
+                        backgroundColor: theme.inputBg,
+                        borderColor: theme.inputBorder,
+                      },
+                    ]}
+                  >
+                    <Search size={16} color={theme.textMuted} />
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { color: theme.text }]}
                       placeholder="Yıldız adı girin..."
-                      placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                      placeholderTextColor={theme.textMuted}
                       value={searchQuery}
                       onChangeText={setSearchQuery}
                       onSubmitEditing={handleSearch}
@@ -324,7 +391,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                     />
                     {searchQuery.length > 0 && (
                       <TouchableOpacity onPress={() => setSearchQuery('')}>
-                        <X size={14} color="rgba(255, 255, 255, 0.4)" />
+                        <X size={14} color={theme.textMuted} />
                       </TouchableOpacity>
                     )}
                   </View>
@@ -332,7 +399,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                   <TouchableOpacity
                     onPress={handleSearch}
                     disabled={isSearching}
-                    style={styles.searchButton}
+                    style={[styles.searchButton, { backgroundColor: theme.accent }]}
                   >
                     {isSearching ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
@@ -346,7 +413,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                 <View style={styles.resultsContainer}>
                   {searchPerformed && searchResults.length === 0 && !isSearching && (
                     <View style={styles.emptyResults}>
-                      <Text style={styles.emptyResultsText}>
+                      <Text style={[styles.emptyResultsText, { color: theme.textSecondary }]}>
                         "{searchQuery}" adında tescilli başka bir çift yıldızı bulunamadı.
                       </Text>
                     </View>
@@ -362,13 +429,22 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                     const isActionLoading = actionLoadingId === star.star_id;
 
                     return (
-                      <View key={star.star_id} style={styles.starResultCard}>
+                      <View
+                        key={star.star_id}
+                        style={[
+                          styles.starResultCard,
+                          {
+                            backgroundColor: theme.unitBg,
+                            borderColor: theme.cardBorder,
+                          },
+                        ]}
+                      >
                         <View style={styles.starResultInfo}>
                           <View style={styles.starNameRow}>
                             <Sparkles size={14} color="#F59E0B" />
-                            <Text style={styles.resultStarName}>{star.custom_name}</Text>
+                            <Text style={[styles.resultStarName, { color: theme.text }]}>{star.custom_name}</Text>
                           </View>
-                          <Text style={styles.resultCatalogCode}>{star.catalog_code}</Text>
+                          <Text style={[styles.resultCatalogCode, { color: theme.textMuted }]}>{star.catalog_code}</Text>
                         </View>
 
                         {isAlreadyConnected ? (
@@ -376,8 +452,13 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                             <Text style={styles.connectedBadgeText}>Bağlı ✨</Text>
                           </View>
                         ) : isPending ? (
-                          <View style={styles.pendingBadge}>
-                            <Text style={styles.pendingBadgeText}>İstek Gönderildi</Text>
+                          <View
+                            style={[
+                              styles.pendingBadge,
+                              { backgroundColor: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255, 255, 255, 0.08)' },
+                            ]}
+                          >
+                            <Text style={[styles.pendingBadgeText, { color: theme.textSecondary }]}>İstek Gönderildi</Text>
                           </View>
                         ) : (
                           <TouchableOpacity
@@ -395,8 +476,10 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                               <LinearGradient
                                 colors={
                                   isLimitReached
-                                    ? ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']
-                                    : ['#EC4899', '#8B5CF6']
+                                    ? isLight
+                                      ? ['rgba(0,0,0,0.08)', 'rgba(0,0,0,0.05)']
+                                      : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']
+                                    : [theme.accent, theme.accentLight || theme.accent]
                                 }
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 1 }}
@@ -422,13 +505,21 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
             ) : (
               /* ─── SEKME 2: GÖKYÜZÜNDE SEÇ ───────────────────────── */
               <View style={styles.skySection}>
-                <View style={styles.skyGuideCard}>
+                <View
+                  style={[
+                    styles.skyGuideCard,
+                    {
+                      backgroundColor: theme.unitBg,
+                      borderColor: isLight ? 'rgba(56, 189, 248, 0.35)' : 'rgba(56, 189, 248, 0.2)',
+                    },
+                  ]}
+                >
                   <View style={styles.skyGuideHeader}>
                     <Globe size={24} color="#38BDF8" />
-                    <Text style={styles.skyGuideTitle}>Gök Kubbe Üzerinden Seçim</Text>
+                    <Text style={[styles.skyGuideTitle, { color: theme.text }]}>Gök Kubbe Üzerinden Seçim</Text>
                   </View>
 
-                  <Text style={styles.skyGuideDescription}>
+                  <Text style={[styles.skyGuideDescription, { color: theme.textSecondary }]}>
                     Evrende parıldayan diğer çiftlerin tescilli yıldızlarını gökyüzü haritasında keşfedebilir
                     ve doğrudan yıldız kartından bağlantı isteği gönderebilirsiniz.
                   </Text>
@@ -438,7 +529,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                       <View style={styles.stepNumberBadge}>
                         <Text style={styles.stepNumberText}>1</Text>
                       </View>
-                      <Text style={styles.stepItemText}>
+                      <Text style={[styles.stepItemText, { color: theme.textSecondary }]}>
                         Aşağıdaki butonla <Text style={styles.stepHighlight}>Gök Kubbe (Makro Görünüm)</Text> moduna geçin.
                       </Text>
                     </View>
@@ -447,7 +538,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                       <View style={styles.stepNumberBadge}>
                         <Text style={styles.stepNumberText}>2</Text>
                       </View>
-                      <Text style={styles.stepItemText}>
+                      <Text style={[styles.stepItemText, { color: theme.textSecondary }]}>
                         Başka bir çifte ait <Text style={styles.stepHighlight}>tescilli bir yıldıza</Text> dokunun.
                       </Text>
                     </View>
@@ -456,7 +547,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                       <View style={styles.stepNumberBadge}>
                         <Text style={styles.stepNumberText}>3</Text>
                       </View>
-                      <Text style={styles.stepItemText}>
+                      <Text style={[styles.stepItemText, { color: theme.textSecondary }]}>
                         Açılan yıldız kartındaki <Text style={styles.stepHighlight}>"Yıldızımızı Bağla ✨"</Text> butonuna basın.
                       </Text>
                     </View>
@@ -486,17 +577,27 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
             )}
 
             {/* ─── ALT KISIM: MEVCUT AKTİF BAĞLANTILAR ────────────────── */}
-            <View style={styles.activeConnectionsSection}>
+            <View
+              style={[
+                styles.activeConnectionsSection,
+                { borderTopColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)' },
+              ]}
+            >
               <View style={styles.sectionHeaderRow}>
-                <Link2 size={15} color="#EC4899" />
-                <Text style={styles.sectionTitle}>
+                <Link2 size={15} color={theme.accent} />
+                <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
                   Mevcut Bağlantılarımız ({activeConnections.length}/3)
                 </Text>
               </View>
 
               {activeConnections.length === 0 ? (
-                <View style={styles.emptyActiveBox}>
-                  <Text style={styles.emptyActiveText}>
+                <View
+                  style={[
+                    styles.emptyActiveBox,
+                    { backgroundColor: theme.unitBg, borderColor: theme.cardBorder, borderWidth: 1 },
+                  ]}
+                >
+                  <Text style={[styles.emptyActiveText, { color: theme.textMuted }]}>
                     Henüz başka bir çiftin yıldızıyla takımyıldızı bağınız bulunmuyor.
                   </Text>
                 </View>
@@ -504,13 +605,22 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                 activeConnections.map((conn) => {
                   const isActionLoading = actionLoadingId === conn.connection_id;
                   return (
-                    <View key={conn.connection_id} style={styles.activeConnCard}>
+                    <View
+                      key={conn.connection_id}
+                      style={[
+                        styles.activeConnCard,
+                        {
+                          backgroundColor: theme.unitBg,
+                          borderColor: theme.cardBorder,
+                        },
+                      ]}
+                    >
                       <View style={styles.activeConnInfo}>
                         <View style={styles.starNameRow}>
-                          <Sparkles size={14} color="#EC4899" />
-                          <Text style={styles.activeStarName}>{conn.other_star_name}</Text>
+                          <Sparkles size={14} color={theme.accent} />
+                          <Text style={[styles.activeStarName, { color: theme.text }]}>{conn.other_star_name}</Text>
                         </View>
-                        <Text style={styles.activeCoordsText}>
+                        <Text style={[styles.activeCoordsText, { color: theme.textMuted }]}>
                           RA: {conn.other_star_ra.toFixed(1)}° • Dec: {conn.other_star_dec.toFixed(1)}°
                         </Text>
                       </View>
@@ -546,20 +656,16 @@ export default StarConnectionModal;
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(3, 2, 7, 0.85)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#0F0B1E',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     borderTopWidth: 1,
-    borderColor: 'rgba(168, 85, 247, 0.25)',
     maxHeight: '90%',
     paddingBottom: 24,
-    shadowColor: '#A855F7',
     shadowOffset: { width: 0, height: -6 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 16,
     elevation: 12,
   },
@@ -571,7 +677,6 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   titleBlock: {
     gap: 3,
@@ -582,20 +687,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   title: {
-    color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: 0.3,
   },
   subtitle: {
-    color: 'rgba(255, 255, 255, 0.55)',
     fontSize: 12,
   },
   closeButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -613,21 +715,13 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 9,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  tabButtonActive: {
-    backgroundColor: 'rgba(236, 72, 153, 0.12)',
-    borderColor: 'rgba(236, 72, 153, 0.4)',
   },
   tabText: {
-    color: 'rgba(255, 255, 255, 0.5)',
     fontSize: 13,
     fontWeight: '600',
   },
   tabTextActive: {
-    color: '#FFFFFF',
     fontWeight: '700',
   },
   errorBanner: {
@@ -696,7 +790,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    color: 'rgba(255, 255, 255, 0.6)',
     fontSize: 13,
   },
   searchSection: {
@@ -711,20 +804,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 42,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   input: {
     flex: 1,
-    color: '#FFFFFF',
     fontSize: 14,
   },
   searchButton: {
-    backgroundColor: '#EC4899',
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 42,
@@ -744,7 +833,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyResultsText: {
-    color: 'rgba(255, 255, 255, 0.5)',
     fontSize: 13,
     textAlign: 'center',
   },
@@ -752,11 +840,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderRadius: 14,
     padding: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   starResultInfo: {
     flex: 1,
@@ -769,12 +855,10 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   resultStarName: {
-    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
   },
   resultCatalogCode: {
-    color: 'rgba(255, 255, 255, 0.45)',
     fontSize: 12,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
@@ -817,10 +901,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
   pendingBadgeText: {
-    color: 'rgba(255, 255, 255, 0.6)',
     fontSize: 11,
     fontWeight: '600',
   },
@@ -828,11 +910,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   skyGuideCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.2)',
     gap: 14,
   },
   skyGuideHeader: {
@@ -841,12 +921,10 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   skyGuideTitle: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
   },
   skyGuideDescription: {
-    color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 13,
     lineHeight: 18,
   },
@@ -876,7 +954,6 @@ const styles = StyleSheet.create({
   },
   stepItemText: {
     flex: 1,
-    color: 'rgba(255, 255, 255, 0.8)',
     fontSize: 13,
     lineHeight: 18,
   },
@@ -906,7 +983,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -914,19 +990,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sectionTitle: {
-    color: 'rgba(255, 255, 255, 0.8)',
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.2,
   },
   emptyActiveBox: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 12,
     padding: 14,
     alignItems: 'center',
   },
   emptyActiveText: {
-    color: 'rgba(255, 255, 255, 0.45)',
     fontSize: 12,
     textAlign: 'center',
   },
@@ -934,22 +1007,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
   activeConnInfo: {
     gap: 2,
   },
   activeStarName: {
-    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '600',
   },
   activeCoordsText: {
-    color: 'rgba(255, 255, 255, 0.4)',
     fontSize: 11,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },

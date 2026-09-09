@@ -82,7 +82,13 @@ export default function ForgotPasswordScreen() {
         >
           {/* Back Button */}
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/(auth)/login");
+              }
+            }}
             style={{
               width: 42,
               height: 42,

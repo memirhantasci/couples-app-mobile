@@ -153,7 +153,16 @@ export default function ResetPasswordScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 60 }}>
-          <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: 30 }}>
+          <TouchableOpacity
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/(auth)/login");
+              }
+            }}
+            style={{ marginBottom: 30 }}
+          >
             <ArrowLeft color="#fff" size={28} />
           </TouchableOpacity>
 

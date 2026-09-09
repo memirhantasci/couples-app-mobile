@@ -5,9 +5,10 @@ import {
   TouchableOpacity,
   Modal,
   StyleSheet,
+  Platform,
 } from "react-native";
 import { Crown, Sparkles, X, Zap } from "lucide-react-native";
-import { getTheme } from "@/lib/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { useRouter } from "expo-router";
 import type { PremiumFeatureSource, PremiumPaywallProps as BasePremiumPaywallProps } from "./PremiumPaywall.types";
 
@@ -30,11 +31,10 @@ export function PremiumPaywall({
   featureName,
   featureDescription,
   featureSource = "general",
-  gender,
   tokenOption,
   onWatchAd,
 }: PremiumPaywallProps) {
-  const theme = getTheme(gender);
+  const { theme, isLight } = useTheme();
   const router = useRouter();
 
   const featureCopy: Record<PremiumFeatureSource, { name: string; description: string; cta: string }> = {
@@ -78,35 +78,52 @@ export function PremiumPaywall({
 
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.overlay}>
-        <View style={[styles.container, { backgroundColor: theme.cardBg }]}>
+      <View style={[styles.overlay, { backgroundColor: isLight ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0.8)" }]}>
+        <View
+          style={[
+            styles.container,
+            {
+              backgroundColor: theme.cardBg,
+              borderColor: isLight ? "rgba(0,0,0,0.08)" : theme.cardBorder,
+              shadowColor: isLight ? "#000" : theme.accent,
+            },
+          ]}
+        >
           {/* Close Button */}
-          <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-            <View style={styles.closeBtnCircle}>
-              <X color="rgba(255,255,255,0.6)" size={18} />
+          <TouchableOpacity style={styles.closeBtn} onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <View
+              style={[
+                styles.closeBtnCircle,
+                {
+                  backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)",
+                  borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.12)",
+                },
+              ]}
+            >
+              <X color={theme.text} size={18} />
             </View>
           </TouchableOpacity>
 
           {/* Crown Icon */}
-          <View style={[styles.crownCircle, { backgroundColor: `${theme.accent}20` }]}>
+          <View style={[styles.crownCircle, { backgroundColor: `${theme.accent}18` }]}>
             <Crown color={theme.accent} size={32} />
           </View>
 
           {/* Title */}
-          <Text style={styles.title}>Premium Gerekli</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: theme.text }]}>Premium Gerekli</Text>
+          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
             <Text style={{ fontWeight: "700", color: theme.accent }}>{resolvedFeatureName}</Text>
             {" "}özelliği Premium abonelere özeldir.
           </Text>
 
-          <Text style={styles.description}>{resolvedFeatureDescription}</Text>
+          <Text style={[styles.description, { color: theme.textMuted }]}>{resolvedFeatureDescription}</Text>
 
           {/* Premium Features List */}
           <View style={styles.featuresList}>
             {features.map((f, i) => (
               <View key={i} style={styles.featureRow}>
                 <Sparkles color={theme.accent} size={14} />
-                <Text style={styles.featureText}>{f}</Text>
+                <Text style={[styles.featureText, { color: theme.text }]}>{f}</Text>
               </View>
             ))}
           </View>
@@ -124,7 +141,9 @@ export function PremiumPaywall({
             <Text style={styles.ctaBtnText}>{resolvedFeature.cta}</Text>
           </TouchableOpacity>
 
-          <Text style={styles.trialText}>14 gün ücretsiz dene • İstediğin zaman iptal et</Text>
+          <Text style={[styles.trialText, { color: theme.textMuted }]}>
+            14 gün ücretsiz dene • İstediğin zaman iptal et
+          </Text>
           <TouchableOpacity 
             onPress={() => {
               onClose();
@@ -132,7 +151,7 @@ export function PremiumPaywall({
             }}
             style={{ marginTop: 6 }}
           >
-            <Text style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", textDecorationLine: "underline" }}>
+            <Text style={[styles.eulaLink, { color: theme.accent }]}>
               Abonelik & Kullanım Koşulları (EULA)
             </Text>
           </TouchableOpacity>
@@ -141,36 +160,46 @@ export function PremiumPaywall({
           {tokenOption && (
             <View style={styles.tokenSection}>
               <View style={styles.dividerRow}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>veya</Text>
-                <View style={styles.dividerLine} />
+                <View style={[styles.dividerLine, { backgroundColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]} />
+                <Text style={[styles.dividerText, { color: theme.textMuted }]}>veya</Text>
+                <View style={[styles.dividerLine, { backgroundColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]} />
               </View>
 
               <TouchableOpacity
                 style={[
                   styles.tokenBtn,
+                  {
+                    backgroundColor: isLight ? "rgba(234, 179, 8, 0.12)" : "rgba(255,215,0,0.08)",
+                    borderColor: isLight ? "rgba(234, 179, 8, 0.3)" : "rgba(255,215,0,0.18)",
+                  },
                   tokenOption.currentBalance < tokenOption.cost && { opacity: 0.4 },
                 ]}
                 disabled={tokenOption.currentBalance < tokenOption.cost}
                 onPress={tokenOption.onUseTokens}
                 activeOpacity={0.7}
               >
-                <Zap color="#FFD700" size={18} />
-                <Text style={styles.tokenBtnText}>
+                <Zap color={isLight ? "#B45309" : "#FFD700"} size={18} />
+                <Text style={[styles.tokenBtnText, { color: isLight ? "#B45309" : "#FFD700" }]}>
                   {tokenOption.cost} Token ile Kullan
                 </Text>
-                <Text style={styles.tokenBalance}>
+                <Text style={[styles.tokenBalance, { color: isLight ? "rgba(180, 83, 9, 0.7)" : "rgba(255,215,0,0.6)" }]}>
                   ({tokenOption.currentBalance} token{`'`}ın var)
                 </Text>
               </TouchableOpacity>
 
               {onWatchAd && (
                 <TouchableOpacity
-                  style={styles.adBtn}
+                  style={[
+                    styles.adBtn,
+                    {
+                      backgroundColor: isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.04)",
+                      borderColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)",
+                    },
+                  ]}
                   onPress={onWatchAd}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.adBtnText}>🎬 Reklam İzleyerek +50 Token Kazan</Text>
+                  <Text style={[styles.adBtnText, { color: theme.textSecondary }]}>🎬 Reklam İzleyerek +50 Token Kazan</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -184,7 +213,6 @@ export function PremiumPaywall({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.8)",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
@@ -193,10 +221,13 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 380,
     borderRadius: 28,
-    padding: 28,
+    padding: 26,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1.2,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
   },
   closeBtn: {
     position: "absolute",
@@ -208,7 +239,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -219,32 +250,31 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
-    marginTop: 8,
+    marginTop: 6,
   },
   title: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#fff",
     marginBottom: 8,
+    letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.6)",
     textAlign: "center",
     lineHeight: 20,
     marginBottom: 6,
   },
   description: {
     fontSize: 13,
-    color: "rgba(255,255,255,0.4)",
     textAlign: "center",
     marginBottom: 16,
+    lineHeight: 18,
   },
   featuresList: {
     width: "100%",
     gap: 10,
-    marginBottom: 24,
-    marginTop: 12,
+    marginBottom: 22,
+    marginTop: 8,
   },
   featureRow: {
     flexDirection: "row",
@@ -252,9 +282,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   featureText: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 13,
-    fontWeight: "500",
+    fontSize: 13.5,
+    fontWeight: "600",
   },
   ctaBtn: {
     width: "100%",
@@ -262,19 +291,29 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    padding: 16,
+    padding: 15,
     borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   ctaBtnText: {
     color: "#fff",
     fontWeight: "800",
     fontSize: 16,
+    letterSpacing: -0.2,
   },
   trialText: {
     fontSize: 11,
-    color: "rgba(255,255,255,0.35)",
     marginTop: 10,
     textAlign: "center",
+  },
+  eulaLink: {
+    fontSize: 11,
+    textDecorationLine: "underline",
+    fontWeight: "600",
   },
   tokenSection: {
     width: "100%",
@@ -289,11 +328,10 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "rgba(255,255,255,0.08)",
   },
   dividerText: {
-    color: "rgba(255,255,255,0.3)",
     fontSize: 12,
+    fontWeight: "500",
   },
   tokenBtn: {
     width: "100%",
@@ -301,32 +339,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    padding: 14,
+    padding: 13,
     borderRadius: 14,
-    backgroundColor: "rgba(255,215,0,0.08)",
     borderWidth: 1,
-    borderColor: "rgba(255,215,0,0.15)",
   },
   tokenBtnText: {
-    color: "#FFD700",
     fontWeight: "700",
     fontSize: 14,
   },
   tokenBalance: {
-    color: "rgba(255,215,0,0.5)",
     fontSize: 11,
+    fontWeight: "500",
   },
   adBtn: {
     width: "100%",
     alignItems: "center",
-    padding: 12,
+    padding: 11,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
     marginTop: 10,
   },
   adBtnText: {
-    color: "rgba(255,255,255,0.5)",
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: "600",
   },
 });

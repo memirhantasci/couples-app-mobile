@@ -3,6 +3,8 @@
  * @module modules/stars/components
  * @description OurStarScreen sağ üst köşesinde bekleyen gelen bağlantı isteklerini
  * gösteren ve doğrudan kabul/reddetme imkanı sunan bildirim rozeti.
+ *
+ * Tüm tema modlarıyla (Beyaz, Mavi, Pembe, Gece) tam uyumludur.
  */
 
 import React, { useState, useCallback } from 'react';
@@ -21,6 +23,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { Bell, Sparkles, X, Check, CheckCircle2, AlertCircle } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '@/context/ThemeContext';
 import { starService } from '../api/starService';
 import type { PendingConnectionDetail } from '../types/star.types';
 
@@ -35,6 +38,7 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
   onConnectionChanged,
   style,
 }) => {
+  const { theme, isLight } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -107,14 +111,14 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
         accessibilityLabel={`${incomingCount} bekleyen yıldız bağlantı isteği`}
       >
         <LinearGradient
-          colors={['#EC4899', '#8B5CF6']}
+          colors={[theme.accent, theme.accentLight || theme.accent]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.badgeGradient}
         >
           <Bell size={15} color="#FFFFFF" />
           <View style={styles.countPill}>
-            <Text style={styles.countText}>{incomingCount}</Text>
+            <Text style={[styles.countText, { color: theme.accent }]}>{incomingCount}</Text>
           </View>
         </LinearGradient>
       </TouchableOpacity>
@@ -126,20 +130,36 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
         animationType="fade"
         onRequestClose={handleClose}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+        <View
+          style={[
+            styles.modalOverlay,
+            { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.45)' : 'rgba(3, 2, 7, 0.75)' },
+          ]}
+        >
+          <View
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: theme.cardBg,
+                borderColor: theme.cardBorder,
+              },
+            ]}
+          >
             {/* Modal Başlık */}
             <View style={styles.modalHeader}>
               <View style={styles.modalTitleRow}>
                 <Sparkles size={18} color="#FBBF24" />
-                <Text style={styles.modalTitle}>Bağlantı İstekleri</Text>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Bağlantı İstekleri</Text>
               </View>
               <TouchableOpacity
                 onPress={handleClose}
-                style={styles.closeBtn}
+                style={[
+                  styles.closeBtn,
+                  { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)' },
+                ]}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <X size={18} color="rgba(255, 255, 255, 0.7)" />
+                <X size={18} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -172,18 +192,29 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
               {incomingRequests.length === 0 ? (
                 <View style={styles.emptyState}>
                   <Check size={28} color="#10B981" />
-                  <Text style={styles.emptyStateText}>Bekleyen tüm istekler yanıtlandı ✨</Text>
+                  <Text style={[styles.emptyStateText, { color: theme.textSecondary }]}>
+                    Bekleyen tüm istekler yanıtlandı ✨
+                  </Text>
                 </View>
               ) : (
                 incomingRequests.map((req) => {
                   const isLoading = actionLoadingId === req.connection_id;
                   return (
-                    <View key={req.connection_id} style={styles.requestCard}>
+                    <View
+                      key={req.connection_id}
+                      style={[
+                        styles.requestCard,
+                        {
+                          backgroundColor: theme.unitBg,
+                          borderColor: theme.cardBorder,
+                        },
+                      ]}
+                    >
                       <View style={styles.requestPromptRow}>
                         <View style={styles.starIconDot}>
                           <Sparkles size={14} color="#F59E0B" />
                         </View>
-                        <Text style={styles.requestPromptText}>
+                        <Text style={[styles.requestPromptText, { color: theme.text }]}>
                           <Text style={styles.starNameBold}>"{req.other_star_name}"</Text> yıldızı bağlantı kurmak istiyor
                         </Text>
                       </View>
@@ -214,9 +245,15 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
                           activeOpacity={0.8}
                           disabled={isLoading}
                           onPress={() => handleRespond(req.connection_id, false, req.other_star_name)}
-                          style={styles.rejectBtn}
+                          style={[
+                            styles.rejectBtn,
+                            {
+                              backgroundColor: isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.08)',
+                              borderColor: theme.cardBorder,
+                            },
+                          ]}
                         >
-                          <Text style={styles.rejectBtnText}>Reddet</Text>
+                          <Text style={[styles.rejectBtnText, { color: theme.textSecondary }]}>Reddet</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -231,12 +268,13 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
   );
 };
 
+export default ConnectionRequestBadge;
+
 const styles = StyleSheet.create({
   badgeContainer: {
     borderRadius: 20,
-    shadowColor: '#EC4899',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.35,
     shadowRadius: 6,
     elevation: 4,
   },
@@ -258,13 +296,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   countText: {
-    color: '#8B5CF6',
     fontSize: 10,
     fontWeight: '700',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(3, 2, 7, 0.75)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -272,14 +308,11 @@ const styles = StyleSheet.create({
   modalCard: {
     width: '100%',
     maxWidth: 380,
-    backgroundColor: 'rgba(18, 14, 34, 0.96)',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(168, 85, 247, 0.3)',
     padding: 20,
-    shadowColor: '#A855F7',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 20,
     elevation: 10,
   },
@@ -295,7 +328,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   modalTitle: {
-    color: '#FFFFFF',
     fontSize: 17,
     fontWeight: '700',
     letterSpacing: 0.3,
@@ -304,7 +336,6 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -350,15 +381,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyStateText: {
-    color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 14,
     textAlign: 'center',
   },
   requestCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
     padding: 14,
     gap: 12,
   },
@@ -378,7 +406,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   requestPromptText: {
-    color: 'rgba(255, 255, 255, 0.9)',
     fontSize: 14,
     flex: 1,
     lineHeight: 20,
@@ -412,17 +439,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 9,
     borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   rejectBtnText: {
-    color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 13,
     fontWeight: '600',
   },
 });
-
-export default ConnectionRequestBadge;
