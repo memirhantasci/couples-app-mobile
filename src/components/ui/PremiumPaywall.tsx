@@ -5,20 +5,16 @@ import {
   TouchableOpacity,
   Modal,
   StyleSheet,
-  Dimensions,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { Crown, Lock, Sparkles, X, Zap } from "lucide-react-native";
-import { getTheme, AppTheme } from "@/lib/theme";
+import { Crown, Sparkles, X, Zap } from "lucide-react-native";
+import { getTheme } from "@/lib/theme";
 import { useRouter } from "expo-router";
+import type { PremiumFeatureSource, PremiumPaywallProps as BasePremiumPaywallProps } from "./PremiumPaywall.types";
 
-const { width } = Dimensions.get("window");
-
-interface PremiumPaywallProps {
-  visible: boolean;
-  onClose: () => void;
-  featureName: string;         // "Mektup Yaz", "Fotoğraf Galerisi" vb.
+interface PremiumPaywallProps extends BasePremiumPaywallProps {
+  featureName?: string;         // "Mektup Yaz", "Fotoğraf Galerisi" vb.
   featureDescription?: string; // Opsiyonel açıklama
+  featureSource?: PremiumFeatureSource;
   gender?: string | null;
   tokenOption?: {              // Token ile açılabilecekse
     cost: number;
@@ -33,12 +29,44 @@ export function PremiumPaywall({
   onClose,
   featureName,
   featureDescription,
+  featureSource = "general",
   gender,
   tokenOption,
   onWatchAd,
 }: PremiumPaywallProps) {
   const theme = getTheme(gender);
   const router = useRouter();
+
+  const featureCopy: Record<PremiumFeatureSource, { name: string; description: string; cta: string }> = {
+    general: {
+      name: "Bu özellik",
+      description: "Premium ile birlikte tüm özel anı alanlarına erişin.",
+      cta: "Premium'a Geç",
+    },
+    star_claim: {
+      name: "Yıldız sahiplenme",
+      description: "Yıldızınızı sahiplenin ve gökyüzünde birlikte parlatın.",
+      cta: "Yıldızımızı Aç",
+    },
+    exoplanet_create: {
+      name: "Anı gezegeni oluşturma",
+      description: "Anılarınızı yıldızınızın yörüngesine yerleştirmek için Premium gerekli.",
+      cta: "Anı Gezegenlerini Aç",
+    },
+    exoplanet_view: {
+      name: "Anı gezegeni içeriği",
+      description: "Fotoğraflarınız, mektuplarınız ve anı ayrıntılarınız Premium ile korunur.",
+      cta: "Anılarımı Aç",
+    },
+    exoplanet_auto: {
+      name: "Otomatik anı gezegenleri",
+      description: "45 günlük anı döngüsünü devam ettirmek için Premium gerekli.",
+      cta: "Otomatik Anıları Aç",
+    },
+  };
+  const resolvedFeature = featureCopy[featureSource];
+  const resolvedFeatureName = featureName ?? resolvedFeature.name;
+  const resolvedFeatureDescription = featureDescription ?? resolvedFeature.description;
 
   const features = [
     "💌 Sınırsız Mektup Yaz",
@@ -67,13 +95,11 @@ export function PremiumPaywall({
           {/* Title */}
           <Text style={styles.title}>Premium Gerekli</Text>
           <Text style={styles.subtitle}>
-            <Text style={{ fontWeight: "700", color: theme.accent }}>{featureName}</Text>
+            <Text style={{ fontWeight: "700", color: theme.accent }}>{resolvedFeatureName}</Text>
             {" "}özelliği Premium abonelere özeldir.
           </Text>
 
-          {featureDescription && (
-            <Text style={styles.description}>{featureDescription}</Text>
-          )}
+          <Text style={styles.description}>{resolvedFeatureDescription}</Text>
 
           {/* Premium Features List */}
           <View style={styles.featuresList}>
@@ -95,7 +121,7 @@ export function PremiumPaywall({
             activeOpacity={0.8}
           >
             <Crown color="#fff" size={20} />
-            <Text style={styles.ctaBtnText}>Premium'a Geç</Text>
+            <Text style={styles.ctaBtnText}>{resolvedFeature.cta}</Text>
           </TouchableOpacity>
 
           <Text style={styles.trialText}>14 gün ücretsiz dene • İstediğin zaman iptal et</Text>
@@ -134,7 +160,7 @@ export function PremiumPaywall({
                   {tokenOption.cost} Token ile Kullan
                 </Text>
                 <Text style={styles.tokenBalance}>
-                  ({tokenOption.currentBalance} token'ın var)
+                  ({tokenOption.currentBalance} token{`'`}ın var)
                 </Text>
               </TouchableOpacity>
 

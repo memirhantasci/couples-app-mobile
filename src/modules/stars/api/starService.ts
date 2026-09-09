@@ -27,6 +27,7 @@ import type {
   SparkCooldownError,
   StarConnectionRecord,
   StarExoplanetRecord,
+  StarSystemMapPlanet,
   StarSearchResult,
   CelestialSearchResult,
   ViewportStarItem,
@@ -50,6 +51,17 @@ export class SparkCooldownException extends Error implements SparkCooldownError 
     this.code = code;
     this.remainingSeconds = remainingSeconds;
     Object.setPrototypeOf(this, SparkCooldownException.prototype);
+  }
+}
+
+/** Raised when the database rejects a premium-gated stars operation. */
+export class PremiumRequiredError extends Error {
+  readonly code = 'P0010' as const;
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'PremiumRequiredError';
+    Object.setPrototypeOf(this, PremiumRequiredError.prototype);
   }
 }
 
@@ -115,8 +127,12 @@ function handleSupabaseError(error: any): never {
     );
   }
 
-  // P0010: Bağlantı için önce yıldız sahiplenilmeli
+  // P0010 is also used by the older star-connection flow. Only turn the
+  // entitlement variant into PremiumRequiredError.
   if (error?.code === 'P0010') {
+    if (String(error.message || '').toLocaleLowerCase('tr-TR').includes('premium')) {
+      throw new PremiumRequiredError(error.message || 'Bu işlem için aktif Premium üyelik gereklidir.');
+    }
     throw new Error(
       error.message || 'Bağlantı kurabilmek için önce bir yıldız sahiplenmelisiniz.',
     );
@@ -335,22 +351,56 @@ export async function getMyStarDetails(coupleId: number): Promise<CoupleStarDeta
 }
 
 /**
- * Mikro Yıldız Sisteminde yörüngede dönen tüm anı ötegezegenlerini getirir.
- * RLS politikası yalnızca çiftin kendi gezegenlerini dönmesini garanti eder.
+ * Mikro sistem için yalnızca güvenli harita verisini getirir. Kilitli
+ * gezegenlerde başlık, açıklama, medya ve mektup referansları dönmez.
  */
-export async function getStarExoplanets(starId: string): Promise<StarExoplanetRecord[]> {
+export async function getStarExoplanets(starId: string): Promise<StarSystemMapPlanet[]> {
   return withSmartRetry(async () => {
-    const { data, error } = await supabase
-      .from('star_exoplanets')
-      .select('*')
-      .eq('star_id', starId)
-      .order('milestone_date', { ascending: false });
+    const { data, error } = await supabase.rpc('get_star_system_map', {
+      p_star_id: starId,
+    });
 
     if (error) {
       handleSupabaseError(error);
     }
 
-    return (data ?? []) as StarExoplanetRecord[];
+    return (data ?? []) as StarSystemMapPlanet[];
+  });
+}
+
+function storagePathFromMediaReference(reference: string): string {
+  if (!/^https?:\/\//i.test(reference)) return reference;
+  const match = reference.match(/\/couple-memories\/([^?]+)/i);
+  return match ? decodeURIComponent(match[1]) : reference;
+}
+
+/** Convert persisted private Storage paths to client-displayable signed URLs. */
+async function hydrateMediaUrls(record: StarExoplanetRecord): Promise<StarExoplanetRecord> {
+  const mediaUrls = await Promise.all(
+    (record.media_urls ?? []).map(async (reference) => {
+      const path = storagePathFromMediaReference(reference);
+      // Legacy signed URLs are already consumable and cannot be re-signed if
+      // their source path cannot be determined.
+      if (/^https?:\/\//i.test(path)) return reference;
+      const { data, error } = await supabase.storage
+        .from('couple-memories')
+        .createSignedUrl(path, 60 * 15);
+      if (error || !data) throw error || new Error('Medya erişim bağlantısı oluşturulamadı.');
+      return data.signedUrl;
+    }),
+  );
+
+  return { ...record, media_urls: mediaUrls };
+}
+
+/** Fetches sensitive planet content only after the backend entitlement check. */
+export async function getExoplanetDetails(planetId: string): Promise<StarExoplanetRecord> {
+  return withSmartRetry(async () => {
+    const { data, error } = await supabase.rpc('get_exoplanet_details', {
+      p_exoplanet_id: planetId,
+    });
+    if (error) handleSupabaseError(error);
+    return hydrateMediaUrls(data as StarExoplanetRecord);
   });
 }
 
@@ -362,31 +412,28 @@ export async function getStarExoplanets(starId: string): Promise<StarExoplanetRe
 export async function createExoplanet(
   starId: string,
   payload: CreateExoplanetDto,
+  mediaPaths: readonly string[] = [],
 ): Promise<StarExoplanetRecord> {
   return withSmartRetry(async () => {
-    const { data, error } = await supabase
-      .from('star_exoplanets')
-      .insert({
-        star_id: starId,
-        title: payload.title.trim(),
-        description: payload.description ? payload.description.trim() : null,
-        milestone_date: payload.milestone_date,
-        orbit_distance: payload.orbit_distance,
-        orbit_speed: payload.orbit_speed ?? 1.0,
-        planet_type: payload.planet_type ?? 'terrestrial',
-        palette: payload.palette ?? ['#4facfe', '#00f2fe'],
-        media_urls: payload.media_urls ?? [],
-        custom_metadata: payload.custom_metadata ?? {},
-        is_auto_generated: false,
-      })
-      .select()
-      .single();
+    const { data, error } = await supabase.rpc('create_exoplanet', {
+      p_star_id: starId,
+      p_title: payload.title.trim(),
+      p_description: payload.description ? payload.description.trim() : null,
+      p_milestone_date: payload.milestone_date,
+      p_orbit_distance: payload.orbit_distance,
+      p_orbit_speed: payload.orbit_speed ?? 1.0,
+      p_planet_type: payload.planet_type ?? 'terrestrial',
+      p_palette: payload.palette ?? ['#4facfe', '#00f2fe'],
+    });
 
-    if (error) {
-      handleSupabaseError(error);
+    if (error) handleSupabaseError(error);
+    const created = data as StarExoplanetRecord;
+
+    for (const mediaPath of mediaPaths) {
+      await appendMediaToExoplanet(created.id, mediaPath);
     }
 
-    return data as StarExoplanetRecord;
+    return getExoplanetDetails(created.id);
   });
 }
 
@@ -399,82 +446,54 @@ export async function updateExoplanet(
   payload: Partial<CreateExoplanetDto>,
 ): Promise<StarExoplanetRecord> {
   return withSmartRetry(async () => {
-    const updateData: Record<string, unknown> = {};
-    if (payload.title !== undefined) updateData.title = payload.title.trim();
-    if (payload.description !== undefined)
-      updateData.description = payload.description ? payload.description.trim() : null;
-    if (payload.milestone_date !== undefined) updateData.milestone_date = payload.milestone_date;
-    if (payload.orbit_distance !== undefined) updateData.orbit_distance = payload.orbit_distance;
-    if (payload.orbit_speed !== undefined) updateData.orbit_speed = payload.orbit_speed;
-    if (payload.planet_type !== undefined) updateData.planet_type = payload.planet_type;
-    if (payload.palette !== undefined) updateData.palette = payload.palette;
-    if (payload.media_urls !== undefined) updateData.media_urls = payload.media_urls;
-    if (payload.custom_metadata !== undefined) updateData.custom_metadata = payload.custom_metadata;
+    const patch: Record<string, unknown> = {};
+    if (payload.title !== undefined) patch.title = payload.title.trim();
+    if (payload.description !== undefined) patch.description = payload.description ? payload.description.trim() : null;
+    if (payload.milestone_date !== undefined) patch.milestone_date = payload.milestone_date;
+    if (payload.orbit_distance !== undefined) patch.orbit_distance = payload.orbit_distance;
+    if (payload.orbit_speed !== undefined) patch.orbit_speed = payload.orbit_speed;
+    if (payload.planet_type !== undefined) patch.planet_type = payload.planet_type;
+    if (payload.palette !== undefined) patch.palette = payload.palette;
 
-    const { data, error } = await supabase
-      .from('star_exoplanets')
-      .update(updateData)
-      .eq('id', planetId)
-      .select()
-      .single();
+    const { error } = await supabase.rpc('update_exoplanet', {
+      p_planet_id: planetId,
+      p_patch: patch,
+    });
 
-    if (error) {
-      handleSupabaseError(error);
-    }
+    if (error) handleSupabaseError(error);
 
-    return data as StarExoplanetRecord;
+    return getExoplanetDetails(planetId);
   });
 }
 
 /**
- * Gezegeni siler; Storage'daki medya dosyalarını da temizler.
- *
- * İşlem sırası:
- *   1. media_urls listesini çek
- *   2. Storage'dan dosyaları sil (depolama çöpü birikmesin)
- *   3. DB kaydını sil (RLS politikası sahipliği doğrular)
- *
- * NOT: Storage silme kısmen başarısız olsa bile DB kaydı silinir;
- * bu kabul edilebilir bir trade-off'tur (orphan dosya > kırık UI).
+ * Gezegeni siler. Orijinal medya ve mektup kayıtları korunur; yalnızca
+ * gezegen bağlantısı kaldırılır. This remains available after expiration.
  */
 export async function deleteExoplanet(planetId: string): Promise<void> {
   return withSmartRetry(async () => {
-    // 1. Medya URL'lerini çek
-    const { data: planet, error: fetchError } = await supabase
-      .from('star_exoplanets')
-      .select('media_urls')
-      .eq('id', planetId)
-      .single();
+    const { error } = await supabase.rpc('delete_exoplanet', { p_exoplanet_id: planetId });
+    if (error) handleSupabaseError(error);
+  });
+}
 
-    if (fetchError) {
-      handleSupabaseError(fetchError);
-    }
+export async function appendMediaToExoplanet(planetId: string, mediaPath: string): Promise<void> {
+  return withSmartRetry(async () => {
+    const { error } = await supabase.rpc('append_media_to_exoplanet', {
+      p_planet_id: planetId,
+      p_media_url: storagePathFromMediaReference(mediaPath),
+    });
+    if (error) handleSupabaseError(error);
+  });
+}
 
-    // 2. Storage'dan medya dosyalarını temizle
-    if (planet?.media_urls && planet.media_urls.length > 0) {
-      const storagePaths = planet.media_urls
-        .map((url: string) => {
-          // Signed URL format: ".../object/sign/couple-memories/{path}?token=..."
-          const match = url.match(/couple-memories\/([^?]+)/);
-          return match ? match[1] : null;
-        })
-        .filter((p: string | null): p is string => p !== null);
-
-      if (storagePaths.length > 0) {
-        // Storage hatası DB silme işlemini engellemez — best-effort
-        await supabase.storage.from('couple-memories').remove(storagePaths);
-      }
-    }
-
-    // 3. DB kaydını sil (RLS: yalnızca kendi çiftinin gezegeni)
-    const { error: deleteError } = await supabase
-      .from('star_exoplanets')
-      .delete()
-      .eq('id', planetId);
-
-    if (deleteError) {
-      handleSupabaseError(deleteError);
-    }
+export async function removeMediaFromExoplanet(planetId: string, mediaPath: string): Promise<void> {
+  return withSmartRetry(async () => {
+    const { error } = await supabase.rpc('remove_media_from_exoplanet', {
+      p_planet_id: planetId,
+      p_media_url: storagePathFromMediaReference(mediaPath),
+    });
+    if (error) handleSupabaseError(error);
   });
 }
 
@@ -531,15 +550,9 @@ export async function createExoplanetFromMedia(
 
     const resolvedPlanetId = planetId as string;
 
-    // 2. Fotoğraf URL'sini gezegene ekle
+    // 2. Fotoğraf Storage yolunu gezegene ekle
     if (params.photoUrl) {
-      const { error: mediaError } = await supabase.rpc('append_media_to_exoplanet', {
-        p_planet_id: resolvedPlanetId,
-        p_media_url: params.photoUrl,
-      });
-      if (mediaError) {
-        handleSupabaseError(mediaError);
-      }
+      await appendMediaToExoplanet(resolvedPlanetId, params.photoUrl);
     }
 
     // 3. Mektup referansını gezegene ekle
@@ -553,18 +566,8 @@ export async function createExoplanetFromMedia(
       }
     }
 
-    // 4. Güncel gezegen kaydını döndür
-    const { data: planet, error: fetchError } = await supabase
-      .from('star_exoplanets')
-      .select('*')
-      .eq('id', resolvedPlanetId)
-      .single();
-
-    if (fetchError) {
-      handleSupabaseError(fetchError);
-    }
-
-    return planet as StarExoplanetRecord;
+    // 4. Güncel hassas gezegen kaydını kontrollü RPC'den döndür
+    return getExoplanetDetails(resolvedPlanetId);
   });
 }
 
@@ -818,9 +821,12 @@ export const starService = {
   claimSpecificStar,
   getMyStarDetails,
   getStarExoplanets,
+  getExoplanetDetails,
   createExoplanet,
   updateExoplanet,
   deleteExoplanet,
+  appendMediaToExoplanet,
+  removeMediaFromExoplanet,
   canAddManualExoplanet,
   createExoplanetFromMedia,
   sendSpark,

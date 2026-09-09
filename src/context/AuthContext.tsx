@@ -30,6 +30,8 @@ export interface CoupleProfile {
   username: string | null;
   gender: string | null;
   isPremium: boolean;
+  /** Retained so an open app can react exactly when a timed entitlement ends. */
+  premiumExpiresAt?: string | null;
   tokenBalance: number;
   encryptionSalt: string | null;
 }
@@ -110,6 +112,7 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
       username: null,
       gender: null,
       isPremium: false,
+      premiumExpiresAt: null,
       tokenBalance: 0,
       encryptionSalt: null,
     };
@@ -139,6 +142,7 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
     username: decUsername || null,
     gender: user.gender ?? null,
     isPremium: isPremiumActive,
+    premiumExpiresAt: premiumExpiresAt ?? null,
     tokenBalance: user.token_balance ?? 0,
     encryptionSalt: coupleObj?.encryption_salt ?? null,
   };
@@ -436,6 +440,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       supabase.removeChannel(channel);
     };
   }, [session?.user?.id, profile?.coupleId, refreshProfile]);
+
+  // A timestamp expiration does not create a database UPDATE, therefore a
+  // realtime subscription alone cannot flip the UI to locked mode. Transition
+  // locally at the exact expiry moment, then refresh to reconcile the source
+  // of truth. Lifetime/promotional entitlements intentionally have no timer.
+  useEffect(() => {
+    const premiumExpiresAt = profile?.premiumExpiresAt;
+    if (isDemoMode || !premiumExpiresAt) return;
+
+    const remainingMs = new Date(premiumExpiresAt).getTime() - Date.now();
+    if (!Number.isFinite(remainingMs)) return;
+
+    let timer: ReturnType<typeof setTimeout>;
+    const expire = () => {
+      setProfile((current) => (
+        current?.premiumExpiresAt === premiumExpiresAt
+          ? { ...current, isPremium: false }
+          : current
+      ));
+      refreshProfile().catch(() => {});
+    };
+    const scheduleExpiry = () => {
+      // JavaScript timers cap at roughly 24.8 days. Re-check in chunks for a
+      // subscription that was granted far into the future.
+      const msUntilExpiry = new Date(premiumExpiresAt).getTime() - Date.now();
+      if (msUntilExpiry <= 0) {
+        timer = setTimeout(expire, 50);
+        return;
+      }
+      timer = setTimeout(scheduleExpiry, Math.min(msUntilExpiry, 2_147_483_647));
+    };
+    scheduleExpiry();
+
+    return () => clearTimeout(timer);
+  }, [isDemoMode, profile?.premiumExpiresAt, refreshProfile]);
 
   const signOut = useCallback(async () => {
     if (isDemoMode) {

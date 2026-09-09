@@ -70,6 +70,9 @@ export interface ClaimStarModalProps {
    * Sağlanmışsa modal 'input' modunda açılır ve claim_star_in_sector RPC kullanılır.
    */
   readonly preSelectedSectorId?: string;
+  /** UI guard only; the claim RPC independently enforces this entitlement. */
+  readonly isPremium?: boolean;
+  readonly onPremiumRequired?: () => void;
   readonly onClose?: () => void;
   readonly onSuccess?: (star: CoupleStarDetails) => void;
 }
@@ -209,6 +212,8 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
   initialStar,
   preSelectedStar,
   preSelectedSectorId,
+  isPremium = false,
+  onPremiumRequired,
   onClose,
   onSuccess,
 }) => {
@@ -262,6 +267,10 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
 
   // Yıldız sahiplenme tetikleyicisi
   const handleStartClaim = async () => {
+    if (!isPremium) {
+      onPremiumRequired?.();
+      return;
+    }
     const trimmed = customName.trim();
     if (trimmed.length < 2) {
       setErrorMessage('Yıldızınızın ismi en az 2 karakter olmalıdır.');

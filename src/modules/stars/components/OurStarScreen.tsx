@@ -59,7 +59,7 @@ import {
 
 import { useAuth } from '@/context/AuthContext';
 import { DEMO_STAR_DETAILS, DEMO_STAR_EXOPLANETS } from '@/constants/demoData';
-import { starService, SparkCooldownException } from '../api/starService';
+import { starService, PremiumRequiredError, SparkCooldownException } from '../api/starService';
 import { StarSparkManager } from '../services/StarSparkManager';
 import { MicroSystemCanvas } from '../canvas/MicroSystemCanvas';
 import { MacroSkyCanvas, MacroSkyBounds, SOLAR_SYSTEM_OBJECTS } from '../canvas/MacroSkyCanvas';
@@ -67,12 +67,14 @@ import { StarInfoBadge } from './StarInfoBadge';
 import { ClaimStarModal } from './ClaimStarModal';
 import { StarDemoAuthModal } from './StarDemoAuthModal';
 import { ExoplanetModal } from './ExoplanetModal';
-import { StarConnectionModal, StarConnectionsModal } from './StarConnectionModal';
+import { StarConnectionModal } from './StarConnectionModal';
 import { ConnectionRequestBadge } from './ConnectionRequestBadge';
 import { SectorHUD } from './SectorHUD';
 import { SectorAtlasModal } from './SectorAtlasModal';
 import { SearchStarModal } from './SearchStarModal';
 import { HomeRadarOverlay } from './HomeRadarOverlay';
+import { PremiumPaywall } from '@/components/ui/PremiumPaywall';
+import type { PremiumFeatureSource } from '@/components/ui/PremiumPaywall.types';
 import {
   areSameViewportStars,
   getTilesInBounds,
@@ -86,6 +88,7 @@ import type {
   CoupleStarDetails,
   FlyToTarget,
   StarExoplanetRecord,
+  StarSystemMapPlanet,
   ViewportStarItem,
   SparkBroadcastPayload,
   ResonanceEvent,
@@ -97,11 +100,24 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 // Realtime güncellemeleri koruma penceresi (5 saniye)
 const REALTIME_RECONCILIATION_WINDOW_MS = 5000;
 
+function toMapPlanet(planet: StarExoplanetRecord): StarSystemMapPlanet {
+  return {
+    id: planet.id,
+    orbit_distance: planet.orbit_distance,
+    orbit_speed: planet.orbit_speed,
+    planet_type: planet.planet_type,
+    palette: planet.palette,
+    is_locked: false,
+    display_title: planet.title,
+  };
+}
+
 export const OurStarScreen: React.FC = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { profile, session, isDemoMode } = useAuth();
+  const { profile, session, isDemoMode, isLoading: isAuthLoading } = useAuth();
   const coupleId = profile?.coupleId ?? null;
+  const isPremium = isDemoMode || profile?.isPremium === true;
   const currentUserId = session?.user?.id ?? '';
   const currentUserName = profile?.displayName || profile?.username || 'Partner';
 
@@ -109,7 +125,8 @@ export const OurStarScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'micro' | 'macro'>('micro');
   const [starDetails, setStarDetails] = useState<CoupleStarDetails | null>(null);
-  const [exoplanets, setExoplanets] = useState<StarExoplanetRecord[]>([]);
+  const [exoplanets, setExoplanets] = useState<StarSystemMapPlanet[]>([]);
+  const [demoPlanetDetails, setDemoPlanetDetails] = useState<StarExoplanetRecord[]>([]);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [viewportStars, setViewportStars] = useState<ViewportStarItem[]>([]);
   // Other couples' stars are fetched by tile after the canvas's 350ms bounds
@@ -145,6 +162,7 @@ export const OurStarScreen: React.FC = () => {
   const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
   const [isConnectionsModalOpen, setIsConnectionsModalOpen] = useState(false);
   const [isHomeRadarOpen, setIsHomeRadarOpen] = useState(false);
+  const [premiumPaywallSource, setPremiumPaywallSource] = useState<PremiumFeatureSource | null>(null);
 
   // Yıldız bağlantıları (canvas takımyıldızı çizgileri için)
   const [starConnections, setStarConnections] = useState<ActiveStarConnection[]>([]);
@@ -161,7 +179,6 @@ export const OurStarScreen: React.FC = () => {
   const [cameraRa, setCameraRa] = useState(180);
   const [cameraDec, setCameraDec] = useState(0);
   const [flyToTarget, setFlyToTarget] = useState<FlyToTarget | undefined>(undefined);
-  const [showInstructionBanner, setShowInstructionBanner] = useState(true);
 
   // Eve Dönüş Radarı Hesaplaması
   const myStarRa = starDetails ? Number(starDetails.ra) : 0;
@@ -198,6 +215,21 @@ export const OurStarScreen: React.FC = () => {
       setToastMessage(null);
     }, 3800);
   }, []);
+
+  const handlePremiumAction = useCallback((source: PremiumFeatureSource, action: () => void) => {
+    // A cached profile can be temporarily stale while AuthContext refreshes it.
+    // Do not present a false paywall during that loading interval.
+    if (isDemoMode) {
+      action();
+      return;
+    }
+    if (isAuthLoading || !profile) return;
+    if (!isPremium) {
+      setPremiumPaywallSource(source);
+      return;
+    }
+    action();
+  }, [isAuthLoading, isDemoMode, isPremium, profile]);
 
   // Eve Dönüş Radarı Tetikleyici
   const handleReturnHome = useCallback(() => {
@@ -257,7 +289,8 @@ export const OurStarScreen: React.FC = () => {
       // 0. Demo Modu: Misafir kullanıcı için zengin örnek yıldız verisi
       if (isDemoMode) {
         setStarDetails(DEMO_STAR_DETAILS);
-        setExoplanets(DEMO_STAR_EXOPLANETS);
+        setExoplanets(DEMO_STAR_EXOPLANETS.map(toMapPlanet));
+        setDemoPlanetDetails(DEMO_STAR_EXOPLANETS);
         setLuminosityOverride(DEMO_STAR_DETAILS.luminosity_level);
         setIsResonanceActive(DEMO_STAR_DETAILS.resonance_active);
         setLiveCooldownSec(DEMO_STAR_DETAILS.cooldown_remaining_seconds || 0);
@@ -320,8 +353,14 @@ export const OurStarScreen: React.FC = () => {
         setStarConnections(connections);
         setPendingRequests(pending);
         setPendingIncomingCount(pending.filter((p) => p.is_incoming).length);
-      } catch {
-        // Yıldız henüz tescilli değilse macro kanvasa yönlendir (otomatik modal yok)
+      } catch (error) {
+        // Yıldız gerçekten yoksa macro kanvasa yönlendir; network/RPC errors
+        // stay visible rather than being mistaken for an unclaimed star.
+        if (error instanceof PremiumRequiredError) {
+          setPremiumPaywallSource('exoplanet_view');
+          return;
+        }
+        showToast('Yıldız verileri yüklenemedi. Lütfen bağlantınızı kontrol edip tekrar deneyin.');
         setStarDetails(null);
         setViewMode('macro');
       } finally {
@@ -330,7 +369,7 @@ export const OurStarScreen: React.FC = () => {
         }
       }
     },
-    [coupleId, isDemoMode]
+    [coupleId, isDemoMode, showToast]
   );
 
   const isInitialMountRef = useRef(true);
@@ -343,6 +382,24 @@ export const OurStarScreen: React.FC = () => {
       loadStarData(!isInitial);
     }, [loadStarData])
   );
+
+  // Expiration must discard any previously downloaded detail object and its
+  // signed URLs. The next map fetch contains only locked marker payloads.
+  useEffect(() => {
+    if (isDemoMode || isAuthLoading || !starDetails || isPremium) return;
+
+    // Defer state disposal one task so the effect remains an external-state
+    // synchronization point. The modal also receives isPremium=false and never
+    // renders its prior content during this transition.
+    const disposeTimer = setTimeout(() => {
+      setSelectedPlanet(null);
+      setExoplanetModalMode(null);
+    }, 0);
+    starService.getStarExoplanets(starDetails.star_id)
+      .then(setExoplanets)
+      .catch(() => showToast('Kilitli gezegenler yenilenemedi. Lütfen tekrar deneyin.'));
+    return () => clearTimeout(disposeTimer);
+  }, [isAuthLoading, isDemoMode, isPremium, showToast, starDetails]);
 
   const currentStarId = starDetails?.star_id;
   const currentStarLum = starDetails?.luminosity_level;
@@ -535,19 +592,28 @@ export const OurStarScreen: React.FC = () => {
 
   // ─── ANİ GEZEGENİ HANDLER'LARI ─────────────────────────────────────
   const handlePlanetCreated = (newPlanet: StarExoplanetRecord) => {
-    setExoplanets((prev) => [newPlanet, ...prev]);
+    if (isDemoMode) {
+      setDemoPlanetDetails((prev) => [newPlanet, ...prev]);
+    }
+    setExoplanets((prev) => [toMapPlanet(newPlanet), ...prev]);
     showToast(`"${newPlanet.title}" anı gezegeni yörüngede dönmeye başladı! 🪐`);
   };
 
   const handlePlanetUpdated = (updatedPlanet: StarExoplanetRecord) => {
+    if (isDemoMode) {
+      setDemoPlanetDetails((prev) => prev.map((p) => (p.id === updatedPlanet.id ? updatedPlanet : p)));
+    }
     setExoplanets((prev) =>
-      prev.map((p) => (p.id === updatedPlanet.id ? updatedPlanet : p))
+      prev.map((p) => (p.id === updatedPlanet.id ? toMapPlanet(updatedPlanet) : p))
     );
     setSelectedPlanet(updatedPlanet);
     showToast(`"${updatedPlanet.title}" gezegeni güncellendi! ✨`);
   };
 
   const handlePlanetDeleted = (planetId: string) => {
+    if (isDemoMode) {
+      setDemoPlanetDetails((prev) => prev.filter((p) => p.id !== planetId));
+    }
     setExoplanets((prev) => prev.filter((p) => p.id !== planetId));
     setSelectedPlanet(null);
     showToast('Anı gezegeni yörüngeden kaldırıldı.');
@@ -725,8 +791,32 @@ export const OurStarScreen: React.FC = () => {
             height={SCREEN_HEIGHT}
             onSelectCenterStar={handleCenterStarTouch}
             onSelectPlanet={(planet) => {
-              setSelectedPlanet(planet);
-              setExoplanetModalMode('view');
+              handlePremiumAction('exoplanet_view', () => {
+                if (planet.is_locked) {
+                  setPremiumPaywallSource('exoplanet_view');
+                  return;
+                }
+                if (isDemoMode) {
+                  const details = demoPlanetDetails.find((item) => item.id === planet.id);
+                  if (details) {
+                    setSelectedPlanet(details);
+                    setExoplanetModalMode('view');
+                  }
+                  return;
+                }
+                starService.getExoplanetDetails(planet.id)
+                  .then((details) => {
+                    setSelectedPlanet(details);
+                    setExoplanetModalMode('view');
+                  })
+                  .catch((error) => {
+                    if (error instanceof PremiumRequiredError) {
+                      setPremiumPaywallSource('exoplanet_view');
+                      return;
+                    }
+                    showToast(error?.message || 'Gezegen ayrıntıları yüklenemedi.');
+                  });
+              });
             }}
           />
         ) : (
@@ -1085,10 +1175,10 @@ export const OurStarScreen: React.FC = () => {
         {viewMode === 'micro' && starDetails && (
           <TouchableOpacity
             activeOpacity={0.82}
-            onPress={() => {
+            onPress={() => handlePremiumAction('exoplanet_create', () => {
               setSelectedPlanet(null);
               setExoplanetModalMode('create');
-            }}
+            })}
             style={styles.actionPillBtn}
           >
             <Plus size={16} color="#38BDF8" />
@@ -1170,6 +1260,8 @@ export const OurStarScreen: React.FC = () => {
             setClaimSectorId(null);
           }}
           onSuccess={handleClaimSuccess}
+          isPremium={isPremium}
+          onPremiumRequired={() => handlePremiumAction('star_claim', () => {})}
         />
       )}
 
@@ -1197,6 +1289,8 @@ export const OurStarScreen: React.FC = () => {
           onPlanetCreated={handlePlanetCreated}
           onPlanetUpdated={handlePlanetUpdated}
           onPlanetDeleted={handlePlanetDeleted}
+          isPremium={isPremium}
+          onPremiumRequired={() => handlePremiumAction('exoplanet_view', () => {})}
         />
       )}
 
@@ -1305,6 +1399,12 @@ export const OurStarScreen: React.FC = () => {
             nonce: Date.now(),
           });
         }}
+      />
+      <PremiumPaywall
+        visible={premiumPaywallSource !== null}
+        onClose={() => setPremiumPaywallSource(null)}
+        featureSource={premiumPaywallSource ?? undefined}
+        gender={profile?.gender}
       />
     </View>
   );

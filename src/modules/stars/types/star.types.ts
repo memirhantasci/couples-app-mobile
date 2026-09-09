@@ -102,7 +102,7 @@ export interface StarExoplanetRecord {
   readonly star_id: string;
   readonly title: string;
   readonly description: string | null;
-  readonly milestone_date: string;       // YYYY-MM-DD
+  readonly milestone_date: string | null; // YYYY-MM-DD; null when cleared in an edit patch
   readonly orbit_distance: OrbitZone;
   readonly orbit_speed: number;          // Kepler hız çarpanı (1.00 = doğal hız)
   readonly planet_type: PlanetType;
@@ -131,8 +131,29 @@ export interface StarExoplanetRecord {
  */
 export type CreateExoplanetDto = Omit<
   StarExoplanetRecord,
-  'id' | 'star_id' | 'is_auto_generated' | 'window_started_at' | 'created_at' | 'updated_at'
+  | 'id'
+  | 'star_id'
+  | 'media_urls'
+  | 'custom_metadata'
+  | 'is_auto_generated'
+  | 'window_started_at'
+  | 'created_at'
+  | 'updated_at'
 >;
+
+/**
+ * The deliberately small payload returned for a star-system map. A locked
+ * planet never carries its title, description, media paths, or letter links.
+ */
+export interface StarSystemMapPlanet {
+  readonly id: string;
+  readonly orbit_distance: OrbitZone;
+  readonly orbit_speed: number;
+  readonly planet_type: PlanetType;
+  readonly palette: string[];
+  readonly is_locked: boolean;
+  readonly display_title: string;
+}
 
 /**
  * Medya veya mektuptan otomatik gezegen tetiklemek için kullanılan parametre tipi.

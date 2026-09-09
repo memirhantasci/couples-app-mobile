@@ -21,7 +21,7 @@ import {
 
 import type {
   CoupleStarDetails,
-  StarExoplanetRecord,
+  StarSystemMapPlanet,
   OrbitZone,
   PlanetType
 } from '@/modules/stars/types/star.types';
@@ -34,8 +34,8 @@ import { useParticleSystem } from './useParticleSystem';
 
 export interface MicroSystemCanvasProps {
   readonly starDetails: CoupleStarDetails;
-  readonly exoplanets: StarExoplanetRecord[];
-  readonly onSelectPlanet?: (planet: StarExoplanetRecord) => void;
+  readonly exoplanets: StarSystemMapPlanet[];
+  readonly onSelectPlanet?: (planet: StarSystemMapPlanet) => void;
   readonly onSelectCenterStar?: (star: CoupleStarDetails) => void;
   readonly onSelectStar?: (star: CoupleStarDetails) => void;
   readonly width?: number;
@@ -89,7 +89,7 @@ const PlanetNode = React.memo(({
   cy, 
   t 
 }: { 
-  planet: StarExoplanetRecord; 
+  planet: StarSystemMapPlanet;
   cx: number; 
   cy: number; 
   t: { value: number };
@@ -108,10 +108,12 @@ const PlanetNode = React.memo(({
     return [{ translateX: px }, { translateY: py }];
   });
 
-  const auraColor = planet.palette[0] ?? '#4facfe';
-  const gradColors = planet.palette.length >= 2 ? planet.palette : ['#4facfe', '#00f2fe'];
+  const auraColor = planet.is_locked ? '#64748B' : (planet.palette[0] ?? '#4facfe');
+  const gradColors = planet.is_locked
+    ? ['#475569', '#94A3B8']
+    : (planet.palette.length >= 2 ? planet.palette : ['#4facfe', '#00f2fe']);
   
-  const isRinged = planet.planet_type === 'ringed_giant' || planet.planet_type === 'gas_giant';
+  const isRinged = !planet.is_locked && (planet.planet_type === 'ringed_giant' || planet.planet_type === 'gas_giant');
   const ringColor = isRinged ? (planet.palette[1] ?? planet.palette[0] ?? '#FFFFFF') : '';
 
   return (
@@ -135,6 +137,7 @@ const PlanetNode = React.memo(({
     </Group>
   );
 });
+PlanetNode.displayName = 'PlanetNode';
 
 // ----------------------------------------------------------------------------
 // Skia Engine İçin Asıl Canvas Bileşeni
@@ -260,7 +263,7 @@ function MicroSystemCanvasSkia({
 
     // Find nearest planet based on deterministic math using current `t.value`
     let minDist = Infinity;
-    let nearestPlanet: StarExoplanetRecord | null = null;
+    let nearestPlanet: StarSystemMapPlanet | null = null;
     const currentT = t.value;
 
     for (const planet of exoplanets) {

@@ -118,6 +118,9 @@ export interface ExoplanetModalProps {
   readonly onPlanetCreated?: (planet: StarExoplanetRecord) => void;
   readonly onPlanetUpdated?: (planet: StarExoplanetRecord) => void;
   readonly onPlanetDeleted?: (planetId: string) => void;
+  /** Second-line UI guard; all mutations are also gated by backend RPCs. */
+  readonly isPremium?: boolean;
+  readonly onPremiumRequired?: () => void;
 }
 
 // ============================================================================
@@ -134,6 +137,8 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
   onPlanetCreated,
   onPlanetUpdated,
   onPlanetDeleted,
+  isPremium = false,
+  onPremiumRequired,
 }) => {
   const router = useRouter();
 
@@ -234,6 +239,10 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
   const totalPhotosCount = existingPhotos.length + selectedPhotos.length;
 
   const handlePickPhotos = async () => {
+    if (!isPremium) {
+      onPremiumRequired?.();
+      return;
+    }
     if (totalPhotosCount >= 5) {
       Alert.alert('Sınır', 'Bir anı gezegenine en fazla 5 fotoğraf ekleyebilirsiniz.');
       return;
@@ -308,8 +317,8 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
 
   // ─── YENİ FOTOĞRAFLARI YÜKLE (Yardımcı Fonksiyon) ───────────────────
   const uploadNewPhotos = async (): Promise<string[]> => {
-    const uploadedUrls: string[] = [];
-    if (selectedPhotos.length === 0) return uploadedUrls;
+    const uploadedPaths: string[] = [];
+    if (selectedPhotos.length === 0) return uploadedPaths;
 
     for (let i = 0; i < selectedPhotos.length; i++) {
       setUploadProgressText(`Fotoğraflar yükleniyor (${i + 1}/${selectedPhotos.length})...`);
@@ -327,7 +336,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
       }
 
       const fileName = `${Date.now()}_${i}_${Math.random().toString(36).substring(7)}.jpg`;
-      const filePath = `${coupleId}/${fileName}`;
+      const filePath = `${coupleId}/exoplanets/${fileName}`;
 
       const { error: uploadErr } = await supabase.storage
         .from('couple-memories')
@@ -339,23 +348,20 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
         throw uploadErr;
       }
 
-      // Seçenek A: Gerçek Gizlilik (10 yıllık Signed URL)
-      const { data: signedUrlData, error: signedUrlErr } = await supabase.storage
-        .from('couple-memories')
-        .createSignedUrl(filePath, 60 * 60 * 24 * 365 * 10); // 10 yıl
-
-      if (signedUrlErr || !signedUrlData) {
-        throw signedUrlErr || new Error('URL oluşturulamadı.');
-      }
-
-      uploadedUrls.push(signedUrlData.signedUrl);
+      // Persist only the private Storage path. The service creates a short-lived
+      // signed URL only after the protected details RPC has succeeded.
+      uploadedPaths.push(filePath);
     }
 
-    return uploadedUrls;
+    return uploadedPaths;
   };
 
   // ─── GEZEGEN OLUŞTURMA (Create Modu) ──────────────────────────────
   const handleCreatePlanet = async () => {
+    if (!isPremium) {
+      onPremiumRequired?.();
+      return;
+    }
     if (isCheckingLimit) {
       setFormError('Gezegen limiti doğrulanıyor, lütfen bekleyin...');
       return;
@@ -390,7 +396,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
     } catch {}
 
     try {
-      const uploadedUrls = await uploadNewPhotos();
+      const uploadedPaths = await uploadNewPhotos();
 
       setUploadProgressText('Anı gezegeni yörüngeye yerleştiriliyor...');
 
@@ -405,8 +411,6 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
         orbit_speed: 1.0,
         planet_type: planetType,
         palette,
-        media_urls: uploadedUrls,
-        custom_metadata: {},
       };
 
       let newPlanet: StarExoplanetRecord;
@@ -415,13 +419,15 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
           id: `demo-planet-${Date.now()}`,
           star_id: starId,
           ...payload,
+          media_urls: uploadedPaths,
+          custom_metadata: {},
           is_auto_generated: false,
           window_started_at: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
       } else {
-        newPlanet = await starService.createExoplanet(starId, payload);
+        newPlanet = await starService.createExoplanet(starId, payload, uploadedPaths);
       }
 
       try {
@@ -440,6 +446,10 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
   // ─── GEZEGEN GÜNCELLEME (Edit Modu) ───────────────────────────────
   const handleUpdatePlanet = async () => {
     if (!selectedPlanet) return;
+    if (!isPremium) {
+      onPremiumRequired?.();
+      return;
+    }
 
     const trimmedTitle = title.trim();
     if (trimmedTitle.length < 2 || trimmedTitle.length > 60) {
@@ -465,25 +475,17 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
     } catch {}
 
     try {
-      const newlyUploadedUrls = await uploadNewPhotos();
-      const finalMediaUrls = [...existingPhotos, ...newlyUploadedUrls];
+      const newlyUploadedPaths = await uploadNewPhotos();
 
-      // Silinen fotoğrafları Storage'dan temizle
+      // Remove only the planet association. Original files remain intact.
       if (selectedPlanet?.media_urls) {
         const removedUrls = selectedPlanet.media_urls.filter((url) => !existingPhotos.includes(url));
-        if (removedUrls.length > 0) {
-          const pathsToRemove = removedUrls
-            .map((url) => {
-              const match = url.match(/couple-memories\/([^?]+)/);
-              return match ? match[1] : null;
-            })
-            .filter((p): p is string => p !== null);
-
-          if (pathsToRemove.length > 0) {
-            // Hata fırlatsa da DB kaydetmesini engellememesi için hatayı yutuyoruz
-            await supabase.storage.from('couple-memories').remove(pathsToRemove).catch(() => {});
-          }
+        for (const mediaUrl of removedUrls) {
+          await starService.removeMediaFromExoplanet(selectedPlanet.id, mediaUrl);
         }
+      }
+      for (const mediaPath of newlyUploadedPaths) {
+        await starService.appendMediaToExoplanet(selectedPlanet.id, mediaPath);
       }
 
       setUploadProgressText('Anı gezegeni güncelleniyor...');
@@ -498,7 +500,6 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
         orbit_distance: orbitZone,
         planet_type: planetType,
         palette,
-        media_urls: finalMediaUrls,
       };
 
       let updatedPlanet: StarExoplanetRecord;
@@ -569,7 +570,26 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
             {/* ========================================================== */}
             {/* MOD 1: ANILARI İNCELEME (VIEW MODE)                         */}
             {/* ========================================================== */}
-            {activeMode === 'view' && selectedPlanet && (
+            {activeMode === 'view' && selectedPlanet && !isPremium && (
+              <View style={styles.viewContent}>
+                <View style={styles.noPhotosBox}>
+                  <Sparkles size={24} color="#94A3B8" />
+                  <Text style={styles.noPhotosText}>Bu anı gezegeni kilitli.</Text>
+                  <Text style={styles.lockedContentText}>
+                    Fotoğraflar, mektuplar ve ayrıntılar Premium üyeliğiniz yeniden aktif olduğunda açılır.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  activeOpacity={0.82}
+                  onPress={handleDeletePlanet}
+                  disabled={isDeleting}
+                  style={styles.deleteBtn}
+                >
+                  {isDeleting ? <ActivityIndicator size="small" color="#EF4444" /> : <><Trash2 size={15} color="#EF4444" /><Text style={styles.deleteBtnText}>Gezegeni Sil</Text></>}
+                </TouchableOpacity>
+              </View>
+            )}
+            {activeMode === 'view' && selectedPlanet && isPremium && (
               <View style={styles.viewContent}>
                 {/* Gezegen Başlık & Kuşak Rozetleri */}
                 <View style={styles.viewHeroRow}>
@@ -608,7 +628,13 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                 <View style={styles.viewActionRow}>
                   <TouchableOpacity
                     activeOpacity={0.82}
-                    onPress={() => setActiveMode('edit')}
+                    onPress={() => {
+                      if (!isPremium) {
+                        onPremiumRequired?.();
+                        return;
+                      }
+                      setActiveMode('edit');
+                    }}
                     disabled={isDeleting}
                     style={styles.editBtn}
                   >
@@ -1225,6 +1251,12 @@ const styles = StyleSheet.create({
   noPhotosText: {
     color: 'rgba(255, 255, 255, 0.4)',
     fontSize: 13,
+  },
+  lockedContentText: {
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: 'center',
   },
 
   // İLİŞKİLİ MEKTUPLAR
