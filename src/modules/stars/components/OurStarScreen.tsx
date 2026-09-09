@@ -76,7 +76,6 @@ import { HomeRadarOverlay } from './HomeRadarOverlay';
 import {
   areSameViewportStars,
   getTilesInBounds,
-  isStarInBounds,
   LruTtlCache,
   mergeViewportStars,
 } from '../utils/skyTiles';
@@ -500,10 +499,14 @@ export const OurStarScreen: React.FC = () => {
 
       // Ignore a slower response from a viewport the user has already left.
       if (requestVersion !== viewportRequestVersionRef.current) return;
-      const visibleTileResults = tileResults.map((stars) =>
-        stars.filter((star) => isStarInBounds(star, bounds))
-      );
-      const nextStars = mergeViewportStars(visibleTileResults);
+      // Do NOT filter by isStarInBounds here. The backend already returns an
+      // exact 30-degree tile, so every star belongs to a complete tile block.
+      // Clipping to the instantaneous viewport bounds corrupts the tile content
+      // signature on every zoom frame and continuously invalidates the Skia
+      // picture cache \u2014 the root cause of one class of flicker.
+      // Frustum culling (keeping only on-screen tiles) is handled inside
+      // MacroSkyCanvas via isInFrustum with OVERSCAN_PAD.
+      const nextStars = mergeViewportStars(tileResults);
       setViewportStars((previousStars) =>
         areSameViewportStars(previousStars, nextStars) ? previousStars : nextStars
       );
@@ -1031,7 +1034,6 @@ export const OurStarScreen: React.FC = () => {
           </TouchableOpacity>
         )}
 
-        {/* EVE DÖNÜŞ RADARI BUTONU (Sadece Makro modda ve yıldıza uzakken) */}
         {showHomeRadar && (
           <TouchableOpacity
             activeOpacity={0.85}
@@ -1047,6 +1049,34 @@ export const OurStarScreen: React.FC = () => {
             >
               <Radio size={16} color="#FFFFFF" />
               <Text style={styles.radarLaunchBtnText}>Evimize Dön ✨</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
+        {/* YILDIZIMIZa ODAKLAN FAB — doğrudan fly-to animasyonu (HomeRadar overlay açmadan) */}
+        {showHomeRadar && starDetails && (
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => {
+              try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
+              setFlyToTarget({
+                centerRa: myStarRa,
+                centerDec: myStarDec,
+                zoom: 3.0,
+                nonce: Date.now(),
+              });
+              showToast('Yıldızımıza süzülüyoruz ✨');
+            }}
+            style={styles.focusStarFab}
+            accessibilityLabel="Yıldızımıza Odaklan"
+          >
+            <LinearGradient
+              colors={['#F59E0B', '#D97706']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.focusStarFabGradient}
+            >
+              <Sparkles size={18} color="#FFFFFF" />
             </LinearGradient>
           </TouchableOpacity>
         )}
@@ -1500,6 +1530,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 8,
     elevation: 6,
+  },
+  focusStarFab: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  focusStarFabGradient: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   macroStarCard: {
     position: 'absolute',
