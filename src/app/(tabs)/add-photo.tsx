@@ -191,6 +191,7 @@ export default function AddPhotoScreen() {
     }
 
     if (!isPremium) {
+      setUploading(false);
       setShowPaywall(true);
       return;
     }
@@ -366,8 +367,10 @@ export default function AddPhotoScreen() {
       setErrors({ photo: false, description: false });
       setUploading(false);
       setPhotoLocation(null);
-      setExifGpsFound(false);
-    }, [])
+      if (!isPremium && !isDemoMode) {
+        setShowPaywall(true);
+      }
+    }, [isPremium, isDemoMode])
   );
 
   if (!session) return <View style={{ flex: 1, backgroundColor: "#0c0c0c" }} />;
@@ -696,7 +699,16 @@ export default function AddPhotoScreen() {
         {/* Premium Paywall */}
         <PremiumPaywall
           visible={showPaywall}
-          onClose={() => setShowPaywall(false)}
+          onClose={() => {
+            setShowPaywall(false);
+            if (!isPremium && !isDemoMode) {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/(tabs)/photos");
+              }
+            }
+          }}
           featureName="Fotoğraf Yükle"
           featureDescription="Ortak galeriye dilediğiniz kadar fotoğraf yükleyin."
           gender={profile?.gender}

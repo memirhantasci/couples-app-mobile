@@ -225,14 +225,8 @@ export default function LettersScreen() {
         return;
       }
 
-      if (!isPremium) {
-        const { error: spendError } = await supabase.rpc("spend_tokens", {
-          p_amount: 100,
-          p_reason: "letter_spend"
-        });
-        if (spendError) throw spendError;
-      }
-
+      // save_letter RPC'si veritabanı seviyesinde Premium durumunu kontrol eder,
+      // Premium değilse 100 token'ı atomik olarak düşer. Bakiye yetersizse hata fırlatır.
       const { error } = await supabase.rpc("save_letter", {
         p_receiver_id: receiverId,
         p_title:       cleanTitle,
@@ -271,7 +265,24 @@ export default function LettersScreen() {
       setShowOrigamiAnimation(true);
     } catch (error: any) {
       logger.error("Letter save error:", error);
-      Alert.alert("Hata", "Mektup mühürlenirken bir hata oluştu: " + (error?.message || ""));
+      if (error?.code === "P0002" || error?.message?.includes("Token") || error?.message?.includes("Premium")) {
+        Alert.alert(
+          "Yetersiz Bakiye",
+          "Mektup mühürlemek için 100 Token veya aktif Premium üyelik gereklidir.",
+          [
+            { text: "Vazgeç", style: "cancel" },
+            { 
+              text: "Premium'u Keşfet", 
+              onPress: () => {
+                setShowWriteModal(false);
+                setShowPaywall(true);
+              } 
+            }
+          ]
+        );
+      } else {
+        Alert.alert("Hata", "Mektup mühürlenirken bir hata oluştu: " + (error?.message || ""));
+      }
     } finally {
       setLoadingForm(false);
     }

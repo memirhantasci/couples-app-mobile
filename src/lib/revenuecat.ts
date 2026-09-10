@@ -5,8 +5,8 @@ import { logger } from '@/utils/logger';
 
 // TODO: Replace with your actual RevenueCat Public API Keys
 const API_KEYS = {
-  apple: "appl_xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  google: "goog_xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  apple: process.env.EXPO_PUBLIC_REVENUECAT_APPLE_KEY || "appl_xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  google: process.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY || "goog_xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 };
 
 export class RevenueCatService {

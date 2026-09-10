@@ -237,6 +237,10 @@ export default function MenuScreen() {
                 )) {
                   return;
                 }
+                if (!profile?.isPremium) {
+                  handleRoute("/paywall");
+                  return;
+                }
                 handleRoute("/(tabs)/add-photo");
               }}
               activeOpacity={0.8}

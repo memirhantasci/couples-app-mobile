@@ -70,7 +70,7 @@ export default function CalendarScreen() {
 
   // Veri çekme
   const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ["calendar_data", coupleId, isDemoMode],
+    queryKey: ["calendar_data", coupleId, isPremium, isDemoMode],
     enabled: !!coupleId || !!userId || isDemoMode,
     queryFn: async () => {
       if (isDemoMode) {
@@ -192,7 +192,7 @@ export default function CalendarScreen() {
     }
 
     return marks;
-  }, [data, selectedDate, theme.accent, userId]);
+  }, [data, selectedDate, theme.accent, userId, isPremium]);
 
   const onDayPress = useCallback((day: { dateString: string }) => {
     setSelectedDate(day.dateString);
@@ -494,7 +494,7 @@ export default function CalendarScreen() {
           ) : (
             <View style={{ gap: 14 }}>
               {/* Fotoğraflar */}
-              {selectedDayPhotos.length > 0 && (
+              {(!isPremium || selectedDayPhotos.length > 0) && (
                 <View style={{ gap: 12 }}>
                   <View style={[styles.sectionHeaderBadge, { backgroundColor: isLight ? "rgba(16,185,129,0.1)" : "rgba(16,185,129,0.16)", borderColor: "rgba(16,185,129,0.3)" }]}>
                     <Camera size={15} color={CALENDAR_COLORS.photo} />

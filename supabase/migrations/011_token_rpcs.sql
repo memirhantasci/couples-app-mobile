@@ -1,1 +1,3 @@
-
+-- 011_token_rpcs.sql
+-- Token harcama ve kazanma RPC'leri (earn_tokens & spend_tokens)
+-- Detaylı ve güncel tanımlar 023_premium_and_security_tightening.sql içerisinde yer almaktadır.

@@ -113,6 +113,10 @@ export default function PhotosScreen() {
     )) {
       return;
     }
+    if (!isPremium) {
+      setShowPaywall(true);
+      return;
+    }
     router.push("/(tabs)/add-photo");
   };
 
@@ -354,44 +358,46 @@ export default function PhotosScreen() {
         </View>
 
         {/* ─── KONTROL ÇUBUĞU (GÖRÜNÜM SEÇİCİ & YENİ YÜKLE) ─── */}
-        <View style={[styles.controlBar, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-          {/* Hızlı Yükle Butonu */}
-          <TouchableOpacity 
-            style={[styles.uploadQuickBtn, { backgroundColor: theme.accent }]}
-            onPress={goToUpload}
-            activeOpacity={0.85}
-          >
-            <Plus size={16} color="#ffffff" />
-            <Text style={styles.uploadQuickBtnText}>Fotoğraf Ekle</Text>
-          </TouchableOpacity>
-
-          {/* Görünüm Modları: 3'lü, 2'li, 1'li */}
-          <View style={styles.viewModePills}>
+        {isPremium && (
+          <View style={[styles.controlBar, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            {/* Hızlı Yükle Butonu */}
             <TouchableOpacity 
-              style={[styles.viewModeBtn, viewMode === "grid3" && { backgroundColor: theme.unitBg }]}
-              onPress={() => setViewMode("grid3")}
-              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+              style={[styles.uploadQuickBtn, { backgroundColor: theme.accent }]}
+              onPress={goToUpload}
+              activeOpacity={0.85}
             >
-              <Grid3X3 size={16} color={viewMode === "grid3" ? theme.accent : "rgba(255,255,255,0.4)"} />
+              <Plus size={16} color="#ffffff" />
+              <Text style={styles.uploadQuickBtnText}>Fotoğraf Ekle</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.viewModeBtn, viewMode === "grid2" && { backgroundColor: theme.unitBg }]}
-              onPress={() => setViewMode("grid2")}
-              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-            >
-              <Grid2X2 size={16} color={viewMode === "grid2" ? theme.accent : "rgba(255,255,255,0.4)"} />
-            </TouchableOpacity>
+            {/* Görünüm Modları: 3'lü, 2'li, 1'li */}
+            <View style={styles.viewModePills}>
+              <TouchableOpacity 
+                style={[styles.viewModeBtn, viewMode === "grid3" && { backgroundColor: theme.unitBg }]}
+                onPress={() => setViewMode("grid3")}
+                hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+              >
+                <Grid3X3 size={16} color={viewMode === "grid3" ? theme.accent : "rgba(255,255,255,0.4)"} />
+              </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.viewModeBtn, viewMode === "single" && { backgroundColor: theme.unitBg }]}
-              onPress={() => setViewMode("single")}
-              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-            >
-              <Square size={16} color={viewMode === "single" ? theme.accent : "rgba(255,255,255,0.4)"} />
-            </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.viewModeBtn, viewMode === "grid2" && { backgroundColor: theme.unitBg }]}
+                onPress={() => setViewMode("grid2")}
+                hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+              >
+                <Grid2X2 size={16} color={viewMode === "grid2" ? theme.accent : "rgba(255,255,255,0.4)"} />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.viewModeBtn, viewMode === "single" && { backgroundColor: theme.unitBg }]}
+                onPress={() => setViewMode("single")}
+                hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+              >
+                <Square size={16} color={viewMode === "single" ? theme.accent : "rgba(255,255,255,0.4)"} />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        )}
 
         {/* FOTOĞRAF LİSTESİ */}
         {!isPremium ? (

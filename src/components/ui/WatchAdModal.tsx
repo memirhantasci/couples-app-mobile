@@ -82,7 +82,6 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
     setRewarding(true);
     try {
       const { error } = await supabase.rpc("earn_tokens", {
-        p_amount: 25,
         p_reason: "ad_reward"
       });
       

@@ -345,34 +345,6 @@ export default function ProfileScreen() {
     const code = promoCode.trim().toUpperCase();
     if (!code) return;
 
-    if (code === "FREEMIRHAN") {
-      setPromoLoading(true);
-      const { error } = await supabase.rpc("set_premium_status", { p_is_premium: true, p_expires_at: null });
-      if (error) {
-        Alert.alert("Hata", "Premium aktif edilemedi.");
-      } else {
-        await refreshProfile();
-        setPromoCode("");
-        setShowPremiumSuccess(true);
-      }
-      setPromoLoading(false);
-      return;
-    }
-
-    if (code === "DELETEMIRHAN") {
-      setPromoLoading(true);
-      const { error } = await supabase.rpc("set_premium_status", { p_is_premium: false, p_expires_at: null });
-      if (error) {
-        Alert.alert("Hata", "Premium iptal edilemedi.");
-      } else {
-        await refreshProfile();
-        setPromoCode("");
-        Alert.alert("Bilgi", "Premium başarıyla sonlandırıldı.");
-      }
-      setPromoLoading(false);
-      return;
-    }
-
     setPromoLoading(true);
     try {
       const { data, error } = await supabase.rpc("redeem_promo_code", {
