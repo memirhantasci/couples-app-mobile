@@ -58,30 +58,58 @@ export function encrypt(text: string): string {
 export function decrypt(text: string): string {
   if (!text) return "";
   try {
+    // Deterministik şifrelenmişse doğrudan deterministik çözücüye yönlendir
+    if (text.startsWith("det:")) {
+      return deterministicDecrypt(text);
+    }
+
     if (!text.startsWith("enc:")) return text; // Şifrelenmemiş düz metin
 
     const parts = text.split(":");
-    if (parts.length !== 3) return text;
+    if (parts.length !== 3) return "";
 
     const iv = CryptoJS.enc.Hex.parse(parts[1]);
     const ciphertext = CryptoJS.enc.Hex.parse(parts[2]);
-    const activeKey = sessionKey || key;
 
-    const decrypted = CryptoJS.AES.decrypt(
-      // @ts-ignore
-      { ciphertext: ciphertext },
-      activeKey,
-      {
-        iv: iv,
-        mode: CryptoJS.mode.CBC,
-        padding: CryptoJS.pad.Pkcs7,
-      }
-    );
+    // 1. Önce aktif anahtarla (varsa sessionKey, yoksa statik key) dene
+    const primaryKey = sessionKey || key;
+    let decryptedText = "";
 
-    return decrypted.toString(CryptoJS.enc.Utf8);
+    try {
+      const decrypted = CryptoJS.AES.decrypt(
+        // @ts-ignore
+        { ciphertext: ciphertext },
+        primaryKey,
+        {
+          iv: iv,
+          mode: CryptoJS.mode.CBC,
+          padding: CryptoJS.pad.Pkcs7,
+        }
+      );
+      decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
+    } catch (_) {}
+
+    // 2. Eğer sessionKey kullanıldıysa ve çözüm başarısız olduysa, statik key ile fallback yap
+    if (!decryptedText && sessionKey) {
+      try {
+        const fallbackDecrypted = CryptoJS.AES.decrypt(
+          // @ts-ignore
+          { ciphertext: ciphertext },
+          key,
+          {
+            iv: iv,
+            mode: CryptoJS.mode.CBC,
+            padding: CryptoJS.pad.Pkcs7,
+          }
+        );
+        decryptedText = fallbackDecrypted.toString(CryptoJS.enc.Utf8);
+      } catch (_) {}
+    }
+
+    return decryptedText;
   } catch (err) {
     logger.error("Decryption error:", err);
-    return text;
+    return "";
   }
 }
 

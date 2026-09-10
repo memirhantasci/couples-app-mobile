@@ -28,8 +28,9 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { 
   AlignJustify, Sparkles, Heart, Images, 
-  BookOpen, Mail, MapPin, Calendar, Flame, Clock, ChevronRight
+  BookOpen, Mail, MapPin, Calendar, Flame, Clock, ChevronRight, X
 } from "lucide-react-native";
+import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/context/ThemeContext";
 
@@ -61,7 +62,10 @@ export default function HomeScreen() {
   const [cachedScore, setCachedScore] = useState<LoveScoreResult | null>(null);
   const [isWrappedVisible, setIsWrappedVisible] = useState(false);
   const [wrappedData, setWrappedData] = useState<CoupleWrappedData | null>(null);
+  const [showWrappedBanner, setShowWrappedBanner] = useState(false);
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("home");
+
+  const currentMonthKey = dayjs().format("YYYY_MM");
 
   useEffect(() => {
     if (coupleId && !isDemoMode) {
@@ -71,13 +75,33 @@ export default function HomeScreen() {
     }
   }, [coupleId, isDemoMode]);
 
+  // Aylık Couple Wrapped: Sadece ayda bir kez (ayın 27'si ile takip eden ayın 5'i arası) ve kullanıcı kapatmadıysa göster
   useEffect(() => {
-    computeCoupleWrapped(
-      coupleId,
-      profile?.relationshipStartDate || profile?.meetDate,
-      isDemoMode
-    ).then((data) => setWrappedData(data));
-  }, [coupleId, profile?.relationshipStartDate, profile?.meetDate, isDemoMode]);
+    const dayOfMonth = dayjs().date();
+    const isMonthlyPeriod = dayOfMonth >= 27 || dayOfMonth <= 5;
+    if (!isMonthlyPeriod) {
+      setShowWrappedBanner(false);
+      return;
+    }
+
+    AsyncStorage.getItem(`@wrapped_dismissed_${currentMonthKey}`).then((val) => {
+      if (!val) {
+        setShowWrappedBanner(true);
+        computeCoupleWrapped(
+          coupleId,
+          profile?.relationshipStartDate || profile?.meetDate,
+          isDemoMode
+        ).then((data) => setWrappedData(data));
+      } else {
+        setShowWrappedBanner(false);
+      }
+    });
+  }, [coupleId, profile?.relationshipStartDate, profile?.meetDate, isDemoMode, currentMonthKey]);
+
+  const dismissWrappedBanner = async () => {
+    setShowWrappedBanner(false);
+    await AsyncStorage.setItem(`@wrapped_dismissed_${currentMonthKey}`, "true");
+  };
 
   const { data: dashboardData, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["home_dashboard", coupleId, userId, today, isDemoMode],
@@ -451,32 +475,43 @@ export default function HomeScreen() {
             isLoading={!activeLoveScore && isLoveScoreLoading} 
           />
 
-          {/* ─── COUPLE WRAPPED BANNER ─── */}
-          <TouchableOpacity
-            style={[styles.wrappedBanner, { borderColor: "rgba(255, 77, 109, 0.35)" }]}
-            onPress={() => setIsWrappedVisible(true)}
-            activeOpacity={0.88}
-          >
-            <LinearGradient
-              colors={["#2A0E1F", "#170B18"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.wrappedGradient}
+          {/* ─── COUPLE WRAPPED BANNER (Ayda 1 Kez Dönemsel) ─── */}
+          {showWrappedBanner && (
+            <TouchableOpacity
+              style={[styles.wrappedBanner, { borderColor: "rgba(255, 77, 109, 0.35)" }]}
+              onPress={() => setIsWrappedVisible(true)}
+              activeOpacity={0.88}
             >
-              <View style={styles.wrappedLeft}>
-                <View style={styles.wrappedIconBadge}>
-                  <Sparkles size={16} color="#FF4D6D" />
+              <LinearGradient
+                colors={["#2A0E1F", "#170B18"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.wrappedGradient}
+              >
+                <View style={styles.wrappedLeft}>
+                  <View style={styles.wrappedIconBadge}>
+                    <Sparkles size={16} color="#FF4D6D" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.wrappedTitle}>Aylık Wrapped Hazır! ✨</Text>
+                    <Text style={styles.wrappedSub}>Aşk özetini ve anılarınızı keşfedin</Text>
+                  </View>
                 </View>
-                <View>
-                  <Text style={styles.wrappedTitle}>Couple Wrapped Hazır! ✨</Text>
-                  <Text style={styles.wrappedSub}>Aşk özetini ve anılarınızı keşfedin</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <View style={styles.wrappedArrowCircle}>
+                    <ChevronRight size={18} color="#FF8FA3" />
+                  </View>
+                  <TouchableOpacity
+                    onPress={dismissWrappedBanner}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={{ padding: 4 }}
+                  >
+                    <X size={16} color="rgba(255,255,255,0.6)" />
+                  </TouchableOpacity>
                 </View>
-              </View>
-              <View style={styles.wrappedArrowCircle}>
-                <ChevronRight size={18} color="#FF8FA3" />
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
 
           {/* ─── 6. BULUŞMA GERİ SAYIMI ─── */}
           {dashboardData?.activeMeeting && (

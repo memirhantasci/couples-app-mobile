@@ -40,7 +40,7 @@ async function ensureAudioMode(): Promise<void> {
   if (isAudioModeConfigured || Platform.OS === 'web') return;
   try {
     await setAudioModeAsync({
-      playsInSilentMode: false,
+      playsInSilentMode: true,
       allowsRecording: false,
     });
     isAudioModeConfigured = true;
@@ -48,6 +48,26 @@ async function ensureAudioMode(): Promise<void> {
     logger.log('[SoundEffects] setAudioModeAsync notice:', err);
   }
 }
+
+/**
+ * Ses efektlerini uygulama başında belleğe yükleyerek ilk dokunuş gecikmesini sıfırlar.
+ */
+export function warmUpSoundEffects(): void {
+  if (Platform.OS === 'web') return;
+  ensureAudioMode().catch(() => {});
+  try {
+    for (const key of Object.keys(SOUND_ASSETS) as SoundEffectType[]) {
+      getOrCreatePlayer(key);
+    }
+  } catch (err) {
+    logger.log('[SoundEffects] Warm-up notice:', err);
+  }
+}
+
+// Modül yüklendiğinde arka planda hazırla
+setTimeout(() => {
+  warmUpSoundEffects();
+}, 200);
 
 /**
  * Get whether sound effects are enabled (default: true).
@@ -164,9 +184,11 @@ export async function playSoundEffect(type: SoundEffectType): Promise<void> {
     const player = getOrCreatePlayer(type);
     if (!player) return;
 
-    if (player.playing) {
-      await player.seekTo(0).catch(() => {});
-    }
+    // expo-audio ses bitince otomatik başa dönmediği için her seferinde 0'a sar
+    try {
+      player.seekTo(0);
+    } catch (_) {}
+
     player.play();
   } catch (err) {
     logger.log('[SoundEffects] Play error (silent fallback):', err);

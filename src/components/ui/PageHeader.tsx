@@ -39,7 +39,12 @@ export function PageHeader({ title = "", showBack = true, showMenu = true }: Pag
         </View>
 
         {showMenu && (
-          <TouchableOpacity onPress={() => router.push("/menu")} style={styles.menuBtn}>
+          <TouchableOpacity 
+            onPress={() => router.push("/menu")} 
+            style={styles.menuBtn}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            activeOpacity={0.7}
+          >
             <AlignJustify color={theme.textSecondary} size={22} />
           </TouchableOpacity>
         )}
@@ -72,7 +77,12 @@ export function PageHeader({ title = "", showBack = true, showMenu = true }: Pag
 
       <View style={styles.sideRight}>
         {showMenu && (
-          <TouchableOpacity onPress={() => router.push("/menu")} style={styles.iconBtn}>
+          <TouchableOpacity 
+            onPress={() => router.push("/menu")} 
+            style={styles.iconBtn}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            activeOpacity={0.7}
+          >
             <AlignJustify color={theme.text} size={24} />
           </TouchableOpacity>
         )}

@@ -133,7 +133,7 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Android kanalları kurulumu (Mektup, İlaç ve Genel tematik kanallar)
+// Android kanalları kurulumu (Mektup, İlaç, Genel ve Partner kanalları)
 export function configureAndroidNotificationChannel() {
   if (Platform.OS === "android") {
     // 1. Genel Kanal
@@ -142,22 +142,46 @@ export function configureAndroidNotificationChannel() {
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: "#FF5C77",
+      enableLights: true,
+      enableVibrate: true,
+      showBadge: true,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     });
 
-    // 2. Mektuplar Kanalı (Altın Işıltı)
+    // 2. Partner Mesajları & Anılar Kanalı (Öncelikli - WhatsApp tarzı)
+    Notifications.setNotificationChannelAsync("partner_messages", {
+      name: "Sevgilinden Mesajlar & Anılar ❤️",
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 150, 250],
+      lightColor: "#FF4D6D",
+      enableLights: true,
+      enableVibrate: true,
+      showBadge: true,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    });
+
+    // 3. Mektuplar Kanalı (Altın Işıltı)
     Notifications.setNotificationChannelAsync("letters_channel", {
       name: "Mektuplar 💌",
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 150, 250],
       lightColor: "#F5C563",
+      enableLights: true,
+      enableVibrate: true,
+      showBadge: true,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     });
 
-    // 3. İlaç & Sağlık Kanalı (Zümrüt Yeşili)
+    // 4. İlaç & Sağlık Kanalı (Zümrüt Yeşili)
     Notifications.setNotificationChannelAsync("medicine_channel", {
       name: "İlaç & Sağlık 💊",
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 200, 100, 200],
       lightColor: "#34D399",
+      enableLights: true,
+      enableVibrate: true,
+      showBadge: true,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     });
   }
 }
@@ -201,6 +225,122 @@ export function cleanNotificationText(text: string | null | undefined): string {
   return result.replace(/\s+/g, " ").trim();
 }
 
+export interface FormattedPushPayload {
+  title: string;
+  subtitle?: string;
+  body: string;
+  channelId: string;
+}
+
+/**
+ * Bildirimleri gerçek mesajlaşma uygulamalarındaki (WhatsApp / iMessage) gibi biçimlendirir.
+ * Başlıkta partnerin adı ve ilgili emoji yer alır (ör: "Emirhan 💌").
+ * Alt başlıkta kategori (ör: "Yeni Mektup" / "Ortak Galeri") yer alır.
+ * Gövdede ise gereksiz robotik tekrarlar olmadan doğrudan samimi mesaj görünür.
+ */
+export function formatMessagingStyleNotification(
+  senderName: string,
+  rawTitle: string,
+  rawBody: string,
+  data?: any
+): FormattedPushPayload {
+  const type = data?.type || "";
+  const name = (senderName || "Sevgilin").trim();
+
+  // Robotik "Sevgilin" veya "{sender}" ibarelerini gönderen adı ile değiştir ve temizle
+  let cleanBodyText = cleanNotificationText(rawBody)
+    .replace(/\{sender\}/gi, name)
+    .replace(/\b(Sevgilin|Partnerin)\b/g, name);
+
+  // Başta "Emirhan:" veya "Emirhan " varsa temizle (başlıkta zaten adı olacağı için)
+  const namePrefixRegex = new RegExp(`^${name}[,:]?\\s*`, "i");
+  let trimmedBody = cleanBodyText.replace(namePrefixRegex, "").trim();
+  if (trimmedBody.length > 0) {
+    trimmedBody = trimmedBody.charAt(0).toUpperCase() + trimmedBody.slice(1);
+  }
+
+  let title = `${name} ❤️`;
+  let subtitle = "Couples";
+  let body = trimmedBody || cleanBodyText;
+  let channelId = "partner_messages";
+
+  switch (type) {
+    case "letter": {
+      title = `${name} 💌`;
+      subtitle = "Yeni Mektup";
+      channelId = "letters_channel";
+      const letterTitle = data?.letterTitle ? ` "${data.letterTitle}"` : "";
+      body = `Sana mühürlü bir mektup bıraktı${letterTitle} 📜`;
+      break;
+    }
+    case "medicine":
+    case "medicine_reminder": {
+      title = `${name} 💊`;
+      subtitle = "İlaç Takibi";
+      channelId = "medicine_channel";
+      const medName = data?.medicineName ? `${data.medicineName} ilacını` : "İlacını";
+      if (data?.status === "DRANK") {
+        body = `${medName} içti. İçin rahat olsun! 🌿`;
+      } else {
+        body = trimmedBody || `${medName} içme zamanı geldi! ⏰`;
+      }
+      break;
+    }
+    case "photo": {
+      title = `${name} 📸`;
+      subtitle = "Ortak Galeri";
+      channelId = "partner_messages";
+      if (trimmedBody) {
+        body = trimmedBody.toLowerCase().includes("fotoğraf") || trimmedBody.toLowerCase().includes("anı")
+          ? trimmedBody
+          : `Yeni bir anı ekledi: ${trimmedBody}`;
+      } else {
+        body = "Ortak galeriye yeni bir anı fotoğrafı ekledi ✨";
+      }
+      break;
+    }
+    case "mood": {
+      const emoji = data?.moodEmoji || "🥰";
+      title = `${name} ${emoji}`;
+      subtitle = "Ruh Hali";
+      channelId = "partner_messages";
+      body = trimmedBody || `Bugün kendini ${emoji} hissediyor.`;
+      break;
+    }
+    case "map": {
+      title = `${name} 📍`;
+      subtitle = "Aşk Haritası";
+      channelId = "partner_messages";
+      body = trimmedBody || "Haritaya senin için yeni bir anı notu bıraktı 🗺️";
+      break;
+    }
+    case "meeting": {
+      title = `${name} ⏰`;
+      subtitle = "Buluşma Planı";
+      channelId = "partner_messages";
+      body = trimmedBody || "Yeni bir buluşma planladı 🗓️";
+      break;
+    }
+    case "period": {
+      title = `${name} 🌸`;
+      subtitle = "Özel Gün";
+      channelId = "partner_messages";
+      body = trimmedBody || "Regl dönemi başladı. Ona biraz daha özen gösterme zamanı! 💕";
+      break;
+    }
+    default: {
+      const cleanT = cleanNotificationText(rawTitle);
+      title = `${name} ❤️`;
+      subtitle = cleanT || "Couples";
+      body = trimmedBody || cleanBodyText;
+      channelId = "partner_messages";
+      break;
+    }
+  }
+
+  return { title, subtitle, body, channelId };
+}
+
 export async function sendPushNotification(userId: string, title: string, body: string, data?: any) {
   try {
     const cleanTitle = cleanNotificationText(title);
@@ -218,6 +358,7 @@ export async function sendPushNotification(userId: string, title: string, body: 
     let channelId = "default";
     if (data?.type === "letter") channelId = "letters_channel";
     else if (data?.type === "medicine" || data?.type === "medicine_reminder") channelId = "medicine_channel";
+    else if (data?.type) channelId = "partner_messages";
 
     for (const t of tokens) {
       const message = {
@@ -226,6 +367,8 @@ export async function sendPushNotification(userId: string, title: string, body: 
         title: cleanTitle,
         body: cleanBody,
         channelId,
+        priority: "high",
+        badge: 1,
         data: data || {},
       };
 
@@ -332,7 +475,7 @@ export async function notifyPartner(coupleId: number, currentUserId: string, tit
   }
 
   try {
-    // Gönderen kullanıcının adını paralel olarak çek
+    // Gönderen kullanıcının adını çek
     const { data: senderData } = await supabase
       .from("users")
       .select("display_name, username")
@@ -347,26 +490,14 @@ export async function notifyPartner(coupleId: number, currentUserId: string, tit
     if (!senderName && senderData?.username) {
       senderName = cleanNotificationText(senderData.username);
     }
-
-    let finalTitle = cleanNotificationText(title);
-    let finalBody = cleanNotificationText(body);
-
-    // Eğer gönderen adı mevcutsa ve genel 'Sevgilin'/'Partnerin' veya {sender} ifadesi varsa kişiselleştir
-    if (senderName) {
-      finalTitle = finalTitle
-        .replace(/\{sender\}/gi, senderName)
-        .replace(/\b(Sevgilin|Partnerin)\b/g, senderName);
-
-      finalBody = finalBody
-        .replace(/\{sender\}/gi, senderName)
-        .replace(/\b(Sevgilin|Partnerin)\b/g, senderName);
+    if (!senderName) {
+      senderName = "Sevgilin";
     }
 
-    // Son temizlik: Başlık ve içerikte hiçbir şifreli ibare kalmadığından emin ol
-    finalTitle = cleanNotificationText(finalTitle);
-    finalBody = cleanNotificationText(finalBody);
+    // Mesajlaşma uygulaması tarzında (WhatsApp / iMessage) bildirim hazırla
+    const formatted = formatMessagingStyleNotification(senderName, title, body, data);
 
-    if (!finalTitle && !finalBody) return;
+    if (!formatted.title && !formatted.body) return;
 
     // SECURITY DEFINER RPC ile partner'ın token'larını al (RLS kalkanı aşımı)
     const { data: tokens, error } = await supabase.rpc("get_partner_push_tokens", {
@@ -374,10 +505,6 @@ export async function notifyPartner(coupleId: number, currentUserId: string, tit
     });
 
     if (error || !tokens || tokens.length === 0) return;
-
-    let channelId = "default";
-    if (data?.type === "letter") channelId = "letters_channel";
-    else if (data?.type === "medicine" || data?.type === "medicine_reminder") channelId = "medicine_channel";
 
     const payloadData = {
       ...(data || {}),
@@ -396,9 +523,12 @@ export async function notifyPartner(coupleId: number, currentUserId: string, tit
         body: JSON.stringify({
           to: t.token,
           sound: "default",
-          title: finalTitle,
-          body: finalBody,
-          channelId,
+          title: formatted.title,
+          subtitle: formatted.subtitle,
+          body: formatted.body,
+          channelId: formatted.channelId,
+          priority: "high",
+          badge: 1,
           data: payloadData,
         }),
       });

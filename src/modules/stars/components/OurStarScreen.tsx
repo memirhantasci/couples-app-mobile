@@ -63,7 +63,7 @@ import { DEMO_STAR_DETAILS, DEMO_STAR_EXOPLANETS } from '@/constants/demoData';
 import { starService, PremiumRequiredError, SparkCooldownException } from '../api/starService';
 import { StarSparkManager } from '../services/StarSparkManager';
 import { MicroSystemCanvas } from '../canvas/MicroSystemCanvas';
-import { MacroSkyCanvas, MacroSkyBounds, SOLAR_SYSTEM_OBJECTS } from '../canvas/MacroSkyCanvas';
+import { MacroSkyCanvas, MacroSkyBounds, SOLAR_SYSTEM_OBJECTS, computeBounds } from '../canvas/MacroSkyCanvas';
 import { StarInfoBadge } from './StarInfoBadge';
 import { ClaimStarModal } from './ClaimStarModal';
 import { StarDemoAuthModal } from './StarDemoAuthModal';
@@ -239,30 +239,7 @@ export const OurStarScreen: React.FC = () => {
     setIsHomeRadarOpen(true);
   }, []);
 
-  const handleHomeRadarComplete = useCallback(() => {
-    setIsHomeRadarOpen(false);
-    // Gök Kubbe (makro mod) korunur; kamera yıldızımıza uçurulur ve bilgi kartı açılır
-    setFlyToTarget({ centerRa: myStarRa, centerDec: myStarDec, zoom: 3.0, nonce: Date.now() });
-    if (starDetails) {
-      const myStarItem: ViewportStarItem = {
-        catalog_id: starDetails.catalog_id,
-        catalog_code: starDetails.catalog_code,
-        common_name: starDetails.common_name ?? null,
-        ra: Number(starDetails.ra),
-        dec: Number(starDetails.dec),
-        magnitude: starDetails.magnitude,
-        spectral_type: starDetails.spectral_type,
-        base_color: starDetails.base_color,
-        is_claimed: true,
-        is_mine: true,
-        custom_name: starDetails.custom_name,
-        luminosity_level: starDetails.luminosity_level,
-        resonance_active: starDetails.resonance_active,
-      };
-      setSelectedMacroStar(myStarItem);
-    }
-    showToast('Gök Kubbede yıldızınıza odaklanıldı ✨');
-  }, [myStarRa, myStarDec, starDetails, showToast]);
+
 
   // ─── CANLI COOLDOWN SAYACI (TICKER) ────────────────────────────────
   useEffect(() => {
@@ -574,6 +551,43 @@ export const OurStarScreen: React.FC = () => {
     }
   }, []);
 
+  const handleFocusMyStar = useCallback(() => {
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
+    setFlyToTarget({ centerRa: myStarRa, centerDec: myStarDec, zoom: 3.0, nonce: Date.now() });
+    // Immediately pre-fetch the target sector bounds so tiles arrive during the flight
+    handleMacroBoundsChange(computeBounds({
+      centerRa: myStarRa,
+      centerDec: myStarDec,
+      zoom: 3.0,
+      fovDec: 20,
+      fovRa: 20 * (SCREEN_WIDTH / SCREEN_HEIGHT),
+    }));
+    if (starDetails) {
+      const myStarItem: ViewportStarItem = {
+        catalog_id: starDetails.catalog_id,
+        catalog_code: starDetails.catalog_code,
+        common_name: starDetails.common_name ?? null,
+        ra: Number(starDetails.ra),
+        dec: Number(starDetails.dec),
+        magnitude: starDetails.magnitude,
+        spectral_type: starDetails.spectral_type,
+        base_color: starDetails.base_color,
+        is_claimed: true,
+        is_mine: true,
+        custom_name: starDetails.custom_name,
+        luminosity_level: starDetails.luminosity_level,
+        resonance_active: starDetails.resonance_active,
+      };
+      setSelectedMacroStar(myStarItem);
+    }
+    showToast('Yıldızımıza süzülüyoruz ✨');
+  }, [myStarRa, myStarDec, starDetails, showToast, handleMacroBoundsChange]);
+
+  const handleHomeRadarComplete = useCallback(() => {
+    setIsHomeRadarOpen(false);
+    handleFocusMyStar();
+  }, [handleFocusMyStar]);
+
   // Kamera değiştiğinde koordinatları sadece anlamlı değişimlerde güncelle (re-render döngüsünü önler)
   const handleCameraChange = useCallback((cam: SkyCameraState) => {
     setCameraRa((prevRa) => (Math.abs(prevRa - cam.centerRa) > 0.08 ? cam.centerRa : prevRa));
@@ -861,7 +875,11 @@ export const OurStarScreen: React.FC = () => {
             connections={starConnections}
             myStarCoords={
               starDetails
-                ? { ra: Number(starDetails.ra), dec: Number(starDetails.dec) }
+                ? {
+                    ra: Number(starDetails.ra),
+                    dec: Number(starDetails.dec),
+                    name: starDetails.custom_name || 'Bizim Yıldızımız',
+                  }
                 : undefined
             }
             initialCamera={{
@@ -1199,20 +1217,11 @@ export const OurStarScreen: React.FC = () => {
           </TouchableOpacity>
         )}
 
-        {/* YILDIZIMIZa ODAKLAN FAB — doğrudan fly-to animasyonu (HomeRadar overlay açmadan) */}
-        {showHomeRadar && starDetails && (
+        {/* YILDIZIMIZA ODAKLAN FAB — doğrudan tek tıkla fly-to ve merkezleme */}
+        {viewMode === 'macro' && starDetails && (
           <TouchableOpacity
             activeOpacity={0.85}
-            onPress={() => {
-              try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
-              setFlyToTarget({
-                centerRa: myStarRa,
-                centerDec: myStarDec,
-                zoom: 3.0,
-                nonce: Date.now(),
-              });
-              showToast('Yıldızımıza süzülüyoruz ✨');
-            }}
+            onPress={handleFocusMyStar}
             style={styles.focusStarFab}
             accessibilityLabel="Yıldızımıza Odaklan"
           >

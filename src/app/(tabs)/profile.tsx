@@ -213,7 +213,17 @@ export default function ProfileScreen() {
         .single();
 
       if (userData) {
-        setDisplayName(userData.display_name ? (decrypt(userData.display_name) || userData.display_name) : "");
+        let cleanName = profile?.displayName;
+        if (!cleanName && userData.display_name) {
+          const dec = decrypt(userData.display_name);
+          if (dec && !dec.startsWith("enc:") && !dec.startsWith("det:")) {
+            cleanName = dec;
+          }
+        }
+        if (!cleanName && userData.display_name && !userData.display_name.startsWith("enc:") && !userData.display_name.startsWith("det:")) {
+          cleanName = userData.display_name;
+        }
+        setDisplayName(cleanName || profile?.username || "");
         setGender((userData.gender as "male" | "female") ?? "female");
         setCoupleId(userData.couple_id ?? null);
 

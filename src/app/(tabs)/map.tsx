@@ -58,7 +58,6 @@ import {
 } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
-import { MapStoryModal } from "@/components/map/MapStoryModal";
 
 const { width: SW, height: SH } = Dimensions.get("window");
 
@@ -356,7 +355,6 @@ export default function MapScreen() {
   const [isLocating, setIsLocating] = useState(false);
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [fullScreenPhoto, setFullScreenPhoto] = useState<PhotoPin | null>(null);
-  const [showMapStory, setShowMapStory] = useState(false);
 
   // ─── 1. Fotoğraf Pinlerini Çek (description dahil) ────────────────────────
   const {
@@ -883,22 +881,9 @@ export default function MapScreen() {
             </Text>
           </View>
 
-          {/* Aksiyon Butonları (Rehber, Tema, Sığdır, GPS, Hikaye) */}
+          {/* Aksiyon Butonları (Rehber, Tema, Sığdır, GPS) */}
           <View style={styles.topActionsGroup}>
             <TourGuideButton onPress={openTour} />
-            <TouchableOpacity
-              style={[
-                styles.topActionBtn,
-                {
-                  backgroundColor: "rgba(255, 77, 109, 0.16)",
-                  borderColor: "rgba(255, 77, 109, 0.35)",
-                },
-              ]}
-              onPress={() => setShowMapStory(true)}
-              activeOpacity={0.8}
-            >
-              <Sparkles size={16} color="#FF4D6D" />
-            </TouchableOpacity>
             <TouchableOpacity
               style={[
                 styles.topActionBtn,
@@ -1647,12 +1632,6 @@ export default function MapScreen() {
         onClose={() => setIsDemoModalOpen(false)}
         title={modalConfig.title}
         description={modalConfig.description}
-      />
-      <MapStoryModal
-        visible={showMapStory}
-        onClose={() => setShowMapStory(false)}
-        pins={allMapPinItems}
-        theme={theme}
       />
     </View>
   );

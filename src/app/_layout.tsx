@@ -167,7 +167,7 @@ function RootLayoutNav() {
       {/* Modals */}
       {/* <Stack.Screen name="add-memory" options={{ presentation: "modal" }} /> */}
       {/* <Stack.Screen name="write-letter" options={{ presentation: "modal" }} /> */}
-      <Stack.Screen name="menu" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="menu" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
     </Stack>
   );
 }
