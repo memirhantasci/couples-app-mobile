@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, runOnJS, useDerivedValue, withTiming, cancelAnimation, Easing } from 'react-native-reanimated';
@@ -39,15 +39,16 @@ const MIN_ZOOM = 0.6;
 const MAX_ZOOM = 35.0;
 // Keep enough world-space coverage around a committed camera that a long swipe
 // cannot reveal an unpainted edge while its replacement picture is recorded.
-const OVERSCAN_PAD = 2400;
-// Rebase only after the retained world transform nears the overscan edge. This
-// keeps ordinary gestures repaint-free while allowing unlimited exploration.
-const WORLD_REBASE_PAN_PX = 1440;
-const WORLD_REBASE_MIN_SCALE = 0.55;
-const WORLD_REBASE_MAX_SCALE = 2.2;
+// 900px provides ~2.3x screen buffer without overloading SkPicture memory/CPU.
+const OVERSCAN_PAD = 900;
+// Rebase thresholds: wide enough to eliminate rebase churn during normal zooming,
+// tight enough to maintain high visual fidelity.
+const WORLD_REBASE_PAN_PX = 1200;
+const WORLD_REBASE_MIN_SCALE = 0.5;
+const WORLD_REBASE_MAX_SCALE = 2.0;
 const FRUSTUM_PADDING = 50;
 const RENDER_TILE_DEGREES = 30;
-const MAX_TILE_PICTURES = 50;
+const MAX_TILE_PICTURES = 64;
 
 type RenderLod = 'low' | 'medium' | 'high';
 
@@ -277,6 +278,37 @@ function projectToScreen(
   return { x, y };
 }
 
+/**
+ * Projects two celestial points into screen coordinates such that their segment
+ * follows the shortest arc around the celestial sphere, eliminating tearing
+ * artifacts when connecting lines cross the 0°/360° Right Ascension boundary.
+ */
+function projectSegmentSeamSafe(
+  fromRa: number,
+  fromDec: number,
+  toRa: number,
+  toDec: number,
+  camera: SkyCameraState,
+  width: number,
+  height: number,
+): { x1: number; y1: number; x2: number; y2: number } {
+  const fovDec = 60 / camera.zoom;
+  const fovRa = fovDec * (width / height);
+  const pixelsPerDegreeRa = width / fovRa;
+  const pixelsPerDegreeDec = height / fovDec;
+
+  const p1 = projectToScreen(fromRa, fromDec, camera, width, height);
+
+  // Shortest angular difference around 360-degree cylinder (-180 to +180)
+  const deltaRa = ((toRa - fromRa + 540) % 360) - 180;
+  const deltaDec = toDec - fromDec;
+
+  const x2 = p1.x + deltaRa * pixelsPerDegreeRa;
+  const y2 = p1.y - deltaDec * pixelsPerDegreeDec;
+
+  return { x1: p1.x, y1: p1.y, x2, y2 };
+}
+
 function magnitudeToRadius(magnitude: number, spectralType: string, zoom: number): number {
   const baseClass = (spectralType || 'G').charAt(0).toUpperCase();
   const baseRadius = STAR_BASE_RADIUS_PX[baseClass] ?? FALLBACK_STAR_RADIUS;
@@ -493,7 +525,7 @@ function MacroSkyCanvasSkia({
   const tilePictureCacheRef = useRef<Map<string, TilePictureEntry>>(new Map());
 
   // ═══════════════════════════════════════════════════════════════════════
-  // CAMERA: useRef — NO React re-render when camera moves during gestures
+  // CAMERA: continuous logical camera in ref; state for rendered SkPictures
   // ═══════════════════════════════════════════════════════════════════════
   const cameraRef = React.useRef<SkyCameraState>({
     centerRa: initialCamera?.centerRa ?? 180,
@@ -504,17 +536,15 @@ function MacroSkyCanvasSkia({
     viewportWidth: width,
     viewportHeight: height,
   });
-  // The camera used to record SkPictures. It intentionally stays fixed while
-  // the logical camera moves; the GPU transform maps this world to the logical
-  // camera without replacing the visible picture after every gesture.
-  const renderCameraRef = React.useRef<SkyCameraState>(cameraRef.current);
 
-  // pictureVersion is reserved for an explicit fly-to / viewport reset. Pan
-  // and pinch must never change it: replacing a SkPicture is visibly lossy.
-  const [pictureVersion, setPictureVersion] = React.useState(0);
+  // The camera baseline currently painted into SkPictures.
+  const [renderCamera, setRenderCamera] = useState<SkyCameraState>(() => ({ ...cameraRef.current }));
+  const renderCameraRef = useRef<SkyCameraState>(renderCamera);
+  renderCameraRef.current = renderCamera;
+  const rebasePendingRef = useRef(false);
+
   // A network response can arrive while a UI-thread gesture is in progress.
-  // Rendering that response against the pre-commit camera then clearing the
-  // transform is what caused the visible jump. Hold it until the gesture ends.
+  // Hold it until gestures finish, then apply atomically.
   const [pictureStars, setPictureStars] = React.useState(stars);
   const pendingStarsRef = useRef<ViewportStarItem[] | null>(null);
   const activeGestureCountRef = useRef(0);
@@ -539,6 +569,8 @@ function MacroSkyCanvasSkia({
   onBoundsChangeRef.current = onBoundsChange;
   const onCameraChangeRef = React.useRef(onCameraChange);
   onCameraChangeRef.current = onCameraChange;
+  const onSelectStarRef = React.useRef(onSelectStar);
+  onSelectStarRef.current = onSelectStar;
 
   // Bounds debounce timer
   const boundsTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -568,26 +600,43 @@ function MacroSkyCanvasSkia({
   }, []);
 
   // ═══════════════════════════════════════════════════════════════════════
-  // REANIMATED SHARED VALUES — gesture feedback on UI thread (60fps)
+  // REANIMATED SHARED VALUES — gesture feedback on UI thread (60/120fps)
   // ═══════════════════════════════════════════════════════════════════════
   const offsetX = useSharedValue(0);
   const offsetY = useSharedValue(0);
   const startX = useSharedValue(0);
   const startY = useSharedValue(0);
+  const lastPanTranslationX = useSharedValue(0);
+  const lastPanTranslationY = useSharedValue(0);
   const pinchStartX = useSharedValue(0);
   const pinchStartY = useSharedValue(0);
   const pinchStartScale = useSharedValue(1);
   const scale = useSharedValue(1);
 
   // ─── FLY-TO ANIMATION SHARED VALUES (Reanimated UI-thread worklet) ───────
-  // All values live on the UI thread so that fly-to animates at 60/120fps
-  // without touching the JS thread. Gestures can interrupt at any frame by
-  // calling cancelAnimation on these — the shared values freeze at the exact
-  // mid-flight position, allowing the pan/pinch gesture to take over.
   const isFlying = useSharedValue(false);
-  const flyOffsetX = useSharedValue(0);   // pixel offset produced by fly-to (added to offsetX)
-  const flyOffsetY = useSharedValue(0);
-  const flyScaleDelta = useSharedValue(1); // multiplicative scale delta from fly-to
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ZERO-FLICKER ATOMIC REBASE: Synchronize GPU transform with new SkPictures
+  // useLayoutEffect runs BEFORE paint in React Native. When renderCamera updates,
+  // the GPU offsets are reset to 0 and scale to 1 in the exact same native frame
+  // that the new SkPictures mount!
+  // ═══════════════════════════════════════════════════════════════════════
+  useLayoutEffect(() => {
+    if (activeGestureCountRef.current === 0 && !isFlying.value) {
+      offsetX.value = 0;
+      offsetY.value = 0;
+      scale.value = 1;
+      startX.value = 0;
+      startY.value = 0;
+      lastPanTranslationX.value = 0;
+      lastPanTranslationY.value = 0;
+      pinchStartX.value = 0;
+      pinchStartY.value = 0;
+      pinchStartScale.value = 1;
+    }
+    rebasePendingRef.current = false;
+  }, [renderCamera]);
 
   const endCanvasGesture = useCallback(() => {
     activeGestureCountRef.current = Math.max(0, activeGestureCountRef.current - 1);
@@ -599,25 +648,47 @@ function MacroSkyCanvasSkia({
       setPictureStars((current) => (current === pendingStars ? current : pendingStars));
     }
 
-    // Keep ordinary gestures repaint-free. At the finite overscan boundary,
-    // make the logical camera the next world base and let the existing 50-tile
-    // LRU discard the old area instead of retaining an unbounded universe.
+    if (isFlying.value || rebasePendingRef.current) return;
+
+    const base = renderCameraRef.current;
+    const currentScale = scale.value;
+    const currentZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, base.zoom * currentScale));
+    const currentLod = getRenderLod(currentZoom);
+    const baseLod = getRenderLod(base.zoom);
+
+    // Keep ordinary gestures repaint-free. Only rebase when LOD changes or
+    // the GPU matrix departs significantly from 1.0 (protecting floating point precision)
     const mustRebase =
+      currentLod !== baseLod ||
+      currentScale <= WORLD_REBASE_MIN_SCALE ||
+      currentScale >= WORLD_REBASE_MAX_SCALE ||
       Math.abs(offsetX.value) >= WORLD_REBASE_PAN_PX ||
-      Math.abs(offsetY.value) >= WORLD_REBASE_PAN_PX ||
-      scale.value <= WORLD_REBASE_MIN_SCALE ||
-      scale.value >= WORLD_REBASE_MAX_SCALE;
+      Math.abs(offsetY.value) >= WORLD_REBASE_PAN_PX;
+
     if (!mustRebase) return;
 
-    renderCameraRef.current = { ...cameraRef.current };
-    offsetX.value = 0;
-    offsetY.value = 0;
-    scale.value = 1;
-    pinchStartX.value = 0;
-    pinchStartY.value = 0;
-    pinchStartScale.value = 1;
-    setPictureVersion((version) => version + 1);
-  }, [offsetX, offsetY, scale, pinchStartX, pinchStartY, pinchStartScale]);
+    rebasePendingRef.current = true;
+
+    // Closed-form inverse projection from the current GPU transform:
+    const fovDecBase = 60 / base.zoom;
+    const fovRaBase = fovDecBase * (width / height);
+    const dRa = -(offsetX.value / (width * currentScale)) * fovRaBase;
+    const dDec = (offsetY.value / (height * currentScale)) * fovDecBase;
+
+    const nextCamera: SkyCameraState = {
+      ...base,
+      centerRa: ((base.centerRa + dRa) % 360 + 360) % 360,
+      centerDec: Math.max(-85, Math.min(85, base.centerDec + dDec)),
+      zoom: currentZoom,
+      viewportWidth: width,
+      viewportHeight: height,
+    };
+
+    cameraRef.current = nextCamera;
+    setRenderCamera(nextCamera);
+    notifyCameraChange();
+    requestBoundsChange();
+  }, [width, height, offsetX, offsetY, scale, notifyCameraChange, requestBoundsChange]);
 
   // ═══════════════════════════════════════════════════════════════════════
   // INITIAL MOUNT: fire first bounds change
@@ -633,136 +704,124 @@ function MacroSkyCanvasSkia({
 
   // ═══════════════════════════════════════════════════════════════════════
   // FLY-TO TARGET: Google Maps-style smooth animated camera flight
-  // The animation runs entirely on the Reanimated UI thread (worklet) so
-  // it stays at 60/120fps even if the JS thread is busy with RPC calls.
-  //
-  // Architecture note:
-  //   The flight is expressed as (flyOffsetX, flyOffsetY, flyScaleDelta)
-  //   applied on top of the existing world. This keeps the already-painted
-  //   SkPictures on screen during the flight — no new tile builds needed.
-  //   When the flight ends (or is interrupted), commitFlyEnd() is called on
-  //   the JS thread to merge the accumulated offsets into cameraRef and
-  //   trigger one authoritative rebuild.
   // ═══════════════════════════════════════════════════════════════════════
-
-  // JS-thread callback: bake fly-to into the authoritative camera and rebuild.
-  const commitFlyEnd = useCallback((endOffsetX: number, endOffsetY: number, endScaleDelta: number) => {
+  const commitFlyEnd = useCallback((
+    targetRa: number,
+    targetDec: number,
+    targetZoom: number,
+    endOffsetX: number,
+    endOffsetY: number,
+    endScale: number
+  ) => {
     const base = renderCameraRef.current;
-    const fovDecBase = 60 / base.zoom;
-    const fovRaBase  = fovDecBase * (width / height);
-
-    // Closed-form inverse projection:
-    //   dRa  = -(offsetX / (W * scale)) * fovRa_base
-    //   dDec = +(offsetY / (H * scale)) * fovDec_base
-    // This is mathematically identical to commitPanDelta's
-    //   dRa = -(dx / W) * fovRa_current
-    // because fovRa_current = fovRa_base / scale.
-    const dRa  = -(endOffsetX / (width  * endScaleDelta)) * fovRaBase;
-    const dDec =  (endOffsetY / (height * endScaleDelta)) * fovDecBase;
-
-    const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, base.zoom * endScaleDelta));
-    cameraRef.current = {
+    const nextCamera: SkyCameraState = {
       ...base,
-      centerRa:  ((base.centerRa + dRa) % 360 + 360) % 360,
-      centerDec: Math.max(-85, Math.min(85, base.centerDec + dDec)),
-      zoom: newZoom,
+      centerRa: ((targetRa % 360) + 360) % 360,
+      centerDec: Math.max(-85, Math.min(85, targetDec)),
+      zoom: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, targetZoom)),
+      viewportWidth: width,
+      viewportHeight: height,
     };
-    renderCameraRef.current = { ...cameraRef.current };
 
-    // Reset all gesture and fly offsets so the next frame paints from scratch
-    offsetX.value = 0;
-    offsetY.value = 0;
-    scale.value   = 1;
-    flyOffsetX.value    = 0;
-    flyOffsetY.value    = 0;
-    flyScaleDelta.value = 1;
+    cameraRef.current = nextCamera;
+    rebasePendingRef.current = true;
+
+    // Preserve the exact final visual offsets so scene stays rock-solid
+    // until renderCamera's useLayoutEffect mounts the new pictures!
+    offsetX.value = endOffsetX;
+    offsetY.value = endOffsetY;
+    scale.value = endScale;
+    startX.value = 0;
+    startY.value = 0;
+    lastPanTranslationX.value = 0;
+    lastPanTranslationY.value = 0;
     pinchStartX.value = 0;
     pinchStartY.value = 0;
     pinchStartScale.value = 1;
 
-    setPictureVersion((v) => v + 1);
+    setRenderCamera(nextCamera);
     notifyCameraChange();
     requestBoundsChange();
-  }, [width, height, offsetX, offsetY, scale, flyOffsetX, flyOffsetY, flyScaleDelta,
-      pinchStartX, pinchStartY, pinchStartScale, notifyCameraChange, requestBoundsChange]);
+  }, [width, height, offsetX, offsetY, scale, startX, startY, lastPanTranslationX, lastPanTranslationY, pinchStartX, pinchStartY, pinchStartScale, notifyCameraChange, requestBoundsChange]);
 
   React.useEffect(() => {
     if (!targetCamera) return;
     const base = renderCameraRef.current;
 
-    // Cancel any in-progress animation immediately
-    cancelAnimation(flyOffsetX);
-    cancelAnimation(flyOffsetY);
-    cancelAnimation(flyScaleDelta);
+    // 1. Cancel any in-progress animation immediately
+    cancelAnimation(offsetX);
+    cancelAnimation(offsetY);
+    cancelAnimation(scale);
     isFlying.value = false;
 
     const targetRa  = ((targetCamera.centerRa % 360) + 360) % 360;
     const targetDec = Math.max(-90, Math.min(90, targetCamera.centerDec));
     const targetZoom = targetCamera.zoom ? Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, targetCamera.zoom)) : base.zoom;
 
-    // ── Shortest göksel yay (ΔRA): 0°–360° wrapping handled ──────────────
     const fovDecBase = 60 / base.zoom;
     const fovRaBase  = fovDecBase * (width / height);
 
-    // Target position in pixels relative to current render camera
-    // (how far the destination is from screen centre, in world pixels)
+    // Shortest angular difference (-180 to +180) from base picture center to target
     const deltaRa  = ((targetRa  - base.centerRa  + 540) % 360) - 180;
     const deltaDec = targetDec - base.centerDec;
     const angularDist = Math.sqrt(deltaRa * deltaRa + deltaDec * deltaDec);
 
-    // Target pixel offsets: moving the world so the destination is centred
-    //   pixelOffset = -(delta / fov) * screenSize
-    //   (negative because panning the world right moves RA left)
-    const targetPxX = -((deltaRa  / fovRaBase)  * width);
-    const targetPxY =  ((deltaDec / fovDecBase) * height);
-    const scaleDeltaTarget = targetZoom / base.zoom;
+    // Target scale relative to base SkPicture
+    const targetScale = targetZoom / base.zoom;
 
-    // ── Zoom-dip altitude curve ───────────────────────────────────────────
-    // For long flights the camera eases out to a wider view mid-flight then
-    // dives into the destination (Google Maps-style "altitude arc").
-    const minZoom      = Math.min(base.zoom, targetZoom);
-    const maxSafeDip   = Math.max(0, minZoom - MIN_ZOOM);
-    const distFactor   = Math.max(0, Math.min(1, (angularDist - 15) / 60));
-    const desiredDip   = Math.min(minZoom * 0.35, maxSafeDip) * distFactor;
-    // Peak dip at p = 0.5 means scaleDeltaAtMidpoint = (targetZoom/2 - dip) / base.zoom
-    // We encode dip as an additional scale-down at p=0.5:
-    const dipScaleDelta = desiredDip > 0 ? (base.zoom - desiredDip) / base.zoom : 1;
+    // CRITICAL FIX (Scale Drift): In Skia Group transform [{ translateX: T }, { translateY: T }, { scale: S }],
+    // centering a point scaled by S around screen center requires T to be multiplied by S:
+    //   T_x = -S * (deltaRa / fovRaBase) * width
+    //   T_y =  S * (deltaDec / fovDecBase) * height
+    const targetBasePxX = -((deltaRa  / fovRaBase)  * width);
+    const targetBasePxY =  ((deltaDec / fovDecBase) * height);
+    const finalOffsetX = targetScale * targetBasePxX;
+    const finalOffsetY = targetScale * targetBasePxY;
 
-    // Flight duration: 800ms for short hops, 1500ms for far destinations
-    const duration = Math.round(800 + Math.min(700, angularDist * 10));
-
+    // Flight duration & smooth cubic-bezier easing
+    const duration = Math.round(850 + Math.min(750, angularDist * 10));
     const easing = Easing.bezier(0.25, 0.1, 0.25, 1);
+
+    // Current visual start scale
+    const startScale = scale.value;
+    const minZoom = Math.min(base.zoom * startScale, targetZoom);
+    const maxSafeDip = Math.max(0, minZoom - MIN_ZOOM);
+    const distFactor = Math.max(0, Math.min(1, (angularDist - 15) / 60));
+    const desiredDip = Math.min(minZoom * 0.35, maxSafeDip) * distFactor;
+    const dipScale = desiredDip > 0 ? Math.max(MIN_ZOOM / base.zoom, (minZoom - desiredDip) / base.zoom) : targetScale;
 
     isFlying.value = true;
 
-    // Animate offsetX and offsetY towards the destination pixel offsets.
-    // flyScaleDelta drives the zoom-dip curve (parabola via two sequential
-    // timings so we can hit a mid-point scale then recover to the target).
-    flyOffsetX.value = withTiming(targetPxX, { duration, easing });
-    flyOffsetY.value = withTiming(targetPxY, { duration, easing });
+    // CRITICAL FIX (Compounding Offset): Animate offsetX and offsetY directly from their
+    // current values (wherever the user previously panned) to the exact target offsets.
+    offsetX.value = withTiming(finalOffsetX, { duration, easing });
+    offsetY.value = withTiming(finalOffsetY, { duration, easing });
 
-    // For the scale animation use a single withTiming; the dip is baked into
-    // scaleDeltaTarget already adjusted for the dip. If dip=0 this is a
-    // clean linear zoom.
-    flyScaleDelta.value = withTiming(
-      desiredDip > 0 ? Math.max(MIN_ZOOM / base.zoom, dipScaleDelta) : scaleDeltaTarget,
-      { duration: duration / 2, easing },
-      (finished) => {
+    if (desiredDip > 0) {
+      scale.value = withTiming(
+        dipScale,
+        { duration: duration / 2, easing },
+        (finished) => {
+          if (!finished) return;
+          scale.value = withTiming(targetScale, { duration: duration / 2, easing }, (fin2) => {
+            if (!fin2) return;
+            isFlying.value = false;
+            runOnJS(commitFlyEnd)(targetRa, targetDec, targetZoom, finalOffsetX, finalOffsetY, targetScale);
+          });
+        }
+      );
+    } else {
+      scale.value = withTiming(targetScale, { duration, easing }, (finished) => {
         if (!finished) return;
-        // Second half: arrive at true target zoom
-        flyScaleDelta.value = withTiming(scaleDeltaTarget, { duration: duration / 2, easing }, (fin2) => {
-          if (!fin2) return;
-          isFlying.value = false;
-          runOnJS(commitFlyEnd)(flyOffsetX.value, flyOffsetY.value, flyScaleDelta.value);
-        });
-      }
-    );
+        isFlying.value = false;
+        runOnJS(commitFlyEnd)(targetRa, targetDec, targetZoom, finalOffsetX, finalOffsetY, targetScale);
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetCamera?.centerRa, targetCamera?.centerDec, targetCamera?.zoom, targetCamera?.nonce]);
 
   // ═══════════════════════════════════════════════════════════════════════
-  // COMMIT HANDLERS: update only the logical camera used by bounds/data work.
-  // The recorded world stays mounted and is moved by the GPU transform.
+  // COMMIT HANDLERS: update continuous logical camera for parent / bounds
   // ═══════════════════════════════════════════════════════════════════════
   const commitPanDelta = useCallback((dx: number, dy: number) => {
     if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
@@ -791,9 +850,6 @@ function MacroSkyCanvasSkia({
     const fovDec_new = 60 / newZoom;
     const fovRa_new = fovDec_new * (width / height);
 
-    // cameraRef already contains all completed pans. Subtracting the retained
-    // world transform here would move the zoom focus away from the user's
-    // fingers after a swipe.
     const dRa = ((fx - width / 2) / width) * (fovRa_old - fovRa_new);
     const dDec = -((fy - height / 2) / height) * (fovDec_old - fovDec_new);
 
@@ -807,9 +863,6 @@ function MacroSkyCanvasSkia({
     requestBoundsChange();
   }, [width, height, notifyCameraChange, requestBoundsChange]);
 
-  // Keep the camera commit and the gesture-finalizer on the same JS callback.
-  // Separate runOnJS calls can be observed out of order under a busy JS thread,
-  // which would still allow an old-camera rebuild.
   const finishPan = useCallback((dx: number, dy: number) => {
     commitPanDelta(dx, dy);
     endCanvasGesture();
@@ -821,12 +874,11 @@ function MacroSkyCanvasSkia({
   }, [commitPinch, endCanvasGesture]);
 
   // ═══════════════════════════════════════════════════════════════════════
-  // HIT-TESTING: use the exact base-world transform rendered by Skia.
-  // Reprojecting through cameraRef after a persistent pinch/pan is subtly
-  // different around wraps and clamps, making a visible planet untappable.
+  // HIT-TESTING: use exact base-world transform rendered by Skia
   // ═══════════════════════════════════════════════════════════════════════
   const handleTap = useCallback((tx: number, ty: number) => {
-    if (!onSelectStar) return;
+    const onSelect = onSelectStarRef.current;
+    if (!onSelect) return;
     const camera = renderCameraRef.current;
     const renderedScale = scale.value;
     const renderedOffsetX = offsetX.value;
@@ -879,15 +931,15 @@ function MacroSkyCanvasSkia({
       try {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       } catch {}
-      onSelectStar(nearest);
+      onSelect(nearest);
     } else {
       // User tapped empty sky -> dismiss selection card
-      onSelectStar(null as any);
+      onSelect(null as any);
     }
-  }, [stars, width, height, onSelectStar, scale, offsetX, offsetY]);
+  }, [stars, width, height, scale, offsetX, offsetY, myStarRa, myStarDec, myStarName]);
 
   // ═══════════════════════════════════════════════════════════════════════
-  // GESTURE DEFINITIONS
+  // GESTURE DEFINITIONS: pan, pinch, tap with seamless two-to-one finger handover
   // ═══════════════════════════════════════════════════════════════════════
   const tap = Gesture.Tap()
     .maxDuration(350)
@@ -896,43 +948,32 @@ function MacroSkyCanvasSkia({
       runOnJS(handleTap)(e.x, e.y);
     });
 
-  // These are relative to the currently recorded world. They are captured by
-  // the UI worklet, so visual zoom cannot pass the same limits as cameraRef.
-  const minRenderScale = MIN_ZOOM / renderCameraRef.current.zoom;
-  const maxRenderScale = MAX_ZOOM / renderCameraRef.current.zoom;
+  const minRenderScale = MIN_ZOOM / renderCamera.zoom;
+  const maxRenderScale = MAX_ZOOM / renderCamera.zoom;
 
   const pan = Gesture.Pan()
     .minDistance(6)
     .maxPointers(1)
     .onStart(() => {
-      // Interrupt any in-flight fly-to animation. cancelAnimation freezes the
-      // shared values at their current mid-flight values — the pan then takes
-      // over from exactly where the camera was, with zero coordinate jump.
       if (isFlying.value) {
-        cancelAnimation(flyOffsetX);
-        cancelAnimation(flyOffsetY);
-        cancelAnimation(flyScaleDelta);
+        cancelAnimation(offsetX);
+        cancelAnimation(offsetY);
+        cancelAnimation(scale);
         isFlying.value = false;
-        // Merge frozen fly offsets into gesture start position so the user
-        // continues dragging from the current mid-flight screen position.
-        offsetX.value = (offsetX.value + flyOffsetX.value);
-        offsetY.value = (offsetY.value + flyOffsetY.value);
-        scale.value   = scale.value * flyScaleDelta.value;
-        flyOffsetX.value    = 0;
-        flyOffsetY.value    = 0;
-        flyScaleDelta.value = 1;
       }
       startX.value = offsetX.value;
       startY.value = offsetY.value;
+      lastPanTranslationX.value = 0;
+      lastPanTranslationY.value = 0;
       runOnJS(beginCanvasGesture)();
     })
     .onUpdate((e) => {
+      lastPanTranslationX.value = e.translationX;
+      lastPanTranslationY.value = e.translationY;
       offsetX.value = startX.value + e.translationX;
       offsetY.value = startY.value + e.translationY;
     })
     .onEnd((e) => {
-      // Use this gesture's delta, never the accumulated raw offset. A new pan
-      // can begin before the previous post-gesture picture has mounted.
       runOnJS(finishPan)(e.translationX, e.translationY);
     })
     .onFinalize((_event, success) => {
@@ -941,18 +982,11 @@ function MacroSkyCanvasSkia({
 
   const pinch = Gesture.Pinch()
     .onStart((e) => {
-      // Mirror fly-to interrupt logic from pan.onStart
       if (isFlying.value) {
-        cancelAnimation(flyOffsetX);
-        cancelAnimation(flyOffsetY);
-        cancelAnimation(flyScaleDelta);
+        cancelAnimation(offsetX);
+        cancelAnimation(offsetY);
+        cancelAnimation(scale);
         isFlying.value = false;
-        offsetX.value = (offsetX.value + flyOffsetX.value);
-        offsetY.value = (offsetY.value + flyOffsetY.value);
-        scale.value   = scale.value * flyScaleDelta.value;
-        flyOffsetX.value    = 0;
-        flyOffsetY.value    = 0;
-        flyScaleDelta.value = 1;
       }
       pinchStartX.value = offsetX.value;
       pinchStartY.value = offsetY.value;
@@ -960,9 +994,6 @@ function MacroSkyCanvasSkia({
       runOnJS(beginCanvasGesture)();
     })
     .onUpdate((e) => {
-      // Compose the incremental pinch with the world transform already on
-      // screen. A second pinch therefore never resets the first one's scale or
-      // moves its focal point.
       const totalScale = Math.max(
         minRenderScale,
         Math.min(maxRenderScale, pinchStartScale.value * e.scale),
@@ -980,6 +1011,9 @@ function MacroSkyCanvasSkia({
       runOnJS(finishPinch)(totalScale / pinchStartScale.value, e.focalX, e.focalY);
     })
     .onFinalize((_event, success) => {
+      // Rebase pan start values when finger lifts from pinch so dragging continues seamlessly
+      startX.value = offsetX.value - lastPanTranslationX.value;
+      startY.value = offsetY.value - lastPanTranslationY.value;
       if (!success) runOnJS(endCanvasGesture)();
     });
 
@@ -988,20 +1022,16 @@ function MacroSkyCanvasSkia({
 
   // ═══════════════════════════════════════════════════════════════════════
   // LAYER 2: STAR TILE PICTURES
-  // Every star (LOW, MEDIUM, HIGH LOD) is recorded into independent native
-  // SkPictures per 30-degree tile. Panning reuses cached tiles without rebuild.
   // ═══════════════════════════════════════════════════════════════════════
   const starTilePictures = useMemo<StarTilePicture[]>(() => {
-    const camera = renderCameraRef.current;
-    const lod = getRenderLod(cameraRef.current.zoom);
+    const camera = renderCamera;
+    const lod = getRenderLod(camera.zoom);
     if (!font) return [];
 
     const tileGroups = new Map<string, ViewportStarItem[]>();
     for (const star of pictureStars) {
       const pos = projectToScreen(star.ra, star.dec, camera, width, height);
-    // Keep loaded tiles for the same overscan window as the static sky. They
-    // can slide into view on the next swipe without a React/Skia replacement.
-    if (!isInFrustum(pos.x, pos.y, width, height, OVERSCAN_PAD)) continue;
+      if (!isInFrustum(pos.x, pos.y, width, height, OVERSCAN_PAD)) continue;
       const key = tileKeyForStar(star);
       const group = tileGroups.get(key);
       if (group) group.push(star);
@@ -1011,34 +1041,18 @@ function MacroSkyCanvasSkia({
     const tiles: StarTilePicture[] = [];
     for (const [tileKey, tileStars] of tileGroups) {
       const center = tileCenterFromKey(tileKey);
-      // ── ZERO-FLICKER KEY CHANGE ──────────────────────────────────────────
-      // The cache key still includes lod + content signature so we rebuild
-      // when LOD changes or star data changes. But zoom.toFixed(3) is REMOVED
-      // from the cache key so continuous pinch-zoom no longer invalidates the
-      // cache every frame.
-      //
-      // The JSX <Group key> uses only `tileKey` ("ra:dec") — the static
-      // göksel coordinate — so React never unmounts the Skia Group node.
-      // Only the `picture` prop changes, which Skia C++ handles as an
-      // in-place GPU display-list swap (zero black frames).
       const cacheKey = `${tileKey}@${lod}@${tileContentSignature(tileStars)}`;
       let entry = tilePictureCacheRef.current.get(cacheKey);
 
       if (entry) {
-        // Touch (move to end of LRU Map) so this tile is the last to be evicted
         tilePictureCacheRef.current.delete(cacheKey);
         tilePictureCacheRef.current.set(cacheKey, entry);
       } else {
-        // ── FRUSTUM-PROTECTED LAZY LRU EVICTION ─────────────────────────
-        // activeKeys is built ONLY when the cache is full — lazy evaluation
-        // so normal frames pay zero Set-allocation cost.
         if (tilePictureCacheRef.current.size >= MAX_TILE_PICTURES) {
           const activeKeys = new Set(tileGroups.keys());
           let evictKey: string | null = null;
           for (const k of tilePictureCacheRef.current.keys()) {
-            // Cache key format: `${tileKey}@${lod}@${signature}`
             const tileCoords = k.split('@')[0];
-            // Only evict tiles that are NOT in the current frustum+overscan
             if (!activeKeys.has(tileCoords)) {
               evictKey = k;
               break;
@@ -1049,10 +1063,6 @@ function MacroSkyCanvasSkia({
             tilePictureCacheRef.current.delete(evictKey);
             disposePicture(evicted?.picture);
           }
-          // If every cached tile is currently active (edge case: user zoomed
-          // fast and all 50 tiles are visible), skip eviction this frame to
-          // avoid disposing an in-use GPU resource. The cache grows by 1 and
-          // will self-correct as the user pans away.
         }
         entry = {
           picture: buildLodTilePicture(
@@ -1071,26 +1081,25 @@ function MacroSkyCanvasSkia({
       }
 
       const anchor = projectToScreen(center.ra, center.dec, camera, width, height);
-      // `tileKey` ("ra:dec") is the stable JSX key — React never unmounts
-      // this Group node; only the picture prop is swapped in-place.
       tiles.push({ key: tileKey, picture: entry.picture, x: anchor.x, y: anchor.y });
     }
 
     return tiles;
-  }, [pictureVersion, pictureStars, width, height, font, starNameFont]);
+  }, [renderCamera, pictureStars, width, height, font, starNameFont]);
 
   // ═══════════════════════════════════════════════════════════════════════
   // LAYER 1: STATIC SKY BACKGROUND PICTURE
-  // Nebulas, constellation lines, sector labels, solar system bodies, and
-  // friend connections. ZERO dependency on dynamic star catalog data.
+  // Nebulas, constellation lines (seam-safe), sector labels, solar system
+  // bodies, and friend connections (seam-safe).
   // ═══════════════════════════════════════════════════════════════════════
   const skyBackgroundPicture = useMemo(() => {
-    const camera = renderCameraRef.current;
+    const camera = renderCamera;
     if (!font || !sectorFont) return null;
     const recorder = Skia.PictureRecorder();
-    const recW = width + OVERSCAN_PAD * 2;
-    const recH = height + OVERSCAN_PAD * 2;
-    const canvas = recorder.beginRecording(Skia.XYWHRect(-OVERSCAN_PAD, -OVERSCAN_PAD, recW, recH));
+    const BG_PAD = Math.max(OVERSCAN_PAD, 2400);
+    const recW = width + BG_PAD * 2;
+    const recH = height + BG_PAD * 2;
+    const canvas = recorder.beginRecording(Skia.XYWHRect(-BG_PAD, -BG_PAD, recW, recH));
 
     // ─── PASS 0: Deep Space Background Gradient (Includes Overscan) ───
     const bgPaint = Skia.Paint();
@@ -1103,7 +1112,7 @@ function MacroSkyCanvasSkia({
         3
       )
     );
-    canvas.drawRect(Skia.XYWHRect(-OVERSCAN_PAD, -OVERSCAN_PAD, recW, recH), bgPaint);
+    canvas.drawRect(Skia.XYWHRect(-BG_PAD, -BG_PAD, recW, recH), bgPaint);
 
     // ─── PASS 1: Sector Nebula Gradients ───────────────────────────────
     SKY_SECTORS_LIST.forEach((sector) => {
@@ -1147,28 +1156,26 @@ function MacroSkyCanvasSkia({
       });
     }
 
-    // ─── PASS 3: Constellation Lines ──────────────────────────────────
+    // ─── PASS 3: Constellation Lines (Seam-Safe) ──────────────────────
     const constPaint = Skia.Paint();
     constPaint.setColor(Skia.Color('rgba(255, 255, 255, 0.18)'));
     constPaint.setStrokeWidth(1);
     constPaint.setStyle(1); // Stroke
 
     CONSTELLATION_LINES.forEach((line) => {
-      const p1 = projectToScreen(line.from.ra, line.from.dec, camera, width, height);
-      const p2 = projectToScreen(line.to.ra, line.to.dec, camera, width, height);
+      const seg = projectSegmentSeamSafe(line.from.ra, line.from.dec, line.to.ra, line.to.dec, camera, width, height);
       if (
-        (p1.x < -OVERSCAN_PAD && p2.x < -OVERSCAN_PAD) ||
-        (p1.x > width + OVERSCAN_PAD && p2.x > width + OVERSCAN_PAD) ||
-        (p1.y < -OVERSCAN_PAD && p2.y < -OVERSCAN_PAD) ||
-        (p1.y > height + OVERSCAN_PAD && p2.y > height + OVERSCAN_PAD)
+        (seg.x1 < -OVERSCAN_PAD && seg.x2 < -OVERSCAN_PAD) ||
+        (seg.x1 > width + OVERSCAN_PAD && seg.x2 > width + OVERSCAN_PAD) ||
+        (seg.y1 < -OVERSCAN_PAD && seg.y2 < -OVERSCAN_PAD) ||
+        (seg.y1 > height + OVERSCAN_PAD && seg.y2 > height + OVERSCAN_PAD)
       ) return;
 
-      canvas.drawLine(p1.x, p1.y, p2.x, p2.y, constPaint);
+      canvas.drawLine(seg.x1, seg.y1, seg.x2, seg.y2, constPaint);
     });
 
-    // ─── PASS 4: Active Star Connection Lines & Badges ────────────────
+    // ─── PASS 4: Active Star Connection Lines & Badges (Seam-Safe) ─────
     if (myStarRa !== undefined && myStarDec !== undefined && connections.length > 0) {
-      const p1 = projectToScreen(myStarRa, myStarDec, camera, width, height);
       const connLinePaint = Skia.Paint();
       connLinePaint.setColor(Skia.Color('rgba(251, 191, 36, 0.6)'));
       connLinePaint.setStrokeWidth(1.6);
@@ -1178,22 +1185,22 @@ function MacroSkyCanvasSkia({
 
       connections.forEach((conn) => {
         if (!conn.other_star_ra || !conn.other_star_dec) return;
-        const p2 = projectToScreen(conn.other_star_ra, conn.other_star_dec, camera, width, height);
-        canvas.drawLine(p1.x, p1.y, p2.x, p2.y, connLinePaint);
+        const seg = projectSegmentSeamSafe(myStarRa, myStarDec, conn.other_star_ra, conn.other_star_dec, camera, width, height);
+        canvas.drawLine(seg.x1, seg.y1, seg.x2, seg.y2, connLinePaint);
 
         // Pink node badge around friend's star
         const nodePaint = Skia.Paint();
         nodePaint.setColor(Skia.Color('rgba(244, 114, 182, 0.8)'));
         nodePaint.setStyle(1);
         nodePaint.setStrokeWidth(1.2);
-        canvas.drawCircle(p2.x, p2.y, 7, nodePaint);
+        canvas.drawCircle(seg.x2, seg.y2, 7, nodePaint);
 
         // Connected Star Name Tag
         if (font) {
           const labelText = `🔗 ${conn.other_star_name}`;
           const textWidth = font.getTextWidth(labelText);
-          const labelX = p2.x - textWidth / 2;
-          const labelY = p2.y + 22;
+          const labelX = seg.x2 - textWidth / 2;
+          const labelY = seg.y2 + 22;
 
           const pillBg = Skia.Paint();
           pillBg.setColor(Skia.Color('rgba(24, 15, 36, 0.85)'));
@@ -1217,8 +1224,8 @@ function MacroSkyCanvasSkia({
     SOLAR_SYSTEM_OBJECTS.forEach((obj) => {
       const pos = projectToScreen(obj.ra, obj.dec, camera, width, height);
       if (
-        pos.x < -OVERSCAN_PAD || pos.x > width + OVERSCAN_PAD ||
-        pos.y < -OVERSCAN_PAD || pos.y > height + OVERSCAN_PAD
+        pos.x < -BG_PAD || pos.x > width + BG_PAD ||
+        pos.y < -BG_PAD || pos.y > height + BG_PAD
       ) return;
 
       if (obj.catalog_code === 'SOL-SUN') {
@@ -1330,16 +1337,13 @@ function MacroSkyCanvasSkia({
     });
 
     // ─── PASS 5: Hero Star Beacon (Kullanıcının Kendi Yıldızı) ───────
-    // Always recorded into skyBackgroundPicture so it is immediately visible
-    // with zero latency at all zoom levels, during fly-to, and without waiting
-    // for viewport tile RPC responses from the server.
     if (myStarRa !== undefined && myStarDec !== undefined) {
       const heroPos = projectToScreen(myStarRa, myStarDec, camera, width, height);
       if (
-        heroPos.x >= -OVERSCAN_PAD &&
-        heroPos.x <= width + OVERSCAN_PAD &&
-        heroPos.y >= -OVERSCAN_PAD &&
-        heroPos.y <= height + OVERSCAN_PAD
+        heroPos.x >= -BG_PAD &&
+        heroPos.x <= width + BG_PAD &&
+        heroPos.y >= -BG_PAD &&
+        heroPos.y <= height + BG_PAD
       ) {
         // 1. Ambient Golden Halo
         const heroAura = Skia.Paint();
@@ -1398,19 +1402,16 @@ function MacroSkyCanvasSkia({
     }
 
     return recorder.finishRecordingAsPicture();
-  }, [pictureVersion, width, height, font, sectorFont, connections, myStarRa, myStarDec, myStarName, starNameFont]);
+  }, [renderCamera, width, height, font, sectorFont, connections, myStarRa, myStarDec, myStarName, starNameFont]);
 
-  // The visual transform combines gesture offsets with fly-to offsets. When
-  // no fly-to is active, flyOffsetX/Y = 0 and flyScaleDelta = 1 so this is
-  // identical to the previous formula — the pan path is unchanged.
+
+
+  // The visual transform applied to the Skia canvas on the GPU thread.
   const transform = useDerivedValue(() => {
-    const totalScale = scale.value * flyScaleDelta.value;
-    const totalOffsetX = offsetX.value + flyOffsetX.value;
-    const totalOffsetY = offsetY.value + flyOffsetY.value;
     return [
-      { translateX: totalOffsetX },
-      { translateY: totalOffsetY },
-      { scale: totalScale },
+      { translateX: offsetX.value },
+      { translateY: offsetY.value },
+      { scale: scale.value },
     ];
   });
 

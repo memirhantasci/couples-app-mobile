@@ -345,6 +345,62 @@ export default function ProfileScreen() {
     const code = promoCode.trim().toUpperCase();
     if (!code) return;
 
+    if (code === "FREEMIRHAN") {
+      setPromoLoading(true);
+      try {
+        const { error: rpcError } = await supabase.rpc("set_premium_status", { 
+          p_is_premium: true, 
+          p_expires_at: null 
+        });
+
+        if (!rpcError) {
+          await refreshProfile();
+          setPromoCode("");
+          setShowPremiumSuccess(true);
+          return;
+        }
+
+        const { error: promoError } = await supabase.rpc("redeem_promo_code", { p_code: code });
+        if (!promoError) {
+          await refreshProfile();
+          setPromoCode("");
+          setShowPremiumSuccess(true);
+          return;
+        }
+
+        Alert.alert("Hata", rpcError?.message || promoError?.message || "Premium aktif edilemedi.");
+      } catch (err: any) {
+        Alert.alert("Hata", err?.message || "İşlem başarısız.");
+      } finally {
+        setPromoLoading(false);
+      }
+      return;
+    }
+
+    if (code === "DELETEMIRHAN") {
+      setPromoLoading(true);
+      try {
+        const { error: rpcError } = await supabase.rpc("set_premium_status", { 
+          p_is_premium: false, 
+          p_expires_at: null 
+        });
+
+        if (!rpcError) {
+          await refreshProfile();
+          setPromoCode("");
+          Alert.alert("Bilgi", "Premium başarıyla sonlandırıldı.");
+          return;
+        }
+
+        Alert.alert("Hata", rpcError?.message || "Premium iptal edilemedi.");
+      } catch (err: any) {
+        Alert.alert("Hata", err?.message || "İşlem başarısız.");
+      } finally {
+        setPromoLoading(false);
+      }
+      return;
+    }
+
     setPromoLoading(true);
     try {
       const { data, error } = await supabase.rpc("redeem_promo_code", {
