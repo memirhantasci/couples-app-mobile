@@ -13,6 +13,8 @@ import type {
 } from '@/modules/stars/types/star.types';
 import { CONSTELLATION_LINES } from '../config/constellationLines.data';
 import { SKY_SECTORS_LIST } from '../config/skySectors.data';
+import { SkyDebugHud } from './macro/debug/SkyDebugHud';
+import { SKY_DEBUG_HUD_ENABLED } from './macro/debug/skyDebugConfig';
 
 export interface MacroSkyBounds {
   readonly minRa: number;
@@ -524,6 +526,9 @@ function MacroSkyCanvasSkia({
   }
   const tilePictureCacheRef = useRef<Map<string, TilePictureEntry>>(new Map());
 
+  // Baseline instrumentation for the dev HUD (phase 0 measurements).
+  const debugStatsRef = useRef({ rebases: 0, tileRecordMs: 0, bgRecordMs: 0, tiles: 0 });
+
   // ═══════════════════════════════════════════════════════════════════════
   // CAMERA: continuous logical camera in ref; state for rendered SkPictures
   // ═══════════════════════════════════════════════════════════════════════
@@ -668,6 +673,7 @@ function MacroSkyCanvasSkia({
     if (!mustRebase) return;
 
     rebasePendingRef.current = true;
+    debugStatsRef.current.rebases += 1;
 
     // Closed-form inverse projection from the current GPU transform:
     const fovDecBase = 60 / base.zoom;
@@ -725,6 +731,7 @@ function MacroSkyCanvasSkia({
 
     cameraRef.current = nextCamera;
     rebasePendingRef.current = true;
+    debugStatsRef.current.rebases += 1;
 
     // Preserve the exact final visual offsets so scene stays rock-solid
     // until renderCamera's useLayoutEffect mounts the new pictures!
@@ -1027,6 +1034,7 @@ function MacroSkyCanvasSkia({
     const camera = renderCamera;
     const lod = getRenderLod(camera.zoom);
     if (!font) return [];
+    const recordStartedAt = performance.now();
 
     const tileGroups = new Map<string, ViewportStarItem[]>();
     for (const star of pictureStars) {
@@ -1084,6 +1092,8 @@ function MacroSkyCanvasSkia({
       tiles.push({ key: tileKey, picture: entry.picture, x: anchor.x, y: anchor.y });
     }
 
+    debugStatsRef.current.tileRecordMs = performance.now() - recordStartedAt;
+    debugStatsRef.current.tiles = tiles.length;
     return tiles;
   }, [renderCamera, pictureStars, width, height, font, starNameFont]);
 
@@ -1095,6 +1105,7 @@ function MacroSkyCanvasSkia({
   const skyBackgroundPicture = useMemo(() => {
     const camera = renderCamera;
     if (!font || !sectorFont) return null;
+    const recordStartedAt = performance.now();
     const recorder = Skia.PictureRecorder();
     const BG_PAD = Math.max(OVERSCAN_PAD, 2400);
     const recW = width + BG_PAD * 2;
@@ -1401,8 +1412,24 @@ function MacroSkyCanvasSkia({
       }
     }
 
-    return recorder.finishRecordingAsPicture();
+    const backgroundPicture = recorder.finishRecordingAsPicture();
+    debugStatsRef.current.bgRecordMs = performance.now() - recordStartedAt;
+    return backgroundPicture;
   }, [renderCamera, width, height, font, sectorFont, connections, myStarRa, myStarDec, myStarName, starNameFont]);
+
+  const getDebugMetrics = useCallback(() => {
+    const base = renderCameraRef.current;
+    const stats = debugStatsRef.current;
+    return {
+      'zoom render/visual': `${base.zoom.toFixed(2)} / ${(base.zoom * scale.value).toFixed(2)}`,
+      'gpu scale': scale.value.toFixed(3),
+      'gpu offset': `${offsetX.value.toFixed(0)}, ${offsetY.value.toFixed(0)}`,
+      'active gestures': activeGestureCountRef.current,
+      'stars / tiles': `${pictureStars.length} / ${stats.tiles}`,
+      rebases: stats.rebases,
+      'record ms tiles/bg': `${stats.tileRecordMs.toFixed(1)} / ${stats.bgRecordMs.toFixed(1)}`,
+    };
+  }, [offsetX, offsetY, scale, pictureStars]);
 
 
 
@@ -1444,6 +1471,7 @@ function MacroSkyCanvasSkia({
              </Canvas>
           </Animated.View>
        </GestureDetector>
+       {SKY_DEBUG_HUD_ENABLED && <SkyDebugHud getMetrics={getDebugMetrics} />}
     </View>
   );
 }
