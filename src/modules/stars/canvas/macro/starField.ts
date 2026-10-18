@@ -52,23 +52,20 @@ export const EMPTY_STAR_FIELD: StarField = { cells: [], palette: [] };
 
 // ─── Colours ───────────────────────────────────────────────────────────────
 
-const rgbCache = new Map<string, readonly [number, number, number]>();
-
+// Worklets: called per frame on the UI thread as well as when building on the JS thread.
+// No module-level cache — a captured Map would be a separate copy per runtime.
 function rgbOf(hex: string): readonly [number, number, number] {
-  let cached = rgbCache.get(hex);
-  if (!cached) {
-    const clean = hex.replace('#', '');
-    const r = parseInt(clean.substring(0, 2), 16);
-    const g = parseInt(clean.substring(2, 4), 16);
-    const b = parseInt(clean.substring(4, 6), 16);
-    cached = clean.length >= 6 && !Number.isNaN(r + g + b) ? [r / 255, g / 255, b / 255] : [1, 1, 1];
-    rgbCache.set(hex, cached);
-  }
-  return cached;
+  'worklet';
+  const clean = hex.replace('#', '');
+  const r = parseInt(clean.substring(0, 2), 16);
+  const g = parseInt(clean.substring(2, 4), 16);
+  const b = parseInt(clean.substring(4, 6), 16);
+  return clean.length >= 6 && !Number.isNaN(r + g + b) ? [r / 255, g / 255, b / 255] : [1, 1, 1];
 }
 
-/** Skia colour without string parsing. */
+/** Skia colour from a hex string and alpha. */
 export function colorOf(hex: string, alpha: number): Float32Array {
+  'worklet';
   const [r, g, b] = rgbOf(hex);
   return Float32Array.of(r, g, b, Math.max(0, Math.min(1, alpha)));
 }
