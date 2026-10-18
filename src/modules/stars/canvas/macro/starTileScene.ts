@@ -288,6 +288,11 @@ export class StarSceneManager {
     this.rebuild();
   }
 
+  /** Faintest unclaimed magnitude currently drawn; taps must not hit hidden stars. */
+  get magnitudeLimit() {
+    return this.band < 0 ? Infinity : magnitudeLimitForZoom(bandZoom(this.band));
+  }
+
   dispose() {
     if (this.pruneTimer) clearTimeout(this.pruneTimer);
     this.pruneTimer = null;

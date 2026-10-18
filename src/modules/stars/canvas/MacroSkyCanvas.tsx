@@ -203,7 +203,12 @@ function MacroSkyCanvasSkia({
     (x: number, y: number, ra: number, dec: number, zoom: number) => {
       const props = propsRef.current;
       if (!props.onSelectStar) return;
-      const candidates: ViewportStarItem[] = [...SOLAR_SYSTEM_OBJECTS, ...props.stars];
+      // Streamed data may hold fainter stars than the current band draws.
+      const magnitudeLimit = sceneManager.magnitudeLimit;
+      const candidates: ViewportStarItem[] = [
+        ...SOLAR_SYSTEM_OBJECTS,
+        ...props.stars.filter((star) => star.is_claimed || star.magnitude <= magnitudeLimit),
+      ];
       if (props.myStarRa !== undefined && props.myStarDec !== undefined) {
         candidates.unshift(heroTapTarget(props.myStarRa, props.myStarDec, props.myStarName));
       }
@@ -213,7 +218,7 @@ function MacroSkyCanvasSkia({
       }
       props.onSelectStar(hit);
     },
-    [width, height],
+    [width, height, sceneManager],
   );
 
   const { camera, gesture, flightRequest } = useSkyCamera({

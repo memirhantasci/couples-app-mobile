@@ -233,15 +233,16 @@ function isNetworkError(error: any): boolean {
 /**
  * Geçici ağ hatalarında 3 defaya kadar üstel gecikmeyle (300ms, 600ms, 1200ms + jitter)
  * fonksiyonu yeniden dener. İş kuralı veya yetki hatalarında derhal fırlatır.
+ * `signal` iptal edildiyse (ör. artık görünmeyen bir gökyüzü karosu) yeniden denemez.
  */
-async function withSmartRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
+async function withSmartRetry<T>(fn: () => Promise<T>, maxRetries = 3, signal?: AbortSignal): Promise<T> {
   let attempt = 0;
   while (true) {
     try {
       return await fn();
     } catch (error: any) {
       attempt++;
-      if (attempt > maxRetries || !isNetworkError(error)) {
+      if (signal?.aborted || attempt > maxRetries || !isNetworkError(error)) {
         throw error;
       }
       const baseDelay = 300 * Math.pow(2, attempt - 1);
@@ -262,22 +263,25 @@ async function withSmartRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<
  */
 export async function fetchStarsInViewport(
   params: GetStarsViewportParams,
+  options: { readonly signal?: AbortSignal } = {},
 ): Promise<ViewportStarItem[]> {
+  const { signal } = options;
   return withSmartRetry(async () => {
-    const { data, error } = await supabase.rpc('get_stars_in_viewport', {
+    const request = supabase.rpc('get_stars_in_viewport', {
       min_ra: params.minRa,
       max_ra: params.maxRa,
       min_dec: params.minDec,
       max_dec: params.maxDec,
       zoom_level: params.zoomLevel,
     });
+    const { data, error } = await (signal ? request.abortSignal(signal) : request);
 
     if (error) {
       handleSupabaseError(error);
     }
 
     return (data ?? []) as ViewportStarItem[];
-  });
+  }, 3, signal);
 }
 
 /**

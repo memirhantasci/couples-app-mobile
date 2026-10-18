@@ -63,7 +63,7 @@ import { DEMO_STAR_DETAILS, DEMO_STAR_EXOPLANETS } from '@/constants/demoData';
 import { starService, PremiumRequiredError, SparkCooldownException } from '../api/starService';
 import { StarSparkManager } from '../services/StarSparkManager';
 import { MicroSystemCanvas } from '../canvas/MicroSystemCanvas';
-import { MacroSkyCanvas, MacroSkyBounds, SOLAR_SYSTEM_OBJECTS, computeBounds } from '../canvas/MacroSkyCanvas';
+import { MacroSkyCanvas, SOLAR_SYSTEM_OBJECTS, computeBounds } from '../canvas/MacroSkyCanvas';
 import { StarInfoBadge } from './StarInfoBadge';
 import { ClaimStarModal } from './ClaimStarModal';
 import { StarDemoAuthModal } from './StarDemoAuthModal';
@@ -76,12 +76,7 @@ import { SearchStarModal } from './SearchStarModal';
 import { HomeRadarOverlay } from './HomeRadarOverlay';
 import { PremiumPaywall } from '@/components/ui/PremiumPaywall';
 import type { PremiumFeatureSource } from '@/components/ui/PremiumPaywall.types';
-import {
-  areSameViewportStars,
-  getTilesInBounds,
-  LruTtlCache,
-  mergeViewportStars,
-} from '../utils/skyTiles';
+import { useSkyTileStream } from '../hooks/useSkyTileStream';
 
 import type {
   ActiveStarConnection,
@@ -130,12 +125,9 @@ export const OurStarScreen: React.FC = () => {
   const [exoplanets, setExoplanets] = useState<StarSystemMapPlanet[]>([]);
   const [demoPlanetDetails, setDemoPlanetDetails] = useState<StarExoplanetRecord[]>([]);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
-  const [viewportStars, setViewportStars] = useState<ViewportStarItem[]>([]);
-  // Other couples' stars are fetched by tile after the canvas's 350ms bounds
-  // debounce. Only the user's own star keeps a realtime subscription.
-  const viewportTileCacheRef = useRef(new LruTtlCache<ViewportStarItem[]>(50, 30_000));
-  const viewportTileRequestRef = useRef(new Map<string, Promise<ViewportStarItem[]>>());
-  const viewportRequestVersionRef = useRef(0);
+  // Other couples' stars stream in by sky tile while the camera moves. Only
+  // the user's own star keeps a realtime subscription.
+  const skyTiles = useSkyTileStream();
   const [selectedMacroStar, setSelectedMacroStar] = useState<ViewportStarItem | null>(null);
 
   // Güvenli Geri Dönüş Fonksiyonu (Navigation Stack boşsa ana ekrana döner)
@@ -499,63 +491,12 @@ export const OurStarScreen: React.FC = () => {
     }
   };
 
-  // ─── MAKRO GÖKYÜZÜ VIEWPORT GÜNCELLEMESİ ────────────────────────────
-  const handleMacroBoundsChange = useCallback(async (bounds: MacroSkyBounds) => {
-    const requestVersion = ++viewportRequestVersionRef.current;
-    const tiles = getTilesInBounds(bounds);
-
-    try {
-      const lodKey = bounds.zoomLevel < 1.5 ? 'low' : bounds.zoomLevel < 4 ? 'medium' : 'high';
-      const tileResults = await Promise.all(tiles.map(async (tile) => {
-        const cacheKey = `${tile.key}@${lodKey}`;
-        const cached = viewportTileCacheRef.current.get(cacheKey);
-        if (cached) return cached;
-
-        const inFlight = viewportTileRequestRef.current.get(cacheKey);
-        if (inFlight) return inFlight;
-
-        const request = starService.fetchStarsInViewport({
-          minRa: tile.minRa,
-          maxRa: tile.maxRa,
-          minDec: tile.minDec,
-          maxDec: tile.maxDec,
-          zoomLevel: bounds.zoomLevel,
-        })
-          .then((stars) => {
-            viewportTileCacheRef.current.set(cacheKey, stars);
-            return stars;
-          })
-          .finally(() => {
-            viewportTileRequestRef.current.delete(cacheKey);
-          });
-
-        viewportTileRequestRef.current.set(cacheKey, request);
-        return request;
-      }));
-
-      // Ignore a slower response from a viewport the user has already left.
-      if (requestVersion !== viewportRequestVersionRef.current) return;
-      // Do NOT filter by isStarInBounds here. The backend already returns an
-      // exact 30-degree tile, so every star belongs to a complete tile block.
-      // Clipping to the instantaneous viewport bounds corrupts the tile content
-      // signature on every zoom frame and continuously invalidates the Skia
-      // picture cache \u2014 the root cause of one class of flicker.
-      // Frustum culling (keeping only on-screen tiles) is handled inside
-      // MacroSkyCanvas via isInFrustum with OVERSCAN_PAD.
-      const nextStars = mergeViewportStars(tileResults);
-      setViewportStars((previousStars) =>
-        areSameViewportStars(previousStars, nextStars) ? previousStars : nextStars
-      );
-    } catch {
-      // Sessiz geç
-    }
-  }, []);
-
+  const { prefetch: prefetchSkyTiles } = skyTiles;
   const handleFocusMyStar = useCallback(() => {
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
     setFlyToTarget({ centerRa: myStarRa, centerDec: myStarDec, zoom: 3.0, nonce: Date.now() });
-    // Immediately pre-fetch the target sector bounds so tiles arrive during the flight
-    handleMacroBoundsChange(computeBounds({
+    // Warm the destination tiles so they arrive during the flight.
+    prefetchSkyTiles(computeBounds({
       centerRa: myStarRa,
       centerDec: myStarDec,
       zoom: 3.0,
@@ -581,7 +522,7 @@ export const OurStarScreen: React.FC = () => {
       setSelectedMacroStar(myStarItem);
     }
     showToast('Yıldızımıza süzülüyoruz ✨');
-  }, [myStarRa, myStarDec, starDetails, showToast, handleMacroBoundsChange]);
+  }, [myStarRa, myStarDec, starDetails, showToast, prefetchSkyTiles]);
 
   const handleHomeRadarComplete = useCallback(() => {
     setIsHomeRadarOpen(false);
@@ -869,7 +810,7 @@ export const OurStarScreen: React.FC = () => {
           />
         ) : (
           <MacroSkyCanvas
-            stars={viewportStars}
+            stars={skyTiles.stars}
             width={SCREEN_WIDTH}
             height={SCREEN_HEIGHT}
             connections={starConnections}
@@ -889,7 +830,7 @@ export const OurStarScreen: React.FC = () => {
             }}
             targetCamera={flyToTarget}
             onTargetCameraConsumed={() => setFlyToTarget(undefined)}
-            onBoundsChange={handleMacroBoundsChange}
+            onBoundsChange={skyTiles.onBoundsChange}
             onCameraChange={handleCameraChange}
             onSelectStar={(star) => {
               if (!star) {
@@ -1447,8 +1388,8 @@ export const OurStarScreen: React.FC = () => {
           const solarObj = SOLAR_SYSTEM_OBJECTS.find(
             (s) => s.catalog_code === item.catalog_code
           );
-          // 2. Check if already loaded in viewportStars
-          const existing = viewportStars.find(
+          // 2. Check if already loaded in the streamed sky tiles
+          const existing = skyTiles.stars.find(
             (s) => s.catalog_code === item.catalog_code
           );
 
