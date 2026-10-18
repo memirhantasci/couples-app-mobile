@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Gesture } from 'react-native-gesture-handler';
 import {
   cancelAnimation,
@@ -8,6 +8,7 @@ import {
   useSharedValue,
   withDecay,
   withTiming,
+  type SharedValue,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { createFlightPlan, FLIGHT_INSTANT, sampleFlight, type FlightPlan } from './flyToPath';
@@ -85,6 +86,47 @@ export interface SkyFlightRequest {
 function eventTimeMs() {
   'worklet';
   return Date.now();
+}
+
+/** Every shared value the rendered camera is computed from. */
+interface CameraSources {
+  readonly mode: SharedValue<number>;
+  readonly baseRa: SharedValue<number>;
+  readonly baseDec: SharedValue<number>;
+  readonly baseZoom: SharedValue<number>;
+  readonly flingX: SharedValue<number>;
+  readonly flingY: SharedValue<number>;
+  readonly settleParams: SharedValue<SettleParams>;
+  readonly settleProgress: SharedValue<number>;
+  readonly flightPlan: SharedValue<FlightPlan | null>;
+  readonly flightProgress: SharedValue<number>;
+}
+
+/** The camera as it should be on screen right now, for whichever mode owns it. */
+function resolveCamera(sources: CameraSources, width: number, height: number): SkyCamera {
+  'worklet';
+  const mode = sources.mode.get();
+  if (mode === MODE_FLING) {
+    const zoom = sources.baseZoom.get();
+    const scale = pxPerDegree(zoom, height);
+    return {
+      ra: sources.baseRa.get() - sources.flingX.get() / scale,
+      dec: sources.baseDec.get() + sources.flingY.get() / scale,
+      zoom,
+    };
+  }
+  if (mode === MODE_SETTLE) {
+    const params = sources.settleParams.get();
+    const progress = sources.settleProgress.get();
+    const zoom = Math.exp(params.logZoomFrom + (params.logZoomTo - params.logZoomFrom) * progress);
+    const anchored = cameraAnchoredAt(params.anchorRa, params.anchorDec, params.anchorX, params.anchorY, zoom, width, height);
+    return { ra: anchored.ra, dec: anchored.dec + params.decExcess * (1 - progress), zoom };
+  }
+  if (mode === MODE_FLY) {
+    const plan = sources.flightPlan.get();
+    if (plan) return sampleFlight(plan, sources.flightProgress.get());
+  }
+  return { ra: sources.baseRa.get(), dec: sources.baseDec.get(), zoom: sources.baseZoom.get() };
 }
 
 export interface UseSkyCameraOptions {
@@ -169,31 +211,33 @@ export function useSkyCamera({
   const decVelocity = useSharedValue(0);
   const notifiedBand = useSharedValue(-1);
 
+  // Reanimated subscribes a derived value only to shared values its updater
+  // captures directly, or inside plain objects/arrays it captures; it never
+  // looks into helper functions. Both the rendered camera and the gesture
+  // reads therefore capture this object rather than wrapping each other.
+  // Shared values keep their identity, so it is built once (state keeps it
+  // stable for memoization).
+  const [cameraSources] = useState<CameraSources>(() => ({
+    mode,
+    baseRa,
+    baseDec,
+    baseZoom,
+    flingX,
+    flingY,
+    settleParams,
+    settleProgress,
+    flightPlan,
+    flightProgress,
+  }));
+
   const readCamera = (): SkyCamera => {
     'worklet';
-    const currentMode = mode.get();
-    if (currentMode === MODE_FLING) {
-      const zoom = baseZoom.get();
-      const scale = pxPerDegree(zoom, height);
-      return { ra: baseRa.get() - flingX.get() / scale, dec: baseDec.get() + flingY.get() / scale, zoom };
-    }
-    if (currentMode === MODE_SETTLE) {
-      const params = settleParams.get();
-      const progress = settleProgress.get();
-      const zoom = Math.exp(params.logZoomFrom + (params.logZoomTo - params.logZoomFrom) * progress);
-      const anchored = cameraAnchoredAt(params.anchorRa, params.anchorDec, params.anchorX, params.anchorY, zoom, width, height);
-      return { ra: anchored.ra, dec: anchored.dec + params.decExcess * (1 - progress), zoom };
-    }
-    if (currentMode === MODE_FLY) {
-      const plan = flightPlan.get();
-      if (plan) return sampleFlight(plan, flightProgress.get());
-    }
-    return { ra: baseRa.get(), dec: baseDec.get(), zoom: baseZoom.get() };
+    return resolveCamera(cameraSources, width, height);
   };
 
   const camera = useDerivedValue(() => {
     'worklet';
-    return readCamera();
+    return resolveCamera(cameraSources, width, height);
   });
 
   const setDirect = (next: SkyCamera) => {
