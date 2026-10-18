@@ -519,17 +519,17 @@ export function buildSkyOverlay({
       case 'SOL-SUN':
         solar.push({ ra: object.ra, dec: object.dec, picture: assets.sunMarker, isSun: true, label: pill('Güneş ☀️', SUN_PILL, 'sun'), labelOffsetY: 18 });
         break;
-      case 'SOL-EARTH':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.earthMarker, isSun: false, label: plain('Dünya 🌍', { ...SMALL_TEXT, color: '#93C5FD' }), labelOffsetY: 18 });
+      case 'SOL-MERCURY':
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.mercuryMarker, isSun: false, label: plain('Merkür ☿', { ...SMALL_TEXT, color: '#CBD5E1' }), labelOffsetY: -16 });
         break;
       case 'SOL-VENUS':
         solar.push({ ra: object.ra, dec: object.dec, picture: assets.venusMarker, isSun: false, label: plain('Venüs ✨', { ...SMALL_TEXT, color: '#FDE68A' }), labelOffsetY: 18 });
         break;
-      case 'SOL-MOON':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.moonMarker, isSun: false, label: plain('Ay 🌙', { ...SMALL_TEXT, color: '#CBD5E1' }), labelOffsetY: 16 });
+      case 'SOL-EARTH':
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.earthMarker, isSun: false, label: plain('Dünya 🌍', { ...SMALL_TEXT, color: '#93C5FD' }), labelOffsetY: 18 });
         break;
-      case 'SOL-MERCURY':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.mercuryMarker, isSun: false, label: plain('Merkür ☿', { ...SMALL_TEXT, color: '#CBD5E1' }), labelOffsetY: 16 });
+      case 'SOL-MOON':
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.moonMarker, isSun: false, label: plain('Ay 🌙', { ...SMALL_TEXT, color: '#CBD5E1' }), labelOffsetY: -16 });
         break;
       case 'SOL-MARS':
         solar.push({ ra: object.ra, dec: object.dec, picture: assets.marsMarker, isSun: false, label: plain('Mars 🔴', { ...SMALL_TEXT, color: '#FCA5A5' }), labelOffsetY: 16 });
