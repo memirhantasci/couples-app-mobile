@@ -180,14 +180,17 @@ export default function ProfileScreen() {
       return;
     }
     if (!coupleId) return;
-    if (!meetDate || !relStartDate) {
-      Alert.alert("Eksik Tarih", "Lütfen her iki tarihi de belirleyin.");
+    if (!relStartDate) {
+      Alert.alert("Eksik Tarih", "Lütfen sevgililik tarihinizi belirleyin.");
       return;
     }
     setDatesLoading(true);
     const { error } = await supabase
       .from("couples")
-      .update({ meet_date: meetDate, relationship_start_date: relStartDate })
+      .update({
+        meet_date: meetDate ? meetDate : null,
+        relationship_start_date: relStartDate,
+      })
       .eq("id", coupleId);
     setDatesLoading(false);
 

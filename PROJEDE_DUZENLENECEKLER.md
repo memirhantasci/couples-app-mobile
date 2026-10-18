@@ -1,170 +1,154 @@
-# 📋 Couples App Mobile — Kapsamlı Proje İyileştirme ve Düzenleme Raporu
+# 📋 Couples App Mobile — Kapsamlı Proje Yol Haritası ve Görev Takibi
 
-Bu belge; uygulamanın tüm ekranları, veri akışları, güvenlik mekanizmaları, tasarım estetiği, performans darboğazları ve kullanıcı deneyimi (UX) taranarak hazırlanmış master yol haritasıdır. Tamamlanan maddeler arşivlenmiş olup belgede yalnızca henüz çözülmemiş bekleyen maddeler listelenmektedir.
+Bu belge; uygulamanın tüm ekranları, veri akışları, güvenlik mekanizmaları, tasarım estetiği, performans darboğazları ve kullanıcı deneyimi (UX) taranarak hazırlanmış master yol haritasıdır.
 
----
-
-## 📑 İçindekiler
-1. [Tamamlanan & Doğrulanan İyileştirmeler](#1-tamamlanan--doğrulanan-iyileştirmeler)
-2. [Kritik Mantık & Fonksiyonel Hatalar (Logic Bugs)](#2-kritik-mantık--fonksiyonel-hatalar-logic-bugs)
-3. [Güvenlik & Oturum Açıkları (Security & Auth)](#3-güvenlik--oturum-açıkları-security--auth)
-4. [Performans & Mimari Refactoring](#4-performans--mimari-refactoring)
-5. [Kalan Görevler Uygulama Planı](#5-kalan-görevler-uygulama-planı)
-6. [Kozmik Yıldız Haritası İyileştirmeleri (Tamamlandı)](#6-kozmik-yıldız-haritası-iyileştirmeleri-tamamlandı-)
+Tüm maddeler **BÖLÜM 1: TAMAMLANANLAR (✅)** ve **BÖLÜM 2: YAPILACAKLAR (📋)** olarak iki ana grupta toplanmıştır.
 
 ---
 
-## 1. Tamamlanan & Doğrulanan İyileştirmeler
+# BÖLÜM 1: TAMAMLANANLAR (✅)
 
-Aşağıdaki tüm optimizasyonlar başarıyla kodlanmış, entegre edilmiş ve test edilmiştir:
+Bu bölümdeki tüm geliştirmeler başarıyla kodlanmış, TypeScript derleme testinden (`npx tsc --noEmit`) 0 hata ile geçmiş ve projeye entegre edilmiştir.
 
-- [x] **Harita Fotoğraf Bellek Sızıntısı ve OOM Çökmesi ([`map.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/map.tsx)):**
-  - Harita pinlerinde (`PhotoPin`) tam boyutlu yüksek çözünürlüklü fotoğraflar yerine `thumb_url` bağlandı.
-- [x] **Mektuplarda Otomatik Yerel Taslak Kaydı ([`letters.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/letters.tsx)):**
-  - Mektup yazılırken AsyncStorage'a anlık taslak kaydedilerek veri kaybı önlendi.
-- [x] **Form Ekranlarında Alt Bar Çakışması ([`_layout.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/_layout.tsx)):**
-  - `add-memory`, `add-photo` ve `add-daily-note` formlarında CustomTabBar gizlendi.
-- [x] **Aşk Skoru Bellek İçi Önbellek ([`loveScore.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/lib/loveScore.ts) & [`home.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/home.tsx)):**
-  - Senkron bellek içi skor önbelleği eklendi; ilk açılıştaki %50 titremesi sıfırlandı.
-- [x] **Menü Navigasyon Emniyeti & Güvenlik Kilidi ([`menu.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/menu.tsx)):**
-  - `handleRoute` ve `handleClose` fonksiyonlarına 600ms kilit açma emniyet zamanlayıcısı eklendi.
+## 1. Onboarding, İzinler & Giriş Akışı Modernizasyonu (Faz 1)
+- [x] **Adım 1 — Bildirim Ön-Onay Mekanizması (`PermissionPrimingModal.tsx` & `useNotificationPriming.ts`):**
+  - Uygulama açılışındaki veya kayıt anındaki zamansız işletim sistemi bildirim pencereleri engellendi.
+  - Bildirim izni yalnızca ilk mektup yazıldığında veya anı kaydedildiğinde duygusal ve açıklayıcı bir ön-onay kartıyla soruluyor; "Şimdilik Değil" denirse 7 gün boyunca tekrar sormayan AsyncStorage zaman damgası mekanizması kuruldu.
+- [x] **Adım 2 — Kayıt Formundaki Zorunlu Checkbox Engellerinin Kaldırılması ([`login.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/login.tsx)):**
+  - Kullanıcıyı yoran iki ayrı zorunlu onay kutusu kaldırıldı.
+  - Yerine modern mağaza standardı getirildi: *"Hesap Oluştur'a dokunarak [Kullanım Koşulları], [Gizlilik Politikası] ve [KVKK Şartları]'nı kabul etmiş sayılırsınız."* (Tıklanabilir dinamik modal bağlantıları).
+- [x] **Adım 3 — Esnek Tarih Seçimi & "Daha Sonra Belirle" Atlama Akışı ([`dates.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(setup)/dates.tsx) & [`datesSkip.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/lib/datesSkip.ts)):**
+  - Çiftlerin tanışma gününü hatırlayamama sürtünmesi çözüldü; tek zorunlu tarih "Sevgili Olma Tarihi" yapıldı, tanışma tarihi ise isteğe bağlı onay kutusuna bağlandı.
+  - Formun altına "Daha Sonra Belirle" butonu eklendi; `datesSkip.ts` üzerinden `AuthContext`, `login`, `verify` ve `verify-device` akışlarında kullanıcıların döngüye girmeden ana sayfaya geçebilmesi sağlandı.
+  - Tarihi henüz girmemiş çiftler için ana sayfa aşk sayaçlarında uydurma veri yerine zarif bir `—` gösterimi bağlandı.
+  - Profil ekranındaki [`RelationshipDatesCard.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/components/profile/RelationshipDatesCard.tsx) ve [`profile.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/profile.tsx) validasyonu yalnızca sevgililik tarihini zorunlu tutacak şekilde güncellendi.
+- [x] **Adım 4 — Eşleşme Bekleme Odası & Romantik Davet Metni ([`pairing.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(setup)/pairing.tsx)):**
+  - WhatsApp ve sistem paylaşım mesajı merak uyandıran, samimi ve derin bağlantılı (Deep Link) yeni romantik kopya ile güncellendi.
+  - Bekleme ekranına "Partnerin Katıldığında Neler Açılacak? ✨" bilgi kutusu eklendi (Aşk Sayacı, Mühürlü Mektuplar, Ortak Albüm).
+  - Yalnız kalan kullanıcının uygulamayı terk etmemesi için "Uygulamayı Demo Modunda Keşfet ✨" butonu altına açıklayıcı rehber eklendi; eşleşme öncesi veritabanına yetim kayıt yazmama kuralı korundu.
+- [x] **Adım 5 — Google ve Apple ile Giriş UI & Entegrasyon Altyapısı ([`login.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/login.tsx)):**
+  - `expo-apple-authentication` paketi kuruldu ve iOS platformuna native Apple Sign-In butonu entegre edildi.
+  - Google OAuth akışı `expo-web-browser` ve `expo-linking` ile bağlandı; `detectSessionInUrl: false` kısıtı nedeniyle token'lar URL'den manuel ayıklanarak `supabase.auth.setSession` ile yetkilendirildi.
+  - Android deep link dönüşünde router çakışmasını önleyen [`src/app/+native-intent.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/+native-intent.tsx) kancası yazıldı.
+  - Sosyal giriş yapan kullanıcılar için otomatik cihaz yetkilendirme (`device_authorizations`) ve brute-force baypas güvenlik kuralları uygulandı.
+
+---
+
+## 2. Monolitik Dev Dosyaların Parçalanması (Mimari Refactor)
+Uygulamada binlerce satıra ulaşmış 5 dev ekran modüler alt bileşenlere ayrılarak ana ekran dosyaları toplamda ~5.100 satır hafifletildi:
+- [x] **`src/app/(tabs)/profile.tsx`** — 2.021 ➔ **704 satır** (`src/components/profile/` altında 10 modül).
+- [x] **`src/app/(tabs)/photos.tsx`** — 1.121 ➔ **498 satır** (`src/components/photos/` altında memoize hücreler ve lightbox).
+- [x] **`src/app/(tabs)/calendar.tsx`** — 1.554 ➔ **1.024 satır** (`src/components/calendar/` altında `DaySectionCard`, `CalendarMonthView` ve modallar).
+- [x] **`src/app/(tabs)/medicine.tsx`** — 1.674 ➔ **829 satır** (`src/components/medicine/` altında seri/doz kartları ve local state modal).
+- [x] **`src/app/(tabs)/map.tsx`** — 2.304 ➔ **496 satır** (`src/components/map/`, `src/constants/mapStyles.ts`, `useMapData.ts` ve pin yokken gerçekçi boş durum kartı).
+
+---
+
+## 3. Güvenlik & Oturum İyileştirmeleri
+- [x] **Şifre Sıfırlama ile Supabase Auth Entegrasyonu ([`forgot-password.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/forgot-password.tsx), [`reset-password.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/reset-password.tsx)):**
+  - Supabase Auth sunucusunda `auth.users.encrypted_password` değerini atomik güncelleyen güvenli RPC fonksiyonları (`request_password_reset_otp` ve `reset_password_with_otp`) bağlandı ([`20261018000000_fix_password_reset_otp_flow.sql`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/supabase/migrations/20261018000000_fix_password_reset_otp_flow.sql)).
+- [x] **Giriş Ekranında Brute-Force Korumasının Kalıcılaştırılması ([`login.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/login.tsx)):**
+  - Başarısız deneme sayısı ve 30 saniyelik kilit süresi `AsyncStorage` içine yazılarak ekran kapatılıp açılsa bile kilit korundu.
 - [x] **Oturum Kapatmada Çift Veri İzolasyonu ([`AuthContext.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/context/AuthContext.tsx)):**
   - `signOut()` işleminde çifte özel tüm yerel önbellekler temizlendi.
-- [x] **Buluşma Planlamasında Saniyelik Hata & Tolerans Esnekliği ([`meetings.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/meetings.tsx)):**
-  - 5 dakikalık tolerans payı (`Date.now() - 5 * 60 * 1000`) tanınarak form doldurma esnasında saniye farkıyla hata fırlatılması engellendi.
-- [x] **Buluşma Yaklaşırken Yerel Hatırlatıcı Bildirimi ([`meetings.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/meetings.tsx)):**
-  - Buluşma saatinden 2 saat önce otomatik yerel bildirim (`scheduleDateLocalNotification`) planlandı; silindiğinde zamanlanmış bildirim iptal ediliyor.
-- [x] **Ortak Takvim ile Buluşmalar ve Regl Günlerinin Entegrasyonu ([`calendar.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/calendar.tsx)):**
-  - Takvim veri sorgusuna `meetings` ve `period_logs` dahil edildi.
-  - Erkek kullanıcılar için regl takibi **sadece çift Premium ise** aktifleştirildi (`canSeePeriod = isFemale || isPremium`). Premium olmayan erkek kullanıcılar için döngü noktaları, lejant ve kartlar gizlendi. Kadın kullanıcılar ise kendi döngülerini daima görmektedir.
-- [x] **Takvim Hücrelerinde 4+ Noktanın Taşmasının Önlenmesi ([`calendar.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/calendar.tsx)):**
-  - Gün hücresinde (36px) nokta boyutları 5px'e optimize edildi ve en fazla 3 noktaya sınırlandırılarak hücre dışına taşma sorunu çözüldü.
-- [x] **Silinen Fotoğrafların Thumbnail (Küçük Resim) Temizliği ([`photos.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/photos.tsx)):**
-  - Fotoğraf silinirken Supabase Storage'daki `${coupleId}/thumbs/` klasöründeki küçük resim dosyaları da tespit edilip silinerek çöp dosya birikmesi önlendi.
-- [x] **Özel Günler & Yıl Dönümlerinde Geri Sayım & Kilometre Taşları ([`memories.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/memories.tsx)):**
-  - Her özel gün için bir sonraki yıllık tekrar tarihi hesaplanarak "X. Yılımıza Y Gün Kaldı ⏳" rozeti ve toplam "✨ Z. Gün" kilometre taşı rozetleri eklendi.
-- [x] **Aşk Ölçer (LoveMeter) Sayı Sayacı & Haptik ([`LoveMeter.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/components/home/LoveMeter.tsx)):**
-  - Yüzde metninin 0'dan hedefe akıcı sayılması (rolling counter) sağlandı; karta dokunulduğunda kutlama sesi ve başarı haptiği (`triggerHaptic("celebration")`) entegre edildi.
-- [x] **Açık Tema (Light Mode) Metin & Kontrast Düzeltmeleri ([`add-daily-note.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/add-daily-note.tsx) & [`add-memory.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/add-memory.tsx)):**
-  - Statik `getTheme()` yerine dinamik `useTheme()` bağlandı; açık temada görünmeyen sert kodlanmış `#ffffff` metinler `theme.text` ve `theme.textMuted` renklerine dönüştürüldü.
-- [x] **İlaç Takviminde Seri (Streak) ve 7 Günlük Hap Uyum Matrisi ([`medicine.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/medicine.tsx)):**
-  - Çiftlerin düzenli ilaç/vitamin alışkanlığını motive eden "🔥 X Günlük Seri!" sayacı ve son 7 günün gün gün durumunu gösteren (P, S, Ç, P, C, C, P) interaktif mini hap durum matrisi eklendi.
-- [x] **Giriş Ekranında Brute-Force Korumasının Kalıcılaştırılması ([`login.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/login.tsx)):**
-  - Başarısız deneme sayısı ve 30 saniyelik kilit bitiş zamanı `AsyncStorage` (safeStorage) içine yazılarak ekran kapatılıp açılsa bile kilidin korunması sağlandı.
-- [x] **Ana Sayfa Sorgu ve Partner Verisi Konsolidasyonu ([`home.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/home.tsx)):**
-  - Partner bilgisi doğrudan ana pano sorgusuyla çekildi; regl yaklaşma kontrolü yalnızca erkek kullanıcı ve kayıtlı kadın partner varsa tekil sorguyla sınırlandırılarak gereksiz ağ trafiği önlendi.
-- [x] **Kullanılmayan Importların Temizlenmesi ([`profile.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/profile.tsx)):**
-  - `PlayCircle`, `ThemeMode` vb. gereksiz kütüphane importları temizlendi.
-- [x] **Kozmik Yıldız Haritası: Kayan Yıldızlar & Dilek Tutma ([`MacroSkyCanvas.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/MacroSkyCanvas.tsx)):**
-  - 20-40s rastgele aralıkla ekranda süzülen meteor animasyonu; UI thread saatiyle zamanlanıyor (`useFrameCallback`). Dokunulduğunda haptics + kristal çan sesi + `onWishGranted` ile *"Dileğin gökyüzüne yazıldı 🌠"* toast'ı tetikleniyor.
-- [x] **Kozmik Yıldız Haritası: Yıldızların Nefes Alması ([`starStyle.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/macro/starStyle.ts) & [`drawSkyFrame.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/macro/drawSkyFrame.ts)):**
-  - Mag < 4.0 parlak yıldızlar için konumlarından türeyen deterministik faz ve hızla sinüzoidal parlaklık salınımı (`twinkleFactor`) eklendi.
-- [x] **Kozmik Yıldız Haritası: Samanyolu Derin Uzay Tozu Şeridi ([`skyOverlay.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/macro/skyOverlay.ts) & [`drawSkyFrame.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/macro/drawSkyFrame.ts)):**
-  - J2000 galaktik→ekvatoral rotasyon matrisiyle (Sgr A* merkezli: RA≈266.4°, Dec≈-28.9°) galaktik ekvator boyunca örtüşen yumuşak ışıma noktaları üretildi (`drawMilkyWay`).
-- [x] **Kozmik Yıldız Haritası: Kozmik Ambiyans & Kristal Çan Tınısı ([`soundEffects.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/lib/soundEffects.ts) & [`OurStarScreen.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/components/OurStarScreen.tsx)):**
-  - 12s kesintisiz döngü (seamless-loop) sentezlenmiş derin uzay ambient pad'i (`startCosmicAmbient`/`stopCosmicAmbient`, ekran odaklanmasında yumuşak fade-in/out) ve yıldıza dokunulduğunda kristal çan sesi (`playCelestialChime`) eklendi (`assets/sounds/cosmic_ambient.wav`, `celestial_chime.wav`).
-- [x] **Kozmik Yıldız Haritası: Akan Enerji & Canlı Bağlantı Çizgileri ([`drawSkyFrame.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/macro/drawSkyFrame.ts)):**
-  - Statik kesikli çizgi yerine her karede animasyonlu dash-phase ve yıldızdan yıldıza süzülen parlak enerji partikülleri eklendi.
-- [x] **Şifre Sıfırlama ile Supabase Auth Entegrasyonu ([`forgot-password.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/forgot-password.tsx), [`reset-password.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/reset-password.tsx)):**
-  - Supabase Auth kimlik doğrulama sunucusunda `auth.users.encrypted_password` değerini güncelleyen güvenli RPC fonksiyonları (`request_password_reset_otp` ve `reset_password_with_otp`) ve `public.otp_codes` tablosu bağlandı ([`20261018000000_fix_password_reset_otp_flow.sql`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/supabase/migrations/20261018000000_fix_password_reset_otp_flow.sql)).
 
 ---
 
-## 2. Kritik Mantık & Fonksiyonel Hatalar (Logic Bugs)
-
-### 🔴 2.1. Döngü Takviminde Biyolojik Olarak İmkansız 4 Gün Sınırı
-- **Dosya:** [`src/app/(tabs)/period-tracker.tsx#L128-L135`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/period-tracker.tsx#L128-L135)
-- **Hata:** 
-  ```typescript
-  const monthLogsCount = logs?.filter(l => l.date.startsWith(currentMonthStr)).length || 0;
-  if (monthLogsCount >= 4) {
-    Alert.alert("Sınır", "Bir ay içerisinde en fazla 4 gün işaretleyebilirsiniz.");
-    return;
-  }
-  ```
-- **Problem:** Kadınların menstrüasyon döngüsü ortalama 5 ila 7 gün sürer. Ayda en fazla 4 gün işaretleme sınırı koymak biyolojik gerçeklikle uyuşmamaktadır. Kullanıcılar 5., 6. ve 7. günleri kaydedememektedir. Ayrıca ay başında ve ay sonunda iki kez döngü yaşayan kadınlar tamamen kilitlenmektedir.
-- **Çözüm:** 4 gün sınırı kaldırılmalı veya mantıklı bir sınıra (örneğin döngü başına 10 gün ya da aylık 12 gün) yükseltilmelidir.
-
-### 🔴 2.2. Döngü Tahmini & Geri Sayım Vaadi Ama Sıfır Hesaplama
-- **Dosya:** [`src/app/(tabs)/period-tracker.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/period-tracker.tsx)
-- **Problem:** Ekranda ve tanıtım metinlerinde "Bilimsel tahminler almak ve döngünüzü takip etmek..." vaadi verilmektedir. Ancak kod tabanında:
-  - Ortalama döngü uzunluğu (Cycle length, örn: 28 gün),
-  - Bir sonraki beklenen regl tarihi,
-  - "Sonraki Regl: 12 Gün Kaldı" geri sayımı,
-  - Ovülasyon (yumurtlama) / verimli dönem tahmini
-  için hiçbir matematiksel hesaplama bulunmamaktadır.
-- **Çözüm:** Geçmiş döngü başlangıç tarihlerinden ortalama döngü periyodu hesaplayan ve takvimde hafif renkli tahmin noktaları gösteren bir algoritma eklenmelidir.
-
-### 🔴 2.3. Ruh Hali (Mood) Seçiminde 24 Saatlik Kalıcı Kilit
-- **Dosya:** [`src/components/home/MoodSelector.tsx#L46-L89`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/components/home/MoodSelector.tsx#L46-L89)
-- **Problem:** Kullanıcı gün içinde bir emojiye bastığında `setLocked(true)` olmakta ve butonlar `disabled` hale gelmektedir. Oysa arkadaki veritabanı kodu `if (existing)` durumunda güncelleme yapabilecek şekilde yazılmıştır. Sabah yorgun uyanıp gün içinde enerjisi yerine gelen veya yanlış emojiye basan bir kullanıcı gün boyunca modunu güncelleyememektedir.
-- **Çözüm:** Kalıcı `disabled` kilidi kaldırılmalı; kullanıcı istediğinde modunu güncelleyebilmeli ve partnerine güncel hissi iletilebilmelidir.
+## 4. Kozmik Yıldız Haritası İyileştirmeleri
+Skia/Reanimated UI-thread canvas ve ses motoruyla çalışan 5 temel özellik:
+- [x] **🌠 Kayan Yıldızlar & Dilek Tutma ([`MacroSkyCanvas.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/MacroSkyCanvas.tsx)):** 20-40s rastgele meteor animasyonu, dokunulduğunda haptik, kristal ses ve *"Dileğin gökyüzüne yazıldı 🌠"* toast'ı.
+- [x] **✨ Yıldızların Nefes Alması ([`starStyle.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/macro/starStyle.ts)):** Sinüzoidal deterministik parlaklık salınımı (`twinkleFactor`).
+- [x] **🌌 Samanyolu Derin Uzay Tozu Şeridi ([`skyOverlay.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/macro/skyOverlay.ts)):** Galaktik rotasyon matrisiyle yumuşak ışıma noktaları (`drawMilkyWay`).
+- [x] **🎵 Kozmik Ambiyans & Kristal Çan Tınısı ([`soundEffects.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/lib/soundEffects.ts)):** 12s dikişsiz ambient pad ve yıldıza dokunma tınısı.
+- [x] **⚡ Canlı Bağlantı Çizgileri ([`drawSkyFrame.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/macro/drawSkyFrame.ts)):** Yıldızlar arası animasyonlu enerji partikülleri.
 
 ---
 
-## 3. Güvenlik & Oturum Açıkları (Security & Auth)
-
-### ✅ [x] 3.1. Şifre Sıfırlama ile Supabase Auth Uyuşmazlığı (Çözüldü)
-- **Dosyalar:**
-  - [`src/app/(auth)/forgot-password.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/forgot-password.tsx)
-  - [`src/app/(auth)/reset-password.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/reset-password.tsx)
-  - [`supabase/migrations/20261018000000_fix_password_reset_otp_flow.sql`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/supabase/migrations/20261018000000_fix_password_reset_otp_flow.sql)
-- **Çözüm:** `request_password_reset_otp` ve `reset_password_with_otp` SECURITY DEFINER RPC fonksiyonları yazılarak OTP doğrulandıktan sonra asıl `auth.users.encrypted_password` alanı atomik olarak güncellenecek şekilde bağlandı.
-
----
-
-## 4. Performans & Mimari Refactoring
-
-### ✅ [x] 4.1. Monolitik Dev Dosyaların Parçalanması (Tamamlandı)
-Uygulamada binlerce satıra ulaşmış 5 dev ekran modüler alt bileşenlere ayrılarak ana ekran dosyaları toplamda ~5.100 satır hafifletildi:
-- `src/app/(tabs)/profile.tsx` — 2.021 ➔ **704 satır** (`src/components/profile/` altında 10 modül)
-- `src/app/(tabs)/photos.tsx` — 1.121 ➔ **498 satır** (`src/components/photos/` altında memoize hücreler ve lightbox)
-- `src/app/(tabs)/calendar.tsx` — 1.554 ➔ **1.024 satır** (`src/components/calendar/` altında `DaySectionCard`, `CalendarMonthView` ve modallar)
-- `src/app/(tabs)/medicine.tsx` — 1.674 ➔ **829 satır** (`src/components/medicine/` altında seri/doz kartları ve local state modal)
-- `src/app/(tabs)/map.tsx` — 2.304 ➔ **496 satır** (`src/components/map/`, `src/constants/mapStyles.ts`, `useMapData.ts` ve `MapStoryModal` boş durum entegrasyonu)
+## 5. Fonksiyonel & UX Düzeltmeleri
+- [x] **Harita Fotoğraf Bellek Sızıntısı & OOM ([`map.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/map.tsx)):** Tam boyut fotoğraflar yerine `thumb_url` bağlandı.
+- [x] **Mektuplarda Yerel Taslak Kaydı ([`letters.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/letters.tsx)):** Yazım esnasında veri kaybı önlendi.
+- [x] **Form Ekranlarında Alt Bar Çakışması ([`_layout.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/_layout.tsx)):** Formlarda CustomTabBar gizlendi.
+- [x] **Aşk Skoru Bellek İçi Önbellek ([`loveScore.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/lib/loveScore.ts)):** Açılıştaki %50 titremesi giderildi.
+- [x] **Buluşma Planlamasında Hata Payı & Hatırlatıcı ([`meetings.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/meetings.tsx)):** 5 dk tolerans ve 2 saat öncesi yerel bildirim.
+- [x] **Ortak Takvim Regl Entegrasyonu ([`calendar.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/calendar.tsx)):** Erkek partner için Premium kısıtı, kadın için tam erişim sağlandı; gün hücresinde nokta taşması (4+) engellendi.
+- [x] **İlaç Takviminde Seri & 7 Günlük Hap Matrisi ([`medicine.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/medicine.tsx)):** Seri sayacı ve P-S-Ç-P-C-C-P matrisi eklendi.
+- [x] **Özel Günler Geri Sayımı ([`memories.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/memories.tsx)):** "X. Yılımıza Y Gün Kaldı ⏳" rozetleri eklendi.
 
 ---
 
-## 5. Kalan Görevler Uygulama Planı
+# BÖLÜM 2: YAPILACAKLAR (📋)
 
-| Sıra | Görev | Kategori | Hedef Dosya | Etki |
+Aşağıdaki görevler öncelik sırasına göre bekleyen işlerdir.
+
+## 1. Dış Sağlayıcı & Supabase Konsol Ayarları (Kullanıcı Tarafından Yapılacak)
+Google ve Apple ile giriş butonlarına basıldığında uygulamanın hata vermeden oturum açabilmesi için konsollardan yapılması gereken ayarlar:
+
+- [ ] **1.1. Supabase Redirect URL Yapılandırması:**
+  - **Adres:** Supabase Dashboard → Authentication → URL Configuration → **Redirect URLs**
+  - **Eklenecek URL:** `couplesapp://auth/callback`
+  - *(Expo Go üzerinden geliştirme testi yapılacaksa `exp://...` formatındaki yerel tünel adresi de eklenmeli).*
+- [ ] **1.2. Google OAuth Sağlayıcısının Aktif Edilmesi:**
+  - **Adres:** Supabase Dashboard → Authentication → Providers → **Google**
+  - **Gerekenler:** Google Cloud Console üzerinden oluşturulan `OAuth 2.0 Client ID` (Web) ve `Client Secret` girilerek Provider aktif edilecek.
+- [ ] **1.3. Apple OAuth Sağlayıcısının Aktif Edilmesi:**
+  - **Adres:** Supabase Dashboard → Authentication → Providers → **Apple**
+  - **Gerekenler:** Apple Developer Console üzerinden alınan `Services ID`, `Team ID`, `Key ID` ve `.p8 Private Key` girilerek Provider aktif edilecek. Paket kimliği: `com.memirhantasci.couplesapp`.
+
+---
+
+## 6. Sosyal Girişte Profil Tamamlama (Ad & Cinsiyet)
+- [x] **[`complete-profile.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/complete-profile.tsx) & [`login.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/login.tsx):**
+  - Google veya Apple ile ilk kez giriş yapan kullanıcılarda `display_name` veya `gender` eksikse araya giren zarif profil tamamlama ekranı bağlandı.
+  - İsim deterministik/statik AES ile şifrelenip `users` tablosuna yazılıyor, kadın/erkek seçimi ile tema ve döngü takvimi rolleri belirleniyor.
+  - `useProtectedRoute` kancası henüz cinsiyet seçmemiş kullanıcıların eşleşme ekranına eksik profille geçmesini engelliyor.
+
+---
+
+## 7. Regl Takviminin Başlangıç Günü Modeline Dönüştürülmesi & Döngü Algoritması
+- [x] **[`period-tracker.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/period-tracker.tsx) & [`calendar.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/calendar.tsx):**
+  - Kadınların her gün "bugün de kanamam var" diye manuel işaretleme zorunluluğu kaldırıldı; yalnızca **başlangıç günü** kaydediliyor.
+  - Takvimde 5 günlük biyolojik süreç otomatik olarak boyanıyor (başlangıç günü koyu pembe `#FF3366`, sonraki 4 gün yarı saydam).
+  - Kadın kullanıcılar için tek dokunuşla çalışan "Bugün Reglim Başladı 🌸" hızlı butonu eklendi ve partnere anında bildirim iletiliyor.
+  - Manipülasyon koruması: Gelecek tarih engeli, ayda en fazla 2 başlangıç ve iki başlangıç arasında en az 16 gün aralık kuralı bağlandı.
+  - Döngü hesaplama: Geçmiş başlangıçlardan ortalama döngü süresi (varsayılan 28 gün) hesaplanıp "Sonraki Döngü: X Gün Kaldı" canlı geri sayımı durum kartına yerleştirildi.
+  - Ortak takvimde ([`calendar.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/calendar.tsx)) partnerin de 5 günü görmesi sağlandı.
+
+---
+
+## 8. Ruh Hali (Mood) Seçiminde 24 Saatlik Kalıcı Kilidin Açılması
+- [x] **[`MoodSelector.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/components/home/MoodSelector.tsx) & [`home.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/home.tsx):**
+  - Kullanıcı gün içinde bir emoji seçtiğinde oluşan kalıcı kilit (`disabled`) kaldırıldı.
+  - Kullanıcı gün içinde sabah "Yorgun 😴" seçip öğleden sonra modunu "Mutlu 😊" olarak güncelleyebiliyor.
+  - Veritabanındaki `moods` tablosunda mevcut günün kaydı atomik olarak güncelleniyor, partnere anında yeni mod bildirimi iletiliyor.
+
+---
+
+# BÖLÜM 2: YAPILACAKLAR (📋)
+
+Aşağıdaki görevler dış yapılandırma ve kullanıcı aksiyonlarıdır.
+
+## 1. Dış Sağlayıcı & Supabase Konsol Ayarları (Kullanıcı Tarafından Yapılacak)
+Google ve Apple ile giriş butonlarına basıldığında uygulamanın hata vermeden oturum açabilmesi için konsollardan yapılması gereken ayarlar:
+
+- [ ] **1.1. Supabase Redirect URL Yapılandırması:**
+  - **Adres:** Supabase Dashboard → Authentication → URL Configuration → **Redirect URLs**
+  - **Eklenecek URL:** `couplesapp://auth/callback`
+  - *(Expo Go üzerinden geliştirme testi yapılacaksa `exp://...` formatındaki yerel tünel adresi de eklenmeli).*
+- [ ] **1.2. Google OAuth Sağlayıcısının Aktif Edilmesi:**
+  - **Adres:** Supabase Dashboard → Authentication → Providers → **Google**
+  - **Gerekenler:** Google Cloud Console üzerinden oluşturulan `OAuth 2.0 Client ID` (Web) ve `Client Secret` girilerek Provider aktif edilecek.
+- [ ] **1.3. Apple OAuth Sağlayıcısının Aktif Edilmesi:**
+  - **Adres:** Supabase Dashboard → Authentication → Providers → **Apple**
+  - **Gerekenler:** Apple Developer Console üzerinden alınan `Services ID`, `Team ID`, `Key ID` ve `.p8 Private Key` girilerek Provider aktif edilecek. Paket kimliği: `com.memirhantasci.couplesapp`.
+
+---
+
+## 📊 Görevler Özet Tablosu
+
+| Sıra | Görev | Kategori | Hedef Dosya / Alan | Durum |
 | :--- | :--- | :--- | :--- | :--- |
-| **1** | `period-tracker.tsx` 4 gün sınırının kaldırılması | Mantık | [`period-tracker.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/period-tracker.tsx) | Kadın kullanıcıların döngü günlerini eksiksiz kaydetmesini sağlar |
-| **2** | `period-tracker.tsx` döngü tahmini ve sonraki regl geri sayımı | Mantık / UX | [`period-tracker.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/period-tracker.tsx) | Döngü takvimini gerçek anlamda işlevsel kılar |
-| **3** | `MoodSelector.tsx` 24 saatlik kalıcı kilidin kaldırılarak güncellemelerin açılması | UX / Mantık | [`MoodSelector.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/components/home/MoodSelector.tsx) | Gün içi ruh hali değişimlerinin anında paylaşılmasını sağlar |
-| **4** | ~~Şifre sıfırlama Supabase Auth entegrasyonu~~ (Tamamlandı ✅) | Güvenlik / Auth | [`forgot-password.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/forgot-password.tsx) & [`reset-password.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/reset-password.tsx) | Şifresini unutan kullanıcıların hesaplarına güvenle tekrar erişebilmesini sağlar |
-| **5** | ~~Monolitik ekranların alt bileşenlere modüler ayrıştırılması~~ (Tamamlandı ✅) | Mimari / Refactor | `map.tsx`, `profile.tsx`, `medicine.tsx`, `calendar.tsx`, `photos.tsx` | Hot-reload ve maintainability hızını ciddi oranda artırdı |
-
----
-
-## 6. Kozmik Yıldız Haritası İyileştirmeleri (Tamamlandı ✅)
-
-Yıldız haritası modülünü Apple Design Award seviyesine taşıyan aşağıdaki 5 temel görsel ve işitsel geliştirmenin tamamı kodlanmış ve doğrulanmıştır:
-*(Not: Bu özellikler Skia/Reanimated UI-thread canvas ve ses motorunu kullandığından, gerçek cihazda veya development build ortamında [`npx expo run:android` / `run:ios`] deneyimlenmelidir.)*
-
-### ✅ [x] 🌠 6.1. Rastgele Kayan Yıldızlar & Dilek Tutma (Shooting Stars & Wish Interaction)
-- **Açıklama:** Haritada gezinirken 20-40 saniyelik rastgele aralıklarla ekranın bir köşesinden diğerine doğru süzülen ince kuyruklu bir meteor animasyonu.
-- **Uygulama:** `MacroSkyCanvas.tsx` içinde `useFrameCallback` saatiyle zamanlanan meteor mekaniği. Meteor ekrandan geçerken dokunulduğunda `expo-haptics` titreşimi, kristal çan sesi ve `onWishGranted` callback'i ile *"Dileğin gökyüzüne yazıldı 🌠"* toast bildirimi tetiklenir.
-- **Hedef Dosyalar:** [`MacroSkyCanvas.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/MacroSkyCanvas.tsx), [`drawSkyFrame.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/macro/drawSkyFrame.ts) & [`OurStarScreen.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/components/OurStarScreen.tsx)
-
-### ✅ [x] ✨ 6.2. Yıldızların Nefes Alması (Twinkle / Scintillation)
-- **Açıklama:** Parlak yıldızların (mag < 4.0) UI thread render döngüsünde sinüzoidal bir salınımla (hafif alpha ve yarıçap dalgalanmasıyla) nefes alır gibi parıldaması.
-- **Uygulama:** `starStyle.ts` dosyasına eklenen `twinkleFactor` ile yıldızlar, konumlarından türeyen deterministik faz ve hızla yumuşak bir parlaklık salınımı yapar (`drawSkyFrame.ts`).
-- **Hedef Dosyalar:** [`starStyle.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/macro/starStyle.ts) & [`drawSkyFrame.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/macro/drawSkyFrame.ts)
-
-### ✅ [x] 🌌 6.3. Samanyolu Derin Uzay Tozu Şeridi (Milky Way Dust Band)
-- **Açıklama:** Gökkubbeyi boydan boya saran, eflatun-mavi tonlarında yarı saydam ve zarif bir derin uzay tozu şeridi çizilmesi.
-- **Uygulama:** `skyOverlay.ts` dosyasında J2000 galaktik→ekvatoral rotasyon matrisiyle (Sgr A* merkezli: RA≈266.4°, Dec≈-28.9°) galaktik ekvator boyunca örtüşen yumuşak ışıma noktaları üretildi; `drawMilkyWay` fonksiyonuyla yıldızların alt katmanına çizildi.
-- **Hedef Dosyalar:** [`skyOverlay.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/macro/skyOverlay.ts) & [`drawSkyFrame.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/macro/drawSkyFrame.ts)
-
-### ✅ [x] 🎵 6.4. Kozmik Ambiyans ve Kristal Tıklama Sesleri (Celestial Audio)
-- **Açıklama:** Gökyüzü haritasında büyüleyici uzay ambiyansı ve yıldıza dokunulduğunda kristal ses efekti.
-- **Uygulama:** `soundEffects.ts` içine `startCosmicAmbient` ve `stopCosmicAmbient` fonksiyonları (12s dikişsiz döngülü sentezlenmiş ambient pad, ekran focus/blur'da 1400ms fade-in / 900ms fade-out) ve `playCelestialChime` fonksiyonu eklendi. Gerekli ses dosyaları (`assets/sounds/cosmic_ambient.wav`, `celestial_chime.wav`) sentezlenerek projeye dahil edildi.
-- **Hedef Dosyalar:** [`soundEffects.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/lib/soundEffects.ts) & [`OurStarScreen.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/components/OurStarScreen.tsx)
-
-### ✅ [x] ⚡ 6.5. Akan Enerji & Canlı Bağlantı Çizgileri (Animated Constellation Stream)
-- **Açıklama:** Bağlı arkadaş çiftler arasındaki yıldız bağının statik kesikli çizgi yerine canlı enerji akışı şeklinde görselleştirilmesi.
-- **Uygulama:** `drawSkyFrame.ts` içindeki `drawConnectionLines` güncellendi; her karede animasyonlu dash-phase ve yıldızdan yıldıza doğru süzülen parlak enerji partikülü çizilmektedir.
-- **Hedef Dosyalar:** [`drawSkyFrame.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/macro/drawSkyFrame.ts)
-
-
+| **1** | Supabase & OAuth Konsol Ayarları | Dış Yapılandırma | Supabase Dashboard & Google/Apple Console | ⏳ Kullanıcı Tarafından Yapılacak |
+| **2** | Sosyal Girişte Profil Tamamlama (Ad & Cinsiyet) | UX / Auth | `complete-profile.tsx` & `login.tsx` | ✅ Tamamlandı |
+| **3** | Regl Takviminde başlangıç günü modeli & 5 gün boyama | Mantık / Biyoloji | [`period-tracker.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/period-tracker.tsx) | ✅ Tamamlandı |
+| **4** | Regl Takviminde döngü tahmini ve geri sayım | Algoritma / UX | [`period-tracker.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/period-tracker.tsx) | ✅ Tamamlandı |
+| **5** | MoodSelector 24 saatlik kalıcı kilidin kaldırılması | UX / Mantık | [`MoodSelector.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/components/home/MoodSelector.tsx) | ✅ Tamamlandı |

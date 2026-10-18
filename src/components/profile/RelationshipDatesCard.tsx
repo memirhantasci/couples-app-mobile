@@ -47,7 +47,7 @@ export function RelationshipDatesCard({
       defaultOpen={false}
     >
       <View style={profileSharedStyles.inputGroup}>
-        <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>TANIŞMA TARİHİ</Text>
+        <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>TANIŞMA TARİHİ (İSTEĞE BAĞLI)</Text>
         <TouchableOpacity
           onPress={() => setShowMeetDatePicker(true)}
           style={pickerBtnStyle}

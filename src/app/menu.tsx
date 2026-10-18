@@ -180,7 +180,7 @@ export default function MenuScreen() {
               <View style={styles.profileSubtitleRow}>
                 <Heart size={11} color={theme.accent} fill={theme.accent} />
                 <Text style={[styles.profileSubtitle, { color: theme.textSecondary }]}>
-                  {displayName} & {partnerName || "Sevgilin"} • {daysSinceTogether} Gün
+                  {displayName} & {partnerName || "Sevgilin"}{relDate ? ` • ${daysSinceTogether} Gün` : ""}
                 </Text>
               </View>
             </View>

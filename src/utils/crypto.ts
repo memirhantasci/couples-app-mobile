@@ -35,10 +35,23 @@ export function setSessionEncryptionKey(userId: string, coupleId: number | null,
  * Format: "enc:IV_HEX:CIPHERTEXT_HEX"
  */
 export function encrypt(text: string): string {
+  return encryptWithKey(text, sessionKey || key);
+}
+
+/**
+ * Oturum anahtarından bağımsız, sabit anahtarla şifreler (format `encrypt` ile aynı).
+ * Kullanıcının kendi profil alanları (display_name) için: bu alanlar çift anahtarı
+ * değişse bile (eşleşme sonrası) decrypt()'in statik anahtar fallback'iyle çözülebilmeli.
+ * Klasik kayıt formu da oturum yokken tam olarak bu anahtarla şifreler.
+ */
+export function encryptStatic(text: string): string {
+  return encryptWithKey(text, key);
+}
+
+function encryptWithKey(text: string, activeKey: any): string {
   if (!text) return text;
   try {
     const iv = CryptoJS.lib.WordArray.random(16);
-    const activeKey = sessionKey || key;
     const encrypted = CryptoJS.AES.encrypt(text, activeKey, {
       iv: iv,
       mode: CryptoJS.mode.CBC,

@@ -35,6 +35,8 @@ import { DEMO_LETTERS } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { playLetterSend } from "@/lib/soundEffects";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
+import { PermissionPrimingModal } from "@/components/common/PermissionPrimingModal";
+import { useNotificationPriming } from "@/hooks/useNotificationPriming";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 
 const safeDecrypt = (val: string | null | undefined): string => {
@@ -58,6 +60,7 @@ export default function LettersScreen() {
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
+  const priming = useNotificationPriming(userId);
 
   const [activeTab, setActiveTab] = useState<"all" | "received" | "sent">("all");
   const [pageLimit, setPageLimit] = useState(30);
@@ -882,8 +885,17 @@ export default function LettersScreen() {
 
       <OrigamiBirdAnimation
         visible={showOrigamiAnimation}
-        onComplete={() => setShowOrigamiAnimation(false)}
+        onComplete={() => {
+          setShowOrigamiAnimation(false);
+          // Mektup uçuşu bittikten sonra, uygunsa bildirim ön-onay kartını göster
+          priming.maybePrompt();
+        }}
         accentColor={theme.accent}
+      />
+      <PermissionPrimingModal
+        visible={priming.isVisible}
+        onAccept={priming.accept}
+        onDismiss={priming.dismiss}
       />
       <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
       <DemoActionModal

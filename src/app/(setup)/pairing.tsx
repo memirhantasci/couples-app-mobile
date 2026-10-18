@@ -164,7 +164,7 @@ async function fetchPairingStatus(userId: string): Promise<PairingStatus> {
           pairingCode: pairingCode ?? null,
           memberCount: couple.member_count ?? 0,
           isPaired: couple.is_paired ?? false,
-          hasDates: !!(couple.meet_date && couple.relationship_start_date),
+          hasDates: !!couple.relationship_start_date,
         };
       }
     }
@@ -265,7 +265,7 @@ export default function PairingScreen() {
     const inviteLink = `couplesapp://invite?code=${code}`;
     await Share.share({
       title: "Couples App Daveti 💕",
-      message: `Canım, Couples App'te aşkımıza özel bir alan kurdum! 💖\n\nEşleşme Kodumuz: ${code}\n\nOtomatik bağlanmak için tıkla:\n${inviteLink}`,
+      message: `Sevgilim, ikimize özel küçük bir evren kurdum! 💌✨\n\nAramıza katılmak ve kilitleri açmak için hemen dokun:\n👉 ${inviteLink}\n\n(Eşleşme Kodumuz: ${code})\n\nSeni çok seviyorum ❤️`,
       url: inviteLink,
     });
   }
@@ -606,7 +606,40 @@ export default function PairingScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* ─── 3. DEMO MODU İLE TEST ET BUTONU ─── */}
+          {/* ─── 3. BEKLEME ODASI: PARTNER KATILINCA NELER AÇILACAK? ─── */}
+          <View
+            style={{
+              borderWidth: 1,
+              borderColor: "rgba(255,255,255,0.08)",
+              borderRadius: 20,
+              padding: 18,
+              backgroundColor: "rgba(255,255,255,0.03)",
+              marginBottom: 16,
+            }}
+          >
+            <Text style={{ color: "#FFFFFF", fontSize: 14.5, fontFamily: "Inter_700Bold", marginBottom: 12 }}>
+              Partnerin Katıldığında Neler Açılacak? ✨
+            </Text>
+            {[
+              "⏳ Ortak Aşk Sayacınız ve özel yıldönümü bildirimleriniz",
+              "💌 Birbirinize özel mühürlü mektuplar ve origami animasyonu",
+              "📸 Birlikte gezdiğiniz yerlerin haritası ve ortak anı albümünüz",
+            ].map((item, index) => (
+              <Text
+                key={item}
+                style={{
+                  color: "rgba(255,255,255,0.65)",
+                  fontSize: 13,
+                  lineHeight: 20,
+                  marginBottom: index === 2 ? 0 : 8,
+                }}
+              >
+                {item}
+              </Text>
+            ))}
+          </View>
+
+          {/* ─── 4. DEMO MODU İLE TEST ET BUTONU ─── */}
           <TouchableOpacity
             onPress={() => {
               enterDemoMode();
@@ -624,7 +657,7 @@ export default function PairingScreen() {
               borderRadius: 20,
               paddingVertical: 14,
               paddingHorizontal: 20,
-              marginBottom: 12,
+              marginBottom: 8,
             }}
           >
             <Sparkles color="#FF4D6A" size={18} />
@@ -632,8 +665,20 @@ export default function PairingScreen() {
               Uygulamayı Demo Modunda Keşfet ✨
             </Text>
           </TouchableOpacity>
+          <Text
+            style={{
+              color: "rgba(255,255,255,0.4)",
+              fontSize: 12,
+              lineHeight: 18,
+              textAlign: "center",
+              paddingHorizontal: 12,
+              marginBottom: 16,
+            }}
+          >
+            (Partnerini beklerken uygulamanın tüm özelliklerini demo çiftiyle güvenle keşfedebilirsin).
+          </Text>
 
-          {/* ─── 4. ÇIKIŞ / GERİ DÖN BUTONU ─── */}
+          {/* ─── 5. ÇIKIŞ / GERİ DÖN BUTONU ─── */}
           <TouchableOpacity
             onPress={async () => {
               try {

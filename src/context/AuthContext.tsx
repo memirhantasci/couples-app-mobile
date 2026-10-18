@@ -7,6 +7,7 @@ import { decrypt, deterministicDecrypt, setSessionEncryptionKey } from "@/utils/
 import { setAdLoggingOut } from "../utils/adFlags";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { getOrCreateDeviceId } from "@/utils/device";
+import { isDatesSkipped } from "@/lib/datesSkip";
 
 import { Platform, AppState } from "react-native";
 
@@ -26,6 +27,8 @@ export interface CoupleProfile {
   relationshipStartDate: string | null;
   isPaired: boolean;
   hasDates: boolean;
+  /** Sosyal girişle gelip cinsiyeti henüz seçmemiş kullanıcı (profil tamamlama gerekir). Yalnızca satır başarıyla okunduysa true olabilir. */
+  needsProfileSetup?: boolean;
   displayName: string | null;
   username: string | null;
   gender: string | null;
@@ -132,12 +135,16 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
   const decDisplayName = user.display_name ? decrypt(user.display_name) : null;
   const decUsername = user.username ? deterministicDecrypt(user.username) : null;
 
+  // Tanışma tarihi opsiyonel: sevgili olma tarihi yeterli ya da kullanıcı "Daha Sonra Belirle" demiş olmalı
+  const datesSkipped = await isDatesSkipped(userId);
+
   return {
     coupleId: parsedCoupleId,
     meetDate: coupleObj?.meet_date ?? null,
     relationshipStartDate: coupleObj?.relationship_start_date ?? null,
     isPaired: !!(user.couple_id && coupleObj?.member_count >= 2),
-    hasDates: !!(coupleObj?.meet_date && coupleObj?.relationship_start_date),
+    hasDates: !!coupleObj?.relationship_start_date || datesSkipped,
+    needsProfileSetup: !user.gender,
     displayName: decDisplayName || decUsername || null,
     username: decUsername || null,
     gender: user.gender ?? null,

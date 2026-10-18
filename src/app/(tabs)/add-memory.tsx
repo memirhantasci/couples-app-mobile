@@ -21,6 +21,8 @@ import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { sanitizeStrict, sanitize } from "@/utils/sanitize";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
+import { PermissionPrimingModal } from "@/components/common/PermissionPrimingModal";
+import { useNotificationPriming } from "@/hooks/useNotificationPriming";
 
 export default function AddMemoryScreen() {
   const router = useRouter();
@@ -32,6 +34,7 @@ export default function AddMemoryScreen() {
   const { theme, isLight } = useTheme();
 
   const isEditing = !!params.id;
+  const priming = useNotificationPriming(session?.user?.id);
 
   const [title, setTitle] = useState(params.title as string || "");
   const [date, setDate] = useState(params.date as string || todayString());
@@ -168,6 +171,10 @@ export default function AddMemoryScreen() {
       if (error) throw error;
 
       queryClient.invalidateQueries({ queryKey: ["memories"] });
+
+      // Yeni anı kaydedildiyse, uygunsa bildirim ön-onay kartını göster; yönlendirme kart kapanınca yapılır
+      if (!isEditing && (await priming.maybePrompt())) return;
+
       router.replace("/(tabs)/memories");
     } catch (error: any) {
       logger.error("Memory save error:", error);
@@ -311,6 +318,18 @@ export default function AddMemoryScreen() {
         onClose={() => setIsDemoModalOpen(false)}
         title={modalConfig.title}
         description={modalConfig.description}
+      />
+
+      <PermissionPrimingModal
+        visible={priming.isVisible}
+        onAccept={async () => {
+          await priming.accept();
+          router.replace("/(tabs)/memories");
+        }}
+        onDismiss={async () => {
+          await priming.dismiss();
+          router.replace("/(tabs)/memories");
+        }}
       />
     </ScreenBackground>
   );

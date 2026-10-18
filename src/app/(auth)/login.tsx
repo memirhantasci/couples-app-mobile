@@ -23,13 +23,83 @@ import { logger } from "@/utils/logger";
 import { 
   Eye, EyeOff, Heart, Link, 
   AtSign, Lock, User, Mail, 
-  AlertCircle, CheckCircle2, ArrowRight, Check,
-  Sparkles 
+  AlertCircle, CheckCircle2, ArrowRight,
+  Sparkles
 } from "lucide-react-native";
 import { getOrCreateDeviceId } from "@/utils/device";
+import { isDatesSkipped } from "@/lib/datesSkip";
 import { LegalModal } from "@/components/legal/LegalModal";
 import { LegalDocType } from "@/constants/legalTexts";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as WebBrowser from "expo-web-browser";
+import * as Linking from "expo-linking";
+import * as AppleAuthentication from "expo-apple-authentication";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
+
+WebBrowser.maybeCompleteAuthSession();
+
+// ─── Social Auth Helpers ─────────────────────────────────────────────────────
+
+/**
+ * OAuth dönüş URL'inden oturumu kurar.
+ * supabase.ts'te detectSessionInUrl: false olduğu için token'lar URL'den elle ayrıştırılır
+ * (implicit flow: couplesapp://auth/callback#access_token=...&refresh_token=...).
+ */
+async function createSessionFromOAuthUrl(url: string): Promise<SupabaseUser> {
+  const [beforeHash, hash = ""] = url.split("#");
+  const query = beforeHash.includes("?") ? beforeHash.split("?")[1] : "";
+  const params = new URLSearchParams(query);
+  new URLSearchParams(hash).forEach((value, key) => params.set(key, value));
+
+  const providerError = params.get("error_description") ?? params.get("error");
+  if (providerError) throw new Error(providerError);
+
+  const accessToken = params.get("access_token");
+  const refreshToken = params.get("refresh_token");
+  if (!accessToken || !refreshToken) {
+    throw new Error("Oturum bilgisi alınamadı. Lütfen tekrar deneyin.");
+  }
+
+  const { data, error } = await supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
+  if (error) throw error;
+  if (!data.user) throw new Error("Oturum açılamadı. Lütfen tekrar deneyin.");
+  return data.user;
+}
+
+/**
+ * Klasik girişteki cihaz kuralının aynısı: bu cihaz zaten yetkiliyse true;
+ * hesabın hiç yetkili cihazı yoksa (ilk cihaz) otomatik yetkilendirip true;
+ * aksi halde false (e-posta OTP doğrulaması gerekir).
+ */
+async function ensureDeviceAuthorized(userId: string, deviceId: string): Promise<boolean> {
+  const { data: auths, error: authError } = await supabase
+    .from("device_authorizations")
+    .select("is_authorized")
+    .eq("user_id", userId)
+    .eq("device_id", deviceId)
+    .maybeSingle();
+
+  if (authError) return false;
+  if (auths) return !!auths.is_authorized;
+
+  const { count, error: countError } = await supabase
+    .from("device_authorizations")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId);
+
+  if (countError || (count ?? 0) > 0) return false;
+
+  await supabase.from("device_authorizations").upsert({
+    user_id: userId,
+    device_id: deviceId,
+    device_name: Platform.OS,
+    is_authorized: true,
+  });
+  return true;
+}
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
@@ -77,10 +147,7 @@ export default function LoginScreen() {
   const [regGender, setRegGender] = useState<"male" | "female">("female");
   const [regPairingCode, setRegPairingCode] = useState("");
 
-  // Legal Consent & Modal States
-  const [regAgreeTerms, setRegAgreeTerms] = useState(false);
-  const [regAgreeKvkk, setRegAgreeKvkk] = useState(false);
-  const [attemptedRegister, setAttemptedRegister] = useState(false);
+  // Legal Modal States
   const [legalModalVisible, setLegalModalVisible] = useState(false);
   const [selectedLegalDoc, setSelectedLegalDoc] = useState<LegalDocType>("kvkk");
 
@@ -88,6 +155,15 @@ export default function LoginScreen() {
     setSelectedLegalDoc(doc);
     setLegalModalVisible(true);
   }
+
+  // Apple ile giriş yalnızca iOS'ta ve sistem destekliyorsa gösterilir
+  const [isAppleAvailable, setIsAppleAvailable] = useState(false);
+  useEffect(() => {
+    if (Platform.OS !== "ios") return;
+    AppleAuthentication.isAvailableAsync()
+      .then(setIsAppleAvailable)
+      .catch(() => setIsAppleAvailable(false));
+  }, []);
 
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -334,7 +410,7 @@ export default function LoginScreen() {
         meetDate: couple?.meet_date ?? null,
         relationshipStartDate: couple?.relationship_start_date ?? null,
         isPaired: !!userData?.couple_id,
-        hasDates: !!(couple?.meet_date && couple?.relationship_start_date),
+        hasDates: !!couple?.relationship_start_date || (await isDatesSkipped(userId)),
         displayName: userData?.display_name ? decrypt(userData.display_name) : null,
       });
     } catch (e: any) {
@@ -365,18 +441,6 @@ export default function LoginScreen() {
     }
     if (!regPassword.trim() || regPassword.length < 6) {
       setErrorMsg("Şifre en az 6 karakter olmalı.");
-      return;
-    }
-
-    if (!regAgreeTerms) {
-      setAttemptedRegister(true);
-      setErrorMsg("Kayıt olmak için Kullanım Koşulları ve Gizlilik Politikası'nı onaylamanız gerekmektedir.");
-      return;
-    }
-
-    if (!regAgreeKvkk) {
-      setAttemptedRegister(true);
-      setErrorMsg("Kayıt olmak için KVKK Aydınlatma Metni ve Açık Rıza şartlarını onaylamanız gerekmektedir.");
       return;
     }
 
@@ -479,6 +543,134 @@ export default function LoginScreen() {
       setIsDeviceAuthorized(true);
     } catch (e: any) {
       setErrorMsg("Beklenmedik bir hata oluştu.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // ─── Social Auth (Google / Apple) ─────────────────────────────────────────
+
+  // Sosyal giriş sonrası cihazı yetkilendirir; profil ve yönlendirme AuthContext + useProtectedRoute'a bırakılır
+  // (handleRegister ile aynı yaklaşım — refreshProfile burada eski oturum closure'ı yüzünden profili sıfırlar).
+  async function handleSocialSuccess(user: SupabaseUser) {
+    const cleanPairingCode =
+      regPairingCode.trim().toUpperCase() || activeInviteCode?.trim().toUpperCase() || "";
+    if (cleanPairingCode) {
+      await AsyncStorage.setItem("@pending_invite_code", cleanPairingCode);
+    }
+
+    const deviceId = await getOrCreateDeviceId();
+    const isAuthorized = await ensureDeviceAuthorized(user.id, deviceId);
+
+    if (!isAuthorized) {
+      // Yeni cihaz: klasik girişteki gibi e-posta OTP doğrulaması iste
+      if (!user.email) throw new Error("Hesabınızda doğrulama için e-posta adresi bulunamadı.");
+
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: user.email,
+        options: { shouldCreateUser: false },
+      });
+      if (otpError) {
+        throw new Error("Cihaz doğrulama kodu gönderilemedi: " + otpError.message);
+      }
+
+      setIsDeviceAuthorized(false);
+      router.replace({
+        pathname: "/(auth)/verify-device",
+        params: { userId: user.id, deviceId, email: user.email },
+      });
+      return;
+    }
+
+    await AsyncStorage.setItem("last_user_id", user.id);
+    await AsyncStorage.setItem(DEVICE_AUTH_CACHE_KEY, JSON.stringify({
+      userId: user.id,
+      deviceId,
+      isAuthorized: true,
+      timestamp: Date.now(),
+    }));
+    setIsDeviceAuthorized(true);
+
+    // Cinsiyeti olmayan (ilk kez sosyal girişle gelen) kullanıcı önce profilini tamamlar.
+    // Dolu ise yönlendirmeyi useProtectedRoute (pairing / dates / home) yapar.
+    const { data: profileRow } = await supabase
+      .from("users")
+      .select("gender")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (profileRow && !profileRow.gender) {
+      router.replace("/(auth)/complete-profile");
+    }
+  }
+
+  async function handleGoogleAuth() {
+    if (isLoading) return;
+    setErrorMsg("");
+    setSuccessMsg("");
+    setIsLoading(true);
+    try {
+      const redirectUrl = Linking.createURL("auth/callback");
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: redirectUrl, skipBrowserRedirect: true },
+      });
+      if (error) throw error;
+      if (!data?.url) throw new Error("Giriş bağlantısı oluşturulamadı.");
+
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+      // Kullanıcı tarayıcıyı kapattıysa sessizce çık
+      if (result.type !== "success" || !result.url) return;
+
+      const user = await createSessionFromOAuthUrl(result.url);
+      await handleSocialSuccess(user);
+    } catch (err: any) {
+      setErrorMsg(err?.message || "Google ile giriş yapılırken bir sorun oluştu.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleAppleAuth() {
+    if (isLoading) return;
+    setErrorMsg("");
+    setSuccessMsg("");
+    setIsLoading(true);
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      if (!credential.identityToken) {
+        throw new Error("Apple kimlik doğrulaması tamamlanamadı.");
+      }
+
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: "apple",
+        token: credential.identityToken,
+      });
+      if (error) throw error;
+      if (!data.user) throw new Error("Oturum açılamadı. Lütfen tekrar deneyin.");
+
+      // Apple adı yalnızca ilk girişte verir; profil tamamlama ekranı önerebilsin diye metadata'ya yaz
+      if (credential.fullName) {
+        const fullName = AppleAuthentication.formatFullName(credential.fullName).trim();
+        if (fullName) {
+          try {
+            await supabase.auth.updateUser({ data: { full_name: fullName } });
+          } catch {
+            // Öneri kaydedilemezse kullanıcı ismi elle yazar
+          }
+        }
+      }
+
+      await handleSocialSuccess(data.user);
+    } catch (err: any) {
+      // Kullanıcı Apple penceresini kapattıysa hata gösterme
+      if (err?.code !== "ERR_REQUEST_CANCELED") {
+        setErrorMsg(err?.message || "Apple ile giriş yapılırken bir sorun oluştu.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -845,83 +1037,6 @@ export default function LoginScreen() {
                   />
                 </View>
               </View>
-
-              {/* KVKK & Kullanım Koşulları Onay Kutuları */}
-              <View style={styles.legalSection}>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => setRegAgreeTerms(!regAgreeTerms)}
-                  style={[
-                    styles.checkboxRow,
-                    attemptedRegister && !regAgreeTerms && styles.checkboxRowError,
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.checkboxBox,
-                      regAgreeTerms && { backgroundColor: activeAccent, borderColor: activeAccent },
-                    ]}
-                  >
-                    {regAgreeTerms && <Check size={13} color="#FFFFFF" strokeWidth={3} />}
-                  </View>
-                  <View style={styles.checkboxTextContainer}>
-                    <Text style={styles.checkboxLabel}>
-                      <Text
-                        style={[styles.legalLink, { color: activeAccent }]}
-                        onPress={() => openLegalDoc("terms")}
-                      >
-                        Kullanım Koşulları
-                      </Text>
-                      {" ve "}
-                      <Text
-                        style={[styles.legalLink, { color: activeAccent }]}
-                        onPress={() => openLegalDoc("privacy")}
-                      >
-                        Gizlilik Politikası
-                      </Text>
-                      {"'nı okudum, kabul ediyorum."}
-                      <Text style={{ color: activeAccent }}> *</Text>
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => setRegAgreeKvkk(!regAgreeKvkk)}
-                  style={[
-                    styles.checkboxRow,
-                    attemptedRegister && !regAgreeKvkk && styles.checkboxRowError,
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.checkboxBox,
-                      regAgreeKvkk && { backgroundColor: activeAccent, borderColor: activeAccent },
-                    ]}
-                  >
-                    {regAgreeKvkk && <Check size={13} color="#FFFFFF" strokeWidth={3} />}
-                  </View>
-                  <View style={styles.checkboxTextContainer}>
-                    <Text style={styles.checkboxLabel}>
-                      <Text
-                        style={[styles.legalLink, { color: activeAccent }]}
-                        onPress={() => openLegalDoc("kvkk")}
-                      >
-                        KVKK Aydınlatma Metni
-                      </Text>
-                      {" ve "}
-                      <Text
-                        style={[styles.legalLink, { color: activeAccent }]}
-                        onPress={() => openLegalDoc("consent")}
-                      >
-                        Açık Rıza Metni
-                      </Text>
-                      {" kapsamında verilerimin işlenmesini onaylıyorum."}
-                      <Text style={{ color: activeAccent }}> *</Text>
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
             </View>
           )}
 
@@ -967,11 +1082,73 @@ export default function LoginScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
+          {/* ─── Kayıt Modu Yasal Bilgilendirme (tek dokunuşla kabul) ─── */}
+          {mode === "register" && (
+            <View style={styles.registerLegalNotice}>
+              <Text style={styles.loginLegalText}>
+                Hesap Oluştur'a ya da Apple / Google ile devam etmeye dokunarak{" "}
+                <Text
+                  style={[styles.legalLink, { color: activeAccent }]}
+                  onPress={() => openLegalDoc("terms")}
+                >
+                  Kullanım Koşulları
+                </Text>
+                {", "}
+                <Text
+                  style={[styles.legalLink, { color: activeAccent }]}
+                  onPress={() => openLegalDoc("privacy")}
+                >
+                  Gizlilik Politikası
+                </Text>
+                {" ve "}
+                <Text
+                  style={[styles.legalLink, { color: activeAccent }]}
+                  onPress={() => openLegalDoc("kvkk")}
+                >
+                  KVKK Aydınlatma Metni
+                </Text>
+                'ni kabul etmiş sayılırsınız.
+              </Text>
+            </View>
+          )}
+
           {/* ─── Demo / Keşfet Modu Butonu ─── */}
           <View style={styles.demoDividerContainer}>
             <View style={styles.demoDividerLine} />
             <Text style={styles.demoDividerText}>VEYA</Text>
             <View style={styles.demoDividerLine} />
+          </View>
+
+          {/* ─── Sosyal Giriş Butonları ─── */}
+          <View style={[styles.socialGroup, isLoading && { opacity: 0.6 }]} pointerEvents={isLoading ? "none" : "auto"}>
+            {/* Apple: Apple'ın onaylı native butonu (HIG / App Store uyumlu) */}
+            {Platform.OS === "ios" && isAppleAvailable && (
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={
+                  mode === "login"
+                    ? AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN
+                    : AppleAuthentication.AppleAuthenticationButtonType.CONTINUE
+                }
+                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+                cornerRadius={16}
+                style={styles.appleButton}
+                onPress={handleAppleAuth}
+              />
+            )}
+
+            <TouchableOpacity
+              onPress={handleGoogleAuth}
+              disabled={isLoading}
+              activeOpacity={0.85}
+              style={styles.socialBtn}
+            >
+              <View style={styles.googleBadge}>
+                <Text style={styles.googleBadgeText}>G</Text>
+              </View>
+              <Text style={styles.socialBtnText}>
+                {mode === "login" ? "Google ile Giriş Yap" : "Google ile Devam Et"}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <TouchableOpacity
@@ -1232,45 +1409,46 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 18,
   },
-  legalSection: {
-    gap: 12,
-    marginTop: 4,
-    marginBottom: 6,
-    paddingHorizontal: 2,
+  registerLegalNotice: {
+    marginTop: 14,
+    paddingHorizontal: 8,
   },
-  checkboxRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
+  socialGroup: {
     gap: 10,
-    paddingVertical: 4,
-    paddingHorizontal: 4,
-    borderRadius: 8,
+    marginBottom: 14,
   },
-  checkboxRowError: {
-    backgroundColor: "rgba(232, 0, 45, 0.08)",
+  appleButton: {
+    width: "100%",
+    height: 50,
+  },
+  socialBtn: {
+    height: 50,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.06)",
     borderWidth: 1,
-    borderColor: "rgba(232, 0, 45, 0.35)",
-    padding: 8,
-  },
-  checkboxBox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.25)",
-    backgroundColor: "rgba(255,255,255,0.05)",
+    borderColor: "rgba(255,255,255,0.12)",
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 2,
+    gap: 10,
   },
-  checkboxTextContainer: {
-    flex: 1,
+  socialBtnText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
   },
-  checkboxLabel: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 12.5,
-    fontFamily: "Inter_400Regular",
-    lineHeight: 18,
+  googleBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  googleBadgeText: {
+    color: "#4285F4",
+    fontSize: 14,
+    fontWeight: "900",
   },
   legalLink: {
     fontFamily: "Inter_700Bold",

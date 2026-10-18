@@ -19,6 +19,7 @@ import { useAuth, DEVICE_AUTH_CACHE_KEY } from "@/context/AuthContext";
 import { ArrowLeft, ShieldAlert, RefreshCw } from "lucide-react-native";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { navigateAfterAuth } from "@/lib/navigate";
+import { isDatesSkipped } from "@/lib/datesSkip";
 import { decrypt } from "@/utils/crypto";
 
 const OTP_LENGTH = 6;
@@ -169,7 +170,7 @@ export default function VerifyDeviceScreen() {
         meetDate: couple?.meet_date ?? null,
         relationshipStartDate: couple?.relationship_start_date ?? null,
         isPaired: !!userData?.couple_id,
-        hasDates: !!(couple?.meet_date && couple?.relationship_start_date),
+        hasDates: !!couple?.relationship_start_date || (await isDatesSkipped(userId)),
         displayName: userData?.display_name ? decrypt(userData.display_name) : null,
       });
     } catch (e: any) {

@@ -64,6 +64,15 @@ export function useProtectedRoute() {
           return;
         }
 
+        // Sosyal girişle gelip cinsiyeti/ismi henüz belirlememiş kullanıcı önce profilini tamamlamalı
+        // (uygulama bu adımda kapanıp açılsa bile buradan devam eder)
+        if (profile?.needsProfileSetup) {
+          if (!currentRoute.includes("complete-profile")) {
+            router.replace("/(auth)/complete-profile");
+          }
+          return;
+        }
+
         // Prevent authorized users from going back to login/auth pages
         const isTryingToAccessAuth = inAuthGroup;
 

@@ -33,6 +33,7 @@ import { DaySectionCard, dayItemAccent } from "@/components/calendar/DaySectionC
 import { CalendarMonthView } from "@/components/calendar/CalendarMonthView";
 import { CalendarNoteModal } from "@/components/calendar/CalendarNoteModal";
 import { CalendarPhotoLightbox } from "@/components/calendar/CalendarPhotoLightbox";
+import { PERIOD_DURATION_DAYS, getPeriodDays, getPeriodStarts } from "@/lib/periodCycle";
 
 LocaleConfig.locales['tr'] = {
   monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
@@ -140,7 +141,8 @@ export default function CalendarScreen() {
             .from("period_logs")
             .select("id, date, user_id")
             .eq("couple_id", coupleId)
-            .gte("date", threeMonthsAgo)
+            // Pencere öncesinde başlayıp pencereye taşan 5 günlük süreçler de gelsin
+            .gte("date", dayjs(threeMonthsAgo).subtract(PERIOD_DURATION_DAYS - 1, "day").format("YYYY-MM-DD"))
             .lte("date", threeMonthsLater)
           : Promise.resolve({ data: [] }),
         supabase
@@ -186,6 +188,15 @@ export default function CalendarScreen() {
     staleTime: 1000 * 60 * 5,
   });
 
+  // Kullanıcı başına regl başlangıçları (kayıtlar yalnızca başlangıç gününü tutar; 5 günlük süreç buradan türetilir)
+  const periodStartsByUser = useMemo(() => {
+    const datesByUser: Record<string, string[]> = {};
+    data?.periods?.forEach((p: any) => {
+      (datesByUser[p.user_id] ||= []).push(p.date);
+    });
+    return Object.entries(datesByUser).map(([uid, dates]) => ({ userId: uid, starts: getPeriodStarts(dates) }));
+  }, [data]);
+
   // Takvim işaretli günleri
   const markedDates = useMemo(() => {
     if (!data) return {};
@@ -211,15 +222,20 @@ export default function CalendarScreen() {
       addDot(meetDate, CALENDAR_COLORS.meeting, "meeting");
     });
     if (canSeePeriod) {
-      data.periods?.forEach((p: any) => {
-        addDot(p.date, CALENDAR_COLORS.period, "period");
+      periodStartsByUser.forEach(({ starts }) => {
+        starts.forEach(start => {
+          getPeriodDays(start).forEach(day => addDot(day, CALENDAR_COLORS.period, "period"));
+        });
       });
     }
 
     // 🎨 3.4 Çözümü: Gün hücresi içinde 4+ noktanın taşmasını önlemek için en fazla 3 nokta tut
+    // Regl noktası 5 gün boyunca görünmeli; kesilecekse diğerleri kesilir
     Object.keys(marks).forEach(d => {
       if (marks[d].dots && marks[d].dots.length > 3) {
-        marks[d].dots = marks[d].dots.slice(0, 3);
+        const periodDot = marks[d].dots.find((dot: any) => dot.key === "period");
+        const others = marks[d].dots.filter((dot: any) => dot.key !== "period");
+        marks[d].dots = periodDot ? [...others.slice(0, 2), periodDot] : others.slice(0, 3);
       }
     });
 
@@ -238,7 +254,7 @@ export default function CalendarScreen() {
     }
 
     return marks;
-  }, [data, selectedDate, theme.accent, userId, isPremium, canSeePeriod]);
+  }, [data, selectedDate, theme.accent, userId, isPremium, canSeePeriod, periodStartsByUser]);
 
   const onDayPress = useCallback((day: { dateString: string }) => {
     setSelectedDate(day.dateString);
@@ -271,10 +287,21 @@ export default function CalendarScreen() {
     }) || [];
   }, [data, selectedDate]);
 
+  // Seçili gün bir reglin 5 günlük sürecine denk geliyorsa, o reglin kaçıncı günü olduğuyla birlikte
   const selectedDayPeriods = useMemo(() => {
     if (!canSeePeriod) return [];
-    return data?.periods?.filter((p: any) => p.date === selectedDate) || [];
-  }, [data, selectedDate, canSeePeriod]);
+    const result: { key: string; userId: string; dayIndex: number }[] = [];
+    periodStartsByUser.forEach(({ userId: periodUserId, starts }) => {
+      for (const start of starts) {
+        const dayIndex = dayjs(selectedDate).diff(dayjs(start), "day") + 1;
+        if (dayIndex >= 1 && dayIndex <= PERIOD_DURATION_DAYS) {
+          result.push({ key: `${periodUserId}-${start}`, userId: periodUserId, dayIndex });
+          break;
+        }
+      }
+    });
+    return result;
+  }, [periodStartsByUser, selectedDate, canSeePeriod]);
 
   const userNoteForSelectedDay = useMemo(() => {
     return selectedDayNotes.find((n: any) => n.user_id === userId);
@@ -614,17 +641,19 @@ export default function CalendarScreen() {
               {/* Döngü / Regl Günleri (Sadece kadın kullanıcılar veya Premium erkek kullanıcılar için) */}
               {canSeePeriod && selectedDayPeriods.length > 0 && (
                 <DaySectionCard variant="period" isLight={isLight}>
-                  {selectedDayPeriods.map((period: any) => {
-                    const authorName = getAuthorName(period.user_id);
+                  {selectedDayPeriods.map((period) => {
+                    const authorName = getAuthorName(period.userId);
                     return (
-                      <View key={period.id} style={[styles.periodCard, dayItemAccent("period"), { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                      <View key={period.key} style={[styles.periodCard, dayItemAccent("period"), { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                         <View style={[styles.periodIconBox, { backgroundColor: isLight ? "rgba(225,29,72,0.1)" : "rgba(225,29,72,0.18)" }]}>
                           <Droplet size={20} color={CALENDAR_COLORS.period} />
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={[styles.periodTitle, { color: theme.text }]}>Döngü / Regl Günü</Text>
+                          <Text style={[styles.periodTitle, { color: theme.text }]}>
+                            {period.dayIndex === 1 ? "Regl Başlangıcı" : `Regl Döngüsünün ${period.dayIndex}. Günü`}
+                          </Text>
                           <Text style={[styles.periodSub, { color: theme.textMuted }]}>
-                            {authorName ? `${authorName} için kaydedildi` : "Döngü kaydı"}
+                            {authorName ? `${authorName} · ${PERIOD_DURATION_DAYS} günlük süreç` : "Döngü kaydı"}
                           </Text>
                         </View>
                       </View>

@@ -20,6 +20,7 @@ import { ArrowLeft, Mail } from "lucide-react-native";
 import { decrypt } from "@/utils/crypto";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { getOrCreateDeviceId } from "@/utils/device";
+import { isDatesSkipped } from "@/lib/datesSkip";
 import { useAuth, DEVICE_AUTH_CACHE_KEY } from "@/context/AuthContext";
 
 const OTP_LENGTH = 6;
@@ -222,7 +223,7 @@ export default function VerifyScreen() {
       meetDate: couple?.meet_date ?? null,
       relationshipStartDate: couple?.relationship_start_date ?? null,
       isPaired: !!userData?.couple_id,
-      hasDates: !!(couple?.meet_date && couple?.relationship_start_date),
+      hasDates: !!couple?.relationship_start_date || (await isDatesSkipped(userId)),
       displayName: userData?.display_name ? decrypt(userData.display_name) : null,
     });
   }

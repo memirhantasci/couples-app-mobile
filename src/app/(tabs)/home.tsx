@@ -305,7 +305,7 @@ export default function HomeScreen() {
 
     syncCoupleWidget({
       partnerName: name,
-      daysTogether: daysSinceTogether || daysSinceMeeting || 142,
+      daysTogether: daysSinceTogether || daysSinceMeeting || 0,
       moodEmoji: moodObj.emoji,
       moodLabel: moodObj.label,
       dailyNote: dashboardData.currentNote,
@@ -401,7 +401,7 @@ export default function HomeScreen() {
                 <View style={[styles.counterIconCircle, { backgroundColor: theme.pillAccentBg }]}>
                   <Heart size={16} color={theme.accent} fill={theme.accent} />
                 </View>
-                <Text style={[styles.counterNumber, { color: theme.text }]}>{daysSinceTogether}</Text>
+                <Text style={[styles.counterNumber, { color: theme.text }]}>{relDate ? daysSinceTogether : "—"}</Text>
                 <Text style={[styles.counterDesc, { color: theme.textSecondary }]}>Gündür Sevgiliyiz</Text>
               </View>
 
@@ -410,7 +410,7 @@ export default function HomeScreen() {
                 <View style={[styles.counterIconCircle, { backgroundColor: isLight ? "rgba(255, 215, 0, 0.15)" : "rgba(255,255,255,0.06)" }]}>
                   <Sparkles size={16} color="#ffd700" />
                 </View>
-                <Text style={[styles.counterNumber, { color: theme.text }]}>{daysSinceMeeting}</Text>
+                <Text style={[styles.counterNumber, { color: theme.text }]}>{meetDate ? daysSinceMeeting : "—"}</Text>
                 <Text style={[styles.counterDesc, { color: theme.textSecondary }]}>Gündür Hayatımdasın</Text>
               </View>
             </View>
@@ -528,7 +528,6 @@ export default function HomeScreen() {
           {/* ─── 7. MOD SEÇİMİ ─── */}
           <MoodSelector
             currentMood={dashboardData?.currentMood}
-            moodLocked={!!dashboardData?.currentMood}
             theme={theme}
           />
 

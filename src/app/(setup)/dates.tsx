@@ -13,7 +13,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { Calendar, ChevronRight, Heart, Sparkles } from "lucide-react-native";
+import { setDatesSkipped } from "@/lib/datesSkip";
+import { Calendar, Check, ChevronRight, Heart, Sparkles } from "lucide-react-native";
 
 function formatDate(date: Date): string {
   const year = date.getFullYear();
@@ -70,8 +71,10 @@ export default function DatesScreen() {
   const { session, refreshProfile } = useAuth();
   const userId = session?.user?.id;
 
-  const [meetDate, setMeetDate] = useState(new Date(2024, 1, 14));
-  const [relDate, setRelDate] = useState(new Date(2024, 4, 1));
+  // Tanışma tarihi opsiyonel; yalnızca sevgili olma tarihi zorunlu
+  const [meetDate, setMeetDate] = useState(new Date());
+  const [relDate, setRelDate] = useState(new Date());
+  const [includeMeetDate, setIncludeMeetDate] = useState(false);
   const [showMeetPicker, setShowMeetPicker] = useState(false);
   const [showRelPicker, setShowRelPicker] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -97,7 +100,8 @@ export default function DatesScreen() {
             .single();
 
           if (couple) {
-            if (couple.meet_date && couple.relationship_start_date) {
+            // Sevgili olma tarihi varsa (tanışma tarihi olmasa bile) kurulum tamam
+            if (couple.relationship_start_date) {
               await refreshProfile();
               router.replace("/(tabs)/home");
               return;
@@ -105,10 +109,7 @@ export default function DatesScreen() {
             if (couple.meet_date) {
               const [y, m, d] = couple.meet_date.split("-").map(Number);
               setMeetDate(new Date(y, m - 1, d));
-            }
-            if (couple.relationship_start_date) {
-              const [y, m, d] = couple.relationship_start_date.split("-").map(Number);
-              setRelDate(new Date(y, m - 1, d));
+              setIncludeMeetDate(true);
             }
           }
         }
@@ -121,10 +122,7 @@ export default function DatesScreen() {
 
   function onMeetDateChange(_: DateTimePickerEvent, selected?: Date) {
     setShowMeetPicker(Platform.OS === "ios");
-    if (selected) {
-      setMeetDate(selected);
-      if (selected > relDate) setRelDate(selected);
-    }
+    if (selected) setMeetDate(selected);
   }
 
   function onRelDateChange(_: DateTimePickerEvent, selected?: Date) {
@@ -132,14 +130,34 @@ export default function DatesScreen() {
     if (selected) setRelDate(selected);
   }
 
+  function toggleMeetDate() {
+    const next = !includeMeetDate;
+    setIncludeMeetDate(next);
+    setShowMeetPicker(false);
+    setError("");
+    // Tanışma tarihi sevgili olma tarihinden sonra olamaz
+    if (next && formatDate(meetDate) > formatDate(relDate)) setMeetDate(relDate);
+  }
+
   async function handleSave() {
-    if (meetDate > today || relDate > today) {
+    // Gün bazında string karşılaştırma (YYYY-MM-DD) saat farkından etkilenmez
+    const todayStr = formatDate(today);
+    const relStr = formatDate(relDate);
+
+    if (relStr > todayStr) {
       setError("Gelecek bir tarih seçemezsiniz.");
       return;
     }
-    if (meetDate > relDate) {
-      setError("Tanışma tarihi, sevgili olma tarihinden sonra olamaz.");
-      return;
+    if (includeMeetDate) {
+      const meetStr = formatDate(meetDate);
+      if (meetStr > todayStr) {
+        setError("Tanışma tarihi gelecekte olamaz.");
+        return;
+      }
+      if (meetStr > relStr) {
+        setError("Tanışma tarihi, sevgili olma tarihinden sonra olamaz.");
+        return;
+      }
     }
 
     if (!userId) {
@@ -162,7 +180,7 @@ export default function DatesScreen() {
         return;
       }
 
-      const { data: couple, error: coupleError } = await supabase
+      const { error: coupleError } = await supabase
         .from("couples")
         .select("meet_date, relationship_start_date")
         .eq("id", user.couple_id)
@@ -177,7 +195,7 @@ export default function DatesScreen() {
       const { error: updateError } = await supabase
         .from("couples")
         .update({
-          meet_date: formatDate(meetDate),
+          meet_date: includeMeetDate ? formatDate(meetDate) : null,
           relationship_start_date: formatDate(relDate),
         })
         .eq("id", user.couple_id);
@@ -197,10 +215,28 @@ export default function DatesScreen() {
     }
   }
 
+  // Tarihler profilden her zaman girilebilir; kullanıcıyı bu adımda bekletmeyiz
+  async function handleSkip() {
+    if (!userId) return;
+    setIsLoading(true);
+    setError("");
+    try {
+      await setDatesSkipped(userId);
+      await refreshProfile();
+      router.replace("/(tabs)/home");
+    } catch (err: any) {
+      setError("Bir hata oluştu: " + (err?.message || ""));
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const meetMax = formatDate(formatDate(relDate) < formatDate(today) ? relDate : today);
+
   return (
     <ScreenBackground colors={["#0A0A10", "#0D0D14", "#0A0A10"]}>
       <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 80, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
-        
+
         {/* Header */}
         <View style={{ alignItems: "center", marginBottom: 40 }}>
           <View
@@ -242,69 +278,7 @@ export default function DatesScreen() {
           </Text>
         </View>
 
-        {/* Meet Date Picker */}
-        <TouchableOpacity
-          onPress={() => {
-            if (Platform.OS !== "web") setShowMeetPicker(true);
-          }}
-          activeOpacity={0.8}
-          style={{
-            backgroundColor: "rgba(255,255,255,0.02)",
-            borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.06)",
-            borderRadius: 20,
-            padding: 16,
-            flexDirection: "row",
-            alignItems: "center",
-            marginBottom: 16,
-            position: "relative",
-          }}
-        >
-          <WebDateInput
-            value={formatDate(meetDate)}
-            max={formatDate(relDate < today ? relDate : today)}
-            onChange={(val) => {
-              if (val) {
-                const [y, m, d] = val.split("-").map(Number);
-                const newD = new Date(y, m - 1, d);
-                setMeetDate(newD);
-                if (newD > relDate) setRelDate(newD);
-              }
-            }}
-          />
-
-          <View
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 14,
-              backgroundColor: "rgba(0,0,0,0.3)",
-              alignItems: "center",
-              justifyContent: "center",
-              marginRight: 16,
-            }}
-          >
-            <Sparkles color="#FF4D6A" size={22} />
-          </View>
-
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "700", marginBottom: 2 }}>
-              Tanışma Tarihi
-            </Text>
-            <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
-              İlk buluştuğunuz o eşsiz an
-            </Text>
-          </View>
-
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Text style={{ color: "#FFFFFF", fontSize: 15, fontWeight: "600", letterSpacing: 1 }}>
-              {displayDate(meetDate)}
-            </Text>
-            <ChevronRight color="rgba(255,255,255,0.3)" size={20} />
-          </View>
-        </TouchableOpacity>
-
-        {/* Relationship Date Picker */}
+        {/* Kart 1 — Ana ve zorunlu: Sevgili Olma / Yıl Dönümü Tarihi */}
         <TouchableOpacity
           onPress={() => {
             if (Platform.OS !== "web") setShowRelPicker(true);
@@ -313,12 +287,12 @@ export default function DatesScreen() {
           style={{
             backgroundColor: "rgba(255,255,255,0.02)",
             borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.06)",
+            borderColor: "rgba(255, 77, 106, 0.35)",
             borderRadius: 20,
             padding: 16,
             flexDirection: "row",
             alignItems: "center",
-            marginBottom: 40,
+            marginBottom: 16,
             position: "relative",
           }}
         >
@@ -349,10 +323,10 @@ export default function DatesScreen() {
 
           <View style={{ flex: 1 }}>
             <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "700", marginBottom: 2 }}>
-              Sevgili Olma Tarihi
+              Sevgili Olma Tarihi / Yıl Dönümü 💕
             </Text>
             <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
-              Birlikteliğinizin resmi başlangıcı
+              Birlikteliğinizin başladığı gün
             </Text>
           </View>
 
@@ -363,6 +337,101 @@ export default function DatesScreen() {
             <ChevronRight color="rgba(255,255,255,0.3)" size={20} />
           </View>
         </TouchableOpacity>
+
+        {/* Kart 2 — Opsiyonel: Tanışma Tarihi */}
+        <View
+          style={{
+            backgroundColor: "rgba(255,255,255,0.02)",
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.06)",
+            borderRadius: 20,
+            padding: 16,
+            marginBottom: 32,
+          }}
+        >
+          <TouchableOpacity
+            onPress={toggleMeetDate}
+            activeOpacity={0.8}
+            style={{ flexDirection: "row", alignItems: "center" }}
+          >
+            <View
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 7,
+                borderWidth: 1.5,
+                borderColor: includeMeetDate ? "#FF4D6A" : "rgba(255,255,255,0.25)",
+                backgroundColor: includeMeetDate ? "#FF4D6A" : "rgba(255,255,255,0.05)",
+                alignItems: "center",
+                justifyContent: "center",
+                marginRight: 14,
+              }}
+            >
+              {includeMeetDate && <Check color="#FFFFFF" size={14} strokeWidth={3} />}
+            </View>
+
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "700", marginBottom: 2 }}>
+                Tanışma Tarihi (İsteğe Bağlı) ✨
+              </Text>
+              <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
+                İlk buluştuğunuz o eşsiz an
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          {includeMeetDate ? (
+            <TouchableOpacity
+              onPress={() => {
+                if (Platform.OS !== "web") setShowMeetPicker(true);
+              }}
+              activeOpacity={0.8}
+              style={{
+                backgroundColor: "rgba(0,0,0,0.25)",
+                borderRadius: 16,
+                padding: 14,
+                flexDirection: "row",
+                alignItems: "center",
+                marginTop: 14,
+                position: "relative",
+              }}
+            >
+              <WebDateInput
+                value={formatDate(meetDate)}
+                max={meetMax}
+                onChange={(val) => {
+                  if (val) {
+                    const [y, m, d] = val.split("-").map(Number);
+                    setMeetDate(new Date(y, m - 1, d));
+                  }
+                }}
+              />
+
+              <Sparkles color="#FF4D6A" size={20} style={{ marginRight: 12 }} />
+              <Text style={{ flex: 1, color: "rgba(255,255,255,0.6)", fontSize: 13 }}>
+                Tanışma günü
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text style={{ color: "#FFFFFF", fontSize: 15, fontWeight: "600", letterSpacing: 1 }}>
+                  {displayDate(meetDate)}
+                </Text>
+                <ChevronRight color="rgba(255,255,255,0.3)" size={20} />
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <Text
+              style={{
+                color: "rgba(255,255,255,0.45)",
+                fontSize: 12.5,
+                lineHeight: 18,
+                marginTop: 12,
+                marginLeft: 36,
+              }}
+            >
+              Henüz tam günü hatırlamıyorsanız boş bırakabilirsiniz.
+            </Text>
+          )}
+        </View>
 
         {!!error && (
           <View
@@ -411,16 +480,35 @@ export default function DatesScreen() {
           </LinearGradient>
         </TouchableOpacity>
 
+        <TouchableOpacity
+          onPress={handleSkip}
+          disabled={isLoading}
+          activeOpacity={0.7}
+          style={{
+            marginTop: 14,
+            paddingVertical: 15,
+            alignItems: "center",
+            borderRadius: 30,
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.14)",
+            opacity: isLoading ? 0.5 : 1,
+          }}
+        >
+          <Text style={{ color: "rgba(255,255,255,0.7)", fontWeight: "600", fontSize: 15 }}>
+            Daha Sonra Belirle
+          </Text>
+        </TouchableOpacity>
+
       </ScrollView>
 
       {/* Native pickers for iOS and Android */}
-      {Platform.OS !== "web" && showMeetPicker && (
+      {Platform.OS !== "web" && includeMeetDate && showMeetPicker && (
         <DateTimePicker
           value={meetDate}
           mode="date"
           display={Platform.OS === "ios" ? "spinner" : "default"}
           onChange={onMeetDateChange}
-          maximumDate={relDate < today ? relDate : today}
+          maximumDate={formatDate(relDate) < formatDate(today) ? relDate : today}
           locale="tr-TR"
         />
       )}

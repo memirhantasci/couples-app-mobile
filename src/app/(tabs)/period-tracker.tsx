@@ -26,6 +26,10 @@ import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
+import {
+  DEFAULT_CYCLE_LENGTH, MAX_STARTS_PER_MONTH, MIN_DAYS_BETWEEN_STARTS,
+  getPeriodStarts, getPeriodDays,
+} from "@/lib/periodCycle";
 
 LocaleConfig.locales['tr'] = {
   monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
@@ -86,28 +90,99 @@ export default function PeriodTrackerScreen() {
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Regl başlangıç günleri (eskiden → yeniye); eski ardışık günlük kayıtlar tek başlangıca indirilir
+  const periodStarts = useMemo(() => getPeriodStarts((logs ?? []).map(l => l.date)), [logs]);
+
+  const latestStart = periodStarts.length > 0 ? periodStarts[periodStarts.length - 1] : null;
+
+  // Sonraki döngü tahmini: 2+ başlangıçta aralarındaki farkların ortalaması, tek kayıtta 28 gün
+  const cycleInfo = useMemo(() => {
+    if (!latestStart) return null;
+    const cycleLength = periodStarts.length >= 2
+      ? Math.round(dayjs(latestStart).diff(dayjs(periodStarts[0]), "day") / (periodStarts.length - 1))
+      : DEFAULT_CYCLE_LENGTH;
+    const nextPeriodDate = dayjs(latestStart).add(cycleLength, "day");
+    // İkisi de gün başına sabitlenir; saat farkı yüzünden bir gün şaşmaz
+    const daysLeft = nextPeriodDate.diff(dayjs(today), "day");
+
+    let countdownText: string;
+    if (daysLeft > 0) {
+      countdownText = `Sonraki Döngü: ${daysLeft} Gün Kaldı (${nextPeriodDate.locale("tr").format("D MMMM")}) 🌸`;
+    } else if (daysLeft === 0) {
+      countdownText = "Bugün yeni döngü günü bekleniyor 🌸";
+    } else {
+      countdownText = `${Math.abs(daysLeft)} gün gecikti ⏳`;
+    }
+    return { cycleLength, nextPeriodDate, daysLeft, countdownText };
+  }, [periodStarts, latestStart, today]);
+
+  // Her başlangıçtan itibaren 5 günlük süreç (başlangıç günü dahil) otomatik boyanır
   const markedDates = useMemo(() => {
-    if (!logs) return {};
     const marks: Record<string, any> = {};
-
-    logs.forEach(log => {
-      marks[log.date] = {
-        customStyles: {
-          container: {
-            backgroundColor: '#ff4d6a',
-            borderRadius: 18,
-            elevation: 3,
+    periodStarts.forEach(startStr => {
+      getPeriodDays(startStr).forEach((dayStr, i) => {
+        marks[dayStr] = {
+          customStyles: {
+            container: {
+              backgroundColor: i === 0 ? '#FF3366' : 'rgba(255, 77, 106, 0.75)',
+              borderRadius: 18,
+            },
+            text: {
+              color: '#ffffff',
+              fontWeight: i === 0 ? 'bold' : '600',
+            },
           },
-          text: {
-            color: '#ffffff',
-            fontWeight: 'bold'
-          }
-        }
-      };
+        };
+      });
     });
-
     return marks;
-  }, [logs]);
+  }, [periodStarts]);
+
+  const startedToday = !!logs?.some(l => l.date === today);
+
+  // Yeni başlangıç eklenmeden önce manipülasyon kontrolleri (DB trigger'ı da aynı kuralları uygular)
+  function validateNewStart(dateStr: string): boolean {
+    if (dayjs(dateStr).isAfter(dayjs(today), "day")) {
+      Alert.alert("Geçersiz Tarih", "Gelecekteki bir günü regl başlangıcı olarak işaretleyemezsiniz.");
+      return false;
+    }
+
+    const currentMonthStr = dateStr.substring(0, 7);
+    const monthLogs = logs?.filter(l => l.date.startsWith(currentMonthStr)) || [];
+    if (monthLogs.length >= MAX_STARTS_PER_MONTH) {
+      Alert.alert("Sınır 🌸", "Biyolojik olarak bir ay içerisinde en fazla 2 ayrı regl başlangıcı kaydedebilirsiniz.");
+      return false;
+    }
+
+    const targetDate = dayjs(dateStr);
+    const tooClose = logs?.some(l => Math.abs(targetDate.diff(dayjs(l.date), "day")) < MIN_DAYS_BETWEEN_STARTS);
+    if (tooClose) {
+      Alert.alert("Biyolojik Aralık 🌸", "İki regl başlangıcı arasında en az 16 gün ara bulunmalıdır.");
+      return false;
+    }
+    return true;
+  }
+
+  async function savePeriodStart(dateStr: string) {
+    if (!userId) return;
+    const { error } = await supabase.from("period_logs").insert({
+      user_id: userId,
+      date: dateStr,
+      couple_id: coupleId,
+    });
+    if (error) throw error;
+
+    // Geçmişe dönük girişte "regl başladı" bildirimi yanıltıcı olur; yalnızca bugün başlayanlar haber verilir
+    if (isPremium && coupleId && dateStr === today) {
+      const senderName = profile?.displayName || "Partnerin";
+      notifyPartner(coupleId, userId, "Regl Dönemi 🌸", `${senderName} için regl dönemi başladı. Ona biraz daha özen gösterme zamanı!`, {
+        type: "period",
+        route: "/(tabs)/period-tracker",
+        actionLabel: "Yanındayım 🌸",
+      });
+    }
+    queryClient.invalidateQueries({ queryKey: ["period_logs"] });
+  }
 
   function handleDateClick(day: any) {
     if (executeOrIntercept(
@@ -125,17 +200,34 @@ export default function PeriodTrackerScreen() {
     const dateStr = day.dateString;
     const exists = logs?.some(l => l.date === dateStr);
 
-    if (!exists) {
-      const currentMonthStr = dateStr.substring(0, 7);
-      const monthLogsCount = logs?.filter(l => l.date.startsWith(currentMonthStr)).length || 0;
-      if (monthLogsCount >= 4) {
-        Alert.alert("Sınır", "Bir ay içerisinde en fazla 4 gün işaretleyebilirsiniz.");
-        return;
-      }
-    }
+    // Silme her zaman serbest; kurallar yalnızca yeni başlangıç eklerken geçerli
+    if (!exists && !validateNewStart(dateStr)) return;
 
     setSelectedDate(dateStr);
     setIsAdding(!exists);
+  }
+
+  // "Bugün Reglim Başladı" — onay penceresi olmadan tek dokunuşla bugünü başlangıç olarak kaydeder
+  async function handleQuickStart() {
+    if (executeOrIntercept(
+      () => {},
+      "Döngü Takibini Başlatmak İçin Kayıt Olun 🌸",
+      "Kişisel döngünüzü kaydetmek, bilimsel tahminler almak ve partnerinizle paylaşmak için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
+    if (!isFemale || !userId || startedToday || loading) return;
+    if (!validateNewStart(today)) return;
+
+    setLoading(true);
+    try {
+      await savePeriodStart(today);
+    } catch (error: any) {
+      logger.error("Period quick start error:", error);
+      Alert.alert("Hata", error?.message || "İşlem sırasında bir hata oluştu.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleToggle() {
@@ -152,21 +244,7 @@ export default function PeriodTrackerScreen() {
 
     try {
       if (isAdding) {
-        const { error } = await supabase.from("period_logs").insert({
-          user_id: userId,
-          date: selectedDate,
-          couple_id: coupleId,
-        });
-        if (error) throw error;
-        
-        if (isPremium && coupleId && userId) {
-          const senderName = profile?.displayName || "Partnerin";
-          notifyPartner(coupleId, userId, "Regl Dönemi 🌸", `${senderName} için regl dönemi başladı. Ona biraz daha özen gösterme zamanı!`, {
-            type: "period",
-            route: "/(tabs)/period-tracker",
-            actionLabel: "Yanındayım 🌸",
-          });
-        }
+        await savePeriodStart(selectedDate);
       } else {
         const { error } = await supabase
           .from("period_logs")
@@ -174,9 +252,9 @@ export default function PeriodTrackerScreen() {
           .eq("user_id", userId)
           .eq("date", selectedDate);
         if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: ["period_logs"] });
       }
 
-      queryClient.invalidateQueries({ queryKey: ["period_logs"] });
       setSelectedDate(null);
     } catch (error: any) {
       logger.error("Period save error:", error);
@@ -185,8 +263,6 @@ export default function PeriodTrackerScreen() {
       setLoading(false);
     }
   }
-
-  const latestLog = logs && logs.length > 0 ? logs[0] : null;
 
   return (
     <ScreenBackground>
@@ -298,13 +374,46 @@ export default function PeriodTrackerScreen() {
                     {isFemale ? "Döngü Takibi Aktif 🌸" : "Sevgilinin Döngüsü Takipte 💕"}
                   </Text>
                   <Text style={[styles.statusHeroSubtitle, { color: theme.textMuted }]}>
-                    {latestLog 
-                      ? `Son kayıt: ${dayjs(latestLog.date).locale("tr").format("D MMMM YYYY")}`
-                      : "Henüz takvime bir döngü günü kaydedilmedi."
+                    {latestStart
+                      ? `Son başlangıç: ${dayjs(latestStart).locale("tr").format("D MMMM YYYY")}`
+                      : "Henüz bir regl başlangıcı kaydedilmedi."
                     }
                   </Text>
+                  {cycleInfo && (
+                    <Text style={styles.statusHeroCountdown}>{cycleInfo.countdownText}</Text>
+                  )}
                 </View>
               </View>
+
+              {/* ─── KADIN KULLANICI İÇİN TEK DOKUNUŞLUK BAŞLANGIÇ BUTONU ─── */}
+              {isFemale && (
+                <TouchableOpacity
+                  onPress={handleQuickStart}
+                  disabled={loading || startedToday}
+                  activeOpacity={0.88}
+                  style={[
+                    styles.quickStartBtn,
+                    startedToday
+                      ? { backgroundColor: "rgba(255, 77, 106, 0.12)", borderWidth: 1, borderColor: "rgba(255, 77, 106, 0.35)" }
+                      : { backgroundColor: "#ff4d6a" },
+                    loading && { opacity: 0.7 },
+                  ]}
+                >
+                  {loading && !selectedDate ? (
+                    <ActivityIndicator color="#ffffff" size="small" />
+                  ) : startedToday ? (
+                    <>
+                      <Check color="#ff4d6a" size={18} strokeWidth={3} />
+                      <Text style={[styles.quickStartBtnText, { color: "#ff4d6a" }]}>Bugün Kaydedildi</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Droplet color="#ffffff" size={18} />
+                      <Text style={styles.quickStartBtnText}>Bugün Reglim Başladı 🌸</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
 
               {/* ─── ERKEK KULLANICI İÇİN ŞEFKAT & DESTEK REHBERİ ─── */}
               {!isFemale && (
@@ -338,7 +447,7 @@ export default function PeriodTrackerScreen() {
                     <Text style={[styles.guideTitle, { color: theme.text }]}>Günün Kendine Bakım Notu</Text>
                   </View>
                   <Text style={[styles.femaleTipsText, { color: theme.textSecondary }]}>
-                    Regl gününü takvimden seçerek döngünü kaydedebilirsin. Bol su içmeyi ve kendini dinlendirmeyi unutma tatlım 🌸
+                    Her gün işaretlemene gerek yok; yalnızca reglinin başladığı günü seç ya da yukarıdaki butona dokun. 5 günlük süreci ve sonraki döngüyü biz hesaplarız. Bol su içmeyi ve kendini dinlendirmeyi unutma tatlım 🌸
                   </Text>
                 </View>
               )}
@@ -657,6 +766,26 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     color: "rgba(255,255,255,0.6)",
     marginTop: 2,
+  },
+
+  statusHeroCountdown: {
+    fontSize: 12.5,
+    fontFamily: "Inter_600SemiBold",
+    color: "#ff4d6a",
+    marginTop: 4,
+  },
+  quickStartBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    height: 52,
+    borderRadius: 18,
+  },
+  quickStartBtnText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
   },
 
   /* ─── ŞEFKAT & DESTEK REHBERİ ─── */
