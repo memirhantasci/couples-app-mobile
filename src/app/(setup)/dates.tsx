@@ -7,7 +7,7 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
-import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
+import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -120,14 +120,14 @@ export default function DatesScreen() {
     loadExistingDates();
   }, [userId, refreshProfile]);
 
-  function onMeetDateChange(_: DateTimePickerEvent, selected?: Date) {
-    setShowMeetPicker(Platform.OS === "ios");
-    if (selected) setMeetDate(selected);
+  function onMeetDateConfirm(selected: Date) {
+    setShowMeetPicker(false);
+    setMeetDate(selected);
   }
 
-  function onRelDateChange(_: DateTimePickerEvent, selected?: Date) {
-    setShowRelPicker(Platform.OS === "ios");
-    if (selected) setRelDate(selected);
+  function onRelDateConfirm(selected: Date) {
+    setShowRelPicker(false);
+    setRelDate(selected);
   }
 
   function toggleMeetDate() {
@@ -501,26 +501,28 @@ export default function DatesScreen() {
 
       </ScrollView>
 
-      {/* Native pickers for iOS and Android */}
-      {Platform.OS !== "web" && includeMeetDate && showMeetPicker && (
-        <DateTimePicker
-          value={meetDate}
-          mode="date"
-          display={Platform.OS === "ios" ? "spinner" : "default"}
-          onChange={onMeetDateChange}
-          maximumDate={formatDate(relDate) < formatDate(today) ? relDate : today}
-          locale="tr-TR"
-        />
-      )}
-      {Platform.OS !== "web" && showRelPicker && (
-        <DateTimePicker
-          value={relDate}
-          mode="date"
-          display={Platform.OS === "ios" ? "spinner" : "default"}
-          onChange={onRelDateChange}
-          maximumDate={today}
-          locale="tr-TR"
-        />
+      {/* iOS ve Android: ortak tarih seçici (web'de tarayıcının kendi tarih girdisi kullanılır) */}
+      {Platform.OS !== "web" && (
+        <>
+          <DateTimePickerSheet
+            visible={includeMeetDate && showMeetPicker}
+            mode="date"
+            title="Tanışma Tarihi"
+            value={meetDate}
+            maximumDate={formatDate(relDate) < formatDate(today) ? relDate : today}
+            onCancel={() => setShowMeetPicker(false)}
+            onConfirm={onMeetDateConfirm}
+          />
+          <DateTimePickerSheet
+            visible={showRelPicker}
+            mode="date"
+            title="Sevgili Olma Tarihi"
+            value={relDate}
+            maximumDate={today}
+            onCancel={() => setShowRelPicker(false)}
+            onConfirm={onRelDateConfirm}
+          />
+        </>
       )}
     </ScreenBackground>
   );

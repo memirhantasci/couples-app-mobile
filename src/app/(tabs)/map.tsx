@@ -7,6 +7,7 @@ import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   StatusBar,
   StyleSheet,
   Text,
@@ -139,6 +140,7 @@ export default function MapScreen() {
           notificationBody,
           {
             type: "map",
+            note: notePreview,
             route: "/(tabs)/map",
             actionLabel: "Haritada Keşfet 🗺️",
           },
@@ -309,7 +311,10 @@ export default function MapScreen() {
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFill}
-        customMapStyle={MAP_THEME_STYLES[mapTheme]}
+        // customMapStyle yalnızca Google Maps'te çalışır (Android). iOS'ta harita Apple Maps'tir ve
+        // JSON stili yok sayar; orada renk modu yalnızca açık/koyu arayüz stiliyle değişir.
+        customMapStyle={Platform.OS === "android" ? MAP_THEME_STYLES[mapTheme] : undefined}
+        userInterfaceStyle={Platform.OS === "ios" ? (isLight ? "light" : "dark") : undefined}
         initialRegion={{
           latitude: 41.0082,
           longitude: 28.9784,

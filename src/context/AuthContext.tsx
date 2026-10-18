@@ -1,3 +1,4 @@
+import * as Notifications from "expo-notifications";
 import { registerForPushNotifications, syncPushTokenIfPermitted } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
@@ -538,6 +539,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Clear device auth cache on sign-out so next user gets a fresh check
     await AsyncStorage.removeItem(DEVICE_AUTH_CACHE_KEY).catch(() => {});
     await AsyncStorage.removeItem(CACHED_PROFILE_KEY).catch(() => {});
+
+    // Bu cihaz artık bu hesaba ait değil: zamanlanmış yerel hatırlatıcıları (ilaç, buluşma, mektup...)
+    // ve cihazın push kaydını temizle. Aksi halde aynı telefonda başka hesap açıldığında önceki
+    // kullanıcının ilaç alarmları çalar ve partner bildirimleri bu telefona düşmeye devam eder.
+    await Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
+    try {
+      const { data: { session: current } } = await supabase.auth.getSession();
+      if (current?.user?.id) {
+        await supabase.from("push_tokens").delete().eq("user_id", current.user.id);
+      }
+    } catch {
+      // Çıkış yine de tamamlanmalı
+    }
+
     await supabase.auth.signOut();
   }, [isDemoMode, exitDemoMode, profile?.coupleId]);
 

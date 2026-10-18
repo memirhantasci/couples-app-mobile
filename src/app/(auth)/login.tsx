@@ -4,14 +4,13 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
   Platform,
-  ScrollView,
   ActivityIndicator,
   Modal,
   StyleSheet,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { router, useLocalSearchParams } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { navigateAfterAuth } from "@/lib/navigate";
@@ -698,11 +697,11 @@ export default function LoginScreen() {
         pointerEvents="none" 
       />
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <ScrollView
+      {/* Kayıt formunda alttaki alanlar (Şifre, Partner Kodu) klavyenin altında kalmasın: odaktaki alan otomatik yukarı kayar */}
+      <View style={{ flex: 1 }}>
+        <KeyboardAwareScrollView
+          enableOnAndroid
+          extraScrollHeight={30}
           contentContainerStyle={[
             styles.scrollContent,
             {
@@ -1162,8 +1161,8 @@ export default function LoginScreen() {
             </Text>
             <ArrowRight size={15} color={activeAccent} style={{ marginLeft: 6 }} />
           </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAwareScrollView>
+      </View>
 
       <LegalModal
         visible={legalModalVisible}

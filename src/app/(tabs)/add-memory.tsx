@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import { Image } from "expo-image";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
@@ -16,13 +16,24 @@ import { dayjs, todayString, formatDateTR } from "@/lib/date";
 import { getTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { sanitizeStrict, sanitize } from "@/utils/sanitize";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { PermissionPrimingModal } from "@/components/common/PermissionPrimingModal";
 import { useNotificationPriming } from "@/hooks/useNotificationPriming";
+import { notifyPartner } from "@/lib/notifications";
+
+const IMAGE_MIME_BY_EXT: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  heic: "image/heic",
+  gif: "image/gif",
+};
 
 export default function AddMemoryScreen() {
   const router = useRouter();
@@ -121,14 +132,19 @@ export default function AddMemoryScreen() {
            return;
         }
 
-        const fileExt = localImage.uri.split('.').pop() || 'jpg';
+        // Supabase Storage yalnızca standart MIME türlerini kabul eder ("image/jpg" geçersiz, "image/jpeg" geçerli).
+        // Önce picker'ın bildirdiği mimeType'a, yoksa uzantıya, o da yoksa JPEG'e bakılır.
+        const uriExt = localImage.uri.split('?')[0].split('.').pop()?.toLowerCase() ?? '';
+        const contentType = (localImage.mimeType?.toLowerCase() ?? IMAGE_MIME_BY_EXT[uriExt] ?? 'image/jpeg')
+          .replace('image/jpg', 'image/jpeg');
+        const fileExt = contentType === 'image/jpeg' ? 'jpg' : contentType.split('/')[1];
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `${coupleId}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from("memories")
           .upload(filePath, decode(localImage.base64), {
-            contentType: `image/${fileExt}`,
+            contentType,
           });
 
         if (uploadError) throw uploadError;
@@ -172,6 +188,23 @@ export default function AddMemoryScreen() {
 
       queryClient.invalidateQueries({ queryKey: ["memories"] });
 
+      // Yeni anı eklendiğinde partnere haber ver (düzenlemelerde bildirim gitmez)
+      if (!isEditing && coupleId && session?.user?.id) {
+        const senderName = profile?.displayName || "Sevgilin";
+        notifyPartner(
+          coupleId,
+          session.user.id,
+          "Yeni Bir Anı ✨",
+          `${senderName} yeni bir anı ekledi: "${cleanTitle}"`,
+          {
+            type: "photo",
+            memoryTitle: cleanTitle,
+            route: "/(tabs)/memories",
+            actionLabel: "Anıyı Gör ✨",
+          }
+        );
+      }
+
       // Yeni anı kaydedildiyse, uygunsa bildirim ön-onay kartını göster; yönlendirme kart kapanınca yapılır
       if (!isEditing && (await priming.maybePrompt())) return;
 
@@ -207,7 +240,7 @@ export default function AddMemoryScreen() {
           <AlignJustify color={theme.text} size={22} />
         </TouchableOpacity>
 
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
         <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
           <TouchableOpacity onPress={() => router.replace("/(tabs)/memories")} style={{ padding: 8, marginLeft: -8 }}>
             <ChevronLeft color={theme.text} size={28} />
@@ -216,7 +249,14 @@ export default function AddMemoryScreen() {
           <View style={{ width: 28 }} />
         </View>
 
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Klavye açılınca odaktaki alan (Açıklama) ve Kaydet butonu klavyenin üstüne kayar (iOS + Android) */}
+        <KeyboardAwareScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          enableOnAndroid
+          extraScrollHeight={24}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: theme.textSecondary }, errors.title && { color: "red" }]}>Başlık</Text>
             <TextInput
@@ -243,20 +283,18 @@ export default function AddMemoryScreen() {
               </Text>
             </TouchableOpacity>
 
-            {showDatePicker && (
-              <DateTimePicker
-                value={date ? new Date(date) : new Date()}
-                mode="date"
-                display="default"
-                onChange={(event, selectedDate) => {
-                  setShowDatePicker(false);
-                  if (event.type === "set" && selectedDate) {
-                    setDate(dayjs(selectedDate).format("YYYY-MM-DD"));
-                    setErrors(prev => ({ ...prev, date: false }));
-                  }
-                }}
-              />
-            )}
+            <DateTimePickerSheet
+              visible={showDatePicker}
+              mode="date"
+              title="Anı Tarihi"
+              value={date ? dayjs(date).toDate() : new Date()}
+              onCancel={() => setShowDatePicker(false)}
+              onConfirm={(selectedDate) => {
+                setShowDatePicker(false);
+                setDate(dayjs(selectedDate).format("YYYY-MM-DD"));
+                setErrors(prev => ({ ...prev, date: false }));
+              }}
+            />
           </View>
 
           <View style={styles.inputGroup}>
@@ -302,8 +340,8 @@ export default function AddMemoryScreen() {
               </>
             )}
           </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAwareScrollView>
+      </View>
 
       <PremiumPaywall
         visible={showPaywall}

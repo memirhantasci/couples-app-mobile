@@ -243,6 +243,13 @@ export const InAppNotificationBanner: React.FC<InAppNotificationBannerProps> = (
           </View>
         );
 
+      case "pairing":
+        return (
+          <View style={[styles.defaultBadge, { borderColor: "#FF8AA8" }]}>
+            <Sparkles size={17} color="#FF8AA8" strokeWidth={2.4} />
+          </View>
+        );
+
       default:
         return (
           <View style={[styles.defaultBadge, { borderColor: "#FF5C77" }]}>

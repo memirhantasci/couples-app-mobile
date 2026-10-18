@@ -49,7 +49,10 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
     const coupleId = profile?.coupleId ?? null;
     const today = todayString();
     const cleanContent = sanitize(content.trim());
-    if (!cleanContent) return;
+    if (!cleanContent) {
+      setSubmitting(false);
+      return;
+    }
     const encryptedContent = encrypt(cleanContent);
 
     const { error } = await supabase.rpc("save_daily_note", {

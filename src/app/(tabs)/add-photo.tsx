@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from "react";
 import { 
   View, Text, StyleSheet, TextInput, TouchableOpacity, 
-  ActivityIndicator, Alert, Platform 
+  ActivityIndicator, Alert
 } from "react-native";
 import { Image } from "expo-image";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
@@ -15,7 +15,7 @@ import {
   AlertCircle, Calendar as CalendarIcon, Clock, AlignJustify, 
   UploadCloud, RefreshCw, MapPin, Navigation, Search
 } from "lucide-react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { supabase } from "@/lib/supabase";
@@ -337,23 +337,14 @@ export default function AddPhotoScreen() {
     }
   };
 
-  const onDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      const year = selectedDate.getFullYear();
-      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-      const day = String(selectedDate.getDate()).padStart(2, '0');
-      setTakenDate(`${year}-${month}-${day}`);
-    }
+  const onDateConfirm = (selectedDate: Date) => {
+    setShowDatePicker(false);
+    setTakenDate(dayjs(selectedDate).format("YYYY-MM-DD"));
   };
 
-  const onTimeChange = (event: any, selectedTime?: Date) => {
-    setShowTimePicker(Platform.OS === 'ios');
-    if (selectedTime) {
-      const hours = String(selectedTime.getHours()).padStart(2, '0');
-      const minutes = String(selectedTime.getMinutes()).padStart(2, '0');
-      setTakenTime(`${hours}:${minutes}`);
-    }
+  const onTimeConfirm = (selectedTime: Date) => {
+    setShowTimePicker(false);
+    setTakenTime(dayjs(selectedTime).format("HH:mm"));
   };
 
   useFocusEffect(
@@ -587,28 +578,24 @@ export default function AddPhotoScreen() {
               </View>
             </View>
 
-            {showDatePicker && (
-              <DateTimePicker
-                value={takenDate ? new Date(takenDate) : new Date()}
-                mode="date"
-                display="default"
-                onChange={onDateChange}
-              />
-            )}
+            <DateTimePickerSheet
+              visible={showDatePicker}
+              mode="date"
+              title="Çekim Tarihi"
+              value={takenDate ? dayjs(takenDate).toDate() : new Date()}
+              maximumDate={new Date()}
+              onCancel={() => setShowDatePicker(false)}
+              onConfirm={onDateConfirm}
+            />
 
-            {showTimePicker && (
-              <DateTimePicker
-                value={
-                  takenTime 
-                    ? new Date(`2000-01-01T${takenTime}:00`) 
-                    : new Date()
-                }
-                mode="time"
-                is24Hour={true}
-                display="default"
-                onChange={onTimeChange}
-              />
-            )}
+            <DateTimePickerSheet
+              visible={showTimePicker}
+              mode="time"
+              title="Çekim Saati"
+              value={takenTime ? dayjs(`2000-01-01T${takenTime}:00`).toDate() : new Date()}
+              onCancel={() => setShowTimePicker(false)}
+              onConfirm={onTimeConfirm}
+            />
           </View>
 
           {/* BAŞLIK VE AÇIKLAMA KARTI */}

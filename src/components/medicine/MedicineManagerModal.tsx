@@ -6,11 +6,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Keyboard,
   Modal,
   StyleSheet,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
 import { Settings, X, Edit2, Trash2, Clock, Calendar, Check } from "lucide-react-native";
 import { dayjs } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
@@ -47,6 +48,8 @@ export function medicineToFormData(med: MedicineItem, currentUserId: string | nu
     times,
   };
 }
+
+type PickerKind = "start" | "end" | "time";
 
 function defaultDoseTime() {
   const d = new Date();
@@ -110,7 +113,7 @@ function MedicineManagerForm({
     Math.min(3, Math.max(1, initialData?.times?.length ?? 1)) as 1 | 2 | 3
   );
   const [activeTimeIndex, setActiveTimeIndex] = useState<number | null>(null);
-  const [showPicker, setShowPicker] = useState<"start" | "end" | "time" | null>(null);
+  const [showPicker, setShowPicker] = useState<PickerKind | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingMedicineId, setEditingMedicineId] = useState<number | null>(initialData?.id ?? null);
   const [isPartnerAdd, setIsPartnerAdd] = useState(initialData?.isPartnerAdd ?? false);
@@ -141,6 +144,43 @@ function MedicineManagerForm({
       return t;
     });
     setMedTimes(finalTimes);
+  };
+
+  const pickerValue =
+    showPicker === "start"
+      ? medStartDate
+      : showPicker === "end"
+      ? medEndDate
+      : medTimes[activeTimeIndex ?? 0] ?? new Date();
+
+  const openPicker = (kind: PickerKind, timeIndex = 0) => {
+    Keyboard.dismiss();
+    if (kind === "time") setActiveTimeIndex(timeIndex);
+    setShowPicker(kind);
+  };
+
+  const closePicker = () => setShowPicker(null);
+
+  /** Seçilen değeri forma işler. `false` dönerse (aynı saat) seçici açık kalmalı. */
+  const commitPicker = (kind: PickerKind, date: Date): boolean => {
+    if (kind === "start") {
+      setMedStartDate(date);
+    } else if (kind === "end") {
+      setMedEndDate(date);
+    } else if (activeTimeIndex !== null) {
+      const newTimeStr = dayjs(date).format("HH:mm");
+      const isDuplicate = medTimes.some(
+        (t, i) => i !== activeTimeIndex && dayjs(t).format("HH:mm") === newTimeStr
+      );
+      if (isDuplicate) {
+        Alert.alert("Uyarı", "Bu ilaç için bu saati zaten seçtiniz. Lütfen farklı bir saat belirleyin.");
+        return false;
+      }
+      const updated = [...medTimes];
+      updated[activeTimeIndex] = date;
+      setMedTimes(updated);
+    }
+    return true;
   };
 
   const handleEditRegistered = (med: MedicineItem) => {
@@ -318,10 +358,7 @@ function MedicineManagerForm({
                 {medTimes.map((time, idx) => (
                   <TouchableOpacity
                     key={idx}
-                    onPress={() => {
-                      setActiveTimeIndex(idx);
-                      setShowPicker("time");
-                    }}
+                    onPress={() => openPicker("time", idx)}
                     style={[
                       styles.timePickerBox,
                       {
@@ -342,7 +379,7 @@ function MedicineManagerForm({
               <View style={{ flex: 1, gap: 6 }}>
                 <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>BAŞLANGIÇ</Text>
                 <TouchableOpacity
-                  onPress={() => setShowPicker("start")}
+                  onPress={() => openPicker("start")}
                   style={[
                     styles.datePickerBtn,
                     {
@@ -359,7 +396,7 @@ function MedicineManagerForm({
               <View style={{ flex: 1, gap: 6 }}>
                 <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>BİTİŞ</Text>
                 <TouchableOpacity
-                  onPress={() => setShowPicker("end")}
+                  onPress={() => openPicker("end")}
                   style={[
                     styles.datePickerBtn,
                     {
@@ -396,53 +433,22 @@ function MedicineManagerForm({
         </KeyboardAwareScrollView>
       </View>
 
-      {/* TARİH & SAAT PICKER'LARI */}
-      {showPicker === "start" && (
-        <DateTimePicker
-          value={medStartDate}
-          mode="date"
-          display="default"
-          onChange={(_, date) => {
-            setShowPicker(null);
-            if (date) setMedStartDate(date);
-          }}
-        />
-      )}
-
-      {showPicker === "end" && (
-        <DateTimePicker
-          value={medEndDate}
-          mode="date"
-          display="default"
-          onChange={(_, date) => {
-            setShowPicker(null);
-            if (date) setMedEndDate(date);
-          }}
-        />
-      )}
-
-      {showPicker === "time" && activeTimeIndex !== null && (
-        <DateTimePicker
-          value={medTimes[activeTimeIndex] || new Date()}
-          mode="time"
-          is24Hour={true}
-          display="default"
-          onChange={(_, date) => {
-            setShowPicker(null);
-            if (date && activeTimeIndex !== null) {
-              const newTimeStr = dayjs(date).format("HH:mm");
-              const isDuplicate = medTimes.some((t, i) => i !== activeTimeIndex && dayjs(t).format("HH:mm") === newTimeStr);
-              if (isDuplicate) {
-                Alert.alert("Uyarı", "Bu ilaç için bu saati zaten seçtiniz. Lütfen farklı bir saat belirleyin.");
-                return;
-              }
-              const updated = [...medTimes];
-              updated[activeTimeIndex] = date;
-              setMedTimes(updated);
-            }
-          }}
-        />
-      )}
+      {/* TARİH & SAAT SEÇİCİ (uygulama genelinde ortak bileşen) */}
+      <DateTimePickerSheet
+        visible={showPicker !== null}
+        mode={showPicker === "time" ? "time" : "date"}
+        value={pickerValue}
+        title={showPicker === "time" ? "Doz Saati" : showPicker === "start" ? "Başlangıç Tarihi" : "Bitiş Tarihi"}
+        onCancel={closePicker}
+        onConfirm={(date) => {
+          if (showPicker && commitPicker(showPicker, date)) {
+            closePicker();
+            return;
+          }
+          // Aynı saat seçildiyse seçici açık kalır
+          return false;
+        }}
+      />
     </View>
   );
 }

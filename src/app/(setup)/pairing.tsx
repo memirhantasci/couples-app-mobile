@@ -18,6 +18,9 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Link, Share2, LogOut, Sparkles, Check, Copy } from "lucide-react-native";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
+import { notifyPairingComplete } from "@/lib/notifications";
+import { useNotificationPriming } from "@/hooks/useNotificationPriming";
+import { PermissionPrimingModal } from "@/components/common/PermissionPrimingModal";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -56,6 +59,8 @@ async function fetchPairingStatus(userId: string): Promise<PairingStatus> {
           await AsyncStorage.removeItem("@pending_invite_code");
           const res = Array.isArray(joinData) ? joinData[0] : joinData;
           coupleId = res?.result_couple_id;
+          // Davet bağlantısıyla gelen taraf eşleşmeyi tamamladı: bekleme ekranındaki partnere haber ver
+          if (res?.result_is_paired) notifyPairingComplete(coupleId, userId);
         }
       }
     }
@@ -212,6 +217,7 @@ export default function PairingScreen() {
   const [submitError, setSubmitError] = useState("");
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const priming = useNotificationPriming(userId);
 
   const { data: status, isLoading } = useQuery<PairingStatus>({
     queryKey: ["pairing-status", userId],
@@ -245,6 +251,7 @@ export default function PairingScreen() {
             await AsyncStorage.removeItem("@pending_invite_code");
             const result = Array.isArray(data) ? data[0] : data;
             if (result?.result_is_paired) {
+              notifyPairingComplete(result.result_couple_id, userId);
               await refreshProfile();
               router.replace("/(setup)/dates");
             }
@@ -268,6 +275,8 @@ export default function PairingScreen() {
       message: `Sevgilim, ikimize özel küçük bir evren kurdum! 💌✨\n\nAramıza katılmak ve kilitleri açmak için hemen dokun:\n👉 ${inviteLink}\n\n(Eşleşme Kodumuz: ${code})\n\nSeni çok seviyorum ❤️`,
       url: inviteLink,
     });
+    // Davet gönderildi: partner katılınca haber alabilmek için bildirim iznini nazikçe iste
+    await priming.maybePrompt();
   }
 
   async function handleCopyCode() {
@@ -315,6 +324,8 @@ export default function PairingScreen() {
     setIsSubmitting(false);
 
     if (isPaired) {
+      // Partner A'nın telefonuna "Partnerin katıldı!" bildirimi (beklemeyi gerektirmez)
+      notifyPairingComplete(result?.result_couple_id, userId);
       await AsyncStorage.removeItem("@pending_invite_code");
       await refreshProfile();
       router.replace("/(setup)/dates");
@@ -703,6 +714,12 @@ export default function PairingScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <PermissionPrimingModal
+        visible={priming.isVisible}
+        onAccept={priming.accept}
+        onDismiss={priming.dismiss}
+      />
     </ScreenBackground>
   );
 }

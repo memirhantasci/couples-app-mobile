@@ -8,7 +8,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { configureAndroidNotificationChannel } from "@/lib/notifications";
+import { configureAndroidNotificationChannel, notifyPairingComplete } from "@/lib/notifications";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 
 import {
@@ -111,8 +111,11 @@ function RootLayoutNav() {
       // If user is already authenticated with an active session:
       if (session?.user?.id) {
         try {
-          const { error } = await supabase.rpc("join_couple_by_code_uuid", { p_code: code });
+          const { data, error } = await supabase.rpc("join_couple_by_code_uuid", { p_code: code });
           if (!error) {
+            // Davet bağlantısıyla eşleşme tamamlandı: bekleme ekranındaki partnere haber ver
+            const joined = Array.isArray(data) ? data[0] : data;
+            if (joined?.result_is_paired) notifyPairingComplete(joined.result_couple_id, session.user.id);
             await AsyncStorage.removeItem("@pending_invite_code");
             await refreshProfile();
             router.replace("/(setup)/dates");

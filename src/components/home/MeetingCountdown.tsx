@@ -5,7 +5,7 @@ import { MapPin, X, Navigation } from "lucide-react-native";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { AppTheme } from "@/lib/theme";
 
-interface Meeting {
+export interface Meeting {
   id: number;
   title: string;
   meeting_datetime: string;

@@ -19,7 +19,6 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
-import { notifyPartner } from "@/lib/notifications";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { usePageTour } from "@/hooks/usePageTour";
 import { PageTourModal } from "@/components/tour/PageTourModal";
@@ -172,15 +171,8 @@ export default function PeriodTrackerScreen() {
     });
     if (error) throw error;
 
-    // Geçmişe dönük girişte "regl başladı" bildirimi yanıltıcı olur; yalnızca bugün başlayanlar haber verilir
-    if (isPremium && coupleId && dateStr === today) {
-      const senderName = profile?.displayName || "Partnerin";
-      notifyPartner(coupleId, userId, "Regl Dönemi 🌸", `${senderName} için regl dönemi başladı. Ona biraz daha özen gösterme zamanı!`, {
-        type: "period",
-        route: "/(tabs)/period-tracker",
-        actionLabel: "Yanındayım 🌸",
-      });
-    }
+    // Regl başladı bilgisi partnere push olarak GÖNDERİLMEZ (gizlilik); erkek partner yalnızca
+    // home.tsx'teki yerel "Özel Gün Yaklaşıyor" hatırlatıcısını alır.
     queryClient.invalidateQueries({ queryKey: ["period_logs"] });
   }
 

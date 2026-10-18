@@ -8,7 +8,7 @@ import {
   Alert,
   AppState,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { todayString } from "@/lib/date";

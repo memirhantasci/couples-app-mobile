@@ -2,13 +2,11 @@ import React, { useCallback, useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
   RefreshControl,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
@@ -21,6 +19,7 @@ import {
   todayString,
 } from "@/lib/date";
 import { getQuoteForDay } from "@/lib/quotes";
+import { MEETING_CELEBRATION_MINUTES, pickActiveMeeting, nextMeetingBoundary } from "@/lib/activeMeeting";
 import { decrypt, deterministicDecrypt } from "@/utils/crypto";
 import { computeLoveScore, getCachedLoveScore, getCachedLoveScoreSync, LoveScoreResult } from "@/lib/loveScore";
 import { scheduleDateLocalNotification, cancelLocalNotification } from "@/lib/notifications";
@@ -37,7 +36,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { LoveMeter } from "@/components/home/LoveMeter";
 import { MoodSelector } from "@/components/home/MoodSelector";
 import { DailyNoteCard } from "@/components/home/DailyNoteCard";
-import { MeetingCountdown } from "@/components/home/MeetingCountdown";
+import { MeetingCountdown, type Meeting } from "@/components/home/MeetingCountdown";
 import { PendingLettersCard } from "@/components/home/PendingLettersCard";
 import { usePageTour } from "@/hooks/usePageTour";
 import { PageTourModal } from "@/components/tour/PageTourModal";
@@ -129,7 +128,7 @@ export default function HomeScreen() {
             .select("id, meeting_datetime, title, location_name, latitude, longitude")
             .eq("couple_id", coupleId)
             .eq("is_active", true)
-            .gte("meeting_datetime", dayjs().subtract(3, "hour").toISOString())
+            .gte("meeting_datetime", dayjs().subtract(MEETING_CELEBRATION_MINUTES, "minute").toISOString())
             .order("meeting_datetime", { ascending: true })
             .limit(5)
           : Promise.resolve({ data: [] }),
@@ -150,18 +149,6 @@ export default function HomeScreen() {
           : Promise.resolve({ data: [] }),
       ]);
 
-      let activeMeeting = null;
-      if (meetingRes.data && Array.isArray(meetingRes.data)) {
-        const now = dayjs();
-        const futureMeeting = meetingRes.data.find((m) =>
-          dayjs(m.meeting_datetime).isAfter(now)
-        );
-        activeMeeting =
-          futureMeeting || meetingRes.data[meetingRes.data.length - 1] || null;
-      } else if (meetingRes.data) {
-        activeMeeting = meetingRes.data;
-      }
-
       const userMap = (usersRes.data || []).reduce((acc: any, u: any) => {
         acc[u.id] = {
           ...u,
@@ -181,7 +168,8 @@ export default function HomeScreen() {
       return {
         currentMood: moodRes.data?.mood_type || null,
         currentNote: noteRes.data?.content ? decrypt(noteRes.data.content) : null,
-        activeMeeting,
+        // Hangi buluşmanın kartta görüneceği render anında seçilir (zaman geçtikçe değişebilir)
+        meetings: (meetingRes.data ?? []) as any[],
         partner,
         pendingLetters: (lettersRes.data || []).map((l: any) => {
           const senderObj = userMap[l.sender_id];
@@ -228,8 +216,6 @@ export default function HomeScreen() {
       const cacheKey = `@period_notif_scheduled_${coupleId}`;
       const lastScheduledDate = await AsyncStorage.getItem(cacheKey);
 
-      const partnerName = partnerData.display_name || partnerData.username || "Partnerin";
-
       const { data: periodLogs } = await supabase
         .from("period_logs")
         .select("date")
@@ -249,9 +235,15 @@ export default function HomeScreen() {
         if (notifyDate.getTime() > Date.now()) {
           await scheduleDateLocalNotification(
             "period_approach_alert",
-            "Regl Yaklaşıyor 🌸",
-            `${partnerName} için regl dönemi yaklaşmak üzere. Ona destek olmak için harika bir zaman!`,
-            notifyDate
+            "Özel Gün Yaklaşıyor 🌸",
+            "Partnerinin regl dönemi 2 gün içinde başlayabilir. Ona biraz daha şefkat gösterme zamanı! 💕",
+            notifyDate,
+            {
+              subtitle: "Döngü Takibi",
+              color: "#FB7185",
+              channelId: "partner_messages",
+              data: { type: "period", route: "/(tabs)/period-tracker", actionLabel: "Döngü Takibine Git 🌸" },
+            }
           );
           await AsyncStorage.setItem(cacheKey, logDateStr);
         }
@@ -283,6 +275,26 @@ export default function HomeScreen() {
   const dateLabel = useMemo(() => dayjs().format("D MMMM, dddd"), []);
   const greeting = useMemo(() => getGreeting(), []);
 
+  // ─── BULUŞMA KARTI ───
+  // Seçim render anında yapılır: buluşma saati geçince sıradaki buluşmaya geçilir,
+  // kutlama süresi (30 dk) dolunca kart kalkar; hiçbiri yeniden sorgu gerektirmez.
+  const [meetingTick, setMeetingTick] = useState(0);
+  const activeMeeting = useMemo(
+    () => pickActiveMeeting<Meeting>(dashboardData?.meetings, Date.now()),
+    // meetingTick yalnızca yeniden hesaplamayı tetikler
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [dashboardData?.meetings, meetingTick]
+  );
+
+  useEffect(() => {
+    const boundary = nextMeetingBoundary(dashboardData?.meetings, Date.now());
+    if (boundary === null) return;
+    // setTimeout üst sınırı ~24.8 gün; daha uzaksa sınırda uyanıp yeniden planlanır
+    const delay = Math.min(boundary - Date.now() + 250, 2147483647);
+    const timer = setTimeout(() => setMeetingTick((t) => t + 1), delay);
+    return () => clearTimeout(timer);
+  }, [dashboardData?.meetings, meetingTick]);
+
   // ─── ANA EKRAN WIDGET SENKRONİZASYONU ───
   useEffect(() => {
     if (!dashboardData) return;
@@ -299,8 +311,8 @@ export default function HomeScreen() {
       : { emoji: "🥰", label: "Aşk Dolu" };
 
     let meetingDays: number | null = null;
-    if (dashboardData.activeMeeting?.meeting_datetime) {
-      meetingDays = dayjs(dashboardData.activeMeeting.meeting_datetime).diff(dayjs(), "day");
+    if (activeMeeting?.meeting_datetime) {
+      meetingDays = dayjs(activeMeeting.meeting_datetime).diff(dayjs(), "day");
     }
 
     syncCoupleWidget({
@@ -309,11 +321,11 @@ export default function HomeScreen() {
       moodEmoji: moodObj.emoji,
       moodLabel: moodObj.label,
       dailyNote: dashboardData.currentNote,
-      nextMeetingTitle: dashboardData.activeMeeting?.title,
+      nextMeetingTitle: activeMeeting?.title,
       nextMeetingDays: meetingDays,
       loveScore: loveMeter,
     });
-  }, [dashboardData, name, daysSinceTogether, daysSinceMeeting, loveMeter]);
+  }, [dashboardData, activeMeeting, name, daysSinceTogether, daysSinceMeeting, loveMeter]);
 
   if ((!session && !isDemoMode) || (!dashboardData && isLoading && !isDemoMode)) {
     return (
@@ -329,11 +341,12 @@ export default function HomeScreen() {
 
   return (
     <ScreenBackground>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : undefined} 
-        style={{ flex: 1 }}
-      >
-        <ScrollView
+      {/* Günlük Not kartı sayfanın en altında: klavye açılınca not alanı ve Kaydet butonu (iOS + Android) görünür kalır */}
+      <View style={{ flex: 1 }}>
+        <KeyboardAwareScrollView
+          enableOnAndroid
+          extraScrollHeight={80}
+          keyboardShouldPersistTaps="handled"
           style={{ flex: 1 }}
           contentContainerStyle={[
             styles.scrollContent,
@@ -521,8 +534,13 @@ export default function HomeScreen() {
           )}
 
           {/* ─── 6. BULUŞMA GERİ SAYIMI ─── */}
-          {dashboardData?.activeMeeting && (
-            <MeetingCountdown meeting={dashboardData.activeMeeting} theme={theme} />
+          {activeMeeting && (
+            // key: farklı/güncellenen buluşmada geri sayım durumu (ör. "gerçekleşti") sıfırdan başlasın
+            <MeetingCountdown
+              key={`${activeMeeting.id}-${activeMeeting.meeting_datetime}`}
+              meeting={activeMeeting}
+              theme={theme}
+            />
           )}
 
           {/* ─── 7. MOD SEÇİMİ ─── */}
@@ -536,8 +554,8 @@ export default function HomeScreen() {
 
           {/* ─── 9. BEKLEYEN MEKTUPLAR ─── */}
           <PendingLettersCard letters={dashboardData?.pendingLetters || []} theme={theme} />
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAwareScrollView>
+      </View>
       <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
       <CoupleWrappedModal
         visible={isWrappedVisible}

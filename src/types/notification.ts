@@ -7,6 +7,7 @@ export type NotificationType =
   | "period"            // Regl & Şefkat Desteği 🌸
   | "mood"              // Ruh Hali Paylaşımı ✨
   | "meeting"           // Buluşma / Özel Gün 🗓️
+  | "pairing"           // Eşleşme Tamamlandı 💑
   | "general";          // Genel Aşk Bildirimi ❤️
 
 export interface InAppNotificationData {
@@ -130,6 +131,17 @@ export const NOTIFICATION_THEMES: Record<NotificationType, NotificationThemeConf
     secondaryColor: "#E9D5FF",
     iconBg: "rgba(192, 132, 252, 0.16)",
     defaultActionLabel: "Buluşmalara Git 🗓️",
+  },
+  pairing: {
+    type: "pairing",
+    badgeLabel: "Eşleşme Tamamlandı",
+    badgeIcon: "Sparkles",
+    gradient: ["#4A1530", "#2B0B1D", "#16050E"],
+    borderGlow: "rgba(255, 138, 168, 0.5)",
+    accentColor: "#FF8AA8",
+    secondaryColor: "#FFC2D1",
+    iconBg: "rgba(255, 138, 168, 0.16)",
+    defaultActionLabel: "Birlikte Başlayalım ✨",
   },
   general: {
     type: "general",

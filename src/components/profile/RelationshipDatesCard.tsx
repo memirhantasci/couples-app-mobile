@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator, Platform, StyleSheet } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
+import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
 import { CalendarHeart, Calendar, Heart, ChevronRight } from "lucide-react-native";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
@@ -62,19 +62,19 @@ export function RelationshipDatesCard({
           <ChevronRight size={16} color={theme.textMuted} />
         </TouchableOpacity>
 
-        {showMeetDatePicker && (
-          <DateTimePicker
-            value={meetDate ? new Date(meetDate) : new Date()}
-            mode="date"
-            display="default"
-            onChange={(_, selectedDate) => {
-              setShowMeetDatePicker(Platform.OS === "ios");
-              if (selectedDate) {
-                onChangeMeetDate(dayjs(selectedDate).format("YYYY-MM-DD"));
-              }
-            }}
-          />
-        )}
+        <DateTimePickerSheet
+          visible={showMeetDatePicker}
+          mode="date"
+          title="Tanışma Tarihi"
+          value={meetDate ? dayjs(meetDate).toDate() : new Date()}
+          // Tanışma, sevgili olma tarihinden sonra olamaz (kurulum ekranındaki kuralla aynı)
+          maximumDate={relStartDate && dayjs(relStartDate).isBefore(dayjs(), "day") ? dayjs(relStartDate).toDate() : new Date()}
+          onCancel={() => setShowMeetDatePicker(false)}
+          onConfirm={(selectedDate) => {
+            setShowMeetDatePicker(false);
+            onChangeMeetDate(dayjs(selectedDate).format("YYYY-MM-DD"));
+          }}
+        />
       </View>
 
       <View style={profileSharedStyles.inputGroup}>
@@ -93,19 +93,18 @@ export function RelationshipDatesCard({
           <ChevronRight size={16} color={theme.textMuted} />
         </TouchableOpacity>
 
-        {showRelDatePicker && (
-          <DateTimePicker
-            value={relStartDate ? new Date(relStartDate) : new Date()}
-            mode="date"
-            display="default"
-            onChange={(_, selectedDate) => {
-              setShowRelDatePicker(Platform.OS === "ios");
-              if (selectedDate) {
-                onChangeRelStartDate(dayjs(selectedDate).format("YYYY-MM-DD"));
-              }
-            }}
-          />
-        )}
+        <DateTimePickerSheet
+          visible={showRelDatePicker}
+          mode="date"
+          title="Sevgili Olma Tarihi"
+          value={relStartDate ? dayjs(relStartDate).toDate() : new Date()}
+          maximumDate={new Date()}
+          onCancel={() => setShowRelDatePicker(false)}
+          onConfirm={(selectedDate) => {
+            setShowRelDatePicker(false);
+            onChangeRelStartDate(dayjs(selectedDate).format("YYYY-MM-DD"));
+          }}
+        />
       </View>
 
       <TouchableOpacity

@@ -26,10 +26,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  ScrollView,
+  KeyboardAvoidingView,
   Platform,
   Alert,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import {
@@ -250,7 +251,11 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={[styles.overlay, { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.45)' : 'rgba(3, 2, 7, 0.85)' }]}>
+      {/* iOS: klavye açılınca sayfa yukarı itilir; Android: içerikteki KeyboardAwareScrollView odaktaki alanı görünür tutar */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={[styles.overlay, { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.45)' : 'rgba(3, 2, 7, 0.85)' }]}
+      >
         <View
           style={[
             styles.sheet,
@@ -411,7 +416,13 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
           )}
 
           {/* ─── SEKME İÇERİKLERİ ───────────────────────────────────── */}
-          <ScrollView style={styles.contentScroll} contentContainerStyle={styles.contentContainer}>
+          <KeyboardAwareScrollView
+            style={styles.contentScroll}
+            contentContainerStyle={styles.contentContainer}
+            enableOnAndroid
+            extraScrollHeight={24}
+            keyboardShouldPersistTaps="handled"
+          >
             {isLoading && !searchPerformed ? (
               <View style={styles.loadingBox}>
                 <ActivityIndicator size="large" color={theme.accent} />
@@ -694,9 +705,9 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                 })
               )}
             </View>
-          </ScrollView>
+          </KeyboardAwareScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

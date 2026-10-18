@@ -13,11 +13,12 @@ import {
   Plus, Calendar, Clock, Navigation, Check, X, Sparkles, Heart 
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
 
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { notifyPartner, scheduleDateLocalNotification, cancelLocalNotification } from "@/lib/notifications";
+import { notifyPartner, cancelLocalNotification } from "@/lib/notifications";
+import { scheduleMeetingReminder, meetingReminderId } from "@/lib/reminderSync";
 import { dayjs } from "@/lib/date";
 import { getTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
@@ -75,22 +76,18 @@ export default function MeetingsScreen() {
     staleTime: 1000 * 60 * 5,
   });
 
-  const onDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      const newDate = new Date(meetingDate);
-      newDate.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
-      setMeetingDate(newDate);
-    }
+  const onDateConfirm = (selectedDate: Date) => {
+    setShowDatePicker(false);
+    const newDate = new Date(meetingDate);
+    newDate.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+    setMeetingDate(newDate);
   };
 
-  const onTimeChange = (event: any, selectedTime?: Date) => {
-    setShowTimePicker(Platform.OS === 'ios');
-    if (selectedTime) {
-      const newDate = new Date(meetingDate);
-      newDate.setHours(selectedTime.getHours(), selectedTime.getMinutes());
-      setMeetingDate(newDate);
-    }
+  const onTimeConfirm = (selectedTime: Date) => {
+    setShowTimePicker(false);
+    const newDate = new Date(meetingDate);
+    newDate.setHours(selectedTime.getHours(), selectedTime.getMinutes());
+    setMeetingDate(newDate);
   };
 
   const handleEdit = (m: any) => {
@@ -189,6 +186,8 @@ export default function MeetingsScreen() {
             `${senderName} yeni bir buluşma planladı: ${meetingTitle}`,
             {
               type: "meeting",
+              meetingId: insertedData?.id,
+              meetingTitle: cleanTitle,
               route: "/(tabs)/meetings",
               actionLabel: "Planı Gör 🗓️",
             }
@@ -198,17 +197,11 @@ export default function MeetingsScreen() {
         Alert.alert("Başarılı 🎉", "Buluşma başarıyla planlandı!");
       }
 
-      // Buluşmaya 2 saat kala yerel hatırlatıcı kur (Geçmişte değilse)
+      // Buluşmaya 2 saat kala yerel hatırlatıcı kur. Zaman geçmişteyse (düzenleme buluşmayı yakına
+      // çektiyse) eski hatırlatıcı iptal edilir. Partnerin cihazında aynı hatırlatıcıyı
+      // useReminderSync kurar.
       if (savedMeetingId) {
-        const reminderTime = dayjs(meetingDate).subtract(2, "hour").toDate();
-        if (reminderTime.getTime() > Date.now()) {
-          await scheduleDateLocalNotification(
-            `meeting_reminder_${savedMeetingId}`,
-            "Buluşma Yaklaşıyor! ⏰",
-            `"${cleanTitle}" buluşmanıza 2 saat kaldı. Hazırlıklar tamam mı? 💕`,
-            reminderTime
-          );
-        }
+        await scheduleMeetingReminder(savedMeetingId, cleanTitle, meetingDate);
       }
 
       handleCancelEdit();
@@ -239,7 +232,7 @@ export default function MeetingsScreen() {
         onPress: async () => {
           // Yerel hatırlatıcıyı temizle
           if (m?.id) {
-            await cancelLocalNotification(`meeting_reminder_${m.id}`);
+            await cancelLocalNotification(meetingReminderId(m.id));
           }
 
           const { error } = await supabase
@@ -617,28 +610,27 @@ export default function MeetingsScreen() {
               </TouchableOpacity>
             </KeyboardAwareScrollView>
           </View>
+
+          {/* TARİH & SAAT SEÇİCİ: iOS'ta başka bir Modal'ın üstünde açılabilmesi için form Modal'ının içinde render edilir */}
+          <DateTimePickerSheet
+            visible={showDatePicker}
+            mode="date"
+            title="Buluşma Tarihi"
+            value={meetingDate}
+            minimumDate={editingMeetingId ? undefined : dayjs().startOf("day").toDate()}
+            onCancel={() => setShowDatePicker(false)}
+            onConfirm={onDateConfirm}
+          />
+          <DateTimePickerSheet
+            visible={showTimePicker}
+            mode="time"
+            title="Buluşma Saati"
+            value={meetingDate}
+            onCancel={() => setShowTimePicker(false)}
+            onConfirm={onTimeConfirm}
+          />
         </View>
       </Modal>
-
-      {/* TARİH & SAAT PICKER MODALLARI */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={meetingDate}
-          mode="date"
-          display="default"
-          onChange={onDateChange}
-          minimumDate={new Date()}
-        />
-      )}
-      {showTimePicker && (
-        <DateTimePicker
-          value={meetingDate}
-          mode="time"
-          is24Hour={true}
-          display="default"
-          onChange={onTimeChange}
-        />
-      )}
 
       {/* HARİTA SEÇİCİ MODALI */}
       <MapPickerModal 

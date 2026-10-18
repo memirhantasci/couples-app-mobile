@@ -4,6 +4,7 @@ import * as Application from "expo-application";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { supabase } from "@/lib/supabase";
+import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { logger } from "@/utils/logger";
 import { decrypt, deterministicDecrypt } from "@/utils/crypto";
 import dayjs from "dayjs";
@@ -122,16 +123,29 @@ export async function requestPushNotificationPermission(userId: string): Promise
 }
 
 
-// Foreground bildirim işleyicisi (Expo SDK 57 uyumlu)
+// Foreground bildirim işleyicisi (Expo SDK 57 uyumlu).
+// Uygulama açıkken sistem banner'ı bastırılır: NotificationContext zaten kendi tasarımımız olan
+// uygulama içi kartı gösteriyor, ikisi birden çıkarsa kullanıcı aynı bildirimi iki kez görür.
+// Bildirim yine de bildirim merkezine düşer (shouldShowList) ve ses çalar.
+// Rozet (badge) sunucudan her push'ta 1 olarak gelir; uygulama açılınca clearNotificationBadge ile sıfırlanır.
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
+    shouldSetBadge: false,
+    shouldShowBanner: false,
     shouldShowList: true,
   }),
 });
+
+/** Uygulama ikonundaki rozeti ve bildirim merkezindeki eski bildirimleri temizler. */
+export async function clearNotificationBadge(): Promise<void> {
+  try {
+    await Notifications.setBadgeCountAsync(0);
+    await Notifications.dismissAllNotificationsAsync();
+  } catch (err) {
+    logger.log("[Push] Badge clear failed:", err);
+  }
+}
 
 // Android kanalları kurulumu (Mektup, İlaç, Genel ve Partner kanalları)
 export function configureAndroidNotificationChannel() {
@@ -225,17 +239,42 @@ export function cleanNotificationText(text: string | null | undefined): string {
   return result.replace(/\s+/g, " ").trim();
 }
 
+/** Kullanıcı adı gibi serbest metinleri RegExp içinde güvenle kullanmak için kaçışlar. */
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Bildirim gövdesine girecek serbest metni (not, başlık) uzun kalırsa kısaltır. */
+function truncate(text: string, max: number): string {
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+}
+
+/**
+ * Push `data` yükündeki tüm metin değerlerini cleanNotificationText'ten geçirir.
+ * Uygulama içi kart (metadata) ve bildirime dokununca açılan ekranlar bu yükü okur;
+ * ham "enc:..." / "det:..." değerlerinin oraya da sızmaması için savunma amaçlıdır.
+ */
+function cleanPayloadData(data: Record<string, unknown> | undefined): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data ?? {})) {
+    result[key] = typeof value === "string" ? cleanNotificationText(value) : value;
+  }
+  return result;
+}
+
 export interface FormattedPushPayload {
   title: string;
   subtitle?: string;
   body: string;
   channelId: string;
+  /** iOS: aynı türdeki bildirimleri bildirim merkezinde tek yığında toplar. */
+  threadId: string;
 }
 
 /**
  * Bildirimleri gerçek mesajlaşma uygulamalarındaki (WhatsApp / iMessage) gibi biçimlendirir.
  * Başlıkta partnerin adı ve ilgili emoji yer alır (ör: "Emirhan 💌").
- * Alt başlıkta kategori (ör: "Yeni Mektup" / "Ortak Galeri") yer alır.
+ * Alt başlıkta kategori (ör: "Yeni Mektup" / "Ortak Galeri") yer alır (yalnızca iOS).
  * Gövdede ise gereksiz robotik tekrarlar olmadan doğrudan samimi mesaj görünür.
  */
 export function formatMessagingStyleNotification(
@@ -248,16 +287,22 @@ export function formatMessagingStyleNotification(
   const name = (senderName || "Sevgilin").trim();
 
   // Robotik "Sevgilin" veya "{sender}" ibarelerini gönderen adı ile değiştir ve temizle
-  let cleanBodyText = cleanNotificationText(rawBody)
-    .replace(/\{sender\}/gi, name)
-    .replace(/\b(Sevgilin|Partnerin)\b/g, name);
+  // (değiştirme işlevi kullanılır: ad içindeki "$&" gibi diziler özel anlam taşımasın)
+  const cleanBodyText = cleanNotificationText(rawBody)
+    .replace(/\{sender\}/gi, () => name)
+    .replace(/\b(Sevgilin|Partnerin)\b/g, () => name);
 
-  // Başta "Emirhan:" veya "Emirhan " varsa temizle (başlıkta zaten adı olacağı için)
-  const namePrefixRegex = new RegExp(`^${name}[,:]?\\s*`, "i");
+  // Başta "Emirhan:" veya "Emirhan " varsa temizle (başlıkta zaten adı olacağı için).
+  // Ad kullanıcıdan geldiği için kaçışlanır; "Ayşe (Canım)" gibi adlar RegExp'i bozup
+  // bildirimin hiç gitmemesine yol açmasın.
+  const namePrefixRegex = new RegExp(`^${escapeRegExp(name)}[,:]?\\s*`, "i");
   let trimmedBody = cleanBodyText.replace(namePrefixRegex, "").trim();
   if (trimmedBody.length > 0) {
     trimmedBody = trimmedBody.charAt(0).toUpperCase() + trimmedBody.slice(1);
   }
+
+  const field = (value: unknown, max = 80): string =>
+    typeof value === "string" ? truncate(cleanNotificationText(value), max) : "";
 
   let title = `${name} ❤️`;
   let subtitle = "Couples";
@@ -269,8 +314,10 @@ export function formatMessagingStyleNotification(
       title = `${name} 💌`;
       subtitle = "Yeni Mektup";
       channelId = "letters_channel";
-      const letterTitle = data?.letterTitle ? ` "${data.letterTitle}"` : "";
-      body = `Sana mühürlü bir mektup bıraktı${letterTitle} 📜`;
+      const letterTitle = field(data?.letterTitle);
+      body = letterTitle
+        ? `Sana mühürlü bir mektup bıraktı: "${letterTitle}" 📜`
+        : "Sana mühürlü bir mektup bıraktı 📜";
       break;
     }
     case "medicine":
@@ -278,7 +325,8 @@ export function formatMessagingStyleNotification(
       title = `${name} 💊`;
       subtitle = "İlaç Takibi";
       channelId = "medicine_channel";
-      const medName = data?.medicineName ? `${data.medicineName} ilacını` : "İlacını";
+      const medicineName = field(data?.medicineName);
+      const medName = medicineName ? `${medicineName} ilacını` : "İlacını";
       if (data?.status === "DRANK") {
         body = `${medName} içti. İçin rahat olsun! 🌿`;
       } else {
@@ -287,16 +335,24 @@ export function formatMessagingStyleNotification(
       break;
     }
     case "photo": {
-      title = `${name} 📸`;
-      subtitle = "Ortak Galeri";
-      channelId = "partner_messages";
-      if (trimmedBody) {
-        body = trimmedBody.toLowerCase().includes("fotoğraf") || trimmedBody.toLowerCase().includes("anı")
-          ? trimmedBody
-          : `Yeni bir anı ekledi: ${trimmedBody}`;
+      const memoryTitle = field(data?.memoryTitle);
+      if (memoryTitle) {
+        // Özel gün / anı kaydı (add-memory)
+        title = `${name} ✨`;
+        subtitle = "Yeni Anı";
+        body = `Yeni bir anı ekledi: "${memoryTitle}" 💕`;
       } else {
-        body = "Ortak galeriye yeni bir anı fotoğrafı ekledi ✨";
+        title = `${name} 📸`;
+        subtitle = "Ortak Galeri";
+        if (trimmedBody) {
+          body = trimmedBody.toLowerCase().includes("fotoğraf") || trimmedBody.toLowerCase().includes("anı")
+            ? trimmedBody
+            : `Yeni bir anı ekledi: ${trimmedBody}`;
+        } else {
+          body = "Ortak galeriye yeni bir anı fotoğrafı ekledi ✨";
+        }
       }
+      channelId = "partner_messages";
       break;
     }
     case "mood": {
@@ -318,7 +374,10 @@ export function formatMessagingStyleNotification(
       title = `${name} ⏰`;
       subtitle = "Buluşma Planı";
       channelId = "partner_messages";
-      body = trimmedBody || "Yeni bir buluşma planladı 🗓️";
+      const meetingTitle = field(data?.meetingTitle);
+      body = meetingTitle
+        ? `Yeni bir buluşma planladı: "${meetingTitle}" 🗓️`
+        : trimmedBody || "Yeni bir buluşma planladı 🗓️";
       break;
     }
     case "period": {
@@ -326,6 +385,14 @@ export function formatMessagingStyleNotification(
       subtitle = "Özel Gün";
       channelId = "partner_messages";
       body = trimmedBody || "Regl dönemi başladı. Ona biraz daha özen gösterme zamanı! 💕";
+      break;
+    }
+    case "pairing": {
+      // Sistem olayı: başlıkta uygulama adı, gönderen adı değil
+      title = "Couples ❤️";
+      subtitle = "Eşleşme Tamamlandı";
+      channelId = "partner_messages";
+      body = "Partnerin katıldı! Birlikte harika anılar biriktirmeye hazırsınız ✨";
       break;
     }
     default: {
@@ -338,7 +405,7 @@ export function formatMessagingStyleNotification(
     }
   }
 
-  return { title, subtitle, body, channelId };
+  return { title, subtitle, body, channelId, threadId: `couples-${type || "general"}` };
 }
 
 export async function sendPushNotification(userId: string, title: string, body: string, data?: any) {
@@ -369,7 +436,7 @@ export async function sendPushNotification(userId: string, title: string, body: 
         channelId,
         priority: "high",
         badge: 1,
-        data: data || {},
+        data: cleanPayloadData(data),
       };
 
       await fetch("https://exp.host/--/api/v2/push/send", {
@@ -387,30 +454,55 @@ export async function sendPushNotification(userId: string, title: string, body: 
   }
 }
 
+/** Yerel (zamanlanmış) bildirimler için isteğe bağlı görünüm / yönlendirme ayarları. */
+export interface LocalNotificationOptions {
+  /** Bildirime dokununca uygulamanın okuyacağı yük (type, route...). */
+  data?: Record<string, unknown>;
+  /** Yalnızca iOS: başlığın altındaki kalın kategori satırı. */
+  subtitle?: string;
+  /** Yalnızca Android: küçük ikon ve başlık vurgu rengi. */
+  color?: string;
+  /** Yalnızca Android: bildirim kanalı. */
+  channelId?: string;
+}
+
 /**
  * Sunucuyu yormadan, yerel cihaz üzerinde günlük tekrarlanan bir bildirim kurar.
  * Özellikle ilaç hatırlatıcıları için kullanılır.
  */
-export async function scheduleDailyLocalNotification(id: string, title: string, body: string, hour: number, minute: number) {
+export async function scheduleDailyLocalNotification(
+  id: string,
+  title: string,
+  body: string,
+  hour: number,
+  minute: number,
+  options: LocalNotificationOptions = {}
+) {
   try {
     const cleanTitle = cleanNotificationText(title);
     const cleanBody = cleanNotificationText(body);
 
     // Önce aynı ID'ye sahip eski bildirimi temizle
     await cancelLocalNotification(id);
-    
+
     await Notifications.scheduleNotificationAsync({
       identifier: id,
       content: {
         title: cleanTitle,
         body: cleanBody,
+        subtitle: options.subtitle,
+        color: options.color,
+        data: cleanPayloadData(options.data),
         sound: true,
       },
+      // DAILY: hem Android hem iOS'ta her gün aynı saatte tekrarlar (CALENDAR yalnızca iOS'tur).
+      // channelId yalnızca Android'de kullanılır; ilaç hatırlatıcıları kendi kanalına düşer.
       trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
         hour,
         minute,
-        repeats: true,
-      } as any,
+        channelId: options.channelId ?? "medicine_channel",
+      },
     });
     logger.log(`[LocalPush] Scheduled daily notification ${id} at ${hour}:${minute}`);
   } catch (error) {
@@ -420,15 +512,21 @@ export async function scheduleDailyLocalNotification(id: string, title: string, 
 
 /**
  * Belirli bir gelecekteki tarihte çalışacak yerel bildirim kurar.
- * Regl yaklaşma hatırlatıcıları için kullanılır (Sunucu yormaz).
+ * Regl yaklaşma, buluşma ve mektup kilidi hatırlatıcıları için kullanılır (Sunucu yormaz).
  */
-export async function scheduleDateLocalNotification(id: string, title: string, body: string, triggerDate: Date) {
+export async function scheduleDateLocalNotification(
+  id: string,
+  title: string,
+  body: string,
+  triggerDate: Date,
+  options: LocalNotificationOptions = {}
+) {
   try {
     const cleanTitle = cleanNotificationText(title);
     const cleanBody = cleanNotificationText(body);
 
     await cancelLocalNotification(id);
-    
+
     // Geçmiş bir tarihse kurma
     if (triggerDate.getTime() <= Date.now()) return;
 
@@ -437,9 +535,16 @@ export async function scheduleDateLocalNotification(id: string, title: string, b
       content: {
         title: cleanTitle,
         body: cleanBody,
+        subtitle: options.subtitle,
+        color: options.color,
+        data: cleanPayloadData(options.data),
         sound: true,
       },
-      trigger: triggerDate as any,
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: triggerDate,
+        channelId: options.channelId ?? "default",
+      },
     });
     logger.log(`[LocalPush] Scheduled date notification ${id} for ${triggerDate.toISOString()}`);
   } catch (error) {
@@ -466,7 +571,8 @@ export async function cancelLocalNotification(id: string) {
  * Bu yüzden 017_scalability_and_security_fixes.sql ile oluşturulan
  * get_partner_push_tokens(couple_id) RPC fonksiyonu kullanılır.
  * Bu fonksiyon SECURITY DEFINER yetkisiyle çalışır ve yalnızca aynı
- * çifte ait partnerin token'larını döndürür.
+ * çifte ait partnerin token'larını döndürür
+ * (çağıranın o çiftin üyesi olması 20261019000002 migrasyonuyla doğrulanır).
  */
 export async function notifyPartner(coupleId: number, currentUserId: string, title: string, body: string, data?: any) {
   // Demo modunda bildirim gönderilmez
@@ -504,36 +610,88 @@ export async function notifyPartner(coupleId: number, currentUserId: string, tit
       p_couple_id: coupleId,
     });
 
-    if (error || !tokens || tokens.length === 0) return;
+    if (error) {
+      logger.error("[Push] get_partner_push_tokens failed:", error.message);
+      return;
+    }
+    if (!tokens || tokens.length === 0) return;
 
     const payloadData = {
-      ...(data || {}),
+      ...cleanPayloadData(data),
       senderName: senderName || undefined,
     };
 
-    for (const t of tokens) {
-      if (!t.token) continue;
-      await fetch("https://exp.host/--/api/v2/push/send", {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Accept-encoding": "gzip, deflate",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          to: t.token,
-          sound: "default",
-          title: formatted.title,
-          subtitle: formatted.subtitle,
-          body: formatted.body,
-          channelId: formatted.channelId,
-          priority: "high",
-          badge: 1,
-          data: payloadData,
-        }),
-      });
+    // Mood gibi sık güncellenen bildirimler yığılmasın: aynı kimlikli yenisi eskisinin yerini alır
+    const collapseId = data?.type === "mood" ? "couples-mood" : undefined;
+
+    // Tüm token'lar tek istekte gönderilir (Expo toplu mesaj dizisini kabul eder)
+    const messages = (tokens as { token: string | null }[])
+      .filter((t) => !!t.token)
+      .map((t) => ({
+        to: t.token,
+        sound: "default",
+        title: formatted.title,
+        subtitle: formatted.subtitle,
+        body: formatted.body,
+        channelId: formatted.channelId,
+        threadId: formatted.threadId,
+        collapseId,
+        tag: collapseId,
+        priority: "high",
+        badge: 1,
+        data: payloadData,
+      }));
+
+    if (messages.length === 0) return;
+
+    const response = await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Accept-encoding": "gzip, deflate",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(messages),
+    });
+
+    // Expo 200 dönse bile tekil mesajlar hata verebilir (ör. DeviceNotRegistered); sessiz kalmasın
+    try {
+      const result = await response.json();
+      const failures = (result?.data ?? []).filter((r: any) => r?.status === "error");
+      if (failures.length > 0) {
+        logger.error("[Push] Expo rejected message(s):", JSON.stringify(failures));
+      }
+    } catch {
+      // yanıt gövdesi okunamadıysa gönderimi başarısız saymıyoruz
     }
   } catch (error) {
     logger.error("[Push] Failed to notify partner:", error);
   }
+}
+
+/**
+ * Eşleşme tamamlandığında, bekleme ekranındaki partnere ("Partnerin katıldı!") bildirim gönderir.
+ * Eşleşmeyi tamamlayan (davet kodunu giren) tarafın cihazından çağrılır.
+ *
+ * Aynı eşleşme için yalnızca bir kez gönderilir: otomatik eşleşme yolları (bekleyen davet kodu,
+ * ekran açılışı, manuel giriş) yarışabildiği için çift bildirim önlenir.
+ */
+export async function notifyPairingComplete(coupleId: number | null | undefined, userId: string | null | undefined) {
+  if (!coupleId || !userId || userId === "demo-guest-user-id") return;
+
+  const dedupeKey = `@pairing_notified_${coupleId}`;
+  try {
+    if (await AsyncStorage.getItem(dedupeKey)) return;
+    await AsyncStorage.setItem(dedupeKey, "1");
+  } catch {
+    // depolama okunamazsa yine de göndermeyi dene
+  }
+
+  await notifyPartner(
+    coupleId,
+    userId,
+    "Couples ❤️",
+    "Partnerin katıldı! Birlikte harika anılar biriktirmeye hazırsınız ✨",
+    { type: "pairing", route: "/(tabs)/home", actionLabel: "Birlikte Başlayalım ✨" }
+  );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert
 } from "react-native";
@@ -12,7 +12,10 @@ import { useTheme } from "@/context/ThemeContext";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { scheduleDailyLocalNotification, cancelLocalNotification, notifyPartner } from "@/lib/notifications";
+import { cancelLocalNotification, notifyPartner } from "@/lib/notifications";
+import { scheduleMedicineReminder, medicineReminderId, syncLocalReminders } from "@/lib/reminderSync";
+import { useNotificationPriming } from "@/hooks/useNotificationPriming";
+import { PermissionPrimingModal } from "@/components/common/PermissionPrimingModal";
 import { useCustomNotification } from "@/context/NotificationContext";
 import { dayjs, todayString } from "@/lib/date";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -58,6 +61,19 @@ export default function MedicineScreen() {
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("medicine");
 
   const [activeTab, setActiveTab] = useState<MedicineTab>("me");
+
+  // Hatırlatıcılar bildirim izni olmadan çalmaz: ilk ilaç kaydından sonra ön-onay kartı gösterilir.
+  const priming = useNotificationPriming(userId);
+  const primeAfterCloseRef = useRef(false);
+
+  const closeManagerModal = () => {
+    setShowManagerModal(false);
+    if (primeAfterCloseRef.current) {
+      primeAfterCloseRef.current = false;
+      // Yönetim modalının kapanış animasyonu bitmeden ikinci bir Modal açılırsa iOS bunu yutar
+      setTimeout(() => { priming.maybePrompt(); }, 450);
+    }
+  };
 
   const fourteenDaysAgo = dayjs().subtract(14, "day").format("YYYY-MM-DD");
 
@@ -273,18 +289,18 @@ export default function MedicineScreen() {
       if (editingMedicineId) {
         // Eski bildirimleri silmek için mevcut ilacı bul
         const oldMed = data?.medicines?.find((m: any) => m.id === editingMedicineId);
-        if (oldMed?.times && targetUserId === userId) {
-          oldMed.times.forEach((t: string) => cancelLocalNotification(`med_${editingMedicineId}_${t}`));
+        // Eski saatlerin bildirimleri (kayıt "HH:mm" ya da "HH:mm:ss" tutabilir) iptal edilir.
+        // Not: ilaç sevgiliye eklendiyse onun cihazındaki hatırlatıcıyı useReminderSync kurar/günceller;
+        // hatırlatıcı yalnızca ilacın sahibine çalar, partnere "ilacını kaçırdı" bildirimi gönderilmez.
+        if (oldMed?.times && oldMed.user_id === userId) {
+          oldMed.times.forEach((t: string) => cancelLocalNotification(medicineReminderId(editingMedicineId, t.substring(0, 5))));
         }
 
         const { error } = await supabase.from("medicines").update(payload).eq("id", editingMedicineId);
         if (error) throw error;
 
         if (targetUserId === userId) {
-          formattedTimes.forEach((t: string) => {
-            const [h, m] = t.split(":");
-            scheduleDailyLocalNotification(`med_${editingMedicineId}_${t}`, "İlaç Vakti 💧", `${payload.name} ilacınızı alma vakti geldi.`, parseInt(h), parseInt(m));
-          });
+          formattedTimes.forEach((t: string) => scheduleMedicineReminder(editingMedicineId, payload.name, t));
         }
 
         Alert.alert("Başarılı 🎉", "İlaç bilgisi güncellendi.");
@@ -293,16 +309,15 @@ export default function MedicineScreen() {
         if (error) throw error;
 
         if (newMed && targetUserId === userId) {
-          formattedTimes.forEach((t: string) => {
-            const [h, m] = t.split(":");
-            scheduleDailyLocalNotification(`med_${newMed.id}_${t}`, "İlaç Vakti 💧", `${payload.name} ilacınızı alma vakti geldi.`, parseInt(h), parseInt(m));
-          });
+          formattedTimes.forEach((t: string) => scheduleMedicineReminder(newMed.id, payload.name, t));
         }
 
         Alert.alert("Başarılı 🎉", "Yeni ilaç kaydedildi.");
       }
 
       refetch();
+      // Hatırlatıcıların çalabilmesi için bildirim izni gerekir; ön-onay kartı modal kapanınca açılır
+      primeAfterCloseRef.current = true;
       return "success";
     } catch (err: any) {
       Alert.alert("Hata", err?.message || "Beklenmeyen bir hata oluştu.");
@@ -339,7 +354,7 @@ export default function MedicineScreen() {
           // Yerel bildirimleri temizle
           const med = data?.medicines?.find((m: any) => m.id === id);
           if (med?.times && med.user_id === userId) {
-            med.times.forEach((t: string) => cancelLocalNotification(`med_${id}_${t}`));
+            med.times.forEach((t: string) => cancelLocalNotification(medicineReminderId(id, t.substring(0, 5))));
           }
 
           const { error } = await supabase.from("medicines").delete().eq("id", id).eq("couple_id", coupleId);
@@ -663,9 +678,19 @@ export default function MedicineScreen() {
         deletingId={isDeleting}
         initialData={managerInitialData}
         onSubmit={handleSubmitMedicine}
-        onClose={() => setShowManagerModal(false)}
+        onClose={closeManagerModal}
         onDelete={handleDeleteMedicine}
         onBeforeEdit={handleBeforeEditMedicine}
+      />
+
+      <PermissionPrimingModal
+        visible={priming.isVisible}
+        onAccept={async () => {
+          const granted = await priming.accept();
+          // İzin yeni verildiyse bu cihazdaki tüm hatırlatıcıları hemen eşitle
+          if (granted && coupleId && userId) syncLocalReminders(userId, coupleId, { force: true });
+        }}
+        onDismiss={priming.dismiss}
       />
 
       <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />

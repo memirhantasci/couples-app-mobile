@@ -234,7 +234,7 @@ export const FEATURE_GUIDES: Record<string, PageTourGuide> = {
         title: "Partner Bildirimi & Takibi",
         icon: "Heart",
         badge: "Sevgiyle Takip",
-        description: "Partneriniz ilacını aldığında veya almayı unuttuğunda durumdan haberdar olabilir, ona tatlı bir hatırlatma yapabilirsiniz.",
+        description: "Alarm yalnızca ilacın sahibine çalar. Partneriniz ilacını içtiğinde haberdar olursunuz; unutulan dozlar için sevgilinize bildirim gönderilmez, istediğinizde ona kendiniz tatlı bir hatırlatma yapabilirsiniz.",
         tip: "Aşk, birbirinin sağlığına da özen göstermektir!",
       },
       {

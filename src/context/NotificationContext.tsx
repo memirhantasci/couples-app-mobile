@@ -1,8 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { AppState } from "react-native";
 import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 import { InAppNotificationData, NotificationType } from "@/types/notification";
 import { logger } from "@/utils/logger";
+import { clearNotificationBadge } from "@/lib/notifications";
 import { InAppNotificationBanner } from "@/components/notifications/InAppNotificationBanner";
 
 interface NotificationContextType {
@@ -191,22 +193,46 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     });
 
-    const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+    return () => {
+      receivedSubscription.remove();
+    };
+  }, [showNotification]);
+
+  // Bildirime dokunma: hook hem çalışan uygulamadaki dokunuşları hem de uygulama kapalıyken
+  // bildirimle açılışı (cold start) yakalar. Aynı dokunuş iki kez yönlendirmesin diye işlenenler hatırlanır.
+  const lastResponse = Notifications.useLastNotificationResponse();
+  const handledResponseRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!lastResponse) return;
+    if (lastResponse.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
+
+    const key = `${lastResponse.notification.request.identifier}:${lastResponse.notification.date}`;
+    if (handledResponseRef.current === key) return;
+    handledResponseRef.current = key;
+
+    const route = (lastResponse.notification.request.content.data as any)?.route;
+    if (typeof route !== "string" || !route.startsWith("/")) return;
+
+    // Soğuk açılışta gezinti ağacı henüz hazır olmayabilir; kısa bir gecikmeyle dene
+    const timer = setTimeout(() => {
       try {
-        const data = response.notification.request.content.data as any;
-        if (data?.route) {
-          router.push(data.route);
-        }
+        router.push(route as any);
       } catch (err) {
         logger.error("[InAppNotification] Error responding to notification tap:", err);
       }
-    });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [lastResponse, router]);
 
-    return () => {
-      receivedSubscription.remove();
-      responseSubscription.remove();
-    };
-  }, [showNotification, router]);
+  // Uygulama açılınca / öne gelince ikon rozetini ve bildirim merkezini temizle
+  useEffect(() => {
+    clearNotificationBadge();
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") clearNotificationBadge();
+    });
+    return () => sub.remove();
+  }, []);
 
   return (
     <NotificationContext.Provider

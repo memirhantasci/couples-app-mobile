@@ -33,7 +33,10 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
+  Keyboard,
+  KeyboardAvoidingView,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
@@ -60,6 +63,7 @@ import {
 } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/context/ThemeContext';
+import { DateTimePickerSheet } from '@/components/ui/DateTimePickerSheet';
 import { starService } from '../api/starService';
 import type {
   StarExoplanetRecord,
@@ -168,6 +172,9 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
 
   // Tam ekran fotoğraf önizleme state'i (View Mode)
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+
+  // Anı tarihi seçici (alt sayfa)
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Modal görünürlüğü veya mod prop'u değiştiğinde render aşamasında form state'ini senkronize et
   const [prevProps, setPrevProps] = useState({ visible, mode, selectedPlanet });
@@ -542,7 +549,11 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={[styles.modalBackdrop, { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.5)' : 'rgba(3, 2, 7, 0.75)' }]}>
+      {/* iOS: klavye açılınca sayfa yukarı itilir; Android: KeyboardAwareScrollView odaktaki alanı görünür tutar */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={[styles.modalBackdrop, { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.5)' : 'rgba(3, 2, 7, 0.75)' }]}
+      >
         <BlurView intensity={Platform.OS === 'ios' ? 70 : 100} tint={isLight ? 'light' : 'dark'} style={StyleSheet.absoluteFill} />
 
         <View style={[styles.sheetContainer, { backgroundColor: isLight ? '#FFFFFF' : theme.cardBg, borderColor: isLight ? 'rgba(0,0,0,0.08)' : theme.cardBorder }]}>
@@ -564,10 +575,12 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView
+          <KeyboardAwareScrollView
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            enableOnAndroid
+            extraScrollHeight={24}
           >
             {/* ========================================================== */}
             {/* MOD 1: ANILARI İNCELEME (VIEW MODE)                         */}
@@ -776,25 +789,31 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                   />
                 </View>
 
-                {/* 2. TARİH GİRDİSİ */}
+                {/* 2. TARİH SEÇİMİ (takvim / çark; elle yazdırılmaz) */}
                 <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { color: theme.textMuted }]}>ANI TARİHİ (BUGÜN VEYA GEÇMİŞ: YYYY-AA-GG)</Text>
-                  <TextInput
+                  <Text style={[styles.inputLabel, { color: theme.textMuted }]}>ANI TARİHİ (BUGÜN VEYA GEÇMİŞ)</Text>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    disabled={isSubmitting}
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      setShowDatePicker(true);
+                    }}
                     style={[
                       styles.textInput,
+                      styles.dateFieldBtn,
                       {
                         backgroundColor: isLight ? theme.inputBg : 'rgba(255, 255, 255, 0.06)',
                         borderColor: isLight ? theme.inputBorder : 'rgba(255, 255, 255, 0.14)',
-                        color: theme.text,
                       },
                     ]}
-                    placeholder="YYYY-AA-GG"
-                    placeholderTextColor={isLight ? 'rgba(0, 0, 0, 0.35)' : 'rgba(255, 255, 255, 0.3)'}
-                    value={milestoneDate}
-                    onChangeText={setMilestoneDate}
-                    maxLength={10}
-                    editable={!isSubmitting}
-                  />
+                  >
+                    <Calendar size={16} color="#38BDF8" />
+                    <Text style={[styles.dateFieldText, { color: theme.text }]}>
+                      {dayjs(milestoneDate).isValid() ? dayjs(milestoneDate).format('DD MMMM YYYY') : 'Tarih Seçin'}
+                    </Text>
+                    <ChevronRight size={16} color={theme.textMuted} />
+                  </TouchableOpacity>
                 </View>
 
                 {/* 3. YÖRÜNGE KUŞAĞI SEÇİMİ (1-5) */}
@@ -1032,8 +1051,23 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                 )}
               </View>
             )}
-          </ScrollView>
+          </KeyboardAwareScrollView>
         </View>
+
+        {/* TARİH SEÇİCİ: iOS'ta başka bir Modal'ın üstünde açılabilmesi için bu Modal'ın içinde render edilir */}
+        <DateTimePickerSheet
+          visible={showDatePicker}
+          mode="date"
+          title="Anı Tarihi"
+          value={dayjs(milestoneDate).isValid() ? dayjs(milestoneDate).toDate() : new Date()}
+          maximumDate={new Date()}
+          onCancel={() => setShowDatePicker(false)}
+          onConfirm={(picked) => {
+            setShowDatePicker(false);
+            setMilestoneDate(dayjs(picked).format('YYYY-MM-DD'));
+            setFormError('');
+          }}
+        />
 
         {/* TAM EKRAN GÖRSEL ÖNİZLEME MODALI */}
         {fullscreenImage && (
@@ -1049,7 +1083,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
             </View>
           </Modal>
         )}
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -1376,6 +1410,16 @@ const styles = StyleSheet.create({
     height: 80,
     paddingTop: 12,
     textAlignVertical: 'top',
+  },
+  dateFieldBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  dateFieldText: {
+    flex: 1,
+    fontSize: 14.5,
+    fontWeight: '600',
   },
   zoneSelectorRow: {
     flexDirection: 'row',

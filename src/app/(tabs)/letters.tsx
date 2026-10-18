@@ -24,7 +24,7 @@ import { logger } from "@/utils/logger";
 import { getTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { WatchAdModal } from "@/components/ui/WatchAdModal";
 import { OrigamiBirdAnimation } from "@/components/letters/OrigamiBirdAnimation";
@@ -281,7 +281,8 @@ export default function LettersScreen() {
       }
       setShowWriteModal(false);
 
-      if (isPremium && coupleId && userId) {
+      // Mektup Premium'la veya 100 token'la gönderilebildiği için bildirim de her iki durumda gider
+      if (coupleId && userId) {
         const senderName = profile?.displayName || "Sevgilin";
         const letterHeader = cleanTitle.trim();
         const notificationBody = letterHeader 
@@ -762,20 +763,18 @@ export default function LettersScreen() {
                     <ChevronRight size={16} color={theme.textMuted} />
                   </TouchableOpacity>
 
-                  {showDatePicker && (
-                    <DateTimePicker
-                      value={new Date(unlockDate)}
-                      mode="date"
-                      display={Platform.OS === "ios" ? "spinner" : "default"}
-                      minimumDate={new Date()}
-                      onChange={(_, selectedDate) => {
-                        setShowDatePicker(Platform.OS === "ios");
-                        if (selectedDate) {
-                          setUnlockDate(dayjs(selectedDate).format("YYYY-MM-DD"));
-                        }
-                      }}
-                    />
-                  )}
+                  <DateTimePickerSheet
+                    visible={showDatePicker}
+                    mode="date"
+                    title="Kilit Açılma Tarihi"
+                    value={dayjs(unlockDate).toDate()}
+                    minimumDate={dayjs().startOf("day").toDate()}
+                    onCancel={() => setShowDatePicker(false)}
+                    onConfirm={(selectedDate) => {
+                      setShowDatePicker(false);
+                      setUnlockDate(dayjs(selectedDate).format("YYYY-MM-DD"));
+                    }}
+                  />
                 </View>
 
                 {/* MEKTUP BAŞLIĞI */}
