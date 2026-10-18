@@ -5,18 +5,16 @@ import {
   StyleSheet,
   Modal,
   TouchableOpacity,
-  Dimensions,
   ActivityIndicator,
   Share,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { X, Share2, MapPin, Navigation, Sparkles, Heart, Compass } from "lucide-react-native";
+import { X, Share2, Sparkles, Compass } from "lucide-react-native";
 import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 import { AppTheme } from "@/lib/theme";
 import { dayjs } from "@/lib/date";
 
-const { width: SW } = Dimensions.get("window");
 
 interface MapPinItem {
   id: number;
@@ -55,16 +53,8 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
 
   // Harita analiz hesaplamaları
   const stats = useMemo(() => {
-    if (!pins || pins.length === 0) {
-      return {
-        totalPins: 8,
-        locationsList: ["İstanbul", "İzmir"],
-        maxDistanceKm: 480,
-        firstPlace: "Kadıköy Sahil",
-        latestPlace: "Alsancak Kordon",
-        headline: "Aşkımız 2 şehirde ve 480 kilometrede büyüdü.",
-      };
-    }
+    // Pin yoksa uydurma rakam göstermek yerine boş durum çizilir.
+    if (!pins || pins.length === 0) return null;
 
     const totalPins = pins.length;
     const locationNames = Array.from(
@@ -102,7 +92,7 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
   }, [pins]);
 
   const handleShare = async () => {
-    if (!shareCardRef.current) return;
+    if (!shareCardRef.current || !stats) return;
     try {
       setIsSharing(true);
       const uri = await captureRef(shareCardRef, {
@@ -147,6 +137,18 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
             </TouchableOpacity>
           </View>
 
+          {!stats ? (
+            <View style={styles.emptyCard}>
+              <View style={styles.emptyIconCircle}>
+                <Compass size={26} color="#FF4D6D" />
+              </View>
+              <Text style={styles.emptyTitle}>Henüz harita iziniz bulunmuyor</Text>
+              <Text style={styles.emptyText}>
+                Anı veya fotoğraf ekledikçe seyahat hikayeniz burada şekillenecek ✨
+              </Text>
+            </View>
+          ) : (
+          <>
           {/* Dışa Aktarılacak Estetik Story Kartı */}
           <View ref={shareCardRef} collapsable={false} style={styles.storyCard}>
             <LinearGradient
@@ -230,11 +232,13 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
               ) : (
                 <>
                   <Share2 size={18} color="#FFFFFF" />
-                  <Text style={styles.shareBtnText}>Instagram Story'de Paylaş</Text>
+                  <Text style={styles.shareBtnText}>Instagram Story&apos;de Paylaş</Text>
                 </>
               )}
             </LinearGradient>
           </TouchableOpacity>
+          </>
+          )}
         </View>
       </View>
     </Modal>
@@ -283,6 +287,39 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.12)",
     justifyContent: "center",
     alignItems: "center",
+  },
+  emptyCard: {
+    width: "100%",
+    alignItems: "center",
+    gap: 10,
+    borderRadius: 24,
+    paddingVertical: 36,
+    paddingHorizontal: 24,
+    backgroundColor: "#161220",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.12)",
+  },
+  emptyIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(255, 77, 109, 0.12)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  emptyTitle: {
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontFamily: "Inter_700Bold",
+    textAlign: "center",
+  },
+  emptyText: {
+    color: "rgba(255, 255, 255, 0.65)",
+    fontSize: 13.5,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 20,
+    textAlign: "center",
   },
   storyCard: {
     width: "100%",
