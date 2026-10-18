@@ -34,7 +34,8 @@ Aşağıdaki tüm optimizasyonlar başarıyla kodlanmış, entegre edilmiş ve t
 - [x] **Buluşma Yaklaşırken Yerel Hatırlatıcı Bildirimi ([`meetings.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/meetings.tsx)):**
   - Buluşma saatinden 2 saat önce otomatik yerel bildirim (`scheduleDateLocalNotification`) planlandı; silindiğinde zamanlanmış bildirim iptal ediliyor.
 - [x] **Ortak Takvim ile Buluşmalar ve Regl Günlerinin Entegrasyonu ([`calendar.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/calendar.tsx)):**
-  - Takvim veri sorgusuna `meetings` ve `period_logs` dahil edildi; seçili günün detayında buluşma kartları ve döngü kayıtları lejanterle birlikte gösterildi.
+  - Takvim veri sorgusuna `meetings` ve `period_logs` dahil edildi.
+  - Erkek kullanıcılar için regl takibi **sadece çift Premium ise** aktifleştirildi (`canSeePeriod = isFemale || isPremium`). Premium olmayan erkek kullanıcılar için döngü noktaları, lejant ve kartlar gizlendi. Kadın kullanıcılar ise kendi döngülerini daima görmektedir.
 - [x] **Takvim Hücrelerinde 4+ Noktanın Taşmasının Önlenmesi ([`calendar.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/calendar.tsx)):**
   - Gün hücresinde (36px) nokta boyutları 5px'e optimize edildi ve en fazla 3 noktaya sınırlandırılarak hücre dışına taşma sorunu çözüldü.
 - [x] **Silinen Fotoğrafların Thumbnail (Küçük Resim) Temizliği ([`photos.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/photos.tsx)):**

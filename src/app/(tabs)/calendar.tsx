@@ -68,12 +68,15 @@ export default function CalendarScreen() {
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
   const isPremium = profile?.isPremium ?? false;
+  const isFemale = profile?.gender === "female";
+  // Erkek kullanıcılar takvimde döngüyü (regl) sadece Premium ise görebilir. Kadın kullanıcılar ise her zaman kendi döngülerini görür.
+  const canSeePeriod = isFemale || isPremium;
   const [showPaywall, setShowPaywall] = useState(false);
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("calendar");
 
   // Veri çekme
   const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ["calendar_data", coupleId, isPremium, isDemoMode],
+    queryKey: ["calendar_data", coupleId, isPremium, canSeePeriod, isDemoMode],
     enabled: !!coupleId || !!userId || isDemoMode,
     queryFn: async () => {
       if (isDemoMode) {
@@ -100,7 +103,9 @@ export default function CalendarScreen() {
           meetings: [
             { id: 1, title: "Romantik Akşam Yemeği 🍷", location: "Boğaz Manzaralı Restoran", meeting_datetime: `${today}T19:30:00`, status: "approved", created_by: userId }
           ],
-          periods: [],
+          periods: canSeePeriod ? [
+            { id: 1, date: dayjs().subtract(2, "day").format("YYYY-MM-DD"), user_id: "demo-partner" }
+          ] : [],
           partner: { display_name: "Sevgilin" },
           me: { display_name: "Misafir" },
         };
@@ -134,12 +139,14 @@ export default function CalendarScreen() {
           .eq("couple_id", coupleId)
           .gte("meeting_datetime", `${threeMonthsAgo}T00:00:00`)
           .lte("meeting_datetime", `${threeMonthsLater}T23:59:59`),
-        supabase
-          .from("period_logs")
-          .select("id, date, user_id")
-          .eq("couple_id", coupleId)
-          .gte("date", threeMonthsAgo)
-          .lte("date", threeMonthsLater),
+        canSeePeriod && coupleId
+          ? supabase
+            .from("period_logs")
+            .select("id, date, user_id")
+            .eq("couple_id", coupleId)
+            .gte("date", threeMonthsAgo)
+            .lte("date", threeMonthsLater)
+          : Promise.resolve({ data: [] }),
         supabase
           .from("users")
           .select("*")
@@ -207,9 +214,11 @@ export default function CalendarScreen() {
       const meetDate = dayjs(m.meeting_datetime).format("YYYY-MM-DD");
       addDot(meetDate, CALENDAR_COLORS.meeting, "meeting");
     });
-    data.periods?.forEach((p: any) => {
-      addDot(p.date, CALENDAR_COLORS.period, "period");
-    });
+    if (canSeePeriod) {
+      data.periods?.forEach((p: any) => {
+        addDot(p.date, CALENDAR_COLORS.period, "period");
+      });
+    }
 
     // 🎨 3.4 Çözümü: Gün hücresi içinde 4+ noktanın taşmasını önlemek için en fazla 3 nokta tut
     Object.keys(marks).forEach(d => {
@@ -233,7 +242,7 @@ export default function CalendarScreen() {
     }
 
     return marks;
-  }, [data, selectedDate, theme.accent, userId, isPremium]);
+  }, [data, selectedDate, theme.accent, userId, isPremium, canSeePeriod]);
 
   const onDayPress = useCallback((day: { dateString: string }) => {
     setSelectedDate(day.dateString);
@@ -267,8 +276,9 @@ export default function CalendarScreen() {
   }, [data, selectedDate]);
 
   const selectedDayPeriods = useMemo(() => {
+    if (!canSeePeriod) return [];
     return data?.periods?.filter((p: any) => p.date === selectedDate) || [];
-  }, [data, selectedDate]);
+  }, [data, selectedDate, canSeePeriod]);
 
   const userNoteForSelectedDay = useMemo(() => {
     return selectedDayNotes.find((n: any) => n.user_id === userId);
@@ -516,10 +526,12 @@ export default function CalendarScreen() {
                 <View style={[styles.legendDot, { backgroundColor: CALENDAR_COLORS.meeting }]} />
                 <Text style={[styles.legendText, { color: isLight ? "#7C3AED" : "#A78BFA" }]}>Buluşma</Text>
               </View>
-              <View style={[styles.legendItem, { backgroundColor: isLight ? "rgba(225,29,72,0.08)" : "rgba(225,29,72,0.14)", borderColor: "rgba(225,29,72,0.3)" }]}>
-                <View style={[styles.legendDot, { backgroundColor: CALENDAR_COLORS.period }]} />
-                <Text style={[styles.legendText, { color: isLight ? "#BE123C" : "#FB7185" }]}>Döngü</Text>
-              </View>
+              {canSeePeriod && (
+                <View style={[styles.legendItem, { backgroundColor: isLight ? "rgba(225,29,72,0.08)" : "rgba(225,29,72,0.14)", borderColor: "rgba(225,29,72,0.3)" }]}>
+                  <View style={[styles.legendDot, { backgroundColor: CALENDAR_COLORS.period }]} />
+                  <Text style={[styles.legendText, { color: isLight ? "#BE123C" : "#FB7185" }]}>Döngü</Text>
+                </View>
+              )}
             </View>
           </View>
 
@@ -719,8 +731,8 @@ export default function CalendarScreen() {
                 </View>
               )}
 
-              {/* Döngü / Regl Günleri */}
-              {selectedDayPeriods.length > 0 && (
+              {/* Döngü / Regl Günleri (Sadece kadın kullanıcılar veya Premium erkek kullanıcılar için) */}
+              {canSeePeriod && selectedDayPeriods.length > 0 && (
                 <View style={{ gap: 10 }}>
                   <View style={[styles.sectionHeaderBadge, { backgroundColor: isLight ? "rgba(225,29,72,0.1)" : "rgba(225,29,72,0.16)", borderColor: "rgba(225,29,72,0.3)" }]}>
                     <Droplet size={15} color={CALENDAR_COLORS.period} />
