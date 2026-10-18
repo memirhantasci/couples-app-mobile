@@ -1,0 +1,47 @@
+import React from "react";
+import { TouchableOpacity, StyleSheet, Dimensions } from "react-native";
+import { Image } from "expo-image";
+import type { PhotoItem } from "./photoTypes";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+interface PhotoGrid3CellProps {
+  item: PhotoItem;
+  index: number;
+  onPress: (index: number) => void;
+}
+
+// ─── 3 SÜTUNLU KOMPAKT IZGARA HÜCRESİ ────────────────────────────────────────
+function PhotoGrid3CellBase({ item, index, onPress }: PhotoGrid3CellProps) {
+  const itemSize = (SCREEN_WIDTH - 32 - 12) / 3;
+  return (
+    <TouchableOpacity
+      activeOpacity={0.88}
+      onPress={() => onPress(index)}
+      style={[styles.grid3Box, { width: itemSize, height: itemSize }]}
+    >
+      <Image
+        source={{ uri: item.thumb_url ?? item.image_url }}
+        style={styles.grid3Img}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        recyclingKey={item.id.toString()}
+      />
+    </TouchableOpacity>
+  );
+}
+
+export const PhotoGrid3Cell = React.memo(PhotoGrid3CellBase);
+
+const styles = StyleSheet.create({
+  grid3Box: {
+    borderRadius: 14,
+    overflow: "hidden",
+    margin: 3,
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  grid3Img: {
+    width: "100%",
+    height: "100%",
+  },
+});
