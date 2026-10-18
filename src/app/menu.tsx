@@ -46,6 +46,10 @@ export default function MenuScreen() {
   const handleClose = () => {
     if (isNavigatingRef.current) return;
     isNavigatingRef.current = true;
+    setTimeout(() => {
+      isNavigatingRef.current = false;
+    }, 600);
+
     if (router.canDismiss?.()) {
       router.dismiss();
     } else if (router.canGoBack()) {

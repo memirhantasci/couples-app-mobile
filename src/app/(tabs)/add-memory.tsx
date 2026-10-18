@@ -14,6 +14,7 @@ import { decode } from "base64-arraybuffer";
 import { Image as ImageIcon, X, Save, Menu, ImagePlus, ChevronLeft , AlignJustify} from "lucide-react-native";
 import { dayjs, todayString, formatDateTR } from "@/lib/date";
 import { getTheme } from "@/lib/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
@@ -28,7 +29,7 @@ export default function AddMemoryScreen() {
   const { session, profile } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const insets = useSafeAreaInsets();
-  const theme = getTheme(profile?.gender);
+  const { theme, isLight } = useTheme();
 
   const isEditing = !!params.id;
 
@@ -178,43 +179,59 @@ export default function AddMemoryScreen() {
 
   return (
     <ScreenBackground>
-
-        <TouchableOpacity onPress={() => router.push("/menu")} style={{ padding: 8, backgroundColor: "rgba(0,0,0,0.3)", borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", position: "absolute", top: 40, right: 20, zIndex: 50 }}>
-          <AlignJustify color="rgba(255,255,255,0.7)" size={22} />
+        <TouchableOpacity 
+          onPress={() => router.push("/menu")} 
+          style={{ 
+            padding: 8, 
+            backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", 
+            borderRadius: 20, 
+            width: 40, 
+            height: 40, 
+            alignItems: "center", 
+            justifyContent: "center", 
+            position: "absolute", 
+            top: 40, 
+            right: 20, 
+            zIndex: 50,
+            borderWidth: 1,
+            borderColor: theme.cardBorder
+          }}
+        >
+          <AlignJustify color={theme.text} size={22} />
         </TouchableOpacity>
 
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
           <TouchableOpacity onPress={() => router.replace("/(tabs)/memories")} style={{ padding: 8, marginLeft: -8 }}>
-            <ChevronLeft color="#fff" size={28} />
+            <ChevronLeft color={theme.text} size={28} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{isEditing ? "Anıyı Düzenle" : "Yeni Anı Ekle"}</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>{isEditing ? "Anıyı Düzenle" : "Yeni Anı Ekle"}</Text>
           <View style={{ width: 28 }} />
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, errors.title && { color: "red" }]}>Başlık</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }, errors.title && { color: "red" }]}>Başlık</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: theme.unitBg }, errors.title && { borderColor: "red" }]}
+              style={[styles.input, { backgroundColor: theme.unitBg, color: theme.text, borderColor: theme.cardBorder, borderWidth: 1 }, errors.title && { borderColor: "red" }]}
               value={title}
               onChangeText={(text) => {
                 setTitle(text);
                 setErrors(prev => ({ ...prev, title: false }));
               }}
               placeholder="Örn: İlk Buluşmamız"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.4)"}
               maxLength={100}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, errors.date && { color: "red" }]}>Tarih</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }, errors.date && { color: "red" }]}>Tarih</Text>
             <TouchableOpacity
-              style={[styles.input, { backgroundColor: theme.unitBg }, errors.date && { borderColor: "red" }]}
+              style={[styles.input, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder, borderWidth: 1 }, errors.date && { borderColor: "red" }]}
               onPress={() => setShowDatePicker(true)}
             >
-              <Text style={{ color: date ? "#fff" : "rgba(255,255,255,0.4)" }}>
+              <Text style={{ color: date ? theme.text : (isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.4)") }}>
                 {date ? formatDateTR(date) : "Tarih Seçin"}
               </Text>
             </TouchableOpacity>
@@ -236,29 +253,29 @@ export default function AddMemoryScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Açıklama (İsteğe bağlı)</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Açıklama (İsteğe bağlı)</Text>
             <TextInput
-              style={[styles.input, styles.textArea, { backgroundColor: theme.unitBg }]}
+              style={[styles.input, styles.textArea, { backgroundColor: theme.unitBg, color: theme.text, borderColor: theme.cardBorder, borderWidth: 1 }]}
               value={description}
               onChangeText={setDescription}
               placeholder="O güne dair hatırlamak istediklerin..."
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.4)"}
               multiline
               maxLength={1000}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Fotoğraf (İsteğe bağlı)</Text>
-            <TouchableOpacity style={[styles.imagePicker, { backgroundColor: theme.unitBg }]} onPress={pickImage}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Fotoğraf (İsteğe bağlı)</Text>
+            <TouchableOpacity style={[styles.imagePicker, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder, borderWidth: 1 }]} onPress={pickImage}>
               {localImage ? (
                 <Image source={{ uri: localImage.uri }} style={styles.previewImg} contentFit="cover" />
               ) : imageUrl ? (
                 <Image source={{ uri: imageUrl }} style={styles.previewImg} contentFit="cover" />
               ) : (
                 <View style={styles.imagePlaceholder}>
-                  <ImagePlus color="rgba(255,255,255,0.4)" size={32} />
-                  <Text style={styles.imagePlaceholderText}>Galeriden Seç</Text>
+                  <ImagePlus color={theme.textMuted} size={32} />
+                  <Text style={[styles.imagePlaceholderText, { color: theme.textMuted }]}>Galeriden Seç</Text>
                 </View>
               )}
             </TouchableOpacity>

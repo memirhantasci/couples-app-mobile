@@ -17,7 +17,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { notifyPartner } from "@/lib/notifications";
+import { notifyPartner, scheduleDateLocalNotification, cancelLocalNotification } from "@/lib/notifications";
 import { dayjs } from "@/lib/date";
 import { getTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
@@ -131,7 +131,8 @@ export default function MeetingsScreen() {
 
     if (!coupleId || !userId) return;
 
-    if (meetingDate < new Date() && !editingMeetingId) {
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+    if (meetingDate.getTime() < fiveMinutesAgo && !editingMeetingId) {
       Alert.alert("Hata", "Geçmiş bir zamana buluşma planlayamazsınız!");
       return;
     }
@@ -148,6 +149,8 @@ export default function MeetingsScreen() {
       const cleanTitle = sanitizeStrict(title.trim() || "Buluşma");
       const cleanLocation = locationName.trim() ? sanitizeStrict(locationName.trim()) : null;
 
+      let savedMeetingId: string | number | null = editingMeetingId;
+
       if (editingMeetingId) {
         const { error } = await supabase.from("meetings").update({
           meeting_datetime: utcDateTime,
@@ -160,7 +163,7 @@ export default function MeetingsScreen() {
         if (error) throw error;
         Alert.alert("Başarılı 🎉", "Buluşma başarıyla güncellendi!");
       } else {
-        const { error } = await supabase.from("meetings").insert({
+        const { data: insertedData, error } = await supabase.from("meetings").insert({
           meeting_datetime: utcDateTime,
           title: cleanTitle,
           location_name: cleanLocation,
@@ -169,9 +172,12 @@ export default function MeetingsScreen() {
           is_active: true,
           couple_id: coupleId,
           user_id: userId,
-        });
+        }).select("id").single();
 
         if (error) throw error;
+        if (insertedData?.id) {
+          savedMeetingId = insertedData.id;
+        }
 
         if (coupleId && userId) {
           const senderName = profile?.displayName || "Sevgilin";
@@ -190,6 +196,19 @@ export default function MeetingsScreen() {
         }
 
         Alert.alert("Başarılı 🎉", "Buluşma başarıyla planlandı!");
+      }
+
+      // Buluşmaya 2 saat kala yerel hatırlatıcı kur (Geçmişte değilse)
+      if (savedMeetingId) {
+        const reminderTime = dayjs(meetingDate).subtract(2, "hour").toDate();
+        if (reminderTime.getTime() > Date.now()) {
+          await scheduleDateLocalNotification(
+            `meeting_reminder_${savedMeetingId}`,
+            "Buluşma Yaklaşıyor! ⏰",
+            `"${cleanTitle}" buluşmanıza 2 saat kaldı. Hazırlıklar tamam mı? 💕`,
+            reminderTime
+          );
+        }
       }
 
       handleCancelEdit();
@@ -218,6 +237,11 @@ export default function MeetingsScreen() {
         text: "Sil",
         style: "destructive",
         onPress: async () => {
+          // Yerel hatırlatıcıyı temizle
+          if (m?.id) {
+            await cancelLocalNotification(`meeting_reminder_${m.id}`);
+          }
+
           const { error } = await supabase
             .from("meetings")
             .delete()

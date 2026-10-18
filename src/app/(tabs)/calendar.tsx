@@ -16,7 +16,8 @@ import { sanitize } from "@/utils/sanitize";
 import { 
   ChevronRight, Heart, FileText, Sparkles, 
   ChevronLeft, X, Check, Trash2, AlignJustify, 
-  Lock, Plus, Calendar as CalendarIcon, Clock, Camera, Smile, Maximize2
+  Lock, Plus, Calendar as CalendarIcon, Clock, Camera, Smile, Maximize2,
+  MapPin, Droplet
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -44,6 +45,8 @@ export const CALENDAR_COLORS = {
   myMood: "#F59E0B",      // Canlı Sıcak Amber (Senin Ruh Halin)
   partnerMood: "#0EA5E9", // Canlı Elektrik Gökmavisi (Partnerinin Ruh Hali)
   photo: "#10B981",       // Canlı Zümrüt Yeşili (Fotoğraflar)
+  meeting: "#8B5CF6",     // Canlı Mor / Violet (Buluşmalar)
+  period: "#E11D48",      // Canlı Gül Kurusu / Kırmızı (Regl / Döngü)
 };
 
 export default function CalendarScreen() {
@@ -94,6 +97,10 @@ export default function CalendarScreen() {
             taken_date: p.taken_date,
             taken_time: p.taken_time,
           })),
+          meetings: [
+            { id: 1, title: "Romantik Akşam Yemeği 🍷", location: "Boğaz Manzaralı Restoran", meeting_datetime: `${today}T19:30:00`, status: "approved", created_by: userId }
+          ],
+          periods: [],
           partner: { display_name: "Sevgilin" },
           me: { display_name: "Misafir" },
         };
@@ -101,7 +108,7 @@ export default function CalendarScreen() {
       const threeMonthsAgo = dayjs().subtract(2, "month").startOf("month").format("YYYY-MM-DD");
       const threeMonthsLater = dayjs().add(2, "month").endOf("month").format("YYYY-MM-DD");
 
-      const [notesRes, moodsRes, photosRes, usersRes] = await Promise.all([
+      const [notesRes, moodsRes, photosRes, meetingsRes, periodsRes, usersRes] = await Promise.all([
         supabase
           .from("calendar_notes")
           .select("id, date, note, user_id, created_at")
@@ -121,6 +128,18 @@ export default function CalendarScreen() {
           .gte("taken_date", threeMonthsAgo)
           .lte("taken_date", threeMonthsLater)
           .order("taken_time", { ascending: false }) : Promise.resolve({ data: [] }),
+        supabase
+          .from("meetings")
+          .select("id, title, location, meeting_datetime, status, created_by")
+          .eq("couple_id", coupleId)
+          .gte("meeting_datetime", `${threeMonthsAgo}T00:00:00`)
+          .lte("meeting_datetime", `${threeMonthsLater}T23:59:59`),
+        supabase
+          .from("period_logs")
+          .select("id, date, user_id")
+          .eq("couple_id", coupleId)
+          .gte("date", threeMonthsAgo)
+          .lte("date", threeMonthsLater),
         supabase
           .from("users")
           .select("*")
@@ -150,6 +169,14 @@ export default function CalendarScreen() {
           description: p.description ? decrypt(p.description) : null,
           uploader: userMap[p.user_id],
         })),
+        meetings: (meetingsRes.data || []).map((m: any) => ({
+          ...m,
+          creator: userMap[m.created_by],
+        })),
+        periods: (periodsRes.data || []).map((p: any) => ({
+          ...p,
+          user: userMap[p.user_id],
+        })),
         users: Object.values(userMap) as any[],
       };
     },
@@ -168,14 +195,28 @@ export default function CalendarScreen() {
       }
     };
 
-    data.notes.forEach((n: any) => addDot(n.date, CALENDAR_COLORS.note, "note"));
-    data.moods.forEach((m: any) => {
+    data.notes?.forEach((n: any) => addDot(n.date, CALENDAR_COLORS.note, "note"));
+    data.moods?.forEach((m: any) => {
       const isMe = m.user_id === userId;
       addDot(m.date, isMe ? CALENDAR_COLORS.myMood : CALENDAR_COLORS.partnerMood, isMe ? "my-mood" : "partner-mood");
     });
     if (isPremium) {
-      data.photos.forEach((p: any) => addDot(p.taken_date, CALENDAR_COLORS.photo, "photo"));
+      data.photos?.forEach((p: any) => addDot(p.taken_date, CALENDAR_COLORS.photo, "photo"));
     }
+    data.meetings?.forEach((m: any) => {
+      const meetDate = dayjs(m.meeting_datetime).format("YYYY-MM-DD");
+      addDot(meetDate, CALENDAR_COLORS.meeting, "meeting");
+    });
+    data.periods?.forEach((p: any) => {
+      addDot(p.date, CALENDAR_COLORS.period, "period");
+    });
+
+    // 🎨 3.4 Çözümü: Gün hücresi içinde 4+ noktanın taşmasını önlemek için en fazla 3 nokta tut
+    Object.keys(marks).forEach(d => {
+      if (marks[d].dots && marks[d].dots.length > 3) {
+        marks[d].dots = marks[d].dots.slice(0, 3);
+      }
+    });
 
     if (marks[selectedDate]) {
       marks[selectedDate] = {
@@ -217,6 +258,16 @@ export default function CalendarScreen() {
 
   const selectedDayPhotos = useMemo(() => {
     return data?.photos?.filter((p: any) => p.taken_date === selectedDate) || [];
+  }, [data, selectedDate]);
+
+  const selectedDayMeetings = useMemo(() => {
+    return data?.meetings?.filter((m: any) => {
+      return dayjs(m.meeting_datetime).format("YYYY-MM-DD") === selectedDate;
+    }) || [];
+  }, [data, selectedDate]);
+
+  const selectedDayPeriods = useMemo(() => {
+    return data?.periods?.filter((p: any) => p.date === selectedDate) || [];
   }, [data, selectedDate]);
 
   const userNoteForSelectedDay = useMemo(() => {
@@ -431,11 +482,11 @@ export default function CalendarScreen() {
                       borderRadius: 12,
                     },
                     dot: {
-                      width: 6,
-                      height: 6,
-                      marginTop: 2.5,
-                      marginHorizontal: 1.5,
-                      borderRadius: 3,
+                      width: 5,
+                      height: 5,
+                      marginTop: 2,
+                      marginHorizontal: 1,
+                      borderRadius: 2.5,
                       opacity: 1,
                     },
                   },
@@ -460,6 +511,14 @@ export default function CalendarScreen() {
               <View style={[styles.legendItem, { backgroundColor: isLight ? "rgba(16,185,129,0.08)" : "rgba(16,185,129,0.14)", borderColor: "rgba(16,185,129,0.3)" }]}>
                 <View style={[styles.legendDot, { backgroundColor: CALENDAR_COLORS.photo }]} />
                 <Text style={[styles.legendText, { color: isLight ? "#047857" : "#34D399" }]}>Fotoğraf</Text>
+              </View>
+              <View style={[styles.legendItem, { backgroundColor: isLight ? "rgba(139,92,246,0.08)" : "rgba(139,92,246,0.14)", borderColor: "rgba(139,92,246,0.3)" }]}>
+                <View style={[styles.legendDot, { backgroundColor: CALENDAR_COLORS.meeting }]} />
+                <Text style={[styles.legendText, { color: isLight ? "#7C3AED" : "#A78BFA" }]}>Buluşma</Text>
+              </View>
+              <View style={[styles.legendItem, { backgroundColor: isLight ? "rgba(225,29,72,0.08)" : "rgba(225,29,72,0.14)", borderColor: "rgba(225,29,72,0.3)" }]}>
+                <View style={[styles.legendDot, { backgroundColor: CALENDAR_COLORS.period }]} />
+                <Text style={[styles.legendText, { color: isLight ? "#BE123C" : "#FB7185" }]}>Döngü</Text>
               </View>
             </View>
           </View>
@@ -616,13 +675,84 @@ export default function CalendarScreen() {
                 </View>
               )}
 
+              {/* Buluşmalar */}
+              {selectedDayMeetings.length > 0 && (
+                <View style={{ gap: 10 }}>
+                  <View style={[styles.sectionHeaderBadge, { backgroundColor: isLight ? "rgba(139,92,246,0.1)" : "rgba(139,92,246,0.16)", borderColor: "rgba(139,92,246,0.3)" }]}>
+                    <MapPin size={15} color={CALENDAR_COLORS.meeting} />
+                    <Text style={[styles.sectionHeaderText, { color: isLight ? "#7C3AED" : "#A78BFA" }]}>GÜNÜN BULUŞMALARI</Text>
+                  </View>
+
+                  {selectedDayMeetings.map((meeting: any) => {
+                    const timeStr = dayjs(meeting.meeting_datetime).format("HH:mm");
+                    const isApproved = meeting.status === "approved";
+                    const isPending = meeting.status === "pending";
+
+                    return (
+                      <View key={meeting.id} style={[styles.meetingCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderLeftWidth: 3.5, borderLeftColor: CALENDAR_COLORS.meeting }]}>
+                        <View style={styles.meetingHeader}>
+                          <Text style={[styles.meetingTitle, { color: theme.text }]}>{meeting.title}</Text>
+                          <View style={[styles.statusBadge, { 
+                            backgroundColor: isApproved ? "rgba(16,185,129,0.15)" : isPending ? "rgba(245,158,11,0.15)" : "rgba(239,68,68,0.15)" 
+                          }]}>
+                            <Text style={[styles.statusBadgeText, { 
+                              color: isApproved ? "#10B981" : isPending ? "#F59E0B" : "#EF4444" 
+                            }]}>
+                              {isApproved ? "Onaylandı" : isPending ? "Bekliyor" : "İptal Edildi"}
+                            </Text>
+                          </View>
+                        </View>
+                        <View style={styles.meetingRow}>
+                          <Clock size={13} color={theme.textMuted} />
+                          <Text style={[styles.meetingSubText, { color: theme.textSecondary }]}>{timeStr}</Text>
+                          {meeting.location ? (
+                            <>
+                              <Text style={{ color: theme.textMuted }}>•</Text>
+                              <MapPin size={13} color={theme.textMuted} />
+                              <Text style={[styles.meetingSubText, { color: theme.textSecondary }]} numberOfLines={1}>{meeting.location}</Text>
+                            </>
+                          ) : null}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+
+              {/* Döngü / Regl Günleri */}
+              {selectedDayPeriods.length > 0 && (
+                <View style={{ gap: 10 }}>
+                  <View style={[styles.sectionHeaderBadge, { backgroundColor: isLight ? "rgba(225,29,72,0.1)" : "rgba(225,29,72,0.16)", borderColor: "rgba(225,29,72,0.3)" }]}>
+                    <Droplet size={15} color={CALENDAR_COLORS.period} />
+                    <Text style={[styles.sectionHeaderText, { color: isLight ? "#BE123C" : "#FB7185" }]}>DÖNGÜ & SAĞLIK TAKİBİ</Text>
+                  </View>
+
+                  {selectedDayPeriods.map((period: any) => {
+                    const authorName = getAuthorName(period.user_id);
+                    return (
+                      <View key={period.id} style={[styles.periodCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderLeftWidth: 3.5, borderLeftColor: CALENDAR_COLORS.period }]}>
+                        <View style={[styles.periodIconBox, { backgroundColor: isLight ? "rgba(225,29,72,0.1)" : "rgba(225,29,72,0.18)" }]}>
+                          <Droplet size={20} color={CALENDAR_COLORS.period} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.periodTitle, { color: theme.text }]}>Döngü / Regl Günü</Text>
+                          <Text style={[styles.periodSub, { color: theme.textMuted }]}>
+                            {authorName ? `${authorName} için kaydedildi` : "Döngü kaydı"}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+
               {/* Boş Durum */}
-              {selectedDayNotes.length === 0 && selectedDayMoods.length === 0 && selectedDayPhotos.length === 0 && (
+              {selectedDayNotes.length === 0 && selectedDayMoods.length === 0 && selectedDayPhotos.length === 0 && selectedDayMeetings.length === 0 && selectedDayPeriods.length === 0 && (
                 <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                   <CalendarIcon size={32} color={theme.textMuted} />
                   <Text style={[styles.emptyCardTitle, { color: theme.text }]}>Henüz Kayıt Yok</Text>
                   <Text style={[styles.emptyCardSub, { color: theme.textSecondary }]}>
-                    Bu güne ait henüz bir not, ruh hali veya fotoğraf bulunmuyor.
+                    Bu güne ait henüz bir not, ruh hali, buluşma veya fotoğraf bulunmuyor.
                   </Text>
                   <TouchableOpacity 
                     style={[styles.emptyAddBtn, { backgroundColor: theme.accent }]}
@@ -1117,6 +1247,67 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Inter_600SemiBold",
     color: "rgba(255,255,255,0.75)",
+  },
+  /* BULUŞMALAR */
+  meetingCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 14,
+  },
+  meetingHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  meetingTitle: {
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+  },
+  meetingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
+  },
+  meetingSubText: {
+    fontSize: 12.5,
+    fontFamily: "Inter_400Regular",
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+  },
+
+  /* PERİYOD/DÖNGÜ */
+  periodCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  periodIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  periodTitle: {
+    fontSize: 14.5,
+    fontFamily: "Inter_700Bold",
+  },
+  periodSub: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
   },
 
   /* BOŞ DURUM */

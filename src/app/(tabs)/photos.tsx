@@ -141,9 +141,16 @@ export default function PhotosScreen() {
           if (currentPhoto?.id === id) {
             setSelectedIndex(null);
           }
-          // 1. Önce Storage'dan dosyayı sil (orphan dosya birikimini önler)
+          // 1. Önce Storage'dan dosyaları sil (ana görsel + küçük resim orphan temizliği)
           if (photoToDelete?.storage_path) {
-            await supabase.storage.from("photos").remove([photoToDelete.storage_path]).catch(() => {});
+            const filesToRemove: string[] = [photoToDelete.storage_path];
+            if (photoToDelete.thumb_url) {
+              const urlParts = photoToDelete.thumb_url.split("/photos/");
+              if (urlParts.length > 1) {
+                filesToRemove.push(decodeURIComponent(urlParts[1]));
+              }
+            }
+            await supabase.storage.from("photos").remove(filesToRemove).catch(() => {});
           }
           // 2. Sonra veritabanı kaydını sil
           const { error } = await supabase.from("photo_archive").delete().eq("id", id);

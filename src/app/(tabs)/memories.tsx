@@ -192,6 +192,16 @@ export default function MemoriesScreen() {
 
   const renderMemory = ({ item: memory, index }: { item: any, index: number }) => {
     const d = dayjs(memory.date);
+    const today = dayjs().startOf("day");
+    const memDay = d.startOf("day");
+    const totalDays = today.diff(memDay, "day");
+
+    let nextAnniversary = memDay.year(today.year());
+    if (nextAnniversary.isBefore(today)) {
+      nextAnniversary = nextAnniversary.add(1, "year");
+    }
+    const diffDays = nextAnniversary.diff(today, "day");
+    const whichYear = nextAnniversary.year() - memDay.year();
     const canManage = isEditMode && !memory.is_default;
     
     return (
@@ -209,6 +219,23 @@ export default function MemoriesScreen() {
             <View style={{ flex: 1 }}>
               <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>{memory.title}</Text>
               <Text style={[styles.cardYear, { color: theme.accent }]}>{d.locale("tr").format("D MMMM YYYY")}</Text>
+
+              <View style={styles.badgeRow}>
+                <View style={[styles.anniversaryBadge, { backgroundColor: isLight ? "rgba(225,29,72,0.08)" : "rgba(255, 75, 110, 0.12)", borderColor: isLight ? "rgba(225,29,72,0.25)" : "rgba(255, 75, 110, 0.25)" }]}>
+                  <Text style={[styles.anniversaryBadgeText, { color: theme.accent }]}>
+                    {diffDays === 0
+                      ? `🎉 Bugün ${whichYear > 0 ? `${whichYear}. ` : ""}Yıl Dönümümüz!`
+                      : `⏳ ${whichYear > 0 ? `${whichYear}. Yılımıza ` : ""}${diffDays} Gün Kaldı`}
+                  </Text>
+                </View>
+                {totalDays > 0 && (
+                  <View style={[styles.milestoneBadge, { backgroundColor: isLight ? "rgba(0,0,0,0.04)" : "rgba(255, 255, 255, 0.06)", borderColor: theme.cardBorder }]}>
+                    <Text style={[styles.milestoneBadgeText, { color: theme.textMuted }]}>
+                      ✨ {totalDays}. Gün
+                    </Text>
+                  </View>
+                )}
+              </View>
             </View>
             
             {canManage && (
@@ -445,6 +472,33 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 4,
     fontFamily: "Inter_600SemiBold",
+  },
+  badgeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 8,
+    alignItems: "center",
+  },
+  anniversaryBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  anniversaryBadgeText: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+  },
+  milestoneBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  milestoneBadgeText: {
+    fontSize: 11,
+    fontFamily: "Inter_500Medium",
   },
   cardDesc: {
     color: "rgba(255,255,255,0.5)",

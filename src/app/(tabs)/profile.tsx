@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
-import { getTheme, AppTheme, getAvailableThemes, ThemeMode, setGlobalActiveTheme } from "@/lib/theme";
+import { getTheme, AppTheme, getAvailableThemes, setGlobalActiveTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { encrypt, decrypt } from "@/utils/crypto";
 import { sanitizeStrict } from "@/utils/sanitize";
@@ -40,7 +40,6 @@ import {
   ChevronUp,
   AlignJustify,
   Wallet,
-  PlayCircle,
   Sparkles,
   Crown,
   Calendar,

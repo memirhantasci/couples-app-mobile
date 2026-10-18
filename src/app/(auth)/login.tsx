@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -93,17 +93,41 @@ export default function LoginScreen() {
   const [successMsg, setSuccessMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Brute Force
+  // Brute Force (AsyncStorage ile kalıcı hale getirilmiştir)
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const MAX_ATTEMPTS = 5;
   const LOCKOUT_SECONDS = 30;
+  const BRUTE_FORCE_KEY = "@auth_login_brute_force";
+
+  useEffect(() => {
+    async function loadBruteForceState() {
+      try {
+        const stored = await AsyncStorage.getItem(BRUTE_FORCE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.lockedUntil && parsed.lockedUntil > Date.now()) {
+            setLockedUntil(parsed.lockedUntil);
+            setLoginAttempts(parsed.attempts || MAX_ATTEMPTS);
+          } else if (parsed.attempts && Date.now() - (parsed.lastAttemptAt || 0) < 60000) {
+            setLoginAttempts(parsed.attempts);
+          } else {
+            await AsyncStorage.removeItem(BRUTE_FORCE_KEY);
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    loadBruteForceState();
+  }, []);
 
   function isLockedOut(): boolean {
     if (!lockedUntil) return false;
     if (Date.now() < lockedUntil) return true;
     setLockedUntil(null);
     setLoginAttempts(0);
+    AsyncStorage.removeItem(BRUTE_FORCE_KEY).catch(() => {});
     return false;
   }
 
@@ -111,8 +135,18 @@ export default function LoginScreen() {
     const newAttempts = loginAttempts + 1;
     setLoginAttempts(newAttempts);
     if (newAttempts >= MAX_ATTEMPTS) {
-      setLockedUntil(Date.now() + LOCKOUT_SECONDS * 1000);
+      const lockTime = Date.now() + LOCKOUT_SECONDS * 1000;
+      setLockedUntil(lockTime);
       setErrorMsg(`Çok fazla başarısız deneme. ${LOCKOUT_SECONDS} saniye bekle.`);
+      AsyncStorage.setItem(
+        BRUTE_FORCE_KEY,
+        JSON.stringify({ attempts: newAttempts, lockedUntil: lockTime, lastAttemptAt: Date.now() })
+      ).catch(() => {});
+    } else {
+      AsyncStorage.setItem(
+        BRUTE_FORCE_KEY,
+        JSON.stringify({ attempts: newAttempts, lockedUntil: null, lastAttemptAt: Date.now() })
+      ).catch(() => {});
     }
   }
 
@@ -274,6 +308,7 @@ export default function LoginScreen() {
       setIsDeviceAuthorized(true);
       setLoginAttempts(0);
       setLockedUntil(null);
+      await AsyncStorage.removeItem(BRUTE_FORCE_KEY).catch(() => {});
 
       // Route user according to couple & profile status
       const { data: userData } = await supabase

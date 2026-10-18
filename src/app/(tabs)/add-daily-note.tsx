@@ -12,6 +12,7 @@ import {
   Clock, BookOpen 
 } from "lucide-react-native";
 import { getTheme } from "@/lib/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { encrypt } from "@/utils/crypto";
 import { sanitize } from "@/utils/sanitize";
 import { useDemoAction } from "@/hooks/useDemoAction";
@@ -27,7 +28,7 @@ dayjs.locale("tr");
 export default function AddDailyNoteScreen() {
   const { session, profile } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
-  const theme = getTheme(profile?.gender);
+  const { theme, isLight } = useTheme();
   const router = useRouter();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
@@ -90,15 +91,21 @@ export default function AddDailyNoteScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity 
             onPress={() => router.replace("/(tabs)/daily-notes")} 
-            style={styles.headerBtn}
+            style={[
+              styles.headerBtn,
+              { 
+                backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
+                borderColor: theme.cardBorder 
+              }
+            ]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <ChevronLeft color="#ffffff" size={24} />
+            <ChevronLeft color={theme.text} size={24} />
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={styles.headerTitle}>Yeni Günlük Sayfası</Text>
-            <Text style={styles.headerSubtitle}>Sadece senin görebildiğin özel notun 🔒</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Yeni Günlük Sayfası</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>Sadece senin görebildiğin özel notun 🔒</Text>
           </View>
 
           <TouchableOpacity 
@@ -133,32 +140,32 @@ export default function AddDailyNoteScreen() {
               <View style={[styles.dateIconCircle, { backgroundColor: theme.pillAccentBg }]}>
                 <CalendarIcon size={16} color={theme.accent} />
               </View>
-              <Text style={styles.dateCardText}>
+              <Text style={[styles.dateCardText, { color: theme.text }]}>
                 {dayjs().format("D MMMM YYYY, dddd")}
               </Text>
             </View>
 
-            <View style={styles.timeBadge}>
-              <Clock size={12} color="rgba(255,255,255,0.6)" />
-              <Text style={styles.timeText}>{dayjs().format("HH:mm")}</Text>
+            <View style={[styles.timeBadge, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)" }]}>
+              <Clock size={12} color={theme.textMuted} />
+              <Text style={[styles.timeText, { color: theme.textSecondary }]}>{dayjs().format("HH:mm")}</Text>
             </View>
           </View>
 
           {/* GÜNLÜK METİN EDİTÖRÜ */}
           <View style={styles.sectionBlock}>
             <View style={styles.editorLabelRow}>
-              <Text style={styles.sectionLabel}>GÜNLÜK NOTUN</Text>
-              <Text style={[styles.charCountText, charCount >= 1800 && { color: "#f59e0b" }]}>
+              <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>GÜNLÜK NOTUN</Text>
+              <Text style={[styles.charCountText, { color: theme.textMuted }, charCount >= 1800 && { color: "#f59e0b" }]}>
                 {charCount} / 2000 harf ({wordCount} kelime)
               </Text>
             </View>
             
             <View style={[styles.editorContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
               <TextInput
-                style={styles.editorInput}
+                style={[styles.editorInput, { color: theme.text }]}
                 multiline
                 placeholder="Sevgili günlük, bugün içimden geçenler..."
-                placeholderTextColor="rgba(255,255,255,0.3)"
+                placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.3)"}
                 value={content}
                 onChangeText={setContent}
                 maxLength={2000}

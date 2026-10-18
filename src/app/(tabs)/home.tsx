@@ -145,7 +145,7 @@ export default function HomeScreen() {
         coupleId
           ? supabase
             .from("users")
-            .select("id, username, display_name")
+            .select("id, username, display_name, gender")
             .eq("couple_id", coupleId)
           : Promise.resolve({ data: [] }),
       ]);
@@ -170,10 +170,19 @@ export default function HomeScreen() {
         return acc;
       }, {});
 
+      const rawPartner = (usersRes.data || []).find((u: any) => u.id !== userId);
+      const partner = rawPartner ? {
+        id: rawPartner.id,
+        gender: rawPartner.gender,
+        display_name: rawPartner.display_name ? decrypt(rawPartner.display_name) : null,
+        username: rawPartner.username ? (deterministicDecrypt(rawPartner.username) || rawPartner.username) : "",
+      } : null;
+
       return {
         currentMood: moodRes.data?.mood_type || null,
         currentNote: noteRes.data?.content ? decrypt(noteRes.data.content) : null,
         activeMeeting,
+        partner,
         pendingLetters: (lettersRes.data || []).map((l: any) => {
           const senderObj = userMap[l.sender_id];
           return {
@@ -210,57 +219,46 @@ export default function HomeScreen() {
   // ─── Regl Yaklaşma Bildirimi (Sadece Premium Erkek İçin) ─────────────────────
   useEffect(() => {
     async function setupPeriodNotification() {
-      if (isDemoMode || !profile?.isPremium || !coupleId || !userId) return;
+      // Erkek değilse veya partner yoksa gereksiz sorgu atmayı önle
+      if (isDemoMode || !profile?.isPremium || !coupleId || !userId || profile?.gender !== "male") return;
+
+      const partnerData = dashboardData?.partner;
+      if (!partnerData || partnerData.gender !== "female") return;
 
       const cacheKey = `@period_notif_scheduled_${coupleId}`;
       const lastScheduledDate = await AsyncStorage.getItem(cacheKey);
 
-      // Premium ise partner bilgisini ve loglarını al
-      const { data: usersData } = await supabase
-        .from("users")
-        .select("id, gender, display_name, username")
-        .eq("couple_id", coupleId)
-        .neq("id", userId)
+      const partnerName = partnerData.display_name || partnerData.username || "Partnerin";
+
+      const { data: periodLogs } = await supabase
+        .from("period_logs")
+        .select("date")
+        .eq("user_id", partnerData.id)
+        .order("date", { ascending: false })
         .limit(1);
-      
-      const partnerData = usersData?.[0] ?? null;
 
-      if (partnerData && partnerData.gender === "female") {
-        const decName = partnerData.display_name 
-          ? decrypt(partnerData.display_name) 
-          : (partnerData.username ? deterministicDecrypt(partnerData.username) : "");
-        const partnerName = (decName && !decName.startsWith("enc:") && !decName.startsWith("det:")) ? decName : "Partnerin";
+      if (periodLogs && periodLogs.length > 0) {
+        const logDateStr = periodLogs[0].date;
+        if (lastScheduledDate === logDateStr) {
+          return; // Zaten bu döngü için bildirim zamanlandı
+        }
 
-        const { data: periodLogs } = await supabase
-          .from("period_logs")
-          .select("date")
-          .eq("user_id", partnerData.id)
-          .order("date", { ascending: false })
-          .limit(1);
-
-        if (periodLogs && periodLogs.length > 0) {
-          const logDateStr = periodLogs[0].date;
-          if (lastScheduledDate === logDateStr) {
-            return; // Zaten bu döngü için bildirim zamanlandı
-          }
-
-          const lastPeriodDate = dayjs(logDateStr);
-          const notifyDate = lastPeriodDate.add(26, "day").hour(10).minute(0).second(0).toDate();
-          
-          if (notifyDate.getTime() > Date.now()) {
-            await scheduleDateLocalNotification(
-              "period_approach_alert",
-              "Regl Yaklaşıyor 🌸",
-              `${partnerName} için regl dönemi yaklaşmak üzere. Ona destek olmak için harika bir zaman!`,
-              notifyDate
-            );
-            await AsyncStorage.setItem(cacheKey, logDateStr);
-          }
+        const lastPeriodDate = dayjs(logDateStr);
+        const notifyDate = lastPeriodDate.add(26, "day").hour(10).minute(0).second(0).toDate();
+        
+        if (notifyDate.getTime() > Date.now()) {
+          await scheduleDateLocalNotification(
+            "period_approach_alert",
+            "Regl Yaklaşıyor 🌸",
+            `${partnerName} için regl dönemi yaklaşmak üzere. Ona destek olmak için harika bir zaman!`,
+            notifyDate
+          );
+          await AsyncStorage.setItem(cacheKey, logDateStr);
         }
       }
     }
     setupPeriodNotification();
-  }, [profile?.isPremium, coupleId, userId]);
+  }, [profile?.isPremium, profile?.gender, coupleId, userId, dashboardData?.partner]);
 
   // Dinamik Selamlama
   const getGreeting = () => {

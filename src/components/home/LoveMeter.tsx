@@ -1,4 +1,4 @@
-import React, { useEffect, memo } from "react";
+import React, { useEffect, useState, memo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
@@ -9,7 +9,7 @@ import Animated, {
   withDelay,
 } from "react-native-reanimated";
 import { AppTheme } from "@/lib/theme";
-import { playCelebration } from "@/lib/soundEffects";
+import { playCelebration, triggerHaptic } from "@/lib/soundEffects";
 
 interface LoveMeterProps {
   value?: number | null; // 0-100
@@ -21,6 +21,7 @@ interface LoveMeterProps {
 export const LoveMeter = memo(function LoveMeter({ value, theme, subtitle, isLoading }: LoveMeterProps) {
   const hasValue = value !== undefined && value !== null;
   const widthVal = useSharedValue(hasValue ? (value as number) : 0);
+  const [displayCount, setDisplayCount] = useState(hasValue ? (value as number) : 0);
 
   useEffect(() => {
     if (hasValue) {
@@ -28,6 +29,35 @@ export const LoveMeter = memo(function LoveMeter({ value, theme, subtitle, isLoa
         150,
         withTiming(value as number, { duration: 1000, easing: Easing.out(Easing.cubic) })
       );
+
+      const target = value as number;
+      const startVal = displayCount;
+      const startTime = Date.now();
+      const duration = 1000;
+      let animId: number;
+
+      const updateCounter = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(1, elapsed / duration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = Math.round(startVal + (target - startVal) * eased);
+        setDisplayCount(current);
+
+        if (progress < 1) {
+          animId = requestAnimationFrame(updateCounter);
+        }
+      };
+
+      const delayTimeout = setTimeout(() => {
+        animId = requestAnimationFrame(updateCounter);
+      }, 150);
+
+      return () => {
+        clearTimeout(delayTimeout);
+        if (animId) cancelAnimationFrame(animId);
+      };
+    } else {
+      setDisplayCount(0);
     }
   }, [value, hasValue]);
 
@@ -40,7 +70,10 @@ export const LoveMeter = memo(function LoveMeter({ value, theme, subtitle, isLoa
   return (
     <TouchableOpacity
       activeOpacity={0.88}
-      onPress={() => playCelebration()}
+      onPress={() => {
+        triggerHaptic("celebration");
+        playCelebration();
+      }}
       style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
     >
       {/* Başlık + yüzde */}
@@ -49,7 +82,7 @@ export const LoveMeter = memo(function LoveMeter({ value, theme, subtitle, isLoa
         {isLoading && !hasValue ? (
           <Text style={[styles.percentLabel, { color: theme.accent, opacity: 0.5 }]}>--%</Text>
         ) : (
-          <Text style={[styles.percentLabel, { color: theme.accent }]}>{hasValue ? value : 0}%</Text>
+          <Text style={[styles.percentLabel, { color: theme.accent }]}>{hasValue ? displayCount : 0}%</Text>
         )}
       </View>
 
