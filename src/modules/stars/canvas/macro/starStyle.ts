@@ -54,6 +54,25 @@ export function visibleMagnitudeLimit(zoom: number): number {
   return 3.8 + 2.0 * toMedium + 3.2 * toHigh;
 }
 
+/** Brightest magnitude a star still twinkles at; past it, light is too steady to flicker. */
+const TWINKLE_MAGNITUDE_LIMIT = 4.0;
+/** How much a twinkling star's brightness swings, as a fraction of its base opacity. */
+const TWINKLE_DEPTH = 0.22;
+
+/**
+ * Brightness multiplier (centred on 1) for a star's "breathing" twinkle.
+ * The phase and speed are derived from its own position, so stars never
+ * pulse in lockstep; stars at/above the magnitude limit never twinkle.
+ */
+export function twinkleFactor(magnitude: number, ra: number, dec: number, animSeconds: number): number {
+  'worklet';
+  if (magnitude >= TWINKLE_MAGNITUDE_LIMIT) return 1;
+  const seed = ra * 12.9898 + dec * 78.233;
+  const phase = seed - Math.floor(seed / (2 * Math.PI)) * (2 * Math.PI);
+  const speed = 0.7 + (seed - Math.floor(seed)) * 0.9;
+  return 1 + TWINKLE_DEPTH * Math.sin(animSeconds * speed + phase);
+}
+
 /** Magnitudes over which a star fades out past the visible limit. */
 const MAGNITUDE_FADE = 0.35;
 

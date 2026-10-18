@@ -57,6 +57,7 @@ import {
   Sun,
 } from 'lucide-react-native';
 
+import { startCosmicAmbient, stopCosmicAmbient } from '@/lib/soundEffects';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { DEMO_STAR_DETAILS, DEMO_STAR_EXOPLANETS } from '@/constants/demoData';
@@ -352,6 +353,17 @@ export const OurStarScreen: React.FC = () => {
       isInitialMountRef.current = false;
       loadStarData(!isInitial);
     }, [loadStarData])
+  );
+
+  // Kozmik Ambiyans: ekran odaktayken derin uzay esintisi çalar, odak
+  // kaybedildiğinde (sekme değişimi, geri gitme) pürüzsüzce söner.
+  useFocusEffect(
+    useCallback(() => {
+      startCosmicAmbient().catch(() => {});
+      return () => {
+        stopCosmicAmbient();
+      };
+    }, [])
   );
 
   // Expiration must discard any previously downloaded detail object and its
@@ -832,6 +844,7 @@ export const OurStarScreen: React.FC = () => {
             onTargetCameraConsumed={() => setFlyToTarget(undefined)}
             onBoundsChange={skyTiles.onBoundsChange}
             onCameraChange={handleCameraChange}
+            onWishGranted={() => showToast('Dileğin gökyüzüne yazıldı 🌠')}
             onSelectStar={(star) => {
               if (!star) {
                 setSelectedMacroStar(null);

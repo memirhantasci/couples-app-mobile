@@ -3,7 +3,18 @@ import { Skia } from '../skiaBridge';
 import type { SkyOverlay } from './skyOverlay';
 import { pxPerDegree, shortestRaDelta, type SkyCamera } from './skyProjection';
 import { colorOf, STAR_FADE_MS, type StarField, type StarRender } from './starField';
-import { magnitudeToRadius, smoothstep, starZoomBonus, visibleMagnitudeLimit } from './starStyle';
+import { magnitudeToRadius, smoothstep, starZoomBonus, twinkleFactor, visibleMagnitudeLimit } from './starStyle';
+
+/** A shooting star currently crossing the screen, in screen-space pixels. */
+export interface ActiveMeteor {
+  readonly fromX: number;
+  readonly fromY: number;
+  readonly toX: number;
+  readonly toY: number;
+  readonly durationMs: number;
+  /** `animSeconds` value when the meteor was launched (same clock as the frame's). */
+  readonly startClock: number;
+}
 
 /**
  * Per-frame drawing, run on the UI thread. Stars are drawn at their exact
@@ -158,7 +169,14 @@ function drawStar(
   }
 }
 
-function drawStars(canvas: SkCanvas, view: FrameView, field: StarField, clock: number, paints: StarPaints) {
+function drawStars(
+  canvas: SkCanvas,
+  view: FrameView,
+  field: StarField,
+  clock: number,
+  animSeconds: number,
+  paints: StarPaints,
+) {
   'worklet';
   const { camera, scale, width, height } = view;
   const zoom = camera.zoom;
@@ -186,7 +204,8 @@ function drawStars(canvas: SkCanvas, view: FrameView, field: StarField, clock: n
         : Math.min(1, (style.magnitudeLimit + 0.35 - star.magnitude) / 0.35);
       if (visibility <= 0.01) continue;
       const fade = star.bornAt > 0 ? Math.max(0, Math.min(1, (clock - star.bornAt) / STAR_FADE_MS)) : 1;
-      const opacity = visibility * fade;
+      const twinkle = twinkleFactor(star.magnitude, star.ra, star.dec, animSeconds);
+      const opacity = visibility * fade * twinkle;
       if (opacity <= 0.01) continue;
 
       const x = width / 2 + shortestRaDelta(camera.ra, star.ra) * scale;
@@ -199,6 +218,17 @@ function drawStars(canvas: SkCanvas, view: FrameView, field: StarField, clock: n
 }
 
 // ─── Overlay ───────────────────────────────────────────────────────────────
+
+function drawMilkyWay(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay) {
+  'worklet';
+  for (const band of overlay.milkyWay) {
+    const radius = band.radiusDeg * view.scale;
+    const x = screenX(view, band.ra);
+    const y = screenY(view, band.dec);
+    if (!isOnScreen(view, x, y, radius)) continue;
+    drawAt(canvas, band.picture, x, y, radius);
+  }
+}
 
 function drawNebulae(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay) {
   'worklet';
@@ -240,20 +270,88 @@ function drawConstellations(canvas: SkCanvas, view: FrameView, overlay: SkyOverl
   }
 }
 
-function drawConnectionLines(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay) {
+/** Deterministic 0…1 offset from a world point, so lines don't pulse in lockstep. */
+function connectionPhase(ra: number, dec: number): number {
+  'worklet';
+  const seed = ra * 12.9898 + dec * 78.233;
+  return seed - Math.floor(seed);
+}
+
+/** Flowing dashed stroke plus a travelling bright particle, for a "living" bond. */
+function drawConnectionLines(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, animSeconds: number) {
   'worklet';
   const hero = overlay.hero;
   if (!hero || overlay.connections.length === 0) return;
   const { width, height, scale } = view;
   const x1 = screenX(view, hero.ra);
   const y1 = screenY(view, hero.dec);
+
+  const flowPaint = Skia.Paint();
+  flowPaint.setAntiAlias(true);
+  flowPaint.setStyle(1);
+  flowPaint.setStrokeWidth(1.6);
+  flowPaint.setColor(colorOf('#FBBF24', 0.55));
+  const dash = Skia.PathEffect.MakeDash([4, 6], -((animSeconds * 24) % 10));
+  if (dash) flowPaint.setPathEffect(dash);
+
+  const particle = Skia.Paint();
+  particle.setAntiAlias(true);
+  particle.setColor(colorOf('#FDE68A', 1));
+
   for (const connection of overlay.connections) {
     const x2 = x1 + shortestRaDelta(hero.ra, connection.ra) * scale;
     const y2 = y1 - (connection.dec - hero.dec) * scale;
     if ((x1 < 0 && x2 < 0) || (x1 > width && x2 > width) || (y1 < 0 && y2 < 0) || (y1 > height && y2 > height)) continue;
-    canvas.drawLine(x1, y1, x2, y2, overlay.connectionLinePaint);
+    canvas.drawLine(x1, y1, x2, y2, flowPaint);
     if (isOnScreen(view, x2, y2, 40)) drawAt(canvas, overlay.connectionNode, x2, y2);
+
+    const t = (animSeconds * 0.35 + connectionPhase(connection.ra, connection.dec)) % 1;
+    const px = x1 + (x2 - x1) * t;
+    const py = y1 + (y2 - y1) * t;
+    if (!isOnScreen(view, px, py, 12)) continue;
+    particle.setAlphaf(0.35);
+    canvas.drawCircle(px, py, 6, particle);
+    particle.setAlphaf(0.9);
+    canvas.drawCircle(px, py, 2.4, particle);
   }
+}
+
+/** A streaking meteor with a fading tail; screen-space and camera-independent. */
+function drawMeteor(canvas: SkCanvas, meteor: ActiveMeteor | null, animSeconds: number) {
+  'worklet';
+  if (!meteor) return;
+  const progress = (animSeconds - meteor.startClock) / (meteor.durationMs / 1000);
+  if (progress < 0 || progress > 1) return;
+  const alpha = smoothstep(0, 0.08, progress) * (1 - smoothstep(0.82, 1, progress));
+  if (alpha <= 0.01) return;
+
+  const headX = meteor.fromX + (meteor.toX - meteor.fromX) * progress;
+  const headY = meteor.fromY + (meteor.toY - meteor.fromY) * progress;
+  const tailProgress = Math.max(0, progress - 0.16);
+  const tailX = meteor.fromX + (meteor.toX - meteor.fromX) * tailProgress;
+  const tailY = meteor.fromY + (meteor.toY - meteor.fromY) * tailProgress;
+
+  const streak = Skia.Paint();
+  streak.setAntiAlias(true);
+  streak.setStyle(1);
+  streak.setStrokeWidth(2.2);
+  streak.setStrokeCap(1); // round
+  const shader = Skia.Shader.MakeLinearGradient(
+    Skia.Point(tailX, tailY),
+    Skia.Point(headX, headY),
+    [colorOf('#FFFFFF', 0), colorOf('#FFFFFF', alpha)],
+    [0, 1],
+    0,
+  );
+  if (shader) streak.setShader(shader);
+  canvas.drawLine(tailX, tailY, headX, headY, streak);
+
+  const head = Skia.Paint();
+  head.setAntiAlias(true);
+  head.setColor(colorOf('#FFFFFF', alpha));
+  canvas.drawCircle(headX, headY, 3.2, head);
+  head.setColor(colorOf('#FFFFFF', alpha * 0.4));
+  canvas.drawCircle(headX, headY, 7, head);
 }
 
 function sunRadius(zoom: number): number {
@@ -333,6 +431,8 @@ export function drawSkyFrame(
   field: StarField,
   overlay: SkyOverlay | null,
   clock: number,
+  animSeconds: number,
+  activeMeteor: ActiveMeteor | null,
   paints: StarPaints,
   width: number,
   height: number,
@@ -341,17 +441,19 @@ export function drawSkyFrame(
   const view: FrameView = { camera, scale: pxPerDegree(camera.zoom, height), width, height };
   if (overlay) {
     canvas.drawPicture(overlay.background);
+    drawMilkyWay(canvas, view, overlay);
     drawNebulae(canvas, view, overlay);
     drawSectorLabels(canvas, view, overlay);
     drawConstellations(canvas, view, overlay);
-    drawConnectionLines(canvas, view, overlay);
+    drawConnectionLines(canvas, view, overlay, animSeconds);
   }
-  drawStars(canvas, view, field, clock, paints);
+  drawStars(canvas, view, field, clock, animSeconds, paints);
   if (overlay) {
     drawSolarSystem(canvas, view, overlay);
     drawHero(canvas, view, overlay);
     drawLabels(canvas, view, overlay);
   }
+  drawMeteor(canvas, activeMeteor, animSeconds);
 }
 
 /** Records a frame into a picture; call from a UI-thread derived value. */
@@ -360,6 +462,8 @@ export function recordSkyFrame(
   field: StarField,
   overlay: SkyOverlay | null,
   clock: number,
+  animSeconds: number,
+  activeMeteor: ActiveMeteor | null,
   paints: StarPaints,
   width: number,
   height: number,
@@ -367,6 +471,6 @@ export function recordSkyFrame(
   'worklet';
   const recorder = Skia.PictureRecorder();
   const canvas = recorder.beginRecording(Skia.XYWHRect(0, 0, width, height));
-  drawSkyFrame(canvas, camera, field, overlay, clock, paints, width, height);
+  drawSkyFrame(canvas, camera, field, overlay, clock, animSeconds, activeMeteor, paints, width, height);
   return recorder.finishRecordingAsPicture();
 }

@@ -21,6 +21,9 @@ const SOUND_ASSETS: Record<SoundEffectType, any> = {
   celebration: require('../../assets/sounds/celebration.wav'),
 };
 
+const COSMIC_AMBIENT_ASSET = require('../../assets/sounds/cosmic_ambient.wav');
+const CELESTIAL_CHIME_ASSET = require('../../assets/sounds/celestial_chime.wav');
+
 const STORAGE_KEY_SOUND = '@app_sound_effects_enabled';
 const STORAGE_KEY_HAPTIC = '@app_haptic_feedback_enabled';
 
@@ -226,3 +229,89 @@ export const playCameraClick = () => playSoundEffect('camera_click');
  * Love meter peak 90+ or relationship milestone celebration (harp glissando)
  */
 export const playCelebration = () => playSoundEffect('celebration');
+
+// ─── Star Map Celestial Audio ───────────────────────────────────────────────
+
+let ambientPlayer: AudioPlayer | null = null;
+let ambientFadeHandle: ReturnType<typeof setInterval> | null = null;
+
+function fadeAmbient(target: number, durationMs: number, onDone?: () => void): void {
+  if (ambientFadeHandle) {
+    clearInterval(ambientFadeHandle);
+    ambientFadeHandle = null;
+  }
+  const player = ambientPlayer;
+  if (!player) return;
+  const steps = 20;
+  const stepMs = Math.max(16, durationMs / steps);
+  const start = player.volume ?? 0;
+  let step = 0;
+  ambientFadeHandle = setInterval(() => {
+    step += 1;
+    const t = Math.min(1, step / steps);
+    try {
+      player.volume = start + (target - start) * t;
+    } catch {}
+    if (t >= 1) {
+      if (ambientFadeHandle) {
+        clearInterval(ambientFadeHandle);
+        ambientFadeHandle = null;
+      }
+      onDone?.();
+    }
+  }, stepMs);
+}
+
+/**
+ * Starts the looping cosmic ambience (fades in). Call when the star map screen
+ * gains focus; safe to call repeatedly.
+ */
+export async function startCosmicAmbient(): Promise<void> {
+  if (Platform.OS === 'web') return;
+  const enabled = await getSoundEffectsEnabled();
+  if (!enabled) return;
+  try {
+    await ensureAudioMode();
+    if (!ambientPlayer) {
+      ambientPlayer = createAudioPlayer(COSMIC_AMBIENT_ASSET);
+      ambientPlayer.loop = true;
+    }
+    ambientPlayer.volume = 0;
+    try {
+      ambientPlayer.seekTo(0);
+    } catch {}
+    ambientPlayer.play();
+    fadeAmbient(0.32, 1400);
+  } catch (err) {
+    logger.log('[SoundEffects] Cosmic ambient start notice:', err);
+  }
+}
+
+/**
+ * Fades out and pauses the cosmic ambience. Call when the star map screen
+ * loses focus or unmounts.
+ */
+export function stopCosmicAmbient(): void {
+  if (!ambientPlayer) return;
+  fadeAmbient(0, 900, () => {
+    try {
+      ambientPlayer?.pause();
+    } catch {}
+  });
+}
+
+/**
+ * Light crystal chime played when a star is tapped on the sky map.
+ */
+export async function playCelestialChime(): Promise<void> {
+  if (Platform.OS === 'web') return;
+  const enabled = await getSoundEffectsEnabled();
+  if (!enabled) return;
+  try {
+    await ensureAudioMode();
+    const player = createAudioPlayer(CELESTIAL_CHIME_ASSET);
+    player.play();
+  } catch (err) {
+    logger.log('[SoundEffects] Celestial chime notice:', err);
+  }
+}

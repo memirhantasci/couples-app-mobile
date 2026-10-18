@@ -56,6 +56,7 @@ export interface HeroItem extends PositionedPicture {
 
 export interface SkyOverlay {
   readonly background: SkPicture;
+  readonly milkyWay: readonly NebulaItem[];
   readonly nebulae: readonly NebulaItem[];
   /** Flat [fromRa, fromDec, toRa, toDec, ...] segments. */
   readonly constellations: readonly number[];
@@ -63,7 +64,6 @@ export interface SkyOverlay {
   readonly sectorLabels: readonly PositionedPicture[];
   readonly hero: HeroItem | null;
   readonly connections: readonly ConnectionItem[];
-  readonly connectionLinePaint: SkPaint;
   readonly connectionNode: SkPicture;
   readonly solar: readonly SolarItem[];
   readonly claimedLabels: readonly ClaimedLabelItem[];
@@ -71,6 +71,44 @@ export interface SkyOverlay {
 
 
 const NEBULA_RADIUS_DEG = 12;
+
+// ─── Milky Way band ──────────────────────────────────────────────────────────
+// A soft dust-lane strip along the galactic equator, built once from the
+// J2000 galactic-to-equatorial rotation matrix (verified against Sgr A*:
+// l=0,b=0 maps to RA≈266.4°, Dec≈-28.9°, matching the known galactic centre).
+
+const MILKY_WAY_RADIUS_DEG = 16;
+const MILKY_WAY_LONGITUDE_STEP_DEG = 8;
+
+/** Transpose of the equatorial→galactic rotation matrix (J2000), i.e. galactic→equatorial. */
+const GAL_TO_EQ = [
+  [-0.0548755604, 0.4941094279, -0.8676661490],
+  [-0.8734370902, -0.4448296300, -0.1980763734],
+  [-0.4838350155, 0.7469822445, 0.4559837762],
+] as const;
+
+function galacticToEquatorial(lDeg: number, bDeg = 0): { ra: number; dec: number } {
+  const l = (lDeg * Math.PI) / 180;
+  const b = (bDeg * Math.PI) / 180;
+  const xg = Math.cos(b) * Math.cos(l);
+  const yg = Math.cos(b) * Math.sin(l);
+  const zg = Math.sin(b);
+  const xe = GAL_TO_EQ[0][0] * xg + GAL_TO_EQ[0][1] * yg + GAL_TO_EQ[0][2] * zg;
+  const ye = GAL_TO_EQ[1][0] * xg + GAL_TO_EQ[1][1] * yg + GAL_TO_EQ[1][2] * zg;
+  const ze = GAL_TO_EQ[2][0] * xg + GAL_TO_EQ[2][1] * yg + GAL_TO_EQ[2][2] * zg;
+  const dec = (Math.asin(Math.max(-1, Math.min(1, ze))) * 180) / Math.PI;
+  let raRad = Math.atan2(ye, xe);
+  if (raRad < 0) raRad += 2 * Math.PI;
+  return { ra: (raRad * 180) / Math.PI, dec };
+}
+
+function buildMilkyWayPath(): readonly { ra: number; dec: number }[] {
+  const points: { ra: number; dec: number }[] = [];
+  for (let l = 0; l < 360; l += MILKY_WAY_LONGITUDE_STEP_DEG) {
+    points.push(galacticToEquatorial(l));
+  }
+  return points;
+}
 
 function record(draw: (canvas: SkCanvas) => void, bounds = 400) {
   const recorder = Skia.PictureRecorder();
@@ -232,10 +270,10 @@ export class LabelPictureCache {
 
 interface StaticOverlayAssets {
   readonly background: SkPicture;
+  readonly milkyWay: readonly NebulaItem[];
   readonly nebulae: readonly NebulaItem[];
   readonly constellations: readonly number[];
   readonly constellationPaint: SkPaint;
-  readonly connectionLinePaint: SkPaint;
   readonly connectionNode: SkPicture;
   readonly heroMarker: SkPicture;
   readonly sunMarker: SkPicture;
@@ -259,6 +297,18 @@ export function createStaticOverlayAssets(width: number, height: number): Static
     canvas.drawRect(Skia.XYWHRect(0, 0, width, height), paint);
   }, Math.max(width, height) * 2);
 
+  const milkyWayGlow = record((canvas) => {
+    const paint = glowPaint('#8B9CFF', 1, [0, 0.4, 0.75, 1], [0.15, 0.08, 0.025, 0]);
+    paint.setBlendMode(12); // Plus (additive), as the nebula glows do
+    canvas.drawCircle(0, 0, 1, paint);
+  }, 2);
+  const milkyWay: NebulaItem[] = buildMilkyWayPath().map((point) => ({
+    ra: point.ra,
+    dec: point.dec,
+    radiusDeg: MILKY_WAY_RADIUS_DEG,
+    picture: milkyWayGlow,
+  }));
+
   const nebulae = SKY_SECTORS_LIST.map((sector) => {
     const color = sector.nebulaPalette?.[0] ?? '#38BDF8';
     const picture = record((canvas) => {
@@ -273,10 +323,6 @@ export function createStaticOverlayAssets(width: number, height: number): Static
   for (const line of CONSTELLATION_LINES) {
     constellations.push(line.from.ra, line.from.dec, line.to.ra, line.to.dec);
   }
-
-  const connectionLinePaint = strokePaint('rgba(251, 191, 36, 0.6)', 1.6);
-  const dash = Skia.PathEffect.MakeDash([4, 6], 0);
-  if (dash) connectionLinePaint.setPathEffect(dash);
 
   const heroMarker = record((canvas) => {
     canvas.drawCircle(0, 0, 50, glowPaint('#F59E0B', 50, [0, 0.6, 1], [0.28, 0.16, 0]));
@@ -329,10 +375,10 @@ export function createStaticOverlayAssets(width: number, height: number): Static
 
   return {
     background,
+    milkyWay,
     nebulae,
     constellations,
     constellationPaint: strokePaint('rgba(255, 255, 255, 0.18)', 1),
-    connectionLinePaint,
     connectionNode,
     heroMarker,
     sunMarker,
@@ -442,13 +488,13 @@ export function buildSkyOverlay({
 
   return {
     background: assets.background,
+    milkyWay: assets.milkyWay,
     nebulae: assets.nebulae,
     constellations: assets.constellations,
     constellationPaint: assets.constellationPaint,
     sectorLabels,
     hero,
     connections: connectionItems,
-    connectionLinePaint: assets.connectionLinePaint,
     connectionNode: assets.connectionNode,
     solar,
     claimedLabels,
