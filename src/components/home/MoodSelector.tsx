@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo } from "react";
+import React, { useState, useEffect, useRef, memo } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  AppState,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
@@ -33,11 +34,10 @@ const MAX_DAILY_MOOD_UPDATES = 5; // Günde en fazla 5 kez değiştirme hakkı
 
 interface MoodSelectorProps {
   currentMood?: string | null;
-  moodLocked?: boolean;
   theme: AppTheme;
 }
 
-export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked = false, theme }: MoodSelectorProps) {
+export const MoodSelector = memo(function MoodSelector({ currentMood, theme }: MoodSelectorProps) {
   const { session, profile } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const queryClient = useQueryClient();
@@ -47,33 +47,55 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked
   const [cooldown, setCooldown] = useState<number>(0);
   const [updateCount, setUpdateCount] = useState<number>(0);
 
+  const lastUpdateTimestampRef = useRef<number>(0);
+
+  const userId = session?.user?.id;
   const today = todayString();
 
+  // Kullanıcıya özel anahtarlar: Çoklu hesap kullanan cihazlarda çakışmayı önler
+  const lastTimeKey = userId ? `@mood_last_time_${userId}_${today}` : null;
+  const countKey = userId ? `@mood_count_${userId}_${today}` : null;
+
   // Günlük kota ve son güncelleme zamanını oku
+  const checkRateLimit = React.useCallback(async () => {
+    if (!lastTimeKey || !countKey) return;
+    try {
+      const [lastTimeStr, countStr] = await Promise.all([
+        AsyncStorage.getItem(lastTimeKey),
+        AsyncStorage.getItem(countKey),
+      ]);
+      if (countStr) {
+        setUpdateCount(parseInt(countStr, 10) || 0);
+      }
+      if (lastTimeStr) {
+        const lastTime = parseInt(lastTimeStr, 10) || 0;
+        lastUpdateTimestampRef.current = lastTime;
+        const diffSeconds = Math.floor((Date.now() - lastTime) / 1000);
+        if (diffSeconds < COOLDOWN_SECONDS) {
+          setCooldown(COOLDOWN_SECONDS - diffSeconds);
+        } else {
+          setCooldown(0);
+        }
+      }
+    } catch (e) {
+      logger.error("Rate limit state load error:", e);
+    }
+  }, [lastTimeKey, countKey]);
+
   useEffect(() => {
     setSelected(currentMood || null);
+    checkRateLimit();
+  }, [currentMood, checkRateLimit]);
 
-    async function loadRateLimitState() {
-      try {
-        const [lastTimeStr, countStr] = await Promise.all([
-          AsyncStorage.getItem(`@mood_last_time_${today}`),
-          AsyncStorage.getItem(`@mood_count_${today}`),
-        ]);
-        if (countStr) {
-          setUpdateCount(parseInt(countStr, 10) || 0);
-        }
-        if (lastTimeStr) {
-          const diffSeconds = Math.floor((Date.now() - parseInt(lastTimeStr, 10)) / 1000);
-          if (diffSeconds < COOLDOWN_SECONDS) {
-            setCooldown(COOLDOWN_SECONDS - diffSeconds);
-          }
-        }
-      } catch (e) {
-        logger.error("Rate limit state load error:", e);
+  // Uygulama arka plandan öne geldiğinde cooldown süresini gerçek zamana göre güncelle
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        checkRateLimit();
       }
-    }
-    loadRateLimitState();
-  }, [currentMood, today]);
+    });
+    return () => sub.remove();
+  }, [checkRateLimit]);
 
   // Cooldown geri sayımı
   useEffect(() => {
@@ -93,12 +115,18 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked
   async function handleMoodSelect(emoji: string) {
     if (selected === emoji) return;
 
-    if (cooldown > 0) {
-      Alert.alert(
-        "Lütfen Biraz Bekleyin ⏳",
-        `Ruh halinizi ${cooldown} saniye sonra tekrar güncelleyebilirsiniz.`
-      );
-      return;
+    // Gerçek zamanlı timestamp kontrolü (arka planda interval dursa bile bypass edilemez)
+    if (lastUpdateTimestampRef.current > 0) {
+      const elapsed = Math.floor((Date.now() - lastUpdateTimestampRef.current) / 1000);
+      if (elapsed < COOLDOWN_SECONDS) {
+        const remaining = COOLDOWN_SECONDS - elapsed;
+        setCooldown(remaining);
+        Alert.alert(
+          "Lütfen Biraz Bekleyin ⏳",
+          `Ruh halinizi ${remaining} saniye sonra tekrar güncelleyebilirsiniz.`
+        );
+        return;
+      }
     }
 
     if (updateCount >= MAX_DAILY_MOOD_UPDATES) {
@@ -117,11 +145,10 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked
     )) {
       return;
     }
-    if (moodLocked || loading || !session?.user?.id) return;
+    if (loading || !userId) return;
     setLoading(true);
 
     const coupleId = profile?.coupleId || null;
-    const userId = session.user.id;
 
     const { data: existing } = await supabase
       .from("moods")
@@ -146,15 +173,17 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked
     setLoading(false);
 
     if (!error) {
+      const now = Date.now();
       setSelected(emoji);
       const nextCount = updateCount + 1;
       setUpdateCount(nextCount);
       setCooldown(COOLDOWN_SECONDS);
+      lastUpdateTimestampRef.current = now;
 
-      // Spam koruma zaman damgasını kaydet
+      // Spam koruma zaman damgasını kullanıcıya özel kaydet
       try {
-        await AsyncStorage.setItem(`@mood_last_time_${today}`, Date.now().toString());
-        await AsyncStorage.setItem(`@mood_count_${today}`, nextCount.toString());
+        if (lastTimeKey) await AsyncStorage.setItem(lastTimeKey, now.toString());
+        if (countKey) await AsyncStorage.setItem(countKey, nextCount.toString());
       } catch (e) {
         logger.error("Rate limit save error:", e);
       }
@@ -184,6 +213,8 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked
     }
   }
 
+  const isRateLimited = cooldown > 0 || updateCount >= MAX_DAILY_MOOD_UPDATES;
+
   return (
     <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
       <Text style={[styles.title, { color: theme.text }]}>Bugün nasılsın?</Text>
@@ -195,7 +226,7 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked
             <TouchableOpacity
               key={mood.emoji}
               onPress={() => handleMoodSelect(mood.emoji)}
-              disabled={loading || moodLocked}
+              disabled={loading || isRateLimited}
               activeOpacity={0.7}
               style={[
                 styles.moodBtn,
@@ -206,6 +237,7 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked
                       borderColor: theme.isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.1)", 
                       borderWidth: 1 
                     },
+                isRateLimited && !isSelected && { opacity: 0.35 },
               ]}
             >
               <Text style={styles.emoji}>{mood.emoji}</Text>
