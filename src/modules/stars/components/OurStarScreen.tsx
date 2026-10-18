@@ -97,6 +97,20 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 // Realtime güncellemeleri koruma penceresi (5 saniye)
 const REALTIME_RECONCILIATION_WINDOW_MS = 5000;
 
+const SOLAR_DESCRIPTIONS: Record<string, string> = {
+  'SOL-SUN': 'Güneş Sistemimizin kalbi, tüm evrenin yaşam kaynağı ☀️',
+  'SOL-MERCURY': 'Güneşe en yakın, kalbimizin en sıcak ve tutkulu köşesi ☿',
+  'SOL-VENUS': 'Aşkın ve güzelliğin simgesi, gökyüzünün en parlak Çoban Yıldızı ✨',
+  'SOL-EARTH': 'Tüm anılarımızın ve sevgimizin filizlendiği biricik mavi gezegen 🌍',
+  'SOL-MOON': 'Gecelerimizin aydınlatıcısı, sadık ve zarif uydumuz Ay 🌙',
+  'SOL-MARS': 'Aşkımızın sönmeyen ateşi ve cesareti, Kızıl Gezegen 🔴',
+  'SOL-JUPITER': 'Tüm zorluklara karşı bizi koruyan dev kalkan, sevgimizin koruyucusu 🪐',
+  'SOL-SATURN': 'Zamanın ötesindeki bağlılığımızın ve sadakatimizin sonsuz halkası 🪐',
+  'SOL-URANUS': 'Gökyüzünün dingin, masmavi ve büyüleyici buz gülü ❄️',
+  'SOL-NEPTUNE': 'Aşkımızın derinliği gibi dipsiz ve huzurlu okyanuslar diyarı 🌊',
+  'SOL-PLUTO': 'Evrenin ucunda bile olsa birbirini asla unutmayan kalplerin simgesi 💜',
+};
+
 function toMapPlanet(planet: StarExoplanetRecord): StarSystemMapPlanet {
   return {
     id: planet.id,
@@ -1084,13 +1098,7 @@ export const OurStarScreen: React.FC = () => {
             <View style={styles.solarObjectBanner}>
               <Sun size={14} color="#FBBF24" />
               <Text style={styles.solarObjectText}>
-                {selectedMacroStar.catalog_code === 'SOL-SUN'
-                  ? 'Güneş Sistemimizin kalbi, tüm evrenin yaşam kaynağı ☀️'
-                  : selectedMacroStar.catalog_code === 'SOL-EARTH'
-                  ? 'Tüm anılarımızın ve sevgimizin filizlendiği mavi gezegen 🌍'
-                  : selectedMacroStar.catalog_code === 'SOL-VENUS'
-                  ? 'Aşkın ve güzelliğin simgesi, Çoban Yıldızı ✨'
-                  : 'Gecelerimizin aydınlatıcısı, sadık uydumuz Ay 🌙'}
+                {SOLAR_DESCRIPTIONS[selectedMacroStar.catalog_code] || 'Güneş Sistemimizin kadim bir yolcusu ✨'}
               </Text>
             </View>
           ) : starConnections.length >= 3 ? (
@@ -1399,7 +1407,7 @@ export const OurStarScreen: React.FC = () => {
           setIsSearchModalOpen(false);
           setViewMode('macro');
 
-          // 1. Check if it matches a solar system body (Güneş, Dünya, Venüs, Ay)
+          // 1. Check if it matches a solar system body (Güneş, gezegenler, Ay)
           const solarObj = SOLAR_SYSTEM_OBJECTS.find(
             (s) => s.catalog_code === item.catalog_code
           );

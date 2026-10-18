@@ -280,6 +280,13 @@ interface StaticOverlayAssets {
   readonly earthMarker: SkPicture;
   readonly venusMarker: SkPicture;
   readonly moonMarker: SkPicture;
+  readonly mercuryMarker: SkPicture;
+  readonly marsMarker: SkPicture;
+  readonly jupiterMarker: SkPicture;
+  readonly saturnMarker: SkPicture;
+  readonly uranusMarker: SkPicture;
+  readonly neptuneMarker: SkPicture;
+  readonly plutoMarker: SkPicture;
 }
 
 /** Fonts-independent pictures and paints; build once per viewport size. */
@@ -369,6 +376,53 @@ export function createStaticOverlayAssets(width: number, height: number): Static
     canvas.drawCircle(0, 0, 2.8, fillPaint('#E2E8F0'));
   });
 
+  const mercuryMarker = record((canvas) => {
+    canvas.drawCircle(0, 0, 5, fillPaint('rgba(203, 213, 225, 0.4)'));
+    canvas.drawCircle(0, 0, 2.5, fillPaint('#CBD5E1'));
+  });
+
+  const marsMarker = record((canvas) => {
+    canvas.drawCircle(0, 0, 10, glowPaint('#EF4444', 10, [0, 0.5, 1], [0.5, 0.2, 0]));
+    canvas.drawCircle(0, 0, 3.8, fillPaint('#EF4444'));
+    canvas.drawCircle(0, 0, 1.2, fillPaint('#FCA5A5'));
+  });
+
+  const jupiterMarker = record((canvas) => {
+    canvas.drawCircle(0, 0, 22, glowPaint('#F59E0B', 22, [0, 0.5, 1], [0.5, 0.2, 0]));
+    canvas.drawCircle(0, 0, 7.5, fillPaint('#F59E0B'));
+    canvas.drawCircle(0, 0, 5.0, fillPaint('#FDE68A'));
+    canvas.drawCircle(0, 0, 2.0, fillPaint('#FFFFFF'));
+  });
+
+  const saturnMarker = record((canvas) => {
+    canvas.drawCircle(0, 0, 18, glowPaint('#FDE047', 18, [0, 0.5, 1], [0.4, 0.15, 0]));
+    // Tilted ring
+    canvas.save();
+    canvas.rotate(-25, 0, 0);
+    canvas.drawOval(Skia.XYWHRect(-12, -4, 24, 8), strokePaint('rgba(253, 224, 71, 0.8)', 1.8));
+    canvas.restore();
+    // Planet body
+    canvas.drawCircle(0, 0, 5.5, fillPaint('#EAB308'));
+    canvas.drawCircle(0, 0, 2.0, fillPaint('#FEF08A'));
+  });
+
+  const uranusMarker = record((canvas) => {
+    canvas.drawCircle(0, 0, 14, glowPaint('#22D3EE', 14, [0, 0.5, 1], [0.45, 0.18, 0]));
+    canvas.drawCircle(0, 0, 4.8, fillPaint('#06B6D4'));
+    canvas.drawCircle(0, 0, 1.8, fillPaint('#CFFAFE'));
+  });
+
+  const neptuneMarker = record((canvas) => {
+    canvas.drawCircle(0, 0, 14, glowPaint('#3B82F6', 14, [0, 0.5, 1], [0.5, 0.2, 0]));
+    canvas.drawCircle(0, 0, 4.8, fillPaint('#2563EB'));
+    canvas.drawCircle(0, 0, 1.8, fillPaint('#BFDBFE'));
+  });
+
+  const plutoMarker = record((canvas) => {
+    canvas.drawCircle(0, 0, 4, fillPaint('rgba(192, 132, 252, 0.4)'));
+    canvas.drawCircle(0, 0, 2.0, fillPaint('#C084FC'));
+  });
+
   const connectionNode = record((canvas) => {
     canvas.drawCircle(0, 0, 7, strokePaint('rgba(244, 114, 182, 0.8)', 1.2));
   });
@@ -385,6 +439,13 @@ export function createStaticOverlayAssets(width: number, height: number): Static
     earthMarker,
     venusMarker,
     moonMarker,
+    mercuryMarker,
+    marsMarker,
+    jupiterMarker,
+    saturnMarker,
+    uranusMarker,
+    neptuneMarker,
+    plutoMarker,
   };
 }
 
@@ -466,6 +527,27 @@ export function buildSkyOverlay({
         break;
       case 'SOL-MOON':
         solar.push({ ra: object.ra, dec: object.dec, picture: assets.moonMarker, isSun: false, label: plain('Ay 🌙', { ...SMALL_TEXT, color: '#CBD5E1' }), labelOffsetY: 16 });
+        break;
+      case 'SOL-MERCURY':
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.mercuryMarker, isSun: false, label: plain('Merkür ☿', { ...SMALL_TEXT, color: '#CBD5E1' }), labelOffsetY: 16 });
+        break;
+      case 'SOL-MARS':
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.marsMarker, isSun: false, label: plain('Mars 🔴', { ...SMALL_TEXT, color: '#FCA5A5' }), labelOffsetY: 16 });
+        break;
+      case 'SOL-JUPITER':
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.jupiterMarker, isSun: false, label: plain('Jüpiter 🪐', { ...SMALL_TEXT, color: '#FDE68A' }), labelOffsetY: 22 });
+        break;
+      case 'SOL-SATURN':
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.saturnMarker, isSun: false, label: plain('Satürn 🪐', { ...SMALL_TEXT, color: '#FEF08A' }), labelOffsetY: 20 });
+        break;
+      case 'SOL-URANUS':
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.uranusMarker, isSun: false, label: plain('Uranüs ❄️', { ...SMALL_TEXT, color: '#A5F3FC' }), labelOffsetY: 18 });
+        break;
+      case 'SOL-NEPTUNE':
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.neptuneMarker, isSun: false, label: plain('Neptün 🌊', { ...SMALL_TEXT, color: '#93C5FD' }), labelOffsetY: 18 });
+        break;
+      case 'SOL-PLUTO':
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.plutoMarker, isSun: false, label: plain('Plüton 💜', { ...SMALL_TEXT, color: '#E9D5FF' }), labelOffsetY: 14 });
         break;
       default:
         break;
