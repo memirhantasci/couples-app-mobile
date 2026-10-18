@@ -5,13 +5,18 @@
  * Handles environments gracefully where RNSkiaModule is not available (e.g. Expo Go).
  */
 
-import type { Skia as SkiaType, useFont as useFontType } from '@shopify/react-native-skia';
+import type {
+  Skia as SkiaType,
+  useFont as useFontType,
+  useFonts as useFontsType,
+} from '@shopify/react-native-skia';
 
 let skiaInstance: typeof SkiaType | null = null;
 let canvasComponent: any = null;
 let groupComponent: any = null;
 let pictureComponent: any = null;
 let useFontHook: typeof useFontType | null = null;
+let useFontsHook: typeof useFontsType | null = null;
 
 // New exports for MicroSystemCanvas
 let circleComponent: any = null;
@@ -34,6 +39,7 @@ try {
     groupComponent = skiaModule.Group;
     pictureComponent = skiaModule.Picture;
     useFontHook = skiaModule.useFont;
+    useFontsHook = skiaModule.useFonts;
     
     circleComponent = skiaModule.Circle;
     pathComponent = skiaModule.Path;
@@ -57,6 +63,8 @@ export const Canvas = canvasComponent;
 export const Group = groupComponent;
 export const Picture = pictureComponent;
 export const useFont = useFontHook!;
+/** Typeface provider for the Paragraph API (falls back to system fonts, e.g. emoji). */
+export const useFonts = useFontsHook!;
 
 export const Circle = circleComponent;
 export const Path = pathComponent;

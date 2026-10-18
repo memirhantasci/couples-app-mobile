@@ -466,7 +466,7 @@ export interface ScreenCoords {
 export interface SkyCameraState {
   readonly centerRa: number;
   readonly centerDec: number;
-  readonly zoom: number;             // [1.0, 10.0]
+  readonly zoom: number;             // [0.6, 35] (makro gökyüzü haritası)
   readonly fovRa: number;            // Ekrana sığan RA genişliği (derece)
   readonly fovDec: number;           // Ekrana sığan Dec yüksekliği (derece)
   readonly viewportWidth: number;    // Ekran genişliği (piksel)

@@ -5,7 +5,7 @@ import { useDerivedValue, useSharedValue } from 'react-native-reanimated';
 import { Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import * as Haptics from 'expo-haptics';
 import { Sparkles } from 'lucide-react-native';
-import { Canvas, Picture, useFont, isSkiaAvailable } from './skiaBridge';
+import { Canvas, Picture, useFonts, isSkiaAvailable } from './skiaBridge';
 import type {
   ActiveStarConnection,
   ViewportStarItem,
@@ -18,6 +18,7 @@ import { hitTestSky } from './macro/hitTest';
 import {
   buildSkyOverlay,
   createStaticOverlayAssets,
+  LABEL_FONT_FAMILY,
   LabelPictureCache,
   type SkyOverlay,
 } from './macro/skyOverlay';
@@ -73,6 +74,8 @@ const MOTION_LOOKAHEAD_SEC = 0.35;
 /** Parent camera reports while moving (it re-renders a large screen). */
 const CAMERA_REPORT_INTERVAL_MS = 400;
 const EMPTY_CONNECTIONS: ActiveStarConnection[] = [];
+/** Label fonts; glyphs missing from Inter (emoji) fall back to system fonts. */
+const LABEL_FONTS = { [LABEL_FONT_FAMILY]: [Inter_400Regular, Inter_600SemiBold] };
 
 function toCameraState(ra: number, dec: number, zoom: number, width: number, height: number): SkyCameraState {
   const fovDec = BASE_FOV_DEG / zoom;
@@ -131,9 +134,7 @@ function MacroSkyCanvasSkia({
   const myStarDec = myStarCoords?.dec;
   const myStarName = myStarCoords?.name;
 
-  const labelFont = useFont(Inter_400Regular, 10);
-  const nameFont = useFont(Inter_600SemiBold, 12);
-  const sectorFont = useFont(Inter_600SemiBold, 14);
+  const fontProvider = useFonts(LABEL_FONTS);
 
   const [initial] = useState(() => {
     const zoom = clampZoom(initialCamera?.zoom ?? 1.2);
@@ -244,7 +245,7 @@ function MacroSkyCanvasSkia({
     overlay.set(
       buildSkyOverlay({
         assets: staticAssets,
-        fonts: { label: labelFont, name: nameFont, sector: sectorFont },
+        fontProvider,
         labels: labelCache,
         myStar:
           myStarRa !== undefined && myStarDec !== undefined
@@ -255,7 +256,7 @@ function MacroSkyCanvasSkia({
         solarObjects: SOLAR_SYSTEM_OBJECTS,
       }),
     );
-  }, [overlay, staticAssets, labelCache, labelFont, nameFont, sectorFont, myStarRa, myStarDec, myStarName, connections, stars]);
+  }, [overlay, staticAssets, labelCache, fontProvider, myStarRa, myStarDec, myStarName, connections, stars]);
 
   // First viewport report, so the parent loads stars for the initial view.
   useEffect(() => {

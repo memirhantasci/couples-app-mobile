@@ -1,4 +1,10 @@
-import type { SkCanvas, SkFont, SkPaint, SkPicture } from '@shopify/react-native-skia';
+import type {
+  FontWeight,
+  SkCanvas,
+  SkPaint,
+  SkPicture,
+  SkTypefaceFontProvider,
+} from '@shopify/react-native-skia';
 import type { ActiveStarConnection, ViewportStarItem } from '../../types/star.types';
 import { CONSTELLATION_LINES } from '../../config/constellationLines.data';
 import { SKY_SECTORS_LIST } from '../../config/skySectors.data';
@@ -63,11 +69,6 @@ export interface SkyOverlay {
   readonly claimedLabels: readonly ClaimedLabelItem[];
 }
 
-export interface SkyOverlayFonts {
-  readonly label: SkFont | null;
-  readonly name: SkFont | null;
-  readonly sector: SkFont | null;
-}
 
 const NEBULA_RADIUS_DEG = 12;
 
@@ -108,11 +109,25 @@ function glowPaint(color: string, radius: number, stops: readonly number[], alph
 }
 
 // ─── Labels ────────────────────────────────────────────────────────────────
+// Labels use the Paragraph API: Inter from the app bundle, with automatic
+// fallback to the system fonts for glyphs Inter lacks, such as the emoji in
+// "Güneş ☀️" or the sector symbols. Widths are measured by the shaper, so
+// pills fit their text.
+
+/** Family name the canvas registers Inter under (see useFonts there). */
+export const LABEL_FONT_FAMILY = 'Inter';
+const LABEL_LAYOUT_WIDTH = 2000;
+
+interface TextSpec {
+  readonly size: number;
+  readonly weight: 'regular' | 'semibold';
+  readonly color: string;
+}
 
 interface PillStyle {
+  readonly text: TextSpec;
   readonly background: string;
   readonly border: string | null;
-  readonly color: string;
   readonly paddingX: number;
   readonly top: number;
   readonly height: number;
@@ -120,46 +135,61 @@ interface PillStyle {
 }
 
 const HERO_PILL: PillStyle = {
+  text: { size: 12, weight: 'semibold', color: '#FDE68A' },
   background: 'rgba(15, 23, 42, 0.94)',
   border: 'rgba(245, 158, 11, 0.75)',
-  color: '#FDE68A',
   paddingX: 8,
   top: -12,
   height: 20,
   radius: 10,
 };
 const CLAIMED_PILL: PillStyle = {
+  text: { size: 12, weight: 'semibold', color: '#E0F2FE' },
   background: 'rgba(15, 23, 42, 0.9)',
   border: 'rgba(147, 197, 253, 0.5)',
-  color: '#E0F2FE',
   paddingX: 8,
   top: -12,
   height: 20,
   radius: 10,
 };
 const SUN_PILL: PillStyle = {
+  text: { size: 10, weight: 'regular', color: '#FDE68A' },
   background: 'rgba(20, 15, 5, 0.9)',
   border: 'rgba(245, 158, 11, 0.8)',
-  color: '#FDE68A',
   paddingX: 8,
   top: -12,
   height: 20,
   radius: 10,
 };
 const CONNECTION_PILL: PillStyle = {
+  text: { size: 10, weight: 'regular', color: '#F472B6' },
   background: 'rgba(24, 15, 36, 0.85)',
   border: null,
-  color: '#F472B6',
   paddingX: 6,
   top: -10,
   height: 16,
   radius: 8,
 };
 
-/** Pill centred on x = 0; the text baseline sits 2px below y = 0. */
-function recordPill(text: string, font: SkFont, style: PillStyle) {
+function layoutParagraph(text: string, provider: SkTypefaceFontProvider, spec: TextSpec) {
+  const builder = Skia.ParagraphBuilder.Make({ maxLines: 1 }, provider);
+  builder.pushStyle({
+    color: Skia.Color(spec.color),
+    fontFamilies: [LABEL_FONT_FAMILY],
+    fontSize: spec.size,
+    fontStyle: { weight: (spec.weight === 'semibold' ? 600 : 400) as FontWeight },
+  });
+  builder.addText(text);
+  const paragraph = builder.build();
+  paragraph.layout(LABEL_LAYOUT_WIDTH);
+  return paragraph;
+}
+
+/** Pill centred on x = 0 spanning `top`…`top + height`, text vertically centred. */
+function recordPill(text: string, provider: SkTypefaceFontProvider, style: PillStyle) {
   return record((canvas) => {
-    const textWidth = font.getTextWidth(text);
+    const paragraph = layoutParagraph(text, provider, style.text);
+    const textWidth = paragraph.getLongestLine();
     const rect = Skia.RRectXY(
       Skia.XYWHRect(-textWidth / 2 - style.paddingX, style.top, textWidth + style.paddingX * 2, style.height),
       style.radius,
@@ -167,14 +197,16 @@ function recordPill(text: string, font: SkFont, style: PillStyle) {
     );
     canvas.drawRRect(rect, fillPaint(style.background));
     if (style.border) canvas.drawRRect(rect, strokePaint(style.border, 1.2));
-    canvas.drawText(text, -textWidth / 2, 2, fillPaint(style.color), font);
+    paragraph.paint(canvas, -textWidth / 2, style.top + (style.height - paragraph.getHeight()) / 2);
   });
 }
 
 /** Bare text centred on x = 0 with its baseline on y = 0. */
-function recordText(text: string, font: SkFont, color: string) {
+function recordText(text: string, provider: SkTypefaceFontProvider, spec: TextSpec) {
   return record((canvas) => {
-    canvas.drawText(text, -font.getTextWidth(text) / 2, 0, fillPaint(color), font);
+    const paragraph = layoutParagraph(text, provider, spec);
+    const baseline = paragraph.getLineMetrics()[0]?.baseline ?? spec.size;
+    paragraph.paint(canvas, -paragraph.getLongestLine() / 2, -baseline);
   });
 }
 
@@ -314,7 +346,8 @@ export function createStaticOverlayAssets(width: number, height: number): Static
 
 export interface SkyOverlayInput {
   readonly assets: StaticOverlayAssets;
-  readonly fonts: SkyOverlayFonts;
+  /** Label fonts; labels are skipped until it has loaded. */
+  readonly fontProvider: SkTypefaceFontProvider | null;
   readonly labels: LabelPictureCache;
   readonly myStar: { readonly ra: number; readonly dec: number; readonly name?: string } | null;
   readonly connections: readonly ActiveStarConnection[];
@@ -322,30 +355,32 @@ export interface SkyOverlayInput {
   readonly solarObjects: readonly ViewportStarItem[];
 }
 
+const SMALL_TEXT = { size: 10, weight: 'regular' } as const;
+
 export function buildSkyOverlay({
   assets,
-  fonts,
+  fontProvider,
   labels,
   myStar,
   connections,
   stars,
   solarObjects,
 }: SkyOverlayInput): SkyOverlay {
-  const labelFont = fonts.label;
-  const nameFont = fonts.name ?? fonts.label;
-  const sectorFont = fonts.sector;
-
-  const pill = (text: string, font: SkFont | null, style: PillStyle, kind: string) =>
-    font ? labels.get(`${kind}|${text}`, () => recordPill(text, font, style)) : null;
-  const plain = (text: string, font: SkFont | null, color: string) =>
-    font ? labels.get(`text|${color}|${text}`, () => recordText(text, font, color)) : null;
+  const pill = (text: string, style: PillStyle, kind: string) =>
+    fontProvider ? labels.get(`${kind}|${text}`, () => recordPill(text, fontProvider, style)) : null;
+  const plain = (text: string, spec: TextSpec) =>
+    fontProvider
+      ? labels.get(`text|${spec.size}|${spec.weight}|${spec.color}|${text}`, () => recordText(text, fontProvider, spec))
+      : null;
 
   const sectorLabels: PositionedPicture[] = [];
-  if (sectorFont) {
-    for (const sector of SKY_SECTORS_LIST) {
-      const picture = plain(`${sector.symbol} ${sector.name}`, sectorFont, sector.themeColor || 'rgba(255,255,255,0.6)');
-      if (picture) sectorLabels.push({ ra: sector.center.ra, dec: sector.center.dec, picture });
-    }
+  for (const sector of SKY_SECTORS_LIST) {
+    const picture = plain(`${sector.symbol} ${sector.name}`, {
+      size: 14,
+      weight: 'semibold',
+      color: sector.themeColor || 'rgba(255,255,255,0.6)',
+    });
+    if (picture) sectorLabels.push({ ra: sector.center.ra, dec: sector.center.dec, picture });
   }
 
   const hero: HeroItem | null = myStar
@@ -353,7 +388,7 @@ export function buildSkyOverlay({
         ra: myStar.ra,
         dec: myStar.dec,
         picture: assets.heroMarker,
-        label: pill(`⭐ ${myStar.name || 'Bizim Yıldızımız ✨'}`, nameFont, HERO_PILL, 'hero'),
+        label: pill(`⭐ ${myStar.name || 'Bizim Yıldızımız ✨'}`, HERO_PILL, 'hero'),
       }
     : null;
 
@@ -366,7 +401,7 @@ export function buildSkyOverlay({
       connectionItems.push({
         ra,
         dec,
-        label: pill(`🔗 ${connection.other_star_name}`, labelFont, CONNECTION_PILL, 'connection'),
+        label: pill(`🔗 ${connection.other_star_name}`, CONNECTION_PILL, 'connection'),
       });
     }
   }
@@ -375,16 +410,16 @@ export function buildSkyOverlay({
   for (const object of solarObjects) {
     switch (object.catalog_code) {
       case 'SOL-SUN':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.sunMarker, isSun: true, label: pill('Güneş ☀️', labelFont, SUN_PILL, 'sun'), labelOffsetY: 18 });
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.sunMarker, isSun: true, label: pill('Güneş ☀️', SUN_PILL, 'sun'), labelOffsetY: 18 });
         break;
       case 'SOL-EARTH':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.earthMarker, isSun: false, label: plain('Dünya 🌍', labelFont, '#93C5FD'), labelOffsetY: 18 });
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.earthMarker, isSun: false, label: plain('Dünya 🌍', { ...SMALL_TEXT, color: '#93C5FD' }), labelOffsetY: 18 });
         break;
       case 'SOL-VENUS':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.venusMarker, isSun: false, label: plain('Venüs ✨', labelFont, '#FDE68A'), labelOffsetY: 18 });
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.venusMarker, isSun: false, label: plain('Venüs ✨', { ...SMALL_TEXT, color: '#FDE68A' }), labelOffsetY: 18 });
         break;
       case 'SOL-MOON':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.moonMarker, isSun: false, label: plain('Ay 🌙', labelFont, '#CBD5E1'), labelOffsetY: 16 });
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.moonMarker, isSun: false, label: plain('Ay 🌙', { ...SMALL_TEXT, color: '#CBD5E1' }), labelOffsetY: 16 });
         break;
       default:
         break;
@@ -394,7 +429,7 @@ export function buildSkyOverlay({
   const claimedLabels: ClaimedLabelItem[] = [];
   for (const star of stars) {
     if (star.is_mine || !star.is_claimed || !star.custom_name) continue;
-    const label = pill(star.custom_name, nameFont, CLAIMED_PILL, 'claimed');
+    const label = pill(star.custom_name, CLAIMED_PILL, 'claimed');
     if (!label) continue;
     claimedLabels.push({
       ra: star.ra,
