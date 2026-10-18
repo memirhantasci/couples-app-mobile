@@ -888,6 +888,7 @@ export const OurStarScreen: React.FC = () => {
               zoom: 1.2,
             }}
             targetCamera={flyToTarget}
+            onTargetCameraConsumed={() => setFlyToTarget(undefined)}
             onBoundsChange={handleMacroBoundsChange}
             onCameraChange={handleCameraChange}
             onSelectStar={(star) => {

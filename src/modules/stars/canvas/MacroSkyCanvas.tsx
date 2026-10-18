@@ -1,20 +1,40 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, runOnJS, useDerivedValue, withTiming, cancelAnimation, Easing } from 'react-native-reanimated';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, Text } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
+import { useDerivedValue, useSharedValue } from 'react-native-reanimated';
 import { Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import * as Haptics from 'expo-haptics';
 import { Sparkles } from 'lucide-react-native';
-import { Canvas, Group, Picture, Skia, useFont, isSkiaAvailable } from './skiaBridge';
+import { Canvas, Picture, useFont, isSkiaAvailable } from './skiaBridge';
 import type {
   ActiveStarConnection,
   ViewportStarItem,
   SkyCameraState,
 } from '@/modules/stars/types/star.types';
-import { CONSTELLATION_LINES } from '../config/constellationLines.data';
-import { SKY_SECTORS_LIST } from '../config/skySectors.data';
 import { SkyDebugHud } from './macro/debug/SkyDebugHud';
 import { SKY_DEBUG_HUD_ENABLED } from './macro/debug/skyDebugConfig';
+import { recordSkyFrame } from './macro/drawSkyFrame';
+import { hitTestSky } from './macro/hitTest';
+import {
+  buildSkyOverlay,
+  createStaticOverlayAssets,
+  LabelPictureCache,
+  type SkyOverlay,
+} from './macro/skyOverlay';
+import {
+  bandForZoom,
+  BASE_FOV_DEG,
+  clampDec,
+  clampZoom,
+  normalizeRa,
+  skyBoundsForCamera,
+  skyBoundsForMotion,
+} from './macro/skyProjection';
+import { SOLAR_SYSTEM_OBJECTS } from './macro/solarSystem';
+import { EMPTY_STAR_SCENE, StarSceneManager, type StarScene } from './macro/starTileScene';
+import { useSkyCamera } from './macro/useSkyCamera';
+
+export { SOLAR_SYSTEM_OBJECTS };
 
 export interface MacroSkyBounds {
   readonly minRa: number;
@@ -28,7 +48,10 @@ export interface MacroSkyCanvasProps {
   readonly stars: ViewportStarItem[];
   readonly initialCamera?: Partial<SkyCameraState>;
   readonly targetCamera?: { readonly centerRa: number; readonly centerDec: number; readonly zoom?: number; readonly nonce?: number };
-  readonly onSelectStar?: (star: ViewportStarItem) => void;
+  /** Called once a `targetCamera` flight has started, so the parent can clear it. */
+  readonly onTargetCameraConsumed?: () => void;
+  /** Receives `null` when empty sky is tapped. */
+  readonly onSelectStar?: (star: ViewportStarItem | null) => void;
   readonly onBoundsChange?: (bounds: MacroSkyBounds) => void;
   readonly onCameraChange?: (camera: SkyCameraState) => void;
   readonly connections?: ActiveStarConnection[];
@@ -37,1441 +60,248 @@ export interface MacroSkyCanvasProps {
   readonly height?: number;
 }
 
-const MIN_ZOOM = 0.6;
-const MAX_ZOOM = 35.0;
-// Keep enough world-space coverage around a committed camera that a long swipe
-// cannot reveal an unpainted edge while its replacement picture is recorded.
-// 900px provides ~2.3x screen buffer without overloading SkPicture memory/CPU.
-const OVERSCAN_PAD = 900;
-// Rebase thresholds: wide enough to eliminate rebase churn during normal zooming,
-// tight enough to maintain high visual fidelity.
-const WORLD_REBASE_PAN_PX = 1200;
-const WORLD_REBASE_MIN_SCALE = 0.5;
-const WORLD_REBASE_MAX_SCALE = 2.0;
-const FRUSTUM_PADDING = 50;
-const RENDER_TILE_DEGREES = 30;
-const MAX_TILE_PICTURES = 64;
-
-type RenderLod = 'low' | 'medium' | 'high';
-
-type PaintPool = {
-  lowPaint: any;
-  lowRingPaint: any;
-  resonanceGoldPaint: any;
-  resonancePurplePaint: any;
-  mediumGlowPaint: any;
-  mediumCorePaint: any;
-  highGlowPaint: any;
-  highCorePaint: any;
-  highClaimPaint: any;
-  highHotCenterPaint: any;
-  myStarRingPaint: any;
-  pillBgPaint: any;
-  pillBorderPaint: any;
-  labelPaint: any;
-};
-
-type TilePictureEntry = {
-  readonly picture: any;
-};
-
-type StarTilePicture = {
-  readonly key: string;
-  readonly picture: any;
-  readonly x: number;
-  readonly y: number;
-};
-
-const EMPTY_STARS: ViewportStarItem[] = [];
-
-function createPaintPool(): PaintPool {
-  const lowPaint = Skia.Paint();
-  const lowRingPaint = Skia.Paint();
-  lowRingPaint.setStyle(1);
-  lowRingPaint.setStrokeWidth(1.5);
-
-  const resonanceGoldPaint = Skia.Paint();
-  resonanceGoldPaint.setStyle(1);
-  resonanceGoldPaint.setStrokeWidth(1.25);
-
-  const resonancePurplePaint = Skia.Paint();
-  resonancePurplePaint.setStyle(1);
-  resonancePurplePaint.setStrokeWidth(1.25);
-
-  const myStarRingPaint = Skia.Paint();
-  myStarRingPaint.setStyle(1);
-  myStarRingPaint.setStrokeWidth(1.8);
-  const myDash = Skia.PathEffect.MakeDash([4, 4], 0);
-  if (myDash) myStarRingPaint.setPathEffect(myDash);
-
-  const pillBorderPaint = Skia.Paint();
-  pillBorderPaint.setStyle(1);
-  pillBorderPaint.setStrokeWidth(1.2);
-
-  return {
-    lowPaint,
-    lowRingPaint,
-    resonanceGoldPaint,
-    resonancePurplePaint,
-    mediumGlowPaint: Skia.Paint(),
-    mediumCorePaint: Skia.Paint(),
-    highGlowPaint: Skia.Paint(),
-    highCorePaint: Skia.Paint(),
-    highClaimPaint: Skia.Paint(),
-    highHotCenterPaint: Skia.Paint(),
-    myStarRingPaint,
-    pillBgPaint: Skia.Paint(),
-    pillBorderPaint,
-    labelPaint: Skia.Paint(),
-  };
-}
-
-function getRenderLod(zoom: number): RenderLod {
-  if (zoom < 1.5) return 'low';
-  if (zoom < 4) return 'medium';
-  return 'high';
-}
-
-function isInFrustum(x: number, y: number, width: number, height: number, padding = FRUSTUM_PADDING) {
-  return x >= -padding && x <= width + padding && y >= -padding && y <= height + padding;
-}
-
-function tileKeyForStar(star: ViewportStarItem): string {
-  const raTile = Math.floor((((star.ra % 360) + 360) % 360) / RENDER_TILE_DEGREES);
-  const decTile = Math.floor((Math.max(-90, Math.min(89.9999, star.dec)) + 90) / RENDER_TILE_DEGREES);
-  return `${raTile}:${decTile}`;
-}
-
-function tileCenterFromKey(key: string) {
-  const [raIndex, decIndex] = key.split(':').map(Number);
-  return {
-    ra: raIndex * RENDER_TILE_DEGREES + RENDER_TILE_DEGREES / 2,
-    dec: decIndex * RENDER_TILE_DEGREES - 90 + RENDER_TILE_DEGREES / 2,
-  };
-}
-
-function disposePicture(picture: any) {
-  try {
-    picture?.dispose?.();
-  } catch {
-    // A disposed Skia picture is safe to ignore during cache eviction.
-  }
-}
-
-function clusterVisibleStars(
-  stars: readonly ViewportStarItem[],
-  camera: SkyCameraState,
-  width: number,
-  height: number,
-) {
-  const clusters = new Map<string, { x: number; y: number; count: number }>();
-  for (const star of stars) {
-    const position = projectToScreen(star.ra, star.dec, camera, width, height);
-    if (!isInFrustum(position.x, position.y, width, height)) continue;
-    const key = `${Math.floor(position.x / 72)}:${Math.floor(position.y / 72)}`;
-    const existing = clusters.get(key);
-    if (existing) {
-      existing.x = (existing.x * existing.count + position.x) / (existing.count + 1);
-      existing.y = (existing.y * existing.count + position.y) / (existing.count + 1);
-      existing.count += 1;
-    } else {
-      clusters.set(key, { x: position.x, y: position.y, count: 1 });
-    }
-  }
-  return Array.from(clusters.values());
-}
-
-export const SOLAR_SYSTEM_OBJECTS: ViewportStarItem[] = [
-  {
-    catalog_id: 999901,
-    catalog_code: 'SOL-SUN',
-    common_name: 'Güneş',
-    ra: 280.4600,
-    dec: -23.4400,
-    magnitude: -26.74,
-    spectral_type: 'G2V',
-    base_color: '#FFF4E8',
-    is_claimed: true,
-    is_mine: false,
-    custom_name: 'Güneş ☀️',
-    luminosity_level: 1.0,
-    resonance_active: true,
-  },
-  {
-    catalog_id: 999902,
-    catalog_code: 'SOL-EARTH',
-    common_name: 'Dünya',
-    ra: 100.4600,
-    dec: 23.4400,
-    magnitude: -3.80,
-    spectral_type: 'Terrestrial',
-    base_color: '#38BDF8',
-    is_claimed: true,
-    is_mine: false,
-    custom_name: 'Dünya 🌍',
-    luminosity_level: 1.0,
-    resonance_active: false,
-  },
-  {
-    catalog_id: 999903,
-    catalog_code: 'SOL-VENUS',
-    common_name: 'Venüs',
-    ra: 243.6000,
-    dec: -19.9000,
-    magnitude: -4.40,
-    spectral_type: 'Terrestrial',
-    base_color: '#FFE5C2',
-    is_claimed: true,
-    is_mine: false,
-    custom_name: 'Venüs ✨',
-    luminosity_level: 1.0,
-    resonance_active: false,
-  },
-  {
-    catalog_id: 999904,
-    catalog_code: 'SOL-MOON',
-    common_name: 'Ay',
-    ra: 101.2000,
-    dec: 23.1000,
-    magnitude: -12.74,
-    spectral_type: 'Moon',
-    base_color: '#E2E8F0',
-    is_claimed: true,
-    is_mine: false,
-    custom_name: 'Ay 🌙',
-    luminosity_level: 1.0,
-    resonance_active: false,
-  },
-];
-
-const STAR_BASE_RADIUS_PX: Record<string, number> = {
-  O: 3.5, B: 3.2, A: 3.0, F: 2.8, G: 2.6, K: 2.4, M: 2.2,
-};
-const FALLBACK_STAR_RADIUS = 2.4;
-
+/** Star-query bounds for a camera, padded 1.5x vertically. RA wraps when minRa > maxRa. */
 export function computeBounds(camera: Partial<SkyCameraState> & { centerRa: number; centerDec: number; zoom: number }): MacroSkyBounds {
-  const fovDec = (60 / camera.zoom) * 1.5;
-  const aspect = (camera.viewportWidth && camera.viewportHeight) ? (camera.viewportWidth / camera.viewportHeight) : (390 / 844);
-  const fovRa = fovDec * aspect;
-  let minRa = camera.centerRa - fovRa / 2;
-  let maxRa = camera.centerRa + fovRa / 2;
-  const minDec = Math.max(-90, camera.centerDec - fovDec / 2);
-  const maxDec = Math.min(90, camera.centerDec + fovDec / 2);
-
-  if (minRa < 0) minRa = ((minRa % 360) + 360) % 360;
-  if (maxRa > 360) maxRa = maxRa % 360;
-
-  return { minRa, maxRa, minDec, maxDec, zoomLevel: camera.zoom };
+  const hasViewport = Boolean(camera.viewportWidth && camera.viewportHeight);
+  const width = hasViewport ? camera.viewportWidth! : 390;
+  const height = hasViewport ? camera.viewportHeight! : 844;
+  return skyBoundsForCamera(camera.centerRa, camera.centerDec, camera.zoom, width, height);
 }
 
-function projectToScreen(
-  ra: number,
-  dec: number,
-  camera: SkyCameraState,
-  width: number,
-  height: number,
-) {
-  const fovDec = 60 / camera.zoom;
-  const fovRa = fovDec * (width / height);
-  const deltaRa = ((ra - camera.centerRa + 540) % 360) - 180;
-  const deltaDec = dec - camera.centerDec;
-  const x = width / 2 + (deltaRa / fovRa) * width;
-  const y = height / 2 - (deltaDec / fovDec) * height;
-  return { x, y };
+/** Prefetch window ahead of a moving camera. */
+const MOTION_LOOKAHEAD_SEC = 0.35;
+/** Parent camera reports while moving (it re-renders a large screen). */
+const CAMERA_REPORT_INTERVAL_MS = 400;
+const EMPTY_CONNECTIONS: ActiveStarConnection[] = [];
+
+function toCameraState(ra: number, dec: number, zoom: number, width: number, height: number): SkyCameraState {
+  const fovDec = BASE_FOV_DEG / zoom;
+  return {
+    centerRa: normalizeRa(ra),
+    centerDec: dec,
+    zoom,
+    fovRa: fovDec * (width / height),
+    fovDec,
+    viewportWidth: width,
+    viewportHeight: height,
+  };
 }
 
-/**
- * Projects two celestial points into screen coordinates such that their segment
- * follows the shortest arc around the celestial sphere, eliminating tearing
- * artifacts when connecting lines cross the 0°/360° Right Ascension boundary.
- */
-function projectSegmentSeamSafe(
-  fromRa: number,
-  fromDec: number,
-  toRa: number,
-  toDec: number,
-  camera: SkyCameraState,
-  width: number,
-  height: number,
-): { x1: number; y1: number; x2: number; y2: number } {
-  const fovDec = 60 / camera.zoom;
-  const fovRa = fovDec * (width / height);
-  const pixelsPerDegreeRa = width / fovRa;
-  const pixelsPerDegreeDec = height / fovDec;
-
-  const p1 = projectToScreen(fromRa, fromDec, camera, width, height);
-
-  // Shortest angular difference around 360-degree cylinder (-180 to +180)
-  const deltaRa = ((toRa - fromRa + 540) % 360) - 180;
-  const deltaDec = toDec - fromDec;
-
-  const x2 = p1.x + deltaRa * pixelsPerDegreeRa;
-  const y2 = p1.y - deltaDec * pixelsPerDegreeDec;
-
-  return { x1: p1.x, y1: p1.y, x2, y2 };
-}
-
-function magnitudeToRadius(magnitude: number, spectralType: string, zoom: number): number {
-  const baseClass = (spectralType || 'G').charAt(0).toUpperCase();
-  const baseRadius = STAR_BASE_RADIUS_PX[baseClass] ?? FALLBACK_STAR_RADIUS;
-  const magScale = Math.max(0.6, Math.min(3.2, 1 + (3 - magnitude) * 0.25));
-  const zoomBonus = Math.min(5.5, 1 + (zoom - 1) * 0.18);
-  return baseRadius * magScale * zoomBonus;
-}
-
-function hexToRgba(hex: string, alpha: number): Float32Array {
-  const clean = hex.replace('#', '');
-  let r = 255, g = 255, b = 255;
-  if (clean.length >= 6) {
-    r = parseInt(clean.substring(0, 2), 16);
-    g = parseInt(clean.substring(2, 4), 16);
-    b = parseInt(clean.substring(4, 6), 16);
-  }
-  return Skia.Color(`rgba(${r}, ${g}, ${b}, ${alpha})`);
-}
-
-function magnitudeToAlpha(magnitude: number, luminosity: number): number {
-  const normalized = Math.max(0, Math.min(1, 1 - (magnitude + 2) / 11));
-  return 0.45 + normalized * 0.55 * luminosity;
-}
-
-function tileContentSignature(stars: readonly ViewportStarItem[]) {
-  return stars
-    .map((star) => [
-      star.catalog_id,
-      star.magnitude,
-      star.spectral_type,
-      star.base_color,
-      star.is_mine ? 1 : 0,
-      star.resonance_active ? 1 : 0,
-      star.luminosity_level,
-      star.custom_name ?? '',
-    ].join(':'))
-    .join('|');
+function heroTapTarget(ra: number, dec: number, name?: string): ViewportStarItem {
+  return {
+    catalog_id: 999999,
+    catalog_code: 'OUR-STAR',
+    common_name: name || 'Bizim Yıldızımız',
+    ra,
+    dec,
+    magnitude: 1.5,
+    spectral_type: 'G',
+    base_color: '#FBBF24',
+    is_claimed: true,
+    is_mine: true,
+    custom_name: name || 'Bizim Yıldızımız',
+    luminosity_level: 1.0,
+    resonance_active: false,
+  };
 }
 
 /**
- * Records a tile relative to its centre so the same picture can be translated
- * while panning. The cache key includes the exact zoom because pixel-per-degree
- * changes with zoom; camera translation does not invalidate the tile picture.
+ * Macro sky map.
+ *
+ * The camera lives on the UI thread (see useSkyCamera); every frame is drawn
+ * there from pictures recorded ahead of time in world space, so panning,
+ * pinching, momentum and flights never wait for the JS thread or React.
+ * The JS thread records star tiles only when data or the zoom band changes.
  */
-function buildLodTilePicture(
-  tileStars: readonly ViewportStarItem[],
-  tileCenter: { ra: number; dec: number },
-  camera: SkyCameraState,
-  width: number,
-  height: number,
-  lod: RenderLod,
-  paintPool: PaintPool,
-  font: any,
-  starNameFont?: any,
-) {
-  const recorder = Skia.PictureRecorder();
-  const canvas = recorder.beginRecording(Skia.XYWHRect(-30000, -30000, 60000, 60000));
-  const pixelsPerDegree = height / (60 / camera.zoom);
-
-  for (const star of tileStars) {
-    if (star.is_mine) continue; // Rendered authoritatively by Pass 5 Hero Star Beacon in skyBackgroundPicture
-    let dRa = star.ra - tileCenter.ra;
-    if (dRa > 180) dRa -= 360;
-    if (dRa < -180) dRa += 360;
-    const localX = dRa * pixelsPerDegree;
-    const localY = -(star.dec - tileCenter.dec) * pixelsPerDegree;
-    const radius = magnitudeToRadius(star.magnitude, star.spectral_type || 'G', camera.zoom);
-    const baseColor = star.base_color || '#FFFFFF';
-    const alpha = magnitudeToAlpha(star.magnitude, star.luminosity_level ?? 1);
-    const lum = star.luminosity_level ?? 1.0;
-
-    if (lod === 'low') {
-      if (star.resonance_active && !star.is_mine) {
-        paintPool.resonanceGoldPaint.setColor(hexToRgba('#F59E0B', 0.9));
-        paintPool.resonancePurplePaint.setColor(hexToRgba('#A855F7', 0.9));
-        canvas.drawCircle(localX, localY, radius * 1.9, paintPool.resonanceGoldPaint);
-        canvas.drawCircle(localX, localY, radius * 1.35, paintPool.resonancePurplePaint);
-        continue;
-      }
-
-      paintPool.lowPaint.setColor(star.is_mine ? Skia.Color('#FBBF24') : hexToRgba(baseColor, alpha));
-      canvas.drawCircle(localX, localY, star.is_mine ? radius * 1.8 : radius, paintPool.lowPaint);
-
-      if (star.is_mine) {
-        paintPool.lowRingPaint.setColor(Skia.Color('rgba(255,255,255,0.9)'));
-        canvas.drawCircle(localX, localY, radius * 1.8 + 2, paintPool.lowRingPaint);
-        if (font && star.custom_name) {
-          paintPool.labelPaint.setColor(Skia.Color('#FDE68A'));
-          const label = star.custom_name;
-          canvas.drawText(label, localX - font.getTextWidth(label) / 2, localY + radius * 1.8 + 16, paintPool.labelPaint, font);
-        }
-      }
-      continue;
-    }
-
-    if (lod === 'medium') {
-      // Medium LOD uses concentric solid circles
-      paintPool.mediumGlowPaint.setColor(hexToRgba(baseColor, 1));
-      paintPool.mediumGlowPaint.setAlphaf(0.25);
-      canvas.drawCircle(localX, localY, radius * 2.5, paintPool.mediumGlowPaint);
-      paintPool.mediumGlowPaint.setAlphaf(0.45);
-      canvas.drawCircle(localX, localY, radius * 1.6, paintPool.mediumGlowPaint);
-      paintPool.mediumCorePaint.setColor(hexToRgba(baseColor, alpha));
-      canvas.drawCircle(localX, localY, star.is_mine ? radius * 1.35 : radius, paintPool.mediumCorePaint);
-
-      if (star.resonance_active) {
-        paintPool.resonanceGoldPaint.setColor(hexToRgba('#F59E0B', 0.9));
-        paintPool.resonancePurplePaint.setColor(hexToRgba('#A855F7', 0.8));
-        canvas.drawCircle(localX, localY, radius * 2.2, paintPool.resonanceGoldPaint);
-        canvas.drawCircle(localX, localY, radius * 1.75, paintPool.resonancePurplePaint);
-      } else if (star.is_mine) {
-        paintPool.lowRingPaint.setColor(Skia.Color('#F59E0B'));
-        canvas.drawCircle(localX, localY, radius * 1.35 + 4, paintPool.lowRingPaint);
-        if (font && star.custom_name) {
-          paintPool.labelPaint.setColor(Skia.Color('#FDE68A'));
-          const label = star.custom_name;
-          canvas.drawText(label, localX - font.getTextWidth(label) / 2, localY + radius * 1.35 + 16, paintPool.labelPaint, font);
-        }
-      }
-      continue;
-    }
-
-    // ─── HIGH LOD (zoom >= 4.0) ──────────────────────────────────────
-    const isMine = star.is_mine;
-    const r = radius * (isMine ? 1.6 : 1.0);
-
-    // 1. Claimed / Resonance Halos
-    if (star.resonance_active) {
-      paintPool.resonanceGoldPaint.setColor(hexToRgba('#F59E0B', 0.5 * lum));
-      canvas.drawCircle(localX, localY, r + 20, paintPool.resonanceGoldPaint);
-      paintPool.resonancePurplePaint.setColor(hexToRgba('#A855F7', 0.6 * lum));
-      canvas.drawCircle(localX, localY, r + 10, paintPool.resonancePurplePaint);
-    } else if (star.is_claimed) {
-      paintPool.highClaimPaint.setColor(hexToRgba(baseColor, 0.4 * lum));
-      canvas.drawCircle(localX, localY, r + 14, paintPool.highClaimPaint);
-    }
-
-    // 2. Core & Aura
-    paintPool.highGlowPaint.setColor(hexToRgba(baseColor, alpha * 0.45));
-    canvas.drawCircle(localX, localY, r * 2.2, paintPool.highGlowPaint);
-
-    paintPool.highCorePaint.setColor(hexToRgba(baseColor, alpha));
-    canvas.drawCircle(localX, localY, r, paintPool.highCorePaint);
-
-    if (star.magnitude <= 3.5 || isMine) {
-      paintPool.highHotCenterPaint.setColor(hexToRgba('#FFFFFF', Math.min(1, alpha * 1.2)));
-      canvas.drawCircle(localX, localY, Math.max(1, r * 0.35), paintPool.highHotCenterPaint);
-    }
-
-    // 3. My Star Golden Ring
-    if (isMine) {
-      paintPool.myStarRingPaint.setColor(Skia.Color('#F59E0B'));
-      canvas.drawCircle(localX, localY, r + 6, paintPool.myStarRingPaint);
-    }
-
-    // 4. Name Tag
-    const activeFont = starNameFont || font;
-    if (activeFont && ((isMine && star.custom_name) || (star.is_claimed && star.custom_name))) {
-      const labelText = isMine ? `⭐ ${star.custom_name}` : star.custom_name;
-      const textWidth = activeFont.getTextWidth(labelText);
-      const labelX = localX - textWidth / 2;
-      const labelY = localY + r + 20;
-
-      paintPool.pillBgPaint.setColor(Skia.Color('rgba(15, 23, 42, 0.9)'));
-      canvas.drawRRect(
-        Skia.RRectXY(Skia.XYWHRect(labelX - 8, labelY - 12, textWidth + 16, 20), 10, 10),
-        paintPool.pillBgPaint
-      );
-
-      paintPool.pillBorderPaint.setColor(isMine ? Skia.Color('rgba(245, 158, 11, 0.7)') : Skia.Color('rgba(147, 197, 253, 0.5)'));
-      canvas.drawRRect(
-        Skia.RRectXY(Skia.XYWHRect(labelX - 8, labelY - 12, textWidth + 16, 20), 10, 10),
-        paintPool.pillBorderPaint
-      );
-
-      paintPool.labelPaint.setColor(isMine ? Skia.Color('#FDE68A') : Skia.Color('#E0F2FE'));
-      canvas.drawText(labelText, labelX, labelY + 2, paintPool.labelPaint, activeFont);
-    }
-  }
-
-  return recorder.finishRecordingAsPicture();
-}
-
 function MacroSkyCanvasSkia({
   stars,
   initialCamera,
   targetCamera,
+  onTargetCameraConsumed,
   onSelectStar,
   onBoundsChange,
   onCameraChange,
-  connections = [],
+  connections = EMPTY_CONNECTIONS,
   myStarCoords,
   width = 390,
   height = 844,
 }: MacroSkyCanvasProps) {
-  // Parents construct this prop inline. Keep primitive values so their ordinary
-  // re-renders do not invalidate the expensive background SkPicture.
+  // Parents construct this prop inline; depend on its primitives only.
   const myStarRa = myStarCoords?.ra;
   const myStarDec = myStarCoords?.dec;
   const myStarName = myStarCoords?.name;
 
-  
-  // Font loading from the bundle
-  const font = useFont(Inter_400Regular, 10);
-  const starNameFont = useFont(Inter_600SemiBold, 12);
+  const labelFont = useFont(Inter_400Regular, 10);
+  const nameFont = useFont(Inter_600SemiBold, 12);
   const sectorFont = useFont(Inter_600SemiBold, 14);
 
-  // Paints are native objects: create them once and only mutate their values
-  // while recording. Never put this pool in a memo dependency array.
-  const paintPoolRef = useRef<PaintPool | null>(null);
-  if (!paintPoolRef.current) {
-    paintPoolRef.current = createPaintPool();
-  }
-  const tilePictureCacheRef = useRef<Map<string, TilePictureEntry>>(new Map());
-
-  // Baseline instrumentation for the dev HUD (phase 0 measurements).
-  const debugStatsRef = useRef({ rebases: 0, tileRecordMs: 0, bgRecordMs: 0, tiles: 0 });
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // CAMERA: continuous logical camera in ref; state for rendered SkPictures
-  // ═══════════════════════════════════════════════════════════════════════
-  const cameraRef = React.useRef<SkyCameraState>({
-    centerRa: initialCamera?.centerRa ?? 180,
-    centerDec: initialCamera?.centerDec ?? 0,
-    zoom: Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, initialCamera?.zoom ?? 1.2)),
-    fovRa: 60,
-    fovDec: 60,
-    viewportWidth: width,
-    viewportHeight: height,
+  const [initial] = useState(() => {
+    const zoom = clampZoom(initialCamera?.zoom ?? 1.2);
+    return { ra: initialCamera?.centerRa ?? 180, dec: clampDec(initialCamera?.centerDec ?? 0, zoom), zoom };
   });
 
-  // The camera baseline currently painted into SkPictures.
-  const [renderCamera, setRenderCamera] = useState<SkyCameraState>(() => ({ ...cameraRef.current }));
-  const renderCameraRef = useRef<SkyCameraState>(renderCamera);
-  renderCameraRef.current = renderCamera;
-  const rebasePendingRef = useRef(false);
+  const starScene = useSharedValue<StarScene>(EMPTY_STAR_SCENE);
+  const fadeClock = useSharedValue(0);
+  const overlay = useSharedValue<SkyOverlay | null>(null);
+  const [sceneManager] = useState(() => new StarSceneManager(height, starScene, fadeClock));
+  const [staticAssets] = useState(() => createStaticOverlayAssets(width, height));
+  const [labelCache] = useState(() => new LabelPictureCache());
 
-  // A network response can arrive while a UI-thread gesture is in progress.
-  // Hold it until gestures finish, then apply atomically.
-  const [pictureStars, setPictureStars] = React.useState(stars);
-  const pendingStarsRef = useRef<ViewportStarItem[] | null>(null);
-  const activeGestureCountRef = useRef(0);
-
-  // Server data is authoritative and bypasses the pan/zoom throttle when the
-  // canvas is idle. While moving, it is applied atomically after camera commit.
+  // Latest props for callbacks fired from UI-thread notifications.
+  const propsRef = useRef({
+    stars,
+    onBoundsChange,
+    onCameraChange,
+    onSelectStar,
+    onTargetCameraConsumed,
+    myStarRa,
+    myStarDec,
+    myStarName,
+  });
   useEffect(() => {
-    pendingStarsRef.current = stars;
-    if (activeGestureCountRef.current > 0) return;
-    setPictureStars((current) => (current === stars ? current : stars));
-  }, [stars]);
-
-  useEffect(() => () => {
-    for (const entry of tilePictureCacheRef.current.values()) {
-      disposePicture(entry.picture);
-    }
-    tilePictureCacheRef.current.clear();
-  }, []);
-
-  // Stable refs for parent callbacks (never cause re-renders)
-  const onBoundsChangeRef = React.useRef(onBoundsChange);
-  onBoundsChangeRef.current = onBoundsChange;
-  const onCameraChangeRef = React.useRef(onCameraChange);
-  onCameraChangeRef.current = onCameraChange;
-  const onSelectStarRef = React.useRef(onSelectStar);
-  onSelectStarRef.current = onSelectStar;
-
-  // Bounds debounce timer
-  const boundsTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const beginCanvasGesture = useCallback(() => {
-    activeGestureCountRef.current += 1;
-  }, []);
-
-  // Request debounced bounds change (350ms — triggers Supabase RPC)
-  const requestBoundsChange = React.useCallback(() => {
-    if (boundsTimerRef.current) clearTimeout(boundsTimerRef.current);
-    boundsTimerRef.current = setTimeout(() => {
-      onBoundsChangeRef.current?.(computeBounds(cameraRef.current));
-    }, 350);
-  }, []);
-
-  // Notify parent of camera position (called immediately, not debounced)
-  const notifyCameraChange = React.useCallback(() => {
-    onCameraChangeRef.current?.(cameraRef.current);
-  }, []);
-
-  // Cleanup timers on unmount
-  React.useEffect(() => {
-    return () => {
-      if (boundsTimerRef.current) clearTimeout(boundsTimerRef.current);
+    propsRef.current = {
+      stars,
+      onBoundsChange,
+      onCameraChange,
+      onSelectStar,
+      onTargetCameraConsumed,
+      myStarRa,
+      myStarDec,
+      myStarName,
     };
-  }, []);
+  });
+  const lastCameraReportAtRef = useRef(0);
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // REANIMATED SHARED VALUES — gesture feedback on UI thread (60/120fps)
-  // ═══════════════════════════════════════════════════════════════════════
-  const offsetX = useSharedValue(0);
-  const offsetY = useSharedValue(0);
-  const startX = useSharedValue(0);
-  const startY = useSharedValue(0);
-  const lastPanTranslationX = useSharedValue(0);
-  const lastPanTranslationY = useSharedValue(0);
-  const pinchStartX = useSharedValue(0);
-  const pinchStartY = useSharedValue(0);
-  const pinchStartScale = useSharedValue(1);
-  const scale = useSharedValue(1);
-
-  // ─── FLY-TO ANIMATION SHARED VALUES (Reanimated UI-thread worklet) ───────
-  const isFlying = useSharedValue(false);
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // ZERO-FLICKER ATOMIC REBASE: Synchronize GPU transform with new SkPictures
-  // useLayoutEffect runs BEFORE paint in React Native. When renderCamera updates,
-  // the GPU offsets are reset to 0 and scale to 1 in the exact same native frame
-  // that the new SkPictures mount!
-  // ═══════════════════════════════════════════════════════════════════════
-  useLayoutEffect(() => {
-    if (activeGestureCountRef.current === 0 && !isFlying.value) {
-      offsetX.value = 0;
-      offsetY.value = 0;
-      scale.value = 1;
-      startX.value = 0;
-      startY.value = 0;
-      lastPanTranslationX.value = 0;
-      lastPanTranslationY.value = 0;
-      pinchStartX.value = 0;
-      pinchStartY.value = 0;
-      pinchStartScale.value = 1;
-    }
-    rebasePendingRef.current = false;
-  }, [renderCamera]);
-
-  const endCanvasGesture = useCallback(() => {
-    activeGestureCountRef.current = Math.max(0, activeGestureCountRef.current - 1);
-    if (activeGestureCountRef.current > 0) return;
-
-    const pendingStars = pendingStarsRef.current;
-    pendingStarsRef.current = null;
-    if (pendingStars) {
-      setPictureStars((current) => (current === pendingStars ? current : pendingStars));
-    }
-
-    if (isFlying.value || rebasePendingRef.current) return;
-
-    const base = renderCameraRef.current;
-    const currentScale = scale.value;
-    const currentZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, base.zoom * currentScale));
-    const currentLod = getRenderLod(currentZoom);
-    const baseLod = getRenderLod(base.zoom);
-
-    // Keep ordinary gestures repaint-free. Only rebase when LOD changes or
-    // the GPU matrix departs significantly from 1.0 (protecting floating point precision)
-    const mustRebase =
-      currentLod !== baseLod ||
-      currentScale <= WORLD_REBASE_MIN_SCALE ||
-      currentScale >= WORLD_REBASE_MAX_SCALE ||
-      Math.abs(offsetX.value) >= WORLD_REBASE_PAN_PX ||
-      Math.abs(offsetY.value) >= WORLD_REBASE_PAN_PX;
-
-    if (!mustRebase) return;
-
-    rebasePendingRef.current = true;
-    debugStatsRef.current.rebases += 1;
-
-    // Closed-form inverse projection from the current GPU transform:
-    const fovDecBase = 60 / base.zoom;
-    const fovRaBase = fovDecBase * (width / height);
-    const dRa = -(offsetX.value / (width * currentScale)) * fovRaBase;
-    const dDec = (offsetY.value / (height * currentScale)) * fovDecBase;
-
-    const nextCamera: SkyCameraState = {
-      ...base,
-      centerRa: ((base.centerRa + dRa) % 360 + 360) % 360,
-      centerDec: Math.max(-85, Math.min(85, base.centerDec + dDec)),
-      zoom: currentZoom,
-      viewportWidth: width,
-      viewportHeight: height,
-    };
-
-    cameraRef.current = nextCamera;
-    setRenderCamera(nextCamera);
-    notifyCameraChange();
-    requestBoundsChange();
-  }, [width, height, offsetX, offsetY, scale, notifyCameraChange, requestBoundsChange]);
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // INITIAL MOUNT: fire first bounds change
-  // ═══════════════════════════════════════════════════════════════════════
-  const isInitializedRef = React.useRef(false);
-  React.useEffect(() => {
-    if (!isInitializedRef.current) {
-      isInitializedRef.current = true;
-      onBoundsChangeRef.current?.(computeBounds(cameraRef.current));
-      onCameraChangeRef.current?.(cameraRef.current);
-    }
-  }, []);
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // FLY-TO TARGET: Google Maps-style smooth animated camera flight
-  // ═══════════════════════════════════════════════════════════════════════
-  const commitFlyEnd = useCallback((
-    targetRa: number,
-    targetDec: number,
-    targetZoom: number,
-    endOffsetX: number,
-    endOffsetY: number,
-    endScale: number
-  ) => {
-    const base = renderCameraRef.current;
-    const nextCamera: SkyCameraState = {
-      ...base,
-      centerRa: ((targetRa % 360) + 360) % 360,
-      centerDec: Math.max(-85, Math.min(85, targetDec)),
-      zoom: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, targetZoom)),
-      viewportWidth: width,
-      viewportHeight: height,
-    };
-
-    cameraRef.current = nextCamera;
-    rebasePendingRef.current = true;
-    debugStatsRef.current.rebases += 1;
-
-    // Preserve the exact final visual offsets so scene stays rock-solid
-    // until renderCamera's useLayoutEffect mounts the new pictures!
-    offsetX.value = endOffsetX;
-    offsetY.value = endOffsetY;
-    scale.value = endScale;
-    startX.value = 0;
-    startY.value = 0;
-    lastPanTranslationX.value = 0;
-    lastPanTranslationY.value = 0;
-    pinchStartX.value = 0;
-    pinchStartY.value = 0;
-    pinchStartScale.value = 1;
-
-    setRenderCamera(nextCamera);
-    notifyCameraChange();
-    requestBoundsChange();
-  }, [width, height, offsetX, offsetY, scale, startX, startY, lastPanTranslationX, lastPanTranslationY, pinchStartX, pinchStartY, pinchStartScale, notifyCameraChange, requestBoundsChange]);
-
-  React.useEffect(() => {
-    if (!targetCamera) return;
-    const base = renderCameraRef.current;
-
-    // 1. Cancel any in-progress animation immediately
-    cancelAnimation(offsetX);
-    cancelAnimation(offsetY);
-    cancelAnimation(scale);
-    isFlying.value = false;
-
-    const targetRa  = ((targetCamera.centerRa % 360) + 360) % 360;
-    const targetDec = Math.max(-90, Math.min(90, targetCamera.centerDec));
-    const targetZoom = targetCamera.zoom ? Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, targetCamera.zoom)) : base.zoom;
-
-    const fovDecBase = 60 / base.zoom;
-    const fovRaBase  = fovDecBase * (width / height);
-
-    // Shortest angular difference (-180 to +180) from base picture center to target
-    const deltaRa  = ((targetRa  - base.centerRa  + 540) % 360) - 180;
-    const deltaDec = targetDec - base.centerDec;
-    const angularDist = Math.sqrt(deltaRa * deltaRa + deltaDec * deltaDec);
-
-    // Target scale relative to base SkPicture
-    const targetScale = targetZoom / base.zoom;
-
-    // CRITICAL FIX (Scale Drift): In Skia Group transform [{ translateX: T }, { translateY: T }, { scale: S }],
-    // centering a point scaled by S around screen center requires T to be multiplied by S:
-    //   T_x = -S * (deltaRa / fovRaBase) * width
-    //   T_y =  S * (deltaDec / fovDecBase) * height
-    const targetBasePxX = -((deltaRa  / fovRaBase)  * width);
-    const targetBasePxY =  ((deltaDec / fovDecBase) * height);
-    const finalOffsetX = targetScale * targetBasePxX;
-    const finalOffsetY = targetScale * targetBasePxY;
-
-    // Flight duration & smooth cubic-bezier easing
-    const duration = Math.round(850 + Math.min(750, angularDist * 10));
-    const easing = Easing.bezier(0.25, 0.1, 0.25, 1);
-
-    // Current visual start scale
-    const startScale = scale.value;
-    const minZoom = Math.min(base.zoom * startScale, targetZoom);
-    const maxSafeDip = Math.max(0, minZoom - MIN_ZOOM);
-    const distFactor = Math.max(0, Math.min(1, (angularDist - 15) / 60));
-    const desiredDip = Math.min(minZoom * 0.35, maxSafeDip) * distFactor;
-    const dipScale = desiredDip > 0 ? Math.max(MIN_ZOOM / base.zoom, (minZoom - desiredDip) / base.zoom) : targetScale;
-
-    isFlying.value = true;
-
-    // CRITICAL FIX (Compounding Offset): Animate offsetX and offsetY directly from their
-    // current values (wherever the user previously panned) to the exact target offsets.
-    offsetX.value = withTiming(finalOffsetX, { duration, easing });
-    offsetY.value = withTiming(finalOffsetY, { duration, easing });
-
-    if (desiredDip > 0) {
-      scale.value = withTiming(
-        dipScale,
-        { duration: duration / 2, easing },
-        (finished) => {
-          if (!finished) return;
-          scale.value = withTiming(targetScale, { duration: duration / 2, easing }, (fin2) => {
-            if (!fin2) return;
-            isFlying.value = false;
-            runOnJS(commitFlyEnd)(targetRa, targetDec, targetZoom, finalOffsetX, finalOffsetY, targetScale);
-          });
-        }
+  const handleMoving = useCallback(
+    (ra: number, dec: number, zoom: number, raVelocity: number, decVelocity: number) => {
+      const props = propsRef.current;
+      props.onBoundsChange?.(
+        skyBoundsForMotion(ra, dec, zoom, raVelocity, decVelocity, MOTION_LOOKAHEAD_SEC, width, height),
       );
-    } else {
-      scale.value = withTiming(targetScale, { duration, easing }, (finished) => {
-        if (!finished) return;
-        isFlying.value = false;
-        runOnJS(commitFlyEnd)(targetRa, targetDec, targetZoom, finalOffsetX, finalOffsetY, targetScale);
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetCamera?.centerRa, targetCamera?.centerDec, targetCamera?.zoom, targetCamera?.nonce]);
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // COMMIT HANDLERS: update continuous logical camera for parent / bounds
-  // ═══════════════════════════════════════════════════════════════════════
-  const commitPanDelta = useCallback((dx: number, dy: number) => {
-    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
-    const prev = cameraRef.current;
-    const fovDec = 60 / prev.zoom;
-    const fovRa = fovDec * (width / height);
-    const dRa = -(dx / width) * fovRa;
-    const dDec = (dy / height) * fovDec;
-    cameraRef.current = {
-      ...prev,
-      centerRa: ((prev.centerRa + dRa) % 360 + 360) % 360,
-      centerDec: Math.max(-85, Math.min(85, prev.centerDec + dDec)),
-    };
-    notifyCameraChange();
-    requestBoundsChange();
-  }, [width, height, notifyCameraChange, requestBoundsChange]);
-
-  const commitPinch = useCallback((scaleFactor: number, fx: number, fy: number) => {
-    if (!scaleFactor || scaleFactor <= 0) return;
-    const prev = cameraRef.current;
-    const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev.zoom * scaleFactor));
-    if (Math.abs(newZoom - prev.zoom) < 0.005) return;
-
-    const fovDec_old = 60 / prev.zoom;
-    const fovRa_old = fovDec_old * (width / height);
-    const fovDec_new = 60 / newZoom;
-    const fovRa_new = fovDec_new * (width / height);
-
-    const dRa = ((fx - width / 2) / width) * (fovRa_old - fovRa_new);
-    const dDec = -((fy - height / 2) / height) * (fovDec_old - fovDec_new);
-
-    cameraRef.current = {
-      ...prev,
-      centerRa: ((prev.centerRa + dRa) % 360 + 360) % 360,
-      centerDec: Math.max(-85, Math.min(85, prev.centerDec + dDec)),
-      zoom: newZoom,
-    };
-    notifyCameraChange();
-    requestBoundsChange();
-  }, [width, height, notifyCameraChange, requestBoundsChange]);
-
-  const finishPan = useCallback((dx: number, dy: number) => {
-    commitPanDelta(dx, dy);
-    endCanvasGesture();
-  }, [commitPanDelta, endCanvasGesture]);
-
-  const finishPinch = useCallback((scaleFactor: number, fx: number, fy: number) => {
-    commitPinch(scaleFactor, fx, fy);
-    endCanvasGesture();
-  }, [commitPinch, endCanvasGesture]);
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // HIT-TESTING: use exact base-world transform rendered by Skia
-  // ═══════════════════════════════════════════════════════════════════════
-  const handleTap = useCallback((tx: number, ty: number) => {
-    const onSelect = onSelectStarRef.current;
-    if (!onSelect) return;
-    const camera = renderCameraRef.current;
-    const renderedScale = scale.value;
-    const renderedOffsetX = offsetX.value;
-    const renderedOffsetY = offsetY.value;
-    const centerX = width / 2;
-    const centerY = height / 2;
-    let minDist = Infinity;
-    let nearest: ViewportStarItem | null = null;
-    const MIN_TOUCH_RADIUS = 46;
-
-    const allTargets = [...SOLAR_SYSTEM_OBJECTS, ...stars];
-    if (myStarRa !== undefined && myStarDec !== undefined) {
-      allTargets.unshift({
-        catalog_id: 999999,
-        catalog_code: 'OUR-STAR',
-        common_name: myStarName || 'Bizim Yıldızımız',
-        ra: myStarRa,
-        dec: myStarDec,
-        magnitude: 1.5,
-        spectral_type: 'G',
-        base_color: '#FBBF24',
-        is_claimed: true,
-        is_mine: true,
-        custom_name: myStarName || 'Bizim Yıldızımız',
-        luminosity_level: 1.0,
-        resonance_active: false,
-      });
-    }
-    for (const star of allTargets) {
-      const basePos = projectToScreen(star.ra, star.dec, camera, width, height);
-      const pos = {
-        x: centerX + (basePos.x - centerX) * renderedScale + renderedOffsetX,
-        y: centerY + (basePos.y - centerY) * renderedScale + renderedOffsetY,
-      };
-      const isMine = star.is_mine;
-      const isSun = star.catalog_code === 'SOL-SUN';
-      const baseRadius = magnitudeToRadius(star.magnitude, star.spectral_type || 'G', camera.zoom) * renderedScale;
-      const r = baseRadius * (isSun ? 3.0 : (isMine ? 1.6 : 1.0));
-      const touchRadius = Math.max(r + 30, star.catalog_code.startsWith('SOL-') ? 56 : MIN_TOUCH_RADIUS);
-      const dx = tx - pos.x;
-      const dy = ty - pos.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      if (dist <= touchRadius && dist < minDist) {
-        minDist = dist;
-        nearest = star;
+      const now = Date.now();
+      if (now - lastCameraReportAtRef.current >= CAMERA_REPORT_INTERVAL_MS) {
+        lastCameraReportAtRef.current = now;
+        props.onCameraChange?.(toCameraState(ra, dec, zoom, width, height));
       }
-    }
-    if (nearest) {
-      try {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      } catch {}
-      onSelect(nearest);
-    } else {
-      // User tapped empty sky -> dismiss selection card
-      onSelect(null as any);
-    }
-  }, [stars, width, height, scale, offsetX, offsetY, myStarRa, myStarDec, myStarName]);
+    },
+    [width, height],
+  );
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // GESTURE DEFINITIONS: pan, pinch, tap with seamless two-to-one finger handover
-  // ═══════════════════════════════════════════════════════════════════════
-  const tap = Gesture.Tap()
-    .maxDuration(350)
-    .maxDistance(25)
-    .onEnd((e) => {
-      runOnJS(handleTap)(e.x, e.y);
-    });
+  const handleIdle = useCallback(
+    (ra: number, dec: number, zoom: number) => {
+      const props = propsRef.current;
+      lastCameraReportAtRef.current = Date.now();
+      props.onCameraChange?.(toCameraState(ra, dec, zoom, width, height));
+      props.onBoundsChange?.(skyBoundsForCamera(ra, dec, zoom, width, height));
+    },
+    [width, height],
+  );
 
-  const minRenderScale = MIN_ZOOM / renderCamera.zoom;
-  const maxRenderScale = MAX_ZOOM / renderCamera.zoom;
+  const handleBandChange = useCallback((band: number) => sceneManager.setBand(band), [sceneManager]);
 
-  const pan = Gesture.Pan()
-    .minDistance(6)
-    .maxPointers(1)
-    .onStart(() => {
-      if (isFlying.value) {
-        cancelAnimation(offsetX);
-        cancelAnimation(offsetY);
-        cancelAnimation(scale);
-        isFlying.value = false;
+  const handleTap = useCallback(
+    (x: number, y: number, ra: number, dec: number, zoom: number) => {
+      const props = propsRef.current;
+      if (!props.onSelectStar) return;
+      const candidates: ViewportStarItem[] = [...SOLAR_SYSTEM_OBJECTS, ...props.stars];
+      if (props.myStarRa !== undefined && props.myStarDec !== undefined) {
+        candidates.unshift(heroTapTarget(props.myStarRa, props.myStarDec, props.myStarName));
       }
-      startX.value = offsetX.value;
-      startY.value = offsetY.value;
-      lastPanTranslationX.value = 0;
-      lastPanTranslationY.value = 0;
-      runOnJS(beginCanvasGesture)();
-    })
-    .onUpdate((e) => {
-      lastPanTranslationX.value = e.translationX;
-      lastPanTranslationY.value = e.translationY;
-      offsetX.value = startX.value + e.translationX;
-      offsetY.value = startY.value + e.translationY;
-    })
-    .onEnd((e) => {
-      runOnJS(finishPan)(e.translationX, e.translationY);
-    })
-    .onFinalize((_event, success) => {
-      if (!success) runOnJS(endCanvasGesture)();
-    });
-
-  const pinch = Gesture.Pinch()
-    .onStart((e) => {
-      if (isFlying.value) {
-        cancelAnimation(offsetX);
-        cancelAnimation(offsetY);
-        cancelAnimation(scale);
-        isFlying.value = false;
+      const hit = hitTestSky(x, y, { ra, dec, zoom }, width, height, candidates);
+      if (hit) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
       }
-      pinchStartX.value = offsetX.value;
-      pinchStartY.value = offsetY.value;
-      pinchStartScale.value = scale.value;
-      runOnJS(beginCanvasGesture)();
-    })
-    .onUpdate((e) => {
-      const totalScale = Math.max(
-        minRenderScale,
-        Math.min(maxRenderScale, pinchStartScale.value * e.scale),
-      );
-      const appliedGestureScale = totalScale / pinchStartScale.value;
-      scale.value = totalScale;
-      offsetX.value = appliedGestureScale * pinchStartX.value + (1 - appliedGestureScale) * (e.focalX - width / 2);
-      offsetY.value = appliedGestureScale * pinchStartY.value + (1 - appliedGestureScale) * (e.focalY - height / 2);
-    })
-    .onEnd((e) => {
-      const totalScale = Math.max(
-        minRenderScale,
-        Math.min(maxRenderScale, pinchStartScale.value * e.scale),
-      );
-      runOnJS(finishPinch)(totalScale / pinchStartScale.value, e.focalX, e.focalY);
-    })
-    .onFinalize((_event, success) => {
-      // Rebase pan start values when finger lifts from pinch so dragging continues seamlessly
-      startX.value = offsetX.value - lastPanTranslationX.value;
-      startY.value = offsetY.value - lastPanTranslationY.value;
-      if (!success) runOnJS(endCanvasGesture)();
-    });
+      props.onSelectStar(hit);
+    },
+    [width, height],
+  );
 
-  const panOrTap = Gesture.Exclusive(pan, tap);
-  const composed = Gesture.Simultaneous(panOrTap, pinch);
+  const { camera, gesture, flightRequest } = useSkyCamera({
+    width,
+    height,
+    initialCamera: initial,
+    onMoving: handleMoving,
+    onIdle: handleIdle,
+    onBandChange: handleBandChange,
+    onTap: handleTap,
+  });
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // LAYER 2: STAR TILE PICTURES
-  // ═══════════════════════════════════════════════════════════════════════
-  const starTilePictures = useMemo<StarTilePicture[]>(() => {
-    const camera = renderCamera;
-    const lod = getRenderLod(camera.zoom);
-    if (!font) return [];
-    const recordStartedAt = performance.now();
+  useEffect(() => {
+    sceneManager.setBand(bandForZoom(initial.zoom));
+    return () => sceneManager.dispose();
+  }, [sceneManager, initial]);
 
-    const tileGroups = new Map<string, ViewportStarItem[]>();
-    for (const star of pictureStars) {
-      const pos = projectToScreen(star.ra, star.dec, camera, width, height);
-      if (!isInFrustum(pos.x, pos.y, width, height, OVERSCAN_PAD)) continue;
-      const key = tileKeyForStar(star);
-      const group = tileGroups.get(key);
-      if (group) group.push(star);
-      else tileGroups.set(key, [star]);
-    }
+  useEffect(() => {
+    sceneManager.setStars(stars);
+  }, [sceneManager, stars]);
 
-    const tiles: StarTilePicture[] = [];
-    for (const [tileKey, tileStars] of tileGroups) {
-      const center = tileCenterFromKey(tileKey);
-      const cacheKey = `${tileKey}@${lod}@${tileContentSignature(tileStars)}`;
-      let entry = tilePictureCacheRef.current.get(cacheKey);
-
-      if (entry) {
-        tilePictureCacheRef.current.delete(cacheKey);
-        tilePictureCacheRef.current.set(cacheKey, entry);
-      } else {
-        if (tilePictureCacheRef.current.size >= MAX_TILE_PICTURES) {
-          const activeKeys = new Set(tileGroups.keys());
-          let evictKey: string | null = null;
-          for (const k of tilePictureCacheRef.current.keys()) {
-            const tileCoords = k.split('@')[0];
-            if (!activeKeys.has(tileCoords)) {
-              evictKey = k;
-              break;
-            }
-          }
-          if (evictKey) {
-            const evicted = tilePictureCacheRef.current.get(evictKey);
-            tilePictureCacheRef.current.delete(evictKey);
-            disposePicture(evicted?.picture);
-          }
-        }
-        entry = {
-          picture: buildLodTilePicture(
-            tileStars,
-            center,
-            camera,
-            width,
-            height,
-            lod,
-            paintPoolRef.current!,
-            font,
-            starNameFont
-          ),
-        };
-        tilePictureCacheRef.current.set(cacheKey, entry);
-      }
-
-      const anchor = projectToScreen(center.ra, center.dec, camera, width, height);
-      tiles.push({ key: tileKey, picture: entry.picture, x: anchor.x, y: anchor.y });
-    }
-
-    debugStatsRef.current.tileRecordMs = performance.now() - recordStartedAt;
-    debugStatsRef.current.tiles = tiles.length;
-    return tiles;
-  }, [renderCamera, pictureStars, width, height, font, starNameFont]);
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // LAYER 1: STATIC SKY BACKGROUND PICTURE
-  // Nebulas, constellation lines (seam-safe), sector labels, solar system
-  // bodies, and friend connections (seam-safe).
-  // ═══════════════════════════════════════════════════════════════════════
-  const skyBackgroundPicture = useMemo(() => {
-    const camera = renderCamera;
-    if (!font || !sectorFont) return null;
-    const recordStartedAt = performance.now();
-    const recorder = Skia.PictureRecorder();
-    const BG_PAD = Math.max(OVERSCAN_PAD, 2400);
-    const recW = width + BG_PAD * 2;
-    const recH = height + BG_PAD * 2;
-    const canvas = recorder.beginRecording(Skia.XYWHRect(-BG_PAD, -BG_PAD, recW, recH));
-
-    // ─── PASS 0: Deep Space Background Gradient (Includes Overscan) ───
-    const bgPaint = Skia.Paint();
-    bgPaint.setShader(
-      Skia.Shader.MakeRadialGradient(
-        Skia.Point(width / 2, height / 2),
-        Math.max(width, height) * 1.2,
-        [Skia.Color('#0A0F1E'), Skia.Color('#020408')],
-        null,
-        3
-      )
+  useEffect(() => {
+    overlay.set(
+      buildSkyOverlay({
+        assets: staticAssets,
+        fonts: { label: labelFont, name: nameFont, sector: sectorFont },
+        labels: labelCache,
+        myStar:
+          myStarRa !== undefined && myStarDec !== undefined
+            ? { ra: myStarRa, dec: myStarDec, name: myStarName }
+            : null,
+        connections,
+        stars,
+        solarObjects: SOLAR_SYSTEM_OBJECTS,
+      }),
     );
-    canvas.drawRect(Skia.XYWHRect(-BG_PAD, -BG_PAD, recW, recH), bgPaint);
+  }, [overlay, staticAssets, labelCache, labelFont, nameFont, sectorFont, myStarRa, myStarDec, myStarName, connections, stars]);
 
-    // ─── PASS 1: Sector Nebula Gradients ───────────────────────────────
-    SKY_SECTORS_LIST.forEach((sector) => {
-      const center = projectToScreen(sector.center.ra, sector.center.dec, camera, width, height);
-      if (
-        center.x < -OVERSCAN_PAD - 200 || center.x > width + OVERSCAN_PAD + 200 ||
-        center.y < -OVERSCAN_PAD - 200 || center.y > height + OVERSCAN_PAD + 200
-      ) return;
+  // First viewport report, so the parent loads stars for the initial view.
+  useEffect(() => {
+    const props = propsRef.current;
+    props.onBoundsChange?.(skyBoundsForCamera(initial.ra, initial.dec, initial.zoom, width, height));
+    props.onCameraChange?.(toCameraState(initial.ra, initial.dec, initial.zoom, width, height));
+  }, [initial, width, height]);
 
-      const radius = magnitudeToRadius(-2, 'O', camera.zoom) * 22;
-      const color = sector.nebulaPalette?.[0] ?? '#38BDF8';
-
-      const nebulaPaint = Skia.Paint();
-      nebulaPaint.setBlendMode(12); // Screen
-      nebulaPaint.setShader(
-        Skia.Shader.MakeRadialGradient(
-          Skia.Point(center.x, center.y),
-          radius,
-          [hexToRgba(color, 0.22), hexToRgba(color, 0.06), hexToRgba(color, 0)],
-          null,
-          3
-        )
-      );
-      canvas.drawCircle(center.x, center.y, radius, nebulaPaint);
+  // A new target object starts a new flight (also to the same coordinates).
+  const flightIdRef = useRef(0);
+  useEffect(() => {
+    if (!targetCamera) return;
+    flightIdRef.current += 1;
+    flightRequest.set({
+      id: flightIdRef.current,
+      ra: targetCamera.centerRa,
+      dec: targetCamera.centerDec,
+      zoom: targetCamera.zoom,
     });
+    propsRef.current.onTargetCameraConsumed?.();
+  }, [targetCamera, flightRequest]);
 
-    // ─── PASS 2: Sector Labels (Zoom < 2.0) ───────────────────────────
-    if (camera.zoom < 2.0 && sectorFont) {
-      SKY_SECTORS_LIST.forEach((sector) => {
-        const center = projectToScreen(sector.center.ra, sector.center.dec, camera, width, height);
-        if (
-          center.x < -60 || center.x > width + 60 ||
-          center.y < -60 || center.y > height + 60
-        ) return;
-
-        const text = `${sector.symbol} ${sector.name}`;
-        const textWidth = sectorFont.getTextWidth(text);
-        const sPaint = Skia.Paint();
-        sPaint.setColor(Skia.Color(sector.themeColor || 'rgba(255,255,255,0.6)'));
-        canvas.drawText(text, center.x - textWidth / 2, center.y + 12, sPaint, sectorFont);
-      });
-    }
-
-    // ─── PASS 3: Constellation Lines (Seam-Safe) ──────────────────────
-    const constPaint = Skia.Paint();
-    constPaint.setColor(Skia.Color('rgba(255, 255, 255, 0.18)'));
-    constPaint.setStrokeWidth(1);
-    constPaint.setStyle(1); // Stroke
-
-    CONSTELLATION_LINES.forEach((line) => {
-      const seg = projectSegmentSeamSafe(line.from.ra, line.from.dec, line.to.ra, line.to.dec, camera, width, height);
-      if (
-        (seg.x1 < -OVERSCAN_PAD && seg.x2 < -OVERSCAN_PAD) ||
-        (seg.x1 > width + OVERSCAN_PAD && seg.x2 > width + OVERSCAN_PAD) ||
-        (seg.y1 < -OVERSCAN_PAD && seg.y2 < -OVERSCAN_PAD) ||
-        (seg.y1 > height + OVERSCAN_PAD && seg.y2 > height + OVERSCAN_PAD)
-      ) return;
-
-      canvas.drawLine(seg.x1, seg.y1, seg.x2, seg.y2, constPaint);
-    });
-
-    // ─── PASS 4: Active Star Connection Lines & Badges (Seam-Safe) ─────
-    if (myStarRa !== undefined && myStarDec !== undefined && connections.length > 0) {
-      const connLinePaint = Skia.Paint();
-      connLinePaint.setColor(Skia.Color('rgba(251, 191, 36, 0.6)'));
-      connLinePaint.setStrokeWidth(1.6);
-      connLinePaint.setStyle(1); // Stroke
-      const connDash = Skia.PathEffect.MakeDash([4, 6], 0);
-      if (connDash) connLinePaint.setPathEffect(connDash);
-
-      connections.forEach((conn) => {
-        if (!conn.other_star_ra || !conn.other_star_dec) return;
-        const seg = projectSegmentSeamSafe(myStarRa, myStarDec, conn.other_star_ra, conn.other_star_dec, camera, width, height);
-        canvas.drawLine(seg.x1, seg.y1, seg.x2, seg.y2, connLinePaint);
-
-        // Pink node badge around friend's star
-        const nodePaint = Skia.Paint();
-        nodePaint.setColor(Skia.Color('rgba(244, 114, 182, 0.8)'));
-        nodePaint.setStyle(1);
-        nodePaint.setStrokeWidth(1.2);
-        canvas.drawCircle(seg.x2, seg.y2, 7, nodePaint);
-
-        // Connected Star Name Tag
-        if (font) {
-          const labelText = `🔗 ${conn.other_star_name}`;
-          const textWidth = font.getTextWidth(labelText);
-          const labelX = seg.x2 - textWidth / 2;
-          const labelY = seg.y2 + 22;
-
-          const pillBg = Skia.Paint();
-          pillBg.setColor(Skia.Color('rgba(24, 15, 36, 0.85)'));
-          canvas.drawRRect(
-            Skia.RRectXY(
-              Skia.XYWHRect(labelX - 6, labelY - 10, textWidth + 12, 16),
-              8,
-              8
-            ),
-            pillBg
-          );
-
-          const textP = Skia.Paint();
-          textP.setColor(Skia.Color('#F472B6'));
-          canvas.drawText(labelText, labelX, labelY + 2, textP, font);
-        }
-      });
-    }
-
-    // ─── PASS 9: Güneş Sistemi Cisimleri (Güneş, Dünya, Venüs, Ay) ─────
-    SOLAR_SYSTEM_OBJECTS.forEach((obj) => {
-      const pos = projectToScreen(obj.ra, obj.dec, camera, width, height);
-      if (
-        pos.x < -BG_PAD || pos.x > width + BG_PAD ||
-        pos.y < -BG_PAD || pos.y > height + BG_PAD
-      ) return;
-
-      if (obj.catalog_code === 'SOL-SUN') {
-        // GÜNEŞ: İhtişamlı Altın Korona ve Güneş Aurası
-        const sunRadius = Math.max(16, 20 * Math.min(3.0, 1 + (camera.zoom - 1) * 0.12));
-        const coronaRadius = sunRadius * 2.8;
-
-        const coronaPaint = Skia.Paint();
-        const coronaShader = Skia.Shader.MakeRadialGradient(
-          Skia.Point(pos.x, pos.y),
-          coronaRadius,
-          [
-            Skia.Color('rgba(255, 255, 255, 0.95)'),
-            Skia.Color('rgba(251, 191, 36, 0.85)'),
-            Skia.Color('rgba(245, 158, 11, 0.45)'),
-            Skia.Color('rgba(239, 68, 68, 0.15)'),
-            Skia.Color('rgba(239, 68, 68, 0)'),
-          ],
-          [0, 0.2, 0.45, 0.75, 1.0],
-          3
-        );
-        if (coronaShader) coronaPaint.setShader(coronaShader);
-        canvas.drawCircle(pos.x, pos.y, coronaRadius, coronaPaint);
-
-        // Güneş Çekirdeği
-        const sunCorePaint = Skia.Paint();
-        sunCorePaint.setColor(Skia.Color('#FFFDF0'));
-        canvas.drawCircle(pos.x, pos.y, sunRadius * 0.7, sunCorePaint);
-
-        // Güneş Etiketi
-        if (font) {
-          const sunLabel = 'Güneş ☀️';
-          const textW = font.getTextWidth(sunLabel);
-          const labelX = pos.x - textW / 2;
-          const labelY = pos.y + sunRadius + 18;
-
-          const pillP = Skia.Paint();
-          pillP.setColor(Skia.Color('rgba(20, 15, 5, 0.9)'));
-          canvas.drawRRect(Skia.RRectXY(Skia.XYWHRect(labelX - 8, labelY - 12, textW + 16, 20), 10, 10), pillP);
-
-          const borderP = Skia.Paint();
-          borderP.setColor(Skia.Color('rgba(245, 158, 11, 0.8)'));
-          borderP.setStyle(1);
-          borderP.setStrokeWidth(1.2);
-          canvas.drawRRect(Skia.RRectXY(Skia.XYWHRect(labelX - 8, labelY - 12, textW + 16, 20), 10, 10), borderP);
-
-          const textP = Skia.Paint();
-          textP.setColor(Skia.Color('#FDE68A'));
-          canvas.drawText(sunLabel, labelX, labelY + 2, textP, font);
-        }
-      } else if (obj.catalog_code === 'SOL-EARTH') {
-        // DÜNYA
-        const earthGlow = Skia.Paint();
-        earthGlow.setColor(Skia.Color('rgba(56, 189, 248, 0.6)'));
-        const eBlur = Skia.MaskFilter.MakeBlur(0, 8, true);
-        if (eBlur) earthGlow.setMaskFilter(eBlur);
-        canvas.drawCircle(pos.x, pos.y, 7, earthGlow);
-
-        const earthCore = Skia.Paint();
-        earthCore.setColor(Skia.Color('#38BDF8'));
-        canvas.drawCircle(pos.x, pos.y, 4.5, earthCore);
-
-        const earthDot = Skia.Paint();
-        earthDot.setColor(Skia.Color('#FFFFFF'));
-        canvas.drawCircle(pos.x, pos.y, 1.8, earthDot);
-
-        if (font) {
-          const earthLabel = 'Dünya 🌍';
-          const elWidth = font.getTextWidth(earthLabel);
-          const elPaint = Skia.Paint();
-          elPaint.setColor(Skia.Color('#93C5FD'));
-          canvas.drawText(earthLabel, pos.x - elWidth / 2, pos.y + 18, elPaint, font);
-        }
-      } else if (obj.catalog_code === 'SOL-VENUS') {
-        // VENÜS
-        const vGlow = Skia.Paint();
-        vGlow.setColor(Skia.Color('rgba(251, 191, 36, 0.5)'));
-        canvas.drawCircle(pos.x, pos.y, 6, vGlow);
-
-        const vCore = Skia.Paint();
-        vCore.setColor(Skia.Color('#FFE5C2'));
-        canvas.drawCircle(pos.x, pos.y, 3.5, vCore);
-
-        if (font) {
-          const vLabel = 'Venüs ✨';
-          const vWidth = font.getTextWidth(vLabel);
-          const vPaint = Skia.Paint();
-          vPaint.setColor(Skia.Color('#FDE68A'));
-          canvas.drawText(vLabel, pos.x - vWidth / 2, pos.y + 18, vPaint, font);
-        }
-      } else if (obj.catalog_code === 'SOL-MOON') {
-        // AY
-        const mGlow = Skia.Paint();
-        mGlow.setColor(Skia.Color('rgba(226, 232, 240, 0.5)'));
-        canvas.drawCircle(pos.x, pos.y, 5, mGlow);
-
-        const mCore = Skia.Paint();
-        mCore.setColor(Skia.Color('#E2E8F0'));
-        canvas.drawCircle(pos.x, pos.y, 2.8, mCore);
-
-        if (font) {
-          const mLabel = 'Ay 🌙';
-          const mWidth = font.getTextWidth(mLabel);
-          const mPaint = Skia.Paint();
-          mPaint.setColor(Skia.Color('#CBD5E1'));
-          canvas.drawText(mLabel, pos.x - mWidth / 2, pos.y + 16, mPaint, font);
-        }
-      }
-    });
-
-    // ─── PASS 5: Hero Star Beacon (Kullanıcının Kendi Yıldızı) ───────
-    if (myStarRa !== undefined && myStarDec !== undefined) {
-      const heroPos = projectToScreen(myStarRa, myStarDec, camera, width, height);
-      if (
-        heroPos.x >= -BG_PAD &&
-        heroPos.x <= width + BG_PAD &&
-        heroPos.y >= -BG_PAD &&
-        heroPos.y <= height + BG_PAD
-      ) {
-        // 1. Ambient Golden Halo
-        const heroAura = Skia.Paint();
-        heroAura.setColor(Skia.Color('rgba(245, 158, 11, 0.28)'));
-        heroAura.setMaskFilter(Skia.MaskFilter.MakeBlur(0, 14, true));
-        canvas.drawCircle(heroPos.x, heroPos.y, 34, heroAura);
-
-        // 2. Focused Golden Glow
-        const heroGlow = Skia.Paint();
-        heroGlow.setColor(Skia.Color('rgba(251, 191, 36, 0.55)'));
-        heroGlow.setMaskFilter(Skia.MaskFilter.MakeBlur(0, 6, true));
-        canvas.drawCircle(heroPos.x, heroPos.y, 18, heroGlow);
-
-        // 3. Crisp Golden Beacon Ring
-        const heroRing = Skia.Paint();
-        heroRing.setStyle(1); // Stroke
-        heroRing.setStrokeWidth(2.0);
-        heroRing.setColor(Skia.Color('#F59E0B'));
-        canvas.drawCircle(heroPos.x, heroPos.y, 11, heroRing);
-
-        // 4. White-Hot Radiant Core
-        const heroCore = Skia.Paint();
-        heroCore.setColor(Skia.Color('#FFFFFF'));
-        canvas.drawCircle(heroPos.x, heroPos.y, 5.5, heroCore);
-
-        // 5. Name Pill
-        const activeName = myStarName || 'Bizim Yıldızımız ✨';
-        const activeFont = starNameFont || font;
-        if (activeFont) {
-          const labelText = `⭐ ${activeName}`;
-          const textW = activeFont.getTextWidth(labelText);
-          const labelX = heroPos.x - textW / 2;
-          const labelY = heroPos.y + 24;
-
-          const pillBg = Skia.Paint();
-          pillBg.setColor(Skia.Color('rgba(15, 23, 42, 0.94)'));
-          canvas.drawRRect(
-            Skia.RRectXY(Skia.XYWHRect(labelX - 8, labelY - 12, textW + 16, 20), 10, 10),
-            pillBg
-          );
-
-          const pillBorder = Skia.Paint();
-          pillBorder.setStyle(1);
-          pillBorder.setStrokeWidth(1.2);
-          pillBorder.setColor(Skia.Color('rgba(245, 158, 11, 0.75)'));
-          canvas.drawRRect(
-            Skia.RRectXY(Skia.XYWHRect(labelX - 8, labelY - 12, textW + 16, 20), 10, 10),
-            pillBorder
-          );
-
-          const textPaint = Skia.Paint();
-          textPaint.setColor(Skia.Color('#FDE68A'));
-          canvas.drawText(labelText, labelX, labelY + 2, textPaint, activeFont);
-        }
-      }
-    }
-
-    const backgroundPicture = recorder.finishRecordingAsPicture();
-    debugStatsRef.current.bgRecordMs = performance.now() - recordStartedAt;
-    return backgroundPicture;
-  }, [renderCamera, width, height, font, sectorFont, connections, myStarRa, myStarDec, myStarName, starNameFont]);
+  const frame = useDerivedValue(() => {
+    'worklet';
+    return recordSkyFrame(camera.get(), starScene.get(), overlay.get(), fadeClock.get(), width, height);
+  });
 
   const getDebugMetrics = useCallback(() => {
-    const base = renderCameraRef.current;
-    const stats = debugStatsRef.current;
+    const current = camera.get();
+    const stats = sceneManager.stats;
     return {
-      'zoom render/visual': `${base.zoom.toFixed(2)} / ${(base.zoom * scale.value).toFixed(2)}`,
-      'gpu scale': scale.value.toFixed(3),
-      'gpu offset': `${offsetX.value.toFixed(0)}, ${offsetY.value.toFixed(0)}`,
-      'active gestures': activeGestureCountRef.current,
-      'stars / tiles': `${pictureStars.length} / ${stats.tiles}`,
-      rebases: stats.rebases,
-      'record ms tiles/bg': `${stats.tileRecordMs.toFixed(1)} / ${stats.bgRecordMs.toFixed(1)}`,
+      zoom: current.zoom.toFixed(2),
+      'ra / dec': `${normalizeRa(current.ra).toFixed(1)} / ${current.dec.toFixed(1)}`,
+      band: bandForZoom(current.zoom),
+      'stars in view data': propsRef.current.stars.length,
+      'tile entries': stats.entries,
+      'pictures recorded': stats.records,
+      'last rebuild ms': stats.lastRebuildMs.toFixed(1),
     };
-  }, [offsetX, offsetY, scale, pictureStars]);
-
-
-
-  // The visual transform applied to the Skia canvas on the GPU thread.
-  const transform = useDerivedValue(() => {
-    return [
-      { translateX: offsetX.value },
-      { translateY: offsetY.value },
-      { scale: scale.value },
-    ];
-  });
-
-  const originPoint = useDerivedValue(() => ({
-    x: width / 2,
-    y: height / 2,
-  }));
-
-  if (!font || !sectorFont) {
-    return (
-      <View style={[styles.container, { width, height, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator color="#FBBF24" />
-      </View>
-    );
-  }
+  }, [camera, sceneManager]);
 
   return (
     <View style={[styles.container, { width, height }]}>
-       <GestureDetector gesture={composed}>
-          <Animated.View style={{ width, height }}>
-             <Canvas style={{ flex: 1 }}>
-                <Group origin={originPoint} transform={transform}>
-                   {skyBackgroundPicture && <Picture picture={skyBackgroundPicture} />}
-                   {starTilePictures.map((tile) => (
-                     <Group key={tile.key} transform={[{ translateX: tile.x }, { translateY: tile.y }]}>
-                       <Picture picture={tile.picture} />
-                     </Group>
-                   ))}
-                </Group>
-             </Canvas>
-          </Animated.View>
-       </GestureDetector>
-       {SKY_DEBUG_HUD_ENABLED && <SkyDebugHud getMetrics={getDebugMetrics} />}
+      <GestureDetector gesture={gesture}>
+        <View style={{ width, height }} collapsable={false}>
+          <Canvas style={{ width, height }}>
+            <Picture picture={frame} />
+          </Canvas>
+        </View>
+      </GestureDetector>
+      {SKY_DEBUG_HUD_ENABLED && <SkyDebugHud getMetrics={getDebugMetrics} />}
     </View>
   );
 }

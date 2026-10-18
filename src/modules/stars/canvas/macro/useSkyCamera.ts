@@ -191,7 +191,10 @@ export function useSkyCamera({
     return { ra: baseRa.get(), dec: baseDec.get(), zoom: baseZoom.get() };
   };
 
-  const camera = useDerivedValue(() => readCamera());
+  const camera = useDerivedValue(() => {
+    'worklet';
+    return readCamera();
+  });
 
   const setDirect = (next: SkyCamera) => {
     'worklet';
@@ -374,8 +377,12 @@ export function useSkyCamera({
   // Fly-to requests arrive from JS as data; the flight starts on the UI thread
   // from the live camera, so a request never races an in-flight gesture.
   useAnimatedReaction(
-    () => flightRequest.get(),
+    () => {
+      'worklet';
+      return flightRequest.get();
+    },
     (request, previous) => {
+      'worklet';
       if (!request || request.id === previous?.id) return;
       startFlight(request.ra, request.dec, request.zoom ?? Number.NaN);
     },
@@ -383,8 +390,12 @@ export function useSkyCamera({
 
   // Throttled motion reports for tile streaming, plus band changes.
   useAnimatedReaction(
-    () => camera.get(),
+    () => {
+      'worklet';
+      return camera.get();
+    },
     (current, previous) => {
+      'worklet';
       const band = bandForZoomWithHysteresis(current.zoom, notifiedBand.get());
       if (band !== notifiedBand.get()) {
         notifiedBand.set(band);
@@ -408,16 +419,21 @@ export function useSkyCamera({
     },
   );
 
+  // Explicit 'worklet' directives keep every callback on the UI thread even if
+  // the compiler hoists it out of the builder chain.
   const pan = Gesture.Pan()
     .minDistance(4)
     .averageTouches(true)
     .onBegin(() => {
+      'worklet';
       stopMotion();
     })
     .onStart(() => {
+      'worklet';
       panActive.set(true);
     })
     .onChange((event) => {
+      'worklet';
       if (pinchActive.get()) return;
       if (skipNextPanDelta.get()) {
         // First event after a pinch: the touch centroid may jump when a finger lifts.
@@ -428,10 +444,12 @@ export function useSkyCamera({
       setDirect(panStep(readCamera(), event.changeX, event.changeY, height));
     })
     .onEnd((event) => {
+      'worklet';
       panVelocityX.set(event.velocityX);
       panVelocityY.set(event.velocityY);
     })
     .onFinalize(() => {
+      'worklet';
       panActive.set(false);
       skipNextPanDelta.set(false);
       settleAfterGesture();
@@ -439,15 +457,18 @@ export function useSkyCamera({
 
   const pinch = Gesture.Pinch()
     .onBegin(() => {
+      'worklet';
       stopMotion();
     })
     .onStart((event) => {
+      'worklet';
       if (mode.get() !== MODE_DIRECT) bake();
       pinchActive.set(true);
       lastFocalX.set(event.focalX);
       lastFocalY.set(event.focalY);
     })
     .onChange((event) => {
+      'worklet';
       if (mode.get() !== MODE_DIRECT) bake();
       setDirect(
         pinchStep(
@@ -465,9 +486,11 @@ export function useSkyCamera({
       lastFocalY.set(event.focalY);
     })
     .onEnd((event) => {
+      'worklet';
       pinchLogVelocity.set(event.scale > 0 ? event.velocity / event.scale : 0);
     })
     .onFinalize(() => {
+      'worklet';
       if (pinchActive.get()) {
         pinchEndedAt.set(eventTimeMs());
         skipNextPanDelta.set(true);
@@ -480,6 +503,7 @@ export function useSkyCamera({
     .maxDuration(300)
     .maxDistance(16)
     .onEnd((event, success) => {
+      'worklet';
       if (!success) return;
       const current = readCamera();
       scheduleOnRN(emitTap, event.x, event.y, current.ra, current.dec, current.zoom);
@@ -490,6 +514,7 @@ export function useSkyCamera({
     .maxDelay(260)
     .maxDistance(24)
     .onEnd((event, success) => {
+      'worklet';
       if (!success) return;
       startSettle(event.x, event.y, clampZoom(readCamera().zoom * 2), TAP_ZOOM_DURATION_MS);
     });
@@ -499,6 +524,7 @@ export function useSkyCamera({
     .maxDuration(260)
     .maxDistance(20)
     .onEnd((event, success) => {
+      'worklet';
       if (!success) return;
       startSettle(event.x, event.y, clampZoom(readCamera().zoom / 2), TAP_ZOOM_DURATION_MS);
     });
