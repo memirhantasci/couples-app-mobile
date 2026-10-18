@@ -126,3 +126,38 @@ Bu dosyaların içindeki alt kartlar (örneğin `profile.tsx` içindeki ses efek
 | **3** | `MoodSelector.tsx` 24 saatlik kalıcı kilidin kaldırılarak güncellemelerin açılması | UX / Mantık | [`MoodSelector.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/components/home/MoodSelector.tsx) | Gün içi ruh hali değişimlerinin anında paylaşılmasını sağlar |
 | **4** | Şifre sıfırlama Supabase Auth e-posta kurtarma akışı entegrasyonu | Güvenlik / Auth | [`forgot-password.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/forgot-password.tsx) & [`reset-password.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/reset-password.tsx) | Şifresini unutan kullanıcıların hesaplarına tekrar erişebilmesini sağlar |
 | **5** | Monolitik ekranların alt bileşenlere modüler ayrıştırılması | Mimari / Refactor | `map.tsx`, `profile.tsx`, `medicine.tsx`, `calendar.tsx` | Hot-reload ve maintainability hızını artırır |
+
+---
+
+## 6. Kozmik Yıldız Haritası Gelecek Faz Geliştirmeleri
+
+Aşağıdaki maddeler, yıldız haritası modülünün temel astronomik ve bağlantı mimarisi oturduktan sonra kullanıcı deneyimini "Apple Design Award" seviyesine taşımak üzere planlanmıştır:
+
+### 🌠 6.1. Rastgele Kayan Yıldızlar & Dilek Tutma (Shooting Stars & Wish Interaction)
+- **Açıklama:** Haritada gezinirken 20-40 saniyelik rastgele aralıklarla ekranın bir köşesinden diğerine doğru süzülen ince kuyruklu bir meteor animasyonu (Skia canvas path & alpha fade).
+- **Etkileşim:** Kullanıcı meteor ekrandan geçerken tam üzerine dokunursa `expo-haptics` ile zarif bir titreşim ve *"Dileğin gökyüzüne yazıldı 🌠"* şeklinde romantik bir toast/mini sürpriz patlaması tetiklenmelidir.
+- **Hedef:** [`MacroSkyCanvas.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/MacroSkyCanvas.tsx) & [`drawSkyFrame.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/macro/drawSkyFrame.ts)
+
+### ✨ 6.2. Yıldızların Nefes Alması (Twinkle / Scintillation)
+- **Açıklama:** Parlak yıldızların (özellikle mag < 4.0 olanların) UI thread render döngüsünde sinüzoidal bir salınımla (hafif alpha ve yarıçap dalgalanmasıyla) nefes alır gibi parıldaması.
+- **Etki:** Haritanın statik bir fotoğraf hissi yerine gerçek ve yaşayan bir gece gökyüzü atmosferi sunması sağlanır.
+- **Hedef:** [`starStyle.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/macro/starStyle.ts) & [`drawSkyFrame.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/macro/drawSkyFrame.ts)
+
+### 🌌 6.3. Samanyolu Derin Uzay Tozu Şeridi (Milky Way Dust Band)
+- **Açıklama:** Gökkubbeyi boydan boya saran, eflatun-mavi tonlarında yarı saydam ve zarif bir derin uzay tozu şeridi (Milky Way band) çizilmesi.
+- **Etki:** Şu anki tekil bulutsuların ötesinde, tüm haritaya gerçekçi bir astronomik derinlik ve boyut kazandırır.
+- **Hedef:** [`skyOverlay.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/macro/skyOverlay.ts) & [`drawSkyFrame.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/macro/drawSkyFrame.ts)
+
+### 🎵 6.4. Kozmik Ambiyans ve Kristal Tıklama Sesleri (Celestial Audio)
+- **Açıklama:** 
+  1. `expo-audio` kullanılarak gökyüzü haritasına girildiğinde çok derinden gelen büyüleyici bir uzay esintisi (ambient synth loop). Ekrandan çıkıldığında veya sekme değiştiğinde sesin pürüzsüzce durdurulması.
+  2. Herhangi bir yıldıza dokunulduğunda hafif, kristal bir çan / arp tınısı (celestial chime) çalması.
+- **Hedef:** [`soundEffects.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/lib/soundEffects.ts) & [`OurStarScreen.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/components/OurStarScreen.tsx)
+
+### ⚡ 6.5. Akan Enerji & Canlı Bağlantı Çizgileri (Animated Constellation Stream)
+- **Açıklama:** Şu an bağlı arkadaş çiftler arasında çizilen düz statik bağlantı çizgisinin, Skia shader veya animated dash/particle akışıyla bir yıldızdan diğerine doğru süzülen parıltılı bir enerji akışına dönüştürülmesi.
+- **Etki:** Çiftlerin yıldızları arasında canlı bir aşk/dostluk bağı titreşimi görselleştirilir.
+- **Hedef:** [`drawSkyFrame.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/macro/drawSkyFrame.ts)
+
+---
+
