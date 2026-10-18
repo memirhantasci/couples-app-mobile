@@ -12,7 +12,6 @@ import {
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useLocalSearchParams, router } from "expo-router";
 import { supabase } from "@/lib/supabase";
-import { encrypt } from "@/utils/crypto";
 import { ArrowLeft } from "lucide-react-native";
 
 export default function ResetPasswordScreen() {
@@ -41,43 +40,28 @@ export default function ResetPasswordScreen() {
 
     setIsLoading(true);
     try {
-      // 1. Verify OTP
-      const { data: otpData, error: otpError } = await supabase
-        .from("otp_codes")
-        .select("*")
-        .eq("user_id", params.userId)
-        .eq("code", otpCode.trim())
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
+      // Verifies the OTP server-side and updates the real Supabase Auth
+      // password (auth.users.encrypted_password) in one atomic RPC, so the
+      // new password actually works with auth.signInWithPassword afterwards.
+      const { error } = await supabase.rpc("reset_password_with_otp", {
+        p_user_id: params.userId,
+        p_otp: otpCode.trim(),
+        p_new_password: newPassword.trim(),
+      });
 
-      if (otpError || !otpData) {
-        setError("Geçersiz veya süresi dolmuş kod.");
+      if (error) {
+        if (error.message.includes("EXPIRED_CODE")) {
+          setError("Bu kodun süresi dolmuş.");
+        } else if (error.message.includes("INVALID_CODE")) {
+          setError("Geçersiz kod.");
+        } else if (error.message.includes("WEAK_PASSWORD")) {
+          setError("Şifreniz en az 6 karakter olmalı.");
+        } else {
+          setError("Şifre güncellenirken bir hata oluştu.");
+        }
         setIsLoading(false);
         return;
       }
-
-      if (new Date(otpData.expires_at) < new Date()) {
-        setError("Bu kodun süresi dolmuş.");
-        setIsLoading(false);
-        return;
-      }
-
-      // 2. Update Password
-      const hashedPassword = encrypt(newPassword.trim());
-      const { error: updateError } = await supabase
-        .from("users")
-        .update({ password: hashedPassword })
-        .eq("id", params.userId);
-
-      if (updateError) {
-        setError("Şifre güncellenirken bir hata oluştu.");
-        setIsLoading(false);
-        return;
-      }
-
-      // Optional: Delete used OTP
-      await supabase.from("otp_codes").delete().eq("id", otpData.id);
 
       setSuccess(true);
     } catch (e) {

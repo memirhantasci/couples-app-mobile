@@ -65,6 +65,8 @@ Aşağıdaki tüm optimizasyonlar başarıyla kodlanmış, entegre edilmiş ve t
   - 12s kesintisiz döngü (seamless-loop) sentezlenmiş derin uzay ambient pad'i (`startCosmicAmbient`/`stopCosmicAmbient`, ekran odaklanmasında yumuşak fade-in/out) ve yıldıza dokunulduğunda kristal çan sesi (`playCelestialChime`) eklendi (`assets/sounds/cosmic_ambient.wav`, `celestial_chime.wav`).
 - [x] **Kozmik Yıldız Haritası: Akan Enerji & Canlı Bağlantı Çizgileri ([`drawSkyFrame.ts`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/modules/stars/canvas/macro/drawSkyFrame.ts)):**
   - Statik kesikli çizgi yerine her karede animasyonlu dash-phase ve yıldızdan yıldıza süzülen parlak enerji partikülleri eklendi.
+- [x] **Şifre Sıfırlama ile Supabase Auth Entegrasyonu ([`forgot-password.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/forgot-password.tsx), [`reset-password.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/reset-password.tsx)):**
+  - Supabase Auth kimlik doğrulama sunucusunda `auth.users.encrypted_password` değerini güncelleyen güvenli RPC fonksiyonları (`request_password_reset_otp` ve `reset_password_with_otp`) ve `public.otp_codes` tablosu bağlandı ([`20261018000000_fix_password_reset_otp_flow.sql`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/supabase/migrations/20261018000000_fix_password_reset_otp_flow.sql)).
 
 ---
 
@@ -102,15 +104,12 @@ Aşağıdaki tüm optimizasyonlar başarıyla kodlanmış, entegre edilmiş ve t
 
 ## 3. Güvenlik & Oturum Açıkları (Security & Auth)
 
-### 🚨 3.1. Şifre Sıfırlama ile Supabase Auth Uyuşmazlığı
+### ✅ [x] 3.1. Şifre Sıfırlama ile Supabase Auth Uyuşmazlığı (Çözüldü)
 - **Dosyalar:**
-  - [`src/app/(auth)/forgot-password.tsx#L48-L65`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/forgot-password.tsx#L48-L65)
-  - [`src/app/(auth)/reset-password.tsx#L67-L72`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/reset-password.tsx#L67-L72)
-- **Kritik Bulgu:** 
-  1. `forgot-password.tsx` ekranında üretilen OTP kodu yalnızca geliştirici konsoluna (`console.log`) basılmaktadır. Gerçek cihazda veya mağaza sürümünde kullanıcının telefonuna SMS veya e-posta ile kod gitmemektedir.
-  2. `reset-password.tsx` ekranında şifre yalnızca `public.users` tablosundaki `password` sütununda güncellenmektedir. Oysa `login.tsx` ekranı oturumu `supabase.auth.signInWithPassword` ile açmaktadır!
-  3. **Sonuç:** Kullanıcı şifresini sıfırlasa bile Supabase Auth kimlik sunucusundaki asıl şifresi DEĞİŞMEZ. Kullanıcı yeni şifresiyle sisteme ASLA giriş yapamaz.
-- **Çözüm:** Şifre sıfırlama akışı ya Supabase Auth'un yerleşik e-posta kurtarma mekanizmasına (`supabase.auth.resetPasswordForEmail`) bağlanmalı ya da güvenli bir Edge Function/RPC üzerinden hem `auth.users` hem `public.users` senkron güncellenmelidir.
+  - [`src/app/(auth)/forgot-password.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/forgot-password.tsx)
+  - [`src/app/(auth)/reset-password.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/reset-password.tsx)
+  - [`supabase/migrations/20261018000000_fix_password_reset_otp_flow.sql`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/supabase/migrations/20261018000000_fix_password_reset_otp_flow.sql)
+- **Çözüm:** `request_password_reset_otp` ve `reset_password_with_otp` SECURITY DEFINER RPC fonksiyonları yazılarak OTP doğrulandıktan sonra asıl `auth.users.encrypted_password` alanı atomik olarak güncellenecek şekilde bağlandı.
 
 ---
 
@@ -135,7 +134,7 @@ Bu dosyaların içindeki alt kartlar (örneğin `profile.tsx` içindeki ses efek
 | **1** | `period-tracker.tsx` 4 gün sınırının kaldırılması | Mantık | [`period-tracker.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/period-tracker.tsx) | Kadın kullanıcıların döngü günlerini eksiksiz kaydetmesini sağlar |
 | **2** | `period-tracker.tsx` döngü tahmini ve sonraki regl geri sayımı | Mantık / UX | [`period-tracker.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/period-tracker.tsx) | Döngü takvimini gerçek anlamda işlevsel kılar |
 | **3** | `MoodSelector.tsx` 24 saatlik kalıcı kilidin kaldırılarak güncellemelerin açılması | UX / Mantık | [`MoodSelector.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/components/home/MoodSelector.tsx) | Gün içi ruh hali değişimlerinin anında paylaşılmasını sağlar |
-| **4** | Şifre sıfırlama Supabase Auth e-posta kurtarma akışı entegrasyonu | Güvenlik / Auth | [`forgot-password.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/forgot-password.tsx) & [`reset-password.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/reset-password.tsx) | Şifresini unutan kullanıcıların hesaplarına tekrar erişebilmesini sağlar |
+| **4** | ~~Şifre sıfırlama Supabase Auth entegrasyonu~~ (Tamamlandı ✅) | Güvenlik / Auth | [`forgot-password.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/forgot-password.tsx) & [`reset-password.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/reset-password.tsx) | Şifresini unutan kullanıcıların hesaplarına güvenle tekrar erişebilmesini sağlar |
 | **5** | Monolitik ekranların alt bileşenlere modüler ayrıştırılması | Mimari / Refactor | `map.tsx`, `profile.tsx`, `medicine.tsx`, `calendar.tsx` | Hot-reload ve maintainability hızını artırır |
 
 ---

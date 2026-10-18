@@ -31,29 +31,28 @@ export default function ForgotPasswordScreen() {
     setIsLoading(true);
     try {
       const encryptedUsername = deterministicEncrypt(username.trim().toLowerCase());
-      
-      const { data: user, error } = await supabase
-        .from("users")
-        .select("id")
-        .eq("username", encryptedUsername)
-        .single();
 
-      if (error || !user) {
-        setErrorMsg("Bu kullanıcı adına sahip bir hesap bulunamadı.");
+      // Server-side RPC: looks the username up, rate-limits by IP and
+      // stores only a bcrypt hash of the OTP (see reset_password_with_otp,
+      // which is the one that actually updates the Supabase Auth password).
+      const { data, error } = await supabase.rpc("request_password_reset_otp", {
+        p_username: encryptedUsername,
+      });
+
+      if (error || !data || data.length === 0) {
+        if (error?.message?.includes("TOO_MANY_REQUESTS")) {
+          setErrorMsg("Çok fazla deneme yapıldı. Lütfen birkaç dakika sonra tekrar deneyin.");
+        } else {
+          setErrorMsg("Bu kullanıcı adına sahip bir hesap bulunamadı.");
+        }
         setIsLoading(false);
         return;
       }
 
-      // Generate OTP
-      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
-      
-      await supabase.from("otp_codes").insert({
-        user_id: user.id,
-        code: otpCode,
-        expires_at: expiresAt.toISOString(),
-      });
+      const { result_user_id: userId, result_otp: otpCode } = data[0];
 
+      // Henüz gerçek SMS/e-posta gönderimi yok; geliştirme sürecinde kodu
+      // konsola da basıyoruz.
       console.log("-----------------------------------------");
       console.log("🔑 OTP CODE (PASSWORD RESET):", otpCode);
       console.log("-----------------------------------------");
@@ -61,7 +60,7 @@ export default function ForgotPasswordScreen() {
       // Go to reset password screen with userId
       router.push({
         pathname: "/(auth)/reset-password",
-        params: { userId: user.id.toString() }
+        params: { userId: String(userId) }
       });
     } catch (e) {
       setErrorMsg("Beklenmedik bir hata oluştu.");
