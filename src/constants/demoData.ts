@@ -38,14 +38,16 @@ export const DEMO_SESSION = {
 export const DEMO_HOME_DATA = {
   currentMood: "love",
   currentNote: "Bugün biraz yoğun geçti ama akşam kahvemi alıp balkonda rüzgarı dinlemek zihnimi çok dinlendirdi. Bazen küçük anların kıymetini bilmek insana huzur veriyor. ☕📖✨",
-  activeMeeting: {
-    id: 501,
-    title: "Polonezköy Doğa Yürüyüşü & Brunch 🌿🥞",
-    location_name: "Polonezköy Tabiat Parkı, Beykoz",
-    meeting_datetime: dayjs().add(2, "day").hour(10).minute(30).second(0).toISOString(),
-    latitude: 41.1147,
-    longitude: 29.2085,
-  },
+  meetings: [
+    {
+      id: 501,
+      title: "Polonezköy Doğa Yürüyüşü & Brunch 🌿🥞",
+      location_name: "Polonezköy Tabiat Parkı, Beykoz",
+      meeting_datetime: dayjs().add(2, "day").hour(10).minute(30).second(0).toISOString(),
+      latitude: 41.1147,
+      longitude: 29.2085,
+    },
+  ],
   pendingLetters: [
     {
       id: 201,

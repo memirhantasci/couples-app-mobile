@@ -10,7 +10,8 @@ export type SoundEffectType =
   | 'success_chime'
   | 'stamp_drop'
   | 'camera_click'
-  | 'celebration';
+  | 'celebration'
+  | 'celestial_chime';
 
 const SOUND_ASSETS: Record<SoundEffectType, any> = {
   bubble_pop: require('../../assets/sounds/bubble_pop.wav'),
@@ -19,10 +20,10 @@ const SOUND_ASSETS: Record<SoundEffectType, any> = {
   stamp_drop: require('../../assets/sounds/stamp_drop.wav'),
   camera_click: require('../../assets/sounds/camera_click.wav'),
   celebration: require('../../assets/sounds/celebration.wav'),
+  celestial_chime: require('../../assets/sounds/celestial_chime.wav'),
 };
 
 const COSMIC_AMBIENT_ASSET = require('../../assets/sounds/cosmic_ambient.wav');
-const CELESTIAL_CHIME_ASSET = require('../../assets/sounds/celestial_chime.wav');
 
 const STORAGE_KEY_SOUND = '@app_sound_effects_enabled';
 const STORAGE_KEY_HAPTIC = '@app_haptic_feedback_enabled';
@@ -302,16 +303,10 @@ export function stopCosmicAmbient(): void {
 
 /**
  * Light crystal chime played when a star is tapped on the sky map.
+ *
+ * Goes through the shared player pool (warmed up at startup) like every other effect.
+ * A throwaway `createAudioPlayer()` per tap lets the JS object be garbage-collected,
+ * which releases the native player before it has loaded/played anything (silent on iOS).
  */
-export async function playCelestialChime(): Promise<void> {
-  if (Platform.OS === 'web') return;
-  const enabled = await getSoundEffectsEnabled();
-  if (!enabled) return;
-  try {
-    await ensureAudioMode();
-    const player = createAudioPlayer(CELESTIAL_CHIME_ASSET);
-    player.play();
-  } catch (err) {
-    logger.log('[SoundEffects] Celestial chime notice:', err);
-  }
-}
+export const playCelestialChime = () =>
+  Platform.OS === 'web' ? Promise.resolve() : playSoundEffect('celestial_chime');

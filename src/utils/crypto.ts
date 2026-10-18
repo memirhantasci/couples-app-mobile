@@ -1,4 +1,5 @@
 const CryptoJS = require('crypto-js');
+import * as ExpoCrypto from 'expo-crypto';
 import { logger } from '@/utils/logger';
 
 // Sabit şifreleme anahtarı (EXPO_PUBLIC_ENCRYPTION_KEY ile scryptSync türevi)
@@ -48,10 +49,29 @@ export function encryptStatic(text: string): string {
   return encryptWithKey(text, key);
 }
 
+/**
+ * CryptoJS.lib.WordArray.random, Hermes'te global crypto.getRandomValues olmadığı için
+ * "Native crypto module could not be used" hatası verir. Güvenli rastgele byte'ları
+ * expo-crypto'dan alıp CryptoJS WordArray formatına çeviriyoruz.
+ */
+function getRandomBytesWordArray(byteCount: number) {
+  const bytes = ExpoCrypto.getRandomBytes(byteCount);
+  const words: number[] = [];
+  for (let i = 0; i < byteCount; i += 4) {
+    words.push(
+      ((bytes[i] || 0) << 24) |
+      ((bytes[i + 1] || 0) << 16) |
+      ((bytes[i + 2] || 0) << 8) |
+      (bytes[i + 3] || 0)
+    );
+  }
+  return CryptoJS.lib.WordArray.create(words, byteCount);
+}
+
 function encryptWithKey(text: string, activeKey: any): string {
   if (!text) return text;
   try {
-    const iv = CryptoJS.lib.WordArray.random(16);
+    const iv = getRandomBytesWordArray(16);
     const encrypted = CryptoJS.AES.encrypt(text, activeKey, {
       iv: iv,
       mode: CryptoJS.mode.CBC,

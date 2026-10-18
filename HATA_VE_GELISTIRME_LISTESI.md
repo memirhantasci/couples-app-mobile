@@ -12,14 +12,13 @@
 | 2 | **Mektup Kaydetme PGRST203 Hatası** (`Could not choose best candidate function...`) | DB / RPC Error | Tüm | Supabase DB / [`letters.tsx`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/app/(tabs)/letters.tsx) | 🔴 Kritik |
 | 3 | **Expo Notifications Trigger Hatası** (`Invalid trigger object... needs type/channelId`) | Runtime Error | Android & iOS | [`src/lib/notifications.ts`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/lib/notifications.ts) | 🔴 Kritik |
 | 4 | **Buluşma Kartı Eski Buluşmayı Gösterme Hatası** (Yeni buluşma varken eskinin kalması) | Mantıksal / Cache | Tüm | [`home.tsx`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/app/(tabs)/home.tsx), [`meetings.tsx`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/app/(tabs)/meetings.tsx) | 🟠 Yüksek |
-| 5 | **React 19 / Fabric Erken State Uyarısı** (`Update on unmounted fiber in useLinking`) | Konsol Uyarısı | iOS & Android | [`src/app/_layout.tsx`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/app/_layout.tsx) | 🟡 Düşük |
-| 6 | **iOS Harita Renk Modunun Değişmemesi** (Apple Maps vs Google Maps Custom Style) | Platform / UX | Yalnızca iOS | [`src/app/(tabs)/map.tsx`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/app/(tabs)/map.tsx) | 🟠 Yüksek |
-| 7 | **MoodSelector AsyncStorage Null Hatası** (`Native module is null... legacy storage`) | Runtime Error | iOS & Expo Go | [`src/components/home/MoodSelector.tsx`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/components/home/MoodSelector.tsx) | 🔴 Kritik |
-| 8 | **Mektup Mühürlemede Tarih Seçicinin İngilizce Olması** (`November 2026`) | Yerelleştirme / i18n | Yalnızca iOS | [`src/app/(tabs)/letters.tsx`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/app/(tabs)/letters.tsx) | 🟡 Orta |
-| 9 | **Fotoğraflı Anı Kaydında Desteklenmeyen MIME Türü** (`mime type image/jpg is not supported`) | Storage Error | Tüm | [`src/app/(tabs)/add-memory.tsx`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/app/(tabs)/add-memory.tsx) | 🔴 Kritik |
-| 10 | **Günlük Notu Duplicate Key Hatası** (`daily_notes_user_id_date_key - Error 23505`) | DB Constraint | Tüm | [`src/app/(tabs)/add-daily-note.tsx`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/app/(tabs)/add-daily-note.tsx) | 🔴 Kritik |
-| 11 | **İlaç Ekranında Tarih/Saat Seçicisinin Sol Altta Küçük Açılması** (iOS Compact Picker) | UI / UX Kusuru | Yalnızca iOS | [`MedicineManagerModal.tsx`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/components/medicine/MedicineManagerModal.tsx) | 🟠 Yüksek |
-| 12 | **Kozmik Yıldız Haritası Sesinin Kötü Olması ve iOS'ta Çalmaması** | Audio / Garbage Col. | iOS vs Android | [`src/lib/soundEffects.ts`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/lib/soundEffects.ts), [`MacroSkyCanvas.tsx`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/modules/stars/canvas/MacroSkyCanvas.tsx) | 🟠 Yüksek |
+| 5 | **iOS Harita Renk Modunun Değişmemesi** (Apple Maps vs Google Maps Custom Style) | Platform / UX | Yalnızca iOS | [`src/app/(tabs)/map.tsx`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/app/(tabs)/map.tsx) | 🟠 Yüksek |
+| 6 | **MoodSelector AsyncStorage Null Hatası** (`Native module is null... legacy storage`) | Runtime Error | iOS & Expo Go | [`src/components/home/MoodSelector.tsx`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/components/home/MoodSelector.tsx) | 🔴 Kritik |
+| 7 | **Mektup Mühürlemede Tarih Seçicinin İngilizce Olması** (`November 2026`) | Yerelleştirme / i18n | Yalnızca iOS | [`src/app/(tabs)/letters.tsx`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/app/(tabs)/letters.tsx) | 🟡 Orta |
+| 8 | **Fotoğraflı Anı Kaydında Desteklenmeyen MIME Türü** (`mime type image/jpg is not supported`) | Storage Error | Tüm | [`src/app/(tabs)/add-memory.tsx`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/app/(tabs)/add-memory.tsx) | 🔴 Kritik |
+| 9 | **Günlük Notu Duplicate Key Hatası** (`daily_notes_user_id_date_key - Error 23505`) | DB Constraint | Tüm | [`src/app/(tabs)/add-daily-note.tsx`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/app/(tabs)/add-daily-note.tsx) | 🔴 Kritik |
+| 10 | **İlaç Ekranında Tarih/Saat Seçicisinin Sol Altta Küçük Açılması** (iOS Compact Picker) | UI / UX Kusuru | Yalnızca iOS | [`MedicineManagerModal.tsx`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/components/medicine/MedicineManagerModal.tsx) | 🟠 Yüksek |
+| 11 | **Kozmik Yıldız Haritası Sesinin Kötü Olması ve iOS'ta Çalmaması** | Audio / Garbage Col. | iOS vs Android | [`src/lib/soundEffects.ts`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/lib/soundEffects.ts), [`MacroSkyCanvas.tsx`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/modules/stars/canvas/MacroSkyCanvas.tsx) | 🟠 Yüksek |
 
 ---
 
@@ -206,34 +205,7 @@
 
 ---
 
-### 5. React 19 / Fabric Erken State Güncelleme Uyarısı
-
-- **Hata Mesajı:**
-  ```text
-  Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronously tries to update the component. Move this work to useEffect instead.
-  Source: expo-router/build/fork/useLinking.native.js:127
-  ```
-- **Etkilenen Dosya:**
-  - [`src/app/_layout.tsx`](file:///c:/Users/ahmet/OneDrive/Masaüstü/couples-app-mobile/src/app/_layout.tsx#L75-L88)
-- **Kök Neden:**
-  - React 19 ve React Native New Architecture (Fabric) altında Expo Router'ın iç kütüphanesindeki `useLinking` kancası, `Linking.getInitialURL()` sonucunu henüz ağaç render edilip mount aşaması tamamlanmadan `setState` ile teslim almaya çalışıyor.
-  - Geliştirme ortamı (DEV mode) konsol uyarısıdır; uygulamanın çökmesine yol açmaz ancak konsolu kirletir.
-- **Çözüm Reçetesi:**
-  - `_layout.tsx` içerisindeki derin bağlantı başlatma dinleyicisi `InteractionManager.runAfterInteractions` veya `setTimeout(..., 0)` ile sarılarak kök bileşenin ilk frame'i boyamasından sonra tetiklenmelidir:
-  ```typescript
-  useEffect(() => {
-    const task = setTimeout(() => {
-      Linking.getInitialURL().then((url) => {
-        if (url) handleDeepLink(url);
-      });
-    }, 100);
-    return () => clearTimeout(task);
-  }, [session?.user?.id, isDemoMode]);
-  ```
-
----
-
-### 6. iOS Haritada Renk / Tema Modunun Değişmemesi
+### 5. iOS Haritada Renk / Tema Modunun Değişmemesi
 
 - **Kullanıcı Geri Bildirimi:**
   > *"İosta haritada renk modu değişmiyor haritada dediğim fotoğraf not olan harita"*
@@ -259,7 +231,7 @@
 
 ---
 
-### 7. MoodSelector AsyncStorage "Native module is null" Hatası
+### 6. MoodSelector AsyncStorage "Native module is null" Hatası
 
 - **Hata Mesajı:**
   ```text
@@ -287,7 +259,7 @@
 
 ---
 
-### 8. Mektup Mühürleme Tarih Çarkının İngilizce Olması
+### 7. Mektup Mühürleme Tarih Çarkının İngilizce Olması
 
 - **Kullanıcı Geri Bildirimi & Ekran Görüntüsü 1:**
   > *"Mektupda tarih ingilizce"* (Ekran görüntüsünde: Üstteki başlık "28 Kasım 2026, Cumartesi" Türkçe iken alttaki tarih çarkında `November 2026`, `August`, `September`, `October` yazıyor).
@@ -315,7 +287,7 @@
 
 ---
 
-### 9. Fotoğraflı Anı Kaydetmede Desteklenmeyen MIME Türü (`image/jpg`)
+### 8. Fotoğraflı Anı Kaydetmede Desteklenmeyen MIME Türü (`image/jpg`)
 
 - **Hata Mesajı:**
   ```text
@@ -344,7 +316,7 @@
 
 ---
 
-### 10. Günlük Notu Duplicate Key Hatası (Error 23505)
+### 9. Günlük Notu Duplicate Key Hatası (Error 23505)
 
 - **Hata Mesajı:**
   ```text
@@ -371,7 +343,7 @@
 
 ---
 
-### 11. İlaç Yönetim Ekranında Tarih ve Saatin Sol Altta Küçük Açılması (iOS Picker UX)
+### 10. İlaç Yönetim Ekranında Tarih ve Saatin Sol Altta Küçük Açılması (iOS Picker UX)
 
 - **Kullanıcı Geri Bildirimi & Ekran Görüntüsü 2:**
   > *"İlaçda tarih saat kaydederken sol alttaki yere tıklayınca değiştirebiliyosun iphone cihazda direk tarihe ve saate tıklandığında değiştirilmesi laızm"* (Ekran görüntüsünde: Modalın en sol altında serbest yüzen gri bir `[ 14:00 ]` hapı görünmektedir).
@@ -387,7 +359,7 @@
 
 ---
 
-### 12. Kozmik Yıldız Haritası Sesinin Kötü Olması ve iOS'ta Hiç Çalmaması
+### 11. Kozmik Yıldız Haritası Sesinin Kötü Olması ve iOS'ta Hiç Çalmaması
 
 - **Kullanıcı Geri Bildirimi:**
   > *"Yıldız kısmındaki sesin değişmesimlaızm kötü yıldıza dokununca gelen ses de kötü yıldıza dokununca androidden ses geliyor iostan ses gelmiyor"*
@@ -439,6 +411,6 @@
 Tüm bu maddeleri düzeltmeye başlamak istediğinizde şu sırayla gitmek en pratik sonucu verecektir:
 
 1. **Önce Veritabanı (1 Dakika):** Supabase SQL Editor'da `save_letter` temizliği (Madde 2).
-2. **Kritik Storage & Form Hataları (3 Dakika):** `add-memory.tsx` MIME düzeltmesi (Madde 9), `add-daily-note.tsx` upsert (Madde 10), `crypto.ts` ExpoCrypto entegrasyonu (Madde 1).
-3. **Sistem Altyapısı (2 Dakika):** `notifications.ts` yeni Expo trigger tipleri (Madde 3), `MoodSelector.tsx` safeStorage importu (Madde 7).
-4. **Kullanıcı Deneyimi & Platform (5 Dakika):** `home.tsx` buluşma kartı (Madde 4), `map.tsx` iOS dark/light modu (Madde 6), `letters.tsx` Türkçe takvim (Madde 8), `MedicineManagerModal.tsx` iOS picker UX (Madde 11), `soundEffects.ts` iOS ses çalma ve yeni yıldız tınısı (Madde 12).
+2. **Kritik Storage & Form Hataları (3 Dakika):** `add-memory.tsx` MIME düzeltmesi (Madde 8), `add-daily-note.tsx` upsert (Madde 9), `crypto.ts` ExpoCrypto entegrasyonu (Madde 1).
+3. **Sistem Altyapısı (2 Dakika):** `notifications.ts` yeni Expo trigger tipleri (Madde 3), `MoodSelector.tsx` safeStorage importu (Madde 6).
+4. **Kullanıcı Deneyimi & Platform (5 Dakika):** `home.tsx` buluşma kartı (Madde 4), `map.tsx` iOS dark/light modu (Madde 5), `letters.tsx` Türkçe takvim (Madde 7), `MedicineManagerModal.tsx` iOS picker UX (Madde 10), `soundEffects.ts` iOS ses çalma ve yeni yıldız tınısı (Madde 11).

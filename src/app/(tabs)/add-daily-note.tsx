@@ -13,7 +13,7 @@ import {
 } from "lucide-react-native";
 import { getTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
-import { encrypt } from "@/utils/crypto";
+import { encrypt, decrypt } from "@/utils/crypto";
 import { sanitize } from "@/utils/sanitize";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
@@ -24,6 +24,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 dayjs.locale("tr");
+
+// Bir günün sayfasındaki toplam sınır; Günlüklerim ekranındaki düzenleme alanıyla (4000) aynı.
+const DAILY_NOTE_MAX_CHARS = 4000;
 
 export default function AddDailyNoteScreen() {
   const { session, profile } = useAuth();
@@ -60,13 +63,43 @@ export default function AddDailyNoteScreen() {
         setIsSubmitting(false);
         return;
       }
-      const encrypted = encrypt(cleanContent);
+      const today = dayjs().format("YYYY-MM-DD");
 
-      const { error } = await supabase.from("daily_notes").insert({
-        user_id: session.user.id,
-        date: dayjs().format("YYYY-MM-DD"),
-        content: encrypted,
-      });
+      // (user_id, date) benzersiz: günde tek günlük sayfası var. Bugünün notu zaten varsa
+      // üzerine yazmak (upsert) onu silerdi; bunun yerine yeni yazıyı mevcut notun sonuna ekliyoruz.
+      const { data: existing, error: fetchError } = await supabase
+        .from("daily_notes")
+        .select("id, content")
+        .eq("user_id", session.user.id)
+        .eq("date", today)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+
+      let error;
+      if (existing) {
+        const previous = decrypt(existing.content);
+        if (!previous) {
+          // Çözülemeyen notu ezmemek için işlemi durdur
+          Alert.alert("Hata", "Bugünün mevcut günlüğü okunamadı, üzerine yazılmadı.");
+          return;
+        }
+        const merged = `${previous}\n\n${cleanContent}`;
+        if (merged.length > DAILY_NOTE_MAX_CHARS) {
+          Alert.alert("Sayfa Dolu", "Bugünün günlük sayfası doldu. Günlüklerim ekranından mevcut notu düzenleyebilirsin.");
+          return;
+        }
+        ({ error } = await supabase
+          .from("daily_notes")
+          .update({ content: encrypt(merged) })
+          .eq("id", existing.id));
+      } else {
+        ({ error } = await supabase.from("daily_notes").insert({
+          user_id: session.user.id,
+          date: today,
+          content: encrypt(cleanContent),
+        }));
+      }
 
       if (error) throw error;
 
