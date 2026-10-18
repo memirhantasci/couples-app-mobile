@@ -38,15 +38,14 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked
   const queryClient = useQueryClient();
 
   const [selected, setSelected] = useState<string | null>(currentMood || null);
-  const [locked, setLocked] = useState(moodLocked || !!currentMood);
   const [loading, setLoading] = useState(false);
 
   React.useEffect(() => {
     setSelected(currentMood || null);
-    setLocked(moodLocked || !!currentMood);
-  }, [currentMood, moodLocked]);
+  }, [currentMood]);
 
   async function handleMoodSelect(emoji: string) {
+    if (selected === emoji) return;
     playBubblePop();
     if (executeOrIntercept(
       () => {},
@@ -55,7 +54,7 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked
     )) {
       return;
     }
-    if (locked || loading || !session?.user?.id) return;
+    if (moodLocked || loading || !session?.user?.id) return;
     setLoading(true);
 
     const coupleId = profile?.coupleId || null;
@@ -86,7 +85,6 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked
 
     if (!error) {
       setSelected(emoji);
-      setLocked(true);
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
 
@@ -123,7 +121,7 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked
             <TouchableOpacity
               key={mood.emoji}
               onPress={() => handleMoodSelect(mood.emoji)}
-              disabled={loading || locked}
+              disabled={loading || moodLocked}
               activeOpacity={0.7}
               style={[
                 styles.moodBtn,
@@ -134,7 +132,6 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked
                       borderColor: theme.isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.1)", 
                       borderWidth: 1 
                     },
-                locked && !isSelected && { opacity: 0.35 },
               ]}
             >
               <Text style={styles.emoji}>{mood.emoji}</Text>
@@ -159,9 +156,13 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked
         </View>
       )}
 
-      {locked && (
+      {selected ? (
         <Text style={[styles.lockedText, { color: theme.textMuted }]}>
-          Bugünkü modun kilitlendi ✨
+          Ruh halini gün içinde dilediğin an güncelleyebilirsin ✨
+        </Text>
+      ) : (
+        <Text style={[styles.lockedText, { color: theme.textMuted }]}>
+          Bugün nasıl hissettiğini seç 💭
         </Text>
       )}
 
