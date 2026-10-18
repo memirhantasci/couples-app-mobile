@@ -31,6 +31,16 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
       .filter(Boolean) as { route: any; config: (typeof allTabs)[0] }[];
   }, [enabledTabs, state.routes, tabLookup]);
 
+  // Form / Alt rotalarda tab barı gizle (kaydet butonunun ve klavyenin üstünü kapatmasını önle)
+  const currentRouteName = state.routes[state.index]?.name;
+  if (
+    currentRouteName === "add-memory" ||
+    currentRouteName === "add-photo" ||
+    currentRouteName === "add-daily-note"
+  ) {
+    return null;
+  }
+
   // Alt boşluk: iPhone Home Bar ile dengeli ve estetik duracak şekilde
   const bottomOffset = Platform.OS === "ios" 
     ? Math.max(insets.bottom - 4, 12) 

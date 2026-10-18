@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "expo-router";
 import { 
   View, Text, FlatList, StyleSheet, TouchableOpacity, 
@@ -35,6 +35,7 @@ import { DEMO_LETTERS } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { playLetterSend } from "@/lib/soundEffects";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
+import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 
 const safeDecrypt = (val: string | null | undefined): string => {
   if (!val) return "";
@@ -172,6 +173,34 @@ export default function LettersScreen() {
   const [loadingForm, setLoadingForm] = useState(false);
   const [errors, setErrors] = useState({ receiver: false, title: false, content: false });
 
+  // ─── Otomatik Taslak Kaydetme & Yükleme ─────────────────────────────────────
+  useEffect(() => {
+    if (!coupleId) return;
+    const draftKey = `@couples_letter_draft_${coupleId}`;
+    AsyncStorage.getItem(draftKey).then((saved) => {
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.title) setTitle(parsed.title);
+          if (parsed.content) setContent(parsed.content);
+          if (parsed.unlockDate) setUnlockDate(parsed.unlockDate);
+        } catch {}
+      }
+    });
+  }, [coupleId]);
+
+  useEffect(() => {
+    if (!coupleId) return;
+    const draftKey = `@couples_letter_draft_${coupleId}`;
+    if (!title.trim() && !content.trim()) {
+      return;
+    }
+    const timeout = setTimeout(() => {
+      AsyncStorage.setItem(draftKey, JSON.stringify({ title, content, unlockDate }));
+    }, 800);
+    return () => clearTimeout(timeout);
+  }, [title, content, unlockDate, coupleId]);
+
   const allLetters = data?.all || [];
   const receivedLetters = data?.received || [];
   const sentLetters = data?.sent || [];
@@ -240,10 +269,13 @@ export default function LettersScreen() {
       await refreshProfile();
       queryClient.invalidateQueries({ queryKey: ["letters_data"] });
       
-      // Formu temizle ve yazma modalını kapat
+      // Formu temizle, taslağı sil ve yazma modalını kapat
       setTitle("");
       setContent("");
       setUnlockDate(todayString());
+      if (coupleId) {
+        AsyncStorage.removeItem(`@couples_letter_draft_${coupleId}`).catch(() => {});
+      }
       setShowWriteModal(false);
 
       if (isPremium && coupleId && userId) {

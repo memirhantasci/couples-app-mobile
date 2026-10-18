@@ -9,17 +9,30 @@ export interface LoveScoreResult {
   breakdown: Record<string, number>; // analiz ve denetim için
 }
 
+const inMemoryScoreCache: Record<number, LoveScoreResult> = {};
+
+/** Bellek içi senkron önbellek (açılışta initialData olarak sıfır gecikmeyle döner) */
+export function getCachedLoveScoreSync(coupleId: number): LoveScoreResult | null {
+  return inMemoryScoreCache[coupleId] || null;
+}
+
 /** Yerel önbellekten son aşk puanını oku (açılışta 50 flash'ını engellemek için) */
 export async function getCachedLoveScore(coupleId: number): Promise<LoveScoreResult | null> {
+  if (inMemoryScoreCache[coupleId]) return inMemoryScoreCache[coupleId];
   try {
     const raw = await AsyncStorage.getItem(`@love_score_${coupleId}`);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      inMemoryScoreCache[coupleId] = parsed;
+      return parsed;
+    }
   } catch {}
   return null;
 }
 
 /** Yerel önbelleğe son aşk puanını kaydet */
 export async function setCachedLoveScore(coupleId: number, data: LoveScoreResult): Promise<void> {
+  inMemoryScoreCache[coupleId] = data;
   try {
     await AsyncStorage.setItem(`@love_score_${coupleId}`, JSON.stringify(data));
   } catch {}

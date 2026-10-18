@@ -66,6 +66,7 @@ const { width: SW, height: SH } = Dimensions.get("window");
 interface PhotoPin {
   id: number;
   image_url: string;
+  thumb_url?: string | null;
   latitude: number;
   longitude: number;
   location_name?: string | null;
@@ -297,7 +298,7 @@ function PhotoMarkerPin({
       <View style={styles.photoMarkerWrapper}>
         <View style={styles.photoPolaroidFrame}>
           <Image
-            source={{ uri: photo.image_url }}
+            source={{ uri: photo.thumb_url || photo.image_url }}
             style={styles.photoMarkerImg}
             contentFit="cover"
             cachePolicy="memory-disk"
@@ -382,7 +383,7 @@ export default function MapScreen() {
       const { data, error } = await supabase
         .from("photo_archive")
         .select(
-          "id, image_url, latitude, longitude, location_name, taken_date, title, description, user_id",
+          "id, image_url, thumb_url, latitude, longitude, location_name, taken_date, title, description, user_id",
         )
         .eq("couple_id", coupleId)
         .not("latitude", "is", null)

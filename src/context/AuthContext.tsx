@@ -518,11 +518,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setAdLoggingOut(true);
     profileFetchedForUser.current = null;
+    
+    // Çift özelindeki önbellekleri ve hassas yerel verileri sıfırla
+    if (profile?.coupleId) {
+      await AsyncStorage.removeItem(`@love_score_${profile.coupleId}`).catch(() => {});
+      await AsyncStorage.removeItem(`@couples_letter_draft_${profile.coupleId}`).catch(() => {});
+      await AsyncStorage.removeItem(`@defaults_seeded_${profile.coupleId}`).catch(() => {});
+      await AsyncStorage.removeItem(`@period_notif_scheduled_${profile.coupleId}`).catch(() => {});
+    }
+    await AsyncStorage.removeItem("@pending_invite_code").catch(() => {});
+    
     // Clear device auth cache on sign-out so next user gets a fresh check
     await AsyncStorage.removeItem(DEVICE_AUTH_CACHE_KEY).catch(() => {});
     await AsyncStorage.removeItem(CACHED_PROFILE_KEY).catch(() => {});
     await supabase.auth.signOut();
-  }, [isDemoMode, exitDemoMode]);
+  }, [isDemoMode, exitDemoMode, profile?.coupleId]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

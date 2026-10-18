@@ -58,16 +58,20 @@ export default function MenuScreen() {
   const handleRoute = (path: string) => {
     if (isNavigatingRef.current) return;
     isNavigatingRef.current = true;
+    setTimeout(() => {
+      isNavigatingRef.current = false;
+    }, 600);
+
     if (router.canDismiss?.()) {
       router.dismiss();
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         router.push(path as any);
-      }, 100);
+      });
     } else if (router.canGoBack()) {
       router.back();
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         router.push(path as any);
-      }, 100);
+      });
     } else {
       router.replace(path as any);
     }

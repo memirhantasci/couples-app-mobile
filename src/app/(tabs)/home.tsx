@@ -22,7 +22,7 @@ import {
 } from "@/lib/date";
 import { getQuoteForDay } from "@/lib/quotes";
 import { decrypt, deterministicDecrypt } from "@/utils/crypto";
-import { computeLoveScore, getCachedLoveScore, LoveScoreResult } from "@/lib/loveScore";
+import { computeLoveScore, getCachedLoveScore, getCachedLoveScoreSync, LoveScoreResult } from "@/lib/loveScore";
 import { scheduleDateLocalNotification, cancelLocalNotification } from "@/lib/notifications";
 import { useRouter, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -197,7 +197,7 @@ export default function HomeScreen() {
   const { data: loveScoreData, isLoading: isLoveScoreLoading } = useQuery({
     queryKey: ["love_score", coupleId, today, isDemoMode, profile?.isPremium],
     enabled: !!coupleId || isDemoMode,
-    initialData: cachedScore || undefined,
+    initialData: (coupleId ? getCachedLoveScoreSync(coupleId) : null) || cachedScore || undefined,
     staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       if (isDemoMode) {
@@ -211,6 +211,9 @@ export default function HomeScreen() {
   useEffect(() => {
     async function setupPeriodNotification() {
       if (isDemoMode || !profile?.isPremium || !coupleId || !userId) return;
+
+      const cacheKey = `@period_notif_scheduled_${coupleId}`;
+      const lastScheduledDate = await AsyncStorage.getItem(cacheKey);
 
       // Premium ise partner bilgisini ve loglarını al
       const { data: usersData } = await supabase
@@ -236,16 +239,22 @@ export default function HomeScreen() {
           .limit(1);
 
         if (periodLogs && periodLogs.length > 0) {
-          const lastPeriodDate = dayjs(periodLogs[0].date);
+          const logDateStr = periodLogs[0].date;
+          if (lastScheduledDate === logDateStr) {
+            return; // Zaten bu döngü için bildirim zamanlandı
+          }
+
+          const lastPeriodDate = dayjs(logDateStr);
           const notifyDate = lastPeriodDate.add(26, "day").hour(10).minute(0).second(0).toDate();
           
           if (notifyDate.getTime() > Date.now()) {
-            scheduleDateLocalNotification(
+            await scheduleDateLocalNotification(
               "period_approach_alert",
               "Regl Yaklaşıyor 🌸",
               `${partnerName} için regl dönemi yaklaşmak üzere. Ona destek olmak için harika bir zaman!`,
               notifyDate
             );
+            await AsyncStorage.setItem(cacheKey, logDateStr);
           }
         }
       }
