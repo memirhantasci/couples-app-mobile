@@ -9,7 +9,7 @@ import type { ActiveStarConnection, ViewportStarItem } from '../../types/star.ty
 import { CONSTELLATION_LINES } from '../../config/constellationLines.data';
 import { SKY_SECTORS_LIST } from '../../config/skySectors.data';
 import { Skia } from '../skiaBridge';
-import { colorOf } from './starTileScene';
+import { colorOf } from './starField';
 
 /**
  * Everything drawn around the stars, prepared once on the JS thread.

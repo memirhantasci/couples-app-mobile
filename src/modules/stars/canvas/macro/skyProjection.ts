@@ -197,6 +197,10 @@ export function panStep(camera: SkyCamera, deltaX: number, deltaY: number, heigh
  * under the new focal point at the new zoom, so the map zooms around the
  * fingers and follows them when they move together. Zoom limits are absolute
  * (never relative to a rendered baseline), with elastic resistance past them.
+ *
+ * Dec is held inside the pole limit during the pinch itself (like Google Maps
+ * at the world's edge), so nothing has to slide back after the fingers lift.
+ * An overshoot left by a preceding drag is kept, never grown.
  */
 export function pinchStep(
   camera: SkyCamera,
@@ -217,9 +221,12 @@ export function pinchStep(
   );
   const anchor = screenToWorld(previousFocalX, previousFocalY, camera, width, height);
   const scale = pxPerDegree(zoom, height);
+  const overshootPx = Math.max(0, Math.abs(camera.dec) - decLimit(camera.zoom)) * pxPerDegree(camera.zoom, height);
+  const decBound = Math.min(elasticDecBound(zoom, height), decLimit(zoom) + overshootPx / scale);
+  const dec = anchor.dec + (focalY - height / 2) / scale;
   return {
     ra: anchor.ra - (focalX - width / 2) / scale,
-    dec: clampElasticDec(anchor.dec + (focalY - height / 2) / scale, zoom, height),
+    dec: Math.max(-decBound, Math.min(decBound, dec)),
     zoom,
   };
 }
@@ -280,53 +287,4 @@ export function skyBoundsForMotion(
     maxDec: Math.min(90, maxDec),
     zoomLevel: zoom,
   };
-}
-
-// ─── Zoom bands ────────────────────────────────────────────────────────────
-// Star pictures are recorded for discrete zoom bands spaced √2 apart, like
-// raster map tiles. Between bands the GPU scales a band by at most ±19%,
-// and a band switch cross-fades, so star sizes never pop.
-
-export const BAND_RATIO = Math.SQRT2;
-export const BAND_COUNT = 13;
-/** Band switches wait until zoom is this far (log units) past the midpoint. */
-const BAND_HYSTERESIS_LOG = 0.04;
-
-export function bandZoom(band: number): number {
-  'worklet';
-  return MIN_ZOOM * Math.pow(BAND_RATIO, band);
-}
-
-export function bandForZoom(zoom: number): number {
-  'worklet';
-  const index = Math.round(Math.log(zoom / MIN_ZOOM) / Math.log(BAND_RATIO));
-  return Math.max(0, Math.min(BAND_COUNT - 1, index));
-}
-
-/** Like `bandForZoom`, but keeps `currentBand` until zoom clearly leaves it. */
-export function bandForZoomWithHysteresis(zoom: number, currentBand: number): number {
-  'worklet';
-  const next = bandForZoom(zoom);
-  if (next === currentBand || currentBand < 0) return next;
-  const position = Math.log(zoom / MIN_ZOOM) / Math.log(BAND_RATIO);
-  const distancePastMidpoint = Math.abs(position - currentBand) - 0.5;
-  return distancePastMidpoint * Math.log(BAND_RATIO) > BAND_HYSTERESIS_LOG ? next : currentBand;
-}
-
-export type RenderLod = 'low' | 'medium' | 'high';
-
-/** LOD thresholds are shared with the `get_stars_in_viewport` RPC. */
-export function lodForZoom(zoom: number): RenderLod {
-  'worklet';
-  if (zoom < 1.5) return 'low';
-  if (zoom < 4) return 'medium';
-  return 'high';
-}
-
-/** Faintest unclaimed magnitude the RPC returns at a zoom (claimed stars always show). */
-export function magnitudeLimitForZoom(zoom: number): number {
-  'worklet';
-  if (zoom < 1.5) return 3.8;
-  if (zoom < 4) return 5.8;
-  return 9;
 }

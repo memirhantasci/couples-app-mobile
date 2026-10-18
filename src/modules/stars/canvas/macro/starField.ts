@@ -1,0 +1,176 @@
+import { Easing, withTiming, type SharedValue } from 'react-native-reanimated';
+import type { ViewportStarItem } from '../../types/star.types';
+import { normalizeRa } from './skyProjection';
+import { magnitudeToAlpha, starBaseRadius } from './starStyle';
+
+/**
+ * Star data prepared on the JS thread for per-frame drawing on the UI thread.
+ *
+ * Stars are drawn every frame at their exact size for the current zoom, so
+ * zooming never swaps pre-recorded pictures (no size jumps, no cross-fades).
+ * The JS thread only rebuilds this when star data changes. Visible stars
+ * stay few at any zoom because the magnitude limit tightens as the view
+ * widens.
+ */
+
+export const STAR_FADE_MS = 260;
+/** Stars are grouped in cells of this size so a frame can skip off-screen ones. */
+const CELL_DEGREES = 30;
+
+export interface StarRender {
+  /** Normalised to [0, 360). */
+  readonly ra: number;
+  readonly dec: number;
+  readonly magnitude: number;
+  /** Radius in pixels before the zoom bonus. */
+  readonly radius: number;
+  readonly alpha: number;
+  readonly luminosity: number;
+  readonly claimed: boolean;
+  readonly resonance: boolean;
+  /** Index into `StarField.palette`. */
+  readonly color: number;
+  /** Date.now() when the star first appeared; 0 = no fade. */
+  readonly bornAt: number;
+}
+
+export interface StarCell {
+  readonly minRa: number;
+  readonly maxRa: number;
+  readonly minDec: number;
+  readonly maxDec: number;
+  readonly stars: readonly StarRender[];
+}
+
+export interface StarField {
+  readonly cells: readonly StarCell[];
+  /** Opaque RGB colours (alpha is set per circle while drawing). */
+  readonly palette: readonly Float32Array[];
+}
+
+export const EMPTY_STAR_FIELD: StarField = { cells: [], palette: [] };
+
+// ─── Colours ───────────────────────────────────────────────────────────────
+
+const rgbCache = new Map<string, readonly [number, number, number]>();
+
+function rgbOf(hex: string): readonly [number, number, number] {
+  let cached = rgbCache.get(hex);
+  if (!cached) {
+    const clean = hex.replace('#', '');
+    const r = parseInt(clean.substring(0, 2), 16);
+    const g = parseInt(clean.substring(2, 4), 16);
+    const b = parseInt(clean.substring(4, 6), 16);
+    cached = clean.length >= 6 && !Number.isNaN(r + g + b) ? [r / 255, g / 255, b / 255] : [1, 1, 1];
+    rgbCache.set(hex, cached);
+  }
+  return cached;
+}
+
+/** Skia colour without string parsing. */
+export function colorOf(hex: string, alpha: number): Float32Array {
+  const [r, g, b] = rgbOf(hex);
+  return Float32Array.of(r, g, b, Math.max(0, Math.min(1, alpha)));
+}
+
+// ─── Builder ───────────────────────────────────────────────────────────────
+
+function cellKey(ra: number, dec: number) {
+  const raIndex = Math.min(11, Math.floor(ra / CELL_DEGREES));
+  const decIndex = Math.floor((Math.max(-90, Math.min(89.9999, dec)) + 90) / CELL_DEGREES);
+  return raIndex * 6 + decIndex;
+}
+
+export interface StarFieldStats {
+  stars: number;
+  lastBuildMs: number;
+}
+
+/**
+ * Turns streamed stars into a StarField and publishes it. Stars that were
+ * not present before fade in; stars already on screen are untouched.
+ */
+export class StarFieldBuilder {
+  private readonly field: SharedValue<StarField>;
+  private readonly fadeClock: SharedValue<number>;
+  private bornAt = new Map<number, number>();
+  private stars: readonly ViewportStarItem[] = [];
+  readonly stats: StarFieldStats = { stars: 0, lastBuildMs: 0 };
+
+  constructor(field: SharedValue<StarField>, fadeClock: SharedValue<number>) {
+    this.field = field;
+    this.fadeClock = fadeClock;
+  }
+
+  setStars(stars: readonly ViewportStarItem[]) {
+    if (stars === this.stars) return;
+    this.stars = stars;
+    const startedAt = performance.now();
+    const now = Date.now();
+    const palette: Float32Array[] = [];
+    const paletteIndex = new Map<string, number>();
+    const cells = new Map<number, StarRender[]>();
+    const nextBornAt = new Map<number, number>();
+    let fading = false;
+
+    for (const star of stars) {
+      // The user's own star is drawn by the hero beacon overlay.
+      if (star.is_mine) continue;
+      const hex = star.base_color || '#FFFFFF';
+      let color = paletteIndex.get(hex);
+      if (color === undefined) {
+        color = palette.length;
+        palette.push(colorOf(hex, 1));
+        paletteIndex.set(hex, color);
+      }
+
+      const previous = this.bornAt.get(star.catalog_id);
+      let bornAt = previous === undefined ? now : previous;
+      if (bornAt !== 0 && now - bornAt >= STAR_FADE_MS) bornAt = 0;
+      if (bornAt !== 0) fading = true;
+      nextBornAt.set(star.catalog_id, bornAt);
+
+      const ra = normalizeRa(star.ra);
+      const luminosity = star.luminosity_level ?? 1;
+      const render: StarRender = {
+        ra,
+        dec: star.dec,
+        magnitude: star.magnitude,
+        radius: starBaseRadius(star.magnitude, star.spectral_type),
+        alpha: magnitudeToAlpha(star.magnitude, luminosity),
+        luminosity,
+        claimed: star.is_claimed,
+        resonance: star.resonance_active,
+        color,
+        bornAt,
+      };
+      const key = cellKey(ra, star.dec);
+      const cell = cells.get(key);
+      if (cell) cell.push(render);
+      else cells.set(key, [render]);
+    }
+    this.bornAt = nextBornAt;
+
+    const published: StarCell[] = [];
+    for (const [key, cellStars] of cells) {
+      const raIndex = Math.floor(key / 6);
+      const decIndex = key % 6;
+      published.push({
+        minRa: raIndex * CELL_DEGREES,
+        maxRa: (raIndex + 1) * CELL_DEGREES,
+        minDec: decIndex * CELL_DEGREES - 90,
+        maxDec: (decIndex + 1) * CELL_DEGREES - 90,
+        stars: cellStars,
+      });
+    }
+
+    this.field.set({ cells: published, palette });
+    if (fading) {
+      // One shared clock drives every fade; it only ticks while stars fade in.
+      this.fadeClock.set(now);
+      this.fadeClock.set(withTiming(now + STAR_FADE_MS, { duration: STAR_FADE_MS, easing: Easing.linear }));
+    }
+    this.stats.stars = nextBornAt.size;
+    this.stats.lastBuildMs = performance.now() - startedAt;
+  }
+}

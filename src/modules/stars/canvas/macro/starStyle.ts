@@ -1,7 +1,7 @@
 /**
- * Star sizing and brightness shared by picture recording (JS thread) and the
- * per-frame overlay (UI thread). Values are unchanged from the previous
- * renderer so stars keep their look.
+ * Star sizing, brightness and visibility, shared by the per-frame renderer
+ * (UI thread) and hit-testing (JS thread). Sizes match the previous
+ * renderer; everything is continuous in zoom so nothing pops while zooming.
  */
 
 const STAR_BASE_RADIUS_PX: Readonly<Record<string, number>> = {
@@ -9,14 +9,30 @@ const STAR_BASE_RADIUS_PX: Readonly<Record<string, number>> = {
 };
 const FALLBACK_STAR_RADIUS = 2.4;
 
-/** Screen radius in pixels of a star drawn at `zoom`. */
-export function magnitudeToRadius(magnitude: number, spectralType: string | null | undefined, zoom: number): number {
+export function smoothstep(edge0: number, edge1: number, value: number): number {
+  'worklet';
+  const t = Math.max(0, Math.min(1, (value - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
+
+/** Zoom-independent part of a star's radius, in pixels. */
+export function starBaseRadius(magnitude: number, spectralType: string | null | undefined): number {
   'worklet';
   const baseClass = (spectralType || 'G').charAt(0).toUpperCase();
   const baseRadius = STAR_BASE_RADIUS_PX[baseClass] ?? FALLBACK_STAR_RADIUS;
-  const magScale = Math.max(0.6, Math.min(3.2, 1 + (3 - magnitude) * 0.25));
-  const zoomBonus = Math.min(5.5, 1 + (zoom - 1) * 0.18);
-  return baseRadius * magScale * zoomBonus;
+  return baseRadius * Math.max(0.6, Math.min(3.2, 1 + (3 - magnitude) * 0.25));
+}
+
+/** How much every star grows with zoom (same curve as before, capped at 5.5×). */
+export function starZoomBonus(zoom: number): number {
+  'worklet';
+  return Math.min(5.5, 1 + (zoom - 1) * 0.18);
+}
+
+/** Screen radius in pixels of a star drawn at `zoom`. */
+export function magnitudeToRadius(magnitude: number, spectralType: string | null | undefined, zoom: number): number {
+  'worklet';
+  return starBaseRadius(magnitude, spectralType) * starZoomBonus(zoom);
 }
 
 export function magnitudeToAlpha(magnitude: number, luminosity: number): number {
@@ -25,11 +41,25 @@ export function magnitudeToAlpha(magnitude: number, luminosity: number): number 
   return 0.45 + normalized * 0.55 * luminosity;
 }
 
-/** Furthest a star's glow or halo reaches from its centre, in pixels at its band zoom. */
-export const MAX_STAR_EXTENT_PX = 140;
-
-export function smoothstep(edge0: number, edge1: number, value: number): number {
+/**
+ * Faintest unclaimed magnitude shown at a zoom. It rises smoothly through the
+ * RPC's limits (3.8 below zoom 1.5, 5.8 below 4, then 9.0) as the matching
+ * tile level loads, so faint stars fade in while zooming instead of popping.
+ */
+export function visibleMagnitudeLimit(zoom: number): number {
   'worklet';
-  const t = Math.max(0, Math.min(1, (value - edge0) / (edge1 - edge0)));
-  return t * t * (3 - 2 * t);
+  const logZoom = Math.log(zoom);
+  const toMedium = smoothstep(Math.log(1.5), Math.log(2.6), logZoom);
+  const toHigh = smoothstep(Math.log(4), Math.log(7), logZoom);
+  return 3.8 + 2.0 * toMedium + 3.2 * toHigh;
+}
+
+/** Magnitudes over which a star fades out past the visible limit. */
+const MAGNITUDE_FADE = 0.35;
+
+/** 0…1 visibility of a star at a zoom; claimed stars always show. */
+export function starVisibility(magnitude: number, claimed: boolean, zoom: number): number {
+  'worklet';
+  if (claimed) return 1;
+  return Math.max(0, Math.min(1, (visibleMagnitudeLimit(zoom) + MAGNITUDE_FADE - magnitude) / MAGNITUDE_FADE));
 }

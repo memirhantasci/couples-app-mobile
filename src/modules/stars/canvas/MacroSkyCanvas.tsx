@@ -13,7 +13,7 @@ import type {
 } from '@/modules/stars/types/star.types';
 import { SkyDebugHud } from './macro/debug/SkyDebugHud';
 import { SKY_DEBUG_HUD_ENABLED } from './macro/debug/skyDebugConfig';
-import { recordSkyFrame } from './macro/drawSkyFrame';
+import { createStarPaints, recordSkyFrame } from './macro/drawSkyFrame';
 import { hitTestSky } from './macro/hitTest';
 import {
   buildSkyOverlay,
@@ -23,7 +23,6 @@ import {
   type SkyOverlay,
 } from './macro/skyOverlay';
 import {
-  bandForZoom,
   BASE_FOV_DEG,
   clampDec,
   clampZoom,
@@ -32,7 +31,8 @@ import {
   skyBoundsForMotion,
 } from './macro/skyProjection';
 import { SOLAR_SYSTEM_OBJECTS } from './macro/solarSystem';
-import { EMPTY_STAR_SCENE, StarSceneManager, type StarScene } from './macro/starTileScene';
+import { EMPTY_STAR_FIELD, StarFieldBuilder, type StarField } from './macro/starField';
+import { starVisibility } from './macro/starStyle';
 import { useSkyCamera } from './macro/useSkyCamera';
 
 export { SOLAR_SYSTEM_OBJECTS };
@@ -111,10 +111,11 @@ function heroTapTarget(ra: number, dec: number, name?: string): ViewportStarItem
 /**
  * Macro sky map.
  *
- * The camera lives on the UI thread (see useSkyCamera); every frame is drawn
- * there from pictures recorded ahead of time in world space, so panning,
- * pinching, momentum and flights never wait for the JS thread or React.
- * The JS thread records star tiles only when data or the zoom band changes.
+ * The camera lives on the UI thread (see useSkyCamera) and every frame is
+ * drawn there, stars at their exact size for the current zoom, so panning,
+ * pinching, momentum and flights never wait for the JS thread or React and
+ * nothing is swapped or re-recorded while zooming. The JS thread only
+ * rebuilds star data when new stars arrive.
  */
 function MacroSkyCanvasSkia({
   stars,
@@ -141,10 +142,11 @@ function MacroSkyCanvasSkia({
     return { ra: initialCamera?.centerRa ?? 180, dec: clampDec(initialCamera?.centerDec ?? 0, zoom), zoom };
   });
 
-  const starScene = useSharedValue<StarScene>(EMPTY_STAR_SCENE);
+  const starField = useSharedValue<StarField>(EMPTY_STAR_FIELD);
   const fadeClock = useSharedValue(0);
   const overlay = useSharedValue<SkyOverlay | null>(null);
-  const [sceneManager] = useState(() => new StarSceneManager(height, starScene, fadeClock));
+  const [starFieldBuilder] = useState(() => new StarFieldBuilder(starField, fadeClock));
+  const [starPaints] = useState(createStarPaints);
   const [staticAssets] = useState(() => createStaticOverlayAssets(width, height));
   const [labelCache] = useState(() => new LabelPictureCache());
 
@@ -198,17 +200,14 @@ function MacroSkyCanvasSkia({
     [width, height],
   );
 
-  const handleBandChange = useCallback((band: number) => sceneManager.setBand(band), [sceneManager]);
-
   const handleTap = useCallback(
     (x: number, y: number, ra: number, dec: number, zoom: number) => {
       const props = propsRef.current;
       if (!props.onSelectStar) return;
-      // Streamed data may hold fainter stars than the current band draws.
-      const magnitudeLimit = sceneManager.magnitudeLimit;
+      // Streamed data may hold stars too faint to be drawn at this zoom.
       const candidates: ViewportStarItem[] = [
         ...SOLAR_SYSTEM_OBJECTS,
-        ...props.stars.filter((star) => star.is_claimed || star.magnitude <= magnitudeLimit),
+        ...props.stars.filter((star) => starVisibility(star.magnitude, star.is_claimed, zoom) > 0.3),
       ];
       if (props.myStarRa !== undefined && props.myStarDec !== undefined) {
         candidates.unshift(heroTapTarget(props.myStarRa, props.myStarDec, props.myStarName));
@@ -219,7 +218,7 @@ function MacroSkyCanvasSkia({
       }
       props.onSelectStar(hit);
     },
-    [width, height, sceneManager],
+    [width, height],
   );
 
   const { camera, gesture, flightRequest } = useSkyCamera({
@@ -228,18 +227,12 @@ function MacroSkyCanvasSkia({
     initialCamera: initial,
     onMoving: handleMoving,
     onIdle: handleIdle,
-    onBandChange: handleBandChange,
     onTap: handleTap,
   });
 
   useEffect(() => {
-    sceneManager.setBand(bandForZoom(initial.zoom));
-    return () => sceneManager.dispose();
-  }, [sceneManager, initial]);
-
-  useEffect(() => {
-    sceneManager.setStars(stars);
-  }, [sceneManager, stars]);
+    starFieldBuilder.setStars(stars);
+  }, [starFieldBuilder, stars]);
 
   useEffect(() => {
     overlay.set(
@@ -279,24 +272,25 @@ function MacroSkyCanvasSkia({
     propsRef.current.onTargetCameraConsumed?.();
   }, [targetCamera, flightRequest]);
 
+  // The frame is drawn on the UI thread whenever the camera, stars, overlay or
+  // fade clock change; every input is read directly here so Reanimated
+  // subscribes to it.
   const frame = useDerivedValue(() => {
     'worklet';
-    return recordSkyFrame(camera.get(), starScene.get(), overlay.get(), fadeClock.get(), width, height);
+    return recordSkyFrame(camera.get(), starField.get(), overlay.get(), fadeClock.get(), starPaints, width, height);
   });
 
   const getDebugMetrics = useCallback(() => {
     const current = camera.get();
-    const stats = sceneManager.stats;
+    const stats = starFieldBuilder.stats;
     return {
       zoom: current.zoom.toFixed(2),
       'ra / dec': `${normalizeRa(current.ra).toFixed(1)} / ${current.dec.toFixed(1)}`,
-      band: bandForZoom(current.zoom),
       'stars in view data': propsRef.current.stars.length,
-      'tile entries': stats.entries,
-      'pictures recorded': stats.records,
-      'last rebuild ms': stats.lastRebuildMs.toFixed(1),
+      'stars drawable': stats.stars,
+      'last build ms': stats.lastBuildMs.toFixed(1),
     };
-  }, [camera, sceneManager]);
+  }, [camera, starFieldBuilder]);
 
   return (
     <View style={[styles.container, { width, height }]}>

@@ -13,7 +13,6 @@ import {
 import { scheduleOnRN } from 'react-native-worklets';
 import { createFlightPlan, FLIGHT_INSTANT, sampleFlight, type FlightPlan } from './flyToPath';
 import {
-  bandForZoomWithHysteresis,
   cameraAnchoredAt,
   clampDec,
   clampZoom,
@@ -39,14 +38,13 @@ const FLING_MIN_VELOCITY = 140; // px/s
 const FLING_DECELERATION = 0.998;
 const SETTLE_DURATION_MS = 320;
 const TAP_ZOOM_DURATION_MS = 300;
-const ZOOM_INERTIA_DURATION_MS = 380;
-/** Projected log-zoom travel after release = log velocity × this (seconds). */
-const ZOOM_INERTIA_SEC = 0.16;
-const ZOOM_INERTIA_MIN_LOG_VELOCITY = 0.6;
-/** Release velocities spike when fingers lift; cap the projected zoom change (≈ ×1.9). */
-const ZOOM_INERTIA_MAX_LOG_VELOCITY = 4;
-/** A pan release this soon after a pinch is pinch-driven and must not fling. */
-const PINCH_RELEASE_WINDOW_MS = 150;
+/**
+ * Releasing within this long after a pinch never flings: the remaining
+ * finger's velocity still comes from the pinch, and the map must stay
+ * exactly where the fingers left it (like Google Maps). A real single-finger
+ * flick after a pinch is longer than this.
+ */
+const PINCH_FLING_GUARD_MS = 300;
 const MOVING_NOTIFY_INTERVAL_MS = 200;
 
 const SETTLE_EASING = Easing.out(Easing.cubic);
@@ -137,8 +135,6 @@ export interface UseSkyCameraOptions {
   readonly onMoving?: (ra: number, dec: number, zoom: number, raVelocity: number, decVelocity: number) => void;
   /** The camera settled (gesture released without momentum, or an animation finished). */
   readonly onIdle?: (ra: number, dec: number, zoom: number) => void;
-  /** The star picture zoom band changed (with hysteresis). */
-  readonly onBandChange?: (band: number) => void;
   /** Single tap, with the camera exactly as rendered at that moment. */
   readonly onTap?: (x: number, y: number, ra: number, dec: number, zoom: number) => void;
 }
@@ -168,12 +164,10 @@ export function useSkyCamera({
   initialCamera,
   onMoving,
   onIdle,
-  onBandChange,
   onTap,
 }: UseSkyCameraOptions) {
   const emitMoving = useLatestCallback(onMoving);
   const emitIdle = useLatestCallback(onIdle);
-  const emitBandChange = useLatestCallback(onBandChange);
   const emitTap = useLatestCallback(onTap);
 
   const baseRa = useSharedValue(initialCamera.ra);
@@ -198,8 +192,10 @@ export function useSkyCamera({
   const panVelocityY = useSharedValue(0);
   const lastFocalX = useSharedValue(width / 2);
   const lastFocalY = useSharedValue(height / 2);
-  const pinchLogVelocity = useSharedValue(0);
-  const pinchEndedAt = useSharedValue(0);
+  /** True while the pinch is tracking two fingers (its focal point is their midpoint). */
+  const pinchTwoFingers = useSharedValue(false);
+  /** Last time a pinch zoomed or ended; releases close to it never fling. */
+  const lastPinchAt = useSharedValue(0);
 
   const flightRequest = useSharedValue<SkyFlightRequest | null>(null);
   const idleRa = useSharedValue(Number.NaN);
@@ -209,7 +205,6 @@ export function useSkyCamera({
   const lastSampleAt = useSharedValue(0);
   const raVelocity = useSharedValue(0);
   const decVelocity = useSharedValue(0);
-  const notifiedBand = useSharedValue(-1);
 
   // Reanimated subscribes a derived value only to shared values its updater
   // captures directly, or inside plain objects/arrays it captures; it never
@@ -371,26 +366,15 @@ export function useSkyCamera({
     panVelocityX.set(0);
     panVelocityY.set(0);
 
+    // Past a zoom limit: spring back around the fingers (rubber band).
     if (zoom > MAX_ZOOM || zoom < MIN_ZOOM) {
       startSettle(lastFocalX.get(), lastFocalY.get(), clampZoom(zoom), SETTLE_DURATION_MS);
       return;
     }
-    const pinchJustEnded = eventTimeMs() - pinchEndedAt.get() < PINCH_RELEASE_WINDOW_MS;
-    if (pinchJustEnded) {
-      const logVelocity = Math.max(
-        -ZOOM_INERTIA_MAX_LOG_VELOCITY,
-        Math.min(ZOOM_INERTIA_MAX_LOG_VELOCITY, pinchLogVelocity.get()),
-      );
-      pinchLogVelocity.set(0);
-      if (Math.abs(logVelocity) > ZOOM_INERTIA_MIN_LOG_VELOCITY) {
-        const target = clampZoom(zoom * Math.exp(logVelocity * ZOOM_INERTIA_SEC));
-        startSettle(lastFocalX.get(), lastFocalY.get(), target, ZOOM_INERTIA_DURATION_MS);
-        return;
-      }
-      startFling(0, 0);
-      return;
-    }
-    startFling(velocityX, velocityY);
+    // After a pinch the camera stays exactly where the fingers left it: no
+    // zoom inertia and no fling (only a pole overshoot is eased back).
+    const afterPinch = eventTimeMs() - lastPinchAt.get() < PINCH_FLING_GUARD_MS;
+    startFling(afterPinch ? 0 : velocityX, afterPinch ? 0 : velocityY);
   };
 
   /** Fly-to entry point; runs on the UI thread so it starts from the live camera. */
@@ -432,7 +416,7 @@ export function useSkyCamera({
     },
   );
 
-  // Throttled motion reports for tile streaming, plus band changes.
+  // Throttled motion reports for tile streaming.
   useAnimatedReaction(
     () => {
       'worklet';
@@ -440,11 +424,6 @@ export function useSkyCamera({
     },
     (current, previous) => {
       'worklet';
-      const band = bandForZoomWithHysteresis(current.zoom, notifiedBand.get());
-      if (band !== notifiedBand.get()) {
-        notifiedBand.set(band);
-        scheduleOnRN(emitBandChange, band);
-      }
       if (!previous) return;
 
       const now = eventTimeMs();
@@ -478,7 +457,8 @@ export function useSkyCamera({
     })
     .onChange((event) => {
       'worklet';
-      if (pinchActive.get()) return;
+      // While two fingers pinch, the pinch moves the map with their midpoint.
+      if (pinchActive.get() && pinchTwoFingers.get()) return;
       if (skipNextPanDelta.get()) {
         // First event after a pinch: the touch centroid may jump when a finger lifts.
         skipNextPanDelta.set(false);
@@ -508,11 +488,29 @@ export function useSkyCamera({
       'worklet';
       if (mode.get() !== MODE_DIRECT) bake();
       pinchActive.set(true);
+      pinchTwoFingers.set(event.numberOfPointers >= 2);
       lastFocalX.set(event.focalX);
       lastFocalY.set(event.focalY);
     })
     .onChange((event) => {
       'worklet';
+      if (event.numberOfPointers < 2) {
+        // A finger lifted while the pinch is still alive (iOS): its focal
+        // point jumps to the remaining finger, so stop zooming here and let
+        // the pan follow that finger instead.
+        if (pinchTwoFingers.get()) {
+          pinchTwoFingers.set(false);
+          skipNextPanDelta.set(true);
+        }
+        return;
+      }
+      if (!pinchTwoFingers.get()) {
+        // Second finger back: re-anchor instead of applying the jump.
+        pinchTwoFingers.set(true);
+        lastFocalX.set(event.focalX);
+        lastFocalY.set(event.focalY);
+        return;
+      }
       if (mode.get() !== MODE_DIRECT) bake();
       setDirect(
         pinchStep(
@@ -528,18 +526,16 @@ export function useSkyCamera({
       );
       lastFocalX.set(event.focalX);
       lastFocalY.set(event.focalY);
-    })
-    .onEnd((event) => {
-      'worklet';
-      pinchLogVelocity.set(event.scale > 0 ? event.velocity / event.scale : 0);
+      lastPinchAt.set(eventTimeMs());
     })
     .onFinalize(() => {
       'worklet';
       if (pinchActive.get()) {
-        pinchEndedAt.set(eventTimeMs());
+        lastPinchAt.set(eventTimeMs());
         skipNextPanDelta.set(true);
       }
       pinchActive.set(false);
+      pinchTwoFingers.set(false);
       settleAfterGesture();
     });
 
