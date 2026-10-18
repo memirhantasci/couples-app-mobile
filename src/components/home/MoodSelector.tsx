@@ -1,11 +1,13 @@
-import React, { useState, memo } from "react";
+import React, { useState, useEffect, memo } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { todayString } from "@/lib/date";
@@ -26,6 +28,9 @@ const MOODS = [
   { emoji: "😴", label: "Yorgun" },
 ] as const;
 
+const COOLDOWN_SECONDS = 60; // Değişiklikler arası 60 saniye bekleme süresi
+const MAX_DAILY_MOOD_UPDATES = 5; // Günde en fazla 5 kez değiştirme hakkı
+
 interface MoodSelectorProps {
   currentMood?: string | null;
   moodLocked?: boolean;
@@ -39,13 +44,71 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked
 
   const [selected, setSelected] = useState<string | null>(currentMood || null);
   const [loading, setLoading] = useState(false);
+  const [cooldown, setCooldown] = useState<number>(0);
+  const [updateCount, setUpdateCount] = useState<number>(0);
 
-  React.useEffect(() => {
+  const today = todayString();
+
+  // Günlük kota ve son güncelleme zamanını oku
+  useEffect(() => {
     setSelected(currentMood || null);
-  }, [currentMood]);
+
+    async function loadRateLimitState() {
+      try {
+        const [lastTimeStr, countStr] = await Promise.all([
+          AsyncStorage.getItem(`@mood_last_time_${today}`),
+          AsyncStorage.getItem(`@mood_count_${today}`),
+        ]);
+        if (countStr) {
+          setUpdateCount(parseInt(countStr, 10) || 0);
+        }
+        if (lastTimeStr) {
+          const diffSeconds = Math.floor((Date.now() - parseInt(lastTimeStr, 10)) / 1000);
+          if (diffSeconds < COOLDOWN_SECONDS) {
+            setCooldown(COOLDOWN_SECONDS - diffSeconds);
+          }
+        }
+      } catch (e) {
+        logger.error("Rate limit state load error:", e);
+      }
+    }
+    loadRateLimitState();
+  }, [currentMood, today]);
+
+  // Cooldown geri sayımı
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const interval = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [cooldown]);
 
   async function handleMoodSelect(emoji: string) {
     if (selected === emoji) return;
+
+    if (cooldown > 0) {
+      Alert.alert(
+        "Lütfen Biraz Bekleyin ⏳",
+        `Ruh halinizi ${cooldown} saniye sonra tekrar güncelleyebilirsiniz.`
+      );
+      return;
+    }
+
+    if (updateCount >= MAX_DAILY_MOOD_UPDATES) {
+      Alert.alert(
+        "Günlük Limit Doldu 🌸",
+        "Bugün ruh halinizi en fazla 5 kez güncelleyebilirsiniz. Yarın tekrar güncelleyebilirsiniz!"
+      );
+      return;
+    }
+
     playBubblePop();
     if (executeOrIntercept(
       () => {},
@@ -58,7 +121,6 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked
     setLoading(true);
 
     const coupleId = profile?.coupleId || null;
-    const today = todayString();
     const userId = session.user.id;
 
     const { data: existing } = await supabase
@@ -85,6 +147,18 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked
 
     if (!error) {
       setSelected(emoji);
+      const nextCount = updateCount + 1;
+      setUpdateCount(nextCount);
+      setCooldown(COOLDOWN_SECONDS);
+
+      // Spam koruma zaman damgasını kaydet
+      try {
+        await AsyncStorage.setItem(`@mood_last_time_${today}`, Date.now().toString());
+        await AsyncStorage.setItem(`@mood_count_${today}`, nextCount.toString());
+      } catch (e) {
+        logger.error("Rate limit save error:", e);
+      }
+
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
 
@@ -156,7 +230,15 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, moodLocked
         </View>
       )}
 
-      {selected ? (
+      {cooldown > 0 ? (
+        <Text style={[styles.lockedText, { color: theme.textMuted }]}>
+          Ruh halin güncellendi ✨ ({cooldown} sn sonra tekrar değiştirebilirsin)
+        </Text>
+      ) : updateCount >= MAX_DAILY_MOOD_UPDATES ? (
+        <Text style={[styles.lockedText, { color: theme.textMuted }]}>
+          Bugünkü ruh hali güncelleme limitine (5/5) ulaştın 🌸
+        </Text>
+      ) : selected ? (
         <Text style={[styles.lockedText, { color: theme.textMuted }]}>
           Ruh halini gün içinde dilediğin an güncelleyebilirsin ✨
         </Text>

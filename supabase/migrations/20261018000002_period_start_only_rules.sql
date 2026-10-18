@@ -73,3 +73,18 @@ CREATE TRIGGER trg_check_period_log_rules
   BEFORE INSERT ON public.period_logs
   FOR EACH ROW
   EXECUTE FUNCTION check_period_log_rules();
+
+-- ============================================================
+-- 7. Geçmiş Veri Temizliği (Eski Çoklu Gün Takibinden Kalanlar)
+-- ============================================================
+-- Eski sistemde her gün ("1. gün, 2. gün, 3. gün...") ayrı satır olarak yazılıyordu.
+-- Yeni sistemin "Ayda en fazla 2 başlangıç" kotasını yanlış yere tüketmemeleri ve
+-- 16 günlük aralık hesabını kaydırmamaları için, bir önceki başlangıçtan itibaren
+-- 16 günden daha yakın olan devam günlerini temizleyip yalnızca başlangıç günlerini bırakıyoruz:
+DELETE FROM public.period_logs pl1
+WHERE EXISTS (
+  SELECT 1 FROM public.period_logs pl2
+  WHERE pl2.user_id = pl1.user_id
+    AND pl2.date::date < pl1.date::date
+    AND pl1.date::date - pl2.date::date < 16
+);
