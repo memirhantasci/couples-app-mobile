@@ -3,6 +3,7 @@ import { Gesture } from 'react-native-gesture-handler';
 import {
   cancelAnimation,
   Easing,
+  runOnJS,
   useAnimatedReaction,
   useDerivedValue,
   useSharedValue,
@@ -445,7 +446,7 @@ export function useSkyCamera({
   // Explicit 'worklet' directives keep every callback on the UI thread even if
   // the compiler hoists it out of the builder chain.
   const pan = Gesture.Pan()
-    .minDistance(4)
+    .minDistance(10)
     .averageTouches(true)
     .onBegin(() => {
       'worklet';
@@ -540,19 +541,19 @@ export function useSkyCamera({
     });
 
   const singleTap = Gesture.Tap()
-    .maxDuration(300)
-    .maxDistance(16)
+    .maxDuration(450)
+    .maxDistance(24)
     .onEnd((event, success) => {
       'worklet';
       if (!success) return;
       const current = readCamera();
-      scheduleOnRN(emitTap, event.x, event.y, current.ra, current.dec, current.zoom);
+      runOnJS(emitTap)(event.x, event.y, current.ra, current.dec, current.zoom);
     });
 
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
     .maxDelay(260)
-    .maxDistance(24)
+    .maxDistance(28)
     .onEnd((event, success) => {
       'worklet';
       if (!success) return;
@@ -561,17 +562,19 @@ export function useSkyCamera({
 
   const twoFingerTap = Gesture.Tap()
     .minPointers(2)
-    .maxDuration(260)
-    .maxDistance(20)
+    .maxDuration(280)
+    .maxDistance(24)
     .onEnd((event, success) => {
       'worklet';
       if (!success) return;
       startSettle(event.x, event.y, clampZoom(readCamera().zoom / 2), TAP_ZOOM_DURATION_MS);
     });
 
-  const gesture = Gesture.Race(
-    Gesture.Simultaneous(pan, pinch),
-    Gesture.Exclusive(twoFingerTap, doubleTap, singleTap),
+  const gesture = Gesture.Simultaneous(
+    pan,
+    pinch,
+    twoFingerTap,
+    Gesture.Exclusive(doubleTap, singleTap),
   );
 
   return { camera, gesture, flightRequest };

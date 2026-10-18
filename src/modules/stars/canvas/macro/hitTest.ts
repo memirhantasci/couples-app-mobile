@@ -2,8 +2,8 @@ import type { ViewportStarItem } from '../../types/star.types';
 import { pxPerDegree, shortestRaDelta, type SkyCamera } from './skyProjection';
 import { magnitudeToRadius } from './starStyle';
 
-const MIN_TOUCH_RADIUS = 46;
-const SOLAR_TOUCH_RADIUS = 56;
+const MIN_TOUCH_RADIUS = 52;
+const SOLAR_TOUCH_RADIUS = 64;
 
 /**
  * Nearest tappable object to a screen point, using the camera exactly as it

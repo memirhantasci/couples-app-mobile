@@ -335,7 +335,7 @@ function MacroSkyCanvasSkia({
       // Streamed data may hold stars too faint to be drawn at this zoom.
       const candidates: ViewportStarItem[] = [
         ...SOLAR_SYSTEM_OBJECTS,
-        ...props.stars.filter((star) => starVisibility(star.magnitude, star.is_claimed, zoom) > 0.3),
+        ...props.stars.filter((star) => star.is_claimed || starVisibility(star.magnitude, star.is_claimed, zoom) > 0.05),
       ];
       if (props.myStarRa !== undefined && props.myStarDec !== undefined) {
         candidates.unshift(heroTapTarget(props.myStarRa, props.myStarDec, props.myStarName));
