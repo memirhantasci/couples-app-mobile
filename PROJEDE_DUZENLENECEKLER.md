@@ -115,15 +115,13 @@ Aşağıdaki tüm optimizasyonlar başarıyla kodlanmış, entegre edilmiş ve t
 
 ## 4. Performans & Mimari Refactoring
 
-### ⚡ 4.1. Monolitik Dev Dosyaların Parçalanması
-Uygulamada bazı ekranlar tek dosya içinde binlerce satıra ulaşmıştır:
-- `src/app/(tabs)/map.tsx` — **2.304 satır**
-- `src/app/(tabs)/profile.tsx` — **2.021 satır**
-- `src/app/(tabs)/medicine.tsx` — **1.675 satır**
-- `src/app/(tabs)/calendar.tsx` — **1.482 satır**
-- `src/app/(tabs)/photos.tsx` — **1.115 satır**
-
-Bu dosyaların içindeki alt kartlar (örneğin `profile.tsx` içindeki ses efektleri test kutusu, tab bar özelleştirici, yasal modal listesi vb.) modüler alt bileşenler olarak ayrıştırılmalıdır. Bu işlem hot-reload hızını ve kod bakımını ciddi oranda rahatlatacaktır.
+### ✅ [x] 4.1. Monolitik Dev Dosyaların Parçalanması (Tamamlandı)
+Uygulamada binlerce satıra ulaşmış 5 dev ekran modüler alt bileşenlere ayrılarak ana ekran dosyaları toplamda ~5.100 satır hafifletildi:
+- `src/app/(tabs)/profile.tsx` — 2.021 ➔ **704 satır** (`src/components/profile/` altında 10 modül)
+- `src/app/(tabs)/photos.tsx` — 1.121 ➔ **498 satır** (`src/components/photos/` altında memoize hücreler ve lightbox)
+- `src/app/(tabs)/calendar.tsx` — 1.554 ➔ **1.024 satır** (`src/components/calendar/` altında `DaySectionCard`, `CalendarMonthView` ve modallar)
+- `src/app/(tabs)/medicine.tsx` — 1.674 ➔ **829 satır** (`src/components/medicine/` altında seri/doz kartları ve local state modal)
+- `src/app/(tabs)/map.tsx` — 2.304 ➔ **496 satır** (`src/components/map/`, `src/constants/mapStyles.ts`, `useMapData.ts` ve `MapStoryModal` boş durum entegrasyonu)
 
 ---
 
@@ -135,7 +133,7 @@ Bu dosyaların içindeki alt kartlar (örneğin `profile.tsx` içindeki ses efek
 | **2** | `period-tracker.tsx` döngü tahmini ve sonraki regl geri sayımı | Mantık / UX | [`period-tracker.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(tabs)/period-tracker.tsx) | Döngü takvimini gerçek anlamda işlevsel kılar |
 | **3** | `MoodSelector.tsx` 24 saatlik kalıcı kilidin kaldırılarak güncellemelerin açılması | UX / Mantık | [`MoodSelector.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/components/home/MoodSelector.tsx) | Gün içi ruh hali değişimlerinin anında paylaşılmasını sağlar |
 | **4** | ~~Şifre sıfırlama Supabase Auth entegrasyonu~~ (Tamamlandı ✅) | Güvenlik / Auth | [`forgot-password.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/forgot-password.tsx) & [`reset-password.tsx`](file:///c:/Users/ahmet/OneDrive/Masa%C3%BCst%C3%BC/couples-app-mobile/src/app/(auth)/reset-password.tsx) | Şifresini unutan kullanıcıların hesaplarına güvenle tekrar erişebilmesini sağlar |
-| **5** | Monolitik ekranların alt bileşenlere modüler ayrıştırılması | Mimari / Refactor | `map.tsx`, `profile.tsx`, `medicine.tsx`, `calendar.tsx` | Hot-reload ve maintainability hızını artırır |
+| **5** | ~~Monolitik ekranların alt bileşenlere modüler ayrıştırılması~~ (Tamamlandı ✅) | Mimari / Refactor | `map.tsx`, `profile.tsx`, `medicine.tsx`, `calendar.tsx`, `photos.tsx` | Hot-reload ve maintainability hızını ciddi oranda artırdı |
 
 ---
 

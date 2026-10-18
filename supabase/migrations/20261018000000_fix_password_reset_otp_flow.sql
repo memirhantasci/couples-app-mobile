@@ -26,6 +26,10 @@ CREATE TABLE IF NOT EXISTS public.otp_codes (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Tablo önceden farklı sütunlarla (purpose/code_hash olmadan) oluşturulmuşsa sütunları ekle:
+ALTER TABLE public.otp_codes ADD COLUMN IF NOT EXISTS code_hash TEXT;
+ALTER TABLE public.otp_codes ADD COLUMN IF NOT EXISTS purpose TEXT NOT NULL DEFAULT 'password_reset';
+
 CREATE INDEX IF NOT EXISTS otp_codes_user_id_idx ON public.otp_codes(user_id);
 
 -- RLS is enabled with no policies: only the SECURITY DEFINER functions
