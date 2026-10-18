@@ -298,6 +298,7 @@ export async function claimRandomStar(
       p_couple_id: params.coupleId,
       p_custom_name: params.customName.trim(),
       p_mag_max: params.maxMagnitude ?? 6.5,
+      p_owner_initials: params.ownerInitials ?? null,
     });
 
     if (error) {
@@ -324,6 +325,7 @@ export async function claimSpecificStar(
       p_couple_id: params.coupleId,
       p_star_catalog_id: params.starCatalogId,
       p_custom_name: params.customName.trim(),
+      p_owner_initials: params.ownerInitials ?? null,
     });
 
     if (error) {
@@ -801,6 +803,7 @@ export async function claimStarInSector(
       p_couple_id: params.coupleId,
       p_sector_id: params.sectorId,
       p_custom_name: params.customName,
+      p_owner_initials: params.ownerInitials ?? null,
     });
 
     if (error) {

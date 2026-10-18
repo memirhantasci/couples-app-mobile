@@ -930,7 +930,9 @@ export const OurStarScreen: React.FC = () => {
                 </View>
               ) : selectedMacroStar.is_claimed ? (
                 <View style={styles.claimedBadge}>
-                  <Text style={styles.claimedBadgeText}>Tescilli</Text>
+                  <Text style={styles.claimedBadgeText}>
+                    🔒 Tescilli{selectedMacroStar.owner_initials ? ` • (${selectedMacroStar.owner_initials})` : ''}
+                  </Text>
                 </View>
               ) : (
                 <View style={styles.availableBadge}>

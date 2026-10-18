@@ -31,6 +31,7 @@ import {
   Alert,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import * as Clipboard from 'expo-clipboard';
 import {
   X,
   Share2,
@@ -42,9 +43,12 @@ import {
   Globe,
   Compass,
   CheckCircle2,
+  Copy,
+  KeyRound,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/context/ThemeContext';
+import { supabase } from '@/lib/supabase';
 import { starService } from '../api/starService';
 import type {
   ActiveStarConnection,
@@ -81,6 +85,8 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
   const [activeConnections, setActiveConnections] = useState<ActiveStarConnection[]>([]);
   const [pendingConnections, setPendingConnections] = useState<PendingConnectionDetail[]>([]);
   const [canConnect, setCanConnect] = useState(true);
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   // Arama durumu
   const [searchQuery, setSearchQuery] = useState('');
@@ -97,14 +103,16 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const [connections, pending, limitOk] = await Promise.all([
+      const [connections, pending, limitOk, coupleRow] = await Promise.all([
         starService.getMyStarConnections(),
         starService.getPendingConnections(),
         starService.checkConnectionLimit(coupleId).catch(() => true),
+        supabase.from('couples').select('pairing_code').eq('id', coupleId).maybeSingle(),
       ]);
       setActiveConnections(connections);
       setPendingConnections(pending);
       setCanConnect(limitOk);
+      setPairingCode(coupleRow.data?.pairing_code ?? null);
     } catch (err: any) {
       setErrorMessage(err?.message || 'Bağlantı bilgileri yüklenirken hata oluştu.');
     } finally {
@@ -122,8 +130,24 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
       setErrorMessage(null);
       setSuccessMessage(null);
       setActiveTab('search');
+      setCodeCopied(false);
     }
   }, [visible, loadData]);
+
+  // ─── ÇİFT KODUNU KOPYALA ─────────────────────────────────────────────
+  const handleCopyPairingCode = useCallback(async () => {
+    if (!pairingCode) return;
+    try {
+      await Clipboard.setStringAsync(pairingCode);
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2200);
+    } catch {
+      setErrorMessage('Kod kopyalanamadı.');
+    }
+  }, [pairingCode]);
 
   // ─── ARAMA ─────────────────────────────────────────────────────────
   const handleSearch = useCallback(async () => {
@@ -333,6 +357,34 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
             </TouchableOpacity>
           </View>
 
+          {/* ─── ÇİFT KODU KARTI ────────────────────────────────────── */}
+          {pairingCode && (
+            <TouchableOpacity
+              activeOpacity={0.82}
+              onPress={handleCopyPairingCode}
+              style={[
+                styles.pairingCodeCard,
+                {
+                  backgroundColor: isLight ? 'rgba(99, 102, 241, 0.06)' : 'rgba(99, 102, 241, 0.12)',
+                  borderColor: isLight ? 'rgba(99, 102, 241, 0.25)' : 'rgba(129, 140, 248, 0.35)',
+                },
+              ]}
+            >
+              <View style={styles.pairingCodeIconBadge}>
+                <KeyRound size={15} color="#818CF8" />
+              </View>
+              <View style={styles.pairingCodeTextBlock}>
+                <Text style={[styles.pairingCodeLabel, { color: theme.textSecondary }]}>Bizim Çift Kodumuz</Text>
+                <Text style={[styles.pairingCodeValue, { color: theme.text }]}>{pairingCode}</Text>
+              </View>
+              {codeCopied ? (
+                <CheckCircle2 size={18} color="#10B981" />
+              ) : (
+                <Copy size={18} color={theme.textSecondary} />
+              )}
+            </TouchableOpacity>
+          )}
+
           {/* ─── GERİ BİLDİRİM BANNERLARI ───────────────────────────── */}
           {errorMessage && (
             <View style={styles.errorBanner}>
@@ -381,7 +433,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                     <Search size={16} color={theme.textMuted} />
                     <TextInput
                       style={[styles.input, { color: theme.text }]}
-                      placeholder="Yıldız adı girin..."
+                      placeholder="Yıldız adı veya çift kodu girin..."
                       placeholderTextColor={theme.textMuted}
                       value={searchQuery}
                       onChangeText={setSearchQuery}
@@ -723,6 +775,39 @@ const styles = StyleSheet.create({
   },
   tabTextActive: {
     fontWeight: '700',
+  },
+  pairingCodeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  pairingCodeIconBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(129, 140, 248, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pairingCodeTextBlock: {
+    flex: 1,
+    gap: 1,
+  },
+  pairingCodeLabel: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  pairingCodeValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 2,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   errorBanner: {
     flexDirection: 'row',

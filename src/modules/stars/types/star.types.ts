@@ -192,6 +192,8 @@ export interface ClaimRandomStarParams {
   readonly coupleId: number;
   readonly customName: string;
   readonly maxMagnitude?: number;   // Varsayılan: 6.50
+  /** Çiftin baş harfleri (ör. "A 💕 M"); diğer çiftlere gösterilir. */
+  readonly ownerInitials?: string | null;
 }
 
 /**
@@ -202,6 +204,8 @@ export interface ClaimSpecificStarParams {
   readonly coupleId: number;
   readonly starCatalogId: number;   // celestial_catalog.id (BIGINT)
   readonly customName: string;
+  /** Çiftin baş harfleri (ör. "A 💕 M"); diğer çiftlere gösterilir. */
+  readonly ownerInitials?: string | null;
 }
 
 /**
@@ -275,6 +279,11 @@ export interface ViewportStarItem {
   readonly custom_name: string | null;
   readonly luminosity_level: number;
   readonly resonance_active: boolean;
+  /**
+   * Tescilli ve başkasına ait bir yıldızın sahibi çiftin baş harfleri
+   * (ör. "A 💕 M"). Kendi yıldızınız veya boştaki yıldızlar için `null`.
+   */
+  readonly owner_initials?: string | null;
 }
 
 /**
@@ -613,6 +622,8 @@ export interface ClaimStarInSectorParams {
   readonly coupleId: number;
   readonly sectorId: string;
   readonly customName: string;
+  /** Çiftin baş harfleri (ör. "A 💕 M"); diğer çiftlere gösterilir. */
+  readonly ownerInitials?: string | null;
 }
 
 /**

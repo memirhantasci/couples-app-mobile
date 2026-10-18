@@ -44,6 +44,7 @@ import {
 import { useTheme } from '@/context/ThemeContext';
 import { starService } from '../api/starService';
 import { moderateStarName } from '../utils/nameModeration';
+import { computeOwnCoupleInitials } from '../utils/ownerInitials';
 import type { CoupleStarDetails, ViewportStarItem } from '../types/star.types';
 import { SKY_SECTORS, type SectorConfig } from '../config/skySectors.data';
 
@@ -318,12 +319,16 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
     let errorOccurred: any = null;
 
     try {
+      // Çiftin baş harfleri (ör. "A 💕 M") — başarısız olursa tescili engellemez.
+      const ownerInitials = await computeOwnCoupleInitials(coupleId).catch(() => null);
+
       if (isSpecificMode && preSelectedStar) {
         // Belirli yıldız tescili (claim_specific_star RPC)
         resultStar = await starService.claimSpecificStar({
           coupleId,
           starCatalogId: preSelectedStar.catalog_id,
           customName: trimmed,
+          ownerInitials,
         });
       } else if (isSectorMode && preSelectedSectorId) {
         // Sektör bazlı tescil (claim_star_in_sector RPC)
@@ -331,6 +336,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
           coupleId,
           sectorId: preSelectedSectorId,
           customName: trimmed,
+          ownerInitials,
         });
         // Tescil sonrası sektör cache'ini temizle
         starService.invalidateSectorsCache();
@@ -339,6 +345,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
         resultStar = await starService.claimRandomStar({
           coupleId,
           customName: trimmed,
+          ownerInitials,
         });
       }
     } catch (err: any) {
