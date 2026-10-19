@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { DialogHost } from "@/components/ui/DialogHost";
 import { BlurView } from "expo-blur";
 import { Check, StickyNote, X } from "lucide-react-native";
 
@@ -113,6 +114,8 @@ export function MapAddNoteModal({ visible, accent, isSaving, onSave, onClose }: 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <MapAddNoteForm accent={accent} isSaving={isSaving} onSave={onSave} onClose={onClose} />
+      {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
+      <DialogHost embedded />
     </Modal>
   );
 }

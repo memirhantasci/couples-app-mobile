@@ -1,8 +1,14 @@
-import React, { useState } from "react";
-import { 
-  View, Text, TextInput, TouchableOpacity, 
-  Platform, Alert, ActivityIndicator, StyleSheet 
+import React, { useState, useMemo } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Platform,
+  ActivityIndicator,
+  StyleSheet,
 } from "react-native";
+import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -11,7 +17,7 @@ import {
   ChevronLeft, Check, Calendar as CalendarIcon, 
   Clock, BookOpen 
 } from "lucide-react-native";
-import { getTheme } from "@/lib/theme";
+import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { encrypt, decrypt } from "@/utils/crypto";
 import { sanitize } from "@/utils/sanitize";
@@ -33,6 +39,7 @@ export default function AddDailyNoteScreen() {
   const { session, profile } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
@@ -60,7 +67,7 @@ export default function AddDailyNoteScreen() {
     try {
       const cleanContent = sanitize(content.trim());
       if (!cleanContent) {
-        Alert.alert("Hata", "Geçersiz içerik. Lütfen notu tekrar yazın.");
+        appAlert("Hata", "Geçersiz içerik. Lütfen notu tekrar yazın.");
         setIsSubmitting(false);
         return;
       }
@@ -82,12 +89,12 @@ export default function AddDailyNoteScreen() {
         const previous = decrypt(existing.content);
         if (!previous) {
           // Çözülemeyen notu ezmemek için işlemi durdur
-          Alert.alert("Hata", "Bugünün mevcut günlüğü okunamadı, üzerine yazılmadı.");
+          appAlert("Hata", "Bugünün mevcut günlüğü okunamadı, üzerine yazılmadı.");
           return;
         }
         const merged = `${previous}\n\n${cleanContent}`;
         if (merged.length > DAILY_NOTE_MAX_CHARS) {
-          Alert.alert("Sayfa Dolu", "Bugünün günlük sayfası doldu. Günlüklerim ekranından mevcut notu düzenleyebilirsin.");
+          appAlert("Sayfa Dolu", "Bugünün günlük sayfası doldu. Günlüklerim ekranından mevcut notu düzenleyebilirsin.");
           return;
         }
         ({ error } = await supabase
@@ -110,7 +117,7 @@ export default function AddDailyNoteScreen() {
       router.replace("/(tabs)/daily-notes");
     } catch (error) {
       console.error(error);
-      Alert.alert("Hata", "Günlük kaydedilirken bir hata oluştu.");
+      appAlert("Hata", "Günlük kaydedilirken bir hata oluştu.");
     } finally {
       setIsSubmitting(false);
     }
@@ -171,7 +178,7 @@ export default function AddDailyNoteScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* TARİH & ZAMAN KARTI */}
-          <View style={[styles.dateCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View style={[styles.dateCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <View style={[styles.dateIconCircle, { backgroundColor: theme.pillAccentBg }]}>
                 <CalendarIcon size={16} color={theme.accent} />
@@ -195,13 +202,13 @@ export default function AddDailyNoteScreen() {
                 {charCount} / 2000 harf ({wordCount} kelime)
               </Text>
             </View>
-            
-            <View style={[styles.editorContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+
+            <View style={[styles.editorContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
               <TextInput
                 style={[styles.editorInput, { color: theme.text }]}
                 multiline
                 placeholder="Sevgili günlük, bugün içimden geçenler..."
-                placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.3)"}
+                placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
                 value={content}
                 onChangeText={setContent}
                 maxLength={2000}
@@ -243,141 +250,145 @@ export default function AddDailyNoteScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-  },
-  headerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  saveHeaderBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  headerTitleBox: {
-    flex: 1,
-    alignItems: "center",
-    paddingHorizontal: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    letterSpacing: -0.3,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.55)",
-    marginTop: 2,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    gap: 16,
-  },
-  dateCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  dateIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dateCardText: {
-    fontSize: 14,
-    fontFamily: "Inter_600SemiBold",
-    color: "#ffffff",
-  },
-  timeBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  timeText: {
-    fontSize: 12,
-    fontFamily: "Inter_500Medium",
-    color: "rgba(255,255,255,0.75)",
-  },
-  sectionBlock: {
-    gap: 8,
-  },
-  editorLabelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  sectionLabel: {
-    fontSize: 11.5,
-    fontFamily: "Inter_600SemiBold",
-    color: "rgba(255,255,255,0.6)",
-    letterSpacing: 0.6,
-  },
-  charCountText: {
-    fontSize: 12,
-    fontFamily: "Inter_500Medium",
-    color: "rgba(255,255,255,0.45)",
-  },
-  editorContainer: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 16,
-    minHeight: 320,
-  },
-  editorInput: {
-    color: "#ffffff",
-    fontSize: 15.5,
-    fontFamily: "Inter_400Regular",
-    lineHeight: 24,
-    minHeight: 290,
-  },
-  bottomSaveBtn: {
-    height: 52,
-    borderRadius: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 4,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  bottomSaveBtnText: {
-    color: "#ffffff",
-    fontSize: 15.5,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: -0.2,
-  },
-});
+const createStyles = (theme: AppTheme) => {
+  const isLight = theme.isLight;
+
+  return StyleSheet.create({
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+      paddingBottom: 14,
+    },
+    headerBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
+      borderWidth: 1,
+      borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    saveHeaderBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: "center",
+      justifyContent: "center",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    headerTitleBox: {
+      flex: 1,
+      alignItems: "center",
+      paddingHorizontal: 8,
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      letterSpacing: -0.3,
+    },
+    headerSubtitle: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.55)",
+      marginTop: 2,
+    },
+    scrollContent: {
+      paddingHorizontal: 20,
+      paddingTop: 10,
+      gap: 16,
+    },
+    dateCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 16,
+      borderWidth: 1,
+    },
+    dateIconCircle: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    dateCardText: {
+      fontSize: 14,
+      fontFamily: "Inter_600SemiBold",
+      color: theme.text,
+    },
+    timeBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 8,
+    },
+    timeText: {
+      fontSize: 12,
+      fontFamily: "Inter_500Medium",
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.75)",
+    },
+    sectionBlock: {
+      gap: 8,
+    },
+    editorLabelRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    sectionLabel: {
+      fontSize: 11.5,
+      fontFamily: "Inter_600SemiBold",
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.6)",
+      letterSpacing: 0.6,
+    },
+    charCountText: {
+      fontSize: 12,
+      fontFamily: "Inter_500Medium",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.45)",
+    },
+    editorContainer: {
+      borderRadius: 20,
+      borderWidth: 1,
+      padding: 16,
+      minHeight: 320,
+    },
+    editorInput: {
+      color: theme.text,
+      fontSize: 15.5,
+      fontFamily: "Inter_400Regular",
+      lineHeight: 24,
+      minHeight: 290,
+    },
+    bottomSaveBtn: {
+      height: 52,
+      borderRadius: 16,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      marginTop: 4,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.35,
+      shadowRadius: 10,
+      elevation: 4,
+    },
+    bottomSaveBtnText: {
+      color: "#ffffff",
+      fontSize: 15.5,
+      fontFamily: "Inter_700Bold",
+      letterSpacing: -0.2,
+    },
+  });
+};

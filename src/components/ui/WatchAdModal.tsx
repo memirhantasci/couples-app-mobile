@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, Modal, StyleSheet, ActivityIndicator, Alert, TurboModuleRegistry } from "react-native";
+import { View, Text, TouchableOpacity, Modal, StyleSheet, ActivityIndicator, TurboModuleRegistry } from "react-native";
+import { appAlert } from "@/lib/dialog";
+import { DialogHost } from "@/components/ui/DialogHost";
 import { X, PlayCircle, Coins } from "lucide-react-native";
 import Constants from "expo-constants";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { getTheme } from "@/lib/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { logger } from "@/utils/logger";
 import { toast } from "@/lib/toast";
 
@@ -47,8 +49,9 @@ interface WatchAdModalProps {
 }
 
 export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps) {
-  const { profile, refreshProfile } = useAuth();
-  const theme = getTheme(profile?.gender);
+  const { refreshProfile } = useAuth();
+  // useTheme: seçili açık/koyu modu da yakalar
+  const { theme, isLight } = useTheme();
   const [rewarding, setRewarding] = useState(false);
   
   const { isLoaded, isClosed, load, show, error, isEarnedReward } = useRewardedAd(adUnitId, {
@@ -64,7 +67,7 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
   useEffect(() => {
     if (error) {
       logger.error("Ad error:", error);
-      Alert.alert("Hata", "Reklam yüklenirken bir hata oluştu.");
+      appAlert("Hata", "Reklam yüklenirken bir hata oluştu.");
     }
   }, [error]);
 
@@ -94,7 +97,7 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
       onSuccess();
     } catch (error: any) {
       logger.error("Earn token error:", error);
-      Alert.alert("Hata", "Token eklenirken bir hata oluştu.");
+      appAlert("Hata", "Token eklenirken bir hata oluştu.");
     } finally {
       setRewarding(false);
     }
@@ -109,17 +112,17 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
-        <View style={[styles.modalBox, { backgroundColor: theme.cardBg }]}>
+        <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderWidth: 1, borderColor: theme.cardBorder }]}>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <X color="rgba(255,255,255,0.7)" size={20} />
+            <X color={theme.textSecondary} size={20} />
           </TouchableOpacity>
 
           <View style={[styles.iconBox, { backgroundColor: "rgba(255, 215, 0, 0.1)" }]}>
-            <Coins color="#FFD700" size={32} />
+            <Coins color={isLight ? "#B7791F" : "#FFD700"} size={32} />
           </View>
           
-          <Text style={styles.title}>Token Kazan</Text>
-          <Text style={styles.desc}>
+          <Text style={[styles.title, { color: theme.text }]}>Token Kazan</Text>
+          <Text style={[styles.desc, { color: theme.textSecondary }]}>
             Kısa bir reklam izleyerek 25 Token kazanabilirsin.
           </Text>
 
@@ -148,6 +151,8 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
           </TouchableOpacity>
         </View>
       </View>
+      {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
+      <DialogHost embedded />
     </Modal>
   );
 }

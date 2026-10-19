@@ -463,7 +463,7 @@ export default function HomeScreen() {
           <View
             ref={counterRef}
             collapsable={false}
-            style={[styles.heroLoveCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+            style={[styles.heroLoveCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
           >
             <View style={[styles.heroTopBadge, { backgroundColor: theme.pillAccentBg }]}>
               <Heart size={13} color={theme.accent} fill={theme.accent} />
@@ -485,7 +485,7 @@ export default function HomeScreen() {
               {/* Tanışma Sayacı */}
               <View style={[styles.counterBox, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
                 <View style={[styles.counterIconCircle, { backgroundColor: isLight ? "rgba(255, 215, 0, 0.15)" : "rgba(255,255,255,0.06)" }]}>
-                  <Sparkles size={16} color="#ffd700" />
+                  <Sparkles size={16} color={isLight ? "#B7791F" : "#ffd700"} />
                 </View>
                 <Text style={[styles.counterNumber, { color: theme.text }]}>{meetDate || isDemoMode ? daysSinceMeeting : "—"}</Text>
                 <Text style={[styles.counterDesc, { color: theme.textSecondary }]}>Gündür Hayatımdasın</Text>
@@ -497,7 +497,7 @@ export default function HomeScreen() {
           {/* ─── 3. HIZLI ERİŞİM KISAYOLLARI (QUICK ACTIONS) ─── */}
           <View ref={shortcutsRef} collapsable={false} style={styles.quickActionsContainer}>
             <TouchableOpacity 
-              style={[styles.actionPill, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+              style={[styles.actionPill, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
               onPress={() => router.push("/(tabs)/photos")}
               activeOpacity={0.8}
             >
@@ -508,7 +508,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.actionPill, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+              style={[styles.actionPill, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
               onPress={() => router.push("/(tabs)/daily-notes")}
               activeOpacity={0.8}
             >
@@ -519,7 +519,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.actionPill, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+              style={[styles.actionPill, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
               onPress={() => router.push("/(tabs)/letters")}
               activeOpacity={0.8}
             >
@@ -530,7 +530,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.actionPill, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+              style={[styles.actionPill, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
               onPress={() => router.push("/(tabs)/meetings")}
               activeOpacity={0.8}
             >
@@ -550,7 +550,7 @@ export default function HomeScreen() {
           </View>
 
           {/* ─── 5. GÜNÜN SÖZÜ ─── */}
-          <View style={[styles.quoteCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View style={[styles.quoteCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
             <View style={styles.quoteHeaderRow}>
               <View style={[styles.quoteStarCircle, { backgroundColor: theme.pillAccentBg }]}>
                 <Sparkles size={14} color={theme.accent} />

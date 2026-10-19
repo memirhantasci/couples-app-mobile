@@ -5,11 +5,12 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Keyboard,
   Modal,
   StyleSheet,
 } from "react-native";
+import { appAlert } from "@/lib/dialog";
+import { DialogHost } from "@/components/ui/DialogHost";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
 import { Settings, X, Edit2, Trash2, Clock, Calendar, Check } from "lucide-react-native";
@@ -84,6 +85,8 @@ export function MedicineManagerModal({ visible, onClose, ...formProps }: Medicin
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <MedicineManagerForm onClose={onClose} {...formProps} />
+      {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
+      <DialogHost embedded />
     </Modal>
   );
 }
@@ -173,7 +176,7 @@ function MedicineManagerForm({
         (t, i) => i !== activeTimeIndex && dayjs(t).format("HH:mm") === newTimeStr
       );
       if (isDuplicate) {
-        Alert.alert("Uyarı", "Bu ilaç için bu saati zaten seçtiniz. Lütfen farklı bir saat belirleyin.");
+        appAlert("Uyarı", "Bu ilaç için bu saati zaten seçtiniz. Lütfen farklı bir saat belirleyin.");
         return false;
       }
       const updated = [...medTimes];
@@ -222,9 +225,9 @@ function MedicineManagerForm({
 
   return (
     <View style={styles.modalBackdrop}>
-      <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+      <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
         {/* Modal Header */}
-        <View style={[styles.modalHeader, { borderBottomColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}>
+        <View style={[styles.modalHeader, { borderBottomColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Settings size={18} color={theme.accent} />
             <Text style={[styles.modalTitle, { color: theme.text }]}>
@@ -313,7 +316,7 @@ function MedicineManagerForm({
                   medError && styles.inputError,
                 ]}
                 placeholder="Örn: Aspirin, B12 Vitamini..."
-                placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.3)"}
+                placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
                 value={medName}
                 onChangeText={(text) => {
                   setMedName(text);

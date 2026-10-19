@@ -3,6 +3,8 @@
 // Kadın: Şuanki Gül & Bordo (Varsayılan), Gece Koyu Mod, Açık Pudra Mod
 // Erkek: Şuanki Mavi Mod (Varsayılan), Gece Koyu Mod, Beyaz Mod
 
+import type { ViewStyle } from "react-native";
+
 export type ThemeMode = "current" | "dark" | "light";
 
 export interface AppTheme {
@@ -27,6 +29,11 @@ export interface AppTheme {
   tabBarBg: string;
   tabBarBorder: string;
   blurTint: "light" | "dark";
+  /**
+   * Kartlar için gölge stili. Açık temada beyaz kartların zeminden ayrılması için yumuşak bir gölge verir;
+   * koyu temalarda boştur. Kart stiline `...theme.cardShadow` ya da `style={[..., theme.cardShadow]}` ile eklenir.
+   */
+  cardShadow: ViewStyle;
   description: string;
   previewColors: [string, string, string];
 }
@@ -36,6 +43,9 @@ export const TEXT_WHITE = "#ffffff";
 export const TEXT_MUTED = "rgba(255,255,255,0.45)";
 export const TEXT_DIM = "rgba(255,255,255,0.25)";
 export const BORDER_SOFT = "rgba(255,255,255,0.07)";
+
+/** Koyu temalarda kart gölgesi yok (koyu zeminde zaten ayrışıyor). */
+const NO_CARD_SHADOW: ViewStyle = {};
 
 // ─── KADIN TEMALARI ─────────────────────────────────────────────────────────
 
@@ -62,6 +72,7 @@ export const FEMALE_CURRENT: AppTheme = {
   tabBarBg: "rgba(23, 7, 14, 0.82)",
   tabBarBorder: "rgba(255, 255, 255, 0.12)",
   blurTint: "dark",
+  cardShadow: NO_CARD_SHADOW,
   description: "Romantik bordo ve gül tonları (Varsayılan)",
   previewColors: ["#2E0F1C", "#4A152B", "#FF5C77"],
 };
@@ -89,6 +100,7 @@ export const FEMALE_DARK: AppTheme = {
   tabBarBg: "rgba(7, 5, 8, 0.88)",
   tabBarBorder: "rgba(255, 255, 255, 0.1)",
   blurTint: "dark",
+  cardShadow: NO_CARD_SHADOW,
   description: "Zarif, göz yormayan derin gece siyahı",
   previewColors: ["#070508", "#19121E", "#FF4D6D"],
 };
@@ -99,23 +111,32 @@ export const FEMALE_LIGHT: AppTheme = {
   name: "Açık Mod",
   gender: "female",
   isLight: true,
-  bgGradient: ["#FFF5F8", "#FDE8EF", "#FFF8FA"] as const,
+  // Zemin, beyaz kartların üzerinde net ayrıştığı pudra pembesi; kartlar belirgin kenarlık + yumuşak gölge taşır
+  bgGradient: ["#FFEEF3", "#FADCE7", "#FFF2F6"] as const,
   cardBg: "#FFFFFF",
-  cardBorder: "rgba(225, 29, 72, 0.12)",
-  unitBg: "#FFF1F5",
+  cardBorder: "rgba(190, 24, 93, 0.20)",
+  unitBg: "#FDEAF1",
   accent: "#E11D48",
   accentLight: "#FB7185",
-  pillAccentBorder: "rgba(225, 29, 72, 0.25)",
-  pillAccentBg: "rgba(225, 29, 72, 0.08)",
-  inputBg: "#FDF2F5",
-  inputBorder: "rgba(225, 29, 72, 0.15)",
+  pillAccentBorder: "rgba(225, 29, 72, 0.34)",
+  pillAccentBg: "rgba(225, 29, 72, 0.10)",
+  inputBg: "#FFF5F8",
+  inputBorder: "rgba(190, 24, 93, 0.30)",
   headerBg: "transparent",
   text: "#1E1B24",
   textSecondary: "#5E5366",
-  textMuted: "#8E8296",
+  // Beyaz üstünde WCAG AA (≥4.5:1): placeholder ve alt başlıklar rahat okunur
+  textMuted: "#6E6277",
   tabBarBg: "rgba(255, 255, 255, 0.92)",
-  tabBarBorder: "rgba(225, 29, 72, 0.15)",
+  tabBarBorder: "rgba(190, 24, 93, 0.22)",
   blurTint: "light",
+  cardShadow: {
+    shadowColor: "#9F1239",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 3,
+  },
   description: "Aydınlık, ferah ve canlı pembe tonlar",
   previewColors: ["#FFF5F8", "#FFFFFF", "#E11D48"],
 };
@@ -145,6 +166,7 @@ export const MALE_CURRENT: AppTheme = {
   tabBarBg: "rgba(6, 10, 16, 0.85)",
   tabBarBorder: "rgba(255, 255, 255, 0.12)",
   blurTint: "dark",
+  cardShadow: NO_CARD_SHADOW,
   description: "Mevcut derin gece mavisi (Varsayılan)",
   previewColors: ["#0B111A", "#1A2235", "#4D9CFF"],
 };
@@ -172,6 +194,7 @@ export const MALE_DARK: AppTheme = {
   tabBarBg: "rgba(3, 4, 7, 0.88)",
   tabBarBorder: "rgba(255, 255, 255, 0.1)",
   blurTint: "dark",
+  cardShadow: NO_CARD_SHADOW,
   description: "Karizmatik, simsiyah obsidyen koyu mod",
   previewColors: ["#030407", "#111622", "#38BDF8"],
 };
@@ -182,23 +205,31 @@ export const MALE_LIGHT: AppTheme = {
   name: "Beyaz Mod",
   gender: "male",
   isLight: true,
-  bgGradient: ["#F8FAFC", "#EEF2F6", "#F1F5F9"] as const,
+  // Zemin, beyaz kartların üzerinde net ayrıştığı soğuk gri-mavi; kartlar belirgin kenarlık + yumuşak gölge taşır
+  bgGradient: ["#EEF2F8", "#E1E8F2", "#EBF0F7"] as const,
   cardBg: "#FFFFFF",
-  cardBorder: "rgba(37, 99, 235, 0.12)",
-  unitBg: "#F1F5F9",
+  cardBorder: "rgba(37, 99, 235, 0.20)",
+  unitBg: "#EAF0F8",
   accent: "#2563EB",
   accentLight: "#60A5FA",
-  pillAccentBorder: "rgba(37, 99, 235, 0.25)",
-  pillAccentBg: "rgba(37, 99, 235, 0.08)",
-  inputBg: "#F8FAFC",
-  inputBorder: "rgba(37, 99, 235, 0.15)",
+  pillAccentBorder: "rgba(37, 99, 235, 0.34)",
+  pillAccentBg: "rgba(37, 99, 235, 0.10)",
+  inputBg: "#F4F7FB",
+  inputBorder: "rgba(37, 99, 235, 0.32)",
   headerBg: "transparent",
   text: "#0F172A",
   textSecondary: "#475569",
   textMuted: "#64748B",
   tabBarBg: "rgba(255, 255, 255, 0.92)",
-  tabBarBorder: "rgba(37, 99, 235, 0.15)",
+  tabBarBorder: "rgba(37, 99, 235, 0.22)",
   blurTint: "light",
+  cardShadow: {
+    shadowColor: "#1E3A8A",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 3,
+  },
   description: "Aydınlık, minimalist kar beyazı ve kobalt",
   previewColors: ["#F8FAFC", "#FFFFFF", "#2563EB"],
 };

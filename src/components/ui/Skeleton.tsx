@@ -8,6 +8,7 @@ import Animated, {
   withSequence,
   Easing 
 } from 'react-native-reanimated';
+import { useTheme } from '@/context/ThemeContext';
 
 interface SkeletonProps {
   width?: number | string;
@@ -17,6 +18,7 @@ interface SkeletonProps {
 }
 
 export function Skeleton({ width = '100%', height = 20, borderRadius = 8, style }: SkeletonProps) {
+  const { isLight } = useTheme();
   const opacity = useSharedValue(0.3);
 
   useEffect(() => {
@@ -38,6 +40,8 @@ export function Skeleton({ width = '100%', height = 20, borderRadius = 8, style 
     <Animated.View
       style={[
         styles.skeleton,
+        // Açık zeminde beyaz iskelet görünmezdi: koyu gri-mor ton kullanılır
+        { backgroundColor: isLight ? 'rgba(100, 80, 120, 0.22)' : 'rgba(255, 255, 255, 0.1)' },
         { width: width as any, height: height as any, borderRadius },
         animatedStyle,
         style,

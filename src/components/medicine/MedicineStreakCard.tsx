@@ -21,7 +21,7 @@ export function MedicineStreakCard({
   streakCount,
 }: MedicineStreakCardProps) {
   return (
-    <View style={[styles.streakCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+    <View style={[styles.streakCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}>
       <View style={styles.streakHeader}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <View style={[styles.streakIconCircle, { backgroundColor: isLight ? "rgba(239,68,68,0.1)" : "rgba(239,68,68,0.18)" }]}>

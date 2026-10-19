@@ -14,7 +14,8 @@ export const DEMO_PROFILE: CoupleProfile = {
   hasDates: true,
   displayName: "Misafir (Demo)",
   username: "misafir",
-  gender: "male",
+  // Hedef kitle kadınlar: demo, kadın modunda (pembe tema, kişisel döngü takibi) açılır
+  gender: "female",
   isPremium: true,
   tokenBalance: 350,
   encryptionSalt: "demo-salt-123",
@@ -65,7 +66,7 @@ export const DEMO_HOME_DATA = {
 export const DEMO_LOVE_SCORE = {
   percentage: 96,
   statusText: "Kusursuz Bir Uyum! 💖",
-  daysTogether: 520,
+  daysTogether: 365,
   breakdown: {
     interaction: 98,
     memory: 94,
@@ -510,7 +511,7 @@ export const DEMO_STAR_EXOPLANETS: StarExoplanetRecord[] = [
     star_id: "demo-star-sirius",
     title: "İlk Tanışmamız 🌸",
     description: "Yağmurlu bir sonbahar günü Kadıköy'de bir kafede saatlerce sohbet etmiştik.",
-    milestone_date: dayjs().subtract(520, "day").format("YYYY-MM-DD"),
+    milestone_date: dayjs().subtract(428, "day").format("YYYY-MM-DD"),
     orbit_distance: 1,
     orbit_speed: 1.0,
     planet_type: "terrestrial",
@@ -519,8 +520,8 @@ export const DEMO_STAR_EXOPLANETS: StarExoplanetRecord[] = [
     custom_metadata: {},
     is_auto_generated: false,
     window_started_at: null,
-    created_at: dayjs().subtract(520, "day").toISOString(),
-    updated_at: dayjs().subtract(520, "day").toISOString(),
+    created_at: dayjs().subtract(428, "day").toISOString(),
+    updated_at: dayjs().subtract(428, "day").toISOString(),
   },
   {
     id: "demo-planet-2",

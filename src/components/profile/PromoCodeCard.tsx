@@ -5,10 +5,10 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Platform,
   StyleSheet,
 } from "react-native";
+import { appAlert } from "@/lib/dialog";
 import { Gift } from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
 import { RevenueCatService } from "@/lib/revenuecat";
@@ -70,9 +70,9 @@ export function PromoCodeCard({
           return;
         }
 
-        Alert.alert("Hata", rpcError?.message || promoError?.message || "Premium aktif edilemedi.");
+        appAlert("Hata", rpcError?.message || promoError?.message || "Premium aktif edilemedi.");
       } catch (err: any) {
-        Alert.alert("Hata", err?.message || "İşlem başarısız.");
+        appAlert("Hata", err?.message || "İşlem başarısız.");
       } finally {
         setPromoLoading(false);
       }
@@ -94,9 +94,9 @@ export function PromoCodeCard({
           return;
         }
 
-        Alert.alert("Hata", rpcError?.message || "Premium iptal edilemedi.");
+        appAlert("Hata", rpcError?.message || "Premium iptal edilemedi.");
       } catch (err: any) {
-        Alert.alert("Hata", err?.message || "İşlem başarısız.");
+        appAlert("Hata", err?.message || "İşlem başarısız.");
       } finally {
         setPromoLoading(false);
       }
@@ -120,7 +120,7 @@ export function PromoCodeCard({
 
       setPromoCode("");
     } catch (err: any) {
-      Alert.alert("Hata", err.message || "Promosyon kodu kullanılamadı.");
+      appAlert("Hata", err.message || "Promosyon kodu kullanılamadı.");
     } finally {
       setPromoLoading(false);
     }
@@ -148,7 +148,7 @@ export function PromoCodeCard({
             },
           ]}
           placeholder="HEDİYE KODU"
-          placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.3)"}
+          placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
           value={promoCode}
           onChangeText={setPromoCode}
           autoCapitalize="characters"

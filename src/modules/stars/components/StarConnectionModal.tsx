@@ -28,8 +28,9 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
+import { appAlert } from '@/lib/dialog';
+import { DialogHost } from '@/components/ui/DialogHost';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
@@ -232,7 +233,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
           : `"${starName}" ile aranızdaki yıldız bağını koparmak istiyor musunuz?`;
         if (window.confirm(msg)) doRemove();
       } else {
-        Alert.alert(
+        appAlert(
           isPending ? 'İsteği İptal Et' : 'Bağlantıyı Kopar',
           isPending
             ? 'Bu bağlantı isteğini iptal etmek istediğinize emin misiniz?'
@@ -708,6 +709,8 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
           </KeyboardAwareScrollView>
         </View>
       </KeyboardAvoidingView>
+      {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
+      <DialogHost embedded />
     </Modal>
   );
 };

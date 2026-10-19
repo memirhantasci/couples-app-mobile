@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, FlatList } from "react-native";
+import React, { useState, useEffect, useMemo } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList } from "react-native";
+import { appAlert } from "@/lib/dialog";
 import { Image } from "expo-image";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -12,7 +13,7 @@ import { Plus, Trash2, Pencil, Menu, ChevronLeft, PlusCircle, AlignJustify } fro
 import { useRouter } from "expo-router";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getTheme } from "@/lib/theme";
+import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { usePageTour } from "@/hooks/usePageTour";
@@ -20,12 +21,14 @@ import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
+import { DEMO_PROFILE } from "@/constants/demoData";
 
 export default function MemoriesScreen() {
   const router = useRouter();
   const { profile, session, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const queryClient = useQueryClient();
   const [isEditMode, setIsEditMode] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -105,13 +108,13 @@ export default function MemoriesScreen() {
           {
             id: 1,
             title: "Sevgili Olduğumuz İlk Gün 💖",
-            date: dayjs().subtract(520, "day").format("YYYY-MM-DD"),
+            date: DEMO_PROFILE.relationshipStartDate ?? dayjs().subtract(365, "day").format("YYYY-MM-DD"),
             description: "Birlikte el ele tutuşup geleceğe söz verdiğimiz o an...",
           },
           {
             id: 2,
             title: "İlk Tanıştığımız Gün ☕",
-            date: dayjs().subtract(730, "day").format("YYYY-MM-DD"),
+            date: DEMO_PROFILE.meetDate ?? dayjs().subtract(428, "day").format("YYYY-MM-DD"),
             description: "Gözlerinin içindeki parıltıyı ilk fark ettiğim gün.",
           },
         ];
@@ -122,7 +125,7 @@ export default function MemoriesScreen() {
         .eq("couple_id", coupleId)
         .order("date", { ascending: false })
         .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
-      
+
       if (error) throw error;
       return data || [];
     },
@@ -143,7 +146,7 @@ export default function MemoriesScreen() {
       return;
     }
 
-    Alert.alert(
+    appAlert(
       "Anıyı Sil",
       "Bu özel günü silmek istediğine emin misin?",
       [
@@ -158,7 +161,7 @@ export default function MemoriesScreen() {
             if (!error) {
               queryClient.invalidateQueries({ queryKey: ["memories"] });
             } else {
-              Alert.alert("Hata", "Silinirken bir hata oluştu.");
+              appAlert("Hata", "Silinirken bir hata oluştu.");
             }
           }
         }
@@ -216,7 +219,7 @@ export default function MemoriesScreen() {
     const diffDays = nextAnniversary.diff(today, "day");
     const whichYear = nextAnniversary.year() - memDay.year();
     const canManage = isEditMode && !memory.is_default;
-    
+
     return (
       <Animated.View 
         key={memory.id}
@@ -227,7 +230,7 @@ export default function MemoriesScreen() {
           <Text style={[styles.dateNumber, { color: theme.accent }]}>{index + 1}</Text>
         </View>
 
-        <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+        <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}>
           <View style={styles.cardHeader}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>{memory.title}</Text>
@@ -250,7 +253,7 @@ export default function MemoriesScreen() {
                 )}
               </View>
             </View>
-            
+
             {canManage && (
               <Animated.View entering={FadeInUp.duration(150)} style={styles.actionsBox}>
                 <TouchableOpacity onPress={() => handleEdit(memory)}>
@@ -292,11 +295,11 @@ export default function MemoriesScreen() {
             </View>
             <Text style={[styles.subtitle, { color: theme.textMuted, marginTop: 4 }]}>En tatlı anılarımızın milatları</Text>
           </View>
-          
+
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <TourGuideButton onPress={openTour} />
             <TouchableOpacity 
-              style={[styles.editBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}
+              style={[styles.editBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}
               onPress={() => setIsEditMode(!isEditMode)}
             >
               <Text style={[styles.editBtnText, { color: theme.text }]}>{isEditMode ? "Bitti" : "Düzenle"}</Text>
@@ -383,155 +386,159 @@ export default function MemoriesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 30,
-    fontFamily: "Inter_700Bold",
-    color: "#fff",
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-  },
-  editBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-  },
-  editBtnText: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 14,
-    fontFamily: "Inter_600SemiBold",
-  },
-  emptyState: {
-    marginHorizontal: 20,
-  },
-  timelineContainer: {
-    flex: 1,
-    position: "relative",
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-  },
-  timelineLine: {
-    position: "absolute",
-    left: 36,
-    top: 0,
-    bottom: 0,
-    width: 2,
-    zIndex: 0,
-  },
-  memoryRow: {
-    flexDirection: "row",
-    marginBottom: 24,
-    alignItems: "flex-start",
-    zIndex: 1,
-  },
-  dateCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 20,
-    zIndex: 2,
-  },
-  dateNumber: {
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
-  },
-  card: {
-    flex: 1,
-    borderRadius: 20,
-    padding: 16,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 12,
-  },
-  cardTitle: {
-    color: "#fff",
-    fontSize: 18,
-    fontFamily: "Inter_700Bold",
-  },
-  cardYear: {
-    fontSize: 13,
-    marginTop: 4,
-    fontFamily: "Inter_600SemiBold",
-  },
-  badgeRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 8,
-    alignItems: "center",
-  },
-  anniversaryBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  anniversaryBadgeText: {
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-  },
-  milestoneBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  milestoneBadgeText: {
-    fontSize: 11,
-    fontFamily: "Inter_500Medium",
-  },
-  cardDesc: {
-    color: "rgba(255,255,255,0.5)",
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    marginBottom: 12,
-  },
-  actionsBox: {
-    flexDirection: "row",
-    gap: 16,
-  },
-  imageBox: {
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  image: {
-    width: "100%",
-    height: 120,
-    resizeMode: "cover",
-  },
-  addBtnContainer: {
-    position: "absolute",
-    bottom: 110,
-    left: 20,
-    right: 20,
-    zIndex: 100,
-    elevation: 10,
-  },
-  addBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 18,
-    borderRadius: 20,
-    gap: 8,
-  },
-  addBtnText: {
-    color: "#fff",
-    fontSize: 16,
-    fontFamily: "Inter_700Bold",
-  },
-});
+const createStyles = (theme: AppTheme) => {
+  const isLight = theme.isLight;
+
+  return StyleSheet.create({
+    header: {
+      paddingHorizontal: 20,
+      marginBottom: 20,
+    },
+    title: {
+      fontSize: 30,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      letterSpacing: -0.5,
+    },
+    subtitle: {
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.6)",
+      fontSize: 14,
+      fontFamily: "Inter_400Regular",
+    },
+    editBtn: {
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      borderRadius: 20,
+    },
+    editBtnText: {
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.8)",
+      fontSize: 14,
+      fontFamily: "Inter_600SemiBold",
+    },
+    emptyState: {
+      marginHorizontal: 20,
+    },
+    timelineContainer: {
+      flex: 1,
+      position: "relative",
+      paddingVertical: 8,
+      paddingHorizontal: 20,
+    },
+    timelineLine: {
+      position: "absolute",
+      left: 36,
+      top: 0,
+      bottom: 0,
+      width: 2,
+      zIndex: 0,
+    },
+    memoryRow: {
+      flexDirection: "row",
+      marginBottom: 24,
+      alignItems: "flex-start",
+      zIndex: 1,
+    },
+    dateCircle: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      borderWidth: 2,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: 20,
+      zIndex: 2,
+    },
+    dateNumber: {
+      fontSize: 13,
+      fontFamily: "Inter_600SemiBold",
+    },
+    card: {
+      flex: 1,
+      borderRadius: 20,
+      padding: 16,
+    },
+    cardHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: 12,
+    },
+    cardTitle: {
+      color: theme.text,
+      fontSize: 18,
+      fontFamily: "Inter_700Bold",
+    },
+    cardYear: {
+      fontSize: 13,
+      marginTop: 4,
+      fontFamily: "Inter_600SemiBold",
+    },
+    badgeRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      marginTop: 8,
+      alignItems: "center",
+    },
+    anniversaryBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 12,
+      borderWidth: 1,
+    },
+    anniversaryBadgeText: {
+      fontSize: 11,
+      fontFamily: "Inter_600SemiBold",
+    },
+    milestoneBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+      borderWidth: 1,
+    },
+    milestoneBadgeText: {
+      fontSize: 11,
+      fontFamily: "Inter_500Medium",
+    },
+    cardDesc: {
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.5)",
+      fontSize: 13,
+      fontFamily: "Inter_400Regular",
+      marginBottom: 12,
+    },
+    actionsBox: {
+      flexDirection: "row",
+      gap: 16,
+    },
+    imageBox: {
+      borderRadius: 12,
+      overflow: "hidden",
+    },
+    image: {
+      width: "100%",
+      height: 120,
+      resizeMode: "cover",
+    },
+    addBtnContainer: {
+      position: "absolute",
+      bottom: 110,
+      left: 20,
+      right: 20,
+      zIndex: 100,
+      elevation: 10,
+    },
+    addBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 18,
+      borderRadius: 20,
+      gap: 8,
+    },
+    addBtnText: {
+      color: "#fff",
+      fontSize: 16,
+      fontFamily: "Inter_700Bold",
+    },
+  });
+};

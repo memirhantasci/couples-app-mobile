@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from "react-native";
+import { appAlert } from "@/lib/dialog";
+import { DialogHost } from "@/components/ui/DialogHost";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -63,7 +65,7 @@ export default function PaywallScreen() {
         handleBack();
       }
     } catch (e: any) {
-      Alert.alert("Satın Alma Başarısız", e.message || "Bir hata oluştu.");
+      appAlert("Satın Alma Başarısız", e.message || "Bir hata oluştu.");
     } finally {
       setPurchasing(false);
     }
@@ -81,7 +83,7 @@ export default function PaywallScreen() {
         toast.info("Aktif bir aboneliğin bulunamadı.");
       }
     } catch (e: any) {
-      Alert.alert("Hata", "Geri yükleme başarısız oldu.");
+      appAlert("Hata", "Geri yükleme başarısız oldu.");
     } finally {
       setPurchasing(false);
     }
@@ -106,7 +108,7 @@ export default function PaywallScreen() {
               styles.closeBtnCircle,
               {
                 backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.1)",
-                borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.14)",
+                borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.14)",
               },
             ]}
           >
@@ -265,6 +267,8 @@ export default function PaywallScreen() {
         initialDoc={selectedLegalDoc}
         accentColor={theme.accent}
       />
+      {/* Bu ekran yerel modal olarak sunulduğunda kök katman arkada kalır: diyaloglar burada çizilir */}
+      <DialogHost embedded />
     </ScreenBackground>
   );
 }

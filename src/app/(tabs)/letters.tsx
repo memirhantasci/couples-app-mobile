@@ -1,10 +1,20 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useFocusEffect } from "expo-router";
-import { 
-  View, Text, FlatList, StyleSheet, TouchableOpacity, 
-  ActivityIndicator, TextInput, Alert, KeyboardAvoidingView, 
-  Platform, Modal, ScrollView 
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Modal,
+  ScrollView,
 } from "react-native";
+import { appAlert } from "@/lib/dialog";
+import { DialogHost } from "@/components/ui/DialogHost";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
@@ -21,7 +31,7 @@ import {
 } from "lucide-react-native";
 import { sanitize, sanitizeStrict } from "@/utils/sanitize";
 import { logger } from "@/utils/logger";
-import { getTheme } from "@/lib/theme";
+import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
@@ -68,6 +78,7 @@ export default function LettersScreen() {
   const { session, profile, refreshProfile, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const queryClient = useQueryClient();
   const today = todayString();
   const insets = useSafeAreaInsets();
@@ -82,7 +93,8 @@ export default function LettersScreen() {
   const [showOrigamiAnimation, setShowOrigamiAnimation] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [showAdModal, setShowAdModal] = useState(false);
-  const isPremium = profile?.isPremium ?? false;
+  // Demo modunda premium kilitleri yoktur: tüm özellikler açık
+  const isPremium = (profile?.isPremium ?? false) || isDemoMode;
   const tokenBalance = profile?.tokenBalance ?? 0;
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("letters");
 
@@ -264,7 +276,7 @@ export default function LettersScreen() {
     setErrors(newErrors);
 
     if (newErrors.receiver || newErrors.title || newErrors.content) {
-      Alert.alert("Eksik Bilgi", "Lütfen kime göndereceğinizi, başlığı ve mektup içeriğini doldurun.");
+      appAlert("Eksik Bilgi", "Lütfen kime göndereceğinizi, başlığı ve mektup içeriğini doldurun.");
       return;
     }
 
@@ -278,7 +290,7 @@ export default function LettersScreen() {
       const cleanContent = sanitize(content.trim());
 
       if (!cleanTitle || !cleanContent) {
-        Alert.alert("Hata", "Geçersiz içerik tespit edildi.");
+        appAlert("Hata", "Geçersiz içerik tespit edildi.");
         setLoadingForm(false);
         return;
       }
@@ -297,7 +309,7 @@ export default function LettersScreen() {
 
       await refreshProfile();
       queryClient.invalidateQueries({ queryKey: ["letters_data"] });
-      
+
       // Formu temizle, taslağı sil ve yazma modalını kapat
       setTitle("");
       setContent("");
@@ -328,7 +340,7 @@ export default function LettersScreen() {
     } catch (error: any) {
       logger.error("Letter save error:", error);
       if (error?.code === "P0002" || error?.message?.includes("Token") || error?.message?.includes("Premium")) {
-        Alert.alert(
+        appAlert(
           "Yetersiz Bakiye",
           "Mektup mühürlemek için 100 Token veya aktif Premium üyelik gereklidir.",
           [
@@ -343,7 +355,7 @@ export default function LettersScreen() {
           ]
         );
       } else {
-        Alert.alert("Hata", "Mektup mühürlenirken bir hata oluştu: " + (error?.message || ""));
+        appAlert("Hata", "Mektup mühürlenirken bir hata oluştu: " + (error?.message || ""));
       }
     } finally {
       setLoadingForm(false);
@@ -358,7 +370,7 @@ export default function LettersScreen() {
     }
 
     if (!isPremium) {
-      Alert.alert(
+      appAlert(
         "Token Kullanımı",
         "Bu mektubu mühürlemek için 100 token kullanılacaktır. Onaylıyor musunuz?",
         [
@@ -392,7 +404,7 @@ export default function LettersScreen() {
       <View 
         style={[
           styles.letterCard, 
-          { backgroundColor: theme.cardBg, borderColor: theme.cardBorder },
+          { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow },
           isLockedDate && itemType === "received" && styles.letterCardLocked
         ]}
       >
@@ -429,7 +441,7 @@ export default function LettersScreen() {
 
               {isLockedDate && itemType === "received" ? (
                 <View style={styles.lockedBadge}>
-                  <LockKeyhole size={13} color="#f59e0b" />
+                  <LockKeyhole size={13} color={isLight ? "#B45309" : "#f59e0b"} />
                   <Text style={styles.lockedBadgeText}>
                     Kilitli • {unlockDateObj.locale("tr").format("DD MMM YYYY")}
                   </Text>
@@ -490,7 +502,7 @@ export default function LettersScreen() {
 
           {/* Açık Durumdaki Tam Mektup İçeriği */}
           {canOpen && isOpen && (
-            <View style={[styles.letterContentBox, { borderTopColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}>
+            <View style={[styles.letterContentBox, { borderTopColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
               <View style={styles.letterContentHeaderRow}>
                 <Text style={[styles.letterContentLabel, { color: theme.accent }]}>Mektup İçeriği</Text>
               </View>
@@ -560,7 +572,7 @@ export default function LettersScreen() {
         {/* ÜSTTE HIZLI MEKTUP YAZ BUTONU */}
         <View style={styles.topActionContainer}>
           <TouchableOpacity 
-            style={[styles.writeLetterActionBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+            style={[styles.writeLetterActionBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
             onPress={handleOpenWriteModal}
             activeOpacity={0.88}
           >
@@ -576,7 +588,7 @@ export default function LettersScreen() {
         </View>
 
         {/* SEKME ÇUBUĞU (TÜMÜ / GELENLER / GÖNDERİLENLER) */}
-        <View style={[styles.tabsWrapper, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+        <View style={[styles.tabsWrapper, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}>
           <TouchableOpacity 
             style={[styles.tabBtn, activeTab === "all" && { backgroundColor: theme.unitBg }]}
             onPress={() => setActiveTab("all")}
@@ -643,7 +655,7 @@ export default function LettersScreen() {
             ListFooterComponent={
               currentList.length >= pageLimit ? (
                 <TouchableOpacity 
-                  style={[styles.loadMoreBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+                  style={[styles.loadMoreBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
                   onPress={() => setPageLimit((prev) => prev + 15)}
                   activeOpacity={0.8}
                 >
@@ -672,9 +684,9 @@ export default function LettersScreen() {
         onRequestClose={() => setShowWriteModal(false)}
       >
         <View style={styles.modalBackdrop}>
-          <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
             {/* Modal Başlık Çubuğu */}
-            <View style={[styles.modalHeader, { borderBottomColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <PenLine size={20} color={theme.accent} />
                 <Text style={[styles.modalHeaderTitle, { color: theme.text }]}>Mektup Mühürle</Text>
@@ -714,7 +726,7 @@ export default function LettersScreen() {
                             styles.userPillBtn,
                             { 
                               backgroundColor: theme.unitBg,
-                              borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                              borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.08)"
                             },
                             isSelected && { 
                               borderColor: theme.accent, 
@@ -765,7 +777,7 @@ export default function LettersScreen() {
                       styles.dateSelectorBtn, 
                       { 
                         backgroundColor: theme.unitBg,
-                        borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                        borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.08)"
                       }
                     ]}
                     onPress={() => setShowDatePicker(true)}
@@ -805,7 +817,7 @@ export default function LettersScreen() {
                       { 
                         backgroundColor: theme.unitBg,
                         color: theme.text,
-                        borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                        borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.08)"
                       },
                       errors.title && styles.inputError
                     ]}
@@ -815,7 +827,7 @@ export default function LettersScreen() {
                       setErrors(prev => ({ ...prev, title: false }));
                     }}
                     placeholder="Örn: 1. Yılımızda Açılacak Özel Bir Not..."
-                    placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.3)"}
+                    placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
                     maxLength={100}
                   />
                 </View>
@@ -832,7 +844,7 @@ export default function LettersScreen() {
                       { 
                         backgroundColor: theme.unitBg,
                         color: theme.text,
-                        borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                        borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.08)"
                       },
                       errors.content && styles.inputError
                     ]}
@@ -842,7 +854,7 @@ export default function LettersScreen() {
                       setErrors(prev => ({ ...prev, content: false }));
                     }}
                     placeholder="Yüreğinden geçenleri dök... Gelecekte sevdiğinin okumasını istediğin en özel satırlar..."
-                    placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.3)"}
+                    placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
                     multiline
                     numberOfLines={6}
                     maxLength={4000}
@@ -878,6 +890,8 @@ export default function LettersScreen() {
             </KeyboardAwareScrollView>
           </View>
         </View>
+        {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
+        <DialogHost embedded />
       </Modal>
 
       {/* Premium Paywall Modal */}
@@ -927,393 +941,397 @@ export default function LettersScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-  },
-  headerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitleBox: {
-    flex: 1,
-    alignItems: "center",
-    paddingHorizontal: 8,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    letterSpacing: -0.4,
-  },
-  headerSubtitle: {
-    fontSize: 12.5,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.6)",
-    marginTop: 2,
-  },
-  topActionContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  writeLetterActionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
-    borderRadius: 18,
-    borderWidth: 1,
-    gap: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  writeActionIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  writeActionTitle: {
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    letterSpacing: -0.2,
-  },
-  writeActionSub: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.55)",
-    marginTop: 2,
-  },
-  tabsWrapper: {
-    flexDirection: "row",
-    marginHorizontal: 16,
-    marginBottom: 14,
-    borderRadius: 14,
-    padding: 4,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.05)",
-  },
-  tabBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  tabText: {
-    color: "rgba(255,255,255,0.5)",
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 13,
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 130,
-    gap: 12,
-  },
-  letterCard: {
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  letterCardLocked: {
-    borderStyle: "dashed",
-    borderColor: "rgba(255,255,255,0.15)",
-  },
-  cardTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  badgeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  directionBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 3.5,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  directionBadgeText: {
-    fontSize: 11,
-    fontFamily: "Inter_700Bold",
-  },
-  lockedBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: "rgba(245,158,11,0.12)",
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(245,158,11,0.25)",
-  },
-  lockedBadgeText: {
-    color: "#f59e0b",
-    fontSize: 11.5,
-    fontFamily: "Inter_600SemiBold",
-  },
-  unlockedBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: "rgba(34,197,94,0.12)",
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(34,197,94,0.25)",
-  },
-  unlockedBadgeText: {
-    color: "#22c55e",
-    fontSize: 11.5,
-    fontFamily: "Inter_600SemiBold",
-  },
-  cardDate: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.4)",
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    letterSpacing: -0.3,
-    marginBottom: 4,
-  },
-  personRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginBottom: 8,
-  },
-  personText: {
-    fontSize: 12.5,
-    fontFamily: "Inter_500Medium",
-    color: "rgba(255,255,255,0.6)",
-  },
-  previewText: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.5)",
-    lineHeight: 18,
-  },
-  previewTextBlurred: {
-    opacity: 0.6,
-    fontStyle: "italic",
-  },
-  letterContentBox: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.08)",
-  },
-  letterContentHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  letterContentLabel: {
-    fontSize: 11,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
-  },
-  letterContentText: {
-    fontSize: 14.5,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.85)",
-    lineHeight: 23,
-  },
-  letterFooterNote: {
-    marginTop: 12,
-    fontSize: 11.5,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.4)",
-    textAlign: "right",
-  },
+const createStyles = (theme: AppTheme) => {
+  const isLight = theme.isLight;
 
-  /* MODAL STILLERI */
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.75)",
-    justifyContent: "flex-end",
-  },
-  modalBox: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    borderWidth: 1,
-    padding: 20,
-    height: "92%",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 18,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.08)",
-  },
-  modalHeaderTitle: {
-    fontSize: 18,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    letterSpacing: -0.3,
-  },
-  modalCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  fieldLabel: {
-    fontSize: 11.5,
-    fontFamily: "Inter_600SemiBold",
-    color: "rgba(255,255,255,0.7)",
-    letterSpacing: 0.6,
-    marginBottom: 8,
-  },
-  fieldLabelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  lockHintPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  lockHintText: {
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-  },
-  usersSelectorRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  userPillBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  userPillText: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 13.5,
-    fontFamily: "Inter_600SemiBold",
-  },
-  dateSelectorBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  dateSelectorText: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontFamily: "Inter_500Medium",
-  },
-  inputField: {
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    color: "#ffffff",
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-  },
-  textAreaField: {
-    minHeight: 140,
-    textAlignVertical: "top",
-    lineHeight: 21,
-  },
-  inputError: {
-    borderColor: "#ff5c77",
-    borderWidth: 1.5,
-  },
-  sealBtn: {
-    height: 52,
-    borderRadius: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 8,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  sealBtnText: {
-    color: "#ffffff",
-    fontSize: 15.5,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: -0.2,
-  },
-  tokenNoticeText: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.45)",
-    textAlign: "center",
-    lineHeight: 17,
-  },
-  loadMoreBtn: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 16,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 8,
-    marginBottom: 20,
-  },
-  loadMoreText: {
-    fontSize: 13.5,
-    fontFamily: "Inter_600SemiBold",
-  },
-});
+  return StyleSheet.create({
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+      paddingBottom: 14,
+    },
+    headerBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
+      borderWidth: 1,
+      borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    headerTitleBox: {
+      flex: 1,
+      alignItems: "center",
+      paddingHorizontal: 8,
+    },
+    headerTitle: {
+      fontSize: 22,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      letterSpacing: -0.4,
+    },
+    headerSubtitle: {
+      fontSize: 12.5,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.6)",
+      marginTop: 2,
+    },
+    topActionContainer: {
+      paddingHorizontal: 16,
+      marginBottom: 12,
+    },
+    writeLetterActionBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      padding: 14,
+      borderRadius: 18,
+      borderWidth: 1,
+      gap: 12,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    writeActionIconCircle: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    writeActionTitle: {
+      fontSize: 15,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      letterSpacing: -0.2,
+    },
+    writeActionSub: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.55)",
+      marginTop: 2,
+    },
+    tabsWrapper: {
+      flexDirection: "row",
+      marginHorizontal: 16,
+      marginBottom: 14,
+      borderRadius: 14,
+      padding: 4,
+      borderWidth: 1,
+      borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.05)",
+    },
+    tabBtn: {
+      flex: 1,
+      paddingVertical: 10,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    tabText: {
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.5)",
+      fontFamily: "Inter_600SemiBold",
+      fontSize: 13,
+    },
+    listContent: {
+      paddingHorizontal: 16,
+      paddingBottom: 130,
+      gap: 12,
+    },
+    letterCard: {
+      borderRadius: 18,
+      padding: 16,
+      borderWidth: 1,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.2,
+      shadowRadius: 6,
+      elevation: 2,
+    },
+    letterCardLocked: {
+      borderStyle: "dashed",
+      borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.15)",
+    },
+    cardTopRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 8,
+    },
+    badgeContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    directionBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 8,
+      paddingVertical: 3.5,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
+    },
+    directionBadgeText: {
+      fontSize: 11,
+      fontFamily: "Inter_700Bold",
+    },
+    lockedBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      backgroundColor: "rgba(245,158,11,0.12)",
+      paddingHorizontal: 9,
+      paddingVertical: 4,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: "rgba(245,158,11,0.25)",
+    },
+    lockedBadgeText: {
+      color: isLight ? "#B45309" : "#f59e0b",
+      fontSize: 11.5,
+      fontFamily: "Inter_600SemiBold",
+    },
+    unlockedBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      backgroundColor: "rgba(34,197,94,0.12)",
+      paddingHorizontal: 9,
+      paddingVertical: 4,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: "rgba(34,197,94,0.25)",
+    },
+    unlockedBadgeText: {
+      color: isLight ? "#15803D" : "#22c55e",
+      fontSize: 11.5,
+      fontFamily: "Inter_600SemiBold",
+    },
+    cardDate: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.4)",
+    },
+    cardTitle: {
+      fontSize: 16,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      letterSpacing: -0.3,
+      marginBottom: 4,
+    },
+    personRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginBottom: 8,
+    },
+    personText: {
+      fontSize: 12.5,
+      fontFamily: "Inter_500Medium",
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.6)",
+    },
+    previewText: {
+      fontSize: 13,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.5)",
+      lineHeight: 18,
+    },
+    previewTextBlurred: {
+      opacity: 0.6,
+      fontStyle: "italic",
+    },
+    letterContentBox: {
+      marginTop: 12,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
+    },
+    letterContentHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 8,
+    },
+    letterContentLabel: {
+      fontSize: 11,
+      fontFamily: "Inter_700Bold",
+      letterSpacing: 0.8,
+      textTransform: "uppercase",
+    },
+    letterContentText: {
+      fontSize: 14.5,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.text : "rgba(255,255,255,0.85)",
+      lineHeight: 23,
+    },
+    letterFooterNote: {
+      marginTop: 12,
+      fontSize: 11.5,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.4)",
+      textAlign: "right",
+    },
+
+    /* MODAL STILLERI */
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.75)",
+      justifyContent: "flex-end",
+    },
+    modalBox: {
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      borderWidth: 1,
+      padding: 20,
+      height: "92%",
+    },
+    modalHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 18,
+      paddingBottom: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
+    },
+    modalHeaderTitle: {
+      fontSize: 18,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      letterSpacing: -0.3,
+    },
+    modalCloseBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    fieldLabel: {
+      fontSize: 11.5,
+      fontFamily: "Inter_600SemiBold",
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.7)",
+      letterSpacing: 0.6,
+      marginBottom: 8,
+    },
+    fieldLabelRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 8,
+    },
+    lockHintPill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.05)",
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 8,
+    },
+    lockHintText: {
+      fontSize: 11,
+      fontFamily: "Inter_600SemiBold",
+    },
+    usersSelectorRow: {
+      flexDirection: "row",
+      gap: 10,
+    },
+    userPillBtn: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
+    },
+    userPillText: {
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.8)",
+      fontSize: 13.5,
+      fontFamily: "Inter_600SemiBold",
+    },
+    dateSelectorBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 14,
+      paddingVertical: 13,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
+    },
+    dateSelectorText: {
+      color: theme.text,
+      fontSize: 14,
+      fontFamily: "Inter_500Medium",
+    },
+    inputField: {
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
+      paddingHorizontal: 14,
+      paddingVertical: 13,
+      color: theme.text,
+      fontSize: 14,
+      fontFamily: "Inter_400Regular",
+    },
+    textAreaField: {
+      minHeight: 140,
+      textAlignVertical: "top",
+      lineHeight: 21,
+    },
+    inputError: {
+      borderColor: "#ff5c77",
+      borderWidth: 1.5,
+    },
+    sealBtn: {
+      height: 52,
+      borderRadius: 16,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      marginTop: 8,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.35,
+      shadowRadius: 10,
+      elevation: 4,
+    },
+    sealBtnText: {
+      color: "#ffffff",
+      fontSize: 15.5,
+      fontFamily: "Inter_700Bold",
+      letterSpacing: -0.2,
+    },
+    tokenNoticeText: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.45)",
+      textAlign: "center",
+      lineHeight: 17,
+    },
+    loadMoreBtn: {
+      paddingVertical: 14,
+      paddingHorizontal: 20,
+      borderRadius: 16,
+      borderWidth: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      marginTop: 8,
+      marginBottom: 20,
+    },
+    loadMoreText: {
+      fontSize: 13.5,
+      fontFamily: "Inter_600SemiBold",
+    },
+  });
+};

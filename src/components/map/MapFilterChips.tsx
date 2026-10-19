@@ -69,7 +69,7 @@ export function MapFilterChips({
                 ? { backgroundColor: accent, borderColor: accent }
                 : {
                     backgroundColor: isLight ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.08)",
-                    borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.12)",
+                    borderColor: isLight ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.12)",
                   },
             ]}
             activeOpacity={0.8}

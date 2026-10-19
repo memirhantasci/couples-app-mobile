@@ -173,8 +173,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<CoupleProfile | null>(null);
   const [isDeviceAuthorized, setIsDeviceAuthorized] = useState<boolean | null>(null);
   const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
+  // Abonelik / asenkron geri çağrılar güncel demo durumunu closure'a takılmadan okuyabilsin diye
+  const isDemoModeRef = useRef(false);
+  useEffect(() => {
+    isDemoModeRef.current = isDemoMode;
+  }, [isDemoMode]);
 
   const enterDemoMode = useCallback(() => {
+    isDemoModeRef.current = true;
     setIsDemoMode(true);
     setSession(DEMO_SESSION);
     setProfile(DEMO_PROFILE);
@@ -184,6 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const exitDemoMode = useCallback(() => {
+    isDemoModeRef.current = false;
     setIsDemoMode(false);
     setSession(null);
     setProfile(null);
@@ -287,7 +294,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 1. Load cached profile immediately to allow instant rendering without splash freeze
     getCachedProfile().then((cached) => {
       if (!mounted) return;
-      if (cached) {
+      // Demo oturumu zaten açıldıysa önbellekteki gerçek (boş olabilen) profil onu ezmemeli
+      if (cached && !isDemoModeRef.current) {
         setProfile(cached);
       }
     });
@@ -341,6 +349,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // skip processing since getSession already handled it
       if (event === 'INITIAL_SESSION' && initialSessionProcessed.current) {
         return;
+      }
+
+      // Demo (misafir) oturumunun Supabase'de karşılığı yoktur: oturumsuz bir olay (SIGNED_OUT vb.)
+      // demo oturumunu ve profilini silmemeli. Gerçek bir oturum gelirse demodan çıkılır.
+      if (isDemoModeRef.current) {
+        if (!newSession) return;
+        isDemoModeRef.current = false;
+        setIsDemoMode(false);
       }
 
       setSession(newSession);
@@ -409,6 +425,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [session?.user?.id]);
 
   const refreshProfile = useCallback(async () => {
+    // Demo profili sunucuda yoktur: yenileme, premium'lu örnek profili boş bir profille ezip
+    // sayaçları boşaltıyor ve kilit duvarlarını çıkarıyordu (ör. uygulama arka plandan dönünce).
+    if (isDemoModeRef.current) return;
     if (!session?.user?.id) {
       setProfile(null);
       await AsyncStorage.removeItem(CACHED_PROFILE_KEY).catch(() => {});
@@ -489,6 +508,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextState) => {
       if (nextState !== 'active') return;
+      // Demo oturumunda yenilenecek bir sunucu profili yok
+      if (isDemoModeRef.current) return;
 
       const observedExpiresAt = profile?.premiumExpiresAt;
       const expiryMs = observedExpiresAt ? Date.parse(observedExpiresAt) : Number.POSITIVE_INFINITY;
@@ -556,11 +577,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   }, [isDemoMode, exitDemoMode, profile?.coupleId]);
 
+  // Demo modunda tüketicilere HER ZAMAN sabit demo oturumu ve premium'lu demo profili sunulur;
+  // iç state'e yanlışlıkla yazılan herhangi bir değer arayüzü (kilitler, sayaçlar) bozamaz.
+  const exposedSession = isDemoMode ? DEMO_SESSION : session;
+  const exposedProfile = isDemoMode ? DEMO_PROFILE : profile;
+
   const value = useMemo<AuthContextValue>(
     () => ({
-      session,
+      session: exposedSession,
       isLoading,
-      profile,
+      profile: exposedProfile,
       isDeviceAuthorized,
       setIsDeviceAuthorized,
       checkDeviceAuth,
@@ -571,9 +597,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       exitDemoMode,
     }),
     [
-      session,
+      exposedSession,
       isLoading,
-      profile,
+      exposedProfile,
       isDeviceAuthorized,
       checkDeviceAuth,
       refreshProfile,

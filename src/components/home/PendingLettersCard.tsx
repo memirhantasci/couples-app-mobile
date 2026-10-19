@@ -143,7 +143,7 @@ export const PendingLettersCard = memo(function PendingLettersCard({
   const today = dayjs().startOf("day");
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+    <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
       {/* Başlık + Tümünü Gör */}
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>

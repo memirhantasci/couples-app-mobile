@@ -70,12 +70,12 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
       toast.success("Günlük notun kaydedildi ✨");
     } else {
       logger.error("Note save error:", JSON.stringify(error, null, 2));
-      alert("Not kaydedilemedi: " + (error?.message || "Bilinmeyen hata"));
+      toast.error(error?.message || "Bilinmeyen hata", { title: "Not kaydedilemedi" });
     }
   }
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+    <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
       <Text style={[styles.title, { color: theme.text }]}>Günlük Notum</Text>
 
       {saved ? (

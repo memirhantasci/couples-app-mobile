@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -7,11 +7,12 @@ import {
   ActivityIndicator,
   RefreshControl,
   Platform,
-  Alert,
   Modal,
   TextInput,
-  StyleSheet
+  StyleSheet,
 } from "react-native";
+import { appAlert } from "@/lib/dialog";
+import { DialogHost } from "@/components/ui/DialogHost";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -27,7 +28,7 @@ import {
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { getTheme } from "@/lib/theme";
+import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { usePageTour } from "@/hooks/usePageTour";
@@ -57,6 +58,7 @@ export default function DailyNotesScreen() {
   const { session, profile, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
@@ -112,7 +114,7 @@ export default function DailyNotesScreen() {
       return;
     }
 
-    Alert.alert("Günlüğü Sil", "Bu günlük kaydını kalıcı olarak silmek istediğinize emin misiniz?", [
+    appAlert("Günlüğü Sil", "Bu günlük kaydını kalıcı olarak silmek istediğinize emin misiniz?", [
       { text: "Vazgeç", style: "cancel" },
       {
         text: "Sil",
@@ -120,7 +122,7 @@ export default function DailyNotesScreen() {
         onPress: async () => {
           const { error } = await supabase.from("daily_notes").delete().eq("id", id);
           if (error) {
-            Alert.alert("Hata", "Günlük silinirken hata oluştu.");
+            appAlert("Hata", "Günlük silinirken hata oluştu.");
           } else {
             queryClient.invalidateQueries({ queryKey: ["daily_notes_history", userId] });
             queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
@@ -152,7 +154,7 @@ export default function DailyNotesScreen() {
         .from("daily_notes")
         .update({ content: encrypted })
         .eq("id", editingNote.id);
-      
+
       if (error) throw error;
 
       queryClient.invalidateQueries({ queryKey: ["daily_notes_history", userId] });
@@ -161,7 +163,7 @@ export default function DailyNotesScreen() {
       setEditContent("");
       setEditError(false);
     } catch (e: any) {
-      Alert.alert("Hata", "Günlük güncellenemedi.");
+      appAlert("Hata", "Günlük güncellenemedi.");
     } finally {
       setIsSubmitting(false);
     }
@@ -177,7 +179,7 @@ export default function DailyNotesScreen() {
     const displayContent = cleanContentText(note.content);
 
     return (
-      <View style={[styles.cardContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+      <View style={[styles.cardContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
         <View style={styles.cardHeader}>
           <View style={styles.dateBadge}>
             <View style={[styles.dayCircle, { backgroundColor: theme.pillAccentBg }]}>
@@ -282,7 +284,7 @@ export default function DailyNotesScreen() {
         {/* ÜSTTE YENİ SAYFA EKLE BUTONU */}
         <View style={styles.topActionContainer}>
           <TouchableOpacity 
-            style={[styles.writeNoteActionBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+            style={[styles.writeNoteActionBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
             onPress={() => {
               if (executeOrIntercept(
                 () => router.push("/(tabs)/add-daily-note"),
@@ -348,9 +350,9 @@ export default function DailyNotesScreen() {
       {/* DÜZENLEME MODALI (Modern ve Klavye Korumalı) */}
       <Modal visible={!!editingNote} animationType="slide" transparent>
         <View style={styles.modalBackdrop}>
-          <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
             {/* Modal Header */}
-            <View style={[styles.modalHeader, { borderBottomColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Edit3 size={18} color={theme.accent} />
                 <Text style={[styles.modalTitle, { color: theme.text }]}>Günlüğü Düzenle</Text>
@@ -378,7 +380,7 @@ export default function DailyNotesScreen() {
                   { 
                     backgroundColor: theme.unitBg,
                     color: theme.text,
-                    borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                    borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.08)"
                   },
                   editError && styles.modalInputError
                 ]}
@@ -390,7 +392,7 @@ export default function DailyNotesScreen() {
                   setEditError(false);
                 }}
                 placeholder="Günlüğünüz..."
-                placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.3)"}
+                placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
               />
 
               <Text style={{ alignSelf: "flex-end", fontSize: 11.5, fontFamily: "Inter_400Regular", color: theme.textMuted, marginRight: 4 }}>
@@ -423,6 +425,8 @@ export default function DailyNotesScreen() {
             </KeyboardAwareScrollView>
           </View>
         </View>
+        {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
+        <DialogHost embedded />
       </Modal>
       <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
       <DemoActionModal
@@ -435,243 +439,247 @@ export default function DailyNotesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-  },
-  headerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitleBox: {
-    flex: 1,
-    alignItems: "center",
-    paddingHorizontal: 8,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    letterSpacing: -0.4,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.55)",
-    marginTop: 2,
-  },
-  topActionContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 14,
-  },
-  writeNoteActionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
-    borderRadius: 18,
-    borderWidth: 1,
-    gap: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  writeActionIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  writeActionTitle: {
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    letterSpacing: -0.2,
-  },
-  writeActionSub: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.55)",
-    marginTop: 2,
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 130,
-    gap: 14,
-  },
-  cardContainer: {
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  dateBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  dayCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dayText: {
-    fontSize: 16,
-    fontFamily: "Inter_700Bold",
-  },
-  monthYearText: {
-    fontSize: 13.5,
-    fontFamily: "Inter_600SemiBold",
-    color: "#ffffff",
-  },
-  weekdayText: {
-    fontSize: 11.5,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.45)",
-  },
-  actionBtnsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  actionIconBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  moodBadgeContainer: {
-    alignSelf: "flex-start",
-    backgroundColor: "rgba(255,255,255,0.06)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-    marginBottom: 8,
-  },
-  moodBadgeText: {
-    fontSize: 12.5,
-    fontFamily: "Inter_600SemiBold",
-    color: "rgba(255,255,255,0.85)",
-  },
-  noteTitleText: {
-    fontSize: 16,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    marginBottom: 6,
-    letterSpacing: -0.2,
-  },
-  noteBodyText: {
-    fontSize: 14.5,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.8)",
-    lineHeight: 23,
-  },
+const createStyles = (theme: AppTheme) => {
+  const isLight = theme.isLight;
 
-  /* MODAL */
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.75)",
-    justifyContent: "center",
-    padding: 18,
-  },
-  modalBox: {
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 20,
-    maxHeight: "85%",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.08)",
-  },
-  modalTitle: {
-    fontSize: 17,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-  },
-  modalCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modalTextInput: {
-    borderRadius: 16,
-    padding: 16,
-    fontSize: 15,
-    fontFamily: "Inter_400Regular",
-    color: "#ffffff",
-    minHeight: 160,
-    textAlignVertical: "top",
-    lineHeight: 22,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  modalInputError: {
-    borderColor: "#ff5c77",
-    borderWidth: 1.5,
-  },
-  modalActionsRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 12,
-    marginTop: 6,
-  },
-  modalCancelBtn: {
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.08)",
-  },
-  modalCancelBtnText: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 14,
-    fontFamily: "Inter_600SemiBold",
-  },
-  modalSaveBtn: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  modalSaveBtnText: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontFamily: "Inter_700Bold",
-  },
-});
+  return StyleSheet.create({
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+      paddingBottom: 14,
+    },
+    headerBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
+      borderWidth: 1,
+      borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    headerTitleBox: {
+      flex: 1,
+      alignItems: "center",
+      paddingHorizontal: 8,
+    },
+    headerTitle: {
+      fontSize: 22,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      letterSpacing: -0.4,
+    },
+    headerSubtitle: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.55)",
+      marginTop: 2,
+    },
+    topActionContainer: {
+      paddingHorizontal: 16,
+      marginBottom: 14,
+    },
+    writeNoteActionBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      padding: 14,
+      borderRadius: 18,
+      borderWidth: 1,
+      gap: 12,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    writeActionIconCircle: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    writeActionTitle: {
+      fontSize: 15,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      letterSpacing: -0.2,
+    },
+    writeActionSub: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.55)",
+      marginTop: 2,
+    },
+    listContent: {
+      paddingHorizontal: 16,
+      paddingBottom: 130,
+      gap: 14,
+    },
+    cardContainer: {
+      borderRadius: 20,
+      padding: 18,
+      borderWidth: 1,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.2,
+      shadowRadius: 6,
+      elevation: 2,
+    },
+    cardHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 12,
+    },
+    dateBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+    },
+    dayCircle: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    dayText: {
+      fontSize: 16,
+      fontFamily: "Inter_700Bold",
+    },
+    monthYearText: {
+      fontSize: 13.5,
+      fontFamily: "Inter_600SemiBold",
+      color: theme.text,
+    },
+    weekdayText: {
+      fontSize: 11.5,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.45)",
+    },
+    actionBtnsRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    actionIconBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    moodBadgeContainer: {
+      alignSelf: "flex-start",
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 10,
+      marginBottom: 8,
+    },
+    moodBadgeText: {
+      fontSize: 12.5,
+      fontFamily: "Inter_600SemiBold",
+      color: isLight ? theme.text : "rgba(255,255,255,0.85)",
+    },
+    noteTitleText: {
+      fontSize: 16,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      marginBottom: 6,
+      letterSpacing: -0.2,
+    },
+    noteBodyText: {
+      fontSize: 14.5,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.8)",
+      lineHeight: 23,
+    },
+
+    /* MODAL */
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.75)",
+      justifyContent: "center",
+      padding: 18,
+    },
+    modalBox: {
+      borderRadius: 24,
+      borderWidth: 1,
+      padding: 20,
+      maxHeight: "85%",
+    },
+    modalHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 16,
+      paddingBottom: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
+    },
+    modalTitle: {
+      fontSize: 17,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+    },
+    modalCloseBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    modalTextInput: {
+      borderRadius: 16,
+      padding: 16,
+      fontSize: 15,
+      fontFamily: "Inter_400Regular",
+      color: theme.text,
+      minHeight: 160,
+      textAlignVertical: "top",
+      lineHeight: 22,
+      borderWidth: 1,
+      borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
+    },
+    modalInputError: {
+      borderColor: "#ff5c77",
+      borderWidth: 1.5,
+    },
+    modalActionsRow: {
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      gap: 12,
+      marginTop: 6,
+    },
+    modalCancelBtn: {
+      paddingVertical: 12,
+      paddingHorizontal: 18,
+      borderRadius: 14,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)",
+    },
+    modalCancelBtnText: {
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.7)",
+      fontSize: 14,
+      fontFamily: "Inter_600SemiBold",
+    },
+    modalSaveBtn: {
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+      borderRadius: 14,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    modalSaveBtnText: {
+      color: "#ffffff",
+      fontSize: 14,
+      fontFamily: "Inter_700Bold",
+    },
+  });
+};

@@ -32,7 +32,7 @@ function MedicineDoseCardBase({
     : [m.time ? m.time.substring(0, 5) : "08:00"];
 
   return (
-    <View style={[styles.medCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+    <View style={[styles.medCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
       <View style={styles.medCardHeader}>
         <View style={[styles.medIconBox, { backgroundColor: theme.pillAccentBg }]}>
           <Pill color={theme.accent} size={20} />
@@ -65,8 +65,8 @@ function MedicineDoseCardBase({
           if (isDrank) {
             return (
               <View key={itemKey} style={[styles.slotStateBox, styles.drankStateBox]}>
-                <CheckCircle2 size={16} color="#22c55e" />
-                <Text style={styles.drankStateText}>Alındı ({slotTime}) ✔️</Text>
+                <CheckCircle2 size={16} color={theme.isLight ? "#15803D" : "#22c55e"} />
+                <Text style={[styles.drankStateText, theme.isLight && { color: "#15803D" }]}>Alındı ({slotTime}) ✔️</Text>
               </View>
             );
           }
@@ -91,7 +91,7 @@ function MedicineDoseCardBase({
           if (activeTab === "partner") {
             return (
               <View key={itemKey} style={[styles.slotStateBox, { backgroundColor: theme.unitBg }]}>
-                <AlertCircle size={14} color="#f59e0b" />
+                <AlertCircle size={14} color={theme.isLight ? "#B45309" : "#f59e0b"} />
                 <Text style={[styles.waitingStateText, { color: theme.textSecondary }]}>Henüz Alınmadı ({slotTime})</Text>
               </View>
             );

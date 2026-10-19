@@ -22,7 +22,7 @@ export function ModernSection({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <View style={[styles.sectionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+    <View style={[styles.sectionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
       <TouchableOpacity
         activeOpacity={0.78}
         onPress={() => setIsOpen(!isOpen)}

@@ -1,8 +1,15 @@
 import React, { useState, useMemo } from "react";
-import { 
-  View, Text, ScrollView, StyleSheet, TouchableOpacity, 
-  ActivityIndicator, Alert, Modal 
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  Modal,
 } from "react-native";
+import { appAlert } from "@/lib/dialog";
+import { DialogHost } from "@/components/ui/DialogHost";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
@@ -17,7 +24,7 @@ import {
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getTheme } from "@/lib/theme";
+import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { usePageTour } from "@/hooks/usePageTour";
@@ -43,6 +50,8 @@ export default function PeriodTrackerScreen() {
   const { session, profile, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const goldColor = isLight ? "#A16207" : "#ffd700";
   const router = useRouter();
   const queryClient = useQueryClient();
   const today = todayString();
@@ -50,10 +59,11 @@ export default function PeriodTrackerScreen() {
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
-  
+
   // Cinsiyet doğrudan profil önbelleğinden okunur — ekstra DB sorgusu atilmaz
   const isFemale = profile?.gender === "female";
-  const isPremium = profile?.isPremium ?? false;
+  // Demo modunda premium kilitleri yoktur: tüm özellikler açık
+  const isPremium = (profile?.isPremium ?? false) || isDemoMode;
   const [showPaywall, setShowPaywall] = useState(false);
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("period-tracker");
 
@@ -71,7 +81,7 @@ export default function PeriodTrackerScreen() {
         ];
       }
       let query = supabase.from("period_logs").select("id, date, user_id").eq("couple_id", coupleId).order("date", { ascending: false });
-      
+
       if (isFemale && userId) {
         query = query.eq("user_id", userId);
       } else {
@@ -142,21 +152,21 @@ export default function PeriodTrackerScreen() {
   // Yeni başlangıç eklenmeden önce manipülasyon kontrolleri (DB trigger'ı da aynı kuralları uygular)
   function validateNewStart(dateStr: string): boolean {
     if (dayjs(dateStr).isAfter(dayjs(today), "day")) {
-      Alert.alert("Geçersiz Tarih", "Gelecekteki bir günü regl başlangıcı olarak işaretleyemezsiniz.");
+      appAlert("Geçersiz Tarih", "Gelecekteki bir günü regl başlangıcı olarak işaretleyemezsiniz.");
       return false;
     }
 
     const currentMonthStr = dateStr.substring(0, 7);
     const monthLogs = logs?.filter(l => l.date.startsWith(currentMonthStr)) || [];
     if (monthLogs.length >= MAX_STARTS_PER_MONTH) {
-      Alert.alert("Sınır 🌸", "Biyolojik olarak bir ay içerisinde en fazla 2 ayrı regl başlangıcı kaydedebilirsiniz.");
+      appAlert("Sınır 🌸", "Biyolojik olarak bir ay içerisinde en fazla 2 ayrı regl başlangıcı kaydedebilirsiniz.");
       return false;
     }
 
     const targetDate = dayjs(dateStr);
     const tooClose = logs?.some(l => Math.abs(targetDate.diff(dayjs(l.date), "day")) < MIN_DAYS_BETWEEN_STARTS);
     if (tooClose) {
-      Alert.alert("Biyolojik Aralık 🌸", "İki regl başlangıcı arasında en az 16 gün ara bulunmalıdır.");
+      appAlert("Biyolojik Aralık 🌸", "İki regl başlangıcı arasında en az 16 gün ara bulunmalıdır.");
       return false;
     }
     return true;
@@ -185,7 +195,7 @@ export default function PeriodTrackerScreen() {
       return;
     }
     if (!isFemale) {
-      Alert.alert("Bilgi 🌸", "Regl takvimini yalnızca kadın partner güncelleyebilir.");
+      appAlert("Bilgi 🌸", "Regl takvimini yalnızca kadın partner güncelleyebilir.");
       return;
     }
 
@@ -216,7 +226,7 @@ export default function PeriodTrackerScreen() {
       await savePeriodStart(today);
     } catch (error: any) {
       logger.error("Period quick start error:", error);
-      Alert.alert("Hata", error?.message || "İşlem sırasında bir hata oluştu.");
+      appAlert("Hata", error?.message || "İşlem sırasında bir hata oluştu.");
     } finally {
       setLoading(false);
     }
@@ -250,7 +260,7 @@ export default function PeriodTrackerScreen() {
       setSelectedDate(null);
     } catch (error: any) {
       logger.error("Period save error:", error);
-      Alert.alert("Hata", error?.message || "İşlem sırasında bir hata oluştu.");
+      appAlert("Hata", error?.message || "İşlem sırasında bir hata oluştu.");
     } finally {
       setLoading(false);
     }
@@ -300,7 +310,7 @@ export default function PeriodTrackerScreen() {
         >
           {/* ─── PREMIUM OLMAYAN HESAPLAR İÇİN ULTRA LÜKS KİLİT KARTI ─── */}
           {isMaleLocked ? (
-            <View style={[styles.luxuryLockCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            <View style={[styles.luxuryLockCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
               <View style={styles.luxuryLockGlow}>
                 <View style={[styles.luxuryLockIconBox, { backgroundColor: "rgba(255, 77, 106, 0.15)", borderColor: "rgba(255, 77, 106, 0.35)" }]}>
                   <Crown color="#ff4d6a" size={32} />
@@ -308,14 +318,14 @@ export default function PeriodTrackerScreen() {
               </View>
 
               <View style={styles.vipBadge}>
-                <Sparkles size={13} color="#ffd700" />
+                <Sparkles size={13} color={goldColor} />
                 <Text style={styles.vipBadgeText}>VIP ÇİFT AYRICALIĞI</Text>
               </View>
 
               <Text style={styles.luxuryLockTitle}>
                 Sevgilinin Döngüsünü Birlikte Takip Edin 💕
               </Text>
-              
+
               <Text style={styles.luxuryLockDesc}>
                 Partnerinizin hassas dönemlerinden haberdar olarak ona en doğru zamanda anlayış ve şefkatle yaklaşabilirsiniz.
               </Text>
@@ -357,7 +367,7 @@ export default function PeriodTrackerScreen() {
           ) : (
             <>
               {/* ─── KADIN YA DA PREMIUM ERKEK İÇİN DURUM ÖZETİ KARTI ─── */}
-              <View style={[styles.statusHeroCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+              <View style={[styles.statusHeroCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
                 <View style={[styles.statusHeroIconBox, { backgroundColor: "rgba(255, 77, 106, 0.15)" }]}>
                   <Droplet size={24} color="#ff4d6a" />
                 </View>
@@ -409,7 +419,7 @@ export default function PeriodTrackerScreen() {
 
               {/* ─── ERKEK KULLANICI İÇİN ŞEFKAT & DESTEK REHBERİ ─── */}
               {!isFemale && (
-                <View style={[styles.gentleGuideCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                <View style={[styles.gentleGuideCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
                   <View style={styles.guideHeader}>
                     <MessageCircleHeart size={18} color="#ff4d6a" />
                     <Text style={[styles.guideTitle, { color: theme.text }]}>Sevgiline Destek Olma İpuçları</Text>
@@ -433,7 +443,7 @@ export default function PeriodTrackerScreen() {
 
               {/* ─── KADIN KULLANICI İÇİN İPUCU KARTI ─── */}
               {isFemale && (
-                <View style={[styles.femaleTipsCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                <View style={[styles.femaleTipsCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
                   <View style={styles.guideHeader}>
                     <Sparkles size={17} color={theme.accent} />
                     <Text style={[styles.guideTitle, { color: theme.text }]}>Günün Kendine Bakım Notu</Text>
@@ -445,7 +455,7 @@ export default function PeriodTrackerScreen() {
               )}
 
               {/* ─── MODERN TAKVİM ─── */}
-              <View style={[styles.calendarBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+              <View style={[styles.calendarBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
                 {isLoading ? (
                   <View style={{ padding: 20, gap: 12 }}>
                     <Skeleton height={260} borderRadius={18} />
@@ -482,7 +492,7 @@ export default function PeriodTrackerScreen() {
                 <Text style={[styles.pastSectionTitle, { color: theme.textMuted }]}>GEÇMİŞ KAYITLAR</Text>
 
                 {!logs || logs.length === 0 ? (
-                  <View style={[styles.emptyBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+                  <View style={[styles.emptyBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}>
                     <Text style={{ fontSize: 32, marginBottom: 8 }}>🌸</Text>
                     <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Henüz kayıtlı bir döngü günü bulunmuyor.</Text>
                   </View>
@@ -491,7 +501,7 @@ export default function PeriodTrackerScreen() {
                     {logs.map(log => {
                       const logDate = dayjs(log.date);
                       return (
-                        <View key={log.id} style={[styles.logCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                        <View key={log.id} style={[styles.logCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
                           <View style={styles.logLeftCol}>
                             <View style={[styles.logDropBadge, { backgroundColor: "rgba(255, 77, 106, 0.15)" }]}>
                               <Droplet size={18} color="#ff4d6a" />
@@ -518,7 +528,7 @@ export default function PeriodTrackerScreen() {
       {/* ─── TARİH KAYIT / SİLME MODALI ─── */}
       <Modal visible={!!selectedDate} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
             <View style={[styles.modalIconCircle, { backgroundColor: "rgba(255, 77, 106, 0.15)" }]}>
               <Droplet size={28} color="#ff4d6a" />
             </View>
@@ -526,7 +536,7 @@ export default function PeriodTrackerScreen() {
             <Text style={[styles.modalDateTitle, { color: theme.text }]}>
               {selectedDate ? dayjs(selectedDate).locale("tr").format("DD MMMM YYYY, dddd") : ""}
             </Text>
-            
+
             <Text style={[styles.modalDescription, { color: theme.textSecondary }]}>
               {isAdding 
                 ? "Bu günü regl başlangıcı olarak işaretlemek istiyor musunuz?" 
@@ -536,13 +546,13 @@ export default function PeriodTrackerScreen() {
 
             <View style={styles.modalBtnRow}>
               <TouchableOpacity
-                style={[styles.modalCancelBtn, { backgroundColor: theme.unitBg, borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]}
+                style={[styles.modalCancelBtn, { backgroundColor: theme.unitBg, borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.08)" }]}
                 disabled={loading}
                 onPress={() => setSelectedDate(null)}
               >
                 <Text style={[styles.modalCancelBtnText, { color: theme.textSecondary }]}>Vazgeç</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={[
                   styles.modalConfirmBtn, 
@@ -566,6 +576,8 @@ export default function PeriodTrackerScreen() {
             </View>
           </View>
         </View>
+        {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
+        <DialogHost embedded />
       </Modal>
 
       {/* ─── PREMIUM PAYWALL MODALI ─── */}
@@ -587,390 +599,404 @@ export default function PeriodTrackerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  headerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitleBox: {
-    flex: 1,
-    alignItems: "center",
-    paddingHorizontal: 8,
-  },
-  headerTitle: {
-    fontSize: 21,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    letterSpacing: -0.4,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.55)",
-    marginTop: 2,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    gap: 16,
-  },
+const createStyles = (theme: AppTheme) => {
+  const isLight = theme.isLight;
 
-  /* ─── LÜKS KİLİT KARTI (PREMIUMSIZ) ─── */
-  luxuryLockCard: {
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 24,
-    alignItems: "center",
-    marginTop: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  luxuryLockGlow: {
-    marginBottom: 16,
-  },
-  luxuryLockIconBox: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    borderWidth: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  vipBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(255, 215, 0, 0.12)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 215, 0, 0.3)",
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  vipBadgeText: {
-    color: "#ffd700",
-    fontSize: 11,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: 0.8,
-  },
-  luxuryLockTitle: {
-    fontSize: 18,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    textAlign: "center",
-    letterSpacing: -0.2,
-    marginBottom: 8,
-  },
-  luxuryLockDesc: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.6)",
-    textAlign: "center",
-    lineHeight: 20,
-    marginBottom: 20,
-    paddingHorizontal: 8,
-  },
-  perksList: {
-    width: "100%",
-    gap: 12,
-    backgroundColor: "rgba(255,255,255,0.03)",
-    padding: 16,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-    marginBottom: 22,
-  },
-  perkItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  perkBullet: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "rgba(34, 197, 94, 0.15)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  perkText: {
-    fontSize: 12.5,
-    fontFamily: "Inter_500Medium",
-    color: "rgba(255,255,255,0.85)",
-    flex: 1,
-  },
-  upgradeBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    width: "100%",
-    height: 48,
-    borderRadius: 16,
-  },
-  upgradeBtnText: {
-    color: "#ffffff",
-    fontSize: 14.5,
-    fontFamily: "Inter_700Bold",
-  },
+  return StyleSheet.create({
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+      paddingBottom: 12,
+    },
+    headerBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
+      borderWidth: 1,
+      borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    headerTitleBox: {
+      flex: 1,
+      alignItems: "center",
+      paddingHorizontal: 8,
+    },
+    headerTitle: {
+      fontSize: 21,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      letterSpacing: -0.4,
+    },
+    headerSubtitle: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.55)",
+      marginTop: 2,
+    },
+    scrollContent: {
+      paddingHorizontal: 16,
+      paddingTop: 8,
+      gap: 16,
+    },
 
-  /* ─── DURUM HERO KARTI ─── */
-  statusHeroCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    gap: 14,
-  },
-  statusHeroIconBox: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  statusHeroTitle: {
-    fontSize: 15.5,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    letterSpacing: -0.2,
-  },
-  statusHeroSubtitle: {
-    fontSize: 12.5,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.6)",
-    marginTop: 2,
-  },
+    /* ─── LÜKS KİLİT KARTI (PREMIUMSIZ) ─── */
+    luxuryLockCard: {
+      borderRadius: 24,
+      borderWidth: 1,
+      padding: 24,
+      alignItems: "center",
+      marginTop: 10,
+      ...(isLight
+        ? theme.cardShadow
+        : {
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.3,
+            shadowRadius: 12,
+            elevation: 6,
+          }),
+    },
+    luxuryLockGlow: {
+      marginBottom: 16,
+    },
+    luxuryLockIconBox: {
+      width: 68,
+      height: 68,
+      borderRadius: 34,
+      borderWidth: 1.5,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    vipBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: isLight ? "rgba(202, 138, 4, 0.12)" : "rgba(255, 215, 0, 0.12)",
+      borderWidth: 1,
+      borderColor: isLight ? "rgba(161, 98, 7, 0.40)" : "rgba(255, 215, 0, 0.3)",
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+      borderRadius: 12,
+      marginBottom: 12,
+    },
+    vipBadgeText: {
+      color: isLight ? "#A16207" : "#ffd700",
+      fontSize: 11,
+      fontFamily: "Inter_700Bold",
+      letterSpacing: 0.8,
+    },
+    luxuryLockTitle: {
+      fontSize: 18,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      textAlign: "center",
+      letterSpacing: -0.2,
+      marginBottom: 8,
+    },
+    luxuryLockDesc: {
+      fontSize: 13,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.6)",
+      textAlign: "center",
+      lineHeight: 20,
+      marginBottom: 20,
+      paddingHorizontal: 8,
+    },
+    perksList: {
+      width: "100%",
+      gap: 12,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.03)",
+      padding: 16,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.06)",
+      marginBottom: 22,
+    },
+    perkItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+    },
+    perkBullet: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      backgroundColor: "rgba(34, 197, 94, 0.15)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    perkText: {
+      fontSize: 12.5,
+      fontFamily: "Inter_500Medium",
+      color: isLight ? theme.text : "rgba(255,255,255,0.85)",
+      flex: 1,
+    },
+    upgradeBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      width: "100%",
+      height: 48,
+      borderRadius: 16,
+    },
+    upgradeBtnText: {
+      color: "#ffffff",
+      fontSize: 14.5,
+      fontFamily: "Inter_700Bold",
+    },
 
-  statusHeroCountdown: {
-    fontSize: 12.5,
-    fontFamily: "Inter_600SemiBold",
-    color: "#ff4d6a",
-    marginTop: 4,
-  },
-  quickStartBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    height: 52,
-    borderRadius: 18,
-  },
-  quickStartBtnText: {
-    color: "#ffffff",
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
-  },
+    /* ─── DURUM HERO KARTI ─── */
+    statusHeroCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      padding: 16,
+      borderRadius: 20,
+      borderWidth: 1,
+      gap: 14,
+      ...theme.cardShadow,
+    },
+    statusHeroIconBox: {
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    statusHeroTitle: {
+      fontSize: 15.5,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      letterSpacing: -0.2,
+    },
+    statusHeroSubtitle: {
+      fontSize: 12.5,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.6)",
+      marginTop: 2,
+    },
 
-  /* ─── ŞEFKAT & DESTEK REHBERİ ─── */
-  gentleGuideCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 16,
-    gap: 12,
-  },
-  guideHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  guideTitle: {
-    fontSize: 14,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-  },
-  guideItemsBox: {
-    gap: 8,
-  },
-  guideItemRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: "rgba(255,255,255,0.03)",
-    padding: 10,
-    borderRadius: 12,
-  },
-  guideItemText: {
-    fontSize: 12.5,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.75)",
-    flex: 1,
-  },
+    statusHeroCountdown: {
+      fontSize: 12.5,
+      fontFamily: "Inter_600SemiBold",
+      color: isLight ? "#E11D48" : "#ff4d6a",
+      marginTop: 4,
+    },
+    quickStartBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      height: 52,
+      borderRadius: 18,
+    },
+    quickStartBtnText: {
+      color: "#ffffff",
+      fontSize: 15,
+      fontFamily: "Inter_700Bold",
+    },
 
-  /* KADIN İPUCU KARTI */
-  femaleTipsCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 14,
-    gap: 8,
-  },
-  femaleTipsText: {
-    fontSize: 12.5,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.75)",
-    lineHeight: 18,
-  },
+    /* ─── ŞEFKAT & DESTEK REHBERİ ─── */
+    gentleGuideCard: {
+      borderRadius: 20,
+      borderWidth: 1,
+      padding: 16,
+      gap: 12,
+      ...theme.cardShadow,
+    },
+    guideHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    guideTitle: {
+      fontSize: 14,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+    },
+    guideItemsBox: {
+      gap: 8,
+    },
+    guideItemRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.03)",
+      padding: 10,
+      borderRadius: 12,
+    },
+    guideItemText: {
+      fontSize: 12.5,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.75)",
+      flex: 1,
+    },
 
-  /* MODERN TAKVİM KUTUSU */
-  calendarBox: {
-    borderRadius: 22,
-    borderWidth: 1,
-    overflow: "hidden",
-    paddingVertical: 8,
-  },
+    /* KADIN İPUCU KARTI */
+    femaleTipsCard: {
+      borderRadius: 18,
+      borderWidth: 1,
+      padding: 14,
+      gap: 8,
+      ...theme.cardShadow,
+    },
+    femaleTipsText: {
+      fontSize: 12.5,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.75)",
+      lineHeight: 18,
+    },
 
-  /* GEÇMİŞ KAYITLAR */
-  pastRecordsSection: {
-    gap: 10,
-  },
-  pastSectionTitle: {
-    fontSize: 11,
-    fontFamily: "Inter_700Bold",
-    color: "rgba(255,255,255,0.5)",
-    letterSpacing: 0.8,
-    marginLeft: 4,
-  },
-  emptyBox: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyText: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.5)",
-    textAlign: "center",
-  },
-  logCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  logLeftCol: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  logDropBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logDateText: {
-    fontSize: 14,
-    fontFamily: "Inter_600SemiBold",
-    color: "#ffffff",
-  },
-  logDayText: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.55)",
-    marginTop: 2,
-  },
-  logRightTag: {
-    backgroundColor: "rgba(255,255,255,0.06)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  logRightTagText: {
-    fontSize: 12,
-    fontFamily: "Inter_500Medium",
-    color: "rgba(255,255,255,0.75)",
-  },
+    /* MODERN TAKVİM KUTUSU */
+    calendarBox: {
+      borderRadius: 22,
+      borderWidth: 1,
+      overflow: "hidden",
+      paddingVertical: 8,
+      ...theme.cardShadow,
+    },
 
-  /* MODAL */
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.75)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-  },
-  modalBox: {
-    width: "100%",
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 22,
-    alignItems: "center",
-    gap: 12,
-  },
-  modalIconCircle: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modalDateTitle: {
-    fontSize: 16,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    textAlign: "center",
-  },
-  modalDescription: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.65)",
-    textAlign: "center",
-    lineHeight: 19,
-    paddingHorizontal: 10,
-  },
-  modalBtnRow: {
-    flexDirection: "row",
-    gap: 12,
-    width: "100%",
-    marginTop: 8,
-  },
-  modalCancelBtn: {
-    flex: 1,
-    height: 44,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modalCancelBtnText: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 13.5,
-    fontFamily: "Inter_600SemiBold",
-  },
-  modalConfirmBtn: {
-    flex: 1.3,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    height: 44,
-    borderRadius: 14,
-  },
-  modalConfirmBtnText: {
-    color: "#ffffff",
-    fontSize: 13.5,
-    fontFamily: "Inter_700Bold",
-  },
-});
+    /* GEÇMİŞ KAYITLAR */
+    pastRecordsSection: {
+      gap: 10,
+    },
+    pastSectionTitle: {
+      fontSize: 11,
+      fontFamily: "Inter_700Bold",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.5)",
+      letterSpacing: 0.8,
+      marginLeft: 4,
+    },
+    emptyBox: {
+      borderRadius: 18,
+      borderWidth: 1,
+      padding: 24,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    emptyText: {
+      fontSize: 13,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.5)",
+      textAlign: "center",
+    },
+    logCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: 14,
+      borderRadius: 16,
+      borderWidth: 1,
+      ...theme.cardShadow,
+    },
+    logLeftCol: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+    },
+    logDropBadge: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    logDateText: {
+      fontSize: 14,
+      fontFamily: "Inter_600SemiBold",
+      color: theme.text,
+    },
+    logDayText: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.55)",
+      marginTop: 2,
+    },
+    logRightTag: {
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 10,
+    },
+    logRightTagText: {
+      fontSize: 12,
+      fontFamily: "Inter_500Medium",
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.75)",
+    },
+
+    /* MODAL */
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.75)",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 24,
+    },
+    modalBox: {
+      width: "100%",
+      borderRadius: 24,
+      borderWidth: 1,
+      padding: 22,
+      alignItems: "center",
+      gap: 12,
+    },
+    modalIconCircle: {
+      width: 54,
+      height: 54,
+      borderRadius: 27,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    modalDateTitle: {
+      fontSize: 16,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      textAlign: "center",
+    },
+    modalDescription: {
+      fontSize: 13,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.65)",
+      textAlign: "center",
+      lineHeight: 19,
+      paddingHorizontal: 10,
+    },
+    modalBtnRow: {
+      flexDirection: "row",
+      gap: 12,
+      width: "100%",
+      marginTop: 8,
+    },
+    modalCancelBtn: {
+      flex: 1,
+      height: 44,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    modalCancelBtnText: {
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.7)",
+      fontSize: 13.5,
+      fontFamily: "Inter_600SemiBold",
+    },
+    modalConfirmBtn: {
+      flex: 1.3,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      height: 44,
+      borderRadius: 14,
+    },
+    modalConfirmBtnText: {
+      color: "#ffffff",
+      fontSize: 13.5,
+      fontFamily: "Inter_700Bold",
+    },
+
+  });
+};

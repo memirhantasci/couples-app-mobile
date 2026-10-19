@@ -80,7 +80,7 @@ export const MeetingCountdown = memo(function MeetingCountdown({ meeting, theme 
 
   return (
     <TouchableOpacity
-      style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+      style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
       activeOpacity={0.9}
       onPress={() => setShowModal(true)}
     >
@@ -145,7 +145,7 @@ function MeetingModal({
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.modalOverlay}>
-        <View style={[styles.modalContent, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+        <View style={[styles.modalContent, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
           <View style={styles.modalHeader}>
             <Text style={[styles.modalTitle, { color: theme.text }]}>Buluşma Detayları</Text>
             <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>

@@ -7,7 +7,7 @@
  * - View Modu:
  *   - Tıklanan anı ötegezegeninin başlık, tarih, açıklama ve fotoğraf galerisi.
  *   - "Düzenle" butonu -> 'edit' moduna geçer.
- *   - "Sil" butonu -> Alert.alert onay diyaloğu ile silme işlemi (Storage temizliği dahil).
+ *   - "Sil" butonu -> appAlert onay diyaloğu ile silme işlemi (Storage temizliği dahil).
  *   - "İlişkili Mektuplar" alanı: linked_letter_ids doluysa mektuplara yönlendirme kartları.
  * - Edit Modu:
  *   - Başlık, anı tarihi, yörünge kuşağı, gezegen türü ve anı hikayesi düzenleme.
@@ -32,10 +32,11 @@ import {
   Platform,
   Dimensions,
   ActivityIndicator,
-  Alert,
   Keyboard,
   KeyboardAvoidingView,
 } from 'react-native';
+import { appAlert } from '@/lib/dialog';
+import { DialogHost } from '@/components/ui/DialogHost';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -253,7 +254,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
       return;
     }
     if (totalPhotosCount >= 5) {
-      Alert.alert('Sınır', 'Bir anı gezegenine en fazla 5 fotoğraf ekleyebilirsiniz.');
+      appAlert('Sınır', 'Bir anı gezegenine en fazla 5 fotoğraf ekleyebilirsiniz.');
       return;
     }
 
@@ -274,7 +275,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
       const newUris = result.assets.map((asset) => asset.uri);
       setSelectedPhotos((prev) => [...prev, ...newUris].slice(0, remainingSlots));
     } catch {
-      Alert.alert('Hata', 'Fotoğraf seçilirken bir sorun oluştu.');
+      appAlert('Hata', 'Fotoğraf seçilirken bir sorun oluştu.');
     }
   };
 
@@ -290,7 +291,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
   const handleDeletePlanet = () => {
     if (!selectedPlanet) return;
 
-    Alert.alert(
+    appAlert(
       'Bu anıyı kalıcı olarak silmek istediğinize emin misiniz?',
       'Bu işlem geri alınamaz ve anıya ait fotoğraflar da sistemden kaldırılır.',
       [
@@ -314,7 +315,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
               onPlanetDeleted?.(selectedPlanet.id);
               onClose();
             } catch (err: any) {
-              Alert.alert('Hata', err?.message || 'Gezegen silinirken bir sorun oluştu.');
+              appAlert('Hata', err?.message || 'Gezegen silinirken bir sorun oluştu.');
             } finally {
               setIsDeleting(false);
             }
@@ -1084,6 +1085,8 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
           </Modal>
         )}
       </KeyboardAvoidingView>
+      {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
+      <DialogHost embedded />
     </Modal>
   );
 };

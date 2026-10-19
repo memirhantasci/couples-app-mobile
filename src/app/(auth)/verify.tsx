@@ -7,9 +7,9 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ScrollView,
 } from "react-native";
+import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, router } from "expo-router";
@@ -239,7 +239,7 @@ export default function VerifyScreen() {
     });
     setIsLoading(false);
     if (error) {
-      Alert.alert("Hata", "Kod gönderilemedi. Lütfen tekrar dene.");
+      appAlert("Hata", "Kod gönderilemedi. Lütfen tekrar dene.");
     } else {
       toast.success("Yeni doğrulama kodu e-postana gönderildi.", { title: "Gönderildi!", emoji: "📧" });
     }

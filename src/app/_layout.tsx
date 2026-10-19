@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { configureAndroidNotificationChannel, notifyPairingComplete } from "@/lib/notifications";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 import { ToastHost } from "@/components/ui/ToastHost";
+import { DialogHost } from "@/components/ui/DialogHost";
 import { LetterArrivalHost } from "@/components/letters/LetterArrivalHost";
 
 import {
@@ -195,6 +196,8 @@ export default function RootLayout() {
                 <LetterArrivalHost />
                 {/* Alert yerine süzülen hap bildirimleri; ağacın en üstünde çizilir */}
                 <ToastHost />
+                {/* Alert.alert yerine cam efektli, pastel tonlu diyalog kartları (onay / uzun uyarılar) */}
+                <DialogHost />
               </NotificationProvider>
             </TabBarProvider>
           </ThemeProvider>

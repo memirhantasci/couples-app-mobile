@@ -1,8 +1,15 @@
 import React, { useState } from "react";
-import { 
-  View, Text, TouchableOpacity, StyleSheet, 
-  ScrollView, Platform, Alert, Modal 
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Platform,
+  Modal,
 } from "react-native";
+import { appAlert } from "@/lib/dialog";
+import { DialogHost } from "@/components/ui/DialogHost";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -13,7 +20,7 @@ import {
   Calendar, Clock, ImagePlus, HelpCircle, Check, Orbit
 } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
-import { getTheme } from "@/lib/theme";
+
 import { decrypt, deterministicDecrypt } from "@/utils/crypto";
 import { dayjs, daysSince } from "@/lib/date";
 import { supabase } from "@/lib/supabase";
@@ -171,7 +178,7 @@ export default function MenuScreen() {
           )}
 
           {/* ─── LÜKS ÇİFT PROFİL KARTI ─── */}
-          <View style={[styles.profileCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View style={[styles.profileCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
             <View style={[styles.avatarCircle, { backgroundColor: theme.pillAccentBg, borderColor: theme.accent }]}>
               <Text style={[styles.avatarLetter, { color: theme.accent }]}>{initialLetter}</Text>
             </View>
@@ -191,7 +198,7 @@ export default function MenuScreen() {
             <Text style={styles.sectionHeaderLabel}>AŞK & ORTAK ANILAR</Text>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
               onPress={() => handleRoute("/our-star")}
               activeOpacity={0.8}
             >
@@ -202,11 +209,11 @@ export default function MenuScreen() {
                 <Text style={styles.menuTitle}>Bizim Yıldızımız ✨</Text>
                 <Text style={styles.menuSub}>Gökyüzündeki sonsuz dijital anıtınız</Text>
               </View>
-              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+              <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
               onPress={() => handleRoute("/(tabs)/home")}
               activeOpacity={0.8}
             >
@@ -217,11 +224,11 @@ export default function MenuScreen() {
                 <Text style={styles.menuTitle}>Ana Sayfa</Text>
                 <Text style={styles.menuSub}>Günün özeti ve aşk ölçer</Text>
               </View>
-              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+              <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
               onPress={() => handleRoute("/(tabs)/photos")}
               activeOpacity={0.8}
             >
@@ -232,11 +239,11 @@ export default function MenuScreen() {
                 <Text style={styles.menuTitle}>Ortak Galeri</Text>
                 <Text style={styles.menuSub}>Birlikte biriktirdiğiniz fotoğraflar</Text>
               </View>
-              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+              <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
               onPress={() => {
                 if (executeOrIntercept(
                   () => handleRoute("/(tabs)/add-photo"),
@@ -260,11 +267,11 @@ export default function MenuScreen() {
                 <Text style={styles.menuTitle}>Fotoğraf Yükle</Text>
                 <Text style={styles.menuSub}>Yeni anı ve fotoğraf paylaş</Text>
               </View>
-              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+              <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
               onPress={() => handleRoute("/(tabs)/daily-notes")}
               activeOpacity={0.8}
             >
@@ -275,12 +282,12 @@ export default function MenuScreen() {
                 <Text style={styles.menuTitle}>Günlüğüm</Text>
                 <Text style={styles.menuSub}>Sana özel şifreli not defterin</Text>
               </View>
-              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+              <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
 
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
               onPress={() => handleRoute("/(tabs)/letters")}
               activeOpacity={0.8}
             >
@@ -291,11 +298,11 @@ export default function MenuScreen() {
                 <Text style={styles.menuTitle}>Mektuplar</Text>
                 <Text style={styles.menuSub}>Zaman kilitli aşk mektupları</Text>
               </View>
-              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+              <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
               onPress={() => handleRoute("/(tabs)/memories")}
               activeOpacity={0.8}
             >
@@ -306,11 +313,11 @@ export default function MenuScreen() {
                 <Text style={styles.menuTitle}>Özel Günler & Yıldönümleri</Text>
                 <Text style={styles.menuSub}>Unutulmaz tarihlerin geri sayımı</Text>
               </View>
-              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+              <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
               onPress={() => handleRoute("/(tabs)/calendar")}
               activeOpacity={0.8}
             >
@@ -321,11 +328,11 @@ export default function MenuScreen() {
                 <Text style={styles.menuTitle}>Aşk Takvimi</Text>
                 <Text style={styles.menuSub}>Ruh halleri, notlar ve fotoğraflar</Text>
               </View>
-              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+              <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
               onPress={() => handleRoute("/(tabs)/map")}
               activeOpacity={0.8}
             >
@@ -336,11 +343,11 @@ export default function MenuScreen() {
                 <Text style={styles.menuTitle}>Aşk Haritası</Text>
                 <Text style={styles.menuSub}>Fotoğraflı anılar ve mühürlü aşk notları</Text>
               </View>
-              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+              <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
               onPress={() => handleRoute("/(tabs)/meetings")}
               activeOpacity={0.8}
             >
@@ -351,7 +358,7 @@ export default function MenuScreen() {
                 <Text style={styles.menuTitle}>Buluşmalar</Text>
                 <Text style={styles.menuSub}>Geri sayım ve buluşma planları</Text>
               </View>
-              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+              <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
           </View>
 
@@ -360,7 +367,7 @@ export default function MenuScreen() {
             <Text style={styles.sectionHeaderLabel}>SAĞLIK & TAKİP</Text>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
               onPress={() => handleRoute("/(tabs)/medicine")}
               activeOpacity={0.8}
             >
@@ -371,11 +378,11 @@ export default function MenuScreen() {
                 <Text style={styles.menuTitle}>İlaç Takibi</Text>
                 <Text style={styles.menuSub}>Senin ve sevgilinin günlük dozları</Text>
               </View>
-              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+              <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
               onPress={() => handleRoute("/(tabs)/period-tracker")}
               activeOpacity={0.8}
             >
@@ -386,7 +393,7 @@ export default function MenuScreen() {
                 <Text style={styles.menuTitle}>Döngü & Regl Takvimi</Text>
                 <Text style={styles.menuSub}>Hassas dönemler ve hatırlatıcılar</Text>
               </View>
-              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+              <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
           </View>
 
@@ -396,7 +403,7 @@ export default function MenuScreen() {
 
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
               onPress={() => setShowGuideCatalog(true)}
               activeOpacity={0.8}
             >
@@ -407,11 +414,11 @@ export default function MenuScreen() {
                 <Text style={styles.menuTitle}>Nasıl Çalışır? (Özellik Rehberi)</Text>
                 <Text style={styles.menuSub}>Her sayfa ve özelliğin detaylı tanıtımı</Text>
               </View>
-              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+              <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
               onPress={() => handleRoute("/(tabs)/profile")}
               activeOpacity={0.8}
             >
@@ -422,11 +429,11 @@ export default function MenuScreen() {
                 <Text style={styles.menuTitle}>Ayarlar & Profil</Text>
                 <Text style={styles.menuSub}>Sesler, temalar, tarihler ve güvenlik</Text>
               </View>
-              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+              <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
               onPress={() => setLegalVisible(true)}
               activeOpacity={0.8}
             >
@@ -437,7 +444,7 @@ export default function MenuScreen() {
                 <Text style={styles.menuTitle}>Yasal Bilgiler & Gizlilik</Text>
                 <Text style={styles.menuSub}>KVKK, gizlilik ve kullanım şartları</Text>
               </View>
-              <ChevronRight color="rgba(255,255,255,0.35)" size={18} />
+              <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -508,7 +515,7 @@ export default function MenuScreen() {
                   onPress={async () => {
                     await resetAllPageTours();
                     setShowGuideCatalog(false);
-                    Alert.alert("Sıfırlandı 🎉", "Ana Sayfa'ya döndüğünüzde kısa tanıtım turu yeniden gösterilecek. Diğer sayfaların rehberine sağ üstteki ? butonundan ulaşabilirsiniz.");
+                    appAlert("Sıfırlandı 🎉", "Ana Sayfa'ya döndüğünüzde kısa tanıtım turu yeniden gösterilecek. Diğer sayfaların rehberine sağ üstteki ? butonundan ulaşabilirsiniz.");
                   }}
                   style={{ marginTop: 12, padding: 14, borderRadius: 14, backgroundColor: theme.pillAccentBg, borderWidth: 1, borderColor: theme.pillAccentBorder, alignItems: "center" }}
                 >
@@ -537,6 +544,8 @@ export default function MenuScreen() {
           description={modalConfig.description}
         />
       )}
+      {/* Bu ekran yerel modal olarak sunulduğunda kök katman arkada kalır: diyaloglar burada çizilir */}
+      <DialogHost embedded />
     </ScreenBackground>
   );
 }
@@ -671,12 +680,12 @@ const getMenuStyles = (theme: any, isLight: boolean) => StyleSheet.create({
     padding: 16,
   },
   demoCardTitle: {
-    color: "#FFFFFF",
+    color: isLight ? "#9F1239" : "#FFFFFF",
     fontSize: 15,
     fontFamily: "Inter_700Bold",
   },
   demoCardDesc: {
-    color: "rgba(255, 255, 255, 0.75)",
+    color: isLight ? theme.textSecondary : "rgba(255, 255, 255, 0.75)",
     fontSize: 12.5,
     fontFamily: "Inter_400Regular",
     lineHeight: 18,

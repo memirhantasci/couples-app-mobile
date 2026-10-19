@@ -58,8 +58,8 @@ export function CalendarMonthView({
   return (
     <>
       {/* AY SEÇİCİ ÇUBUĞU */}
-      <View style={[styles.monthNavCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-        <TouchableOpacity onPress={onPrevMonth} style={styles.monthArrowBtn} activeOpacity={0.75}>
+      <View style={[styles.monthNavCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
+        <TouchableOpacity onPress={onPrevMonth} style={[styles.monthArrowBtn, { backgroundColor: isLight ? theme.unitBg : "rgba(255,255,255,0.06)" }]} activeOpacity={0.75}>
           <ChevronLeft color={theme.text} size={20} />
         </TouchableOpacity>
 
@@ -70,13 +70,13 @@ export function CalendarMonthView({
           </Text>
         </View>
 
-        <TouchableOpacity onPress={onNextMonth} style={styles.monthArrowBtn} activeOpacity={0.75}>
+        <TouchableOpacity onPress={onNextMonth} style={[styles.monthArrowBtn, { backgroundColor: isLight ? theme.unitBg : "rgba(255,255,255,0.06)" }]} activeOpacity={0.75}>
           <ChevronRight color={theme.text} size={20} />
         </TouchableOpacity>
       </View>
 
       {/* TAKVİM BİLEŞENİ */}
-      <View style={[styles.calendarCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+      <View style={[styles.calendarCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
         <Calendar
           current={currentMonth}
           key={`${currentMonth}_${theme.id}_${theme.gender}`}
@@ -135,7 +135,7 @@ export function CalendarMonthView({
         />
 
         {/* LEJANT (RENK KILAVUZU) */}
-        <View style={[styles.legendRow, { borderTopColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}>
+        <View style={[styles.legendRow, { borderTopColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
           {legendEntries.map((entry) => (
             <View
               key={entry.label}

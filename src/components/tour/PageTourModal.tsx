@@ -135,7 +135,7 @@ export function PageTourModal({ visible, guide, onClose }: PageTourModalProps) {
             styles.container,
             {
               backgroundColor: isLight ? "#FFFFFF" : "rgba(24, 20, 32, 0.96)",
-              borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.12)",
+              borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.12)",
               paddingBottom: Math.max(insets.bottom, 20),
             },
           ]}

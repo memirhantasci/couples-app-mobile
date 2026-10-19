@@ -12,6 +12,9 @@ import {
 
 const THEME_STORAGE_KEY = "@couples_app_theme_mode";
 
+/** Demo (misafir) oturumunun her açılışta başladığı tema: kadın modu, romantik gül teması. */
+const DEMO_DEFAULT_MODE: ThemeMode = "current";
+
 interface ThemeContextValue {
   theme: AppTheme;
   themeMode: ThemeMode;
@@ -35,45 +38,62 @@ export function useTheme(): ThemeContextValue {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const { profile } = useAuth();
+  const { profile, isDemoMode } = useAuth();
   const [themeMode, setLocalThemeMode] = useState<ThemeMode>("current");
-  const [isLoaded, setIsLoaded] = useState(false);
+  // Demo oturumunun temasını gerçek hesabın kayıtlı tercihinden ayrı tutar: demo her açıldığında
+  // (daha önce kayıtlı açık/koyu mod ya da erkek mavisi ne olursa olsun) pembe varsayılanla başlar.
+  const [demoTheme, setDemoTheme] = useState<{ active: boolean; mode: ThemeMode }>({
+    active: false,
+    mode: DEMO_DEFAULT_MODE,
+  });
+  if (demoTheme.active !== isDemoMode) {
+    // Render sırasında kendi state'ini güncellemek React'in önerdiği "prop değişince sıfırla" kalıbıdır
+    setDemoTheme({ active: isDemoMode, mode: DEMO_DEFAULT_MODE });
+  }
 
   // Normalize gender from profile
-  const gender: "female" | "male" = useMemo(() => {
+  const profileGender: "female" | "male" = useMemo(() => {
     const g = profile?.gender?.toLowerCase();
     if (g === "male" || g === "erkek") return "male";
     return "female";
   }, [profile?.gender]);
 
-  // Load saved theme preference on startup
+  const gender: "female" | "male" = isDemoMode ? "female" : profileGender;
+  const activeMode: ThemeMode = isDemoMode ? demoTheme.mode : themeMode;
+
+  // Load saved theme preference on startup (gerçek hesap tercihi; demo bunu okumaz/yazmaz)
   useEffect(() => {
+    let alive = true;
     (async () => {
       try {
         const saved = await AsyncStorage.getItem(THEME_STORAGE_KEY);
-        if (saved === "current" || saved === "dark" || saved === "light") {
+        if (alive && (saved === "current" || saved === "dark" || saved === "light")) {
           setLocalThemeMode(saved as ThemeMode);
-          setGlobalActiveTheme(gender, saved as ThemeMode);
-        } else {
-          setGlobalActiveTheme(gender, "current");
         }
       } catch {
         // Fallback to default
-        setGlobalActiveTheme(gender, "current");
-      } finally {
-        setIsLoaded(true);
       }
     })();
-  }, [gender]);
+    return () => {
+      alive = false;
+    };
+  }, [profileGender]);
 
   // Keep global theme synchronized whenever gender or mode changes
   useEffect(() => {
-    setGlobalActiveTheme(gender, themeMode);
-  }, [gender, themeMode]);
+    setGlobalActiveTheme(gender, activeMode);
+  }, [gender, activeMode]);
 
   // Instant mode setter (0ms, non-blocking)
   const setThemeMode = useCallback(
     (mode: ThemeMode) => {
+      if (isDemoMode) {
+        // Demoda seçilen tema yalnızca bu oturum içindir; gerçek hesabın tercihine yazılmaz
+        setDemoTheme((prev) => ({ ...prev, mode }));
+        setGlobalActiveTheme(gender, mode);
+        return;
+      }
+
       // 1. Instant React state update (0ms delay)
       setLocalThemeMode(mode);
       setGlobalActiveTheme(gender, mode);
@@ -83,12 +103,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         console.error("Failed to save theme mode:", err);
       });
     },
-    [gender]
+    [gender, isDemoMode]
   );
 
   const activeTheme = useMemo(() => {
-    return getTheme(gender, themeMode);
-  }, [gender, themeMode]);
+    return getTheme(gender, activeMode);
+  }, [gender, activeMode]);
 
   const availableThemes = useMemo(() => {
     return getAvailableThemes(gender);
@@ -97,13 +117,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<ThemeContextValue>(
     () => ({
       theme: activeTheme,
-      themeMode,
+      themeMode: activeMode,
       setThemeMode,
       gender,
       availableThemes,
       isLight: activeTheme.isLight,
     }),
-    [activeTheme, themeMode, setThemeMode, gender, availableThemes]
+    [activeTheme, activeMode, setThemeMode, gender, availableThemes]
   );
 
   return (

@@ -37,7 +37,7 @@ export function CalendarNoteModal({
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.modalBackdrop}>
-        <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+        <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
           <View style={styles.modalHeader}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <FileText size={18} color={theme.accent} />
@@ -72,7 +72,7 @@ export function CalendarNoteModal({
                 {
                   backgroundColor: theme.unitBg,
                   color: theme.text,
-                  borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)",
+                  borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.08)",
                 },
               ]}
               multiline
@@ -80,7 +80,7 @@ export function CalendarNoteModal({
               value={noteText}
               onChangeText={onChangeNoteText}
               placeholder="Bugünle ilgili küçük bir hatıra veya not bırak..."
-              placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.3)"}
+              placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
             />
 
             <Text style={[styles.modalCharCount, { color: theme.textMuted }]}>

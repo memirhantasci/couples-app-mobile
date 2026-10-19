@@ -19,6 +19,7 @@ import {
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { usePageTour } from "@/hooks/usePageTour";
@@ -79,6 +80,7 @@ export default function CalendarScreen() {
   const { session, profile, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const today = todayString();
@@ -92,7 +94,8 @@ export default function CalendarScreen() {
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
-  const isPremium = profile?.isPremium ?? false;
+  // Demo modunda premium kilitleri yoktur: tüm özellikler açık
+  const isPremium = (profile?.isPremium ?? false) || isDemoMode;
   const isFemale = profile?.gender === "female";
   // Erkek kullanıcılar takvimde döngüyü (regl) sadece Premium ise görebilir. Kadın kullanıcılar ise her zaman kendi döngülerini görür.
   const canSeePeriod = isFemale || isPremium;
@@ -538,7 +541,7 @@ export default function CalendarScreen() {
                       return (
                         <TouchableOpacity
                           key={photo.id}
-                          style={[styles.photoCard, dayItemAccent("photo"), { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+                          style={[styles.photoCard, dayItemAccent("photo"), { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
                           activeOpacity={0.92}
                           onPress={() => setSelectedPhoto(photo)}
                         >
@@ -633,7 +636,7 @@ export default function CalendarScreen() {
                     const isPending = meeting.status === "pending";
 
                     return (
-                      <View key={meeting.id} style={[styles.meetingCard, dayItemAccent("meeting"), { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                      <View key={meeting.id} style={[styles.meetingCard, dayItemAccent("meeting"), { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
                         <View style={styles.meetingHeader}>
                           <Text style={[styles.meetingTitle, { color: theme.text }]}>{meeting.title}</Text>
                           <View style={[styles.statusBadge, {
@@ -669,7 +672,7 @@ export default function CalendarScreen() {
                   {selectedDayPeriods.map((period) => {
                     const authorName = getAuthorName(period.userId);
                     return (
-                      <View key={period.key} style={[styles.periodCard, dayItemAccent("period"), { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                      <View key={period.key} style={[styles.periodCard, dayItemAccent("period"), { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
                         <View style={[styles.periodIconBox, { backgroundColor: isLight ? "rgba(225,29,72,0.1)" : "rgba(225,29,72,0.18)" }]}>
                           <Droplet size={20} color={CALENDAR_COLORS.period} />
                         </View>
@@ -689,7 +692,7 @@ export default function CalendarScreen() {
 
               {/* Boş Durum */}
               {selectedDayNotes.length === 0 && selectedDayMoods.length === 0 && selectedDayPhotos.length === 0 && selectedDayMeetings.length === 0 && selectedDayPeriods.length === 0 && (
-                <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
                   <CalendarIcon size={32} color={theme.textMuted} />
                   <Text style={[styles.emptyCardTitle, { color: theme.text }]}>Henüz Kayıt Yok</Text>
                   <Text style={[styles.emptyCardSub, { color: theme.textSecondary }]}>
@@ -749,299 +752,303 @@ export default function CalendarScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-  },
-  headerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitleBox: {
-    flex: 1,
-    alignItems: "center",
-    paddingHorizontal: 8,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    letterSpacing: -0.4,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.55)",
-    marginTop: 2,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    gap: 16,
-  },
+const createStyles = (theme: AppTheme) => {
+  const isLight = theme.isLight;
 
-  /* SEÇİLEN GÜN */
-  selectedDayHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 4,
-  },
-  selectedDayDate: {
-    fontSize: 16,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-  },
-  selectedDaySub: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.5)",
-    marginTop: 2,
-  },
-  addNoteBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 14,
-  },
-  addNoteBtnText: {
-    fontSize: 12.5,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-  },
+  return StyleSheet.create({
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+      paddingBottom: 14,
+    },
+    headerBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
+      borderWidth: 1,
+      borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    headerTitleBox: {
+      flex: 1,
+      alignItems: "center",
+      paddingHorizontal: 8,
+    },
+    headerTitle: {
+      fontSize: 22,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      letterSpacing: -0.4,
+    },
+    headerSubtitle: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.55)",
+      marginTop: 2,
+    },
+    scrollContent: {
+      paddingHorizontal: 16,
+      paddingTop: 10,
+      gap: 16,
+    },
 
-  /* FOTOĞRAFLAR */
-  photoCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
-  photoImg: {
-    width: "100%",
-    height: 200,
-  },
-  photoCaptionBox: {
-    padding: 14,
-  },
-  photoTitle: {
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    marginBottom: 4,
-  },
-  photoDesc: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.7)",
-    lineHeight: 18,
-  },
-  photoMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 14,
-    paddingBottom: 14,
-  },
-  avatarImg: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-  },
-  avatarFallback: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarFallbackText: {
-    fontSize: 11,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-  },
-  photoMetaTextBold: {
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
-    color: "rgba(255,255,255,0.8)",
-  },
-  photoMetaTextTime: {
-    fontSize: 11,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.4)",
-  },
-  photoExpandBadge: {
-    position: "absolute",
-    right: 12,
-    bottom: 12,
-    backgroundColor: "rgba(0,0,0,0.65)",
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  lockIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
-  },
-  lockTitle: {
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    marginBottom: 4,
-  },
-  lockSub: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.5)",
-    textAlign: "center",
-  },
+    /* SEÇİLEN GÜN */
+    selectedDayHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: 4,
+    },
+    selectedDayDate: {
+      fontSize: 16,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+    },
+    selectedDaySub: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.5)",
+      marginTop: 2,
+    },
+    addNoteBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 14,
+    },
+    addNoteBtnText: {
+      fontSize: 12.5,
+      fontFamily: "Inter_700Bold",
+      color: "#ffffff",
+    },
 
-  /* RUH HALLERİ */
-  moodsGrid: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  moodCard: {
-    flex: 1,
-    borderRadius: 16,
-    borderWidth: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 6,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-  },
-  moodTag: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginBottom: 2,
-  },
-  moodTagText: {
-    fontSize: 10,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: 0.2,
-  },
-  moodAuthor: {
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
-    color: "rgba(255,255,255,0.75)",
-  },
+    /* FOTOĞRAFLAR */
+    photoCard: {
+      borderRadius: 20,
+      borderWidth: 1,
+      overflow: "hidden",
+    },
+    photoImg: {
+      width: "100%",
+      height: 200,
+    },
+    photoCaptionBox: {
+      padding: 14,
+    },
+    photoTitle: {
+      fontSize: 15,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      marginBottom: 4,
+    },
+    photoDesc: {
+      fontSize: 13,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.7)",
+      lineHeight: 18,
+    },
+    photoMeta: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 14,
+      paddingBottom: 14,
+    },
+    avatarImg: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+    },
+    avatarFallback: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    avatarFallbackText: {
+      fontSize: 11,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+    },
+    photoMetaTextBold: {
+      fontSize: 12,
+      fontFamily: "Inter_600SemiBold",
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.8)",
+    },
+    photoMetaTextTime: {
+      fontSize: 11,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.4)",
+    },
+    photoExpandBadge: {
+      position: "absolute",
+      right: 12,
+      bottom: 12,
+      backgroundColor: "rgba(0,0,0,0.65)",
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    lockIconCircle: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 8,
+    },
+    lockTitle: {
+      fontSize: 15,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      marginBottom: 4,
+    },
+    lockSub: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.5)",
+      textAlign: "center",
+    },
 
-  /* BULUŞMALAR */
-  meetingCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 14,
-  },
-  meetingHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 6,
-  },
-  meetingTitle: {
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
-  },
-  meetingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 4,
-  },
-  meetingSubText: {
-    fontSize: 12.5,
-    fontFamily: "Inter_400Regular",
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  statusBadgeText: {
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-  },
+    /* RUH HALLERİ */
+    moodsGrid: {
+      flexDirection: "row",
+      gap: 10,
+    },
+    moodCard: {
+      flex: 1,
+      borderRadius: 16,
+      borderWidth: 1,
+      paddingVertical: 12,
+      paddingHorizontal: 6,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 4,
+    },
+    moodTag: {
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 8,
+      marginBottom: 2,
+    },
+    moodTagText: {
+      fontSize: 10,
+      fontFamily: "Inter_700Bold",
+      letterSpacing: 0.2,
+    },
+    moodAuthor: {
+      fontSize: 12,
+      fontFamily: "Inter_600SemiBold",
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.75)",
+    },
 
-  /* PERİYOD/DÖNGÜ */
-  periodCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  periodIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  periodTitle: {
-    fontSize: 14.5,
-    fontFamily: "Inter_700Bold",
-  },
-  periodSub: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    marginTop: 2,
-  },
+    /* BULUŞMALAR */
+    meetingCard: {
+      borderRadius: 18,
+      borderWidth: 1,
+      padding: 14,
+    },
+    meetingHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 6,
+    },
+    meetingTitle: {
+      fontSize: 15,
+      fontFamily: "Inter_700Bold",
+    },
+    meetingRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginTop: 4,
+    },
+    meetingSubText: {
+      fontSize: 12.5,
+      fontFamily: "Inter_400Regular",
+    },
+    statusBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 8,
+    },
+    statusBadgeText: {
+      fontSize: 11,
+      fontFamily: "Inter_600SemiBold",
+    },
 
-  /* BOŞ DURUM */
-  emptyCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 6,
-  },
-  emptyCardTitle: {
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    marginTop: 4,
-  },
-  emptyCardSub: {
-    fontSize: 12.5,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.5)",
-    textAlign: "center",
-    lineHeight: 18,
-  },
-  emptyAddBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 14,
-    marginTop: 8,
-  },
-  emptyAddBtnText: {
-    fontSize: 13,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-  },
-});
+    /* PERİYOD/DÖNGÜ */
+    periodCard: {
+      borderRadius: 18,
+      borderWidth: 1,
+      padding: 14,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+    },
+    periodIconBox: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    periodTitle: {
+      fontSize: 14.5,
+      fontFamily: "Inter_700Bold",
+    },
+    periodSub: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      marginTop: 2,
+    },
+
+    /* BOŞ DURUM */
+    emptyCard: {
+      borderRadius: 20,
+      borderWidth: 1,
+      padding: 24,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      marginTop: 6,
+    },
+    emptyCardTitle: {
+      fontSize: 15,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      marginTop: 4,
+    },
+    emptyCardSub: {
+      fontSize: 12.5,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.5)",
+      textAlign: "center",
+      lineHeight: 18,
+    },
+    emptyAddBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 14,
+      marginTop: 8,
+    },
+    emptyAddBtnText: {
+      fontSize: 13,
+      fontFamily: "Inter_700Bold",
+      color: "#ffffff",
+    },
+  });
+};

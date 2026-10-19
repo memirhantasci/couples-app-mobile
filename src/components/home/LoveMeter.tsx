@@ -73,7 +73,7 @@ export const LoveMeter = memo(function LoveMeter({ value, theme, subtitle, isLoa
       onPress={() => {
         triggerHaptic("celebration");
       }}
-      style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+      style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
     >
       {/* Başlık + yüzde */}
       <View style={styles.headerRow}>

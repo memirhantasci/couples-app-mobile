@@ -21,7 +21,7 @@ function PhotoSingleCellBase({ item, index, isMine, theme, isLight, onPress, onD
   const hasInfo = Boolean(item.title?.trim() || item.description?.trim());
 
   return (
-    <View style={[styles.singleCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+    <View style={[styles.singleCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
       {/* Üst Bilgi Barı */}
       <View style={styles.singleHeader}>
         <View style={[styles.singleDateBadge, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)" }]}>
@@ -31,7 +31,7 @@ function PhotoSingleCellBase({ item, index, isMine, theme, isLight, onPress, onD
           </Text>
           {item.taken_time ? (
             <>
-              <Text style={styles.dotSeparator}>•</Text>
+              <Text style={[styles.dotSeparator, { color: theme.textMuted }]}>•</Text>
               <Clock size={12} color={theme.textMuted} />
               <Text style={[styles.singleTimeText, { color: theme.textSecondary }]}>{item.taken_time.substring(0, 5)}</Text>
             </>

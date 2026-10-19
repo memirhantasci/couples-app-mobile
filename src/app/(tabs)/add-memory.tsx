@@ -1,6 +1,7 @@
 
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import React, { useState, useMemo } from "react";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { appAlert } from "@/lib/dialog";
 import { Image } from "expo-image";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
@@ -13,7 +14,7 @@ import { logger } from "@/utils/logger";
 import { decode } from "base64-arraybuffer";
 import { Image as ImageIcon, X, Save, Menu, ImagePlus, ChevronLeft , AlignJustify} from "lucide-react-native";
 import { dayjs, todayString, formatDateTR } from "@/lib/date";
-import { getTheme } from "@/lib/theme";
+import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
@@ -41,9 +42,10 @@ export default function AddMemoryScreen() {
   const params = useLocalSearchParams();
   const queryClient = useQueryClient();
   const { session, profile } = useAuth();
-  const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
+  const { isDemoMode, executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const insets = useSafeAreaInsets();
   const { theme, isLight } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const isEditing = !!params.id;
   const priming = useNotificationPriming(session?.user?.id);
@@ -57,7 +59,8 @@ export default function AddMemoryScreen() {
   const [errors, setErrors] = useState({ title: false, date: false });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
-  const isPremium = profile?.isPremium ?? false;
+  // Demo modunda premium kilitleri yoktur: tüm özellikler açık
+  const isPremium = (profile?.isPremium ?? false) || isDemoMode;
   useFocusEffect(
     useCallback(() => {
       // Ekran her odaklandığında formu temizle (eğer yeni ekleme modundaysa)
@@ -119,7 +122,7 @@ export default function AddMemoryScreen() {
       toast.warning("Lütfen bir başlık ve tarih girin.", { title: "Eksik bilgi" });
       return;
     }
-    
+
     setLoading(true);
 
     try {
@@ -128,7 +131,7 @@ export default function AddMemoryScreen() {
       // Upload image if a new one was selected
       if (localImage && localImage.base64) {
         if (localImage.fileSize && localImage.fileSize > 5 * 1024 * 1024) {
-           Alert.alert("Dosya Çok Büyük", "Lütfen 5 MB'dan daha küçük bir fotoğraf seçin.");
+           appAlert("Dosya Çok Büyük", "Lütfen 5 MB'dan daha küçük bir fotoğraf seçin.");
            setLoading(false);
            return;
         }
@@ -213,7 +216,7 @@ export default function AddMemoryScreen() {
       router.replace("/(tabs)/memories");
     } catch (error: any) {
       logger.error("Memory save error:", error);
-      Alert.alert("Hata", "Anı kaydedilirken bir hata oluştu.");
+      appAlert("Hata", "Anı kaydedilirken bir hata oluştu.");
     } finally {
       setLoading(false);
     }
@@ -269,7 +272,7 @@ export default function AddMemoryScreen() {
                 setErrors(prev => ({ ...prev, title: false }));
               }}
               placeholder="Örn: İlk Buluşmamız"
-              placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.4)"}
+              placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.4)"}
               maxLength={100}
             />
           </View>
@@ -306,7 +309,7 @@ export default function AddMemoryScreen() {
               value={description}
               onChangeText={setDescription}
               placeholder="O güne dair hatırlamak istediklerin..."
-              placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.4)"}
+              placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.4)"}
               multiline
               maxLength={1000}
             />
@@ -375,78 +378,82 @@ export default function AddMemoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontFamily: "Inter_700Bold",
-    color: "#fff",
-    letterSpacing: -0.5,
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 100,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.7)",
-    marginBottom: 8,
-    fontFamily: "Inter_500Medium",
-  },
-  input: {
-    borderRadius: 16,
-    color: "#fff",
-    fontSize: 15,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontFamily: "Inter_400Regular",
-  },
-  textArea: {
-    minHeight: 100,
-    textAlignVertical: "top",
-  },
-  imagePicker: {
-    borderRadius: 16,
-    overflow: "hidden",
-    height: 180,
-  },
-  imagePlaceholder: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  imagePlaceholderText: {
-    color: "rgba(255,255,255,0.4)",
-    marginTop: 8,
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-  },
-  previewImg: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "cover",
-  },
-  saveBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 18,
-    borderRadius: 20,
-    marginTop: 10,
-  },
-  saveBtnText: {
-    color: "#fff",
-    fontSize: 16,
-    fontFamily: "Inter_700Bold",
-  }
-});
+const createStyles = (theme: AppTheme) => {
+  const isLight = theme.isLight;
+
+  return StyleSheet.create({
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+      paddingBottom: 20,
+    },
+    headerTitle: {
+      fontSize: 28,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      letterSpacing: -0.5,
+    },
+    content: {
+      padding: 20,
+      paddingBottom: 100,
+    },
+    inputGroup: {
+      marginBottom: 20,
+    },
+    label: {
+      fontSize: 13,
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.7)",
+      marginBottom: 8,
+      fontFamily: "Inter_500Medium",
+    },
+    input: {
+      borderRadius: 16,
+      color: theme.text,
+      fontSize: 15,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      fontFamily: "Inter_400Regular",
+    },
+    textArea: {
+      minHeight: 100,
+      textAlignVertical: "top",
+    },
+    imagePicker: {
+      borderRadius: 16,
+      overflow: "hidden",
+      height: 180,
+    },
+    imagePlaceholder: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    imagePlaceholderText: {
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.4)",
+      marginTop: 8,
+      fontSize: 13,
+      fontFamily: "Inter_400Regular",
+    },
+    previewImg: {
+      width: "100%",
+      height: "100%",
+      resizeMode: "cover",
+    },
+    saveBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      paddingVertical: 18,
+      borderRadius: 20,
+      marginTop: 10,
+    },
+    saveBtnText: {
+      color: "#fff",
+      fontSize: 16,
+      fontFamily: "Inter_700Bold",
+    }
+  });
+};

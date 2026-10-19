@@ -1,8 +1,18 @@
-import React, { useState } from "react";
-import { 
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, 
-  TextInput, ActivityIndicator, Alert, Platform, Linking, Modal 
+import React, { useState, useMemo } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+  ActivityIndicator,
+  Platform,
+  Linking,
+  Modal,
 } from "react-native";
+import { appAlert } from "@/lib/dialog";
+import { DialogHost } from "@/components/ui/DialogHost";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -21,7 +31,7 @@ import { useAuth } from "@/context/AuthContext";
 import { notifyPartner, cancelLocalNotification } from "@/lib/notifications";
 import { scheduleMeetingReminder, meetingReminderId } from "@/lib/reminderSync";
 import { dayjs } from "@/lib/date";
-import { getTheme } from "@/lib/theme";
+import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { MapPickerModal } from "@/components/MapPickerModal";
 import { usePageTour } from "@/hooks/usePageTour";
@@ -38,9 +48,10 @@ export default function MeetingsScreen() {
   const { session, profile, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
-  
+
   const coupleId = profile?.coupleId;
   const userId = session?.user?.id ? session.user.id : null;
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("meetings");
@@ -56,7 +67,7 @@ export default function MeetingsScreen() {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [showMapModal, setShowMapModal] = useState(false);
-  
+
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
 
   const { data: meetings, isLoading } = useQuery({
@@ -132,12 +143,12 @@ export default function MeetingsScreen() {
 
     const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
     if (meetingDate.getTime() < fiveMinutesAgo && !editingMeetingId) {
-      Alert.alert("Hata", "Geçmiş bir zamana buluşma planlayamazsınız!");
+      appAlert("Hata", "Geçmiş bir zamana buluşma planlayamazsınız!");
       return;
     }
 
     if (!title.trim()) {
-      Alert.alert("Eksik Bilgi", "Lütfen buluşma için bir başlık girin.");
+      appAlert("Eksik Bilgi", "Lütfen buluşma için bir başlık girin.");
       return;
     }
 
@@ -159,7 +170,7 @@ export default function MeetingsScreen() {
           latitude: latitude,
           longitude: longitude,
         }).eq("id", editingMeetingId);
-        
+
         if (error) throw error;
         successMessage = "Buluşma güncellendi 🎉";
       } else {
@@ -214,7 +225,7 @@ export default function MeetingsScreen() {
       // Form modalı kapanırken değil, kapandıktan sonra görünsün (modalın arkasında kalmasın)
       toast.success(successMessage, { delay: 350 });
     } catch (error: any) {
-      Alert.alert("Hata", "İşlem gerçekleştirilemedi. Lütfen daha sonra tekrar deneyin.");
+      appAlert("Hata", "İşlem gerçekleştirilemedi. Lütfen daha sonra tekrar deneyin.");
     } finally {
       setIsSubmitting(false);
     }
@@ -229,7 +240,7 @@ export default function MeetingsScreen() {
       return;
     }
 
-    Alert.alert("Buluşmayı Sil", "Bu buluşmayı silmek istediğinize emin misiniz?", [
+    appAlert("Buluşmayı Sil", "Bu buluşmayı silmek istediğinize emin misiniz?", [
       { text: "Vazgeç", style: "cancel" },
       {
         text: "Sil",
@@ -246,7 +257,7 @@ export default function MeetingsScreen() {
             .eq("id", m.id);
 
           if (error) {
-            Alert.alert("Hata", "Buluşma silinemedi.");
+            appAlert("Hata", "Buluşma silinemedi.");
           } else {
             queryClient.invalidateQueries({ queryKey: ["meetings", coupleId] });
             queryClient.invalidateQueries({ queryKey: ["map_meetings", coupleId] });
@@ -303,7 +314,7 @@ export default function MeetingsScreen() {
         >
           {/* HIZLI BULUŞMA EKLE BUTONU */}
           <TouchableOpacity 
-            style={[styles.quickPlanBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+            style={[styles.quickPlanBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
             onPress={() => {
               if (executeOrIntercept(
                 () => {},
@@ -348,7 +359,7 @@ export default function MeetingsScreen() {
                 const formattedTime = dayjs(m.meeting_datetime).format("HH:mm");
 
                 return (
-                  <View key={m.id} style={[styles.meetingCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                  <View key={m.id} style={[styles.meetingCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
                     {/* Kart Üst Bilgisi */}
                     <View style={styles.cardTopRow}>
                       <View style={styles.titleWithIcon}>
@@ -365,7 +376,7 @@ export default function MeetingsScreen() {
                             style={styles.cardActionBtn}
                             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                           >
-                            <Edit2 color="rgba(255,255,255,0.7)" size={15} />
+                            <Edit2 color={theme.textSecondary} size={15} />
                           </TouchableOpacity>
 
                           <TouchableOpacity 
@@ -373,7 +384,7 @@ export default function MeetingsScreen() {
                             style={[styles.cardActionBtn, { backgroundColor: "rgba(239,68,68,0.12)" }]}
                             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                           >
-                            <Trash2 color="#ef4444" size={15} />
+                            <Trash2 color={isLight ? "#DC2626" : "#ef4444"} size={15} />
                           </TouchableOpacity>
                         </View>
                       )}
@@ -457,7 +468,7 @@ export default function MeetingsScreen() {
                 const formattedDate = dayjs(m.meeting_datetime).locale("tr").format("D MMMM YYYY");
 
                 return (
-                  <View key={m.id} style={[styles.pastMeetingCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                  <View key={m.id} style={[styles.pastMeetingCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.pastCardTitle, { color: theme.text }]}>{m.title}</Text>
                       <Text style={[styles.pastCardDate, { color: theme.textMuted }]}>{formattedDate}</Text>
@@ -479,9 +490,9 @@ export default function MeetingsScreen() {
       {/* ─── YENİ BULUŞMA EKLEME / DÜZENLEME MODALI ─── */}
       <Modal visible={showFormModal} animationType="slide" transparent>
         <View style={styles.modalBackdrop}>
-          <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
             {/* Header */}
-            <View style={[styles.modalHeader, { borderBottomColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <MapPin size={18} color={theme.accent} />
                 <Text style={[styles.modalTitle, { color: theme.text }]}>
@@ -514,11 +525,11 @@ export default function MeetingsScreen() {
                     { 
                       backgroundColor: theme.unitBg,
                       color: theme.text,
-                      borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                      borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.08)"
                     }
                   ]}
                   placeholder="Örn: Yıldönümü Yemeği, Kahve Randevusu..."
-                  placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.3)"}
+                  placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
                   value={title}
                   onChangeText={setTitle}
                   maxLength={60}
@@ -534,7 +545,7 @@ export default function MeetingsScreen() {
                       styles.pickerBtn, 
                       { 
                         backgroundColor: theme.unitBg,
-                        borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                        borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.08)"
                       }
                     ]} 
                     onPress={() => setShowDatePicker(true)}
@@ -551,7 +562,7 @@ export default function MeetingsScreen() {
                       styles.pickerBtn, 
                       { 
                         backgroundColor: theme.unitBg,
-                        borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"
+                        borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.08)"
                       }
                     ]} 
                     onPress={() => setShowTimePicker(true)}
@@ -565,7 +576,7 @@ export default function MeetingsScreen() {
               {/* Konum Belirleme */}
               <View style={{ gap: 6 }}>
                 <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>BULUŞMA YERİ / KONUM</Text>
-                <View style={[styles.locationInputBox, { backgroundColor: theme.unitBg, borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]}>
+                <View style={[styles.locationInputBox, { backgroundColor: theme.unitBg, borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.08)" }]}>
                   <TextInput
                     style={[
                       styles.locationTextInput, 
@@ -575,7 +586,7 @@ export default function MeetingsScreen() {
                       }
                     ]}
                     placeholder="Buluşulacak mekan veya adres..."
-                    placeholderTextColor={isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.3)"}
+                    placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
                     value={locationName}
                     onChangeText={setLocationName}
                     maxLength={100}
@@ -635,6 +646,8 @@ export default function MeetingsScreen() {
             onConfirm={onTimeConfirm}
           />
         </View>
+        {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
+        <DialogHost embedded />
       </Modal>
 
       {/* HARİTA SEÇİCİ MODALI */}
@@ -660,319 +673,327 @@ export default function MeetingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  headerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitleBox: {
-    flex: 1,
-    alignItems: "center",
-    paddingHorizontal: 8,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    letterSpacing: -0.4,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.55)",
-    marginTop: 2,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    gap: 18,
-  },
+const createStyles = (theme: AppTheme) => {
+  const isLight = theme.isLight;
 
-  /* HIZLI PLANLA KARTI */
-  quickPlanBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
-    borderRadius: 18,
-    borderWidth: 1,
-    gap: 12,
-  },
-  quickPlanIconCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  quickPlanTitle: {
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    letterSpacing: -0.2,
-  },
-  quickPlanSub: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.55)",
-    marginTop: 2,
-  },
+  return StyleSheet.create({
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+      paddingBottom: 12,
+    },
+    headerBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
+      borderWidth: 1,
+      borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    headerTitleBox: {
+      flex: 1,
+      alignItems: "center",
+      paddingHorizontal: 8,
+    },
+    headerTitle: {
+      fontSize: 22,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      letterSpacing: -0.4,
+    },
+    headerSubtitle: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.55)",
+      marginTop: 2,
+    },
+    scrollContent: {
+      paddingHorizontal: 16,
+      paddingTop: 8,
+      gap: 18,
+    },
 
-  /* BÖLÜM YAPISI */
-  sectionBlock: {
-    gap: 10,
-  },
-  sectionHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginLeft: 4,
-  },
-  sectionLabel: {
-    fontSize: 11,
-    fontFamily: "Inter_700Bold",
-    color: "rgba(255,255,255,0.5)",
-    letterSpacing: 0.8,
-  },
-  sectionBadgeText: {
-    fontSize: 11.5,
-    fontFamily: "Inter_600SemiBold",
-    color: "rgba(255,255,255,0.45)",
-  },
+    /* HIZLI PLANLA KARTI */
+    quickPlanBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      padding: 14,
+      borderRadius: 18,
+      borderWidth: 1,
+      gap: 12,
+      ...theme.cardShadow,
+    },
+    quickPlanIconCircle: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    quickPlanTitle: {
+      fontSize: 15,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      letterSpacing: -0.2,
+    },
+    quickPlanSub: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.55)",
+      marginTop: 2,
+    },
 
-  /* BULUŞMA KARTI */
-  meetingCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 16,
-    gap: 12,
-  },
-  cardTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  titleWithIcon: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flex: 1,
-  },
-  cardIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    letterSpacing: -0.2,
-  },
-  cardActionBtns: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  cardActionBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  timeBadgeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  timePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
-  },
-  timePillText: {
-    fontSize: 12.5,
-    fontFamily: "Inter_500Medium",
-    color: "rgba(255,255,255,0.85)",
-  },
-  locationContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 2,
-  },
-  locationText: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.7)",
-  },
-  directionsBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 11,
-    borderRadius: 14,
-    marginTop: 2,
-  },
-  directionsBtnText: {
-    fontSize: 13,
-    fontFamily: "Inter_700Bold",
-  },
+    /* BÖLÜM YAPISI */
+    sectionBlock: {
+      gap: 10,
+    },
+    sectionHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginLeft: 4,
+    },
+    sectionLabel: {
+      fontSize: 11,
+      fontFamily: "Inter_700Bold",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.5)",
+      letterSpacing: 0.8,
+    },
+    sectionBadgeText: {
+      fontSize: 11.5,
+      fontFamily: "Inter_600SemiBold",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.45)",
+    },
 
-  /* GEÇMİŞ BULUŞMA KARTI */
-  pastMeetingCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    opacity: 0.65,
-  },
-  pastCardTitle: {
-    fontSize: 14.5,
-    fontFamily: "Inter_600SemiBold",
-    color: "#ffffff",
-  },
-  pastCardDate: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.5)",
-    marginTop: 2,
-  },
-  pastLocationText: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.45)",
-    marginTop: 2,
-  },
+    /* BULUŞMA KARTI */
+    meetingCard: {
+      borderRadius: 20,
+      borderWidth: 1,
+      padding: 16,
+      gap: 12,
+      ...theme.cardShadow,
+    },
+    cardTopRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    titleWithIcon: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      flex: 1,
+    },
+    cardIconCircle: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    cardTitle: {
+      fontSize: 16,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      letterSpacing: -0.2,
+    },
+    cardActionBtns: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    cardActionBtn: {
+      width: 30,
+      height: 30,
+      borderRadius: 10,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    timeBadgeRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    timePill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.05)",
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 10,
+    },
+    timePillText: {
+      fontSize: 12.5,
+      fontFamily: "Inter_500Medium",
+      color: isLight ? theme.text : "rgba(255,255,255,0.85)",
+    },
+    locationContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 2,
+    },
+    locationText: {
+      fontSize: 13,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.7)",
+    },
+    directionsBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      paddingVertical: 11,
+      borderRadius: 14,
+      marginTop: 2,
+    },
+    directionsBtnText: {
+      fontSize: 13,
+      fontFamily: "Inter_700Bold",
+    },
 
-  /* BOŞ DURUM */
-  emptyState: {
-    marginTop: 0,
-  },
+    /* GEÇMİŞ BULUŞMA KARTI */
+    pastMeetingCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: 14,
+      borderRadius: 16,
+      borderWidth: 1,
+      opacity: 0.65,
+      ...theme.cardShadow,
+    },
+    pastCardTitle: {
+      fontSize: 14.5,
+      fontFamily: "Inter_600SemiBold",
+      color: theme.text,
+    },
+    pastCardDate: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.5)",
+      marginTop: 2,
+    },
+    pastLocationText: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.45)",
+      marginTop: 2,
+    },
 
-  /* MODAL */
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.75)",
-    justifyContent: "center",
-    padding: 18,
-  },
-  modalBox: {
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 20,
-    maxHeight: "88%",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.08)",
-  },
-  modalTitle: {
-    fontSize: 16.5,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-  },
-  modalCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  fieldLabel: {
-    fontSize: 11.5,
-    fontFamily: "Inter_600SemiBold",
-    color: "rgba(255,255,255,0.6)",
-    letterSpacing: 0.5,
-  },
-  textInput: {
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: "#ffffff",
-    fontSize: 14.5,
-    fontFamily: "Inter_400Regular",
-  },
-  pickerBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 14,
-  },
-  pickerBtnText: {
-    fontSize: 13.5,
-    fontFamily: "Inter_600SemiBold",
-    color: "#ffffff",
-  },
-  locationInputBox: {
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-  },
-  locationTextInput: {
-    flex: 1,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: "#ffffff",
-    fontSize: 14.5,
-    fontFamily: "Inter_400Regular",
-  },
-  mapOpenBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 14,
-  },
-  mapOpenBtnText: {
-    fontSize: 13,
-    fontFamily: "Inter_700Bold",
-  },
-  saveBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    height: 48,
-    borderRadius: 14,
-    marginTop: 8,
-  },
-  saveBtnText: {
-    color: "#ffffff",
-    fontSize: 14.5,
-    fontFamily: "Inter_700Bold",
-  },
-});
+    /* BOŞ DURUM */
+    emptyState: {
+      marginTop: 0,
+    },
+
+    /* MODAL */
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.75)",
+      justifyContent: "center",
+      padding: 18,
+    },
+    modalBox: {
+      borderRadius: 24,
+      borderWidth: 1,
+      padding: 20,
+      maxHeight: "88%",
+    },
+    modalHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 16,
+      paddingBottom: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: "rgba(255,255,255,0.08)",
+    },
+    modalTitle: {
+      fontSize: 16.5,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+    },
+    modalCloseBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    fieldLabel: {
+      fontSize: 11.5,
+      fontFamily: "Inter_600SemiBold",
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.6)",
+      letterSpacing: 0.5,
+    },
+    textInput: {
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      color: theme.text,
+      fontSize: 14.5,
+      fontFamily: "Inter_400Regular",
+    },
+    pickerBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      paddingVertical: 12,
+      borderRadius: 14,
+    },
+    pickerBtnText: {
+      fontSize: 13.5,
+      fontFamily: "Inter_600SemiBold",
+      color: theme.text,
+    },
+    locationInputBox: {
+      flexDirection: "row",
+      gap: 8,
+      alignItems: "center",
+    },
+    locationTextInput: {
+      flex: 1,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      color: theme.text,
+      fontSize: 14.5,
+      fontFamily: "Inter_400Regular",
+    },
+    mapOpenBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderRadius: 14,
+    },
+    mapOpenBtnText: {
+      fontSize: 13,
+      fontFamily: "Inter_700Bold",
+    },
+    saveBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      height: 48,
+      borderRadius: 14,
+      marginTop: 8,
+    },
+    saveBtnText: {
+      color: "#ffffff",
+      fontSize: 14.5,
+      fontFamily: "Inter_700Bold",
+    },
+
+  });
+};

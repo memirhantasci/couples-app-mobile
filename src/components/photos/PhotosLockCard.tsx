@@ -18,14 +18,14 @@ const PERKS = [
 // ─── LÜKS KİLİT KARTI (PREMIUMSIZ) ───────────────────────────────────────────
 export function PhotosLockCard({ theme, isLight, onUpgrade }: PhotosLockCardProps) {
   return (
-    <View style={[styles.luxuryLockCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+    <View style={[styles.luxuryLockCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
       <View style={[styles.luxuryLockIconBox, { backgroundColor: theme.pillAccentBg }]}>
         <Crown color={theme.accent} size={32} />
       </View>
 
       <View style={styles.vipBadge}>
-        <Sparkles size={13} color="#ffd700" />
-        <Text style={styles.vipBadgeText}>VIP ÇİFT AYRICALIĞI</Text>
+        <Sparkles size={13} color={isLight ? "#A16207" : "#ffd700"} />
+        <Text style={[styles.vipBadgeText, isLight && { color: "#A16207" }]}>VIP ÇİFT AYRICALIĞI</Text>
       </View>
 
       <Text style={[styles.luxuryLockTitle, { color: theme.text }]}>Ortak Galeri ve Anı Arşivi</Text>

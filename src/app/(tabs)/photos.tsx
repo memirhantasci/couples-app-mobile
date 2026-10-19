@@ -1,8 +1,14 @@
 import React, { useState, useMemo, useCallback } from "react";
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, Alert, Platform
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+  Platform,
 } from "react-native";
+import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -36,12 +43,14 @@ export default function PhotosScreen() {
   const { session, profile, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
-  const isPremium = profile?.isPremium ?? false;
+  // Demo modunda premium kilitleri yoktur: tüm özellikler açık
+  const isPremium = (profile?.isPremium ?? false) || isDemoMode;
   const [showPaywall, setShowPaywall] = useState(false);
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("photos");
 
@@ -114,7 +123,7 @@ export default function PhotosScreen() {
       return;
     }
 
-    Alert.alert("Fotoğrafı Sil", "Bu fotoğrafı galeriden kalıcı olarak silmek istediğinize emin misiniz?", [
+    appAlert("Fotoğrafı Sil", "Bu fotoğrafı galeriden kalıcı olarak silmek istediğinize emin misiniz?", [
       { text: "Vazgeç", style: "cancel" },
       {
         text: "Sil",
@@ -139,7 +148,7 @@ export default function PhotosScreen() {
           // 2. Sonra veritabanı kaydını sil
           const { error } = await supabase.from("photo_archive").delete().eq("id", id);
           if (error) {
-            Alert.alert("Hata", "Fotoğraf silinirken bir hata oluştu.");
+            appAlert("Hata", "Fotoğraf silinirken bir hata oluştu.");
           } else {
             queryClient.invalidateQueries({ queryKey: ["photo_archive", coupleId] });
             queryClient.invalidateQueries({ queryKey: ["map_photos", coupleId] });
@@ -235,7 +244,7 @@ export default function PhotosScreen() {
 
         {/* ─── KONTROL ÇUBUĞU (GÖRÜNÜM SEÇİCİ & YENİ YÜKLE) ─── */}
         {isPremium && (
-          <View style={[styles.controlBar, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View style={[styles.controlBar, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
             {/* Hızlı Yükle Butonu */}
             <TouchableOpacity
               style={[styles.uploadQuickBtn, { backgroundColor: theme.accent }]}
@@ -253,7 +262,7 @@ export default function PhotosScreen() {
                 onPress={() => setViewMode("grid3")}
                 hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
               >
-                <Grid3X3 size={16} color={viewMode === "grid3" ? theme.accent : "rgba(255,255,255,0.4)"} />
+                <Grid3X3 size={16} color={viewMode === "grid3" ? theme.accent : theme.textMuted} />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -261,7 +270,7 @@ export default function PhotosScreen() {
                 onPress={() => setViewMode("grid2")}
                 hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
               >
-                <Grid2X2 size={16} color={viewMode === "grid2" ? theme.accent : "rgba(255,255,255,0.4)"} />
+                <Grid2X2 size={16} color={viewMode === "grid2" ? theme.accent : theme.textMuted} />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -269,7 +278,7 @@ export default function PhotosScreen() {
                 onPress={() => setViewMode("single")}
                 hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
               >
-                <Square size={16} color={viewMode === "single" ? theme.accent : "rgba(255,255,255,0.4)"} />
+                <Square size={16} color={viewMode === "single" ? theme.accent : theme.textMuted} />
               </TouchableOpacity>
             </View>
           </View>
@@ -364,99 +373,103 @@ export default function PhotosScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  headerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitleBox: {
-    flex: 1,
-    alignItems: "center",
-    paddingHorizontal: 8,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    letterSpacing: -0.4,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.55)",
-    marginTop: 2,
-  },
+const createStyles = (theme: AppTheme) => {
+  const isLight = theme.isLight;
 
-  /* KONTROL ÇUBUĞU */
-  controlBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginHorizontal: 16,
-    marginBottom: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 18,
-    borderWidth: 1,
-  },
-  uploadQuickBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 14,
-  },
-  uploadQuickBtnText: {
-    color: "#ffffff",
-    fontSize: 13,
-    fontFamily: "Inter_700Bold",
-  },
-  viewModePills: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.06)",
-    padding: 3,
-    borderRadius: 14,
-    gap: 4,
-  },
-  viewModeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  return StyleSheet.create({
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+      paddingBottom: 12,
+    },
+    headerBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
+      borderWidth: 1,
+      borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    headerTitleBox: {
+      flex: 1,
+      alignItems: "center",
+      paddingHorizontal: 8,
+    },
+    headerTitle: {
+      fontSize: 22,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      letterSpacing: -0.4,
+    },
+    headerSubtitle: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.55)",
+      marginTop: 2,
+    },
 
-  /* LİSTE BOŞLUKLARI */
-  listContent: {
-    paddingHorizontal: 16,
-  },
-  grid3ListGap: {
-    gap: 6,
-  },
-  grid2ListGap: {
-    gap: 10,
-  },
-  singleListGap: {
-    gap: 16,
-  },
+    /* KONTROL ÇUBUĞU */
+    controlBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginHorizontal: 16,
+      marginBottom: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: 18,
+      borderWidth: 1,
+    },
+    uploadQuickBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 14,
+    },
+    uploadQuickBtnText: {
+      color: "#ffffff",
+      fontSize: 13,
+      fontFamily: "Inter_700Bold",
+    },
+    viewModePills: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
+      padding: 3,
+      borderRadius: 14,
+      gap: 4,
+    },
+    viewModeBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
+    },
 
-  /* BOŞ DURUM */
-  emptyState: {
-    marginHorizontal: 20,
-  },
-});
+    /* LİSTE BOŞLUKLARI */
+    listContent: {
+      paddingHorizontal: 16,
+    },
+    grid3ListGap: {
+      gap: 6,
+    },
+    grid2ListGap: {
+      gap: 10,
+    },
+    singleListGap: {
+      gap: 16,
+    },
+
+    /* BOŞ DURUM */
+    emptyState: {
+      marginHorizontal: 20,
+    },
+  });
+};

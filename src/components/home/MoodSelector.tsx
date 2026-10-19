@@ -210,14 +210,14 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, theme }: M
       }
     } else {
       logger.error("Mood error:", JSON.stringify(error, null, 2));
-      alert("Ruh hali kaydedilemedi: " + (error?.message || "Bilinmeyen hata"));
+      toast.error(error?.message || "Bilinmeyen hata", { title: "Ruh hali kaydedilemedi" });
     }
   }
 
   const isRateLimited = cooldown > 0 || updateCount >= MAX_DAILY_MOOD_UPDATES;
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+    <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
       <Text style={[styles.title, { color: theme.text }]}>Bugün nasılsın?</Text>
 
       <View style={styles.row}>
@@ -235,7 +235,7 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, theme }: M
                   ? { backgroundColor: theme.pillAccentBg, borderColor: theme.accent, borderWidth: 1.5 }
                   : { 
                       backgroundColor: "transparent", 
-                      borderColor: theme.isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.1)", 
+                      borderColor: theme.isLight ? theme.inputBorder : "rgba(255,255,255,0.1)", 
                       borderWidth: 1 
                     },
                 isRateLimited && !isSelected && { opacity: 0.35 },

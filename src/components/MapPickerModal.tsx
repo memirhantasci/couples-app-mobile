@@ -8,10 +8,11 @@ import {
   Dimensions,
   Platform,
   ActivityIndicator,
-  Alert,
   StatusBar,
   TextInput,
 } from "react-native";
+import { appAlert } from "@/lib/dialog";
+import { DialogHost } from "@/components/ui/DialogHost";
 import MapView, { Marker, Region, UserLocationChangeEvent } from "react-native-maps";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
@@ -179,13 +180,13 @@ export function MapPickerModal({
         await handleSelectCoordinate({ latitude: res.latitude, longitude: res.longitude });
         setResolvedAddress(res.locationName);
       } else {
-        Alert.alert(
+        appAlert(
           "Adres Bulunamadı",
           "Girdiğiniz il, ilçe, mahalle veya sokak bulunamadı. Lütfen yazımı kontrol edin veya harita üzerinden bir noktaya dokunun."
         );
       }
     } catch {
-      Alert.alert("Hata", "Adres aranırken bir hata oluştu.");
+      appAlert("Hata", "Adres aranırken bir hata oluştu.");
     } finally {
       setIsSearching(false);
     }
@@ -213,7 +214,7 @@ export function MapPickerModal({
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         if (!silent) {
-          Alert.alert("Konum İzni Gerekli", "Mevcut konumunuzu görebilmek için konum erişimine izin verin.");
+          appAlert("Konum İzni Gerekli", "Mevcut konumunuzu görebilmek için konum erişimine izin verin.");
         }
         return;
       }
@@ -293,7 +294,7 @@ export function MapPickerModal({
       });
       onClose();
     } else {
-      Alert.alert("Konum Belirlenmedi", "Lütfen harita üzerinden bir noktaya dokunarak konum seçin.");
+      appAlert("Konum Belirlenmedi", "Lütfen harita üzerinden bir noktaya dokunarak konum seçin.");
     }
   };
 
@@ -366,7 +367,16 @@ export function MapPickerModal({
         </MapView>
 
         {/* ─── ÜST KONTROL ÇUBUĞU (Aşk Haritası ile Birebir Aynı Tasarım) ──── */}
-        <View style={[styles.topBar, { paddingTop: topInset + 8 }]}>
+        <View
+          style={[
+            styles.topBar,
+            {
+              paddingTop: topInset + 8,
+              backgroundColor: isLight ? "rgba(255,255,255,0.80)" : "rgba(15,19,29,0.74)",
+              borderBottomColor: isLight ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.12)",
+            },
+          ]}
+        >
           <BlurView tint={isLight ? "light" : "dark"} intensity={80} style={StyleSheet.absoluteFill} />
 
           <View style={styles.topBarMainRow}>
@@ -376,7 +386,7 @@ export function MapPickerModal({
                 styles.topActionBtn,
                 {
                   backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.1)",
-                  borderColor: isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.15)",
+                  borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.15)",
                 },
               ]}
               onPress={onClose}
@@ -407,7 +417,7 @@ export function MapPickerModal({
                   styles.topActionBtn,
                   {
                     backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.1)",
-                    borderColor: isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.15)",
+                    borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.15)",
                   },
                 ]}
                 onPress={() => setShowThemePicker(!showThemePicker)}
@@ -422,7 +432,7 @@ export function MapPickerModal({
                   styles.topActionBtn,
                   {
                     backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.1)",
-                    borderColor: isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.15)",
+                    borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.15)",
                   },
                 ]}
                 onPress={() => moveToUserLocation(false)}
@@ -444,7 +454,7 @@ export function MapPickerModal({
               styles.searchBarWrapper,
               {
                 backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)",
-                borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.12)",
+                borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.12)",
               },
             ]}
           >
@@ -452,7 +462,7 @@ export function MapPickerModal({
             <TextInput
               style={[styles.searchInput, { color: isLight ? "#1A1528" : "#FFFFFF" }]}
               placeholder="İl, ilçe, mahalle veya sokak ara..."
-              placeholderTextColor={isLight ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.4)"}
+              placeholderTextColor={isLight ? "rgba(26,21,40,0.55)" : "rgba(255,255,255,0.45)"}
               value={searchQuery}
               onChangeText={setSearchQuery}
               onSubmitEditing={handleSearchAddress}
@@ -481,7 +491,15 @@ export function MapPickerModal({
 
           {/* ─── TEMA SEÇİCİ AÇILIR MENÜ ────────────────────────────────────── */}
           {showThemePicker && (
-            <View style={[styles.themePickerMenu, { backgroundColor: isLight ? "#FFFFFF" : "#1A1626" }]}>
+            <View
+              style={[
+                styles.themePickerMenu,
+                {
+                  backgroundColor: isLight ? "#FFFFFF" : "#1A1626",
+                  borderColor: isLight ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.14)",
+                },
+              ]}
+            >
               <Text style={[styles.themeMenuHeader, { color: isLight ? "#333" : "#fff" }]}>Harita Teması</Text>
               <View style={styles.themeOptionsRow}>
                 {[
@@ -493,6 +511,7 @@ export function MapPickerModal({
                     key={t.id}
                     style={[
                       styles.themeOptionBtn,
+                      { borderColor: isLight ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.14)" },
                       mapTheme === t.id && { borderColor: theme.accent, backgroundColor: `${theme.accent}15` },
                     ]}
                     onPress={() => {
@@ -500,10 +519,16 @@ export function MapPickerModal({
                       setShowThemePicker(false);
                     }}
                   >
-                    <Text style={[styles.themeOptionTitle, mapTheme === t.id && { color: theme.accent }]}>
+                    <Text
+                      style={[
+                        styles.themeOptionTitle,
+                        { color: isLight ? "#2A2433" : "#F4F1F8" },
+                        mapTheme === t.id && { color: theme.accent },
+                      ]}
+                    >
                       {t.label}
                     </Text>
-                    <Text style={styles.themeOptionDesc}>{t.desc}</Text>
+                    <Text style={[styles.themeOptionDesc, { color: isLight ? "#6B6577" : "rgba(255,255,255,0.6)" }]}>{t.desc}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -520,7 +545,15 @@ export function MapPickerModal({
 
         {/* ─── REHBER ÇUBUĞU (Konum Seçilmediğinde) ──────────────────────── */}
         {isMapReady && !selectedCoord && (
-          <View style={[styles.hintPill, { bottom: insets.bottom + 30 }]}>
+          <View
+            style={[
+              styles.hintPill,
+              {
+                bottom: insets.bottom + 30,
+                backgroundColor: isLight ? "rgba(255,255,255,0.86)" : "rgba(18,16,30,0.78)",
+              },
+            ]}
+          >
             <BlurView tint={isLight ? "light" : "dark"} intensity={85} style={StyleSheet.absoluteFill} />
             <Heart size={14} color={theme.accent} fill={theme.accent} />
             <Text style={[styles.hintPillText, { color: isLight ? "#222" : "#fff" }]}>
@@ -531,7 +564,16 @@ export function MapPickerModal({
 
         {/* ─── FLOATING DETAY VE ONAY KARTI (Aşk Haritası ile Birebir Aynı) ── */}
         {selectedCoord && (
-          <View style={[styles.detailCardOverlay, { bottom: Math.max(insets.bottom, 16) + 12 }]}>
+          <View
+            style={[
+              styles.detailCardOverlay,
+              {
+                bottom: Math.max(insets.bottom, 16) + 12,
+                backgroundColor: isLight ? "rgba(255,255,255,0.90)" : "rgba(18,16,30,0.84)",
+                borderColor: isLight ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.15)",
+              },
+            ]}
+          >
             <BlurView tint={isLight ? "light" : "dark"} intensity={95} style={StyleSheet.absoluteFill} />
 
             <View style={styles.detailCardBody}>
@@ -544,7 +586,10 @@ export function MapPickerModal({
 
                 <TouchableOpacity
                   onPress={() => setSelectedCoord(null)}
-                  style={styles.detailCloseBtn}
+                  style={[
+                    styles.detailCloseBtn,
+                    { backgroundColor: isLight ? "rgba(0,0,0,0.07)" : "rgba(255,255,255,0.12)" },
+                  ]}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <X size={15} color={isLight ? "#4A4356" : "rgba(255,255,255,0.7)"} />
@@ -559,7 +604,7 @@ export function MapPickerModal({
                 >
                   {resolvedAddress || "Harita Üzerinde İşaretlenen Nokta"}
                 </Text>
-                <Text style={[styles.locationCoords, { color: isLight ? "#7A7385" : "rgba(255,255,255,0.6)" }]}>
+                <Text style={[styles.locationCoords, { color: isLight ? "#5C566B" : "rgba(255,255,255,0.6)" }]}>
                   📍 {selectedCoord.latitude.toFixed(5)}, {selectedCoord.longitude.toFixed(5)}
                 </Text>
               </View>
@@ -584,6 +629,8 @@ export function MapPickerModal({
           </View>
         )}
       </View>
+      {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
+      <DialogHost embedded />
     </Modal>
   );
 }

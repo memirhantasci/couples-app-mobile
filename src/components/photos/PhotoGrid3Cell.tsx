@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: "hidden",
     margin: 3,
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "rgba(128,128,128,0.16)", // yüklenirken görünen nötr yer tutucu: açık ve koyu zeminde okunur
   },
   grid3Img: {
     width: "100%",

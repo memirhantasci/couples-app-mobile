@@ -84,7 +84,7 @@ export function PremiumPaywall({
             styles.container,
             {
               backgroundColor: theme.cardBg,
-              borderColor: isLight ? "rgba(0,0,0,0.08)" : theme.cardBorder,
+              borderColor: isLight ? theme.inputBorder : theme.cardBorder,
               shadowColor: isLight ? "#000" : theme.accent,
             },
           ]}
@@ -96,7 +96,7 @@ export function PremiumPaywall({
                 styles.closeBtnCircle,
                 {
                   backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)",
-                  borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.12)",
+                  borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.12)",
                 },
               ]}
             >

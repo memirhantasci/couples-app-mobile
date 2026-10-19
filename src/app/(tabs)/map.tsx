@@ -6,13 +6,13 @@ import { Heart } from "lucide-react-native";
 import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Platform,
   StatusBar,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { appAlert } from "@/lib/dialog";
 import MapView from "react-native-maps";
 import type { LongPressEvent } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -47,7 +47,7 @@ import { usePageTour } from "@/hooks/usePageTour";
 import { notifyPartner } from "@/lib/notifications";
 import { playStampDrop } from "@/lib/soundEffects";
 import { supabase } from "@/lib/supabase";
-import { getTheme } from "@/lib/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { toast } from "@/lib/toast";
 
 const DEMO_NOTE_TITLE = "Haritaya Aşk Notu Bırakmak İçin Kayıt Olun 📍";
@@ -63,7 +63,8 @@ export default function MapScreen() {
     setIsDemoModalOpen,
     modalConfig,
   } = useDemoAction();
-  const theme = getTheme(profile?.gender);
+  // useTheme: getTheme(profile?.gender) seçili tema modunu bilmediği için erkek/koyu varsayılana düşüyordu
+  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const mapRef = useRef<MapView | null>(null);
@@ -71,7 +72,8 @@ export default function MapScreen() {
 
   const coupleId = profile?.coupleId ?? null;
   const userId = session?.user?.id ?? null;
-  const isPremium = profile?.isPremium ?? false;
+  // Demo modunda premium kilitleri yoktur: tüm özellikler açık
+  const isPremium = (profile?.isPremium ?? false) || isDemoMode;
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("map");
 
   const { photoPins, mapNotes, meetingPins, storyPins, isLoading } = useMapData({
@@ -152,7 +154,7 @@ export default function MapScreen() {
       }
     },
     onError: (e: Error) => {
-      Alert.alert("Hata", "Not kaydedilemedi: " + (e?.message ?? ""));
+      appAlert("Hata", "Not kaydedilemedi: " + (e?.message ?? ""));
     },
   });
 
@@ -170,7 +172,7 @@ export default function MapScreen() {
       setSelectedItem(null);
     },
     onError: (e: Error) => {
-      Alert.alert("Hata", "Not silinemedi: " + (e?.message ?? ""));
+      appAlert("Hata", "Not silinemedi: " + (e?.message ?? ""));
     },
   });
 
@@ -211,7 +213,7 @@ export default function MapScreen() {
     ) {
       return;
     }
-    Alert.alert(
+    appAlert(
       "Fotoğrafı Sil",
       "Bu fotoğrafı haritadan ve galeriden silmek istiyor musunuz?",
       [
@@ -240,7 +242,7 @@ export default function MapScreen() {
     ) {
       return;
     }
-    Alert.alert("Notu Sil", "Bu notu haritadan silmek istiyor musunuz?", [
+    appAlert("Notu Sil", "Bu notu haritadan silmek istiyor musunuz?", [
       { text: "Vazgeç", style: "cancel" },
       {
         text: "Sil",
@@ -257,7 +259,7 @@ export default function MapScreen() {
       setIsLocating(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert(
+        appAlert(
           "Konum İzni",
           "Konumunuza gidebilmek için lütfen konum izni verin.",
         );

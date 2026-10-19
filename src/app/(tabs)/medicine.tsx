@@ -1,13 +1,19 @@
 import React, { useState, useMemo, useRef } from "react";
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
 } from "react-native";
+import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Pill, ChevronLeft, AlignJustify, Plus, ChevronRight
 } from "lucide-react-native";
+import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
@@ -47,6 +53,7 @@ export default function MedicineScreen() {
   const { profile, session, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { showNotification } = useCustomNotification();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -215,7 +222,7 @@ export default function MedicineScreen() {
       if (context?.previousData) {
         queryClient.setQueryData(["medicine_data", coupleId], context.previousData);
       }
-      Alert.alert("Hata", "Durum güncellenirken bir sorun oluştu.");
+      appAlert("Hata", "Durum güncellenirken bir sorun oluştu.");
     },
     onSettled: () => {
       setLoadingSlot(null);
@@ -253,7 +260,7 @@ export default function MedicineScreen() {
     const formattedTimes = values.times.map(t => dayjs(t).format("HH:mm"));
     const uniqueTimes = new Set(formattedTimes);
     if (uniqueTimes.size !== formattedTimes.length) {
-      Alert.alert("Uyarı", "Aynı ilaç için birden fazla aynı saat seçilemez. Lütfen farklı doz saatleri belirleyin.");
+      appAlert("Uyarı", "Aynı ilaç için birden fazla aynı saat seçilemez. Lütfen farklı doz saatleri belirleyin.");
       return "error";
     }
 
@@ -270,7 +277,7 @@ export default function MedicineScreen() {
           .maybeSingle();
 
         if (!partnerData?.id) {
-          Alert.alert("Bilgi", "Partneriniz henüz eşleşmemiş.");
+          appAlert("Bilgi", "Partneriniz henüz eşleşmemiş.");
           return "error";
         }
         targetUserId = partnerData.id;
@@ -322,7 +329,7 @@ export default function MedicineScreen() {
       primeAfterCloseRef.current = true;
       return "success";
     } catch (err: any) {
-      Alert.alert("Hata", err?.message || "Beklenmeyen bir hata oluştu.");
+      appAlert("Hata", err?.message || "Beklenmeyen bir hata oluştu.");
       return "error";
     }
   };
@@ -345,7 +352,7 @@ export default function MedicineScreen() {
       return;
     }
 
-    Alert.alert("İlacı Sil", "Bu ilacı silmek istediğinize emin misiniz?", [
+    appAlert("İlacı Sil", "Bu ilacı silmek istediğinize emin misiniz?", [
       { text: "Vazgeç", style: "cancel" },
       {
         text: "Sil",
@@ -362,7 +369,7 @@ export default function MedicineScreen() {
           const { error } = await supabase.from("medicines").delete().eq("id", id).eq("couple_id", coupleId);
           setIsDeleting(null);
           if (error) {
-            Alert.alert("Hata", "Silinirken hata oluştu.");
+            appAlert("Hata", "Silinirken hata oluştu.");
           } else {
             refetch();
           }
@@ -567,7 +574,7 @@ export default function MedicineScreen() {
         >
           {/* HIZLI İLAÇ EKLE / YÖNET KARTI */}
           <TouchableOpacity
-            style={[styles.quickActionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+            style={[styles.quickActionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
             onPress={() => {
               if (executeOrIntercept(
                 () => {},
@@ -591,7 +598,7 @@ export default function MedicineScreen() {
           </TouchableOpacity>
 
           {/* BEN / SEVGİLİM SEGMENTED CONTROL */}
-          <View style={[styles.segmentedContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+          <View style={[styles.segmentedContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}>
             <TouchableOpacity
               style={[styles.segmentedBtn, activeTab === "me" && { backgroundColor: theme.unitBg }]}
               onPress={() => setActiveTab("me")}
@@ -635,7 +642,7 @@ export default function MedicineScreen() {
                 <Skeleton height={110} borderRadius={20} />
               </View>
             ) : filteredMedicines.length === 0 ? (
-              <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+              <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}>
                 <Pill size={36} color={theme.textMuted} />
                 <Text style={[styles.emptyCardTitle, { color: theme.text }]}>Bugün İçin İlaç Yok</Text>
                 <Text style={[styles.emptyCardSub, { color: theme.textSecondary }]}>
@@ -706,151 +713,155 @@ export default function MedicineScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  headerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitleBox: {
-    flex: 1,
-    alignItems: "center",
-    paddingHorizontal: 8,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    letterSpacing: -0.4,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.55)",
-    marginTop: 2,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    gap: 16,
-  },
+const createStyles = (theme: AppTheme) => {
+  const isLight = theme.isLight;
 
-  /* HIZLI İLAÇ EKLE KARTI */
-  quickActionCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
-    borderRadius: 18,
-    borderWidth: 1,
-    gap: 12,
-  },
-  quickActionIconCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  quickActionTitle: {
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    letterSpacing: -0.2,
-  },
-  quickActionSub: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.55)",
-    marginTop: 2,
-  },
+  return StyleSheet.create({
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+      paddingBottom: 12,
+    },
+    headerBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
+      borderWidth: 1,
+      borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    headerTitleBox: {
+      flex: 1,
+      alignItems: "center",
+      paddingHorizontal: 8,
+    },
+    headerTitle: {
+      fontSize: 22,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      letterSpacing: -0.4,
+    },
+    headerSubtitle: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.55)",
+      marginTop: 2,
+    },
+    scrollContent: {
+      paddingHorizontal: 16,
+      paddingTop: 8,
+      gap: 16,
+    },
 
-  /* SEGMENTED CONTROL */
-  segmentedContainer: {
-    flexDirection: "row",
-    padding: 4,
-    borderRadius: 16,
-  },
-  segmentedBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 12,
-  },
-  segmentedText: {
-    fontSize: 13,
-    fontFamily: "Inter_500Medium",
-    color: "rgba(255,255,255,0.6)",
-  },
+    /* HIZLI İLAÇ EKLE KARTI */
+    quickActionCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      padding: 14,
+      borderRadius: 18,
+      borderWidth: 1,
+      gap: 12,
+    },
+    quickActionIconCircle: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    quickActionTitle: {
+      fontSize: 15,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      letterSpacing: -0.2,
+    },
+    quickActionSub: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.55)",
+      marginTop: 2,
+    },
 
-  /* BÖLÜMLER */
-  sectionBlock: {
-    gap: 10,
-  },
-  sectionHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginLeft: 4,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontFamily: "Inter_700Bold",
-    color: "rgba(255,255,255,0.5)",
-    letterSpacing: 0.7,
-  },
-  sectionDateSub: {
-    fontSize: 11.5,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.4)",
-  },
+    /* SEGMENTED CONTROL */
+    segmentedContainer: {
+      flexDirection: "row",
+      padding: 4,
+      borderRadius: 16,
+    },
+    segmentedBtn: {
+      flex: 1,
+      paddingVertical: 10,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 12,
+    },
+    segmentedText: {
+      fontSize: 13,
+      fontFamily: "Inter_500Medium",
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.6)",
+    },
 
-  /* BOŞ DURUM */
-  emptyCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  emptyCardTitle: {
-    fontSize: 16,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    marginTop: 4,
-  },
-  emptyCardSub: {
-    fontSize: 12.5,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.5)",
-    textAlign: "center",
-    lineHeight: 18,
-  },
-  emptyBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 12,
-    marginTop: 6,
-  },
-  emptyBtnText: {
-    color: "#ffffff",
-    fontSize: 13,
-    fontFamily: "Inter_700Bold",
-  },
-});
+    /* BÖLÜMLER */
+    sectionBlock: {
+      gap: 10,
+    },
+    sectionHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginLeft: 4,
+    },
+    sectionTitle: {
+      fontSize: 11,
+      fontFamily: "Inter_700Bold",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.5)",
+      letterSpacing: 0.7,
+    },
+    sectionDateSub: {
+      fontSize: 11.5,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.4)",
+    },
+
+    /* BOŞ DURUM */
+    emptyCard: {
+      borderRadius: 20,
+      borderWidth: 1,
+      padding: 24,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+    },
+    emptyCardTitle: {
+      fontSize: 16,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      marginTop: 4,
+    },
+    emptyCardSub: {
+      fontSize: 12.5,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.5)",
+      textAlign: "center",
+      lineHeight: 18,
+    },
+    emptyBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 16,
+      paddingVertical: 9,
+      borderRadius: 12,
+      marginTop: 6,
+    },
+    emptyBtnText: {
+      color: "#ffffff",
+      fontSize: 13,
+      fontFamily: "Inter_700Bold",
+    },
+  });
+};

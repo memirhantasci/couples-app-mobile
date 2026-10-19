@@ -206,7 +206,7 @@ function CalendarPane({
         <TouchableOpacity
           onPress={() => shiftMonth(-1)}
           disabled={!canGoPrev || yearMode}
-          style={[styles.navBtn, { backgroundColor: theme.unitBg, opacity: canGoPrev && !yearMode ? 1 : 0.3 }]}
+          style={[styles.navBtn, { backgroundColor: theme.unitBg, borderWidth: 1, borderColor: theme.cardBorder, opacity: canGoPrev && !yearMode ? 1 : 0.3 }]}
         >
           <ChevronLeft size={18} color={theme.text} />
         </TouchableOpacity>
@@ -225,7 +225,7 @@ function CalendarPane({
         <TouchableOpacity
           onPress={() => shiftMonth(1)}
           disabled={!canGoNext || yearMode}
-          style={[styles.navBtn, { backgroundColor: theme.unitBg, opacity: canGoNext && !yearMode ? 1 : 0.3 }]}
+          style={[styles.navBtn, { backgroundColor: theme.unitBg, borderWidth: 1, borderColor: theme.cardBorder, opacity: canGoNext && !yearMode ? 1 : 0.3 }]}
         >
           <ChevronRight size={18} color={theme.text} />
         </TouchableOpacity>

@@ -5,7 +5,8 @@
 //
 // Not: Toast ana ekran ağacının üstünde çizilir; açık bir <Modal> (veya iOS'ta
 // `presentation: "modal"` rota) varsa onun ARKASINDA kalır. Bir modal kapanırken tetikleniyorsa
-// `delay` ile kapanışı bekleyin; modal içinde kalan doğrulama hataları için Alert kullanın.
+// `delay` ile kapanışı bekleyin; modal içinde kalan doğrulama hataları için `appAlert` kullanın
+// (modalın içine `<DialogHost embedded />` koyarsanız uyarı o modalın içinde diyalog olarak çizilir).
 
 export type ToastVariant = "success" | "info" | "warning" | "error";
 

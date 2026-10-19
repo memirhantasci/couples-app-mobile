@@ -61,7 +61,7 @@ export function MapControlBar({
     styles.topActionBtn,
     {
       backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.1)",
-      borderColor: isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.15)",
+      borderColor: isLight ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.15)",
     },
   ];
 

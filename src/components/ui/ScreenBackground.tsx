@@ -15,7 +15,8 @@ export const ScreenBackground = memo(function ScreenBackground({ children, style
 
   return (
     <LinearGradient colors={backgroundColors} style={[{ flex: 1 }, style]}>
-      <StatusBar barStyle={isLight ? 'dark-content' : 'light-content'} />
+      {/* Özel (koyu) renkler verilen ekranlarda (giriş/kurulum) durum çubuğu açık temada bile açık renk kalır */}
+      <StatusBar barStyle={!colors && isLight ? 'dark-content' : 'light-content'} />
       {children}
     </LinearGradient>
   );

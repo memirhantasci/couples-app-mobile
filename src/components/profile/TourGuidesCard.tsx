@@ -53,7 +53,7 @@ export function TourGuidesCard({ theme, isLight, onOpenTour }: TourGuidesCardPro
             profileSharedStyles.logoutBtn,
             {
               backgroundColor: isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)",
-              borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.1)",
+              borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.1)",
             },
           ]}
           activeOpacity={0.8}

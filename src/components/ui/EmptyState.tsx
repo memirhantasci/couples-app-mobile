@@ -78,7 +78,7 @@ export function EmptyState({
       style={[
         styles.card,
         compact && styles.cardCompact,
-        { backgroundColor: theme.cardBg, borderColor: theme.cardBorder },
+        { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow },
         style,
       ]}
     >

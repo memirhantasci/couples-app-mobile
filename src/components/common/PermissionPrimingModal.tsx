@@ -50,7 +50,7 @@ export function PermissionPrimingModal({
             styles.card,
             {
               backgroundColor: isLight ? "#FFFFFF" : "#13131F",
-              borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.12)",
+              borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.12)",
             },
           ]}
         >

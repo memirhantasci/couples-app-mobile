@@ -1,8 +1,13 @@
-import React, { useState, useCallback } from "react";
-import { 
-  View, Text, StyleSheet, TextInput, TouchableOpacity, 
-  ActivityIndicator, Alert
+import React, { useState, useCallback, useMemo } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
+import { appAlert } from "@/lib/dialog";
 import { Image } from "expo-image";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
@@ -25,7 +30,8 @@ import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { decode } from "base64-arraybuffer";
 import { notifyPartner } from "@/lib/notifications";
 import { dayjs, todayString } from "@/lib/date";
-import { getTheme } from "@/lib/theme";
+import type { AppTheme } from "@/lib/theme";
+import { useTheme } from "@/context/ThemeContext";
 import { logger } from "@/utils/logger";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { MapPickerModal } from "@/components/MapPickerModal";
@@ -46,11 +52,19 @@ export default function AddPhotoScreen() {
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
-  const theme = getTheme(profile?.gender);
+  // useTheme: getTheme(profile?.gender) seçili tema modunu (açık/koyu) bilmediği için açık temada koyu stilde kalıyordu
+  const { theme, isLight } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  // Durum renkleri: koyu zeminde canlı, açık zeminde WCAG uyumlu koyu tonlar
+  const okColor = isLight ? "#15803D" : "#22c55e";
+  const infoColor = isLight ? "#2563EB" : "#60a5fa";
+  const warnColor = isLight ? "#B45309" : "#f59e0b";
+  const dangerColor = isLight ? "#DC2626" : "#ef4444";
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
-  const isPremium = profile?.isPremium ?? false;
+  // Demo modunda premium kilitleri yoktur: tüm özellikler açık
+  const isPremium = (profile?.isPremium ?? false) || isDemoMode;
   const [showPaywall, setShowPaywall] = useState(false);
 
   const [localImage, setLocalImage] = useState<{ 
@@ -90,13 +104,13 @@ export default function AddPhotoScreen() {
         setExifGpsFound(false);
         setManualAddressInput("");
       } else {
-        Alert.alert(
+        appAlert(
           "Adres Bulunamadı",
           "Girdiğiniz il, ilçe, mahalle veya sokak bulunamadı. Lütfen yazımı kontrol edin veya harita üzerinden seçmeyi deneyin."
         );
       }
     } catch {
-      Alert.alert("Hata", "Adres aranırken bir sorun oluştu.");
+      appAlert("Hata", "Adres aranırken bir sorun oluştu.");
     } finally {
       setIsSearchingAddress(false);
     }
@@ -178,7 +192,7 @@ export default function AddPhotoScreen() {
 
     } catch (error) {
       logger.error("Photo pick error:", error);
-      Alert.alert("Hata", "Fotoğraf seçilirken bir hata oluştu.");
+      appAlert("Hata", "Fotoğraf seçilirken bir hata oluştu.");
     }
   };
 
@@ -228,7 +242,7 @@ export default function AddPhotoScreen() {
       const cleanDescription = sanitize(description.trim());
 
       if (!cleanDescription) {
-        Alert.alert("Hata", "Geçersiz içerik tespit edildi. Lütfen açıklamayı tekrar yazın.");
+        appAlert("Hata", "Geçersiz içerik tespit edildi. Lütfen açıklamayı tekrar yazın.");
         setUploading(false);
         return;
       }
@@ -328,7 +342,7 @@ export default function AddPhotoScreen() {
       }
     } catch (error: any) {
       logger.error("Photo save error:", error);
-      Alert.alert("Hata", "Kaydetme sırasında bir sorun oluştu: " + (error?.message || ""));
+      appAlert("Hata", "Kaydetme sırasında bir sorun oluştu: " + (error?.message || ""));
     } finally {
       setUploading(false);
     }
@@ -361,7 +375,7 @@ export default function AddPhotoScreen() {
     }, [isPremium, isDemoMode])
   );
 
-  if (!session) return <View style={{ flex: 1, backgroundColor: "#0c0c0c" }} />;
+  if (!session) return <View style={{ flex: 1, backgroundColor: theme.bgGradient[0] }} />;
 
   return (
     <ScreenBackground>
@@ -379,7 +393,7 @@ export default function AddPhotoScreen() {
             style={styles.headerBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <ChevronLeft color="#ffffff" size={24} />
+            <ChevronLeft color={theme.text} size={24} />
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
@@ -392,7 +406,7 @@ export default function AddPhotoScreen() {
             style={styles.headerBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <AlignJustify color="rgba(255,255,255,0.75)" size={20} />
+            <AlignJustify color={theme.textSecondary} size={20} />
           </TouchableOpacity>
         </View>
 
@@ -404,7 +418,7 @@ export default function AddPhotoScreen() {
           extraScrollHeight={80}
         >
           {/* FOTOĞRAF SEÇİM ALANI */}
-          <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
             <Text style={styles.cardHeaderTitle}>Görsel</Text>
             <TouchableOpacity 
               style={[
@@ -450,7 +464,7 @@ export default function AddPhotoScreen() {
 
             {exifStatus === "found" && (
               <View style={styles.exifSuccessBox}>
-                <CheckCircle2 color="#22c55e" size={16} />
+                <CheckCircle2 color={okColor} size={16} />
                 <Text style={styles.exifSuccessText}>
                   Çekim zamanı algılandı: {dayjs(takenDate).locale("tr").format("D MMMM YYYY")}, {takenTime}
                 </Text>
@@ -459,7 +473,7 @@ export default function AddPhotoScreen() {
 
             {exifStatus === "not_found" && (
               <View style={styles.exifNoticeBox}>
-                <AlertCircle color="#f59e0b" size={16} />
+                <AlertCircle color={warnColor} size={16} />
                 <Text style={styles.exifNoticeText}>
                   Fotoğrafta çekim zamanı bulunamadı, şimdiki zaman eklendi.
                 </Text>
@@ -468,18 +482,18 @@ export default function AddPhotoScreen() {
           </View>
 
           {/* KONUM KARTI */}
-          <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
             <Text style={styles.cardHeaderTitle}>Konum Bilgisi</Text>
 
             {photoLocation ? (
               <View style={[styles.exifSuccessBox, { backgroundColor: exifGpsFound ? "rgba(34,197,94,0.12)" : "rgba(59,130,246,0.12)", borderColor: exifGpsFound ? "rgba(34,197,94,0.3)" : "rgba(59,130,246,0.3)" }]}>
                 {exifGpsFound ? (
-                  <Navigation size={16} color="#22c55e" />
+                  <Navigation size={16} color={okColor} />
                 ) : (
-                  <MapPin size={16} color="#60a5fa" />
+                  <MapPin size={16} color={infoColor} />
                 )}
                 <View style={{ flex: 1, paddingRight: 6 }}>
-                  <Text style={[styles.exifSuccessText, { color: exifGpsFound ? "#22c55e" : "#60a5fa", fontFamily: "Inter_700Bold", fontSize: 11.5 }]}>
+                  <Text style={[styles.exifSuccessText, { color: exifGpsFound ? okColor : infoColor, fontFamily: "Inter_700Bold", fontSize: 11.5 }]}>
                     {exifGpsFound ? "Fotoğraftan Otomatik Algılandı" : "Belirlenen Konum"}
                   </Text>
                   <Text style={[styles.locationDetailText, { color: theme.textSecondary }]} numberOfLines={2}>
@@ -490,13 +504,13 @@ export default function AddPhotoScreen() {
                   onPress={() => setShowMapPicker(true)} 
                   style={[styles.changeLocBtn, { borderColor: exifGpsFound ? "rgba(34,197,94,0.4)" : "rgba(59,130,246,0.4)", marginRight: 6 }]}
                 >
-                  <Text style={[styles.changeLocBtnText, { color: exifGpsFound ? "#22c55e" : "#60a5fa" }]}>Harita</Text>
+                  <Text style={[styles.changeLocBtnText, { color: exifGpsFound ? okColor : infoColor }]}>Harita</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                   onPress={() => { setPhotoLocation(null); setExifGpsFound(false); }} 
                   style={[styles.changeLocBtn, { borderColor: "rgba(239,68,68,0.4)" }]}
                 >
-                  <Text style={[styles.changeLocBtnText, { color: "#ef4444" }]}>Kaldır</Text>
+                  <Text style={[styles.changeLocBtnText, { color: dangerColor }]}>Kaldır</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -541,7 +555,7 @@ export default function AddPhotoScreen() {
           </View>
 
           {/* TARİH VE SAAT KARTI */}
-          <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
             <Text style={styles.cardHeaderTitle}>Zaman Bilgisi</Text>
             <View style={styles.rowInputs}>
               {/* Tarih */}
@@ -567,7 +581,7 @@ export default function AddPhotoScreen() {
                   onPress={() => setShowTimePicker(true)}
                   activeOpacity={0.7}
                 >
-                  <Clock size={16} color="rgba(255,255,255,0.6)" />
+                  <Clock size={16} color={theme.textMuted} />
                   <Text style={styles.inputRowBtnText}>
                     {takenTime || "Seç"}
                   </Text>
@@ -596,7 +610,7 @@ export default function AddPhotoScreen() {
           </View>
 
           {/* BAŞLIK VE AÇIKLAMA KARTI */}
-          <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
             <Text style={styles.cardHeaderTitle}>Anı Detayları</Text>
             
             {/* Başlık Input */}
@@ -607,7 +621,7 @@ export default function AddPhotoScreen() {
                 value={title}
                 onChangeText={setTitle}
                 placeholder="Örn: Kapadokya Gün Batımı ✨"
-                placeholderTextColor="rgba(255,255,255,0.3)"
+                placeholderTextColor={theme.textMuted}
                 maxLength={80}
               />
             </View>
@@ -637,7 +651,7 @@ export default function AddPhotoScreen() {
                   setErrors(prev => ({ ...prev, description: false }));
                 }}
                 placeholder="Bu fotoğrafa dair hatırlamak istediğin özel bir his, mekan veya anı..."
-                placeholderTextColor="rgba(255,255,255,0.3)"
+                placeholderTextColor={theme.textMuted}
                 multiline
                 numberOfLines={4}
                 maxLength={500}
@@ -649,7 +663,7 @@ export default function AddPhotoScreen() {
           <View style={{ marginTop: 6 }}>
             {!isPremium ? (
               <TouchableOpacity 
-                style={[styles.saveBtn, { backgroundColor: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.12)", borderWidth: 1 }]} 
+                style={[styles.saveBtn, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder, borderWidth: 1 }]} 
                 onPress={() => setShowPaywall(true)}
                 activeOpacity={0.8}
               >
@@ -728,291 +742,300 @@ export default function AddPhotoScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-  },
-  headerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitleBox: {
-    flex: 1,
-    alignItems: "center",
-    paddingHorizontal: 8,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    letterSpacing: -0.4,
-  },
-  headerSubtitle: {
-    fontSize: 12.5,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.6)",
-    marginTop: 2,
-  },
-  container: {
-    paddingHorizontal: 16,
-    paddingBottom: 130,
-    gap: 14,
-  },
-  card: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 16,
-    gap: 12,
-  },
-  cardHeaderTitle: {
-    fontSize: 14,
-    fontFamily: "Inter_600SemiBold",
-    color: "rgba(255,255,255,0.9)",
-    letterSpacing: -0.2,
-  },
-  imagePickerBox: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    minHeight: 180,
-    overflow: "hidden",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  boxError: {
-    borderColor: "#ff5c77",
-    borderWidth: 1.5,
-  },
-  locationPickerBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  locationPickerTitle: {
-    fontSize: 14,
-    fontFamily: "Inter_600SemiBold",
-    color: "#ffffff",
-  },
-  locationPickerSub: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.45)",
-    marginTop: 2,
-  },
-  changeLocBtn: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(34,197,94,0.4)",
-  },
-  changeLocBtnText: {
-    fontSize: 11.5,
-    fontFamily: "Inter_600SemiBold",
-    color: "#22c55e",
-  },
-  locationDetailText: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    marginTop: 2,
-    lineHeight: 16,
-  },
-  quickAddressRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    height: 44,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  quickAddressInput: {
-    flex: 1,
-    paddingHorizontal: 8,
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-  },
-  quickFindBtn: {
-    marginRight: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  quickFindBtnText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
-  },
-  pickerPlaceholder: {
-    alignItems: "center",
-    padding: 24,
-    gap: 8,
-  },
-  iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 4,
-  },
-  placeholderTitle: {
-    fontSize: 15,
-    fontFamily: "Inter_600SemiBold",
-    color: "#ffffff",
-  },
-  placeholderSubtitle: {
-    fontSize: 12.5,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.5)",
-    textAlign: "center",
-    lineHeight: 18,
-    paddingHorizontal: 12,
-  },
-  imagePreviewWrapper: {
-    width: "100%",
-    position: "relative",
-  },
-  previewImage: {
-    width: "100%",
-    aspectRatio: 1.15,
-    borderRadius: 15,
-  },
-  changeImageBadge: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(0,0,0,0.65)",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-  },
-  changeImageText: {
-    color: "#ffffff",
-    fontSize: 12,
-    fontFamily: "Inter_500Medium",
-  },
-  exifLoadingBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(255,255,255,0.04)",
-    padding: 10,
-    borderRadius: 12,
-  },
-  exifLoadingText: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.6)",
-  },
-  exifSuccessBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(34,197,94,0.12)",
-    borderWidth: 1,
-    borderColor: "rgba(34,197,94,0.25)",
-    padding: 10,
-    borderRadius: 12,
-  },
-  exifSuccessText: {
-    fontSize: 12,
-    fontFamily: "Inter_500Medium",
-    color: "#22c55e",
-    flex: 1,
-  },
-  exifNoticeBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(245,158,11,0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(245,158,11,0.2)",
-    padding: 10,
-    borderRadius: 12,
-  },
-  exifNoticeText: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "#f59e0b",
-    flex: 1,
-  },
-  rowInputs: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  fieldLabel: {
-    fontSize: 12.5,
-    fontFamily: "Inter_500Medium",
-    color: "rgba(255,255,255,0.7)",
-    marginBottom: 6,
-  },
-  inputRowBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  inputRowBtnText: {
-    color: "#ffffff",
-    fontSize: 13.5,
-    fontFamily: "Inter_500Medium",
-  },
-  fieldGroup: {
-    gap: 2,
-  },
-  textInput: {
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: "#ffffff",
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: "top",
-    lineHeight: 20,
-  },
-  saveBtn: {
-    height: 52,
-    borderRadius: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  saveBtnText: {
-    color: "#ffffff",
-    fontSize: 15.5,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: -0.2,
-  },
-});
+const createStyles = (theme: AppTheme) => {
+  const isLight = theme.isLight;
+  const subtleBg = isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)";
+  const okColor = isLight ? "#15803D" : "#22c55e";
+  const warnColor = isLight ? "#B45309" : "#f59e0b";
+
+  return StyleSheet.create({
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+      paddingBottom: 16,
+    },
+    headerBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: subtleBg,
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    headerTitleBox: {
+      flex: 1,
+      alignItems: "center",
+      paddingHorizontal: 8,
+    },
+    headerTitle: {
+      fontSize: 22,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      letterSpacing: -0.4,
+    },
+    headerSubtitle: {
+      fontSize: 12.5,
+      fontFamily: "Inter_400Regular",
+      color: theme.textMuted,
+      marginTop: 2,
+    },
+    container: {
+      paddingHorizontal: 16,
+      paddingBottom: 130,
+      gap: 14,
+    },
+    card: {
+      borderRadius: 20,
+      borderWidth: 1,
+      padding: 16,
+      gap: 12,
+      ...theme.cardShadow,
+    },
+    cardHeaderTitle: {
+      fontSize: 14,
+      fontFamily: "Inter_600SemiBold",
+      color: theme.text,
+      letterSpacing: -0.2,
+    },
+    imagePickerBox: {
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: theme.inputBorder,
+      minHeight: 180,
+      overflow: "hidden",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    boxError: {
+      borderColor: "#ff5c77",
+      borderWidth: 1.5,
+    },
+    locationPickerBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      padding: 14,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: theme.inputBorder,
+    },
+    locationPickerTitle: {
+      fontSize: 14,
+      fontFamily: "Inter_600SemiBold",
+      color: theme.text,
+    },
+    locationPickerSub: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: theme.textMuted,
+      marginTop: 2,
+    },
+    changeLocBtn: {
+      paddingVertical: 4,
+      paddingHorizontal: 10,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: isLight ? "rgba(21,128,61,0.45)" : "rgba(34,197,94,0.4)",
+    },
+    changeLocBtnText: {
+      fontSize: 11.5,
+      fontFamily: "Inter_600SemiBold",
+      color: okColor,
+    },
+    locationDetailText: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      marginTop: 2,
+      lineHeight: 16,
+    },
+    quickAddressRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      height: 44,
+      borderRadius: 14,
+      borderWidth: 1,
+    },
+    quickAddressInput: {
+      flex: 1,
+      paddingHorizontal: 8,
+      fontSize: 13,
+      fontFamily: "Inter_400Regular",
+    },
+    quickFindBtn: {
+      marginRight: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 8,
+    },
+    quickFindBtnText: {
+      color: "#FFFFFF",
+      fontSize: 12,
+      fontFamily: "Inter_600SemiBold",
+    },
+    pickerPlaceholder: {
+      alignItems: "center",
+      padding: 24,
+      gap: 8,
+    },
+    iconCircle: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 4,
+    },
+    placeholderTitle: {
+      fontSize: 15,
+      fontFamily: "Inter_600SemiBold",
+      color: theme.text,
+    },
+    placeholderSubtitle: {
+      fontSize: 12.5,
+      fontFamily: "Inter_400Regular",
+      color: theme.textSecondary,
+      textAlign: "center",
+      lineHeight: 18,
+      paddingHorizontal: 12,
+    },
+    imagePreviewWrapper: {
+      width: "100%",
+      position: "relative",
+    },
+    previewImage: {
+      width: "100%",
+      aspectRatio: 1.15,
+      borderRadius: 15,
+    },
+    // Fotoğrafın üstünde yüzer: zemin her temada koyu, yazı beyaz kalır
+    changeImageBadge: {
+      position: "absolute",
+      top: 12,
+      right: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: "rgba(0,0,0,0.65)",
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.2)",
+    },
+    changeImageText: {
+      color: "#ffffff",
+      fontSize: 12,
+      fontFamily: "Inter_500Medium",
+    },
+    exifLoadingBox: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: isLight ? theme.unitBg : "rgba(255,255,255,0.04)",
+      padding: 10,
+      borderRadius: 12,
+    },
+    exifLoadingText: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: theme.textSecondary,
+    },
+    exifSuccessBox: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: isLight ? "rgba(21,128,61,0.10)" : "rgba(34,197,94,0.12)",
+      borderWidth: 1,
+      borderColor: isLight ? "rgba(21,128,61,0.30)" : "rgba(34,197,94,0.25)",
+      padding: 10,
+      borderRadius: 12,
+    },
+    exifSuccessText: {
+      fontSize: 12,
+      fontFamily: "Inter_500Medium",
+      color: okColor,
+      flex: 1,
+    },
+    exifNoticeBox: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: isLight ? "rgba(180,83,9,0.10)" : "rgba(245,158,11,0.1)",
+      borderWidth: 1,
+      borderColor: isLight ? "rgba(180,83,9,0.30)" : "rgba(245,158,11,0.2)",
+      padding: 10,
+      borderRadius: 12,
+    },
+    exifNoticeText: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: warnColor,
+      flex: 1,
+    },
+    rowInputs: {
+      flexDirection: "row",
+      gap: 12,
+    },
+    fieldLabel: {
+      fontSize: 12.5,
+      fontFamily: "Inter_500Medium",
+      color: theme.textSecondary,
+      marginBottom: 6,
+    },
+    inputRowBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: theme.inputBorder,
+    },
+    inputRowBtnText: {
+      color: theme.text,
+      fontSize: 13.5,
+      fontFamily: "Inter_500Medium",
+    },
+    fieldGroup: {
+      gap: 2,
+    },
+    textInput: {
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: theme.inputBorder,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      color: theme.text,
+      fontSize: 14,
+      fontFamily: "Inter_400Regular",
+    },
+    textArea: {
+      height: 100,
+      textAlignVertical: "top",
+      lineHeight: 20,
+    },
+    saveBtn: {
+      height: 52,
+      borderRadius: 16,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 10,
+      elevation: 4,
+    },
+    saveBtnText: {
+      color: "#ffffff",
+      fontSize: 15.5,
+      fontFamily: "Inter_700Bold",
+      letterSpacing: -0.2,
+    },
+  });
+};

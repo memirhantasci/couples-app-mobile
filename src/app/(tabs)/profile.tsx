@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
-  Alert,
   StyleSheet,
 } from "react-native";
+import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { PremiumSuccessModal } from "@/components/ui/PremiumSuccessModal";
@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
-import { setGlobalActiveTheme } from "@/lib/theme";
+import { setGlobalActiveTheme, type AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { encrypt, decrypt } from "@/utils/crypto";
 import { sanitizeStrict } from "@/utils/sanitize";
@@ -24,6 +24,7 @@ import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
+import { DEMO_PROFILE } from "@/constants/demoData";
 import {
   LogOut,
   AlignJustify,
@@ -55,6 +56,7 @@ export default function ProfileScreen() {
   const { session, signOut, profile, refreshProfile, isDemoMode, exitDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, themeMode, setThemeMode, isLight } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
@@ -89,10 +91,10 @@ export default function ProfileScreen() {
   React.useEffect(() => {
     if (isDemoMode) {
       if (!dataLoaded) {
-        setDisplayName("Misafir (Demo)");
-        setGender("male");
-        setMeetDate(dayjs().subtract(730, "day").format("YYYY-MM-DD"));
-        setRelStartDate(dayjs().subtract(520, "day").format("YYYY-MM-DD"));
+        setDisplayName(DEMO_PROFILE.displayName ?? "Misafir (Demo)");
+        setGender("female");
+        setMeetDate(DEMO_PROFILE.meetDate ?? "");
+        setRelStartDate(DEMO_PROFILE.relationshipStartDate ?? "");
         setDataLoaded(true);
       }
       return;
@@ -163,7 +165,7 @@ export default function ProfileScreen() {
     setProfileLoading(false);
 
     if (error) {
-      Alert.alert("Hata", "Profil güncellenemedi. Lütfen tekrar deneyin.");
+      appAlert("Hata", "Profil güncellenemedi. Lütfen tekrar deneyin.");
     } else {
       await refreshProfile();
       queryClient.invalidateQueries({ queryKey: ["user_gender"] });
@@ -196,7 +198,7 @@ export default function ProfileScreen() {
     setDatesLoading(false);
 
     if (error) {
-      Alert.alert("Hata", "Tarihler güncellenemedi. Lütfen tekrar deneyin.");
+      appAlert("Hata", "Tarihler güncellenemedi. Lütfen tekrar deneyin.");
     } else {
       await refreshProfile();
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
@@ -211,7 +213,7 @@ export default function ProfileScreen() {
       router.replace("/(auth)/login");
       return;
     }
-    Alert.alert("Çıkış Yap", "Hesabınızdan çıkış yapmak istediğinize emin misiniz?", [
+    appAlert("Çıkış Yap", "Hesabınızdan çıkış yapmak istediğinize emin misiniz?", [
       { text: "Vazgeç", style: "cancel" },
       {
         text: "Çıkış Yap",
@@ -239,7 +241,7 @@ export default function ProfileScreen() {
     )) {
       return;
     }
-    Alert.alert(
+    appAlert(
       "⚠️ Hesabını Sil",
       "Eğer hesabınızı silerseniz, tüm fotoğraflarınız, mektuplarınız ve hatıralarınız 1 hafta sonra kalıcı olarak silinir.\n\nBu 1 hafta içinde herhangi biriniz giriş yaparsa silinme otomatik iptal edilir.\n\nOnaylıyor musunuz?",
       [
@@ -249,7 +251,7 @@ export default function ProfileScreen() {
           style: "destructive",
           onPress: async () => {
             if (!coupleId) {
-              Alert.alert("Hata", "Çift bilgisi bulunamadı.");
+              appAlert("Hata", "Çift bilgisi bulunamadı.");
               return;
             }
             setDeleteLoading(true);
@@ -264,7 +266,7 @@ export default function ProfileScreen() {
             setDeleteLoading(false);
 
             if (error) {
-              Alert.alert("Hata", "İşlem gerçekleştirilemedi. Lütfen tekrar deneyin.");
+              appAlert("Hata", "İşlem gerçekleştirilemedi. Lütfen tekrar deneyin.");
               return;
             }
 
@@ -279,7 +281,8 @@ export default function ProfileScreen() {
     );
   }
 
-  const isPremium = profile?.isPremium ?? false;
+  // Demo modunda premium kilitleri yoktur: tüm özellikler açık
+  const isPremium = (profile?.isPremium ?? false) || isDemoMode;
   const tokenBalance = profile?.tokenBalance ?? 0;
   const initialLetter = displayName ? displayName.trim().charAt(0).toUpperCase() : "U";
 
@@ -329,7 +332,7 @@ export default function ProfileScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* ─── LÜKS PROFİL HERO KARTI ─── */}
-          <View style={[styles.heroProfileCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View style={[styles.heroProfileCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
             <View style={[styles.avatarCircle, { backgroundColor: theme.pillAccentBg, borderColor: theme.accent }]}>
               <Text style={[styles.avatarText, { color: theme.accent }]}>{initialLetter}</Text>
             </View>
@@ -342,7 +345,7 @@ export default function ProfileScreen() {
               <View style={styles.badgesRow}>
                 {isPremium ? (
                   <View style={styles.premiumBadge}>
-                    <Crown size={12} color="#ffd700" />
+                    <Crown size={12} color={isLight ? "#A16207" : "#ffd700"} />
                     <Text style={styles.premiumBadgeText}>Premium Üye</Text>
                   </View>
                 ) : (
@@ -363,7 +366,7 @@ export default function ProfileScreen() {
           </View>
 
           {/* ─── CÜZDAN & AYRICALIKLAR ─── */}
-          <View style={[styles.walletCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View style={[styles.walletCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
             <View style={styles.walletHeader}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <View style={[styles.walletIconCircle, { backgroundColor: theme.pillAccentBg }]}>
@@ -469,7 +472,7 @@ export default function ProfileScreen() {
                 profileSharedStyles.logoutBtn,
                 {
                   backgroundColor: isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)",
-                  borderColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.1)",
+                  borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.1)",
                 },
               ]}
               activeOpacity={0.8}
@@ -517,192 +520,196 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-  },
-  headerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitleBox: {
-    flex: 1,
-    alignItems: "center",
-    paddingHorizontal: 8,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    letterSpacing: -0.4,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.55)",
-    marginTop: 2,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    gap: 14,
-  },
+const createStyles = (theme: AppTheme) => {
+  const isLight = theme.isLight;
 
-  /* HERO PROFİL KARTI */
-  heroProfileCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    borderRadius: 22,
-    borderWidth: 1,
-    gap: 14,
-  },
-  avatarCircle: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    borderWidth: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: {
-    fontSize: 24,
-    fontFamily: "Inter_700Bold",
-  },
-  heroDetails: {
-    flex: 1,
-  },
-  heroNameText: {
-    fontSize: 17,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    letterSpacing: -0.2,
-    marginBottom: 6,
-  },
-  badgesRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  premiumBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(255, 215, 0, 0.12)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 215, 0, 0.3)",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  premiumBadgeText: {
-    color: "#ffd700",
-    fontSize: 11.5,
-    fontFamily: "Inter_600SemiBold",
-  },
-  standardBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  standardBadgeText: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 11.5,
-    fontFamily: "Inter_500Medium",
-  },
-  pairedBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  pairedBadgeText: {
-    fontSize: 11.5,
-    fontFamily: "Inter_600SemiBold",
-  },
+  return StyleSheet.create({
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+      paddingBottom: 14,
+    },
+    headerBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
+      borderWidth: 1,
+      borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    headerTitleBox: {
+      flex: 1,
+      alignItems: "center",
+      paddingHorizontal: 8,
+    },
+    headerTitle: {
+      fontSize: 22,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      letterSpacing: -0.4,
+    },
+    headerSubtitle: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.55)",
+      marginTop: 2,
+    },
+    scrollContent: {
+      paddingHorizontal: 16,
+      paddingTop: 10,
+      gap: 14,
+    },
 
-  /* CÜZDAN KARTI */
-  walletCard: {
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-  },
-  walletHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  walletIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  walletCardTitle: {
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-  },
-  walletCardSub: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.5)",
-  },
-  tokenPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(255, 215, 0, 0.12)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 215, 0, 0.3)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-  },
-  tokenEmoji: {
-    fontSize: 15,
-  },
-  tokenAmountText: {
-    fontSize: 16,
-    fontFamily: "Inter_700Bold",
-    color: "#ffd700",
-  },
+    /* HERO PROFİL KARTI */
+    heroProfileCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      padding: 16,
+      borderRadius: 22,
+      borderWidth: 1,
+      gap: 14,
+    },
+    avatarCircle: {
+      width: 54,
+      height: 54,
+      borderRadius: 27,
+      borderWidth: 1.5,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    avatarText: {
+      fontSize: 24,
+      fontFamily: "Inter_700Bold",
+    },
+    heroDetails: {
+      flex: 1,
+    },
+    heroNameText: {
+      fontSize: 17,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+      letterSpacing: -0.2,
+      marginBottom: 6,
+    },
+    badgesRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    premiumBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      backgroundColor: "rgba(255, 215, 0, 0.12)",
+      borderWidth: 1,
+      borderColor: "rgba(255, 215, 0, 0.3)",
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 8,
+    },
+    premiumBadgeText: {
+      color: isLight ? "#A16207" : "#ffd700",
+      fontSize: 11.5,
+      fontFamily: "Inter_600SemiBold",
+    },
+    standardBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 8,
+    },
+    standardBadgeText: {
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.6)",
+      fontSize: 11.5,
+      fontFamily: "Inter_500Medium",
+    },
+    pairedBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 8,
+    },
+    pairedBadgeText: {
+      fontSize: 11.5,
+      fontFamily: "Inter_600SemiBold",
+    },
 
-  /* SİLİNME UYARISI */
-  deletionWarningBox: {
-    backgroundColor: "rgba(255, 77, 106, 0.12)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 77, 106, 0.3)",
-    borderRadius: 16,
-    padding: 16,
-    gap: 6,
-  },
-  deletionWarningTitle: {
-    color: "#ff4d6a",
-    fontSize: 14,
-    fontFamily: "Inter_700Bold",
-  },
-  deletionWarningText: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 12.5,
-    fontFamily: "Inter_400Regular",
-    lineHeight: 18,
-  },
-});
+    /* CÜZDAN KARTI */
+    walletCard: {
+      borderRadius: 20,
+      padding: 16,
+      borderWidth: 1,
+    },
+    walletHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    walletIconCircle: {
+      width: 36,
+      height: 36,
+      borderRadius: 12,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    walletCardTitle: {
+      fontSize: 15,
+      fontFamily: "Inter_700Bold",
+      color: theme.text,
+    },
+    walletCardSub: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: isLight ? theme.textMuted : "rgba(255,255,255,0.5)",
+    },
+    tokenPill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: "rgba(255, 215, 0, 0.12)",
+      borderWidth: 1,
+      borderColor: "rgba(255, 215, 0, 0.3)",
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 14,
+    },
+    tokenEmoji: {
+      fontSize: 15,
+    },
+    tokenAmountText: {
+      fontSize: 16,
+      fontFamily: "Inter_700Bold",
+      color: isLight ? "#A16207" : "#ffd700",
+    },
+
+    /* SİLİNME UYARISI */
+    deletionWarningBox: {
+      backgroundColor: "rgba(255, 77, 106, 0.12)",
+      borderWidth: 1,
+      borderColor: "rgba(255, 77, 106, 0.3)",
+      borderRadius: 16,
+      padding: 16,
+      gap: 6,
+    },
+    deletionWarningTitle: {
+      color: "#ff4d6a",
+      fontSize: 14,
+      fontFamily: "Inter_700Bold",
+    },
+    deletionWarningText: {
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.7)",
+      fontSize: 12.5,
+      fontFamily: "Inter_400Regular",
+      lineHeight: 18,
+    },
+  });
+};
