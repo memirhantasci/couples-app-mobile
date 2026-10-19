@@ -49,6 +49,8 @@ import { DEMO_HOME_DATA, DEMO_LOVE_SCORE } from "@/constants/demoData";
 import { CoupleWrappedModal } from "@/components/wrapped/CoupleWrappedModal";
 import { computeCoupleWrapped, CoupleWrappedData } from "@/utils/wrappedCalculator";
 import { syncCoupleWidget } from "@/utils/widgetBridge";
+import { CoupleAvatarRing } from "@/components/home/CoupleAvatarRing";
+import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 
 export default function HomeScreen() {
   const { session, profile, isDemoMode } = useAuth();
@@ -61,6 +63,7 @@ export default function HomeScreen() {
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
+  const { myAvatarUrl, partnerAvatarUrl } = useCoupleAvatars();
 
   const [cachedScore, setCachedScore] = useState<LoveScoreResult | null>(null);
   const [isWrappedVisible, setIsWrappedVisible] = useState(false);
@@ -131,7 +134,7 @@ export default function HomeScreen() {
       if (isDemoMode) {
         return DEMO_HOME_DATA as any;
       }
-      const [moodRes, noteRes, meetingRes, lettersRes, usersRes] = await Promise.all([
+      const [moodRes, noteRes, meetingRes, lettersRes, usersRes, partnerMoodRes] = await Promise.all([
         supabase
           .from("moods")
           .select("mood_type")
@@ -169,6 +172,16 @@ export default function HomeScreen() {
             .select("id, username, display_name, gender")
             .eq("couple_id", coupleId)
           : Promise.resolve({ data: [] }),
+        // Çift halkasında partnerin fotoğrafındaki canlı ruh hali rozeti
+        coupleId && userId
+          ? supabase
+            .from("moods")
+            .select("mood_type")
+            .eq("couple_id", coupleId)
+            .eq("date", today)
+            .neq("user_id", userId)
+            .limit(1)
+          : Promise.resolve({ data: [] }),
       ]);
 
       const userMap = (usersRes.data || []).reduce((acc: any, u: any) => {
@@ -189,6 +202,7 @@ export default function HomeScreen() {
 
       return {
         currentMood: moodRes.data?.mood_type || null,
+        partnerMood: (partnerMoodRes.data?.[0] as { mood_type?: string } | undefined)?.mood_type || null,
         currentNote: noteRes.data?.content ? decrypt(noteRes.data.content) : null,
         // Hangi buluşmanın kartta görüneceği render anında seçilir (zaman geçtikçe değişebilir)
         meetings: (meetingRes.data ?? []) as any[],
@@ -294,6 +308,8 @@ export default function HomeScreen() {
   const daysSinceMeeting = meetDate ? daysSince(dayjs(meetDate)) : isDemoMode ? DEMO_DAYS_KNOWN : 0;
   const daysSinceTogether = relDate ? daysSince(dayjs(relDate)) : isDemoMode ? DEMO_DAYS_TOGETHER : 0;
   const name = profile?.displayName || "Sevgilim";
+  const partnerDisplayName =
+    dashboardData?.partner?.display_name || dashboardData?.partner?.username || "Sevgilin";
   const quote = useMemo(() => getQuoteForDay(doy), [doy]);
   const activeLoveScore = isDemoMode 
     ? { score: 96, subtitle: "Kusursuz Bir Uyum! 💖" }
@@ -465,11 +481,20 @@ export default function HomeScreen() {
             collapsable={false}
             style={[styles.heroLoveCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
           >
-            <View style={[styles.heroTopBadge, { backgroundColor: theme.pillAccentBg }]}>
-              <Heart size={13} color={theme.accent} fill={theme.accent} />
-              <Text style={[styles.heroTopBadgeText, { color: theme.accent }]}>
-                AŞKIMIZIN YOLCULUĞU
-              </Text>
+            <View style={styles.heroTopRow}>
+              <View style={[styles.heroTopBadge, { backgroundColor: theme.pillAccentBg }]}>
+                <Heart size={13} color={theme.accent} fill={theme.accent} />
+                <Text style={[styles.heroTopBadgeText, { color: theme.accent }]}>
+                  AŞKIMIZIN YOLCULUĞU
+                </Text>
+              </View>
+              <CoupleAvatarRing
+                myName={profile?.displayName}
+                partnerName={partnerDisplayName}
+                myAvatarUrl={myAvatarUrl}
+                partnerAvatarUrl={partnerAvatarUrl}
+                partnerMoodEmoji={dashboardData?.partnerMood}
+              />
             </View>
 
             <View style={styles.countersRow}>
@@ -750,6 +775,13 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 3,
   },
+  heroTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    marginBottom: 14,
+  },
   heroTopBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -759,7 +791,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
-    marginBottom: 14,
+    flexShrink: 1,
   },
   heroTopBadgeText: {
     fontSize: 11,
