@@ -645,6 +645,8 @@ export interface FlyToTarget {
   readonly centerRa: number;
   readonly centerDec: number;
   readonly zoom?: number;
+  /** Uçuş süresini (ms) sabitler; verilmezse mesafe ve zoom farkından hesaplanır. */
+  readonly durationMs?: number;
   readonly nonce?: number;
 }
 

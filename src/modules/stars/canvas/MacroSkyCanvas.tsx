@@ -49,7 +49,14 @@ export interface MacroSkyBounds {
 export interface MacroSkyCanvasProps {
   readonly stars: ViewportStarItem[];
   readonly initialCamera?: Partial<SkyCameraState>;
-  readonly targetCamera?: { readonly centerRa: number; readonly centerDec: number; readonly zoom?: number; readonly nonce?: number };
+  readonly targetCamera?: {
+    readonly centerRa: number;
+    readonly centerDec: number;
+    readonly zoom?: number;
+    /** Overrides the computed flight duration (ms), e.g. for a slower cinematic approach. */
+    readonly durationMs?: number;
+    readonly nonce?: number;
+  };
   /** Called once a `targetCamera` flight has started, so the parent can clear it. */
   readonly onTargetCameraConsumed?: () => void;
   /** Receives `null` when empty sky is tapped. */
@@ -397,6 +404,7 @@ function MacroSkyCanvasSkia({
       ra: targetCamera.centerRa,
       dec: targetCamera.centerDec,
       zoom: targetCamera.zoom,
+      durationMs: targetCamera.durationMs,
     });
     propsRef.current.onTargetCameraConsumed?.();
   }, [targetCamera, flightRequest]);

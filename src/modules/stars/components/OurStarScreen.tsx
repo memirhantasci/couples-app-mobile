@@ -99,6 +99,12 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 // Realtime güncellemeleri koruma penceresi (5 saniye)
 const REALTIME_RECONCILIATION_WINDOW_MS = 5000;
 
+// Yıldız ekranının açılış sahnesi: önce geniş gökyüzü (uzayın ihtişamı), sonra yıldızın
+// parıltılı dış görünümüne süzülüş. İçeri girmek kullanıcının "Yıldızın İçine Gir" seçimidir.
+const SKY_OVERVIEW_ZOOM = 1.2;
+const STAR_EXTERIOR_ZOOM = 3.0;
+const STAR_INTRO_FLIGHT_MS = 2400;
+
 const SOLAR_DESCRIPTIONS: Record<string, string> = {
   'SOL-SUN': 'Güneş Sistemimizin kalbi, tüm evrenin yaşam kaynağı ☀️',
   'SOL-MERCURY': 'Güneşe en yakın, kalbimizin en sıcak ve tutkulu köşesi ☿',
@@ -137,7 +143,9 @@ export const OurStarScreen: React.FC = () => {
 
   // ─── TEMEL DURUMLAR (STATE) ────────────────────────────────────────
   const [isLoading, setIsLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'micro' | 'macro'>('micro');
+  // Ekran her zaman yıldızın DIŞ görünümüyle (gök kubbe) açılır; mikro sisteme kullanıcı kendisi girer.
+  // Demo modu da aynı akışı izler.
+  const [viewMode, setViewMode] = useState<'micro' | 'macro'>('macro');
   const [starDetails, setStarDetails] = useState<CoupleStarDetails | null>(null);
   const [exoplanets, setExoplanets] = useState<StarSystemMapPlanet[]>([]);
   const [demoPlanetDetails, setDemoPlanetDetails] = useState<StarExoplanetRecord[]>([]);
@@ -145,6 +153,7 @@ export const OurStarScreen: React.FC = () => {
   // Other couples' stars stream in by sky tile while the camera moves. Only
   // the user's own star keeps a realtime subscription.
   const skyTiles = useSkyTileStream();
+  const { prefetch: prefetchSkyTiles } = skyTiles;
   const [selectedMacroStar, setSelectedMacroStar] = useState<ViewportStarItem | null>(null);
 
   // Güvenli Geri Dönüş Fonksiyonu (Navigation Stack boşsa ana ekrana döner)
@@ -274,6 +283,36 @@ export const OurStarScreen: React.FC = () => {
       .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  // ─── AÇILIŞ SAHNESİ ────────────────────────────────────────────────
+  // Tescilli yıldızı olan kullanıcıda (demo dahil) ekran, geniş gökyüzünden yıldızın parıltılı dış
+  // görünümüne yavaşça süzülerek açılır; kamera doğrudan yıldızın içine dalmaz. Uçuş, gök kubbe
+  // canvas'ı bağlandığında kendiliğinden başlar (canvas hedefi alınca tüketir) ve ekran başına bir kez kurulur.
+  const introQueuedRef = useRef(false);
+  const queueStarIntro = useCallback(
+    (ra: number, dec: number) => {
+      if (introQueuedRef.current) return;
+      introQueuedRef.current = true;
+      // Varış karoları uçuş sırasında hazır olsun
+      prefetchSkyTiles(
+        computeBounds({
+          centerRa: ra,
+          centerDec: dec,
+          zoom: STAR_EXTERIOR_ZOOM,
+          viewportWidth: SCREEN_WIDTH,
+          viewportHeight: SCREEN_HEIGHT,
+        })
+      );
+      setFlyToTarget({
+        centerRa: ra,
+        centerDec: dec,
+        zoom: STAR_EXTERIOR_ZOOM,
+        durationMs: STAR_INTRO_FLIGHT_MS,
+        nonce: Date.now(),
+      });
+    },
+    [prefetchSkyTiles]
+  );
+
   // ─── VERİ YÜKLEME VE RECONCILIATION ────────────────────────────────
   const loadStarData = useCallback(
     async (isSilent: boolean = false) => {
@@ -285,6 +324,7 @@ export const OurStarScreen: React.FC = () => {
         setLuminosityOverride(DEMO_STAR_DETAILS.luminosity_level);
         setIsResonanceActive(DEMO_STAR_DETAILS.resonance_active);
         setLiveCooldownSec(DEMO_STAR_DETAILS.cooldown_remaining_seconds || 0);
+        queueStarIntro(Number(DEMO_STAR_DETAILS.ra), Number(DEMO_STAR_DETAILS.dec));
         setIsLoading(false);
         return;
       }
@@ -331,6 +371,7 @@ export const OurStarScreen: React.FC = () => {
           setIsResonanceActive(details.resonance_active);
         }
         setLiveCooldownSec(details.cooldown_remaining_seconds || 0);
+        queueStarIntro(Number(details.ra), Number(details.dec));
 
         // Anı ötegezegenlerini çek
         const planets = await starService.getStarExoplanets(details.star_id);
@@ -360,7 +401,7 @@ export const OurStarScreen: React.FC = () => {
         }
       }
     },
-    [coupleId, isDemoMode, showToast]
+    [coupleId, isDemoMode, showToast, queueStarIntro]
   );
 
   const isInitialMountRef = useRef(true);
@@ -524,15 +565,14 @@ export const OurStarScreen: React.FC = () => {
     }
   };
 
-  const { prefetch: prefetchSkyTiles } = skyTiles;
   const handleFocusMyStar = useCallback(() => {
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
-    setFlyToTarget({ centerRa: myStarRa, centerDec: myStarDec, zoom: 3.0, nonce: Date.now() });
+    setFlyToTarget({ centerRa: myStarRa, centerDec: myStarDec, zoom: STAR_EXTERIOR_ZOOM, nonce: Date.now() });
     // Warm the destination tiles so they arrive during the flight.
     prefetchSkyTiles(computeBounds({
       centerRa: myStarRa,
       centerDec: myStarDec,
-      zoom: 3.0,
+      zoom: STAR_EXTERIOR_ZOOM,
       fovDec: 20,
       fovRa: 20 * (SCREEN_WIDTH / SCREEN_HEIGHT),
     }));
@@ -904,7 +944,7 @@ export const OurStarScreen: React.FC = () => {
             initialCamera={{
               centerRa: starDetails ? Number(starDetails.ra) : 180,
               centerDec: starDetails ? Number(starDetails.dec) : 0,
-              zoom: 1.2,
+              zoom: SKY_OVERVIEW_ZOOM,
             }}
             targetCamera={flyToTarget}
             onTargetCameraConsumed={() => setFlyToTarget(undefined)}

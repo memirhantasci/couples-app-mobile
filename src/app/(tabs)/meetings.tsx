@@ -19,9 +19,9 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { 
-  Trash2, MapPin, AlignJustify, Edit2, ChevronLeft, 
-  Plus, Calendar, Clock, Navigation, Check, X, Sparkles, Heart 
+import {
+  Trash2, MapPin, AlignJustify, Pencil, ChevronLeft,
+  Plus, Calendar, Clock, Navigation, Check, X, Sparkles, Heart
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
@@ -42,6 +42,9 @@ import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { sanitizeStrict } from "@/utils/sanitize";
 import { toast } from "@/lib/toast";
+
+/** Güncelleme sorgusu hiçbir satırı değiştirmediğinde (buluşma başkasına ait / silinmiş) fırlatılır. */
+const MEETING_UPDATE_DENIED = "MEETING_UPDATE_DENIED";
 
 export default function MeetingsScreen() {
   const router = useRouter();
@@ -68,7 +71,9 @@ export default function MeetingsScreen() {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [showMapModal, setShowMapModal] = useState(false);
 
-  const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
+  // Düzenlenen buluşma (null → yeni buluşma). Orijinal değerler, tarih/yer değişimini ayırt etmek için tutulur.
+  const [editingMeeting, setEditingMeeting] = useState<any | null>(null);
+  const editingMeetingId: string | number | null = editingMeeting?.id ?? null;
 
   const { data: meetings, isLoading } = useQuery({
     queryKey: ["meetings", coupleId, isDemoMode],
@@ -111,7 +116,7 @@ export default function MeetingsScreen() {
     )) {
       return;
     }
-    setEditingMeetingId(m.id);
+    setEditingMeeting(m);
     setTitle(m.title);
     setMeetingDate(new Date(m.meeting_datetime));
     setLocationName(m.location_name || "");
@@ -121,7 +126,7 @@ export default function MeetingsScreen() {
   };
 
   const handleCancelEdit = () => {
-    setEditingMeetingId(null);
+    setEditingMeeting(null);
     setTitle("");
     setMeetingDate(new Date());
     setLocationName("");
@@ -141,8 +146,12 @@ export default function MeetingsScreen() {
 
     if (!coupleId || !userId) return;
 
+    // Düzenlemede "geçmişe plan yapılamaz" kuralı yalnızca tarih/saat değiştirildiyse geçerlidir:
+    // yalnızca başlığı ya da yeri düzeltilen, saati az önce geçmiş bir buluşma yine de kaydedilebilir.
+    const originalTime = editingMeeting ? new Date(editingMeeting.meeting_datetime).getTime() : null;
+    const timeChanged = originalTime === null || originalTime !== meetingDate.getTime();
     const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
-    if (meetingDate.getTime() < fiveMinutesAgo && !editingMeetingId) {
+    if (timeChanged && meetingDate.getTime() < fiveMinutesAgo) {
       appAlert("Hata", "Geçmiş bir zamana buluşma planlayamazsınız!");
       return;
     }
@@ -162,17 +171,50 @@ export default function MeetingsScreen() {
       let savedMeetingId: string | number | null = editingMeetingId;
       let successMessage = "";
 
-      if (editingMeetingId) {
-        const { error } = await supabase.from("meetings").update({
-          meeting_datetime: utcDateTime,
-          title: cleanTitle,
-          location_name: cleanLocation,
-          latitude: latitude,
-          longitude: longitude,
-        }).eq("id", editingMeetingId);
+      if (editingMeeting) {
+        // Yalnızca planlayan kişi güncelleyebilir (RLS de aynı kuralı uygular). Güncelleme sessizce
+        // 0 satıra denk gelirse başarı mesajı gösterilmesin diye dönen satır sayısı doğrulanır.
+        const { data: updatedRows, error } = await supabase
+          .from("meetings")
+          .update({
+            meeting_datetime: utcDateTime,
+            title: cleanTitle,
+            location_name: cleanLocation,
+            latitude: latitude,
+            longitude: longitude,
+          })
+          .eq("id", editingMeeting.id)
+          .eq("couple_id", coupleId)
+          .eq("user_id", userId)
+          .select("id");
 
         if (error) throw error;
+        if (!updatedRows || updatedRows.length === 0) throw new Error(MEETING_UPDATE_DENIED);
         successMessage = "Buluşma güncellendi 🎉";
+
+        // Partner yanlış saatte/yerde beklemesin: tarih veya yer değiştiyse haberdar edilir
+        const sameCoordinate = (stored: unknown, current: number | null) =>
+          stored == null ? current === null : Number(stored) === current;
+        const locationChanged =
+          (editingMeeting.location_name || null) !== cleanLocation ||
+          !sameCoordinate(editingMeeting.latitude, latitude) ||
+          !sameCoordinate(editingMeeting.longitude, longitude);
+        if (timeChanged || locationChanged) {
+          notifyPartner(
+            coupleId,
+            userId,
+            "Buluşma Güncellendi 📅",
+            `${profile?.displayName || "Sevgilin"} buluşma planını güncelledi: ${cleanTitle}`,
+            {
+              type: "meeting",
+              meetingChange: "updated",
+              meetingId: editingMeeting.id,
+              meetingTitle: cleanTitle,
+              route: "/(tabs)/meetings",
+              actionLabel: "Planı Gör 🗓️",
+            }
+          );
+        }
       } else {
         const { data: insertedData, error } = await supabase.from("meetings").insert({
           meeting_datetime: utcDateTime,
@@ -225,7 +267,12 @@ export default function MeetingsScreen() {
       // Form modalı kapanırken değil, kapandıktan sonra görünsün (modalın arkasında kalmasın)
       toast.success(successMessage, { delay: 350 });
     } catch (error: any) {
-      appAlert("Hata", "İşlem gerçekleştirilemedi. Lütfen daha sonra tekrar deneyin.");
+      appAlert(
+        "Hata",
+        error?.message === MEETING_UPDATE_DENIED
+          ? "Bu buluşmayı yalnızca planlayan kişi güncelleyebilir."
+          : "İşlem gerçekleştirilemedi. Lütfen daha sonra tekrar deneyin."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -371,18 +418,24 @@ export default function MeetingsScreen() {
 
                       {isMyMeeting && (
                         <View style={styles.cardActionBtns}>
-                          <TouchableOpacity 
+                          <TouchableOpacity
                             onPress={() => handleEdit(m)}
-                            style={styles.cardActionBtn}
+                            style={[styles.cardActionBtn, styles.cardEditBtn]}
                             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                            activeOpacity={0.7}
+                            accessibilityRole="button"
+                            accessibilityLabel="Buluşmayı düzenle"
                           >
-                            <Edit2 color={theme.textSecondary} size={15} />
+                            <Pencil color={theme.accent} size={15} />
                           </TouchableOpacity>
 
-                          <TouchableOpacity 
+                          <TouchableOpacity
                             onPress={() => handleDelete(m)}
-                            style={[styles.cardActionBtn, { backgroundColor: "rgba(239,68,68,0.12)" }]}
+                            style={[styles.cardActionBtn, styles.cardDeleteBtn]}
                             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                            activeOpacity={0.7}
+                            accessibilityRole="button"
+                            accessibilityLabel="Buluşmayı sil"
                           >
                             <Trash2 color={isLight ? "#DC2626" : "#ef4444"} size={15} />
                           </TouchableOpacity>
@@ -633,7 +686,7 @@ export default function MeetingsScreen() {
             mode="date"
             title="Buluşma Tarihi"
             value={meetingDate}
-            minimumDate={editingMeetingId ? undefined : dayjs().startOf("day").toDate()}
+            minimumDate={dayjs().startOf("day").toDate()}
             onCancel={() => setShowDatePicker(false)}
             onConfirm={onDateConfirm}
           />
@@ -796,6 +849,7 @@ const createStyles = (theme: AppTheme) => {
       justifyContent: "center",
     },
     cardTitle: {
+      flexShrink: 1,
       fontSize: 16,
       fontFamily: "Inter_700Bold",
       color: theme.text,
@@ -805,14 +859,24 @@ const createStyles = (theme: AppTheme) => {
       flexDirection: "row",
       alignItems: "center",
       gap: 8,
+      marginLeft: 8,
     },
     cardActionBtn: {
-      width: 30,
-      height: 30,
-      borderRadius: 10,
-      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
+      width: 34,
+      height: 34,
+      borderRadius: 12,
+      borderWidth: 1,
       alignItems: "center",
       justifyContent: "center",
+    },
+    // Düzenle: tema vurgu rengiyle belirgin kalem; Sil: gül/kırmızı tonlu (iki temada da okunur)
+    cardEditBtn: {
+      backgroundColor: theme.pillAccentBg,
+      borderColor: theme.pillAccentBorder,
+    },
+    cardDeleteBtn: {
+      backgroundColor: isLight ? "rgba(220,38,38,0.08)" : "rgba(239,68,68,0.12)",
+      borderColor: isLight ? "rgba(220,38,38,0.25)" : "rgba(239,68,68,0.3)",
     },
     timeBadgeRow: {
       flexDirection: "row",

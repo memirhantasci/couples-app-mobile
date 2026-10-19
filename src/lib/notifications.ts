@@ -372,12 +372,13 @@ export function formatMessagingStyleNotification(
     }
     case "meeting": {
       title = `${name} ⏰`;
-      subtitle = "Buluşma Planı";
       channelId = "partner_messages";
       const meetingTitle = field(data?.meetingTitle);
-      body = meetingTitle
-        ? `Yeni bir buluşma planladı: "${meetingTitle}" 🗓️`
-        : trimmedBody || "Yeni bir buluşma planladı 🗓️";
+      // Planlayan kişi tarihi/yeri değiştirdiğinde (meetingChange: "updated") yeni plan gibi sunulmaz
+      const isUpdate = data?.meetingChange === "updated";
+      subtitle = isUpdate ? "Buluşma Güncellendi" : "Buluşma Planı";
+      const action = isUpdate ? "Buluşma planını güncelledi" : "Yeni bir buluşma planladı";
+      body = meetingTitle ? `${action}: "${meetingTitle}" 🗓️` : trimmedBody || `${action} 🗓️`;
       break;
     }
     case "period": {

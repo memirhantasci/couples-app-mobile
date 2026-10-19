@@ -3,21 +3,27 @@
  * @module modules/stars/components
  * @description Çiftler arası gökyüzü yıldız bağlantıları yönetim modalı.
  *
- * İki Ana Sekme:
- * 1. Yıldız Adıyla Ara:
+ * Üç Ana Sekme:
+ * 1. Çift Kodu:
+ *    Kendi çift kodumuz (kopyalanabilir) + arkadaşın 6 haneli çift kodunu girip
+ *    "Bağlantı Kur" ile o çiftin yıldızına tek adımda bağlantı isteği gönderme.
+ *    Karşı çift daha önce istek göndermişse aynı buton isteği onaylar.
+ *
+ * 2. Yıldız Adı:
  *    🔍 [Yıldız adı girin...]
  *    → Sonuçlar: custom_name + catalog_code
  *    → Her sonuçta "Bağlantı Öner" butonu
  *    → Limit doluysa (3/3): "Maksimum 3 bağlantı limitine ulaştınız"
  *
- * 2. Gökyüzünde Seç:
+ * 3. Gökyüzü:
  *    Gök kubbe haritası üzerinden doğrudan tescilli yıldız seçimi için rehber
  *    ve "Gökyüzüne Git 🌌" yönlendirmesi.
  *
+ * Aktif bağlar ve onay bekleyen (giden) istekler sekmelerin altında listelenir.
  * Tüm tema modlarıyla (Beyaz, Mavi, Pembe, Gece) tam uyumludur.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Modal,
   View,
@@ -47,11 +53,20 @@ import {
   CheckCircle2,
   Copy,
   KeyRound,
+  Clock,
+  ClipboardPaste,
+  type LucideIcon,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase';
 import { starService } from '../api/starService';
+import {
+  PAIRING_CODE_LENGTH,
+  extractPairingCode,
+  isCompletePairingCode,
+  normalizePairingCode,
+} from '../utils/pairingCode';
 import type {
   ActiveStarConnection,
   PendingConnectionDetail,
@@ -68,7 +83,15 @@ export interface StarConnectionModalProps {
   readonly onNavigateToSky?: () => void;
 }
 
-type TabType = 'search' | 'sky';
+type TabType = 'code' | 'search' | 'sky';
+
+const TABS: readonly { key: TabType; label: string; Icon: LucideIcon }[] = [
+  { key: 'code', label: 'Çift Kodu', Icon: KeyRound },
+  { key: 'search', label: 'Yıldız Adı', Icon: Search },
+  { key: 'sky', label: 'Gökyüzü', Icon: Compass },
+];
+
+const CODE_CELL_INDEXES = Array.from({ length: PAIRING_CODE_LENGTH }, (_, index) => index);
 
 export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
   visible,
@@ -78,8 +101,10 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
   onNavigateToSky,
 }) => {
   const { theme, isLight } = useTheme();
-  const [activeTab, setActiveTab] = useState<TabType>('search');
+  const [activeTab, setActiveTab] = useState<TabType>('code');
   const [isLoading, setIsLoading] = useState(false);
+  /** İlk yükleme bitince true olur; sonraki yenilemeler (istek sonrası) içeriği yükleme ekranına çevirmez. */
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -95,6 +120,14 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<StarSearchResult[]>([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
+
+  // Arkadaşın çift koduyla bağlanma durumu
+  const [friendCode, setFriendCode] = useState('');
+  const [isCodeFocused, setIsCodeFocused] = useState(false);
+  const [isConnectingByCode, setIsConnectingByCode] = useState(false);
+  /** Kodla değil yalnızca adıyla eşleşen (çok nadir) yıldızlar: kullanıcı elle seçer. */
+  const [codeCandidates, setCodeCandidates] = useState<StarSearchResult[]>([]);
+  const codeInputRef = useRef<TextInput>(null);
 
   // Tekil işlem yükleniyor durumu
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -115,6 +148,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
       setPendingConnections(pending);
       setCanConnect(limitOk);
       setPairingCode(coupleRow.data?.pairing_code ?? null);
+      setHasLoaded(true);
     } catch (err: any) {
       setErrorMessage(err?.message || 'Bağlantı bilgileri yüklenirken hata oluştu.');
     } finally {
@@ -129,9 +163,13 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
       setSearchQuery('');
       setSearchResults([]);
       setSearchPerformed(false);
+      setFriendCode('');
+      setCodeCandidates([]);
+      setIsCodeFocused(false);
+      setHasLoaded(false);
       setErrorMessage(null);
       setSuccessMessage(null);
-      setActiveTab('search');
+      setActiveTab('code');
       setCodeCopied(false);
     }
   }, [visible, loadData]);
@@ -172,34 +210,142 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
   }, [searchQuery]);
 
   // ─── BAĞLANTI İSTEĞİ GÖNDER ─────────────────────────────────────────
-  const handleSendRequest = useCallback(
-    async (target: StarSearchResult) => {
+  // Hem arama sonuçlarındaki "Bağlantı Öner" hem de çift koduyla "Bağlantı Kur" bu akışı kullanır.
+  // Karşı çift zaten bize istek göndermişse yeni istek açmak yerine o istek onaylanır.
+  const sendConnectionRequest = useCallback(
+    async (target: StarSearchResult): Promise<boolean> => {
       if (!canConnect || activeConnections.length >= 3) {
         setErrorMessage('Maksimum 3 bağlantı limitine ulaştınız.');
-        return;
+        return false;
       }
+      if (activeConnections.some((c) => c.other_star_id === target.star_id)) {
+        setErrorMessage(`"${target.custom_name}" yıldızıyla zaten bağlısınız ✨`);
+        return false;
+      }
+      const existing = pendingConnections.find((p) => p.other_star_id === target.star_id);
+      if (existing && !existing.is_incoming) {
+        setErrorMessage(`"${target.custom_name}" yıldızına zaten bir istek gönderdiniz; onay bekleniyor.`);
+        return false;
+      }
+
       setActionLoadingId(target.star_id);
       setErrorMessage(null);
       setSuccessMessage(null);
       try {
-        await starService.requestStarConnection(target.star_id);
+        if (existing) {
+          await starService.respondToConnection(existing.connection_id, true);
+          setSuccessMessage(`"${target.custom_name}" ile kozmik bağ kuruldu ✨`);
+        } else {
+          await starService.requestStarConnection(target.star_id);
+          setSuccessMessage(`"${target.custom_name}" yıldızına bağlantı isteği gönderildi ✨`);
+        }
         if (Platform.OS !== 'web') {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
-        setSuccessMessage(`"${target.custom_name}" yıldızına bağlantı isteği gönderildi ✨`);
         await loadData();
         onConnectionChanged?.();
+        return true;
       } catch (err: any) {
         if (Platform.OS !== 'web') {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         }
         setErrorMessage(err?.message || 'İstek gönderilemedi.');
+        return false;
       } finally {
         setActionLoadingId(null);
       }
     },
-    [canConnect, activeConnections.length, loadData, onConnectionChanged]
+    [canConnect, activeConnections, pendingConnections, loadData, onConnectionChanged]
   );
+
+  const handleSendRequest = useCallback(
+    (target: StarSearchResult) => {
+      void sendConnectionRequest(target);
+    },
+    [sendConnectionRequest]
+  );
+
+  // ─── ARKADAŞIN ÇİFT KODUYLA BAĞLAN ──────────────────────────────────
+  const handleFriendCodeChange = useCallback((text: string) => {
+    setFriendCode(normalizePairingCode(text));
+    setErrorMessage(null);
+    setCodeCandidates([]);
+  }, []);
+
+  const handlePasteFriendCode = useCallback(async () => {
+    try {
+      const code = extractPairingCode(await Clipboard.getStringAsync());
+      if (!code) {
+        setErrorMessage('Panoda bir çift kodu bulunamadı.');
+        return;
+      }
+      if (Platform.OS !== 'web') {
+        Haptics.selectionAsync();
+      }
+      setFriendCode(code);
+      setErrorMessage(null);
+      setCodeCandidates([]);
+    } catch {
+      setErrorMessage('Pano okunamadı.');
+    }
+  }, []);
+
+  const handleConnectByCode = useCallback(async () => {
+    if (isConnectingByCode) return;
+    const code = friendCode;
+    if (!isCompletePairingCode(code)) {
+      setErrorMessage(`Çift kodu ${PAIRING_CODE_LENGTH} haneli olmalıdır.`);
+      return;
+    }
+    if (pairingCode && code === pairingCode.toUpperCase()) {
+      setErrorMessage('Bu sizin kendi çift kodunuz. Bağ kurmak istediğiniz çiftin kodunu girin.');
+      return;
+    }
+    if (!canConnect || activeConnections.length >= 3) {
+      setErrorMessage('Maksimum 3 bağlantı limitine ulaştınız.');
+      return;
+    }
+
+    setIsConnectingByCode(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setCodeCandidates([]);
+    try {
+      const { star, similar } = await starService.findStarByPairingCode(code);
+      if (!star) {
+        if (Platform.OS !== 'web') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        }
+        if (similar.length > 0) {
+          setCodeCandidates(similar);
+          setErrorMessage('Bu kodla eşleşen bir çift bulunamadı. Adı benzeyen yıldızlar aşağıda listelendi.');
+        } else {
+          setErrorMessage(
+            'Bu koda ait bir yıldız bulunamadı. Kodu kontrol edin; karşı çiftin de bir yıldız tescil etmiş olması gerekir.'
+          );
+        }
+        return;
+      }
+      if (await sendConnectionRequest(star)) {
+        setFriendCode('');
+        codeInputRef.current?.blur();
+      }
+    } catch (err: any) {
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+      setErrorMessage(err?.message || 'Çift koduyla arama sırasında hata oluştu.');
+    } finally {
+      setIsConnectingByCode(false);
+    }
+  }, [
+    isConnectingByCode,
+    friendCode,
+    pairingCode,
+    canConnect,
+    activeConnections.length,
+    sendConnectionRequest,
+  ]);
 
   // ─── BAĞLANTIYI KOPAR / İSTEĞİ İPTAL ET ──────────────────────────
   const handleRemove = useCallback(
@@ -249,6 +395,94 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
   );
 
   const isLimitReached = activeConnections.length >= 3;
+  /** Karşı çiftin onayını bekleyen, bizim gönderdiğimiz istekler (gelenler üst çubuktaki rozetten yönetilir). */
+  const outgoingPending = pendingConnections.filter((p) => !p.is_incoming);
+  const canSubmitCode = isCompletePairingCode(friendCode) && !isLimitReached && !isConnectingByCode;
+
+  /** Yıldız sonuç kartı: ad + katalog kodu + duruma göre (Bağlı / İstek Gönderildi / Bağlantı Öner|Onayla) eylem. */
+  const renderStarResultCard = (star: StarSearchResult) => {
+    const isAlreadyConnected = activeConnections.some((c) => c.other_star_id === star.star_id);
+    const pendingEntry = pendingConnections.find((p) => p.other_star_id === star.star_id);
+    const isRequestSent = pendingEntry !== undefined && !pendingEntry.is_incoming;
+    const isRequestReceived = pendingEntry?.is_incoming === true;
+    const isActionLoading = actionLoadingId === star.star_id;
+
+    return (
+      <View
+        key={star.star_id}
+        style={[
+          styles.starResultCard,
+          {
+            backgroundColor: theme.unitBg,
+            borderColor: theme.cardBorder,
+          },
+        ]}
+      >
+        <View style={styles.starResultInfo}>
+          <View style={styles.starNameRow}>
+            <Sparkles size={14} color="#F59E0B" />
+            <Text style={[styles.resultStarName, { color: theme.text }]}>{star.custom_name}</Text>
+          </View>
+          <Text style={[styles.resultCatalogCode, { color: theme.textMuted }]}>{star.catalog_code}</Text>
+        </View>
+
+        {isAlreadyConnected ? (
+          <View style={styles.connectedBadge}>
+            <Text style={styles.connectedBadgeText}>Bağlı ✨</Text>
+          </View>
+        ) : isRequestSent ? (
+          <View
+            style={[
+              styles.pendingBadge,
+              { backgroundColor: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255, 255, 255, 0.08)' },
+            ]}
+          >
+            <Text style={[styles.pendingBadgeText, { color: theme.textSecondary }]}>İstek Gönderildi</Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            disabled={isLimitReached || isActionLoading}
+            onPress={() => handleSendRequest(star)}
+            style={[
+              styles.proposeBtn,
+              isLimitReached && styles.proposeBtnDisabled,
+            ]}
+          >
+            {isActionLoading ? (
+              <ActivityIndicator size="small" color={theme.accent} />
+            ) : (
+              <LinearGradient
+                colors={
+                  isLimitReached
+                    ? isLight
+                      ? ['rgba(0,0,0,0.08)', 'rgba(0,0,0,0.05)']
+                      : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']
+                    : [theme.accent, theme.accentLight || theme.accent]
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.proposeBtnGradient}
+              >
+                <Text
+                  style={[
+                    styles.proposeBtnText,
+                    isLimitReached && (isLight ? { color: theme.textMuted } : styles.proposeBtnTextDisabled),
+                  ]}
+                >
+                  {isLimitReached
+                    ? 'Limit Dolu (3/3)'
+                    : isRequestReceived
+                      ? 'Bağı Onayla ✨'
+                      : 'Bağlantı Öner ✨'}
+                </Text>
+              </LinearGradient>
+            )}
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -296,100 +530,46 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* ─── 2 SEKME BUTONLARI ──────────────────────────────────── */}
+          {/* ─── 3 SEKME BUTONLARI ──────────────────────────────────── */}
           <View style={styles.tabBar}>
-            <TouchableOpacity
-              onPress={() => {
-                setActiveTab('search');
-                setErrorMessage(null);
-              }}
-              style={[
-                styles.tabButton,
-                {
-                  backgroundColor: isLight ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.04)',
-                  borderColor: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)',
-                },
-                activeTab === 'search' && {
-                  backgroundColor: theme.pillAccentBg,
-                  borderColor: theme.accent,
-                },
-              ]}
-            >
-              <Search
-                size={14}
-                color={activeTab === 'search' ? theme.accent : theme.textSecondary}
-              />
-              <Text
-                style={[
-                  styles.tabText,
-                  { color: theme.textSecondary },
-                  activeTab === 'search' && [styles.tabTextActive, { color: theme.text }],
-                ]}
-              >
-                Yıldız Adıyla Ara
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => {
-                setActiveTab('sky');
-                setErrorMessage(null);
-              }}
-              style={[
-                styles.tabButton,
-                {
-                  backgroundColor: isLight ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.04)',
-                  borderColor: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)',
-                },
-                activeTab === 'sky' && {
-                  backgroundColor: theme.pillAccentBg,
-                  borderColor: theme.accent,
-                },
-              ]}
-            >
-              <Compass
-                size={14}
-                color={activeTab === 'sky' ? theme.accent : theme.textSecondary}
-              />
-              <Text
-                style={[
-                  styles.tabText,
-                  { color: theme.textSecondary },
-                  activeTab === 'sky' && [styles.tabTextActive, { color: theme.text }],
-                ]}
-              >
-                Gökyüzünde Seç
-              </Text>
-            </TouchableOpacity>
+            {TABS.map(({ key, label, Icon }) => {
+              const isActive = activeTab === key;
+              return (
+                <TouchableOpacity
+                  key={key}
+                  onPress={() => {
+                    setActiveTab(key);
+                    setErrorMessage(null);
+                  }}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: isActive }}
+                  style={[
+                    styles.tabButton,
+                    {
+                      backgroundColor: isLight ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.04)',
+                      borderColor: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)',
+                    },
+                    isActive && {
+                      backgroundColor: theme.pillAccentBg,
+                      borderColor: theme.accent,
+                    },
+                  ]}
+                >
+                  <Icon size={14} color={isActive ? theme.accent : theme.textSecondary} />
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      styles.tabText,
+                      { color: theme.textSecondary },
+                      isActive && [styles.tabTextActive, { color: theme.text }],
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
-
-          {/* ─── ÇİFT KODU KARTI ────────────────────────────────────── */}
-          {pairingCode && (
-            <TouchableOpacity
-              activeOpacity={0.82}
-              onPress={handleCopyPairingCode}
-              style={[
-                styles.pairingCodeCard,
-                {
-                  backgroundColor: isLight ? 'rgba(99, 102, 241, 0.06)' : 'rgba(99, 102, 241, 0.12)',
-                  borderColor: isLight ? 'rgba(99, 102, 241, 0.25)' : 'rgba(129, 140, 248, 0.35)',
-                },
-              ]}
-            >
-              <View style={styles.pairingCodeIconBadge}>
-                <KeyRound size={15} color="#818CF8" />
-              </View>
-              <View style={styles.pairingCodeTextBlock}>
-                <Text style={[styles.pairingCodeLabel, { color: theme.textSecondary }]}>Bizim Çift Kodumuz</Text>
-                <Text style={[styles.pairingCodeValue, { color: theme.text }]}>{pairingCode}</Text>
-              </View>
-              {codeCopied ? (
-                <CheckCircle2 size={18} color="#10B981" />
-              ) : (
-                <Copy size={18} color={theme.textSecondary} />
-              )}
-            </TouchableOpacity>
-          )}
 
           {/* ─── GERİ BİLDİRİM BANNERLARI ───────────────────────────── */}
           {errorMessage && (
@@ -424,13 +604,186 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
             extraScrollHeight={24}
             keyboardShouldPersistTaps="handled"
           >
-            {isLoading && !searchPerformed ? (
+            {isLoading && !hasLoaded ? (
               <View style={styles.loadingBox}>
                 <ActivityIndicator size="large" color={theme.accent} />
                 <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Yıldız bağları yükleniyor...</Text>
               </View>
+            ) : activeTab === 'code' ? (
+              /* ─── SEKME 1: ÇİFT KODU ─────────────────────────────── */
+              <View style={styles.codeSection}>
+                {/* Kendi kodumuz: arkadaşa vermek için dokununca kopyalanır */}
+                {pairingCode && (
+                  <TouchableOpacity
+                    activeOpacity={0.82}
+                    onPress={handleCopyPairingCode}
+                    accessibilityLabel={`Bizim çift kodumuz ${pairingCode}, kopyalamak için dokunun`}
+                    style={[
+                      styles.pairingCodeCard,
+                      {
+                        backgroundColor: isLight ? 'rgba(99, 102, 241, 0.08)' : 'rgba(99, 102, 241, 0.12)',
+                        borderColor: isLight ? 'rgba(99, 102, 241, 0.35)' : 'rgba(129, 140, 248, 0.35)',
+                      },
+                    ]}
+                  >
+                    <View style={styles.pairingCodeIconBadge}>
+                      <KeyRound size={15} color={isLight ? '#4F46E5' : '#818CF8'} />
+                    </View>
+                    <View style={styles.pairingCodeTextBlock}>
+                      <Text style={[styles.pairingCodeLabel, { color: theme.textSecondary }]}>
+                        Bizim Çift Kodumuz • arkadaşına ver
+                      </Text>
+                      <Text style={[styles.pairingCodeValue, { color: theme.text }]}>{pairingCode}</Text>
+                    </View>
+                    {codeCopied ? (
+                      <CheckCircle2 size={18} color="#10B981" />
+                    ) : (
+                      <Copy size={18} color={theme.textSecondary} />
+                    )}
+                  </TouchableOpacity>
+                )}
+
+                {/* Arkadaşın kodunu gir → Bağlantı Kur */}
+                <View
+                  style={[
+                    styles.friendCodeCard,
+                    { backgroundColor: theme.unitBg, borderColor: theme.cardBorder },
+                  ]}
+                >
+                  <View style={styles.friendCodeHeader}>
+                    <View
+                      style={[
+                        styles.friendCodeIconBadge,
+                        { backgroundColor: theme.pillAccentBg, borderColor: theme.pillAccentBorder },
+                      ]}
+                    >
+                      <Link2 size={16} color={theme.accent} />
+                    </View>
+                    <View style={styles.friendCodeTextBlock}>
+                      <Text style={[styles.friendCodeTitle, { color: theme.text }]}>Arkadaşının Çift Kodu</Text>
+                      <Text style={[styles.friendCodeHint, { color: theme.textSecondary }]}>
+                        Bağ kurmak istediğiniz çiftin {PAIRING_CODE_LENGTH} haneli kodunu girin; yıldızlarınız gökyüzünde
+                        bir takımyıldızı çizgisiyle birleşsin.
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* 6 hücreli kod göstergesi; gerçek giriş üstteki şeffaf TextInput'tur (yapıştırma ve otomatik doldurma çalışır) */}
+                  <View style={styles.codeInputWrap}>
+                    <View style={styles.codeCells} pointerEvents="none">
+                      {CODE_CELL_INDEXES.map((index) => {
+                        const char = friendCode[index] ?? '';
+                        const isCurrentCell =
+                          isCodeFocused && index === Math.min(friendCode.length, PAIRING_CODE_LENGTH - 1);
+                        return (
+                          <View
+                            key={index}
+                            style={[
+                              styles.codeCell,
+                              {
+                                backgroundColor: theme.inputBg,
+                                borderColor: char ? theme.accent : theme.inputBorder,
+                              },
+                              isCurrentCell && {
+                                borderColor: theme.accent,
+                                borderWidth: 2,
+                                backgroundColor: theme.pillAccentBg,
+                              },
+                            ]}
+                          >
+                            <Text style={[styles.codeCellText, { color: theme.text }]}>{char}</Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                    <TextInput
+                      ref={codeInputRef}
+                      value={friendCode}
+                      onChangeText={handleFriendCodeChange}
+                      onFocus={() => setIsCodeFocused(true)}
+                      onBlur={() => setIsCodeFocused(false)}
+                      onSubmitEditing={handleConnectByCode}
+                      autoCapitalize="characters"
+                      autoCorrect={false}
+                      spellCheck={false}
+                      autoComplete="off"
+                      returnKeyType="go"
+                      caretHidden
+                      selectionColor="transparent"
+                      underlineColorAndroid="transparent"
+                      accessibilityLabel="Arkadaşının çift kodu"
+                      style={styles.codeHiddenInput}
+                    />
+                  </View>
+
+                  <View style={styles.codeMetaRow}>
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={handlePasteFriendCode}
+                      accessibilityLabel="Panodaki kodu yapıştır"
+                      style={[
+                        styles.pasteBtn,
+                        { backgroundColor: theme.pillAccentBg, borderColor: theme.pillAccentBorder },
+                      ]}
+                    >
+                      <ClipboardPaste size={14} color={theme.accent} />
+                      <Text style={[styles.pasteBtnText, { color: theme.accent }]}>Yapıştır</Text>
+                    </TouchableOpacity>
+                    <Text style={[styles.codeCounter, { color: theme.textMuted }]}>
+                      {friendCode.length}/{PAIRING_CODE_LENGTH}
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    disabled={!canSubmitCode}
+                    onPress={handleConnectByCode}
+                    accessibilityLabel="Bağlantı Kur"
+                    accessibilityState={{ disabled: !canSubmitCode }}
+                    style={styles.connectBtn}
+                  >
+                    <LinearGradient
+                      colors={
+                        canSubmitCode || isConnectingByCode
+                          ? [theme.accent, theme.accentLight || theme.accent]
+                          : isLight
+                            ? ['rgba(0,0,0,0.08)', 'rgba(0,0,0,0.05)']
+                            : ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.06)']
+                      }
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.connectBtnGradient}
+                    >
+                      {isConnectingByCode ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <>
+                          <Link2 size={16} color={canSubmitCode ? '#FFFFFF' : theme.textMuted} />
+                          <Text
+                            style={[
+                              styles.connectBtnText,
+                              { color: canSubmitCode ? '#FFFFFF' : theme.textMuted },
+                            ]}
+                          >
+                            {isLimitReached ? 'Limit Dolu (3/3)' : 'Bağlantı Kur ✨'}
+                          </Text>
+                        </>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+
+                  <Text style={[styles.connectNote, { color: theme.textMuted }]}>
+                    Karşı çift isteğinizi onayladığında yıldızlarınız birbirine bağlanır.
+                  </Text>
+                </View>
+
+                {/* Nadir durum: kodla değil yalnızca adla eşleşen yıldızlar */}
+                {codeCandidates.length > 0 && (
+                  <View style={styles.resultsContainer}>{codeCandidates.map(renderStarResultCard)}</View>
+                )}
+              </View>
             ) : activeTab === 'search' ? (
-              /* ─── SEKME 1: YILDIZ ADIYLA ARA ─────────────────────── */
+              /* ─── SEKME 2: YILDIZ ADIYLA ARA ─────────────────────── */
               <View style={styles.searchSection}>
                 <View style={styles.searchInputRow}>
                   <View
@@ -445,7 +798,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                     <Search size={16} color={theme.textMuted} />
                     <TextInput
                       style={[styles.input, { color: theme.text }]}
-                      placeholder="Yıldız adı veya çift kodu girin..."
+                      placeholder="Yıldız adı girin..."
                       placeholderTextColor={theme.textMuted}
                       value={searchQuery}
                       onChangeText={setSearchQuery}
@@ -483,91 +836,11 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                     </View>
                   )}
 
-                  {searchResults.map((star) => {
-                    const isAlreadyConnected = activeConnections.some(
-                      (c) => c.other_star_id === star.star_id
-                    );
-                    const isPending = pendingConnections.some(
-                      (p) => p.other_star_id === star.star_id
-                    );
-                    const isActionLoading = actionLoadingId === star.star_id;
-
-                    return (
-                      <View
-                        key={star.star_id}
-                        style={[
-                          styles.starResultCard,
-                          {
-                            backgroundColor: theme.unitBg,
-                            borderColor: theme.cardBorder,
-                          },
-                        ]}
-                      >
-                        <View style={styles.starResultInfo}>
-                          <View style={styles.starNameRow}>
-                            <Sparkles size={14} color="#F59E0B" />
-                            <Text style={[styles.resultStarName, { color: theme.text }]}>{star.custom_name}</Text>
-                          </View>
-                          <Text style={[styles.resultCatalogCode, { color: theme.textMuted }]}>{star.catalog_code}</Text>
-                        </View>
-
-                        {isAlreadyConnected ? (
-                          <View style={styles.connectedBadge}>
-                            <Text style={styles.connectedBadgeText}>Bağlı ✨</Text>
-                          </View>
-                        ) : isPending ? (
-                          <View
-                            style={[
-                              styles.pendingBadge,
-                              { backgroundColor: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255, 255, 255, 0.08)' },
-                            ]}
-                          >
-                            <Text style={[styles.pendingBadgeText, { color: theme.textSecondary }]}>İstek Gönderildi</Text>
-                          </View>
-                        ) : (
-                          <TouchableOpacity
-                            activeOpacity={0.8}
-                            disabled={isLimitReached || isActionLoading}
-                            onPress={() => handleSendRequest(star)}
-                            style={[
-                              styles.proposeBtn,
-                              isLimitReached && styles.proposeBtnDisabled,
-                            ]}
-                          >
-                            {isActionLoading ? (
-                              <ActivityIndicator size="small" color="#FFFFFF" />
-                            ) : (
-                              <LinearGradient
-                                colors={
-                                  isLimitReached
-                                    ? isLight
-                                      ? ['rgba(0,0,0,0.08)', 'rgba(0,0,0,0.05)']
-                                      : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']
-                                    : [theme.accent, theme.accentLight || theme.accent]
-                                }
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                                style={styles.proposeBtnGradient}
-                              >
-                                <Text
-                                  style={[
-                                    styles.proposeBtnText,
-                                    isLimitReached && styles.proposeBtnTextDisabled,
-                                  ]}
-                                >
-                                  {isLimitReached ? 'Limit Dolu (3/3)' : 'Bağlantı Öner ✨'}
-                                </Text>
-                              </LinearGradient>
-                            )}
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    );
-                  })}
+                  {searchResults.map(renderStarResultCard)}
                 </View>
               </View>
             ) : (
-              /* ─── SEKME 2: GÖKYÜZÜNDE SEÇ ───────────────────────── */
+              /* ─── SEKME 3: GÖKYÜZÜ ──────────────────────────────── */
               <View style={styles.skySection}>
                 <View
                   style={[
@@ -706,6 +979,57 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                 })
               )}
             </View>
+
+            {/* ─── ONAY BEKLEYEN GİDEN İSTEKLER ───────────────────────── */}
+            {outgoingPending.length > 0 && (
+              <View style={styles.pendingSection}>
+                <View style={styles.sectionHeaderRow}>
+                  <Clock size={15} color={isLight ? '#B45309' : '#FBBF24'} />
+                  <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+                    Onay Bekleyen İsteklerimiz ({outgoingPending.length})
+                  </Text>
+                </View>
+
+                {outgoingPending.map((request) => {
+                  const isActionLoading = actionLoadingId === request.connection_id;
+                  return (
+                    <View
+                      key={request.connection_id}
+                      style={[
+                        styles.activeConnCard,
+                        { backgroundColor: theme.unitBg, borderColor: theme.cardBorder },
+                      ]}
+                    >
+                      <View style={styles.activeConnInfo}>
+                        <View style={styles.starNameRow}>
+                          <Sparkles size={14} color="#F59E0B" />
+                          <Text style={[styles.activeStarName, { color: theme.text }]}>
+                            {request.other_star_name}
+                          </Text>
+                        </View>
+                        <Text style={[styles.pendingHintText, { color: theme.textMuted }]}>
+                          Karşı çiftin onayı bekleniyor…
+                        </Text>
+                      </View>
+
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        disabled={isActionLoading}
+                        onPress={() => handleRemove(request.connection_id, request.other_star_name, true)}
+                        accessibilityLabel="İsteği iptal et"
+                        style={styles.disconnectBtn}
+                      >
+                        {isActionLoading ? (
+                          <ActivityIndicator size="small" color="#EF4444" />
+                        ) : (
+                          <X size={16} color={isLight ? '#DC2626' : '#EF4444'} />
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
           </KeyboardAwareScrollView>
         </View>
       </KeyboardAvoidingView>
@@ -728,7 +1052,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     borderTopWidth: 1,
-    maxHeight: '90%',
+    // Sabit yükseklik: sekmeler arasında geçerken sayfa zıplamaz (içerik kendi içinde kayar)
+    height: '90%',
     paddingBottom: 24,
     shadowOffset: { width: 0, height: -6 },
     shadowOpacity: 0.25,
@@ -794,8 +1119,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginHorizontal: 16,
-    marginBottom: 10,
     padding: 12,
     borderRadius: 14,
     borderWidth: 1,
@@ -822,6 +1145,121 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 2,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  codeSection: {
+    gap: 12,
+  },
+  friendCodeCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 14,
+    gap: 14,
+  },
+  friendCodeHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  friendCodeIconBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  friendCodeTextBlock: {
+    flex: 1,
+    gap: 3,
+  },
+  friendCodeTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  friendCodeHint: {
+    fontSize: 12.5,
+    lineHeight: 17,
+  },
+  codeInputWrap: {
+    height: 58,
+  },
+  codeCells: {
+    flexDirection: 'row',
+    gap: 8,
+    height: 58,
+  },
+  codeCell: {
+    flex: 1,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  codeCellText: {
+    fontSize: 22,
+    fontWeight: '800',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  // Hücrelerin üstünü kaplayan şeffaf gerçek giriş: dokunuş, yapıştırma ve klavye ona gider
+  codeHiddenInput: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    color: 'transparent',
+    backgroundColor: 'transparent',
+    fontSize: 16,
+  },
+  codeMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pasteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  pasteBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  codeCounter: {
+    fontSize: 12,
+    fontWeight: '600',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  connectBtn: {
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  connectBtnGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 50,
+  },
+  connectBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  connectNote: {
+    fontSize: 11.5,
+    lineHeight: 16,
+    textAlign: 'center',
+  },
+  pendingSection: {
+    gap: 10,
+  },
+  pendingHintText: {
+    fontSize: 11.5,
   },
   errorBanner: {
     flexDirection: 'row',

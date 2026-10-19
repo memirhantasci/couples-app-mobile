@@ -33,8 +33,8 @@ import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import {
-  DEFAULT_CYCLE_LENGTH, MAX_STARTS_PER_MONTH, MIN_DAYS_BETWEEN_STARTS,
-  getPeriodStarts, getPeriodDays,
+  MAX_REASONABLE_DELAY_DAYS, MAX_STARTS_PER_MONTH, MIN_DAYS_BETWEEN_STARTS,
+  estimateCycleLength, getPeriodStarts, getPeriodDays,
 } from "@/lib/periodCycle";
 
 LocaleConfig.locales['tr'] = {
@@ -104,12 +104,10 @@ export default function PeriodTrackerScreen() {
 
   const latestStart = periodStarts.length > 0 ? periodStarts[periodStarts.length - 1] : null;
 
-  // Sonraki döngü tahmini: 2+ başlangıçta aralarındaki farkların ortalaması, tek kayıtta 28 gün
+  // Sonraki döngü tahmini: son aralıklardan yalnızca 21–35 günlük olanların ortalaması, yoksa standart 28 gün
   const cycleInfo = useMemo(() => {
     if (!latestStart) return null;
-    const cycleLength = periodStarts.length >= 2
-      ? Math.round(dayjs(latestStart).diff(dayjs(periodStarts[0]), "day") / (periodStarts.length - 1))
-      : DEFAULT_CYCLE_LENGTH;
+    const cycleLength = estimateCycleLength(periodStarts);
     const nextPeriodDate = dayjs(latestStart).add(cycleLength, "day");
     // İkisi de gün başına sabitlenir; saat farkı yüzünden bir gün şaşmaz
     const daysLeft = nextPeriodDate.diff(dayjs(today), "day");
@@ -119,8 +117,11 @@ export default function PeriodTrackerScreen() {
       countdownText = `Sonraki Döngü: ${daysLeft} Gün Kaldı (${nextPeriodDate.locale("tr").format("D MMMM")}) 🌸`;
     } else if (daysLeft === 0) {
       countdownText = "Bugün yeni döngü günü bekleniyor 🌸";
+    } else if (-daysLeft <= MAX_REASONABLE_DELAY_DAYS) {
+      countdownText = `${-daysLeft} gün gecikti ⏳`;
     } else {
-      countdownText = `${Math.abs(daysLeft)} gün gecikti ⏳`;
+      // Çok uzun süredir kayıt yok: gecikme değil, büyük olasılıkla yeni başlangıç işaretlenmemiş
+      countdownText = "Yeni döngü kaydı bekleniyor 🌸";
     }
     return { cycleLength, nextPeriodDate, daysLeft, countdownText };
   }, [periodStarts, latestStart, today]);

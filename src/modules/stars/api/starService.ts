@@ -625,6 +625,28 @@ export async function searchStarByName(query: string): Promise<StarSearchResult[
   });
 }
 
+/** Çift koduyla yapılan yıldız aramasının sonucu. */
+export interface PairingCodeLookup {
+  /** Kodun sahibi çiftin yıldızı; kod bilinmiyorsa ya da çift henüz yıldız tescil etmediyse `null`. */
+  readonly star: StarSearchResult | null;
+  /** Koda değil, yalnızca adına rastlayan yıldızlar (çok nadir): kullanıcı elle seçer. */
+  readonly similar: StarSearchResult[];
+}
+
+/**
+ * 6 haneli çift koduna sahip çiftin yıldızını bulur (kendi çiftimiz hariç).
+ *
+ * `search_star_by_name` RPC'si hem yıldız adını hem çift kodunu eşler. Adı koda benzemeyen
+ * bir sonuç yalnızca kod eşleşmesinden gelebilir; adı kodu içerenler belirsiz sayılıp `similar`
+ * içinde döner ki yanlış yıldıza otomatik istek gitmesin.
+ */
+export async function findStarByPairingCode(code: string): Promise<PairingCodeLookup> {
+  const normalized = code.trim().toUpperCase();
+  const results = await searchStarByName(normalized);
+  const star = results.find((item) => !item.custom_name.toUpperCase().includes(normalized)) ?? null;
+  return { star, similar: star ? [] : results };
+}
+
 /**
  * Genel Harita / Evren Araması yapar (yaygın isim, katalog, ötegezegen vs).
  */
@@ -838,6 +860,7 @@ export const starService = {
   createExoplanetFromMedia,
   sendSpark,
   searchStarByName,
+  findStarByPairingCode,
   searchCelestialUniverse,
   requestStarConnection,
   respondToConnection,

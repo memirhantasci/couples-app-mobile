@@ -387,7 +387,9 @@ export const DEMO_MEETINGS = [
     latitude: 41.0264,
     longitude: 29.0682,
   },
-];
+  // Buluşmaları demo kullanıcısı planlamış gibi gösterilir: kartlarda düzenle / sil butonları görünür
+  // (dokununca kayıt daveti açılır).
+].map((meeting) => ({ ...meeting, user_id: DEMO_USER_ID }));
 
 export const DEMO_MEDICINES = [
   {

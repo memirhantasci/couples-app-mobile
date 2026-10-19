@@ -79,6 +79,8 @@ export interface SkyFlightRequest {
   readonly dec: number;
   /** Keeps the current zoom when omitted. */
   readonly zoom?: number;
+  /** Fixes the flight duration (ms) instead of deriving it from distance and zoom change. */
+  readonly durationMs?: number;
 }
 
 /** Wall-clock time for gesture bookkeeping (worklet; never used during render). */
@@ -379,12 +381,17 @@ export function useSkyCamera({
   };
 
   /** Fly-to entry point; runs on the UI thread so it starts from the live camera. */
-  const startFlight = (targetRa: number, targetDec: number, targetZoom: number) => {
+  const startFlight = (targetRa: number, targetDec: number, targetZoom: number, durationMs: number) => {
     'worklet';
     bake();
     const from = readCamera();
     const zoom = Number.isFinite(targetZoom) && targetZoom > 0 ? targetZoom : from.zoom;
-    const plan = createFlightPlan(from, { ra: targetRa, dec: targetDec, zoom }, width, height);
+    const computed = createFlightPlan(from, { ra: targetRa, dec: targetDec, zoom }, width, height);
+    // An explicit duration only stretches a real flight; an instant jump stays instant.
+    const plan =
+      computed.kind !== FLIGHT_INSTANT && Number.isFinite(durationMs) && durationMs > 0
+        ? { ...computed, durationMs }
+        : computed;
     if (plan.kind === FLIGHT_INSTANT) {
       setDirect(sampleFlight(plan, 1));
       notifyIdle();
@@ -413,7 +420,7 @@ export function useSkyCamera({
     (request, previous) => {
       'worklet';
       if (!request || request.id === previous?.id) return;
-      startFlight(request.ra, request.dec, request.zoom ?? Number.NaN);
+      startFlight(request.ra, request.dec, request.zoom ?? Number.NaN, request.durationMs ?? Number.NaN);
     },
   );
 
