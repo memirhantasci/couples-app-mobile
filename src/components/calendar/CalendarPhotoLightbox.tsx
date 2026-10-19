@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Modal, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { X, Clock, Calendar as CalendarIcon } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRealTopInset } from "@/hooks/useRealTopInset";
 import { dayjs } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
 import { SwipeDismissView } from "@/components/ui/SwipeDismissView";
@@ -19,6 +20,7 @@ interface CalendarPhotoLightboxProps {
 // ─── FOTOĞRAF TAM EKRAN (LIGHTBOX) MODALI ────────────────────────────────────
 export function CalendarPhotoLightbox({ photo, theme, getAuthorName, onClose }: CalendarPhotoLightboxProps) {
   const insets = useSafeAreaInsets();
+  const topInset = useRealTopInset();
 
   return (
     <Modal
@@ -31,7 +33,7 @@ export function CalendarPhotoLightbox({ photo, theme, getAuthorName, onClose }: 
       <SwipeDismissView onDismiss={onClose}>
       <View style={styles.lightboxBackdrop}>
         {/* Lightbox Üst Bar */}
-        <View style={[styles.lightboxHeader, { paddingTop: insets.top + 10 }]}>
+        <View style={[styles.lightboxHeader, { paddingTop: topInset + 10 }]}>
           <TouchableOpacity
             onPress={onClose}
             style={styles.lightboxCloseBtn}

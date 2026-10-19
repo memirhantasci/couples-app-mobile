@@ -40,7 +40,7 @@ import { LoveMeter } from "@/components/home/LoveMeter";
 import { MoodSelector } from "@/components/home/MoodSelector";
 import { DailyNoteCard } from "@/components/home/DailyNoteCard";
 import { MeetingCountdown, type Meeting } from "@/components/home/MeetingCountdown";
-import { PendingLettersCard } from "@/components/home/PendingLettersCard";
+import { PendingLettersCard, PendingLettersBadge } from "@/components/home/PendingLettersCard";
 import { useHomeSpotlightTour } from "@/hooks/useHomeSpotlightTour";
 import { SpotlightTour, type SpotlightStep } from "@/components/tour/SpotlightTour";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
@@ -277,6 +277,15 @@ export default function HomeScreen() {
   // Saat / gün değişince (ve uygulama öne gelince) selamlama ile özel gün durumu yeniden hesaplansın
   useClockBucket();
 
+  const scrollContentStyle = useMemo(
+    () => StyleSheet.flatten([
+      styles.scrollContent,
+      // Alt boşluk: yüzen gezinme çubuğu (64px + alt kenar boşluğu) + nefes payı
+      { paddingTop: insets.top + 14, paddingBottom: insets.bottom + 160 },
+    ]),
+    [insets.top, insets.bottom]
+  );
+
   const meetDate = profile?.meetDate;
   const relDate = profile?.relationshipStartDate;
   // Demo modunda tarih bilgisi yoksa sayaçlar boş kalmasın diye gerçekçi örnek değerler gösterilir
@@ -382,10 +391,9 @@ export default function HomeScreen() {
           extraScrollHeight={80}
           keyboardShouldPersistTaps="handled"
           style={{ flex: 1 }}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingTop: insets.top + 14, paddingBottom: insets.bottom + 140 },
-          ]}
+          // Düz nesne olmalı: react-native-keyboard-aware-scroll-view Android'de (enableOnAndroid)
+          // dizi stilindeki paddingBottom'u okuyamayıp sıfırlıyordu; son kart gezinme çubuğunun altında kalıyordu.
+          contentContainerStyle={scrollContentStyle}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching}
@@ -445,6 +453,9 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           </View>
+
+          {/* ─── 1.1 BEKLEYEN MEKTUP BİLDİRİMİ (varsa) ─── */}
+          <PendingLettersBadge letters={dashboardData?.pendingLetters} theme={theme} />
 
           {/* ─── 2. HERO İLİŞKİ SAYACI KARTI ─── */}
           {/* Yıldönümüne ≤3 gün kala ve 14 Şubat'ta kartın etrafında altın ışıltı; kart (counterRef) aynı kalır */}

@@ -683,6 +683,11 @@ export default function LoginScreen() {
     ? (["#4D9CFF", "#1B6FD8"] as const)
     : (["#FF3366", "#E8002D", "#C0006B"] as const);
 
+  const scrollContentStyle = StyleSheet.flatten([
+    styles.scrollContent,
+    { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 40 },
+  ]);
+
   return (
     <View style={styles.container}>
       {/* Background Hero Image with atmospheric romantic tone */}
@@ -720,14 +725,10 @@ export default function LoginScreen() {
       <View style={{ flex: 1 }}>
         <KeyboardAwareScrollView
           enableOnAndroid
-          extraScrollHeight={30}
-          contentContainerStyle={[
-            styles.scrollContent,
-            {
-              paddingTop: insets.top + 32,
-              paddingBottom: insets.bottom + 40,
-            }
-          ]}
+          // Odaktaki alanın altında ~CTA kadar boşluk bırak: "Giriş Yap" / "Hesap Oluştur" butonu klavyenin üstünde kalsın
+          extraScrollHeight={120}
+          // Düz nesne olmalı: kütüphane Android'de dizi stilindeki paddingBottom'u okuyamayıp sıfırlıyordu
+          contentContainerStyle={scrollContentStyle}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >

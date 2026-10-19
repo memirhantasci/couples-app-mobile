@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Modal,
   Platform,
@@ -323,6 +323,8 @@ function CalendarPane({
 
 const WHEEL_ITEM = 46;
 const WHEEL_VISIBLE = 5;
+/** Çarkın üstünde/altında bırakılan boşluk: ilk ve son öğe de seçim bandının ortasına gelebilsin. */
+const WHEEL_PAD = WHEEL_ITEM * Math.floor(WHEEL_VISIBLE / 2);
 
 function TimePane({ value, onChange }: { value: Date; onChange: (date: Date) => void }) {
   const { theme } = useTheme();
@@ -354,12 +356,15 @@ function Wheel({ count, value, onChange }: { count: number; value: number; onCha
   const { theme } = useTheme();
   const ref = useRef<ScrollView>(null);
 
-  // Çark ilk açılışta mevcut değere kaydırılır (animasyonsuz)
-  useEffect(() => {
-    const timer = setTimeout(() => ref.current?.scrollTo({ y: value * WHEEL_ITEM, animated: false }), 50);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Çark ilk açılışta mevcut değere, içerik ölçüldükten SONRA (animasyonsuz) kaydırılır.
+  // Sabit gecikmeli scrollTo, 60 satırlık dakika çarkında içerik henüz yerleşmeden çalışıp
+  // en alta sıkışabiliyor ve dakika sütununu saat sütununa göre kaydırıyordu.
+  const positioned = useRef(false);
+  const positionToValue = () => {
+    if (positioned.current) return;
+    positioned.current = true;
+    ref.current?.scrollTo({ y: value * WHEEL_ITEM, animated: false });
+  };
 
   const settle = (y: number) => {
     const index = Math.min(count - 1, Math.max(0, Math.round(y / WHEEL_ITEM)));
@@ -372,9 +377,16 @@ function Wheel({ count, value, onChange }: { count: number; value: number; onCha
         ref={ref}
         showsVerticalScrollIndicator={false}
         snapToInterval={WHEEL_ITEM}
+        snapToAlignment="start"
         decelerationRate="fast"
         nestedScrollEnabled
-        contentContainerStyle={{ paddingVertical: WHEEL_ITEM * Math.floor(WHEEL_VISIBLE / 2) }}
+        overScrollMode="never"
+        bounces={false}
+        contentContainerStyle={{
+          paddingTop: WHEEL_PAD,
+          paddingBottom: WHEEL_PAD,
+        }}
+        onContentSizeChange={positionToValue}
         onMomentumScrollEnd={(e) => settle(e.nativeEvent.contentOffset.y)}
         onScrollEndDrag={(e) => settle(e.nativeEvent.contentOffset.y)}
       >
@@ -392,6 +404,13 @@ function Wheel({ count, value, onChange }: { count: number; value: number; onCha
             >
               <Text
                 style={{
+                  // Satır yüksekliği = öğe yüksekliği: harf boyutu değişse de rakamlar iki çarkta
+                  // aynı dikey eksende kalır (Android'in ekstra font boşluğu kapatıldı)
+                  height: WHEEL_ITEM,
+                  lineHeight: WHEEL_ITEM,
+                  textAlign: "center",
+                  textAlignVertical: "center",
+                  includeFontPadding: false,
                   fontSize: isActive ? 26 : 19,
                   fontFamily: isActive ? "Inter_700Bold" : "Inter_500Medium",
                   color: isActive ? theme.text : theme.textMuted,
@@ -558,6 +577,10 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontFamily: "Inter_700Bold",
     marginHorizontal: 4,
-    marginBottom: 4,
+    // Çark öğeleriyle aynı satır kutusunu kullan: iki nokta seçili rakamlarla aynı hizada
+    height: WHEEL_ITEM,
+    lineHeight: WHEEL_ITEM,
+    textAlignVertical: "center",
+    includeFontPadding: false,
   },
 });

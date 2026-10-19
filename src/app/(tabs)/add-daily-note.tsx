@@ -163,7 +163,8 @@ export default function AddDailyNoteScreen() {
 
         {/* KLAVYE DUYARLI FORM ALANI */}
         <KeyboardAwareScrollView 
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
+          // Düz nesne: kütüphane Android'de dizi stilindeki paddingBottom'u sıfırlıyordu
+          contentContainerStyle={StyleSheet.flatten([styles.scrollContent, { paddingBottom: insets.bottom + 40 }])}
           keyboardShouldPersistTaps="handled"
           enableOnAndroid={true}
           extraScrollHeight={140}

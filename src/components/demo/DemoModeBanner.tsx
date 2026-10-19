@@ -1,19 +1,26 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Platform,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Sparkles, ArrowRight, UserPlus } from "lucide-react-native";
+import { Sparkles, ArrowRight } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DemoActionModal } from "./DemoActionModal";
 
+/** Şeridin durum çubuğunun altında kalan yüksekliği (kendi içeriği). */
+export const DEMO_STRIP_CONTENT_HEIGHT = 30;
+
+/**
+ * Demo modunu bildiren ince üst şerit.
+ *
+ * Eskiden alt gezinme çubuğunun üstünde yüzüyordu ve haritadaki "Yol Tarifi Al", takvimdeki
+ * etkinlik kartları gibi etkileşimli alanları örtüyordu. Artık akışın içinde, ekranın tepesinde
+ * durur: içeriğin yerini kendisi ayırır, hiçbir şeyin üstüne binmez. Durum çubuğu boşluğunu da
+ * şerit üstlendiği için (bkz. `_layout.tsx`) ekranlar kendi üst boşluklarını şeridin altından başlatır.
+ */
 export function DemoModeBanner() {
   const { isDemoMode } = useAuth();
+  const { theme, isLight } = useTheme();
   const insets = useSafeAreaInsets();
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -21,49 +28,48 @@ export function DemoModeBanner() {
 
   return (
     <>
-      <View
-        style={[
-          styles.container,
-          {
-            bottom: (Platform.OS === "ios" ? Math.max(insets.bottom, 16) : insets.bottom + 12) + 72,
-          },
-        ]}
+      <TouchableOpacity
+        onPress={() => setModalVisible(true)}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="Demo sürümü. Kayıt olmak için dokunun"
       >
-        <TouchableOpacity
-          onPress={() => setModalVisible(true)}
-          activeOpacity={0.88}
-          style={styles.pill}
+        {/* Gradyan durum çubuğu boşluğunu da kaplar: şerit ile üstündeki alan tek parça görünür */}
+        <LinearGradient
+          colors={isLight ? ["#FFE4EC", "#FFF1F5"] : ["#2A0F1E", "#150C1F"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={[
+            styles.strip,
+            {
+              paddingTop: insets.top,
+              height: insets.top + DEMO_STRIP_CONTENT_HEIGHT,
+              borderBottomColor: theme.pillAccentBorder,
+            },
+          ]}
         >
-          <LinearGradient
-            colors={["rgba(30, 20, 45, 0.94)", "rgba(20, 15, 35, 0.96)"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.pillGradient}
-          >
-            <View style={styles.leftContent}>
-              <View style={styles.sparkleBadge}>
-                <Sparkles size={12} color="#FF2E63" />
-              </View>
-              <View>
-                <Text style={styles.badgeTitle}>Demo Sürümü</Text>
-                <Text style={styles.badgeSubtitle}>Kayıt olmadan inceliyorsunuz</Text>
-              </View>
-            </View>
+          <View style={styles.left}>
+            <Sparkles size={12} color={theme.accent} />
+            <Text
+              style={[styles.title, { color: isLight ? "#9F1239" : "#FFFFFF" }]}
+              numberOfLines={1}
+            >
+              Demo Sürümü
+            </Text>
+            <Text
+              style={[styles.subtitle, { color: isLight ? "#BE5A75" : "rgba(255, 255, 255, 0.6)" }]}
+              numberOfLines={1}
+            >
+              · Kayıt olmadan inceliyorsun
+            </Text>
+          </View>
 
-            <View style={styles.ctaButton}>
-              <LinearGradient
-                colors={["#FF2E63", "#FF6B8B"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.ctaGradient}
-              >
-                <UserPlus size={11} color="#FFFFFF" style={{ marginRight: 3 }} />
-                <Text style={styles.ctaText}>Kayıt Ol</Text>
-              </LinearGradient>
-            </View>
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
+          <View style={[styles.cta, { backgroundColor: theme.accent }]}>
+            <Text style={styles.ctaText}>Kayıt Ol</Text>
+            <ArrowRight size={11} color="#FFFFFF" />
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
 
       <DemoActionModal
         visible={modalVisible}
@@ -76,67 +82,37 @@ export function DemoModeBanner() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    zIndex: 9999,
-    elevation: 20,
-    alignItems: "center",
-  },
-  pill: {
-    width: "100%",
-    maxWidth: 420,
-    borderRadius: 20,
-    overflow: "hidden",
-    borderWidth: 1.2,
-    borderColor: "rgba(255, 46, 99, 0.35)",
-    shadowColor: "#FF2E63",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  pillGradient: {
+  strip: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 7,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
   },
-  leftContent: {
+  left: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
+    marginRight: 10,
   },
-  sparkleBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "rgba(255, 46, 99, 0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  badgeTitle: {
-    color: "#FFFFFF",
+  title: {
     fontSize: 11.5,
     fontFamily: "Inter_700Bold",
     letterSpacing: -0.1,
   },
-  badgeSubtitle: {
-    color: "rgba(255, 255, 255, 0.65)",
-    fontSize: 9.5,
+  subtitle: {
+    flexShrink: 1,
+    fontSize: 10.5,
     fontFamily: "Inter_400Regular",
   },
-  ctaButton: {
-    borderRadius: 13,
-    overflow: "hidden",
-  },
-  ctaGradient: {
+  cta: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 4,
+    gap: 4,
+    paddingVertical: 3,
     paddingHorizontal: 10,
+    borderRadius: 11,
   },
   ctaText: {
     color: "#FFFFFF",

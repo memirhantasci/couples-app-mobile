@@ -16,6 +16,7 @@ import MapView, { Marker, Region, UserLocationChangeEvent } from "react-native-m
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRealTopInset } from "@/hooks/useRealTopInset";
 import {
   X,
   MapPin,
@@ -110,6 +111,7 @@ export function MapPickerModal({
   title = "Konum Seçin",
 }: MapPickerModalProps) {
   const insets = useSafeAreaInsets();
+  const topInset = useRealTopInset();
   const { theme, isLight: isAppLight } = useTheme();
 
   const mapRef = useRef<MapView | null>(null);
@@ -364,7 +366,7 @@ export function MapPickerModal({
         </MapView>
 
         {/* ─── ÜST KONTROL ÇUBUĞU (Aşk Haritası ile Birebir Aynı Tasarım) ──── */}
-        <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+        <View style={[styles.topBar, { paddingTop: topInset + 8 }]}>
           <BlurView tint={isLight ? "light" : "dark"} intensity={80} style={StyleSheet.absoluteFill} />
 
           <View style={styles.topBarMainRow}>

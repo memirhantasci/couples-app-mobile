@@ -24,7 +24,12 @@ import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { usePageTour } from "@/hooks/usePageTour";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
-import { DEMO_DAILY_NOTES, DEMO_PHOTOS } from "@/constants/demoData";
+import {
+  DEMO_CALENDAR_NOTES,
+  DEMO_CALENDAR_USERS,
+  DEMO_PARTNER_ID,
+  DEMO_PHOTOS,
+} from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { CALENDAR_COLORS } from "@/components/calendar/calendarColors";
@@ -32,6 +37,7 @@ import type { CalendarPhotoItem } from "@/components/calendar/calendarTypes";
 import { DaySectionCard, dayItemAccent } from "@/components/calendar/DaySectionCard";
 import { CalendarMonthView } from "@/components/calendar/CalendarMonthView";
 import { CalendarNoteModal } from "@/components/calendar/CalendarNoteModal";
+import { NoteMemoryCard } from "@/components/calendar/NoteMemoryCard";
 import { CalendarPhotoLightbox } from "@/components/calendar/CalendarPhotoLightbox";
 import { PERIOD_DURATION_DAYS, getPeriodDays, getPeriodStarts } from "@/lib/periodCycle";
 import { MOODS } from "@/components/home/MoodSelector";
@@ -100,15 +106,12 @@ export default function CalendarScreen() {
     queryFn: async () => {
       if (isDemoMode) {
         return {
-          notes: DEMO_DAILY_NOTES.map(n => ({
-            id: n.id,
-            date: n.date,
-            note: n.content,
-            user_id: userId,
-            created_at: new Date().toISOString(),
-          })),
+          // Takvim notları çiftin ORTAK defteridir. Kişiye özel "Günlük Notum" kayıtları (DEMO_DAILY_NOTES)
+          // burada gösterilmez; demo da ortak aşk notlarıyla dolar.
+          notes: DEMO_CALENDAR_NOTES,
           moods: [
-            { date: today, mood_type: "love", user_id: userId }
+            { date: today, mood_type: "love", user_id: userId },
+            { date: today, mood_type: "😍", user_id: DEMO_PARTNER_ID },
           ],
           photos: DEMO_PHOTOS.map(p => ({
             id: p.id,
@@ -125,8 +128,7 @@ export default function CalendarScreen() {
           periods: canSeePeriod ? [
             { id: 1, date: dayjs().subtract(2, "day").format("YYYY-MM-DD"), user_id: "demo-partner" }
           ] : [],
-          partner: { display_name: "Sevgilin" },
-          me: { display_name: "Misafir" },
+          users: DEMO_CALENDAR_USERS,
         };
       }
       const threeMonthsAgo = dayjs().subtract(2, "month").startOf("month").format("YYYY-MM-DD");
@@ -575,20 +577,18 @@ export default function CalendarScreen() {
               {/* Notlar */}
               {selectedDayNotes.length > 0 && (
                 <DaySectionCard variant="note" isLight={isLight}>
-                  {selectedDayNotes.map((note: any) => {
-                    const authorName = getAuthorName(note.user_id);
-                    return (
-                      <View key={note.id} style={[styles.noteBox, dayItemAccent("note"), { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                        <Text style={[styles.noteText, { color: theme.text }]}>{note.note}</Text>
-                        <View style={[styles.noteMeta, { borderTopColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}>
-                          <Text style={[styles.noteAuthor, { color: CALENDAR_COLORS.note }]}>— {authorName}</Text>
-                          {!!note.created_at && (
-                            <Text style={[styles.noteTime, { color: theme.textMuted }]}>{dayjs(note.created_at).format("HH:mm")}</Text>
-                          )}
-                        </View>
-                      </View>
-                    );
-                  })}
+                  {selectedDayNotes.map((note: any) => (
+                    <NoteMemoryCard
+                      key={note.id}
+                      text={note.note}
+                      authorName={getAuthorName(note.user_id)}
+                      avatarUrl={getAuthorAvatar(note.user_id)}
+                      time={note.created_at ? dayjs(note.created_at).format("HH:mm") : null}
+                      isMe={note.user_id === userId}
+                      theme={theme}
+                      isLight={isLight}
+                    />
+                  ))}
                 </DaySectionCard>
               )}
 
@@ -911,37 +911,6 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     color: "rgba(255,255,255,0.5)",
     textAlign: "center",
-  },
-
-  /* NOTLAR */
-  noteBox: {
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-  },
-  noteText: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.85)",
-    lineHeight: 21,
-  },
-  noteMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 10,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.06)",
-  },
-  noteAuthor: {
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
-  },
-  noteTime: {
-    fontSize: 11,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.4)",
   },
 
   /* RUH HALLERİ */

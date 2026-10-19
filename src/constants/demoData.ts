@@ -124,6 +124,44 @@ export const DEMO_LETTERS = [
 ];
 
 export const DEMO_PHOTOS = [
+  // Güncel anılar: Aşk Haritası'nın açılış görünümü (İstanbul) ve takvimin bugünkü sayfası boş kalmasın diye
+  // ilk açılışta görünen örnek fotoğraflar. En yeniden eskiye sıralıdır.
+  {
+    id: 309,
+    image_url: "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=800&auto=format&fit=crop&q=80",
+    title: "Galata'da Gün Batımı 🌇",
+    description: "Simitlerimizi paylaşıp kulenin gölgesinde gün batımını izledik. Bütün şehir sanki sadece bizimdi.",
+    taken_date: dayjs().format("YYYY-MM-DD"),
+    taken_time: "18:20",
+    user_id: DEMO_PARTNER_ID,
+    city: "İstanbul · Galata",
+    latitude: 41.0256,
+    longitude: 28.9744,
+  },
+  {
+    id: 310,
+    image_url: "https://images.unsplash.com/photo-1474552226712-ac0f0961a954?w=800&auto=format&fit=crop&q=80",
+    title: "Moda Sahilinde Bisiklet Turu 🚲💕",
+    description: "Elele tutuşup pedal çevirdiğimiz, gökyüzünün pembeye döndüğü o güzel akşam.",
+    taken_date: dayjs().format("YYYY-MM-DD"),
+    taken_time: "08:15",
+    user_id: DEMO_USER_ID,
+    city: "İstanbul · Moda",
+    latitude: 40.9806,
+    longitude: 29.0253,
+  },
+  {
+    id: 311,
+    image_url: "https://images.unsplash.com/photo-1527838832700-5059252407fa?w=800&auto=format&fit=crop&q=80",
+    title: "Sultanahmet'te Mavi Saat 💜",
+    description: "Minarelerin arkasında gökyüzü pembeye boyanırken sana sarıldığım an.",
+    taken_date: dayjs().subtract(1, "day").format("YYYY-MM-DD"),
+    taken_time: "19:05",
+    user_id: DEMO_PARTNER_ID,
+    city: "İstanbul · Sultanahmet",
+    latitude: 41.0054,
+    longitude: 28.9768,
+  },
   {
     id: 301,
     image_url: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&auto=format&fit=crop&q=80",
@@ -387,6 +425,47 @@ export const DEMO_DAILY_NOTES = [
     date: dayjs().subtract(2, "day").format("YYYY-MM-DD"),
     content: "Uzun zamandır ertelediğim o kitaptan birkaç bölüm okudum. Kendime böyle sakin vakitler ayırmayı özlemişim. 📚🕯️",
   },
+];
+
+/**
+ * Takvimin ORTAK not defteri (calendar_notes): iki partnerin birbirine bıraktığı küçük notlar.
+ * Kişiye özel günlük kayıtları (DEMO_DAILY_NOTES) takvimde gösterilmez.
+ */
+export const DEMO_CALENDAR_NOTES = [
+  {
+    id: 801,
+    date: dayjs().format("YYYY-MM-DD"),
+    note: "Sabah kahveni içerken aklıma geldin; gülümsemem hâlâ yüzümde. Akşam Galata'da buluşalım mı?",
+    user_id: DEMO_PARTNER_ID,
+    created_at: dayjs().hour(8).minute(42).second(0).toISOString(),
+  },
+  {
+    id: 802,
+    date: dayjs().format("YYYY-MM-DD"),
+    note: "Olur tabii! Seninle geçen her akşam, günün en güzel yeri. Simitleri ben alırım 🥨",
+    user_id: DEMO_USER_ID,
+    created_at: dayjs().hour(9).minute(5).second(0).toISOString(),
+  },
+  {
+    id: 803,
+    date: dayjs().subtract(1, "day").format("YYYY-MM-DD"),
+    note: "Bugün yağmur yağdı ama senin şemsiyenin altında hiç ıslanmadım. İyi ki varsın.",
+    user_id: DEMO_PARTNER_ID,
+    created_at: dayjs().subtract(1, "day").hour(21).minute(18).second(0).toISOString(),
+  },
+  {
+    id: 804,
+    date: dayjs().subtract(3, "day").format("YYYY-MM-DD"),
+    note: "Bizim şarkımız çaldı yine… Elini tuttuğum o ilk günü hatırladım.",
+    user_id: DEMO_USER_ID,
+    created_at: dayjs().subtract(3, "day").hour(18).minute(30).second(0).toISOString(),
+  },
+];
+
+/** Takvimdeki not / fotoğraf / ruh hali imzaları için çift üyeleri. */
+export const DEMO_CALENDAR_USERS = [
+  { id: DEMO_USER_ID, display_name: "Sen", avatar_url: null },
+  { id: DEMO_PARTNER_ID, display_name: "Sevgilin ❤️", avatar_url: null },
 ];
 
 export const DEMO_PERIOD_DATA = {

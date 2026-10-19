@@ -11,6 +11,7 @@ import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import { Navigation, X } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRealTopInset } from "@/hooks/useRealTopInset";
 
 import { dayjs } from "@/lib/date";
 import { SwipeDismissView } from "@/components/ui/SwipeDismissView";
@@ -29,6 +30,7 @@ interface MapPhotoLightboxProps {
 // ─── TAM EKRAN FOTOĞRAF LIGHTBOX MODAL ────────────────────────────────────────
 export function MapPhotoLightbox({ photo, accent, onClose }: MapPhotoLightboxProps) {
   const insets = useSafeAreaInsets();
+  const topInset = useRealTopInset();
 
   return (
     <Modal visible={!!photo} transparent animationType="fade" onRequestClose={onClose}>
@@ -40,7 +42,7 @@ export function MapPhotoLightbox({ photo, accent, onClose }: MapPhotoLightboxPro
           backdrop={<BlurView tint="dark" intensity={95} style={StyleSheet.absoluteFill} />}
         >
         <View style={styles.lightboxContainer}>
-          <View style={[styles.lightboxHeader, { paddingTop: insets.top + 10 }]}>
+          <View style={[styles.lightboxHeader, { paddingTop: topInset + 10 }]}>
             <TouchableOpacity style={styles.lightboxCloseBtn} onPress={onClose}>
               <X size={22} color="#fff" />
             </TouchableOpacity>

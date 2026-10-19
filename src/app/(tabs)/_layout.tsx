@@ -3,7 +3,7 @@ import { StyleSheet, View, Text, Platform, TouchableOpacity } from "react-native
 import { BlurView } from "expo-blur";
 import React, { useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaInsetsContext, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/context/ThemeContext";
 import { useTabBar } from "@/context/TabBarContext";
 
@@ -138,9 +138,20 @@ export default function TabsLayout() {
   // İlaç / buluşma / mektup-kilidi yerel hatırlatıcılarını bu cihazda güncel tut
   useReminderSync();
 
+  const { isDemoMode } = useAuth();
+  const insets = useSafeAreaInsets();
+  // Demo şeridi durum çubuğu boşluğunu kendisi üstlenir; ekranlar `insets.top` ile ikinci kez
+  // boşluk bırakmasın diye şeridin altındaki içerik için üst güvenli alan sıfırlanır.
+  const contentInsets = useMemo(
+    () => (isDemoMode ? { ...insets, top: 0 } : insets),
+    [isDemoMode, insets]
+  );
+
   return (
     <View style={{ flex: 1 }}>
       <DemoModeBanner />
+      <SafeAreaInsetsContext.Provider value={contentInsets}>
+      <View style={{ flex: 1 }}>
       <Tabs
         tabBar={(props) => <CustomTabBar {...props} />}
         screenOptions={{
@@ -165,6 +176,8 @@ export default function TabsLayout() {
       <Tabs.Screen name="add-photo" options={{ href: null }} />
       <Tabs.Screen name="add-daily-note" options={{ href: null }} />
     </Tabs>
+      </View>
+      </SafeAreaInsetsContext.Provider>
     </View>
   );
 }
