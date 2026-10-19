@@ -130,12 +130,14 @@ Uygulamanın alt kısmında sabit yüzen bir Navigasyon Çubuğu (Tab Bar) yer a
 İlişkinin günlük kontrol merkezidir. Sayfa dikey kaydırılabilir kartlardan oluşur:
 
 - **1. Header (Üst Alan):**
-  - Selamlama metni: *"Günaydın / Tünaydın / İyi Akşamlar, [İsim]"*.
+  - Selamlama metni saate göre değişir ve saat/gün değişince (uygulama açıkken de) kendini yeniler: *"Günaydın ☀️ (05–12) / Tünaydın 🌸 (12–18) / İyi Akşamlar 🌆 (18–22) / Tatlı Rüyalar 🌙 (22–05), [İsim]"*.
   - Bugünün güncel uzun tarihi (Örn: *"31 Ağustos Pazartesi"*).
+  - Tarihin altında tek satırlık dinamik not (öncelik sırasıyla): yıldönümü günü kutlaması > 14 Şubat (*"Sevgililer Günün kutlu olsun 💘"*) > yaklaşan yıldönümü sayacı (*"1. yıl dönümünüze 2 gün kaldı 💛"*) > bugünkü ruh haline göre kısa not.
   - Hamburger Menü butonu (Tüm alt modülleri içeren Tam Ekran Menüyü açar).
 - **2. Aşk Sayaç Kapsülleri (Counter Pills):**
   - 1. Kapsül: `[X] gün tanışalı 🤝` (Tanışma tarihinden bugüne geçen gün sayısı).
   - 2. Kapsül: `[Y] gün sevgili ❤️` (Sevgili olma tarihinden bugüne geçen gün sayısı).
+  - **Altın ışıltı:** Sevgililik yıldönümüne ≤3 gün kala (yıldönümü günü dahil) ve **14 Şubat'ta tüm kullanıcılar için** sayaç kartının etrafında hafif, nefes alan bir altın ışıltı + ara ara geçen bir ışık süzmesi + köşelerde göz kırpan yıldızlar görünür. "Hareketi azalt" sistem ayarı açıksa animasyonsuz, sabit bir ışıltı gösterilir.
 - **3. Günün Aşk Sözü Kartı:**
   - Yılın gününe göre (365 gün) her gün değişen romantik bir Türkçe söz gösterir.
 - **4. Aşk Ölçer (Love Meter):**

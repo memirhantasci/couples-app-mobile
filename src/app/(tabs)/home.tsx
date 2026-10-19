@@ -33,6 +33,9 @@ import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/context/ThemeContext";
 
+import { useClockBucket } from "@/hooks/useClockBucket";
+import { getGreeting, getSpecialDayState } from "@/lib/specialDays";
+import { AnniversaryGlow } from "@/components/home/AnniversaryGlow";
 import { LoveMeter } from "@/components/home/LoveMeter";
 import { MoodSelector } from "@/components/home/MoodSelector";
 import { DailyNoteCard } from "@/components/home/DailyNoteCard";
@@ -271,14 +274,8 @@ export default function HomeScreen() {
     setupPeriodNotification();
   }, [profile?.isPremium, profile?.gender, coupleId, userId, dashboardData?.partner]);
 
-  // Dinamik Selamlama
-  const getGreeting = () => {
-    const hour = dayjs().hour();
-    if (hour >= 6 && hour < 12) return { text: "Günaydın", emoji: "☀️" };
-    if (hour >= 12 && hour < 18) return { text: "Tünaydın", emoji: "🌸" };
-    if (hour >= 18 && hour < 23) return { text: "İyi Akşamlar", emoji: "🌙" };
-    return { text: "İyi Geceler", emoji: "✨" };
-  };
+  // Saat / gün değişince (ve uygulama öne gelince) selamlama ile özel gün durumu yeniden hesaplansın
+  useClockBucket();
 
   const meetDate = profile?.meetDate;
   const relDate = profile?.relationshipStartDate;
@@ -292,7 +289,12 @@ export default function HomeScreen() {
   const loveMeter = activeLoveScore?.score;
   const loveSubtitle = activeLoveScore?.subtitle;
   const dateLabel = useMemo(() => dayjs().format("D MMMM, dddd"), []);
-  const greeting = useMemo(() => getGreeting(), []);
+
+  // ─── Dinamik selamlama + özel günler (yıldönümüne ≤3 gün kala ve 14 Şubat'ta altın ışıltı) ───
+  const nowDay = dayjs();
+  const specialDay = getSpecialDayState(relDate, nowDay);
+  const greeting = getGreeting(nowDay, specialDay, dashboardData?.currentMood);
+  const captionColor = specialDay.glow ? (isLight ? "#B7791F" : "#F5C563") : theme.textSecondary;
 
   // ─── BULUŞMA KARTI ───
   // Seçim render anında yapılır: buluşma saati geçince sıradaki buluşmaya geçilir,
@@ -407,6 +409,15 @@ export default function HomeScreen() {
                 <Calendar size={13} color={theme.textMuted} />
                 <Text style={[styles.dateLabel, { color: theme.textMuted }]}>{dateLabel}</Text>
               </View>
+              {greeting.caption ? (
+                <Text
+                  style={[styles.captionText, { color: captionColor }]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {greeting.caption}
+                </Text>
+              ) : null}
             </View>
 
             <View
@@ -433,6 +444,8 @@ export default function HomeScreen() {
           </View>
 
           {/* ─── 2. HERO İLİŞKİ SAYACI KARTI ─── */}
+          {/* Yıldönümüne ≤3 gün kala ve 14 Şubat'ta kartın etrafında altın ışıltı; kart (counterRef) aynı kalır */}
+          <AnniversaryGlow active={specialDay.glow} radius={24} isLight={isLight}>
           <View
             ref={counterRef}
             collapsable={false}
@@ -465,6 +478,7 @@ export default function HomeScreen() {
               </View>
             </View>
           </View>
+          </AnniversaryGlow>
 
           {/* ─── 3. HIZLI ERİŞİM KISAYOLLARI (QUICK ACTIONS) ─── */}
           <View ref={shortcutsRef} collapsable={false} style={styles.quickActionsContainer}>
@@ -696,6 +710,11 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontFamily: "Inter_400Regular",
     color: "rgba(255,255,255,0.6)",
+  },
+  captionText: {
+    fontSize: 12.5,
+    fontFamily: "Inter_600SemiBold",
+    marginTop: 5,
   },
   menuBtn: {
     width: 42,
