@@ -12,7 +12,7 @@ interface TourGuideButtonProps {
 export function TourGuideButton({
   onPress,
   size = 18,
-  variant = "lightbulb",
+  variant = "help",
 }: TourGuideButtonProps) {
   const { theme, isLight } = useTheme();
 

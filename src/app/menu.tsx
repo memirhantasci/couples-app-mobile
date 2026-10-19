@@ -508,11 +508,11 @@ export default function MenuScreen() {
                   onPress={async () => {
                     await resetAllPageTours();
                     setShowGuideCatalog(false);
-                    Alert.alert("Sıfırlandı 🎉", "Tüm tanıtım turları sıfırlandı. Sayfalara girdiğinizde ilk defa giriyormuşsunuz gibi turlar otomatik açılacaktır.");
+                    Alert.alert("Sıfırlandı 🎉", "Ana Sayfa'ya döndüğünüzde kısa tanıtım turu yeniden gösterilecek. Diğer sayfaların rehberine sağ üstteki ? butonundan ulaşabilirsiniz.");
                   }}
                   style={{ marginTop: 12, padding: 14, borderRadius: 14, backgroundColor: theme.pillAccentBg, borderWidth: 1, borderColor: theme.pillAccentBorder, alignItems: "center" }}
                 >
-                  <Text style={{ color: theme.accent, fontWeight: "700", fontSize: 14 }}>Tüm Tanıtımları Baştan Başlat 🔄</Text>
+                  <Text style={{ color: theme.accent, fontWeight: "700", fontSize: 14 }}>Ana Sayfa Turunu Yeniden Başlat 🔄</Text>
                 </TouchableOpacity>
               </ScrollView>
             </View>

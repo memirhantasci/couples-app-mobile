@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
-  Dimensions,
 } from "react-native";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -41,8 +40,6 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  ListFilter,
-  Check,
   Lightbulb,
 } from "lucide-react-native";
 
@@ -85,19 +82,15 @@ interface PageTourModalProps {
   onClose: () => void;
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
 export function PageTourModal({ visible, guide, onClose }: PageTourModalProps) {
   const { theme, isLight } = useTheme();
   const insets = useSafeAreaInsets();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [viewMode, setViewMode] = useState<"step" | "list">("step");
 
   // Reset to first step when modal opens
   React.useEffect(() => {
     if (visible) {
       setCurrentIndex(0);
-      setViewMode("step");
     }
   }, [visible]);
 
@@ -162,47 +155,9 @@ export function PageTourModal({ visible, guide, onClose }: PageTourModalProps) {
                 {getIcon(guide.icon, 20, theme.accent)}
               </View>
               <View style={styles.headerTextCol}>
-                <View style={styles.badgeRow}>
-                  <Text style={[styles.headerTagline, { color: theme.accent }]}>
-                    {guide.tagline}
-                  </Text>
-                  <View style={[styles.modeToggle, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)" }]}>
-                    <TouchableOpacity
-                      onPress={() => setViewMode("step")}
-                      style={[
-                        styles.modeBtn,
-                        viewMode === "step" && { backgroundColor: theme.accent },
-                      ]}
-                      activeOpacity={0.8}
-                    >
-                      <Text
-                        style={[
-                          styles.modeBtnText,
-                          { color: viewMode === "step" ? "#fff" : (isLight ? "#666" : "rgba(255,255,255,0.6)") },
-                        ]}
-                      >
-                        Tur
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => setViewMode("list")}
-                      style={[
-                        styles.modeBtn,
-                        viewMode === "list" && { backgroundColor: theme.accent },
-                      ]}
-                      activeOpacity={0.8}
-                    >
-                      <Text
-                        style={[
-                          styles.modeBtnText,
-                          { color: viewMode === "list" ? "#fff" : (isLight ? "#666" : "rgba(255,255,255,0.6)") },
-                        ]}
-                      >
-                        Liste
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+                <Text style={[styles.headerTagline, { color: theme.accent }]}>
+                  {guide.tagline}
+                </Text>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>
                   {guide.title} Rehberi
                 </Text>
@@ -225,8 +180,8 @@ export function PageTourModal({ visible, guide, onClose }: PageTourModalProps) {
             </TouchableOpacity>
           </View>
 
-          {/* Body: Step Mode */}
-          {viewMode === "step" && currentFeature && (
+          {/* Body */}
+          {currentFeature && (
             <View style={styles.stepContent}>
               {/* Progress Indicator */}
               <View style={styles.stepProgressRow}>
@@ -394,151 +349,6 @@ export function PageTourModal({ visible, guide, onClose }: PageTourModalProps) {
               </View>
             </View>
           )}
-
-          {/* Body: List Mode */}
-          {viewMode === "list" && (
-            <View style={styles.listContent}>
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.listScrollContent}
-              >
-                <Text
-                  style={[
-                    styles.listSummaryText,
-                    { color: isLight ? "#6B6577" : "rgba(255,255,255,0.65)" },
-                  ]}
-                >
-                  {guide.summary}
-                </Text>
-
-                {features.map((feat, idx) => (
-                  <View
-                    key={feat.id}
-                    style={[
-                      styles.listItemCard,
-                      {
-                        backgroundColor: isLight
-                          ? "rgba(0,0,0,0.03)"
-                          : "rgba(255,255,255,0.04)",
-                        borderColor: isLight
-                          ? "rgba(0,0,0,0.06)"
-                          : "rgba(255,255,255,0.08)",
-                      },
-                    ]}
-                  >
-                    <View style={styles.listItemHeader}>
-                      <View
-                        style={[
-                          styles.listItemIconBox,
-                          {
-                            backgroundColor: theme.pillAccentBg,
-                            borderColor: theme.pillAccentBorder,
-                          },
-                        ]}
-                      >
-                        {getIcon(feat.icon, 18, theme.accent)}
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <View style={styles.featureBadgeWrapper}>
-                          <Text
-                            style={[
-                              styles.listItemTitle,
-                              { color: theme.text },
-                            ]}
-                          >
-                            {feat.title}
-                          </Text>
-                          {feat.badge && (
-                            <View
-                              style={[
-                                styles.featureBadge,
-                                { backgroundColor: theme.pillAccentBg },
-                              ]}
-                            >
-                              <Text
-                                style={[
-                                  styles.featureBadgeText,
-                                  { color: theme.accent },
-                                ]}
-                              >
-                                {feat.badge}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                      </View>
-                    </View>
-
-                    <Text
-                      style={[
-                        styles.listItemDesc,
-                        {
-                          color: isLight
-                            ? "#4E4858"
-                            : "rgba(255,255,255,0.78)",
-                        },
-                      ]}
-                    >
-                      {feat.description}
-                    </Text>
-
-                    {feat.tip && (
-                      <View
-                        style={[
-                          styles.tipBox,
-                          {
-                            backgroundColor: isLight
-                              ? "rgba(0,0,0,0.02)"
-                              : "rgba(255,255,255,0.03)",
-                            borderColor: theme.pillAccentBorder,
-                            marginTop: 10,
-                          },
-                        ]}
-                      >
-                        <Lightbulb
-                          size={14}
-                          color={theme.accent}
-                          style={{ marginTop: 2 }}
-                        />
-                        <View style={styles.tipTextCol}>
-                          <Text
-                            style={[
-                              styles.tipTitle,
-                              { color: theme.accent, fontSize: 11 },
-                            ]}
-                          >
-                            Püf Noktası
-                          </Text>
-                          <Text
-                            style={[
-                              styles.tipDesc,
-                              {
-                                color: isLight
-                                  ? "#6B6577"
-                                  : "rgba(255,255,255,0.65)",
-                                fontSize: 12,
-                              },
-                            ]}
-                          >
-                            {feat.tip}
-                          </Text>
-                        </View>
-                      </View>
-                    )}
-                  </View>
-                ))}
-              </ScrollView>
-
-              <TouchableOpacity
-                onPress={onClose}
-                style={[styles.listDoneBtn, { backgroundColor: theme.accent }]}
-                activeOpacity={0.85}
-              >
-                <Check size={18} color="#fff" />
-                <Text style={styles.listDoneBtnText}>Anladım, Harika!</Text>
-              </TouchableOpacity>
-            </View>
-          )}
         </View>
       </View>
     </Modal>
@@ -591,32 +401,11 @@ const styles = StyleSheet.create({
   headerTextCol: {
     flex: 1,
   },
-  badgeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingRight: 8,
-  },
   headerTagline: {
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.5,
     textTransform: "uppercase",
-  },
-  modeToggle: {
-    flexDirection: "row",
-    borderRadius: 14,
-    padding: 2,
-    marginLeft: 6,
-  },
-  modeBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-  },
-  modeBtnText: {
-    fontSize: 10,
-    fontWeight: "700",
   },
   headerTitle: {
     fontSize: 17,
@@ -763,63 +552,6 @@ const styles = StyleSheet.create({
   navNextText: {
     color: "#FFFFFF",
     fontSize: 14.5,
-    fontWeight: "700",
-  },
-
-  // List mode
-  listContent: {
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    maxHeight: 460,
-  },
-  listScrollContent: {
-    paddingBottom: 20,
-  },
-  listSummaryText: {
-    fontSize: 13.5,
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  listItemCard: {
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginBottom: 12,
-  },
-  listItemHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  listItemIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 10,
-  },
-  listItemTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  listItemDesc: {
-    fontSize: 13.5,
-    lineHeight: 19,
-  },
-  listDoneBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    borderRadius: 16,
-    gap: 8,
-    marginTop: 6,
-  },
-  listDoneBtnText: {
-    color: "#FFFFFF",
-    fontSize: 15,
     fontWeight: "700",
   },
 });

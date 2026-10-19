@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useMemo } from "react";
+import React, { useCallback, useState, useEffect, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -38,9 +38,10 @@ import { MoodSelector } from "@/components/home/MoodSelector";
 import { DailyNoteCard } from "@/components/home/DailyNoteCard";
 import { MeetingCountdown, type Meeting } from "@/components/home/MeetingCountdown";
 import { PendingLettersCard } from "@/components/home/PendingLettersCard";
-import { usePageTour } from "@/hooks/usePageTour";
-import { PageTourModal } from "@/components/tour/PageTourModal";
+import { useHomeSpotlightTour } from "@/hooks/useHomeSpotlightTour";
+import { SpotlightTour, type SpotlightStep } from "@/components/tour/SpotlightTour";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
+import { HOME_SPOTLIGHT_STEPS, type HomeSpotlightTargetId } from "@/constants/featureGuides";
 import { DEMO_HOME_DATA, DEMO_LOVE_SCORE } from "@/constants/demoData";
 import { CoupleWrappedModal } from "@/components/wrapped/CoupleWrappedModal";
 import { computeCoupleWrapped, CoupleWrappedData } from "@/utils/wrappedCalculator";
@@ -62,7 +63,25 @@ export default function HomeScreen() {
   const [isWrappedVisible, setIsWrappedVisible] = useState(false);
   const [wrappedData, setWrappedData] = useState<CoupleWrappedData | null>(null);
   const [showWrappedBanner, setShowWrappedBanner] = useState(false);
-  const { isTourVisible, guide, openTour, closeTour } = usePageTour("home");
+  // ─── Spotlight turu hedefleri ───
+  const counterRef = useRef<View>(null);
+  const shortcutsRef = useRef<View>(null);
+  const moodRef = useRef<View>(null);
+  const menuRef = useRef<View>(null);
+  // Tek seferlik oluşturulur: SpotlightTour'a her render'da aynı dizi gider
+  const [spotlightSteps] = useState<SpotlightStep[]>(() => {
+    const targets: Record<HomeSpotlightTargetId, { ref: React.RefObject<View | null>; radius: number }> = {
+      counter: { ref: counterRef, radius: 24 },
+      shortcuts: { ref: shortcutsRef, radius: 18 },
+      mood: { ref: moodRef, radius: 20 },
+      menu: { ref: menuRef, radius: 21 },
+    };
+    return HOME_SPOTLIGHT_STEPS.map((s) => ({
+      ...s,
+      targetRef: targets[s.id].ref,
+      radius: targets[s.id].radius,
+    }));
+  });
 
   const currentMonthKey = dayjs().format("YYYY_MM");
 
@@ -327,6 +346,16 @@ export default function HomeScreen() {
     });
   }, [dashboardData, activeMeeting, name, daysSinceTogether, daysSinceMeeting, loveMeter]);
 
+  // ─── SPOTLIGHT TURU ───
+  // Eşleşme sonrası ilk Ana Sayfa ziyaretinde bir kez otomatik başlar; demo/misafir modunda asla.
+  const {
+    isVisible: isSpotlightVisible,
+    start: startSpotlight,
+    close: closeSpotlight,
+  } = useHomeSpotlightTour({
+    canAutoStart: !isDemoMode && !!session && !!dashboardData && !isWrappedVisible,
+  });
+
   if ((!session && !isDemoMode) || (!dashboardData && isLoading && !isDemoMode)) {
     return (
       <ScreenBackground style={{ paddingTop: insets.top + 20, paddingHorizontal: 20 }}>
@@ -380,8 +409,12 @@ export default function HomeScreen() {
               </View>
             </View>
 
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 0 }}>
-              <TourGuideButton onPress={openTour} />
+            <View
+              ref={menuRef}
+              collapsable={false}
+              style={{ flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 0 }}
+            >
+              <TourGuideButton onPress={startSpotlight} />
               <TouchableOpacity 
                 onPress={() => router.push("/menu")} 
                 style={[
@@ -400,7 +433,11 @@ export default function HomeScreen() {
           </View>
 
           {/* ─── 2. HERO İLİŞKİ SAYACI KARTI ─── */}
-          <View style={[styles.heroLoveCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View
+            ref={counterRef}
+            collapsable={false}
+            style={[styles.heroLoveCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+          >
             <View style={[styles.heroTopBadge, { backgroundColor: theme.pillAccentBg }]}>
               <Heart size={13} color={theme.accent} fill={theme.accent} />
               <Text style={[styles.heroTopBadgeText, { color: theme.accent }]}>
@@ -430,7 +467,7 @@ export default function HomeScreen() {
           </View>
 
           {/* ─── 3. HIZLI ERİŞİM KISAYOLLARI (QUICK ACTIONS) ─── */}
-          <View style={styles.quickActionsContainer}>
+          <View ref={shortcutsRef} collapsable={false} style={styles.quickActionsContainer}>
             <TouchableOpacity 
               style={[styles.actionPill, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
               onPress={() => router.push("/(tabs)/photos")}
@@ -476,7 +513,15 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* ─── 4. GÜNÜN SÖZÜ ─── */}
+          {/* ─── 4. MOD SEÇİMİ (günlük ana aksiyon: kısayolların hemen altında, ilk ekranda görünür) ─── */}
+          <View ref={moodRef} collapsable={false}>
+            <MoodSelector
+              currentMood={dashboardData?.currentMood}
+              theme={theme}
+            />
+          </View>
+
+          {/* ─── 5. GÜNÜN SÖZÜ ─── */}
           <View style={[styles.quoteCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
             <View style={styles.quoteHeaderRow}>
               <View style={[styles.quoteStarCircle, { backgroundColor: theme.pillAccentBg }]}>
@@ -487,7 +532,7 @@ export default function HomeScreen() {
             <Text style={[styles.quoteText, { color: theme.text }]}>“{quote}”</Text>
           </View>
 
-          {/* ─── 5. AŞK ÖLÇER ─── */}
+          {/* ─── 6. AŞK ÖLÇER ─── */}
           <LoveMeter 
             value={loveMeter} 
             theme={theme} 
@@ -533,7 +578,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           )}
 
-          {/* ─── 6. BULUŞMA GERİ SAYIMI ─── */}
+          {/* ─── 7. BULUŞMA GERİ SAYIMI ─── */}
           {activeMeeting && (
             // key: farklı/güncellenen buluşmada geri sayım durumu (ör. "gerçekleşti") sıfırdan başlasın
             <MeetingCountdown
@@ -543,12 +588,6 @@ export default function HomeScreen() {
             />
           )}
 
-          {/* ─── 7. MOD SEÇİMİ ─── */}
-          <MoodSelector
-            currentMood={dashboardData?.currentMood}
-            theme={theme}
-          />
-
           {/* ─── 8. GÜNLÜK NOT ─── */}
           <DailyNoteCard existingNote={dashboardData?.currentNote} theme={theme} />
 
@@ -556,7 +595,7 @@ export default function HomeScreen() {
           <PendingLettersCard letters={dashboardData?.pendingLetters || []} theme={theme} />
         </KeyboardAwareScrollView>
       </View>
-      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <SpotlightTour visible={isSpotlightVisible} steps={spotlightSteps} onClose={closeSpotlight} />
       <CoupleWrappedModal
         visible={isWrappedVisible}
         onClose={() => setIsWrappedVisible(false)}

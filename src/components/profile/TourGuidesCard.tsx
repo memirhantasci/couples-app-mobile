@@ -43,7 +43,7 @@ export function TourGuidesCard({ theme, isLight, onOpenTour }: TourGuidesCardPro
         <TouchableOpacity
           onPress={async () => {
             await resetAllPageTours();
-            Alert.alert("Sıfırlandı 🎉", "Tüm sayfaların ilk açılış tanıtım turları sıfırlandı. Sayfaları ziyaret ettiğinizde tanıtımlar baştan gösterilecektir.");
+            Alert.alert("Sıfırlandı 🎉", "Ana Sayfa'ya döndüğünüzde kısa tanıtım turu yeniden gösterilecek. Diğer sayfaların rehberine sağ üstteki ? butonundan ulaşabilirsiniz.");
           }}
           style={[
             profileSharedStyles.logoutBtn,
@@ -54,7 +54,7 @@ export function TourGuidesCard({ theme, isLight, onOpenTour }: TourGuidesCardPro
           ]}
           activeOpacity={0.8}
         >
-          <Text style={[profileSharedStyles.logoutBtnText, { color: theme.text }]}>Tüm Sayfa Tanıtımlarını Baştan Başlat 🔄</Text>
+          <Text style={[profileSharedStyles.logoutBtnText, { color: theme.text }]}>Ana Sayfa Turunu Yeniden Başlat 🔄</Text>
         </TouchableOpacity>
       </View>
     </ModernSection>

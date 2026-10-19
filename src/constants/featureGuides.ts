@@ -16,6 +16,44 @@ export interface PageTourGuide {
   features: FeatureItem[];
 }
 
+// ─── Ana Sayfa Spotlight Turu ────────────────────────────────────────────────
+// Ana sayfadaki hedef alanların üzerine ışık tutan kısa tur (yalnızca Ana Sayfa).
+export type HomeSpotlightTargetId = "counter" | "shortcuts" | "mood" | "menu";
+
+export interface SpotlightStepContent {
+  id: HomeSpotlightTargetId;
+  title: string;
+  icon: string; // Lucide icon key
+  description: string;
+}
+
+export const HOME_SPOTLIGHT_STEPS: SpotlightStepContent[] = [
+  {
+    id: "counter",
+    title: "Birliktelik Sayacı",
+    icon: "Heart",
+    description: "Birlikte geçirdiğiniz her gün burada canlı olarak sayılır. İlişki tarihlerinizi Profil'den dilediğiniz zaman güncelleyebilirsiniz.",
+  },
+  {
+    id: "shortcuts",
+    title: "Hızlı Kısayollar",
+    icon: "Mail",
+    description: "Galeri, günlüğün, mühürlü mektuplar ve buluşma planlayıcı tek dokunuş uzağında.",
+  },
+  {
+    id: "mood",
+    title: "Günün Modu",
+    icon: "Sparkles",
+    description: "Bugün nasıl hissettiğini seç; partnerin anında haberdar olsun ve birbirinize destek olun.",
+  },
+  {
+    id: "menu",
+    title: "Menü ve Rehber",
+    icon: "HelpCircle",
+    description: "Tüm sayfalar menüde. Bir sayfanın ne işe yaradığını merak edersen sağ üstteki ? butonuna dokunman yeterli.",
+  },
+];
+
 export const FEATURE_GUIDES: Record<string, PageTourGuide> = {
   home: {
     pageKey: "home",
