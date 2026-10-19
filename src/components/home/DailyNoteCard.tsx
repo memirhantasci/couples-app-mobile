@@ -19,6 +19,7 @@ import { BookOpen } from "lucide-react-native";
 import { AppTheme } from "@/lib/theme";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
+import { toast } from "@/lib/toast";
 
 interface DailyNoteCardProps {
   existingNote?: string | null;
@@ -66,6 +67,7 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
     if (!error) {
       setSaved(true);
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
+      toast.success("Günlük notun kaydedildi ✨");
     } else {
       logger.error("Note save error:", JSON.stringify(error, null, 2));
       alert("Not kaydedilemedi: " + (error?.message || "Bilinmeyen hata"));

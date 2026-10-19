@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -30,6 +31,7 @@ import { DEMO_MEETINGS } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { sanitizeStrict } from "@/utils/sanitize";
+import { toast } from "@/lib/toast";
 
 export default function MeetingsScreen() {
   const router = useRouter();
@@ -147,6 +149,7 @@ export default function MeetingsScreen() {
       const cleanLocation = locationName.trim() ? sanitizeStrict(locationName.trim()) : null;
 
       let savedMeetingId: string | number | null = editingMeetingId;
+      let successMessage = "";
 
       if (editingMeetingId) {
         const { error } = await supabase.from("meetings").update({
@@ -158,7 +161,7 @@ export default function MeetingsScreen() {
         }).eq("id", editingMeetingId);
         
         if (error) throw error;
-        Alert.alert("Başarılı 🎉", "Buluşma başarıyla güncellendi!");
+        successMessage = "Buluşma güncellendi 🎉";
       } else {
         const { data: insertedData, error } = await supabase.from("meetings").insert({
           meeting_datetime: utcDateTime,
@@ -194,7 +197,7 @@ export default function MeetingsScreen() {
           );
         }
 
-        Alert.alert("Başarılı 🎉", "Buluşma başarıyla planlandı!");
+        successMessage = "Buluşma planlandı 🎉";
       }
 
       // Buluşmaya 2 saat kala yerel hatırlatıcı kur. Zaman geçmişteyse (düzenleme buluşmayı yakına
@@ -208,6 +211,8 @@ export default function MeetingsScreen() {
       queryClient.invalidateQueries({ queryKey: ["meetings", coupleId] });
       queryClient.invalidateQueries({ queryKey: ["map_meetings", coupleId] });
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
+      // Form modalı kapanırken değil, kapandıktan sonra görünsün (modalın arkasında kalmasın)
+      toast.success(successMessage, { delay: 350 });
     } catch (error: any) {
       Alert.alert("Hata", "İşlem gerçekleştirilemedi. Lütfen daha sonra tekrar deneyin.");
     } finally {
@@ -424,23 +429,23 @@ export default function MeetingsScreen() {
                 );
               })
             ) : (
-              <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
-                <MapPin size={36} color={theme.textMuted} />
-                <Text style={[styles.emptyTitle, { color: theme.text }]}>Aktif Buluşma Yok</Text>
-                <Text style={[styles.emptySub, { color: theme.textSecondary }]}>
-                  Birlikte romantik bir akşam yemeği veya kahve molası planlamak için hemen yeni bir buluşma oluşturun.
-                </Text>
-                <TouchableOpacity 
-                  style={[styles.emptyAddBtn, { backgroundColor: theme.accent }]}
-                  onPress={() => {
-                    handleCancelEdit();
-                    setShowFormModal(true);
-                  }}
-                >
-                  <Plus size={15} color="#ffffff" />
-                  <Text style={styles.emptyAddBtnText}>Buluşma Planla</Text>
-                </TouchableOpacity>
-              </View>
+              <EmptyState
+                emoji="🥂"
+                title={pastMeetings.length > 0 ? "Sıradaki buluşma henüz yok" : "İlk buluşmanızı planlayın"}
+                description={
+                  pastMeetings.length > 0
+                    ? "Yeni bir akşam yemeği, kahve molası ya da küçük bir kaçamak planlamaya ne dersiniz?"
+                    : "Romantik bir akşam yemeği ya da kahve molası planlayın; geri sayım ana sayfanızda sizi heyecanla bekler."
+                }
+                ctaLabel={pastMeetings.length > 0 ? "Yeni Buluşma Planla 🥂" : "İlk Buluşmayı Planla 🥂"}
+                onPressCta={() => {
+                  handleCancelEdit();
+                  setShowFormModal(true);
+                }}
+                theme={theme}
+                compact
+                style={styles.emptyState}
+              />
             )}
           </View>
 
@@ -864,40 +869,8 @@ const styles = StyleSheet.create({
   },
 
   /* BOŞ DURUM */
-  emptyCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    marginTop: 4,
-  },
-  emptySub: {
-    fontSize: 12.5,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.5)",
-    textAlign: "center",
-    lineHeight: 18,
-  },
-  emptyAddBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 14,
-    marginTop: 6,
-  },
-  emptyAddBtnText: {
-    color: "#ffffff",
-    fontSize: 13,
-    fontFamily: "Inter_700Bold",
+  emptyState: {
+    marginTop: 0,
   },
 
   /* MODAL */

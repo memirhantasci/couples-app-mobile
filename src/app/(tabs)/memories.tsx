@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Fla
 import { Image } from "expo-image";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
@@ -165,6 +166,18 @@ export default function MemoriesScreen() {
     );
   };
 
+  // Hem alt "Yeni Özel Gün Ekle" butonu hem de boş durum eylemi kullanır
+  const goToAddMemory = () => {
+    if (executeOrIntercept(
+      () => router.push("/(tabs)/add-memory"),
+      "Özel Gün ve Anı Eklemek İçin Kayıt Olun 💖",
+      "İlişkinizin dönüm noktalarını kaydetmek ve yıldönümü bildirimleri almak için ücretsiz hesabınızı oluşturun."
+    )) {
+      return;
+    }
+    router.push("/(tabs)/add-memory");
+  };
+
   const handleEdit = (memory: any) => {
     if (executeOrIntercept(
       () => {},
@@ -315,10 +328,15 @@ export default function MemoriesScreen() {
           <Skeleton height={150} borderRadius={16} />
         </View>
       ) : memories?.length === 0 ? (
-        <View style={[styles.emptyBox, { borderColor: theme.cardBorder, backgroundColor: theme.cardBg }]}>
-          <Text style={{ fontSize: 48 }}>📸</Text>
-          <Text style={[styles.emptyText, { color: theme.textMuted }]}>Henüz anı eklenmedi</Text>
-        </View>
+        <EmptyState
+          emoji="🎞️"
+          title="Anı defteriniz henüz bembeyaz"
+          description="Tanıştığınız günü, ilk buluşmanızı, size özel her şeyi ekleyin; yıllar sonra ilk sayfa sizi gülümsetsin."
+          ctaLabel="İlk Özel Günü Ekle ✨"
+          onPressCta={goToAddMemory}
+          theme={theme}
+          style={styles.emptyState}
+        />
       ) : (
         <View style={styles.timelineContainer}>
           {/* Vertical line matching the screenshot (very dark burgundy or theme.unitBg with opacity) */}
@@ -346,16 +364,7 @@ export default function MemoriesScreen() {
         <Animated.View entering={FadeInUp.duration(250)} style={styles.addBtnContainer}>
           <TouchableOpacity 
             style={[styles.addBtn, { backgroundColor: theme.accent }]}
-            onPress={() => {
-              if (executeOrIntercept(
-                () => router.push("/(tabs)/add-memory"),
-                "Özel Gün ve Anı Eklemek İçin Kayıt Olun 💖",
-                "İlişkinizin dönüm noktalarını kaydetmek ve yıldönümü bildirimleri almak için ücretsiz hesabınızı oluşturun."
-              )) {
-                return;
-              }
-              router.push("/(tabs)/add-memory");
-            }}
+            onPress={goToAddMemory}
             activeOpacity={0.8}
           >
             <PlusCircle size={20} color="#fff" />
@@ -400,23 +409,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Inter_600SemiBold",
   },
-  emptyBox: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 40,
-    marginTop: 20,
+  emptyState: {
     marginHorizontal: 20,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.03)",
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: "rgba(255,255,255,0.1)",
-  },
-  emptyText: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.4)",
-    fontFamily: "Inter_400Regular",
-    marginTop: 12,
   },
   timelineContainer: {
     flex: 1,

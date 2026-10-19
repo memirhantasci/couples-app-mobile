@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { getTheme } from "@/lib/theme";
 import { logger } from "@/utils/logger";
+import { toast } from "@/lib/toast";
 
 const isExpoGo = Constants.appOwnership === 'expo';
 const hasAdsModule = typeof TurboModuleRegistry?.get === 'function' && !!TurboModuleRegistry.get('RNGoogleMobileAdsModule');
@@ -88,7 +89,8 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
       if (error) throw error;
       
       await refreshProfile();
-      Alert.alert("Tebrikler!", "25 Token kazandınız.");
+      // Reklam modalı onSuccess ile kapanır → pil kapanışı bekleyip modalın önünde görünsün
+      toast.success("25 Token kazandın!", { title: "Tebrikler!", emoji: "🪙", delay: 350 });
       onSuccess();
     } catch (error: any) {
       logger.error("Earn token error:", error);

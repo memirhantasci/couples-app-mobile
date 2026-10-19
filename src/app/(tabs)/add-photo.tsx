@@ -32,6 +32,7 @@ import { MapPickerModal } from "@/components/MapPickerModal";
 import { extractPhotoExif, isValidCoordinate, geocodeAddressString } from "@/utils/exifHelper";
 import { sanitize, sanitizeStrict } from "@/utils/sanitize";
 import { playCameraClick } from "@/lib/soundEffects";
+import { toast } from "@/lib/toast";
 
 interface LocationData {
   latitude: number;
@@ -203,17 +204,17 @@ export default function AddPhotoScreen() {
     setErrors(newErrors);
 
     if (newErrors.photo) {
-      Alert.alert("Eksik", "Lütfen bir fotoğraf seçin.");
+      toast.warning("Lütfen bir fotoğraf seçin.", { title: "Eksik bilgi" });
       return;
     }
 
     if (!takenDate) {
-      Alert.alert("Eksik", "Lütfen bir çekim tarihi girin.");
+      toast.warning("Lütfen bir çekim tarihi girin.", { title: "Eksik bilgi" });
       return;
     }
 
     if (newErrors.description) {
-      Alert.alert("Eksik", "Lütfen fotoğraf için bir açıklama veya hikaye girin.");
+      toast.warning("Lütfen fotoğraf için bir açıklama veya hikaye girin.", { title: "Eksik bilgi" });
       return;
     }
 
@@ -317,18 +318,14 @@ export default function AddPhotoScreen() {
         });
       }
 
-      Alert.alert("Başarılı", "Fotoğraf başarıyla ortak arşive eklendi! 🎉", [
-        {
-          text: "Harika",
-          onPress: () => {
-            if (router.canGoBack()) {
-              router.back();
-            } else {
-              router.replace("/(tabs)/photos");
-            }
-          },
-        },
-      ]);
+      // "Tamam"a bastırmak yerine süzülen bir pil; sayfa hemen kapanır, pil galeride görünmeye devam eder.
+      // Kamera deklanşörü haptiği zaten verildi (playCameraClick) → pilde ayrı titreşim yok.
+      toast.success("Fotoğraf ortak arşive eklendi! 🎉", { haptic: false });
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace("/(tabs)/photos");
+      }
     } catch (error: any) {
       logger.error("Photo save error:", error);
       Alert.alert("Hata", "Kaydetme sırasında bir sorun oluştu: " + (error?.message || ""));

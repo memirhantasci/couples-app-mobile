@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { 
   View, Text, FlatList, StyleSheet, TouchableOpacity, 
   ActivityIndicator, TextInput, Alert, KeyboardAvoidingView, 
@@ -33,7 +33,10 @@ import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { DEMO_LETTERS } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
-import { playLetterSend } from "@/lib/soundEffects";
+import { playLetterSend, hapticStamp } from "@/lib/soundEffects";
+import { toast } from "@/lib/toast";
+import { markLettersSeen } from "@/lib/letterArrival";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { PermissionPrimingModal } from "@/components/common/PermissionPrimingModal";
 import { useNotificationPriming } from "@/hooks/useNotificationPriming";
@@ -208,6 +211,15 @@ export default function LettersScreen() {
   const receivedLetters = data?.received || [];
   const sentLetters = data?.sent || [];
 
+  // Mektuplar ekranı odaktayken gelen kutusu görülüyor: en yeni gelen mektup "görüldü" sayılır;
+  // böylece uygulamaya sonra girildiğinde aynı mektup için kuş karşılaması tekrar oynamaz.
+  const latestReceivedAt: string | null = receivedLetters[0]?.created_at ?? null;
+  useFocusEffect(
+    useCallback(() => {
+      if (userId && latestReceivedAt) markLettersSeen(userId, latestReceivedAt);
+    }, [userId, latestReceivedAt])
+  );
+
   const handleOpenWriteModal = () => {
     if (executeOrIntercept(
       () => {},
@@ -245,6 +257,9 @@ export default function LettersScreen() {
       return;
     }
 
+    // Doğrulama geçti ve mühürleme başlıyor: mühür basılırken tok bir darbe hissi.
+    // (Mektup gerçekten mühürlenince playLetterSend başarı titreşimini verir.)
+    hapticStamp();
     setLoadingForm(true);
 
     try {
@@ -601,27 +616,18 @@ export default function LettersScreen() {
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
-              <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
-                <Text style={{ fontSize: 38, marginBottom: 12 }}>📮</Text>
-                <Text style={[styles.emptyTitle, { color: theme.text }]}>
-                  {activeTab === "received" 
-                    ? "Henüz Mektubun Yok" 
-                    : activeTab === "sent" 
-                    ? "Henüz Mektup Göndermedin" 
-                    : "Henüz Mektup Bulunmuyor"}
-                </Text>
-                <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
-                  {activeTab === "received" 
-                    ? "Partnerin sana henüz bir zaman mektubu mühürlememiş. İlk adımı sen atabilirsin!" 
-                    : "Sevdiğine duygularını anlatan, zamanda yolculuk yapacak bir mektup yazmaya ne dersin?"}
-                </Text>
-                <TouchableOpacity 
-                  style={[styles.emptyActionBtn, { backgroundColor: theme.accent }]}
-                  onPress={handleOpenWriteModal}
-                >
-                  <Text style={styles.emptyActionBtnText}>Hemen Mektup Yaz ✍️</Text>
-                </TouchableOpacity>
-              </View>
+              <EmptyState
+                emoji={activeTab === "received" ? "📬" : "💌"}
+                title={activeTab === "received" ? "Sana ilk mektup henüz gelmedi" : "Geleceğe ilk izi bırak!"}
+                description={
+                  activeTab === "received"
+                    ? "Partnerin sana mühürlü bir mektup yazdığında burada belirecek. Sen de ilk adımı atıp ona bir sürpriz bırakabilirsin."
+                    : "Partnerinin ilk yıl dönümünüzde veya doğum gününde açacağı ilk mühürlü mektubunu hemen yaz."
+                }
+                ctaLabel="İlk Mektubu Mühürle 💌"
+                onPressCta={handleOpenWriteModal}
+                theme={theme}
+              />
             }
             ListFooterComponent={
               currentList.length >= pageLimit ? (
@@ -886,8 +892,11 @@ export default function LettersScreen() {
         visible={showOrigamiAnimation}
         onComplete={() => {
           setShowOrigamiAnimation(false);
-          // Mektup uçuşu bittikten sonra, uygunsa bildirim ön-onay kartını göster
-          priming.maybePrompt();
+          // Kuş uçup gidince bloklayıcı bir kart yerine süzülen başarı pili.
+          // Titreşim yok: mühür ve başarı titreşimi zaten verildi.
+          toast.success("Mektubun mühürlendi ve geleceğe emanet edildi ✨", { delay: 250, haptic: false });
+          // Bildirim ön-onay kartı, başarı pili görülebilsin diye biraz sonra gösterilir
+          setTimeout(() => priming.maybePrompt(), 2800);
         }}
         accentColor={theme.accent}
       />
@@ -1137,37 +1146,6 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     color: "rgba(255,255,255,0.4)",
     textAlign: "right",
-  },
-  emptyCard: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 28,
-    borderRadius: 20,
-    marginTop: 20,
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    marginBottom: 6,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.5)",
-    textAlign: "center",
-    lineHeight: 19,
-    marginBottom: 18,
-  },
-  emptyActionBtn: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 16,
-  },
-  emptyActionBtnText: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontFamily: "Inter_700Bold",
   },
 
   /* MODAL STILLERI */

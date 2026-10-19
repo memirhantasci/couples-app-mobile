@@ -1,8 +1,9 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Alert } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { Sparkles } from "lucide-react-native";
 import type { AppTheme } from "@/lib/theme";
 import { resetAllPageTours } from "@/hooks/usePageTour";
+import { toast } from "@/lib/toast";
 import { ModernSection } from "./ModernSection";
 import { profileSharedStyles } from "./profileSharedStyles";
 
@@ -43,7 +44,10 @@ export function TourGuidesCard({ theme, isLight, onOpenTour }: TourGuidesCardPro
         <TouchableOpacity
           onPress={async () => {
             await resetAllPageTours();
-            Alert.alert("Sıfırlandı 🎉", "Ana Sayfa'ya döndüğünüzde kısa tanıtım turu yeniden gösterilecek. Diğer sayfaların rehberine sağ üstteki ? butonundan ulaşabilirsiniz.");
+            toast.success(
+              "Ana Sayfa'ya döndüğünüzde kısa tanıtım turu yeniden gösterilecek. Diğer sayfaların rehberine sağ üstteki ? butonundan ulaşabilirsiniz.",
+              { title: "Sıfırlandı", emoji: "🎉", duration: 4600 }
+            );
           }}
           style={[
             profileSharedStyles.logoutBtn,

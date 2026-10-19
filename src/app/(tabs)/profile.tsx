@@ -18,6 +18,7 @@ import { setGlobalActiveTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { encrypt, decrypt } from "@/utils/crypto";
 import { sanitizeStrict } from "@/utils/sanitize";
+import { toast } from "@/lib/toast";
 import { usePageTour } from "@/hooks/usePageTour";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
@@ -150,7 +151,7 @@ export default function ProfileScreen() {
     if (!session?.user?.id) return;
     if (displayName.trim().length < 2) {
       setNameError(true);
-      Alert.alert("Eksik Bilgi", "Lütfen en az 2 karakterden oluşan bir isim girin.");
+      toast.warning("Lütfen en az 2 karakterden oluşan bir isim girin.", { title: "Eksik bilgi" });
       return;
     }
     setProfileLoading(true);
@@ -166,7 +167,7 @@ export default function ProfileScreen() {
     } else {
       await refreshProfile();
       queryClient.invalidateQueries({ queryKey: ["user_gender"] });
-      Alert.alert("Başarılı ✨", "Profil bilgileriniz başarıyla güncellendi!");
+      toast.success("Profil bilgilerin güncellendi ✨");
     }
   }
 
@@ -181,7 +182,7 @@ export default function ProfileScreen() {
     }
     if (!coupleId) return;
     if (!relStartDate) {
-      Alert.alert("Eksik Tarih", "Lütfen sevgililik tarihinizi belirleyin.");
+      toast.warning("Lütfen sevgililik tarihinizi belirleyin.", { title: "Eksik tarih" });
       return;
     }
     setDatesLoading(true);
@@ -199,7 +200,7 @@ export default function ProfileScreen() {
     } else {
       await refreshProfile();
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
-      Alert.alert("Başarılı 💕", "İlişki tarihleriniz güncellendi!");
+      toast.success("İlişki tarihlerin güncellendi 💕");
     }
   }
 

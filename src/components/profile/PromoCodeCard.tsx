@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { RevenueCatService } from "@/lib/revenuecat";
 import type { AppTheme } from "@/lib/theme";
 import type { useDemoAction } from "@/hooks/useDemoAction";
+import { toast } from "@/lib/toast";
 import { ModernSection } from "./ModernSection";
 
 interface PromoCodeCardProps {
@@ -89,7 +90,7 @@ export function PromoCodeCard({
         if (!rpcError) {
           await refreshProfile();
           setPromoCode("");
-          Alert.alert("Bilgi", "Premium başarıyla sonlandırıldı.");
+          toast.info("Premium başarıyla sonlandırıldı.");
           return;
         }
 
@@ -114,10 +115,7 @@ export function PromoCodeCard({
       if (data?.reward_type === "premium") {
         onPremiumSuccess();
       } else {
-        Alert.alert(
-          "Tebrikler! 🎉",
-          `${data?.reward_amount} Token hesabınıza yüklendi!`
-        );
+        toast.success(`${data?.reward_amount} Token hesabına yüklendi!`, { title: "Tebrikler!", emoji: "🎉" });
       }
 
       setPromoCode("");

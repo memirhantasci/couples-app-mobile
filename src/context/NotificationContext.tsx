@@ -5,6 +5,8 @@ import { useRouter } from "expo-router";
 import { InAppNotificationData, NotificationType } from "@/types/notification";
 import { logger } from "@/utils/logger";
 import { clearNotificationBadge } from "@/lib/notifications";
+import { markLettersSeen } from "@/lib/letterArrival";
+import { useAuth } from "@/context/AuthContext";
 import { InAppNotificationBanner } from "@/components/notifications/InAppNotificationBanner";
 
 interface NotificationContextType {
@@ -19,6 +21,8 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentNotification, setCurrentNotification] = useState<InAppNotificationData | null>(null);
   const router = useRouter();
+  const { session } = useAuth();
+  const userId = session?.user?.id ?? null;
 
   const dismissNotification = useCallback(() => {
     setCurrentNotification(null);
@@ -188,6 +192,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           actionLabel: payloadData.actionLabel,
           metadata: payloadData,
         });
+
+        // Uygulama açıkken gelen mektup bildirimiyle kullanıcı zaten haberdar oldu;
+        // sonra uygulamaya girince aynı mektup için kuş karşılaması oynamasın.
+        if (deducedType === "letter" && userId) markLettersSeen(userId);
       } catch (err) {
         logger.error("[InAppNotification] Error processing incoming notification:", err);
       }
@@ -196,7 +204,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return () => {
       receivedSubscription.remove();
     };
-  }, [showNotification]);
+  }, [showNotification, userId]);
 
   // Bildirime dokunma: hook hem çalışan uygulamadaki dokunuşları hem de uygulama kapalıyken
   // bildirimle açılışı (cold start) yakalar. Aynı dokunuş iki kez yönlendirmesin diye işlenenler hatırlanır.
@@ -211,7 +219,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (handledResponseRef.current === key) return;
     handledResponseRef.current = key;
 
-    const route = (lastResponse.notification.request.content.data as any)?.route;
+    const responseData = lastResponse.notification.request.content.data as any;
+    // Mektup bildirimine dokunan kullanıcı mektuplar ekranına gidiyor: kuş karşılaması gerekmez
+    if (responseData?.type === "letter" && userId) markLettersSeen(userId);
+
+    const route = responseData?.route;
     if (typeof route !== "string" || !route.startsWith("/")) return;
 
     // Soğuk açılışta gezinti ağacı henüz hazır olmayabilir; kısa bir gecikmeyle dene
@@ -223,7 +235,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     }, 400);
     return () => clearTimeout(timer);
-  }, [lastResponse, router]);
+  }, [lastResponse, router, userId]);
 
   // Uygulama açılınca / öne gelince ikon rozetini ve bildirim merkezini temizle
   useEffect(() => {

@@ -10,6 +10,8 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { configureAndroidNotificationChannel, notifyPairingComplete } from "@/lib/notifications";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
+import { ToastHost } from "@/components/ui/ToastHost";
+import { LetterArrivalHost } from "@/components/letters/LetterArrivalHost";
 
 import {
   useFonts,
@@ -189,6 +191,10 @@ export default function RootLayout() {
             <TabBarProvider>
               <NotificationProvider>
                 <RootLayoutNav />
+                {/* Partnerinden mektup gelmişse uygulamaya girince sol üstten uçup konan kuş */}
+                <LetterArrivalHost />
+                {/* Alert yerine süzülen hap bildirimleri; ağacın en üstünde çizilir */}
+                <ToastHost />
               </NotificationProvider>
             </TabBarProvider>
           </ThemeProvider>

@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -331,19 +332,14 @@ export default function DailyNotesScreen() {
               />
             }
             ListEmptyComponent={
-              <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
-                <Text style={{ fontSize: 40, marginBottom: 12 }}>📓</Text>
-                <Text style={[styles.emptyTitle, { color: theme.text }]}>Henüz Günlük Yazmadın</Text>
-                <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
-                  Bugün hissettiklerini, sevgilinle geçirdiğin güzel bir anı veya sadece aklından geçenleri buraya kaydederek başlayabilirsin.
-                </Text>
-                <TouchableOpacity 
-                  style={[styles.emptyActionBtn, { backgroundColor: theme.accent }]}
-                  onPress={() => router.push("/(tabs)/add-daily-note")}
-                >
-                  <Text style={styles.emptyActionBtnText}>İlk Sayfayı Yaz ✍️</Text>
-                </TouchableOpacity>
-              </View>
+              <EmptyState
+                emoji="📓"
+                title="Günlüğünün ilk sayfası seni bekliyor"
+                description="Bugün hissettiklerini, sevgilinle yaşadığın güzel bir anı ya da sadece aklından geçenleri yaz; sadece sen okuyabilirsin."
+                ctaLabel="İlk Sayfayı Yaz ✍️"
+                onPressCta={() => router.push("/(tabs)/add-daily-note")}
+                theme={theme}
+              />
             }
           />
         )}
@@ -595,37 +591,6 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     color: "rgba(255,255,255,0.8)",
     lineHeight: 23,
-  },
-  emptyCard: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 30,
-    borderRadius: 22,
-    marginTop: 20,
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    marginBottom: 6,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.5)",
-    textAlign: "center",
-    lineHeight: 19,
-    marginBottom: 18,
-  },
-  emptyActionBtn: {
-    paddingVertical: 12,
-    paddingHorizontal: 22,
-    borderRadius: 16,
-  },
-  emptyActionBtnText: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontFamily: "Inter_700Bold",
   },
 
   /* MODAL */

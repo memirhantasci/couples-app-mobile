@@ -10,6 +10,7 @@ import { X, Crown, Check, ShieldCheck } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LegalModal } from "@/components/legal/LegalModal";
 import { LegalDocType } from "@/constants/legalTexts";
+import { toast } from "@/lib/toast";
 
 export default function PaywallScreen() {
   const router = useRouter();
@@ -58,7 +59,7 @@ export default function PaywallScreen() {
       const customerInfo = await RevenueCatService.purchasePackage(selectedPackage);
       if (customerInfo && typeof customerInfo.entitlements.active['Premium'] !== "undefined") {
         await refreshProfile();
-        Alert.alert("Tebrikler!", "Premium aboneliğiniz başarıyla aktif edildi.");
+        toast.success("Premium aboneliğin başarıyla aktif edildi.", { title: "Tebrikler!", emoji: "👑", duration: 3400 });
         handleBack();
       }
     } catch (e: any) {
@@ -74,10 +75,10 @@ export default function PaywallScreen() {
       const customerInfo = await RevenueCatService.restorePurchases();
       if (customerInfo && typeof customerInfo.entitlements.active['Premium'] !== "undefined") {
         await refreshProfile();
-        Alert.alert("Başarılı", "Satın alımlarınız geri yüklendi.");
+        toast.success("Satın alımların geri yüklendi.");
         handleBack();
       } else {
-        Alert.alert("Bilgi", "Aktif bir aboneliğiniz bulunamadı.");
+        toast.info("Aktif bir aboneliğin bulunamadı.");
       }
     } catch (e: any) {
       Alert.alert("Hata", "Geri yükleme başarısız oldu.");

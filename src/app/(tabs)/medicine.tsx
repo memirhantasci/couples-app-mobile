@@ -27,6 +27,7 @@ import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { sanitizeStrict } from "@/utils/sanitize";
 import { playSuccessChime } from "@/lib/soundEffects";
+import { toast } from "@/lib/toast";
 import { MedicineStreakCard } from "@/components/medicine/MedicineStreakCard";
 import { MedicineDoseCard } from "@/components/medicine/MedicineDoseCard";
 import { MedicineHistoryList } from "@/components/medicine/MedicineHistoryList";
@@ -303,7 +304,8 @@ export default function MedicineScreen() {
           formattedTimes.forEach((t: string) => scheduleMedicineReminder(editingMedicineId, payload.name, t));
         }
 
-        Alert.alert("Başarılı 🎉", "İlaç bilgisi güncellendi.");
+        // İlaç formu modalı sonuç döndükten sonra kapanır → pil kapanışı bekler
+        toast.success("İlaç bilgisi güncellendi 🎉", { delay: 350 });
       } else {
         const { data: newMed, error } = await supabase.from("medicines").insert(payload).select("id").single();
         if (error) throw error;
@@ -312,7 +314,7 @@ export default function MedicineScreen() {
           formattedTimes.forEach((t: string) => scheduleMedicineReminder(newMed.id, payload.name, t));
         }
 
-        Alert.alert("Başarılı 🎉", "Yeni ilaç kaydedildi.");
+        toast.success("Yeni ilaç kaydedildi 🎉", { delay: 350 });
       }
 
       refetch();

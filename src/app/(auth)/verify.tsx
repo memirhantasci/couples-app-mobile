@@ -14,6 +14,7 @@ import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, router } from "expo-router";
 import { supabase } from "@/lib/supabase";
+import { toast } from "@/lib/toast";
 import { navigateAfterAuth } from "@/lib/navigate";
 import { registerForPushNotifications } from "@/lib/notifications";
 import { ArrowLeft, Mail } from "lucide-react-native";
@@ -240,7 +241,7 @@ export default function VerifyScreen() {
     if (error) {
       Alert.alert("Hata", "Kod gönderilemedi. Lütfen tekrar dene.");
     } else {
-      Alert.alert("Gönderildi!", "Yeni doğrulama kodu e-postana gönderildi.");
+      toast.success("Yeni doğrulama kodu e-postana gönderildi.", { title: "Gönderildi!", emoji: "📧" });
     }
   }
 

@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   AppState,
 } from "react-native";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
@@ -19,6 +18,7 @@ import { AppTheme } from "@/lib/theme";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { playBubblePop } from "@/lib/soundEffects";
+import { toast } from "@/lib/toast";
 
 const MOODS = [
   { emoji: "😍", label: "Çok Mutlu" },
@@ -121,22 +121,23 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, theme }: M
       if (elapsed < COOLDOWN_SECONDS) {
         const remaining = COOLDOWN_SECONDS - elapsed;
         setCooldown(remaining);
-        Alert.alert(
-          "Lütfen Biraz Bekleyin ⏳",
-          `Ruh halinizi ${remaining} saniye sonra tekrar güncelleyebilirsiniz.`
-        );
+        toast.info(`Ruh halini ${remaining} saniye sonra tekrar güncelleyebilirsin.`, {
+          title: "Lütfen biraz bekle",
+          emoji: "⏳",
+        });
         return;
       }
     }
 
     if (updateCount >= MAX_DAILY_MOOD_UPDATES) {
-      Alert.alert(
-        "Günlük Limit Doldu 🌸",
-        "Bugün ruh halinizi en fazla 5 kez güncelleyebilirsiniz. Yarın tekrar güncelleyebilirsiniz!"
-      );
+      toast.info("Bugün ruh halini en fazla 5 kez güncelleyebilirsin. Yarın yeniden!", {
+        title: "Günlük limit doldu",
+        emoji: "🌸",
+      });
       return;
     }
 
+    // Ruh hali değişimi: akıcı tekerlek tıkı (selectionAsync) + yumuşak baloncuk sesi
     playBubblePop();
     if (executeOrIntercept(
       () => {},

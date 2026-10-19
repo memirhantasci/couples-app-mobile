@@ -1,23 +1,65 @@
-import React, { useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  Modal,
-  StyleSheet,
-  Animated,
-  Dimensions,
+import React, { useCallback, useEffect, useMemo } from "react";
+import { Modal, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import Animated, {
   Easing,
-  TouchableOpacity,
-} from "react-native";
-import Svg, { Polygon, Defs, LinearGradient, Stop } from "react-native-svg";
-import { Sparkles, Heart } from "lucide-react-native";
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+  Extrapolation,
+  cancelAnimation,
+  interpolate,
+  useAnimatedStyle,
+  useDerivedValue,
+  useReducedMotion,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withSpring,
+  withTiming,
+  type SharedValue,
+} from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
+import { Heart, Sparkles } from "lucide-react-native";
+import { OrigamiBird, ORIGAMI_BIRD_HEAD_OFFSET, ORIGAMI_BIRD_SIZE } from "./OrigamiBird";
+import {
+  cubicBezierPoint,
+  cubicBezierTangent,
+  headingDegrees,
+  smoothstep,
+  type Point,
+} from "@/lib/bezier";
 
 interface OrigamiBirdAnimationProps {
   visible: boolean;
+  /** Animasyon bittiğinde (ya da dokunularak geçildiğinde) tam bir kez çağrılır. */
   onComplete: () => void;
   accentColor?: string;
+}
+
+// ─── Zaman Çizelgesi (ms) ───────────────────────────────────────────────────────
+// 0.0 sn  arka plan kararır, mektup kâğıdı yükselir
+// 0.6 sn  mum mühür kâğıda basılır (şok halkası)
+// 1.3 sn  kâğıt kuşa katlanır
+// 1.5 sn  kuş doğar, kanat çırpmaya başlar
+// 2.1 sn  kuş eğri bir yolda sağ üst köşeye uçar
+// 3.3 sn  biter → çağıran taraf başarı pilini (toast) gösterir
+const T = {
+  scrimIn: 220,
+  paperDelay: 90,
+  sealDelay: 560,
+  foldDelay: 1300,
+  foldDuration: 560,
+  birdDelay: 1520,
+  flightDelay: 2100,
+  flightDuration: 1250,
+  scrimOutDelay: 2950,
+  scrimOutDuration: 380,
+} as const;
+
+const TRAIL_COUNT = 8;
+
+interface FlightPath {
+  p0: Point;
+  p1: Point;
+  p2: Point;
+  p3: Point;
 }
 
 export function OrigamiBirdAnimation({
@@ -25,271 +67,211 @@ export function OrigamiBirdAnimation({
   onComplete,
   accentColor = "#FF4D6D",
 }: OrigamiBirdAnimationProps) {
-  // Paper sheet animations
-  const paperScale = useRef(new Animated.Value(0)).current;
-  const paperOpacity = useRef(new Animated.Value(1)).current;
-  const paperFoldX = useRef(new Animated.Value(1)).current;
-  const paperFoldY = useRef(new Animated.Value(1)).current;
-  const paperRotate = useRef(new Animated.Value(0)).current;
+  // İçerik yalnızca görünürken mount edilir: her gösterim sıfırdan, temiz durumla başlar
+  if (!visible) return null;
+  return <FlightScene onComplete={onComplete} accentColor={accentColor} />;
+}
 
-  // Origami Bird animations
-  const birdOpacity = useRef(new Animated.Value(0)).current;
-  const birdScale = useRef(new Animated.Value(0.3)).current;
-  const birdFlightX = useRef(new Animated.Value(0)).current;
-  const birdFlightY = useRef(new Animated.Value(0)).current;
-  const birdFlightRotate = useRef(new Animated.Value(0)).current;
+function FlightScene({
+  onComplete,
+  accentColor,
+}: {
+  onComplete: () => void;
+  accentColor: string;
+}) {
+  const { width: screenW, height: screenH } = useWindowDimensions();
+  const reduceMotion = useReducedMotion();
 
-  // Wing flapping (continuous smooth oscillation during flight)
-  const wingFlap = useRef(new Animated.Value(0)).current;
+  const scrim = useSharedValue(0);
+  const paperIn = useSharedValue(0);
+  const seal = useSharedValue(0);
+  const shock = useSharedValue(0);
+  const stamp = useSharedValue(0);
+  const fold = useSharedValue(0);
+  const birdIn = useSharedValue(0);
+  const flight = useSharedValue(0);
+  const flapPhase = useSharedValue(0);
+  const completed = useSharedValue(false);
+  const flap = useDerivedValue(() => 0.5 + 0.5 * Math.sin(flapPhase.get() * 2 * Math.PI));
 
-  // Trail sparkles & Success card
-  const sparklesOpacity = useRef(new Animated.Value(0)).current;
-  const successCardOpacity = useRef(new Animated.Value(0)).current;
-  const successCardScale = useRef(new Animated.Value(0.85)).current;
+  // Merkeze göre görece yol: önce hafifçe sola-yukarı bir kalkış kıvrımı, sonra sağ üst köşeye süzülüş
+  const path = useMemo<FlightPath>(
+    () => ({
+      p0: { x: 0, y: 0 },
+      p1: { x: -screenW * 0.1, y: -screenH * 0.2 },
+      p2: { x: screenW * 0.5, y: -screenH * 0.18 },
+      p3: { x: screenW * 0.68, y: -screenH * 0.68 },
+    }),
+    [screenW, screenH]
+  );
+
+  const finish = useCallback(() => {
+    if (completed.get()) return;
+    completed.set(true);
+    onComplete();
+  }, [completed, onComplete]);
 
   useEffect(() => {
-    if (!visible) {
-      paperScale.setValue(0);
-      paperOpacity.setValue(1);
-      paperFoldX.setValue(1);
-      paperFoldY.setValue(1);
-      paperRotate.setValue(0);
-      birdOpacity.setValue(0);
-      birdScale.setValue(0.3);
-      birdFlightX.setValue(0);
-      birdFlightY.setValue(0);
-      birdFlightRotate.setValue(0);
-      wingFlap.setValue(0);
-      sparklesOpacity.setValue(0);
-      successCardOpacity.setValue(0);
-      successCardScale.setValue(0.85);
+    if (reduceMotion) {
+      // Hareket azaltma: sade bir belirme, kısa bekleme ve solma
+      scrim.set(
+        withSequence(
+          withTiming(1, { duration: 200 }),
+          withDelay(
+            1300,
+            withTiming(0, { duration: 250 }, (done) => {
+              "worklet";
+              if (done) scheduleOnRN(finish);
+            })
+          )
+        )
+      );
+      paperIn.set(withTiming(1, { duration: 200 }));
+      seal.set(withTiming(1, { duration: 200 }));
       return;
     }
 
-    // Wing flapping loop
-    const wingLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(wingFlap, {
-          toValue: 1,
-          duration: 150,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(wingFlap, {
-          toValue: 0,
-          duration: 150,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ])
+    scrim.set(
+      withSequence(
+        withTiming(1, { duration: T.scrimIn }),
+        withDelay(
+          T.scrimOutDelay - T.scrimIn,
+          withTiming(0, { duration: T.scrimOutDuration }, (done) => {
+            "worklet";
+            if (done) scheduleOnRN(finish);
+          })
+        )
+      )
     );
-    wingLoop.start();
+    paperIn.set(withDelay(T.paperDelay, withSpring(1, { damping: 13, stiffness: 120 })));
+    // Mühür: yaylı iniş (hafif taşma = basma hissi) + şok halkası + kâğıtta kısa çökme
+    seal.set(withDelay(T.sealDelay, withSpring(1, { damping: 9, stiffness: 170 })));
+    shock.set(
+      withDelay(T.sealDelay + 40, withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) }))
+    );
+    stamp.set(
+      withDelay(
+        T.sealDelay + 40,
+        withSequence(withTiming(1, { duration: 70 }), withTiming(0, { duration: 220 }))
+      )
+    );
+    fold.set(
+      withDelay(
+        T.foldDelay,
+        withTiming(1, { duration: T.foldDuration, easing: Easing.bezier(0.4, 0, 0.2, 1) })
+      )
+    );
+    birdIn.set(withDelay(T.birdDelay, withSpring(1, { damping: 10, stiffness: 140 })));
+    // Kanat çırpışı kalkışta hızlı, süzülürken yavaşlar (yavaşlayan faz = doğal "glide")
+    flapPhase.set(
+      withDelay(
+        T.birdDelay,
+        withTiming(5, {
+          duration: T.flightDelay - T.birdDelay + T.flightDuration,
+          easing: Easing.out(Easing.quad),
+        })
+      )
+    );
+    flight.set(
+      withDelay(
+        T.flightDelay,
+        withTiming(1, { duration: T.flightDuration, easing: Easing.in(Easing.quad) })
+      )
+    );
+  }, [reduceMotion, scrim, paperIn, seal, shock, stamp, fold, birdIn, flapPhase, flight, finish]);
 
-    // ─── MASTER ANIMATION TIMELINE ───
-    Animated.sequence([
-      // 1. Mektup Kağıdı Ortaya Çıkar
-      Animated.spring(paperScale, {
-        toValue: 1,
-        friction: 7,
-        tension: 50,
-        useNativeDriver: true,
-      }),
+  // Dokununca hemen sona sar: arka plan hızla solar, ardından onComplete
+  const skip = useCallback(() => {
+    cancelAnimation(scrim);
+    scrim.set(
+      withTiming(0, { duration: 180 }, (done) => {
+        "worklet";
+        if (done) scheduleOnRN(finish);
+      })
+    );
+  }, [scrim, finish]);
 
-      // Kısa bir bekleme (Mektup okunur)
-      Animated.delay(400),
+  const scrimStyle = useAnimatedStyle(() => ({ opacity: scrim.get() }));
 
-      // 2. Mektup Sayfası Katlanmaya Başlar (Origami Külah / Üçgen & Elmas Katlaması)
-      Animated.parallel([
-        Animated.timing(paperFoldX, {
-          toValue: 0.18,
-          duration: 550,
-          easing: Easing.bezier(0.4, 0, 0.2, 1),
-          useNativeDriver: true,
-        }),
-        Animated.timing(paperFoldY, {
-          toValue: 0.65,
-          duration: 550,
-          easing: Easing.bezier(0.4, 0, 0.2, 1),
-          useNativeDriver: true,
-        }),
-        Animated.timing(paperRotate, {
-          toValue: 1,
-          duration: 550,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(paperOpacity, {
-          toValue: 0,
-          duration: 400,
-          delay: 200,
-          useNativeDriver: true,
-        }),
-
-        // 3. Katlanan Kağıttan Büyülü Origami Kuşu Doğar
-        Animated.sequence([
-          Animated.delay(220),
-          Animated.parallel([
-            Animated.timing(birdOpacity, {
-              toValue: 1,
-              duration: 350,
-              useNativeDriver: true,
-            }),
-            Animated.spring(birdScale, {
-              toValue: 1,
-              friction: 5,
-              tension: 65,
-              useNativeDriver: true,
-            }),
-            Animated.timing(sparklesOpacity, {
-              toValue: 1,
-              duration: 350,
-              useNativeDriver: true,
-            }),
-          ]),
-        ]),
-      ]),
-
-      // Kuş kanatlarını açar ve uçuşa hazırlanır
-      Animated.delay(250),
-
-      // 4. Kuş Kanat Çırparak Gökyüzüne Doğru Süzülür ve Uçar
-      Animated.parallel([
-        // Y ekseninde önce hafif çöker (hazırlık), sonra yukarı fırlar
-        Animated.sequence([
-          Animated.timing(birdFlightY, {
-            toValue: 15,
-            duration: 160,
-            easing: Easing.quad,
-            useNativeDriver: true,
-          }),
-          Animated.timing(birdFlightY, {
-            toValue: -SCREEN_HEIGHT * 0.75,
-            duration: 1200,
-            easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-            useNativeDriver: true,
-          }),
-        ]),
-
-        // X ekseninde sağa doğru uçar
-        Animated.sequence([
-          Animated.timing(birdFlightX, {
-            toValue: -10,
-            duration: 160,
-            easing: Easing.quad,
-            useNativeDriver: true,
-          }),
-          Animated.timing(birdFlightX, {
-            toValue: SCREEN_WIDTH * 0.95,
-            duration: 1200,
-            easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-            useNativeDriver: true,
-          }),
-        ]),
-
-        // Uçuş açısına doğru döner (yaklaşık -35 derece)
-        Animated.timing(birdFlightRotate, {
-          toValue: 1,
-          duration: 1200,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-
-        // Perspektif: Uzaklaştıkça küçülür
-        Animated.timing(birdScale, {
-          toValue: 0.4,
-          duration: 1200,
-          delay: 150,
-          useNativeDriver: true,
-        }),
-
-        // Ekrandan çıkarken yavaşça kaybolur
-        Animated.timing(birdOpacity, {
-          toValue: 0,
-          duration: 300,
-          delay: 1050,
-          useNativeDriver: true,
-        }),
-      ]),
-
-      // 5. Başarı Kartı Ortaya Çıkar (Mektubun Kanatlandı!)
-      Animated.parallel([
-        Animated.timing(successCardOpacity, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.spring(successCardScale, {
-          toValue: 1,
-          friction: 6,
-          tension: 60,
-          useNativeDriver: true,
-        }),
-      ]),
-
-      // Kullanıcının okuması için ekranda kalma süresi
-      Animated.delay(1300),
-    ]).start(() => {
-      wingLoop.stop();
-      onComplete();
-    });
-
-    return () => {
-      wingLoop.stop();
+  const paperStyle = useAnimatedStyle(() => {
+    const p = paperIn.get();
+    const f = fold.get();
+    const s = stamp.get();
+    return {
+      opacity: interpolate(f, [0, 0.55, 1], [1, 1, 0], Extrapolation.CLAMP) * Math.min(1, p * 1.5),
+      transform: [
+        { translateY: (1 - p) * 70 + 3 * s },
+        { scale: (0.55 + 0.45 * p) * (1 - 0.025 * s) },
+        { scaleX: 1 - 0.82 * f },
+        { scaleY: 1 - 0.35 * f },
+        { rotate: `${45 * f}deg` },
+      ],
     };
-  }, [visible]);
-
-  if (!visible) return null;
-
-  // Interpolations
-  const paperRotateInterpolate = paperRotate.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "45deg"],
   });
 
-  const birdFlightRotateInterpolate = birdFlightRotate.interpolate({
-    inputRange: [0, 0.2, 1],
-    outputRange: ["0deg", "-15deg", "-38deg"],
+  const sealStyle = useAnimatedStyle(() => {
+    const s = seal.get();
+    return {
+      opacity: Math.min(1, s * 2.5),
+      transform: [{ scale: 2.4 - 1.4 * s }, { rotate: `${-18 + 18 * s}deg` }],
+    };
   });
 
-  // Smooth realistic origami wing flapping
-  const leftWingFlapInterpolate = wingFlap.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["-18deg", "28deg"],
+  const shockStyle = useAnimatedStyle(() => {
+    const k = shock.get();
+    return {
+      opacity: k > 0 ? 0.55 * (1 - k) : 0,
+      transform: [{ scale: 1 + 2.6 * k }],
+    };
   });
 
-  const rightWingFlapInterpolate = wingFlap.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["18deg", "-28deg"],
+  const sealingTextStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(seal.get(), [0, 0.35], [1, 0], Extrapolation.CLAMP),
+  }));
+  const sealedTextStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(seal.get(), [0.35, 0.7], [0, 1], Extrapolation.CLAMP),
+  }));
+
+  const birdStyle = useAnimatedStyle(() => {
+    const t = flight.get();
+    const appear = birdIn.get();
+    const pos = cubicBezierPoint(t, path.p0, path.p1, path.p2, path.p3);
+    // t=0'da teğet sıfırlanabilir; başlangıç yönünü kararlı tutmak için küçük bir alt sınır
+    const tangent = cubicBezierTangent(Math.max(t, 0.02), path.p0, path.p1, path.p2, path.p3);
+    const heading = headingDegrees(tangent) + ORIGAMI_BIRD_HEAD_OFFSET;
+    const rotation = heading * smoothstep(0, 0.22, t);
+    // Havalanmadan önce kanat çırpışıyla uyumlu hafif bir "süzülme" salınımı
+    const hover = -6 * flap.get() * (1 - smoothstep(0, 0.2, t));
+    return {
+      opacity: Math.min(1, appear * 2) * (1 - smoothstep(0.82, 1, t)),
+      transform: [
+        { translateX: pos.x },
+        { translateY: pos.y + hover },
+        { rotate: `${rotation}deg` },
+        { scale: appear * (1 - 0.58 * Math.pow(t, 0.85)) },
+      ],
+    };
   });
 
-  const wingScaleInterpolate = wingFlap.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 0.78],
-  });
+  const captionStyle = useAnimatedStyle(() => ({
+    opacity: scrim.get() * (1 - smoothstep(0.1, 0.5, flight.get())),
+  }));
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.overlay}>
-        {/* Karartılmış arka plan */}
-        <View style={styles.ambientBackdrop} />
+    <Modal
+      visible
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={skip}
+    >
+      <View style={styles.root}>
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.scrim, scrimStyle]} />
 
-        {/* ─── 1. ADIM: GERÇEK MEKTUP KAĞIDI (KATLANAN SAYFA) ─── */}
-        <Animated.View
-          style={[
-            styles.paperContainer,
-            {
-              opacity: paperOpacity,
-              transform: [
-                { scale: paperScale },
-                { scaleX: paperFoldX },
-                { scaleY: paperFoldY },
-                { rotate: paperRotateInterpolate },
-              ],
-            },
-          ]}
-        >
+        {/* ─── 1. Mektup kâğıdı + mum mühür ─── */}
+        <Animated.View pointerEvents="none" style={[styles.paperContainer, paperStyle]}>
           <View style={styles.letterSheet}>
-            {/* Romantik Mektup Başlığı */}
             <View style={styles.letterHeader}>
               <View style={styles.stampCircle}>
                 <Heart size={16} color="#FF4D6D" fill="#FF4D6D" />
@@ -297,7 +279,6 @@ export function OrigamiBirdAnimation({
               <Text style={styles.letterTitle}>Sevgilime Özel...</Text>
             </View>
 
-            {/* Yumuşak Mektup Satırları */}
             <View style={styles.letterLinesWrapper}>
               <View style={styles.letterLine} />
               <View style={styles.letterLine} />
@@ -305,205 +286,108 @@ export function OrigamiBirdAnimation({
               <View style={[styles.letterLine, { width: "65%" }]} />
             </View>
 
-            {/* Alt Mühür & İpucu */}
             <View style={styles.letterFooter}>
-              <Text style={styles.letterFoldingHint}>Kuşa Katlanıyor... 🕊️</Text>
+              <Animated.Text style={[styles.letterFooterText, { color: accentColor }, sealingTextStyle]}>
+                Mühürleniyor... 💌
+              </Animated.Text>
+              <Animated.Text
+                style={[styles.letterFooterText, styles.letterFooterOverlay, { color: accentColor }, sealedTextStyle]}
+              >
+                Mühürlendi ✨
+              </Animated.Text>
+            </View>
+
+            <View style={styles.sealSpot}>
+              <Animated.View style={[styles.shockRing, { borderColor: accentColor }, shockStyle]} />
+              <Animated.View style={[styles.seal, sealStyle]}>
+                <View style={styles.sealInner}>
+                  <Heart size={18} color="#FFE3E8" fill="#FFE3E8" />
+                </View>
+              </Animated.View>
             </View>
           </View>
         </Animated.View>
 
-        {/* ─── 2. ADIM: BEYAZ ZARİF ORIGAMI KUŞU (KANAT ÇIRPARAK UÇAN) ─── */}
-        <Animated.View
-          style={[
-            styles.birdContainer,
-            {
-              opacity: birdOpacity,
-              transform: [
-                { translateX: birdFlightX },
-                { translateY: birdFlightY },
-                { rotate: birdFlightRotateInterpolate },
-                { scale: birdScale },
-              ],
-            },
-          ]}
-        >
-          <View style={styles.origamiWrapper}>
-            {/* Sol Kanat (Animated Flap) */}
-            <Animated.View
-              style={[
-                styles.wingLeftWrapper,
-                {
-                  transform: [
-                    { rotate: leftWingFlapInterpolate },
-                    { scaleY: wingScaleInterpolate },
-                  ],
-                },
-              ]}
-            >
-              <Svg width={65} height={75} viewBox="0 0 65 75">
-                <Defs>
-                  <LinearGradient id="leftWingMain" x1="100%" y1="100%" x2="0%" y2="0%">
-                    <Stop offset="0%" stopColor="#FFFFFF" />
-                    <Stop offset="60%" stopColor="#FFF0F5" />
-                    <Stop offset="100%" stopColor="#FFD1DC" />
-                  </LinearGradient>
-                  <LinearGradient id="leftWingFold" x1="100%" y1="100%" x2="0%" y2="0%">
-                    <Stop offset="0%" stopColor="#FFF5F7" />
-                    <Stop offset="100%" stopColor="#FFB8C6" />
-                  </LinearGradient>
-                </Defs>
-                {/* Ana Origami Kanat Yüzeyi */}
-                <Polygon points="60,65 5,12 38,30" fill="url(#leftWingMain)" />
-                {/* Alt Origami Katlama Kıvrımı */}
-                <Polygon points="60,65 38,30 46,55" fill="url(#leftWingFold)" />
-              </Svg>
-            </Animated.View>
+        {/* ─── 2. Uçuş izi: yolu izleyen parıltı ve kalpler ─── */}
+        {Array.from({ length: TRAIL_COUNT }, (_, index) => (
+          <TrailParticle key={index} index={index} flight={flight} path={path} />
+        ))}
 
-            {/* Gövde, Baş ve Kuyruk (Origami Turna Kuşu Şekli) */}
-            <Svg width={90} height={95} viewBox="0 0 90 95">
-              <Defs>
-                <LinearGradient id="bodyFaceLeft" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <Stop offset="0%" stopColor="#FFFFFF" />
-                  <Stop offset="100%" stopColor="#FFF2F5" />
-                </LinearGradient>
-                <LinearGradient id="bodyFaceRight" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <Stop offset="0%" stopColor="#FFE8EE" />
-                  <Stop offset="100%" stopColor="#FFCCD7" />
-                </LinearGradient>
-                <LinearGradient id="headBeak" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <Stop offset="0%" stopColor="#FFFFFF" />
-                  <Stop offset="100%" stopColor="#FF9EB5" />
-                </LinearGradient>
-                <LinearGradient id="tailGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <Stop offset="0%" stopColor="#FFF5F8" />
-                  <Stop offset="100%" stopColor="#FFA6BC" />
-                </LinearGradient>
-              </Defs>
-
-              {/* Origami Kuyruk */}
-              <Polygon points="45,65 58,92 50,75" fill="url(#tailGradient)" />
-
-              {/* Origami Boyun & Zarif Baş */}
-              <Polygon points="45,45 32,18 22,12 26,24" fill="url(#headBeak)" />
-
-              {/* Gövde Sol Elmas Yüzey */}
-              <Polygon points="45,35 34,55 45,72 45,35" fill="url(#bodyFaceLeft)" />
-
-              {/* Gövde Sağ Elmas Yüzey (Gölgeli origami katı) */}
-              <Polygon points="45,35 56,55 45,72 45,35" fill="url(#bodyFaceRight)" />
-            </Svg>
-
-            {/* Sağ Kanat (Animated Flap) */}
-            <Animated.View
-              style={[
-                styles.wingRightWrapper,
-                {
-                  transform: [
-                    { rotate: rightWingFlapInterpolate },
-                    { scaleY: wingScaleInterpolate },
-                  ],
-                },
-              ]}
-            >
-              <Svg width={65} height={75} viewBox="0 0 65 75">
-                <Defs>
-                  <LinearGradient id="rightWingMain" x1="0%" y1="100%" x2="100%" y2="0%">
-                    <Stop offset="0%" stopColor="#FFFFFF" />
-                    <Stop offset="60%" stopColor="#FFF0F5" />
-                    <Stop offset="100%" stopColor="#FFCCD7" />
-                  </LinearGradient>
-                  <LinearGradient id="rightWingFold" x1="0%" y1="100%" x2="100%" y2="0%">
-                    <Stop offset="0%" stopColor="#FFE4EC" />
-                    <Stop offset="100%" stopColor="#FFA6BC" />
-                  </LinearGradient>
-                </Defs>
-                {/* Ana Origami Kanat Yüzeyi */}
-                <Polygon points="5,65 60,12 27,30" fill="url(#rightWingMain)" />
-                {/* Alt Origami Katlama Kıvrımı */}
-                <Polygon points="5,65 27,30 19,55" fill="url(#rightWingFold)" />
-              </Svg>
-            </Animated.View>
-          </View>
-
-          {/* Kuşun Etrafındaki Büyülü Parıltı */}
-          <View style={styles.sparkleCluster}>
-            <Sparkles size={16} color="#FFD700" />
-          </View>
+        {/* ─── 3. Origami kuşu ─── */}
+        <Animated.View pointerEvents="none" style={[styles.birdContainer, birdStyle]}>
+          <OrigamiBird flap={flap} />
         </Animated.View>
 
-        {/* ─── UÇUŞ İZİ PARÇACIKLARI (KALPLER VE YILDIZLAR) ─── */}
-        <Animated.View
-          style={[styles.trailContainer, { opacity: sparklesOpacity }]}
-          pointerEvents="none"
-        >
-          <View style={[styles.particle, { top: "42%", left: "46%" }]}>
-            <Sparkles size={15} color="#FFF" />
-          </View>
-          <View style={[styles.particle, { top: "34%", left: "56%" }]}>
-            <Heart size={14} color="#FF4D6D" fill="#FF4D6D" />
-          </View>
-          <View style={[styles.particle, { top: "26%", left: "67%" }]}>
-            <Sparkles size={14} color="#FFD700" />
-          </View>
-          <View style={[styles.particle, { top: "18%", left: "78%" }]}>
-            <Heart size={12} color="#FF85A1" fill="#FF85A1" />
-          </View>
-        </Animated.View>
+        <Animated.Text pointerEvents="none" style={[styles.caption, captionStyle]}>
+          Geleceğe emanet ediliyor... ✨
+        </Animated.Text>
 
-        {/* ─── 3. ADIM: TAMAMLANMA & KUTLAMA KARTI ─── */}
-        <Animated.View
-          style={[
-            styles.successCard,
-            {
-              opacity: successCardOpacity,
-              transform: [{ scale: successCardScale }],
-            },
-          ]}
-        >
-          <View style={styles.successIconCircle}>
-            <Text style={{ fontSize: 34 }}>🕊️</Text>
-          </View>
-
-          <Text style={styles.successTitle}>Mektubun Kanatlandı!</Text>
-          <Text style={styles.successSubtitle}>
-            Mektup sayfası kuşa dönüştü ve sevgiline doğru gökyüzünde süzülüyor ✨
-          </Text>
-
-          <View style={styles.successBadge}>
-            <Sparkles size={13} color="#FFD700" />
-            <Text style={styles.successBadgeText}>Açılış gününe kadar güvenle mühürlendi</Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.closeBtn}
-            onPress={onComplete}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.closeBtnText}>Harika ✨</Text>
-          </TouchableOpacity>
-        </Animated.View>
+        {/* Ekrana dokunarak animasyon geçilebilir */}
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={skip}
+          accessibilityRole="button"
+          accessibilityLabel="Animasyonu geç"
+        />
       </View>
     </Modal>
   );
 }
 
+/** Kuşun yolunu `index` kadar gecikmeyle izleyen, yola dik küçük salınımlı parıltı/kalp. */
+function TrailParticle({
+  index,
+  flight,
+  path,
+}: {
+  index: number;
+  flight: SharedValue<number>;
+  path: FlightPath;
+}) {
+  const lag = 0.045 * (index + 1);
+  const isHeart = index % 2 === 1;
+
+  const style = useAnimatedStyle(() => {
+    const f = flight.get();
+    const t = Math.min(1, Math.max(0, f - lag));
+    const pos = cubicBezierPoint(t, path.p0, path.p1, path.p2, path.p3);
+    const tan = cubicBezierTangent(Math.max(t, 0.02), path.p0, path.p1, path.p2, path.p3);
+    const len = Math.sqrt(tan.x * tan.x + tan.y * tan.y) || 1;
+    // yola dik birim vektör × zamanla değişen salınım
+    const wobble = Math.sin(f * 14 + index * 1.7) * 9;
+    const life = interpolate(f - lag, [0, 0.08, 0.5, 0.78], [0, 1, 0.65, 0], Extrapolation.CLAMP);
+    return {
+      opacity: f > lag ? life * (1 - index * 0.06) : 0,
+      transform: [
+        { translateX: pos.x + (-tan.y / len) * wobble },
+        { translateY: pos.y + (tan.x / len) * wobble },
+        { scale: 1 - index * 0.06 },
+      ],
+    };
+  });
+
+  return (
+    <Animated.View pointerEvents="none" style={[styles.particle, style]}>
+      {isHeart ? (
+        <Heart size={13} color="#FF85A1" fill="#FF85A1" />
+      ) : (
+        <Sparkles size={15} color={index % 4 === 0 ? "#FFD700" : "#FFFFFF"} />
+      )}
+    </Animated.View>
+  );
+}
+
 const styles = StyleSheet.create({
-  overlay: {
+  root: {
     flex: 1,
-    backgroundColor: "rgba(6, 5, 14, 0.92)",
     alignItems: "center",
     justifyContent: "center",
   },
-  ambientBackdrop: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(255, 77, 109, 0.06)",
+  scrim: {
+    backgroundColor: "rgba(6, 5, 14, 0.94)",
   },
 
-  /* MEKTUP KAĞIDI STİLLERİ */
+  /* MEKTUP KAĞIDI */
   paperContainer: {
     position: "absolute",
     alignItems: "center",
@@ -558,131 +442,81 @@ const styles = StyleSheet.create({
   },
   letterFooter: {
     alignItems: "center",
+    justifyContent: "center",
     borderTopWidth: 1,
     borderTopColor: "rgba(255, 77, 109, 0.12)",
     paddingTop: 8,
+    minHeight: 30,
   },
-  letterFoldingHint: {
+  letterFooterText: {
     fontSize: 11.5,
     fontFamily: "Inter_600SemiBold",
-    color: "#FF4D6D",
+  },
+  // İki metin aynı yerde çapraz solar
+  letterFooterOverlay: {
+    position: "absolute",
+    top: 8,
   },
 
-  /* BEYAZ ORIGAMI KUŞU STİLLERİ */
+  /* MUM MÜHÜR */
+  sealSpot: {
+    position: "absolute",
+    bottom: -16,
+    right: 14,
+    width: 54,
+    height: 54,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  seal: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#B3122F",
+    borderWidth: 3,
+    borderColor: "#7E0B21",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#B3122F",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.55,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  sealInner: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 255, 255, 0.28)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  shockRing: {
+    position: "absolute",
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2.5,
+  },
+
+  /* KUŞ & İZ */
   birdContainer: {
     position: "absolute",
+    width: ORIGAMI_BIRD_SIZE,
+    height: ORIGAMI_BIRD_SIZE,
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 10,
-  },
-  origamiWrapper: {
-    width: 140,
-    height: 140,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  wingLeftWrapper: {
-    position: "absolute",
-    left: 4,
-    top: 18,
-  },
-  wingRightWrapper: {
-    position: "absolute",
-    right: 4,
-    top: 18,
-  },
-  sparkleCluster: {
-    position: "absolute",
-    top: -6,
-    right: -6,
-  },
-
-  /* PARÇACIKLAR */
-  trailContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
   },
   particle: {
     position: "absolute",
   },
-
-  /* KUTLAMA KARTI */
-  successCard: {
-    width: SCREEN_WIDTH * 0.86,
-    maxWidth: 340,
-    backgroundColor: "rgba(20, 18, 30, 0.96)",
-    borderRadius: 24,
-    padding: 24,
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "rgba(255, 77, 109, 0.35)",
-    shadowColor: "#FF4D6D",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.35,
-    shadowRadius: 24,
-    elevation: 14,
-  },
-  successIconCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: "rgba(255, 77, 109, 0.15)",
-    borderWidth: 1.5,
-    borderColor: "rgba(255, 77, 109, 0.35)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  successTitle: {
-    color: "#FFFFFF",
-    fontSize: 18.5,
-    fontFamily: "Inter_700Bold",
-    textAlign: "center",
-    marginBottom: 8,
-    letterSpacing: -0.3,
-  },
-  successSubtitle: {
-    color: "rgba(255, 255, 255, 0.72)",
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    textAlign: "center",
-    lineHeight: 19,
-    marginBottom: 16,
-  },
-  successBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(255, 215, 0, 0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 215, 0, 0.3)",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-    marginBottom: 20,
-  },
-  successBadgeText: {
-    color: "#FFD700",
-    fontSize: 11,
+  caption: {
+    position: "absolute",
+    bottom: "18%",
+    color: "rgba(255, 255, 255, 0.7)",
+    fontSize: 13.5,
     fontFamily: "Inter_600SemiBold",
-  },
-  closeBtn: {
-    backgroundColor: "#FF4D6D",
-    paddingVertical: 12,
-    paddingHorizontal: 36,
-    borderRadius: 22,
-    shadowColor: "#FF4D6D",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  closeBtnText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.2,
   },
 });

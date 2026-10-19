@@ -18,6 +18,7 @@ import type { LongPressEvent } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { MapAddNoteModal } from "@/components/map/MapAddNoteModal";
 import { MapControlBar } from "@/components/map/MapControlBar";
 import { MapDetailCard } from "@/components/map/MapDetailCard";
@@ -47,6 +48,7 @@ import { notifyPartner } from "@/lib/notifications";
 import { playStampDrop } from "@/lib/soundEffects";
 import { supabase } from "@/lib/supabase";
 import { getTheme } from "@/lib/theme";
+import { toast } from "@/lib/toast";
 
 const DEMO_NOTE_TITLE = "Haritaya Aşk Notu Bırakmak İçin Kayıt Olun 📍";
 const DEMO_NOTE_DESC =
@@ -126,6 +128,8 @@ export default function MapScreen() {
       playStampDrop();
       queryClient.invalidateQueries({ queryKey: ["map_notes", coupleId] });
       setPendingCoord(null);
+      // Not modalı kapanırken değil kapandıktan sonra; mühür sesi/haptiği zaten verildi
+      toast.success("Aşk notun haritaya bırakıldı 📍", { delay: 350, haptic: false });
 
       if (coupleId && userId) {
         const senderName = profile?.displayName || "Sevgilin";
@@ -247,7 +251,8 @@ export default function MapScreen() {
   };
 
   // ─── GPS Konumuna Git ─────────────────────────────────────────────────────
-  const goToUserLocation = async () => {
+  // Haritayı konuma kaydırır ve bulunan koordinatı döndürür (izin yok / hata → null).
+  const goToUserLocation = async (): Promise<MapCoordinate | null> => {
     try {
       setIsLocating(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -256,7 +261,7 @@ export default function MapScreen() {
           "Konum İzni",
           "Konumunuza gidebilmek için lütfen konum izni verin.",
         );
-        return;
+        return null;
       }
       const loc = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
@@ -271,11 +276,24 @@ export default function MapScreen() {
           },
           750,
         );
+        return { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
       }
+      return null;
     } catch {
       // sessizce geç
+      return null;
     } finally {
       setIsLocating(false);
+    }
+  };
+
+  // Boş harita kartındaki eylem: konuma git ve ilk aşk notunu tam oraya bırak
+  const handleDropFirstNote = async () => {
+    if (executeOrIntercept(() => {}, DEMO_NOTE_TITLE, DEMO_NOTE_DESC)) return;
+    const coord = await goToUserLocation();
+    if (coord) {
+      setSelectedItem(null);
+      setPendingCoord(coord);
     }
   };
 
@@ -302,6 +320,8 @@ export default function MapScreen() {
 
   const isLight = isLightMapTheme(mapTheme);
   const isAddingNote = pendingCoord !== null;
+  // Hiç pin yoksa (not, buluşma, fotoğraf): ipucu yerine romantik bir davet kartı gösterilir
+  const isMapEmpty = photoPins.length === 0 && mapNotes.length === 0 && meetingPins.length === 0;
 
   return (
     <View style={styles.root}>
@@ -387,8 +407,24 @@ export default function MapScreen() {
         </View>
       )}
 
+      {/* ─── BOŞ HARİTA DAVETİ ─────────────────────────────────────────── */}
+      {!isLoading && isMapEmpty && !selectedItem && !isAddingNote && (
+        <View style={[styles.emptyWrap, { bottom: insets.bottom + 100 }]} pointerEvents="box-none">
+          <EmptyState
+            compact
+            emoji="📍"
+            title="Haritanız henüz bembeyaz"
+            description="Birlikte gittiğiniz ilk yere bir aşk notu bırakın; anılarınız harita üzerinde yaşasın."
+            ctaLabel="İlk Notu Bırak 📍"
+            onPressCta={handleDropFirstNote}
+            theme={theme}
+            style={styles.emptyCard}
+          />
+        </View>
+      )}
+
       {/* ─── HIZLI NOT EKLEME REHBERİ (Floating Pill) ──────────────────── */}
-      {!isLoading && !selectedItem && !isAddingNote && (
+      {!isLoading && !isMapEmpty && !selectedItem && !isAddingNote && (
         <View style={[styles.hintPill, { bottom: insets.bottom + 90 }]}>
           <BlurView
             tint={isLight ? "light" : "dark"}
@@ -459,6 +495,19 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: "#F7F4EF",
+  },
+
+  // ─── BOŞ HARİTA KARTI ──────────────────────────────────────────────────
+  emptyWrap: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    alignItems: "center",
+    zIndex: 10,
+  },
+  emptyCard: {
+    alignSelf: "stretch",
+    maxWidth: 420,
   },
 
   // ─── REHBER PILL (HİNT) ────────────────────────────────────────────────

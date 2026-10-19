@@ -17,6 +17,7 @@ import { encrypt, decrypt } from "@/utils/crypto";
 import { sanitize } from "@/utils/sanitize";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
+import { toast } from "@/lib/toast";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 import { useQueryClient } from "@tanstack/react-query";
@@ -49,7 +50,7 @@ export default function AddDailyNoteScreen() {
     }
 
     if (!content.trim()) {
-      Alert.alert("Eksik Bilgi", "Lütfen günlüğünüze bir şeyler yazın.");
+      toast.warning("Lütfen günlüğünüze bir şeyler yazın.", { title: "Eksik bilgi" });
       return;
     }
 
@@ -105,6 +106,7 @@ export default function AddDailyNoteScreen() {
 
       queryClient.invalidateQueries({ queryKey: ["daily_notes_history", session.user.id] });
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
+      toast.success("Günlüğün kaydedildi ✨");
       router.replace("/(tabs)/daily-notes");
     } catch (error) {
       console.error(error);

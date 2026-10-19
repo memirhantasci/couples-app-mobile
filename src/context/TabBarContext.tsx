@@ -5,7 +5,7 @@ import {
   Pill, BookOpen, Clock, Sparkles, Droplet, Settings,
   LucideIcon
 } from "lucide-react-native";
-import { Alert } from "react-native";
+import { toast } from "@/lib/toast";
 
 export const TAB_STORAGE_KEY = "@couples_app_bottom_bar_tabs_v1";
 
@@ -181,7 +181,7 @@ export function TabBarProvider({ children }: { children: React.ReactNode }) {
   const toggleTab = useCallback(
     (key: TabKey): boolean => {
       if (key === "home") {
-        Alert.alert("Sabit Sekme", "Ana Sayfa alt barda zorunludur ve kaldırılamaz.");
+        toast.info("Ana Sayfa alt barda zorunludur ve kaldırılamaz.", { title: "Sabit sekme", emoji: "📌" });
         return false;
       }
 
@@ -189,7 +189,7 @@ export function TabBarProvider({ children }: { children: React.ReactNode }) {
 
       if (isCurrentlyEnabled) {
         if (enabledTabs.length <= MIN_TABS) {
-          Alert.alert("Sınır", `Alt barda en az ${MIN_TABS} sekme bulunmalıdır.`);
+          toast.warning(`Alt barda en az ${MIN_TABS} sekme bulunmalıdır.`, { title: "Sınır" });
           return false;
         }
 
@@ -199,9 +199,9 @@ export function TabBarProvider({ children }: { children: React.ReactNode }) {
         return true;
       } else {
         if (enabledTabs.length >= MAX_TABS) {
-          Alert.alert(
-            "Maksimum Sekme Sınırı",
-            `Alt barda en fazla ${MAX_TABS} sekme yer alabilir. Lütfen önce başka bir sekmeyi çıkarın.`
+          toast.warning(
+            `Alt barda en fazla ${MAX_TABS} sekme yer alabilir. Lütfen önce başka bir sekmeyi çıkarın.`,
+            { title: "Maksimum sekme sınırı" }
           );
           return false;
         }

@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -21,6 +20,7 @@ import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { navigateAfterAuth } from "@/lib/navigate";
 import { isDatesSkipped } from "@/lib/datesSkip";
 import { decrypt } from "@/utils/crypto";
+import { toast } from "@/lib/toast";
 
 const OTP_LENGTH = 6;
 
@@ -196,7 +196,7 @@ export default function VerifyDeviceScreen() {
         setErrorMsg("Kod gönderilemedi: " + error.message);
       } else {
         setResendCooldown(60);
-        Alert.alert("Kod Gönderildi", "Yeni doğrulama kodu e-postanıza gönderildi.");
+        toast.success("Yeni doğrulama kodu e-postanıza gönderildi.", { title: "Kod gönderildi", emoji: "📧" });
       }
     } catch {
       setErrorMsg("Kod gönderilirken bir hata oluştu.");

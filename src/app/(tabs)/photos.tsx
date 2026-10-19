@@ -17,6 +17,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { usePageTour } from "@/hooks/usePageTour";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
@@ -322,20 +323,15 @@ export default function PhotosScreen() {
             }
           />
         ) : (
-          <View style={[styles.emptyBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
-            <Text style={{ fontSize: 42, marginBottom: 12 }}>📸</Text>
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>Galeriniz Henüz Boş</Text>
-            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-              Birlikte geçirdiğiniz özel anları ölümsüzleştirmek için ilk fotoğrafınızı yükleyin.
-            </Text>
-            <TouchableOpacity
-              style={[styles.emptyBtn, { backgroundColor: theme.accent }]}
-              onPress={goToUpload}
-            >
-              <Camera size={16} color="#ffffff" />
-              <Text style={styles.emptyBtnText}>İlk Fotoğrafı Yükle 📸</Text>
-            </TouchableOpacity>
-          </View>
+          <EmptyState
+            emoji="📸"
+            title="Ortak anı duvarınız henüz bembeyaz"
+            description="Birlikte çekildiğiniz en sevdiğiniz fotoğrafı ekleyerek başlayın."
+            ctaLabel="İlk Fotoğrafı Seç 📸"
+            onPressCta={goToUpload}
+            theme={theme}
+            style={styles.emptyState}
+          />
         )}
       </View>
 
@@ -460,39 +456,7 @@ const styles = StyleSheet.create({
   },
 
   /* BOŞ DURUM */
-  emptyBox: {
-    margin: 20,
-    padding: 30,
-    borderRadius: 22,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
-    marginBottom: 6,
-  },
-  emptyText: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.55)",
-    textAlign: "center",
-    lineHeight: 19,
-    marginBottom: 18,
-  },
-  emptyBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 16,
-  },
-  emptyBtnText: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontFamily: "Inter_700Bold",
+  emptyState: {
+    marginHorizontal: 20,
   },
 });

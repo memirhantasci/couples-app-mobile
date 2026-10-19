@@ -24,6 +24,7 @@ import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { PermissionPrimingModal } from "@/components/common/PermissionPrimingModal";
 import { useNotificationPriming } from "@/hooks/useNotificationPriming";
+import { toast } from "@/lib/toast";
 import { notifyPartner } from "@/lib/notifications";
 
 const IMAGE_MIME_BY_EXT: Record<string, string> = {
@@ -115,7 +116,7 @@ export default function AddMemoryScreen() {
     setErrors(newErrors);
 
     if (newErrors.title || newErrors.date) {
-      Alert.alert("Eksik Bilgi", "Lütfen bir başlık ve tarih girin.");
+      toast.warning("Lütfen bir başlık ve tarih girin.", { title: "Eksik bilgi" });
       return;
     }
     
@@ -208,6 +209,7 @@ export default function AddMemoryScreen() {
       // Yeni anı kaydedildiyse, uygunsa bildirim ön-onay kartını göster; yönlendirme kart kapanınca yapılır
       if (!isEditing && (await priming.maybePrompt())) return;
 
+      toast.success(isEditing ? "Özel gün güncellendi ✨" : "Özel gün kaydedildi ✨");
       router.replace("/(tabs)/memories");
     } catch (error: any) {
       logger.error("Memory save error:", error);
