@@ -10,6 +10,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { router, useLocalSearchParams } from "expo-router";
 import { supabase } from "@/lib/supabase";
@@ -683,10 +684,28 @@ export default function LoginScreen() {
     : (["#FF3366", "#E8002D", "#C0006B"] as const);
 
   return (
-    <LinearGradient
-      colors={["#080811", "#0F0B18", "#080811"]}
-      style={styles.container}
-    >
+    <View style={styles.container}>
+      {/* Background Hero Image with atmospheric romantic tone */}
+      <Image
+        source={require("../../../assets/images/auth-bg.jpg")}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        priority="high"
+        transition={300}
+      />
+
+      {/* Atmospheric Dark Gradient Overlay for optimal readability */}
+      <LinearGradient
+        colors={[
+          "rgba(8, 8, 17, 0.45)",
+          "rgba(8, 8, 17, 0.78)",
+          "rgba(8, 8, 17, 0.94)",
+          "#080811",
+        ]}
+        locations={[0, 0.32, 0.7, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+
       {/* Ambient Glows */}
       <View style={styles.topAmbientGlow} pointerEvents="none" />
       <View 
@@ -1170,7 +1189,7 @@ export default function LoginScreen() {
         initialDoc={selectedLegalDoc}
         accentColor={activeAccent}
       />
-    </LinearGradient>
+    </View>
   );
 }
 
