@@ -13,6 +13,7 @@ import { Navigation, X } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { dayjs } from "@/lib/date";
+import { SwipeDismissView } from "@/components/ui/SwipeDismissView";
 import { openDirections } from "./openDirections";
 import type { PhotoPin } from "./mapTypes";
 
@@ -32,9 +33,13 @@ export function MapPhotoLightbox({ photo, accent, onClose }: MapPhotoLightboxPro
   return (
     <Modal visible={!!photo} transparent animationType="fade" onRequestClose={onClose}>
       {photo && (
+        // Aşağı kaydırarak kapat: zemin (karartma + bulanıklık) sürükledikçe saydamlaşır
+        <SwipeDismissView
+          onDismiss={onClose}
+          backdropColor="rgba(0,0,0,0.95)"
+          backdrop={<BlurView tint="dark" intensity={95} style={StyleSheet.absoluteFill} />}
+        >
         <View style={styles.lightboxContainer}>
-          <BlurView tint="dark" intensity={95} style={StyleSheet.absoluteFill} />
-
           <View style={[styles.lightboxHeader, { paddingTop: insets.top + 10 }]}>
             <TouchableOpacity style={styles.lightboxCloseBtn} onPress={onClose}>
               <X size={22} color="#fff" />
@@ -65,15 +70,16 @@ export function MapPhotoLightbox({ photo, accent, onClose }: MapPhotoLightboxPro
             </TouchableOpacity>
           </View>
         </View>
+        </SwipeDismissView>
       )}
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  // Karartma SwipeDismissView'de: sürüklerken saydamlaşabilsin diye burada renk yok
   lightboxContainer: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.95)",
     justifyContent: "space-between",
   },
   lightboxHeader: {

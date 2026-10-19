@@ -5,6 +5,7 @@ import { X, Trash2, Calendar, Clock, ChevronLeft, ChevronRight } from "lucide-re
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { dayjs } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
+import { SwipeDismissView } from "@/components/ui/SwipeDismissView";
 import type { PhotoItem } from "./photoTypes";
 
 interface PhotoLightboxModalProps {
@@ -40,6 +41,8 @@ export function PhotoLightboxModal({
       animationType="fade"
       onRequestClose={onClose}
     >
+      {/* Aşağı kaydırarak kapat: içerik parmağı izleyip küçülür, zemin saydamlaşır */}
+      <SwipeDismissView onDismiss={onClose}>
       <View style={styles.lightboxBackdrop}>
         <StatusBar hidden />
 
@@ -137,14 +140,15 @@ export function PhotoLightboxModal({
           </View>
         )}
       </View>
+      </SwipeDismissView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  // Siyah zemin SwipeDismissView'de: sürüklerken saydamlaşabilsin diye burada renk yok
   lightboxBackdrop: {
     flex: 1,
-    backgroundColor: "#000000",
     justifyContent: "space-between",
   },
   lightboxHeader: {

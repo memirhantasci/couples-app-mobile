@@ -5,6 +5,7 @@ import { X, Clock, Calendar as CalendarIcon } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { dayjs } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
+import { SwipeDismissView } from "@/components/ui/SwipeDismissView";
 import type { CalendarPhotoItem } from "./calendarTypes";
 
 interface CalendarPhotoLightboxProps {
@@ -26,6 +27,8 @@ export function CalendarPhotoLightbox({ photo, theme, getAuthorName, onClose }: 
       animationType="fade"
       onRequestClose={onClose}
     >
+      {/* Aşağı kaydırarak kapat: içerik parmağı izleyip küçülür, zemin saydamlaşır */}
+      <SwipeDismissView onDismiss={onClose}>
       <View style={styles.lightboxBackdrop}>
         {/* Lightbox Üst Bar */}
         <View style={[styles.lightboxHeader, { paddingTop: insets.top + 10 }]}>
@@ -83,14 +86,15 @@ export function CalendarPhotoLightbox({ photo, theme, getAuthorName, onClose }: 
           </View>
         )}
       </View>
+      </SwipeDismissView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  // Siyah zemin SwipeDismissView'de: sürüklerken saydamlaşabilsin diye burada renk yok
   lightboxBackdrop: {
     flex: 1,
-    backgroundColor: "#000000",
     justifyContent: "space-between",
   },
   lightboxHeader: {
