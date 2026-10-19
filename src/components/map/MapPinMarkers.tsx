@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
@@ -14,9 +14,12 @@ import type { MapCoordinate, MapNote, MeetingPin, SelectedItem } from "./mapType
  */
 export function useFreezeAfterImageLoad(imageUri: string | null | undefined) {
   const [tracksViewChanges, setTracksViewChanges] = useState(!!imageUri);
-  useEffect(() => {
+  // Fotoğraf değişince (ör. partner yeni PP yükledi) yeni görsel yüklenene kadar yeniden çizime izin ver
+  const [trackedUri, setTrackedUri] = useState(imageUri);
+  if (trackedUri !== imageUri) {
+    setTrackedUri(imageUri);
     setTracksViewChanges(!!imageUri);
-  }, [imageUri]);
+  }
   const onImageLoadEnd = () => setTimeout(() => setTracksViewChanges(false), 300);
   return { tracksViewChanges, onImageLoadEnd };
 }
