@@ -17,14 +17,14 @@ Branch: `pp-picture` · Spec: `ARAYUZ_GELISTIRMESI.md` → "[ÇOK ZOR-2] Profil 
 - [x] **Faz 0** — Plan + bu dosya
 - [x] **Faz 1** — Migration `supabase/migrations/20261020000000_user_avatars.sql` (⚠️ canlıya UYGULANMADI — kullanıcı uygulayacak)
 - [x] **Faz 2** — Çekirdek: `src/lib/avatar.ts`, `useAvatarUpload`, `useCoupleAvatars`, `components/avatar/{UserAvatar,AvatarActionSheet,EditableAvatar}`, paywall `avatar` kaynağı, AuthContext realtime invalidation
-- [ ] **Faz 3** — Tetikleyiciler: `menu.tsx` + `profile.tsx` avatarı (kamera rozeti, spinner, paywall, demo daveti)
+- [x] **Faz 3** — Tetikleyiciler: `menu.tsx` + `profile.tsx` avatarı → `<EditableAvatar />`
 - [ ] **Faz 4** — Takvim (`calendar.tsx` `getAuthorAvatar`, `NoteMemoryCard`) + Ana Sayfa çift halkası & partner ruh hali rozeti
 - [ ] **Faz 5** — Mektuplar (gönderen pulu) + Buluşmalar (planlayan imzası)
 - [ ] **Faz 6** — Harita pinleri + Yıldız ekranı
 - [ ] ~~Faz 7 — Widget~~ (kapsam dışı)
 
 ## Sıradaki adım
-Faz 3: `menu.tsx` ve `profile.tsx` içindeki harf avatarını `<EditableAvatar name={displayName} />` ile değiştir.
+Faz 4: `calendar.tsx` → `getAuthorAvatar` yerine `useCoupleAvatars().getAvatarUrl`; ana sayfaya çift halkası + partner ruh hali rozeti.
 
 ## Mimari (Faz 2)
 - **Tek doğruluk kaynağı:** `useCoupleAvatars()` → `{ myAvatarUrl, partnerAvatarUrl, getAvatarUrl(userId), hasStoredAvatar }`.

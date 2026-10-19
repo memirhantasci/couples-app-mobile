@@ -25,6 +25,7 @@ import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { DEMO_PROFILE } from "@/constants/demoData";
+import { EditableAvatar } from "@/components/avatar/EditableAvatar";
 import {
   LogOut,
   AlignJustify,
@@ -284,7 +285,6 @@ export default function ProfileScreen() {
   // Demo modunda premium kilitleri yoktur: tüm özellikler açık
   const isPremium = (profile?.isPremium ?? false) || isDemoMode;
   const tokenBalance = profile?.tokenBalance ?? 0;
-  const initialLetter = displayName ? displayName.trim().charAt(0).toUpperCase() : "U";
 
   return (
     <ScreenBackground>
@@ -333,9 +333,7 @@ export default function ProfileScreen() {
         >
           {/* ─── LÜKS PROFİL HERO KARTI ─── */}
           <View style={[styles.heroProfileCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
-            <View style={[styles.avatarCircle, { backgroundColor: theme.pillAccentBg, borderColor: theme.accent }]}>
-              <Text style={[styles.avatarText, { color: theme.accent }]}>{initialLetter}</Text>
-            </View>
+            <EditableAvatar name={displayName || "Kullanıcı"} size={54} />
 
             <View style={styles.heroDetails}>
               <Text style={[styles.heroNameText, { color: theme.text }]} numberOfLines={1}>
@@ -572,18 +570,6 @@ const createStyles = (theme: AppTheme) => {
       borderRadius: 22,
       borderWidth: 1,
       gap: 14,
-    },
-    avatarCircle: {
-      width: 54,
-      height: 54,
-      borderRadius: 27,
-      borderWidth: 1.5,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    avatarText: {
-      fontSize: 24,
-      fontFamily: "Inter_700Bold",
     },
     heroDetails: {
       flex: 1,

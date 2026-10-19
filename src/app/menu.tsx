@@ -33,6 +33,7 @@ import { PageTourModal } from "@/components/tour/PageTourModal";
 import { resetAllPageTours } from "@/hooks/usePageTour";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
+import { EditableAvatar } from "@/components/avatar/EditableAvatar";
 
 export default function MenuScreen() {
   const router = useRouter();
@@ -128,7 +129,6 @@ export default function MenuScreen() {
   });
 
   const displayName = profile?.displayName || "Kullanıcı";
-  const initialLetter = displayName.charAt(0).toUpperCase();
 
   return (
     <ScreenBackground>
@@ -179,9 +179,7 @@ export default function MenuScreen() {
 
           {/* ─── LÜKS ÇİFT PROFİL KARTI ─── */}
           <View style={[styles.profileCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
-            <View style={[styles.avatarCircle, { backgroundColor: theme.pillAccentBg, borderColor: theme.accent }]}>
-              <Text style={[styles.avatarLetter, { color: theme.accent }]}>{initialLetter}</Text>
-            </View>
+            <EditableAvatar name={displayName} size={50} />
             <View style={styles.profileInfo}>
               <Text style={[styles.profileName, { color: theme.text }]} numberOfLines={1}>{displayName}</Text>
               <View style={styles.profileSubtitleRow}>
@@ -586,18 +584,6 @@ const getMenuStyles = (theme: any, isLight: boolean) => StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     gap: 14,
-  },
-  avatarCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    borderWidth: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarLetter: {
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
   },
   profileInfo: {
     flex: 1,
