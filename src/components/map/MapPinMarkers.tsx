@@ -1,19 +1,51 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import { Calendar, MapPin } from "lucide-react-native";
 import { Marker } from "react-native-maps";
 
 import { markerStyles } from "./mapMarkerStyles";
 import type { MapCoordinate, MapNote, MeetingPin, SelectedItem } from "./mapTypes";
 
+/**
+ * Marker'lar performans için dondurulmuş (tracksViewChanges=false) çizilir; içinde uzak bir
+ * görsel varsa yüklenene kadar yeniden çizime izin verip sonra dondurur.
+ */
+export function useFreezeAfterImageLoad(imageUri: string | null | undefined) {
+  const [tracksViewChanges, setTracksViewChanges] = useState(!!imageUri);
+  useEffect(() => {
+    setTracksViewChanges(!!imageUri);
+  }, [imageUri]);
+  const onImageLoadEnd = () => setTimeout(() => setTracksViewChanges(false), 300);
+  return { tracksViewChanges, onImageLoadEnd };
+}
+
+/** Pinlerin içindeki yuvarlak profil fotoğrafı */
+export function PinAvatar({ uri, size, onLoadEnd }: { uri: string; size: number; onLoadEnd?: () => void }) {
+  return (
+    <Image
+      source={{ uri }}
+      style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: "#F3F4F6" }}
+      contentFit="cover"
+      cachePolicy="memory-disk"
+      onLoadEnd={onLoadEnd}
+      transition={0}
+    />
+  );
+}
+
 // ─── 2. AŞK NOTU PİNİ (Mühürlü Aşk Zarfı Tasarımı) ───────────────────────────
 interface NoteMarkerPinProps {
   note: MapNote;
+  /** Notu bırakanın profil fotoğrafı (Premium) — varsa zarfın yerini alır */
+  avatarUrl?: string | null;
   onSelect: (item: SelectedItem) => void;
 }
 
-function NoteMarkerPinBase({ note, onSelect }: NoteMarkerPinProps) {
+function NoteMarkerPinBase({ note, avatarUrl, onSelect }: NoteMarkerPinProps) {
+  const { tracksViewChanges, onImageLoadEnd } = useFreezeAfterImageLoad(avatarUrl);
+
   return (
     <Marker
       coordinate={{ latitude: note.latitude, longitude: note.longitude }}
@@ -21,13 +53,22 @@ function NoteMarkerPinBase({ note, onSelect }: NoteMarkerPinProps) {
         e.stopPropagation?.();
         onSelect({ type: "note", data: note });
       }}
-      tracksViewChanges={false}
+      tracksViewChanges={tracksViewChanges}
     >
       <View style={styles.noteMarkerWrapper}>
-        <LinearGradient colors={["#FF4D6D", "#E01E5A"]} style={styles.noteEnvelopePill}>
-          <Text style={{ fontSize: 13 }}>💌</Text>
-        </LinearGradient>
-        <View style={[markerStyles.markerStem, { borderTopColor: "#E01E5A" }]} />
+        {avatarUrl ? (
+          <View style={styles.noteAvatarFrame}>
+            <PinAvatar uri={avatarUrl} size={34} onLoadEnd={onImageLoadEnd} />
+            <View style={styles.noteAvatarSeal}>
+              <Text style={{ fontSize: 9 }}>💌</Text>
+            </View>
+          </View>
+        ) : (
+          <LinearGradient colors={["#FF4D6D", "#E01E5A"]} style={styles.noteEnvelopePill}>
+            <Text style={{ fontSize: 13 }}>💌</Text>
+          </LinearGradient>
+        )}
+        <View style={[markerStyles.markerStem, { borderTopColor: avatarUrl ? "#FFFFFF" : "#E01E5A" }]} />
       </View>
     </Marker>
   );
@@ -38,10 +79,14 @@ export const NoteMarkerPin = React.memo(NoteMarkerPinBase);
 // ─── 3. BULUŞMA PİNİ (Zarif Randevu & Takvim Rozeti) ─────────────────────────
 interface MeetingMarkerPinProps {
   meeting: MeetingPin;
+  /** Buluşmayı planlayanın profil fotoğrafı (Premium) — varsa takvim ikonunun yerini alır */
+  avatarUrl?: string | null;
   onSelect: (item: SelectedItem) => void;
 }
 
-function MeetingMarkerPinBase({ meeting, onSelect }: MeetingMarkerPinProps) {
+function MeetingMarkerPinBase({ meeting, avatarUrl, onSelect }: MeetingMarkerPinProps) {
+  const { tracksViewChanges, onImageLoadEnd } = useFreezeAfterImageLoad(avatarUrl);
+
   return (
     <Marker
       coordinate={{ latitude: meeting.latitude, longitude: meeting.longitude }}
@@ -49,11 +94,18 @@ function MeetingMarkerPinBase({ meeting, onSelect }: MeetingMarkerPinProps) {
         e.stopPropagation?.();
         onSelect({ type: "meeting", data: meeting });
       }}
-      tracksViewChanges={false}
+      tracksViewChanges={tracksViewChanges}
     >
       <View style={styles.meetingMarkerWrapper}>
-        <LinearGradient colors={["#8B5CF6", "#6D28D9"]} style={styles.meetingPill}>
-          <Calendar size={13} color="#fff" />
+        <LinearGradient
+          colors={["#8B5CF6", "#6D28D9"]}
+          style={[styles.meetingPill, avatarUrl ? styles.meetingPillWithAvatar : null]}
+        >
+          {avatarUrl ? (
+            <PinAvatar uri={avatarUrl} size={20} onLoadEnd={onImageLoadEnd} />
+          ) : (
+            <Calendar size={13} color="#fff" />
+          )}
           <Text style={styles.meetingMarkerText} numberOfLines={1}>
             {meeting.title}
           </Text>
@@ -104,6 +156,32 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 6,
   },
+  noteAvatarFrame: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#FF1493",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  noteAvatarSeal: {
+    position: "absolute",
+    right: -4,
+    bottom: -2,
+    width: 17,
+    height: 17,
+    borderRadius: 9,
+    backgroundColor: "#FF4D6D",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: "#FFFFFF",
+  },
 
   // 3. Buluşma Pin
   meetingMarkerWrapper: {
@@ -124,6 +202,11 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 6,
     maxWidth: 130,
+  },
+  meetingPillWithAvatar: {
+    paddingLeft: 3,
+    paddingVertical: 3,
+    maxWidth: 140,
   },
   meetingMarkerText: {
     color: "#FFFFFF",

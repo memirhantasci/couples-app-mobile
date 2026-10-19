@@ -20,11 +20,11 @@ Branch: `pp-picture` · Spec: `ARAYUZ_GELISTIRMESI.md` → "[ÇOK ZOR-2] Profil 
 - [x] **Faz 3** — Tetikleyiciler: `menu.tsx` + `profile.tsx` avatarı → `<EditableAvatar />`
 - [x] **Faz 4** — Takvim (`getAuthorAvatar` → `useCoupleAvatars`) + Ana Sayfa `<CoupleAvatarRing />` (hero kart üst satırı) & partner ruh hali rozeti (`dashboardData.partnerMood`)
 - [x] **Faz 5** — Mektuplar (liste `personRow` avatarı + `PendingLettersCard` fotoğraflı mühür pulu) + Buluşmalar (`meetings.tsx` planlayan satırı, `MeetingCountdown` başlık avatarı; home meetings select'ine `user_id` eklendi)
-- [ ] **Faz 6** — Harita pinleri + Yıldız ekranı
+- [ ] **Faz 6** — [x] Harita pinleri (not/buluşma pininde avatar, foto pininde yükleyen rozeti; `useFreezeAfterImageLoad`) · [ ] Yıldız ekranı
 - [ ] ~~Faz 7 — Widget~~ (kapsam dışı)
 
 ## Sıradaki adım
-Faz 6: Harita pinleri (`map.tsx`, `components/map/*` — anıyı/buluşmayı ekleyenin mini fotoğrafı) + Yıldız ekranı (`modules/stars/components/OurStarScreen.tsx` — çiftin fotoğrafları).
+Faz 6 (devam): Yıldız ekranı (`modules/stars/components/OurStarScreen.tsx` — çiftin fotoğrafları).
 
 ## Mimari (Faz 2)
 - **Tek doğruluk kaynağı:** `useCoupleAvatars()` → `{ myAvatarUrl, partnerAvatarUrl, getAvatarUrl(userId), hasStoredAvatar }`.

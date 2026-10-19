@@ -42,6 +42,7 @@ import { PageTourModal } from "@/components/tour/PageTourModal";
 import { MAP_THEME_STYLES, isLightMapTheme } from "@/constants/mapStyles";
 import { useAuth } from "@/context/AuthContext";
 import { useDemoAction } from "@/hooks/useDemoAction";
+import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 import { useMapData } from "@/hooks/useMapData";
 import { usePageTour } from "@/hooks/usePageTour";
 import { notifyPartner } from "@/lib/notifications";
@@ -67,6 +68,8 @@ export default function MapScreen() {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
+  // Pinlerde anıyı/buluşmayı ekleyenin profil fotoğrafı (Premium)
+  const { getAvatarUrl } = useCoupleAvatars();
   const mapRef = useRef<MapView | null>(null);
   const lastMarkerPressRef = useRef<number>(0);
 
@@ -355,6 +358,7 @@ export default function MapScreen() {
             <PhotoMarkerPin
               key={`photo-${photo.id}`}
               photo={photo}
+              avatarUrl={getAvatarUrl(photo.user_id)}
               onSelect={handleMarkerPress}
             />
           ))}
@@ -364,6 +368,7 @@ export default function MapScreen() {
             <NoteMarkerPin
               key={`note-${note.id}`}
               note={note}
+              avatarUrl={getAvatarUrl(note.user_id)}
               onSelect={handleMarkerPress}
             />
           ))}
@@ -373,6 +378,7 @@ export default function MapScreen() {
             <MeetingMarkerPin
               key={`meeting-${meeting.id}`}
               meeting={meeting}
+              avatarUrl={getAvatarUrl(meeting.user_id)}
               onSelect={handleMarkerPress}
             />
           ))}
