@@ -16,7 +16,7 @@ Branch: `pp-picture` · Spec: `ARAYUZ_GELISTIRMESI.md` → "[ÇOK ZOR-2] Profil 
 ## Fazlar
 - [x] **Faz 0** — Plan + bu dosya
 - [x] **Faz 1** — Migration `supabase/migrations/20261020000000_user_avatars.sql` (⚠️ canlıya UYGULANMADI — kullanıcı uygulayacak)
-- [ ] **Faz 2** — Çekirdek: `src/lib/avatar.ts`, `useAvatarUpload`, `useCoupleAvatars`, `<UserAvatar>`, `<AvatarActionSheet>`, `AuthContext.avatarUrl`, demo verisi
+- [x] **Faz 2** — Çekirdek: `src/lib/avatar.ts`, `useAvatarUpload`, `useCoupleAvatars`, `components/avatar/{UserAvatar,AvatarActionSheet,EditableAvatar}`, paywall `avatar` kaynağı, AuthContext realtime invalidation
 - [ ] **Faz 3** — Tetikleyiciler: `menu.tsx` + `profile.tsx` avatarı (kamera rozeti, spinner, paywall, demo daveti)
 - [ ] **Faz 4** — Takvim (`calendar.tsx` `getAuthorAvatar`, `NoteMemoryCard`) + Ana Sayfa çift halkası & partner ruh hali rozeti
 - [ ] **Faz 5** — Mektuplar (gönderen pulu) + Buluşmalar (planlayan imzası)
@@ -24,7 +24,18 @@ Branch: `pp-picture` · Spec: `ARAYUZ_GELISTIRMESI.md` → "[ÇOK ZOR-2] Profil 
 - [ ] ~~Faz 7 — Widget~~ (kapsam dışı)
 
 ## Sıradaki adım
-Faz 2: çekirdek altyapı.
+Faz 3: `menu.tsx` ve `profile.tsx` içindeki harf avatarını `<EditableAvatar name={displayName} />` ile değiştir.
+
+## Mimari (Faz 2)
+- **Tek doğruluk kaynağı:** `useCoupleAvatars()` → `{ myAvatarUrl, partnerAvatarUrl, getAvatarUrl(userId), hasStoredAvatar }`.
+  Query key `["couple_avatars", coupleId]`. `profile.isPremium` false ise tüm URL'ler `null` döner (premium bitince gizleme).
+  `avatar_url` bilinçli olarak `AuthContext.fetchProfile` select'ine EKLENMEDİ: migration uygulanmadan sütun seçilirse
+  profil sorgusu komple düşüp uygulamayı bozardı. Ayrı sorgu hata alırsa sessizce `{}` döner.
+- **Yükleme:** `useAvatarUpload()` → `openAvatarMenu` (demo → kayıt daveti, ücretsiz → paywall, premium → sheet),
+  `uploadAvatar(source)` (en tepede sert `isPremium` kontrolü), `removeAvatar()`. `lib/avatar.uploadAvatar` da `isPremium` ister.
+- **UI:** `<UserAvatar uri name size badge loading />` her yerde kullanılacak salt-görüntü bileşeni.
+  `<EditableAvatar />` kendi avatarı için: kamera rozeti (premium) / taç rozeti (ücretsiz), sheet + paywall + demo modalı içinde.
+- **Realtime:** AuthContext kanalı `users` tablosunda `couple_id=eq.X` UPDATE'lerinde `couple_avatars`'ı invalidate eder.
 
 ## Notlar
 - `expo-image-manipulator` v57: `manipulateAsync` deprecated → `ImageManipulator.manipulate(uri).resize(...)` → `renderAsync()` → `saveAsync({ format, compress, base64 })`.

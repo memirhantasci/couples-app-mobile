@@ -9,6 +9,7 @@ import { setAdLoggingOut } from "../utils/adFlags";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { getOrCreateDeviceId } from "@/utils/device";
 import { isDatesSkipped } from "@/lib/datesSkip";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Platform, AppState } from "react-native";
 
@@ -173,6 +174,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<CoupleProfile | null>(null);
   const [isDeviceAuthorized, setIsDeviceAuthorized] = useState<boolean | null>(null);
   const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
+  const queryClient = useQueryClient();
   // Abonelik / asenkron geri çağrılar güncel demo durumunu closure'a takılmadan okuyabilsin diye
   const isDemoModeRef = useRef(false);
   useEffect(() => {
@@ -459,6 +461,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         { event: '*', schema: 'public', table: 'couples', filter: `id=eq.${profile.coupleId}` },
         () => refreshProfile()
       );
+
+      // Partnerin profil fotoğrafı değişince her iki telefonda da avatarlar anında yenilensin
+      channel.on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'users', filter: `couple_id=eq.${profile.coupleId}` },
+        () => queryClient.invalidateQueries({ queryKey: ["couple_avatars"] })
+      );
     }
 
     channel.subscribe();
@@ -466,7 +475,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [session?.user?.id, profile?.coupleId, refreshProfile]);
+  }, [session?.user?.id, profile?.coupleId, refreshProfile, queryClient]);
 
   const foregroundRefreshInFlightRef = useRef(false);
 

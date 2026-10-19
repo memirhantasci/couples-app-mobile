@@ -3,7 +3,8 @@ export type PremiumFeatureSource =
   | 'star_claim'
   | 'exoplanet_create'
   | 'exoplanet_view'
-  | 'exoplanet_auto';
+  | 'exoplanet_auto'
+  | 'avatar';
 
 export interface PremiumPaywallProps {
   readonly visible: boolean;
