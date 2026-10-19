@@ -150,7 +150,7 @@ export default function HomeScreen() {
         coupleId
           ? supabase
             .from("meetings")
-            .select("id, meeting_datetime, title, location_name, latitude, longitude")
+            .select("id, meeting_datetime, title, location_name, latitude, longitude, user_id")
             .eq("couple_id", coupleId)
             .eq("is_active", true)
             .gte("meeting_datetime", dayjs().subtract(MEETING_CELEBRATION_MINUTES, "minute").toISOString())

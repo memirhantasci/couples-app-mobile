@@ -36,6 +36,8 @@ import { useTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
+import { UserAvatar } from "@/components/avatar/UserAvatar";
+import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 import { WatchAdModal } from "@/components/ui/WatchAdModal";
 import { OrigamiBirdAnimation } from "@/components/letters/OrigamiBirdAnimation";
 import { usePageTour } from "@/hooks/usePageTour";
@@ -85,6 +87,7 @@ export default function LettersScreen() {
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
+  const { getAvatarUrl } = useCoupleAvatars();
   const priming = useNotificationPriming(userId);
 
   const [activeTab, setActiveTab] = useState<"all" | "received" | "sent">("all");
@@ -396,6 +399,7 @@ export default function LettersScreen() {
     const personObj = itemType === "received" ? letter.sender : letter.receiver;
     const personName =
       readableName(personObj?.display_name) || readableName(personObj?.username) || "Sevgilim ❤️";
+    const personAvatarUrl = getAvatarUrl(itemType === "received" ? letter.sender_id : letter.receiver_id);
 
     let relativeDate = dayjs(letter.created_at).format("DD MMMM YYYY");
     if (dayjs(letter.created_at).isSame(dayjs(), 'day')) relativeDate = "Bugün";
@@ -479,6 +483,7 @@ export default function LettersScreen() {
 
           {/* Gönderen / Alıcı Bilgisi */}
           <View style={styles.personRow}>
+            <UserAvatar uri={personAvatarUrl} name={personName} size={22} borderWidth={1} />
             <Text style={[styles.personText, { color: theme.textSecondary }]}>
               {itemType === "received" ? `Gönderen: ${personName}` : `Alıcı: ${personName}`}
             </Text>
@@ -517,7 +522,7 @@ export default function LettersScreen() {
         </TouchableOpacity>
       </View>
     );
-  }, [theme.cardBg, theme.cardBorder, theme.text, theme.textMuted, theme.textSecondary, isLight, userId, openLetterId, activeTab]);
+  }, [theme.cardBg, theme.cardBorder, theme.text, theme.textMuted, theme.textSecondary, isLight, userId, openLetterId, activeTab, getAvatarUrl]);
 
   const keyExtractor = useCallback((item: any) => item.id.toString(), []);
 

@@ -19,12 +19,12 @@ Branch: `pp-picture` · Spec: `ARAYUZ_GELISTIRMESI.md` → "[ÇOK ZOR-2] Profil 
 - [x] **Faz 2** — Çekirdek: `src/lib/avatar.ts`, `useAvatarUpload`, `useCoupleAvatars`, `components/avatar/{UserAvatar,AvatarActionSheet,EditableAvatar}`, paywall `avatar` kaynağı, AuthContext realtime invalidation
 - [x] **Faz 3** — Tetikleyiciler: `menu.tsx` + `profile.tsx` avatarı → `<EditableAvatar />`
 - [x] **Faz 4** — Takvim (`getAuthorAvatar` → `useCoupleAvatars`) + Ana Sayfa `<CoupleAvatarRing />` (hero kart üst satırı) & partner ruh hali rozeti (`dashboardData.partnerMood`)
-- [ ] **Faz 5** — Mektuplar (gönderen pulu) + Buluşmalar (planlayan imzası)
+- [x] **Faz 5** — Mektuplar (liste `personRow` avatarı + `PendingLettersCard` fotoğraflı mühür pulu) + Buluşmalar (`meetings.tsx` planlayan satırı, `MeetingCountdown` başlık avatarı; home meetings select'ine `user_id` eklendi)
 - [ ] **Faz 6** — Harita pinleri + Yıldız ekranı
 - [ ] ~~Faz 7 — Widget~~ (kapsam dışı)
 
 ## Sıradaki adım
-Faz 5: Mektuplar (`letters.tsx`, `components/home/PendingLettersCard.tsx`) gönderen pulu + Buluşmalar (`meetings.tsx`, `components/home/MeetingCountdown.tsx`) planlayan imzası. Hepsi `<UserAvatar uri={getAvatarUrl(id)} name=... />`.
+Faz 6: Harita pinleri (`map.tsx`, `components/map/*` — anıyı/buluşmayı ekleyenin mini fotoğrafı) + Yıldız ekranı (`modules/stars/components/OurStarScreen.tsx` — çiftin fotoğrafları).
 
 ## Mimari (Faz 2)
 - **Tek doğruluk kaynağı:** `useCoupleAvatars()` → `{ myAvatarUrl, partnerAvatarUrl, getAvatarUrl(userId), hasStoredAvatar }`.
