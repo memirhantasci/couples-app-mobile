@@ -125,32 +125,98 @@ export async function setHapticFeedbackEnabled(enabled: boolean): Promise<void> 
   }
 }
 
+// ─── Platforma Duyarlı Haptik Yardımcıları ──────────────────────────────────
+// iOS'ta Taptic Engine API'leri doğrudan kullanılır. Android'de expo-haptics'in impact/notification/
+// selection çağrıları Vibrator servisini kullanır (dokümanda önerilmez); özellikle selection yalnızca
+// 50 ms ve 30/255 genlikte titreşir, çoğu cihazda hissedilmez. Android'de önerilen
+// performAndroidHapticsAsync (sistem dokunsal geri bildirimi) önce denenir. Confirm/Reject API 30
+// öncesinde yoktur; desteklenmiyorsa eski Vibrator çağrısına düşülür.
+export type HapticKind = 'selection' | 'tap' | 'stamp' | 'success' | 'warning' | 'error';
+
+const ANDROID_HAPTIC: Record<HapticKind, Haptics.AndroidHaptics> = {
+  selection: Haptics.AndroidHaptics.Clock_Tick,
+  tap: Haptics.AndroidHaptics.Virtual_Key,
+  stamp: Haptics.AndroidHaptics.Long_Press,
+  success: Haptics.AndroidHaptics.Confirm,
+  warning: Haptics.AndroidHaptics.Reject,
+  error: Haptics.AndroidHaptics.Reject,
+};
+
 /**
- * Trigger tactile haptic feedback matching the interaction.
+ * Kullanıcının haptik tercihine saygı duyarak tek bir dokunsal geri bildirim verir.
+ * Hiçbir zaman hata fırlatmaz; destek yoksa sessizce geçer.
  */
-export async function triggerHaptic(type: SoundEffectType): Promise<void> {
+export async function fireHaptic(kind: HapticKind): Promise<void> {
   if (Platform.OS === 'web') return;
-  const enabled = await getHapticFeedbackEnabled();
-  if (!enabled) return;
+  if (!(await getHapticFeedbackEnabled())) return;
 
   try {
-    switch (type) {
-      case 'bubble_pop':
+    if (Platform.OS === 'android') {
+      try {
+        await Haptics.performAndroidHapticsAsync(ANDROID_HAPTIC[kind]);
+        return;
+      } catch {
+        // Bu API düzeyinde desteklenmiyor → aşağıdaki Vibrator tabanlı çağrıya düş
+      }
+    }
+
+    switch (kind) {
+      case 'selection':
+        await Haptics.selectionAsync();
+        break;
+      case 'tap':
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         break;
-      case 'letter_send':
-      case 'success_chime':
-      case 'celebration':
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        break;
-      case 'stamp_drop':
+      case 'stamp':
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         break;
-      case 'camera_click':
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      case 'success':
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        break;
+      case 'warning':
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        break;
+      case 'error':
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         break;
     }
   } catch {}
+}
+
+/** Akıcı "tekerlek tıkı": ruh hali / seçim değişimi. */
+export const hapticSelection = () => fireHaptic('selection');
+/** Hafif dokunuş: bir şeye konma, eşik aşma. */
+export const hapticTap = () => fireHaptic('tap');
+/** Tok mühür basma hissi: mektup mühürleme. */
+export const hapticStamp = () => fireHaptic('stamp');
+/** Başarı: kayıt tamamlandı. */
+export const hapticSuccess = () => fireHaptic('success');
+export const hapticWarning = () => fireHaptic('warning');
+export const hapticError = () => fireHaptic('error');
+
+/**
+ * Trigger tactile haptic feedback matching the interaction.
+ * Tüm efektler platforma duyarlı `fireHaptic` üzerinden geçer (iOS'ta çağrılar öncekiyle aynıdır;
+ * Android'de önerilen sistem dokunsal geri bildirimi kullanılır). Tercih kontrolü orada yapılır.
+ */
+export async function triggerHaptic(type: SoundEffectType): Promise<void> {
+  switch (type) {
+    case 'bubble_pop':
+      // Ruh hali seçimi: akıcı tekerlek tıkı (eskiden hafif darbe)
+      await fireHaptic('selection');
+      break;
+    case 'letter_send':
+    case 'success_chime':
+    case 'celebration':
+      await fireHaptic('success');
+      break;
+    case 'stamp_drop':
+      await fireHaptic('stamp');
+      break;
+    case 'camera_click':
+      await fireHaptic('tap');
+      break;
+  }
 }
 
 /**
