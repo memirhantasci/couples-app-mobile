@@ -1,0 +1,31 @@
+# 📸 Profil Fotoğrafı (PP) — İlerleme Takibi
+
+Branch: `pp-picture` · Spec: `ARAYUZ_GELISTIRMESI.md` → "[ÇOK ZOR-2] Profil Fotoğrafı"
+
+> Bu dosya, iş yarıda kalırsa kaldığı yerden devam edebilmek için tutulur.
+> Her faz ayrı commit'tir; **"Sıradaki adım"** bölümü her commit'te güncellenir.
+
+## Alınan kararlar
+- **Bucket:** `avatars`, **public** (spec'teki `avatar_url` + `?v=` cache-bust yaklaşımı).
+- **Dosya yolu:** `${userId}/avatar.jpg` (upsert). Storage RLS yalnızca kendi klasörüne + premium iken yazdırır.
+- **Premium bitince:** dosya silinmez ama istemci fotoğrafı **göstermez**, harf avatarına döner (`profile.isPremium` çift bazlı).
+- **Kaldırma:** premium olmasa bile her zaman serbest (DB `NULL` + storage delete).
+- **Migration:** Claude dosyayı yazar, kullanıcı canlı DB'ye uygular (dashboard SQL editor veya `supabase db push`).
+- **Widget (Faz 7):** kapsam dışı.
+
+## Fazlar
+- [x] **Faz 0** — Plan + bu dosya
+- [x] **Faz 1** — Migration `supabase/migrations/20261020000000_user_avatars.sql` (⚠️ canlıya UYGULANMADI — kullanıcı uygulayacak)
+- [ ] **Faz 2** — Çekirdek: `src/lib/avatar.ts`, `useAvatarUpload`, `useCoupleAvatars`, `<UserAvatar>`, `<AvatarActionSheet>`, `AuthContext.avatarUrl`, demo verisi
+- [ ] **Faz 3** — Tetikleyiciler: `menu.tsx` + `profile.tsx` avatarı (kamera rozeti, spinner, paywall, demo daveti)
+- [ ] **Faz 4** — Takvim (`calendar.tsx` `getAuthorAvatar`, `NoteMemoryCard`) + Ana Sayfa çift halkası & partner ruh hali rozeti
+- [ ] **Faz 5** — Mektuplar (gönderen pulu) + Buluşmalar (planlayan imzası)
+- [ ] **Faz 6** — Harita pinleri + Yıldız ekranı
+- [ ] ~~Faz 7 — Widget~~ (kapsam dışı)
+
+## Sıradaki adım
+Faz 2: çekirdek altyapı.
+
+## Notlar
+- `expo-image-manipulator` v57: `manipulateAsync` deprecated → `ImageManipulator.manipulate(uri).resize(...)` → `renderAsync()` → `saveAsync({ format, compress, base64 })`.
+- `expo-image-picker` v57: `mediaTypes: ['images']`, `allowsEditing: true`, `aspect: [1, 1]` (iOS her zaman kare).
