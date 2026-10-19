@@ -8,8 +8,8 @@ export const DEMO_COUPLE_ID = 999999;
 
 export const DEMO_PROFILE: CoupleProfile = {
   coupleId: DEMO_COUPLE_ID,
-  meetDate: dayjs().subtract(730, "day").format("YYYY-MM-DD"), // 2 yıl önce
-  relationshipStartDate: dayjs().subtract(520, "day").format("YYYY-MM-DD"), // 520 gün
+  meetDate: dayjs().subtract(428, "day").format("YYYY-MM-DD"), // 428 gün
+  relationshipStartDate: dayjs().subtract(365, "day").format("YYYY-MM-DD"), // 365 gün
   isPaired: true,
   hasDates: true,
   displayName: "Misafir (Demo)",

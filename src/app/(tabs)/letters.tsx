@@ -52,6 +52,17 @@ const safeDecrypt = (val: string | null | undefined): string => {
   }
 };
 
+// Çözülemeyen şifreli değerler ("enc:" / "det:") kullanıcıya asla gösterilmemeli.
+const readableName = (val: string | null | undefined): string => {
+  if (!val) return "";
+  const trimmed = val.trim();
+  if (trimmed.startsWith("enc:") || trimmed.startsWith("det:")) {
+    const dec = decrypt(trimmed);
+    return dec && !dec.startsWith("enc:") && !dec.startsWith("det:") ? dec : "";
+  }
+  return trimmed;
+};
+
 export default function LettersScreen() {
   const router = useRouter();
   const { session, profile, refreshProfile, isDemoMode } = useAuth();
@@ -370,9 +381,9 @@ export default function LettersScreen() {
     const canOpen = itemType === "sent" || !isLockedDate;
     const isOpen = openLetterId === letter.id;
 
-    const personName = itemType === "received"
-      ? (letter.sender?.display_name || letter.sender?.username || "Sevgilin")
-      : (letter.receiver?.display_name || letter.receiver?.username || "Sevgilin");
+    const personObj = itemType === "received" ? letter.sender : letter.receiver;
+    const personName =
+      readableName(personObj?.display_name) || readableName(personObj?.username) || "Sevgilim ❤️";
 
     let relativeDate = dayjs(letter.created_at).format("DD MMMM YYYY");
     if (dayjs(letter.created_at).isSame(dayjs(), 'day')) relativeDate = "Bugün";
@@ -724,7 +735,7 @@ export default function LettersScreen() {
                               isSelected && { fontFamily: "Inter_700Bold" }
                             ]}
                           >
-                            {u.display_name || u.username}
+                            {readableName(u.display_name) || readableName(u.username) || "Sevgilim ❤️"}
                           </Text>
                         </TouchableOpacity>
                       );

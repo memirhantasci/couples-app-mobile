@@ -20,7 +20,7 @@ import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { playBubblePop } from "@/lib/soundEffects";
 import { toast } from "@/lib/toast";
 
-const MOODS = [
+export const MOODS = [
   { emoji: "😍", label: "Çok Mutlu" },
   { emoji: "😊", label: "Mutlu" },
   { emoji: "😐", label: "Normal" },

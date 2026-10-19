@@ -34,6 +34,28 @@ import { CalendarMonthView } from "@/components/calendar/CalendarMonthView";
 import { CalendarNoteModal } from "@/components/calendar/CalendarNoteModal";
 import { CalendarPhotoLightbox } from "@/components/calendar/CalendarPhotoLightbox";
 import { PERIOD_DURATION_DAYS, getPeriodDays, getPeriodStarts } from "@/lib/periodCycle";
+import { MOODS } from "@/components/home/MoodSelector";
+
+// Veritabanında ruh hali genelde emoji olarak saklanır; eski/demo kayıtlardaki ham anahtarlar (ör. "love") için eşleme.
+const MOOD_KEY_DISPLAY: Record<string, { emoji: string; label: string }> = {
+  love: { emoji: "🥰", label: "Aşık / Sevgi Dolu" },
+  loved: { emoji: "💖", label: "Sevgi Dolu" },
+  happy: { emoji: "😊", label: "Mutlu" },
+  calm: { emoji: "😌", label: "Huzurlu" },
+  excited: { emoji: "✨", label: "Heyecanlı" },
+  tired: { emoji: "😴", label: "Yorgun" },
+  sad: { emoji: "😢", label: "Üzgün" },
+  angry: { emoji: "😡", label: "Kızgın" },
+};
+
+function getMoodDisplay(moodType: string | null | undefined): { emoji: string; label: string } {
+  if (!moodType) return { emoji: "💭", label: "" };
+  const byKey = MOOD_KEY_DISPLAY[moodType.trim().toLowerCase()];
+  if (byKey) return byKey;
+  const byEmoji = MOODS.find((mood) => mood.emoji === moodType);
+  if (byEmoji) return { emoji: byEmoji.emoji, label: byEmoji.label };
+  return { emoji: moodType, label: "" };
+}
 
 LocaleConfig.locales['tr'] = {
   monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
@@ -400,7 +422,7 @@ export default function CalendarScreen() {
     if (!pName && partnerObj?.username) {
       pName = deterministicDecrypt(partnerObj.username) || partnerObj.username;
     }
-    return pName || "Partnerin";
+    return pName || "Sevgilin";
   }, [data?.users, userId, profile?.displayName]);
 
   const getAuthorAvatar = useCallback((itemUserId: string | undefined | null) => {
@@ -577,6 +599,7 @@ export default function CalendarScreen() {
                     {selectedDayMoods.map((m: any, i: number) => {
                       const isMe = m.user_id === userId;
                       const authorName = getAuthorName(m.user_id);
+                      const moodDisplay = getMoodDisplay(m.mood_type);
                       const moodColor = isMe ? CALENDAR_COLORS.myMood : CALENDAR_COLORS.partnerMood;
                       const bgTint = isLight
                         ? (isMe ? "rgba(245,158,11,0.06)" : "rgba(14,165,233,0.06)")
@@ -587,11 +610,13 @@ export default function CalendarScreen() {
                         <View key={m.id || `mood-${i}`} style={[styles.moodCard, { backgroundColor: bgTint, borderColor: borderTint }]}>
                           <View style={[styles.moodTag, { backgroundColor: isLight ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.25)" }]}>
                             <Text style={[styles.moodTagText, { color: moodColor }]}>
-                              {isMe ? "Sen" : "Partnerin"}
+                              {isMe ? "Sen" : authorName}
                             </Text>
                           </View>
-                          <Text style={{ fontSize: 30, marginVertical: 3 }}>{m.mood_type}</Text>
-                          <Text style={[styles.moodAuthor, { color: theme.textSecondary }]}>{authorName}</Text>
+                          <Text style={{ fontSize: 30, marginVertical: 3 }}>{moodDisplay.emoji}</Text>
+                          <Text style={[styles.moodAuthor, { color: theme.textSecondary }]}>
+                            {moodDisplay.label || authorName}
+                          </Text>
                         </View>
                       );
                     })}

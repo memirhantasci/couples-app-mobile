@@ -279,8 +279,11 @@ export default function HomeScreen() {
 
   const meetDate = profile?.meetDate;
   const relDate = profile?.relationshipStartDate;
-  const daysSinceMeeting = meetDate ? daysSince(dayjs(meetDate)) : 0;
-  const daysSinceTogether = relDate ? daysSince(dayjs(relDate)) : 0;
+  // Demo modunda tarih bilgisi yoksa sayaçlar boş kalmasın diye gerçekçi örnek değerler gösterilir
+  const DEMO_DAYS_TOGETHER = 365;
+  const DEMO_DAYS_KNOWN = 428;
+  const daysSinceMeeting = meetDate ? daysSince(dayjs(meetDate)) : isDemoMode ? DEMO_DAYS_KNOWN : 0;
+  const daysSinceTogether = relDate ? daysSince(dayjs(relDate)) : isDemoMode ? DEMO_DAYS_TOGETHER : 0;
   const name = profile?.displayName || "Sevgilim";
   const quote = useMemo(() => getQuoteForDay(doy), [doy]);
   const activeLoveScore = isDemoMode 
@@ -464,7 +467,7 @@ export default function HomeScreen() {
                 <View style={[styles.counterIconCircle, { backgroundColor: theme.pillAccentBg }]}>
                   <Heart size={16} color={theme.accent} fill={theme.accent} />
                 </View>
-                <Text style={[styles.counterNumber, { color: theme.text }]}>{relDate ? daysSinceTogether : "—"}</Text>
+                <Text style={[styles.counterNumber, { color: theme.text }]}>{relDate || isDemoMode ? daysSinceTogether : "—"}</Text>
                 <Text style={[styles.counterDesc, { color: theme.textSecondary }]}>Gündür Sevgiliyiz</Text>
               </View>
 
@@ -473,7 +476,7 @@ export default function HomeScreen() {
                 <View style={[styles.counterIconCircle, { backgroundColor: isLight ? "rgba(255, 215, 0, 0.15)" : "rgba(255,255,255,0.06)" }]}>
                   <Sparkles size={16} color="#ffd700" />
                 </View>
-                <Text style={[styles.counterNumber, { color: theme.text }]}>{meetDate ? daysSinceMeeting : "—"}</Text>
+                <Text style={[styles.counterNumber, { color: theme.text }]}>{meetDate || isDemoMode ? daysSinceMeeting : "—"}</Text>
                 <Text style={[styles.counterDesc, { color: theme.textSecondary }]}>Gündür Hayatımdasın</Text>
               </View>
             </View>

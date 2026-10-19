@@ -55,6 +55,8 @@ import {
   Search,
   Award,
   Sun,
+  Volume2,
+  VolumeX,
 } from 'lucide-react-native';
 
 import { startCosmicAmbient, stopCosmicAmbient } from '@/lib/soundEffects';
@@ -201,6 +203,9 @@ export const OurStarScreen: React.FC = () => {
   const sparkManagerRef = useRef<StarSparkManager | null>(null);
   const lastRealtimeSparkAtRef = useRef<number>(0);
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ortam sesi kapatıldıysa ekran yeniden odaklansa da çalmaz (ref: focus effect'i yeniden kurmamak için)
+  const ambientMutedRef = useRef(false);
+  const [isAmbientMuted, setIsAmbientMuted] = useState(false);
 
   // ─── IŞIMA DALGASI ANİMASYONU ──────────────────────────────────────
   const glowWaveOpacity = useSharedValue(0);
@@ -373,7 +378,9 @@ export const OurStarScreen: React.FC = () => {
   // kaybedildiğinde (sekme değişimi, geri gitme) pürüzsüzce söner.
   useFocusEffect(
     useCallback(() => {
-      startCosmicAmbient().catch(() => {});
+      if (!ambientMutedRef.current) {
+        startCosmicAmbient().catch(() => {});
+      }
       return () => {
         stopCosmicAmbient();
       };
@@ -554,6 +561,31 @@ export const OurStarScreen: React.FC = () => {
     setIsHomeRadarOpen(false);
     handleFocusMyStar();
   }, [handleFocusMyStar]);
+
+  // Makro (Gök Kubbe) / Mikro (yıldızın içi) geçişi
+  const handleToggleViewMode = useCallback(() => {
+    const nextMode = viewMode === 'micro' ? 'macro' : 'micro';
+    setViewMode(nextMode);
+    setSelectedMacroStar(null);
+    showToast(
+      nextMode === 'macro'
+        ? 'Gök Kubbeye çıkıldı; tüm evreni keşfedebilirsiniz 🌌'
+        : 'Yıldızınızın mikro çekim alanına girildi 🪐'
+    );
+  }, [viewMode, showToast]);
+
+  // Ortam sesini aç/kapat
+  const handleToggleAmbient = useCallback(() => {
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+    const nextMuted = !ambientMutedRef.current;
+    ambientMutedRef.current = nextMuted;
+    setIsAmbientMuted(nextMuted);
+    if (nextMuted) {
+      stopCosmicAmbient();
+    } else {
+      startCosmicAmbient().catch(() => {});
+    }
+  }, []);
 
   // Kamera değiştiğinde koordinatları sadece anlamlı değişimlerde güncelle (re-render döngüsünü önler)
   const handleCameraChange = useCallback((cam: SkyCameraState) => {
@@ -778,6 +810,26 @@ export const OurStarScreen: React.FC = () => {
               )}
             </TouchableOpacity>
           )}
+
+          {/* ORTAM SESİ AÇ / KAPAT */}
+          <TouchableOpacity
+            activeOpacity={0.82}
+            onPress={handleToggleAmbient}
+            style={[
+              styles.cosmicBagBtn,
+              {
+                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(7, 5, 18, 0.65)',
+                borderColor: isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.2)',
+              },
+            ]}
+            accessibilityLabel={isAmbientMuted ? 'Sesi Aç' : 'Sesi Kapat'}
+          >
+            {isAmbientMuted ? (
+              <VolumeX size={16} color={isLight ? '#6B7280' : 'rgba(255, 255, 255, 0.65)'} />
+            ) : (
+              <Volume2 size={16} color={isLight ? '#0284C7' : '#38BDF8'} />
+            )}
+          </TouchableOpacity>
 
           <TouchableOpacity
             activeOpacity={0.82}
@@ -1260,33 +1312,45 @@ export const OurStarScreen: React.FC = () => {
         )}
 
         {/* SAĞ ALT FAB: MAKRO / MİKRO MOD GEÇİŞİ */}
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => {
-            const nextMode = viewMode === 'micro' ? 'macro' : 'micro';
-            setViewMode(nextMode);
-            setSelectedMacroStar(null);
-            showToast(
-              nextMode === 'macro'
-                ? 'Gök Kubbeye çıkıldı; tüm evreni keşfedebilirsiniz 🌌'
-                : 'Yıldızınızın mikro çekim alanına girildi 🪐'
-            );
-          }}
-          style={[
-            styles.modeSwitchFab,
-            {
-              backgroundColor: isLight ? 'rgba(255, 255, 255, 0.92)' : 'rgba(7, 5, 18, 0.8)',
-              borderColor: isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.18)',
-            },
-          ]}
-          accessibilityLabel="Görünüm Modunu Değiştir"
-        >
-          {viewMode === 'micro' ? (
-            <Globe size={20} color="#38BDF8" />
-          ) : (
-            <Orbit size={20} color="#FBBF24" />
+        <View style={styles.modeSwitchWrapper}>
+          {/* Yıldızın dışındayken (Gök Kubbe) FAB'ın ne yaptığını açıklayan etiket */}
+          {viewMode === 'macro' && starDetails !== null && !selectedMacroStar && (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={handleToggleViewMode}
+              style={[
+                styles.modeSwitchHint,
+                {
+                  backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(10, 8, 24, 0.92)',
+                  borderColor: isLight ? 'rgba(245, 158, 11, 0.5)' : 'rgba(251, 191, 36, 0.45)',
+                },
+              ]}
+              accessibilityLabel="Yıldızın İçine Gir"
+            >
+              <Text style={[styles.modeSwitchHintText, { color: isLight ? '#92400E' : '#FCD34D' }]}>
+                Yıldızın İçine Gir ✨
+              </Text>
+            </TouchableOpacity>
           )}
-        </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleToggleViewMode}
+            style={[
+              styles.modeSwitchFab,
+              {
+                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.92)' : 'rgba(7, 5, 18, 0.8)',
+                borderColor: isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.18)',
+              },
+            ]}
+            accessibilityLabel={viewMode === 'micro' ? 'Gök Kubbeye Çık' : 'Yıldızın İçine Gir'}
+          >
+            {viewMode === 'micro' ? (
+              <Globe size={20} color="#38BDF8" />
+            ) : (
+              <Orbit size={20} color="#FBBF24" />
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* ─── MODALLAR ────────────────────────────────────────────────── */}
@@ -1660,6 +1724,24 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     fontWeight: '600',
+  },
+  modeSwitchWrapper: {
+    alignItems: 'flex-end',
+  },
+  modeSwitchHint: {
+    position: 'absolute',
+    bottom: 52,
+    right: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 14,
+    borderWidth: 1,
+    minWidth: 150,
+    alignItems: 'center',
+  },
+  modeSwitchHintText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   modeSwitchFab: {
     width: 44,
