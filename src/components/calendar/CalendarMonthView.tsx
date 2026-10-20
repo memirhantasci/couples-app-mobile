@@ -132,7 +132,10 @@ function CalendarMonthViewComponent({
       <View style={[styles.calendarCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
         <Calendar
           current={currentMonth}
-          key={theme.id}
+          // Ay anahtarda OLMALI: react-native-calendars `current` değişince gösterdiği ayı kendiliğinden
+          // güncellemez. Anahtardan çıkınca başlık Eylül yazarken ızgara Ekim'de kalıyor, Eylül'ün günlerine
+          // basınca da Ekim'in tarihleri seçiliyordu.
+          key={`${currentMonth.slice(0, 7)}_${theme.id}`}
           firstDay={1}
           onDayPress={onDayPress}
           markedDates={markedDates}

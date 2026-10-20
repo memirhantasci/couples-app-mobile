@@ -16,19 +16,23 @@ export interface CalendarFetchParams {
   isPremium: boolean;
   canSeePeriod: boolean;
   isDemoMode: boolean;
+  /** Verinin ortalandığı ay (YYYY-MM-DD ya da YYYY-MM). Boşsa bu ay. Önceki + sonraki ay da yüklenir. */
+  anchorMonth?: string;
 }
 
 export function getCalendarQueryKey(
   coupleId: number | null | undefined,
   isPremium: boolean,
   canSeePeriod: boolean,
-  isDemoMode: boolean
+  isDemoMode: boolean,
+  anchorMonth?: string
 ) {
-  return ["calendar_data", coupleId, isPremium, canSeePeriod, isDemoMode];
+  // Ay en sonda: ["calendar_data"] önekiyle yapılan toplu geçersiz kılma hepsini kapsar
+  return ["calendar_data", coupleId, isPremium, canSeePeriod, isDemoMode, (anchorMonth ?? todayString()).slice(0, 7)];
 }
 
 export async function fetchCalendarData(params: CalendarFetchParams) {
-  const { coupleId, userId, isPremium, canSeePeriod, isDemoMode } = params;
+  const { coupleId, userId, isPremium, canSeePeriod, isDemoMode, anchorMonth } = params;
   const today = todayString();
 
   if (isDemoMode) {
@@ -82,10 +86,11 @@ export async function fetchCalendarData(params: CalendarFetchParams) {
   }
 
   // 🚀 PERFORMANS OPTİMİZASYONU:
-  // 5 ay yerine 3 ay (önceki ay, mevcut ay, sonraki ay) sorgulanır.
-  // Bu hem veri aktarım süresini hem de işlem yükünü yarı yarıya azaltır.
-  const startDate = dayjs().subtract(1, "month").startOf("month").format("YYYY-MM-DD");
-  const endDate = dayjs().add(1, "month").endOf("month").format("YYYY-MM-DD");
+  // Yalnızca 3 ay (önceki, ortadaki, sonraki) sorgulanır. Ortadaki ay BUGÜNE sabit değildir: kullanıcı
+  // takvimde bu pencerenin dışına geçince ekran yeni aya göre yeniden ortalanır (aksi halde eski aylar boş görünürdü).
+  const anchor = anchorMonth ? dayjs(anchorMonth) : dayjs();
+  const startDate = anchor.subtract(1, "month").startOf("month").format("YYYY-MM-DD");
+  const endDate = anchor.add(1, "month").endOf("month").format("YYYY-MM-DD");
 
   const [notesRes, moodsRes, photosRes, meetingsRes, periodsRes, usersRes] = await Promise.all([
     supabase
@@ -171,10 +176,10 @@ export async function fetchCalendarData(params: CalendarFetchParams) {
  * veri beklemeden sıfır gecikmeyle (0ms) açılır.
  */
 export function prefetchCalendarData(queryClient: QueryClient, params: CalendarFetchParams) {
-  const { coupleId, isPremium, canSeePeriod, isDemoMode } = params;
+  const { coupleId, isPremium, canSeePeriod, isDemoMode, anchorMonth } = params;
   if (!coupleId && !isDemoMode) return;
 
-  const key = getCalendarQueryKey(coupleId, isPremium, canSeePeriod, isDemoMode);
+  const key = getCalendarQueryKey(coupleId, isPremium, canSeePeriod, isDemoMode, anchorMonth);
   queryClient.prefetchQuery({
     queryKey: key,
     queryFn: () => fetchCalendarData(params),
@@ -183,10 +188,10 @@ export function prefetchCalendarData(queryClient: QueryClient, params: CalendarF
 }
 
 export function useCalendarData(params: CalendarFetchParams) {
-  const { coupleId, userId, isPremium, canSeePeriod, isDemoMode } = params;
+  const { coupleId, userId, isPremium, canSeePeriod, isDemoMode, anchorMonth } = params;
 
   return useQuery({
-    queryKey: getCalendarQueryKey(coupleId, isPremium, canSeePeriod, isDemoMode),
+    queryKey: getCalendarQueryKey(coupleId, isPremium, canSeePeriod, isDemoMode, anchorMonth),
     enabled: !!coupleId || !!userId || isDemoMode,
     queryFn: () => fetchCalendarData(params),
     staleTime: 1000 * 60 * 5, // 5 dakika taze kalır
