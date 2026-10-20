@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { AppState } from "react-native";
 import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
@@ -246,15 +246,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return () => sub.remove();
   }, []);
 
+  // Değer sabit tutulur: bildirimi kullanan her ekran, ilgisiz bir yeniden render'da baştan çizilmesin
+  const contextValue = useMemo(() => ({
+    currentNotification,
+    showNotification,
+    dismissNotification,
+    triggerDemoNotification,
+  }), [currentNotification, showNotification, dismissNotification, triggerDemoNotification]);
+
   return (
-    <NotificationContext.Provider
-      value={{
-        currentNotification,
-        showNotification,
-        dismissNotification,
-        triggerDemoNotification,
-      }}
-    >
+    <NotificationContext.Provider value={contextValue}>
       {children}
       <InAppNotificationBanner
         notification={currentNotification}
