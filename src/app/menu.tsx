@@ -31,6 +31,7 @@ import { LegalModal } from "@/components/legal/LegalModal";
 import { FEATURE_GUIDES } from "@/constants/featureGuides";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { resetAllPageTours } from "@/hooks/usePageTour";
+import { useDeferredReady } from "@/hooks/useDeferredReady";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { EditableAvatar } from "@/components/avatar/EditableAvatar";
@@ -45,6 +46,9 @@ export default function MenuScreen() {
   const [legalVisible, setLegalVisible] = React.useState(false);
   const [selectedTourPage, setSelectedTourPage] = useState<string | null>(null);
   const [showGuideCatalog, setShowGuideCatalog] = useState(false);
+  // Menü her açılışta baştan kurulur: ilk karede ilk kategori çizilir, ekran dışındaki sağlık ve hesap
+  // kategorileri hemen ardından eklenir (açılış animasyonu JS iş parçacığı kilitli kalmadan başlar)
+  const showLowerSections = useDeferredReady();
 
   const relDate = profile?.relationshipStartDate;
   const coupleId = profile?.coupleId;
@@ -74,6 +78,23 @@ export default function MenuScreen() {
       isNavigatingRef.current = false;
     }, 600);
 
+    // Menü, sekmelerin (tabs) ÜSTÜNDE duran bir modal. Bir sekmeye giderken önce kapatıp
+    // sonra bir kare sonra push edersek, modal kapanma animasyonu boyunca (birkaç yüz ms)
+    // önceki sekme görünür kalır — kullanıcı istediği sekmeye değil, eski sekmeye bakar.
+    // `push` + `dismiss` ise YANLIŞ: menü kök yığının odaktaki ekranı olduğu için push, mevcut
+    // sekmelere geçmek yerine kök yığına İKİNCİ bir (tabs) ekranı ekler, dismiss de onu kapatır
+    // ve menü açık kalır. `dismissTo` menüyü kaldırmayı ve hedef sekmeye geçmeyi tek adımda yapar:
+    // ne ikinci bir ekran oluşur ne de eski sekme görünür.
+    const isTabRoute = path.startsWith("/(tabs)/");
+
+    if (isTabRoute) {
+      router.dismissTo(path as any);
+      return;
+    }
+
+    // Sekme dışı rotalar (ör. /our-star, /paywall): bunlar kök yığına yeni bir ekran olarak
+    // eklenir, modalın üstüne değil. dismiss() hedefinin belirsizleşmemesi için eski sıra
+    // (önce kapat, sonra bir kare sonra it) korunur.
     if (router.canDismiss?.()) {
       router.dismiss();
       requestAnimationFrame(() => {
@@ -360,106 +381,110 @@ export default function MenuScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* ─── KATEGORİ 2: SAĞLIK & ÖZEL TAKİP ─── */}
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionHeaderLabel}>SAĞLIK & TAKİP</Text>
+          {showLowerSections && (
+            <>
+              {/* ─── KATEGORİ 2: SAĞLIK & ÖZEL TAKİP ─── */}
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionHeaderLabel}>SAĞLIK & TAKİP</Text>
 
-            <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
-              onPress={() => handleRoute("/(tabs)/medicine")}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
-                <Pill color={theme.accent} size={18} />
-              </View>
-              <View style={styles.menuTextContainer}>
-                <Text style={styles.menuTitle}>İlaç Takibi</Text>
-                <Text style={styles.menuSub}>Senin ve sevgilinin günlük dozları</Text>
-              </View>
-              <ChevronRight color={theme.textMuted} size={18} />
-            </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
+                  onPress={() => handleRoute("/(tabs)/medicine")}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                    <Pill color={theme.accent} size={18} />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Text style={styles.menuTitle}>İlaç Takibi</Text>
+                    <Text style={styles.menuSub}>Senin ve sevgilinin günlük dozları</Text>
+                  </View>
+                  <ChevronRight color={theme.textMuted} size={18} />
+                </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
-              onPress={() => handleRoute("/(tabs)/period-tracker")}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
-                <Droplet color={theme.accent} size={18} />
+                <TouchableOpacity 
+                  style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
+                  onPress={() => handleRoute("/(tabs)/period-tracker")}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                    <Droplet color={theme.accent} size={18} />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Text style={styles.menuTitle}>Döngü & Regl Takvimi</Text>
+                    <Text style={styles.menuSub}>Hassas dönemler ve hatırlatıcılar</Text>
+                  </View>
+                  <ChevronRight color={theme.textMuted} size={18} />
+                </TouchableOpacity>
               </View>
-              <View style={styles.menuTextContainer}>
-                <Text style={styles.menuTitle}>Döngü & Regl Takvimi</Text>
-                <Text style={styles.menuSub}>Hassas dönemler ve hatırlatıcılar</Text>
-              </View>
-              <ChevronRight color={theme.textMuted} size={18} />
-            </TouchableOpacity>
-          </View>
 
-          {/* ─── KATEGORİ 3: AYARLAR & HESAP ─── */}
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionHeaderLabel}>HESAP & AYARLAR</Text>
+              {/* ─── KATEGORİ 3: AYARLAR & HESAP ─── */}
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionHeaderLabel}>HESAP & AYARLAR</Text>
 
 
-            <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
-              onPress={() => setShowGuideCatalog(true)}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
-                <HelpCircle color={theme.accent} size={18} />
-              </View>
-              <View style={styles.menuTextContainer}>
-                <Text style={styles.menuTitle}>Nasıl Çalışır? (Özellik Rehberi)</Text>
-                <Text style={styles.menuSub}>Her sayfa ve özelliğin detaylı tanıtımı</Text>
-              </View>
-              <ChevronRight color={theme.textMuted} size={18} />
-            </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
+                  onPress={() => setShowGuideCatalog(true)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                    <HelpCircle color={theme.accent} size={18} />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Text style={styles.menuTitle}>Nasıl Çalışır? (Özellik Rehberi)</Text>
+                    <Text style={styles.menuSub}>Her sayfa ve özelliğin detaylı tanıtımı</Text>
+                  </View>
+                  <ChevronRight color={theme.textMuted} size={18} />
+                </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
-              onPress={() => handleRoute("/(tabs)/profile")}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
-                <Settings color={theme.accent} size={18} />
-              </View>
-              <View style={styles.menuTextContainer}>
-                <Text style={styles.menuTitle}>Ayarlar & Profil</Text>
-                <Text style={styles.menuSub}>Sesler, temalar, tarihler ve güvenlik</Text>
-              </View>
-              <ChevronRight color={theme.textMuted} size={18} />
-            </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
+                  onPress={() => handleRoute("/(tabs)/profile")}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                    <Settings color={theme.accent} size={18} />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Text style={styles.menuTitle}>Ayarlar & Profil</Text>
+                    <Text style={styles.menuSub}>Sesler, temalar, tarihler ve güvenlik</Text>
+                  </View>
+                  <ChevronRight color={theme.textMuted} size={18} />
+                </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
-              onPress={() => setLegalVisible(true)}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
-                <ShieldCheck color={theme.accent} size={18} />
-              </View>
-              <View style={styles.menuTextContainer}>
-                <Text style={styles.menuTitle}>Yasal Bilgiler & Gizlilik</Text>
-                <Text style={styles.menuSub}>KVKK, gizlilik ve kullanım şartları</Text>
-              </View>
-              <ChevronRight color={theme.textMuted} size={18} />
-            </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
+                  onPress={() => setLegalVisible(true)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                    <ShieldCheck color={theme.accent} size={18} />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Text style={styles.menuTitle}>Yasal Bilgiler & Gizlilik</Text>
+                    <Text style={styles.menuSub}>KVKK, gizlilik ve kullanım şartları</Text>
+                  </View>
+                  <ChevronRight color={theme.textMuted} size={18} />
+                </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.logoutItem, { backgroundColor: "rgba(255, 77, 106, 0.08)", borderColor: "rgba(255, 77, 106, 0.25)" }]} 
-              onPress={handleSignOut}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: "rgba(255, 77, 106, 0.15)" }]}>
-                <LogOut color="#ff4d6a" size={18} />
+                <TouchableOpacity 
+                  style={[styles.logoutItem, { backgroundColor: "rgba(255, 77, 106, 0.08)", borderColor: "rgba(255, 77, 106, 0.25)" }]} 
+                  onPress={handleSignOut}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: "rgba(255, 77, 106, 0.15)" }]}>
+                    <LogOut color="#ff4d6a" size={18} />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Text style={[styles.menuTitle, { color: "#ff4d6a" }]}>Çıkış Yap</Text>
+                    <Text style={styles.menuSub}>Oturumu güvenli bir şekilde kapat</Text>
+                  </View>
+                  <ChevronRight color="rgba(255, 77, 106, 0.4)" size={18} />
+                </TouchableOpacity>
               </View>
-              <View style={styles.menuTextContainer}>
-                <Text style={[styles.menuTitle, { color: "#ff4d6a" }]}>Çıkış Yap</Text>
-                <Text style={styles.menuSub}>Oturumu güvenli bir şekilde kapat</Text>
-              </View>
-              <ChevronRight color="rgba(255, 77, 106, 0.4)" size={18} />
-            </TouchableOpacity>
-          </View>
+            </>
+          )}
         </ScrollView>
       </View>
 

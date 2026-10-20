@@ -38,7 +38,6 @@ import {
 import { appAlert } from '@/lib/dialog';
 import { DialogHost } from '@/components/ui/DialogHost';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -61,11 +60,14 @@ import {
   Edit3,
   AlertCircle,
   Mail,
+  Crown,
+  Quote,
 } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
-import { useTheme } from '@/context/ThemeContext';
 import { DateTimePickerSheet } from '@/components/ui/DateTimePickerSheet';
 import { starService } from '../api/starService';
+import { planetColors, rgba, type PlanetLook } from '../canvas/micro/microScene';
+import { MiniPlanet } from './micro/MiniPlanet';
 import type {
   StarExoplanetRecord,
   OrbitZone,
@@ -98,16 +100,20 @@ export const PLANET_TYPE_OPTIONS: readonly PlanetTypeOption[] = [
   { type: 'ringed_giant', label: 'Halkalı Dev', palette: ['#EC4899', '#8B5CF6'] },
 ];
 
+export function planetTypeLabel(type: PlanetType): string {
+  return PLANET_TYPE_OPTIONS.find((option) => option.type === type)?.label ?? 'Anı';
+}
+
 export const ORBIT_ZONE_OPTIONS: readonly {
   readonly zone: OrbitZone;
   readonly label: string;
   readonly periodDesc: string;
 }[] = [
-  { zone: 1, label: 'Kuşak 1', periodDesc: 'En İç / Hızlı (14s)' },
-  { zone: 2, label: 'Kuşak 2', periodDesc: 'İç Yörünge (25s)' },
-  { zone: 3, label: 'Kuşak 3', periodDesc: 'Denge Kuşağı (36s)' },
-  { zone: 4, label: 'Kuşak 4', periodDesc: 'Dış Kuşak (48s)' },
-  { zone: 5, label: 'Kuşak 5', periodDesc: 'En Dış / Sakin (60s)' },
+  { zone: 1, label: 'Kuşak 1', periodDesc: 'Yıldıza en yakın yörünge' },
+  { zone: 2, label: 'Kuşak 2', periodDesc: 'İç yörünge' },
+  { zone: 3, label: 'Kuşak 3', periodDesc: 'Orta yörünge' },
+  { zone: 4, label: 'Kuşak 4', periodDesc: 'Dış yörünge' },
+  { zone: 5, label: 'Kuşak 5', periodDesc: 'Yıldıza en uzak yörünge' },
 ];
 
 // ============================================================================
@@ -127,13 +133,19 @@ export interface ExoplanetModalProps {
   /** Second-line UI guard; all mutations are also gated by backend RPCs. */
   readonly isPremium?: boolean;
   readonly onPremiumRequired?: () => void;
+  /**
+   * İnceleme modunda `selectedPlanet` yalnızca harita verisinden kurulmuş bir önizlemedir;
+   * ayrıntılar (fotoğraf, hikâye, tarih) sunucudan gelene kadar düzenle/sil kapalıdır.
+   */
+  readonly isLoadingDetails?: boolean;
 }
 
 // ============================================================================
 // ANA BİLEŞEN
 // ============================================================================
 
-export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
+/** Memo'lu: üst ekranın saniyelik geri sayım çizimleri açık pencereyi yeniden çizmez. */
+export const ExoplanetModal = React.memo(function ExoplanetModal({
   visible,
   mode,
   starId,
@@ -145,9 +157,9 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
   onPlanetDeleted,
   isPremium = false,
   onPremiumRequired,
-}) => {
+  isLoadingDetails = false,
+}: ExoplanetModalProps) {
   const router = useRouter();
-  const { theme, isLight } = useTheme();
 
   // Aktif mod (Prop ile başlar, 'view' içinden 'edit'e geçebilir)
   const [activeMode, setActiveMode] = useState<'view' | 'edit' | 'create'>(mode);
@@ -177,6 +189,33 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
   // Anı tarihi seçici (alt sayfa)
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  // Düzenleme formunu mevcut anının bilgileriyle doldurur. Form boş açılırsa kayıt,
+  // açıklamayı siler ve tüm fotoğrafları "kaldırılmış" sayıp gezegenden ayırır.
+  const fillEditForm = (planet: StarExoplanetRecord) => {
+    setTitle(planet.title || '');
+    setDescription(planet.description || '');
+    setMilestoneDate(planet.milestone_date || dayjs().format('YYYY-MM-DD'));
+    setOrbitZone((planet.orbit_distance as OrbitZone) || 3);
+    setPlanetType((planet.planet_type as PlanetType) || 'terrestrial');
+    setExistingPhotos(planet.media_urls || []);
+    setSelectedPhotos([]);
+    setFormError('');
+    setIsSubmitting(false);
+    setUploadProgressText('');
+  };
+
+  // İnceleme ekranındaki "Düzenle": modal açıkken moda geçiş prop değişimi olmadığından
+  // aşağıdaki senkronizasyon bloğu çalışmaz; form burada doldurulur.
+  const startEditing = () => {
+    if (!isPremium) {
+      onPremiumRequired?.();
+      return;
+    }
+    if (!selectedPlanet) return;
+    fillEditForm(selectedPlanet);
+    setActiveMode('edit');
+  };
+
   // Modal görünürlüğü veya mod prop'u değiştiğinde render aşamasında form state'ini senkronize et
   const [prevProps, setPrevProps] = useState({ visible, mode, selectedPlanet });
   if (
@@ -205,16 +244,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
         setCanAddManual(true);
         setIsCheckingLimit(!isDemo);
       } else if (nextMode === 'edit' && selectedPlanet) {
-        setTitle(selectedPlanet.title || '');
-        setDescription(selectedPlanet.description || '');
-        setMilestoneDate(selectedPlanet.milestone_date || dayjs().format('YYYY-MM-DD'));
-        setOrbitZone((selectedPlanet.orbit_distance as OrbitZone) || 3);
-        setPlanetType((selectedPlanet.planet_type as PlanetType) || 'terrestrial');
-        setExistingPhotos(selectedPlanet.media_urls || []);
-        setSelectedPhotos([]);
-        setFormError('');
-        setIsSubmitting(false);
-        setUploadProgressText('');
+        fillEditForm(selectedPlanet);
       } else if (nextMode === 'view') {
         setFullscreenImage(null);
         setIsDeleting(false);
@@ -548,31 +578,63 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
   // RENDER
   // ==========================================================================
 
+  // Pencere, açıldığı uzay sahnesiyle aynı kozmik dili konuşur: tema rengi yerine
+  // gezegenin kendi rengiyle hafifçe ışır (formda seçilen türün rengiyle, canlı).
+  const previewLook: PlanetLook =
+    activeMode === 'view' && selectedPlanet
+      ? { palette: selectedPlanet.palette, planet_type: selectedPlanet.planet_type, is_locked: !isPremium }
+      : {
+          palette: PLANET_TYPE_OPTIONS.find((option) => option.type === planetType)?.palette ?? ['#38BDF8', '#3B82F6'],
+          planet_type: planetType,
+          is_locked: false,
+        };
+  const tint = planetColors(previewLook).primary;
+  const eyebrow =
+    activeMode === 'view'
+      ? selectedPlanet?.is_auto_generated
+        ? 'OTOMATİK ANI GEZEGENİ'
+        : 'ANI GEZEGENİ'
+      : activeMode === 'edit'
+      ? 'ANI GEZEGENİNİ DÜZENLE'
+      : 'YENİ ANI GEZEGENİ';
+  const mediaUrls = selectedPlanet?.media_urls ?? [];
+  const photoCardWidth = mediaUrls.length > 1 ? Math.round(SCREEN_WIDTH * 0.74) : SCREEN_WIDTH - 40;
+  const formDateLabel = dayjs(milestoneDate).isValid() ? dayjs(milestoneDate).format('D MMMM YYYY') : 'Tarih seçin';
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       {/* iOS: klavye açılınca sayfa yukarı itilir; Android: KeyboardAwareScrollView odaktaki alanı görünür tutar */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={[styles.modalBackdrop, { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.5)' : 'rgba(3, 2, 7, 0.75)' }]}
-      >
-        <BlurView intensity={Platform.OS === 'ios' ? 70 : 100} tint={isLight ? 'light' : 'dark'} style={StyleSheet.absoluteFill} />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalBackdrop}>
 
-        <View style={[styles.sheetContainer, { backgroundColor: isLight ? '#FFFFFF' : theme.cardBg, borderColor: isLight ? 'rgba(0,0,0,0.08)' : theme.cardBorder }]}>
+        <View style={styles.sheetContainer}>
+          <LinearGradient
+            colors={[rgba(tint, 0.28), rgba(tint, 0.07), 'rgba(11, 8, 32, 0)']}
+            locations={[0, 0.45, 1]}
+            style={styles.sheetGlow}
+            pointerEvents="none"
+          />
+          <LinearGradient
+            colors={['rgba(253, 230, 138, 0)', 'rgba(253, 230, 138, 0.55)', 'rgba(253, 230, 138, 0)']}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={styles.sheetHairline}
+            pointerEvents="none"
+          />
+
           {/* DRAG HANDLE & HEADER */}
-          <View style={[styles.dragHandle, isLight && { backgroundColor: 'rgba(0,0,0,0.18)' }]} />
-          <View style={[styles.headerRow, isLight && { borderBottomColor: 'rgba(0,0,0,0.06)' }]}>
+          <View style={styles.dragHandle} />
+          <View style={styles.headerRow}>
             <View style={styles.headerTitleBlock}>
-              <Orbit size={18} color="#38BDF8" />
-              <Text style={[styles.headerTitle, { color: theme.text }]}>
-                {activeMode === 'view'
-                  ? 'Anı Ötegezegeni'
-                  : activeMode === 'edit'
-                  ? 'Anı Gezegenini Düzenle'
-                  : 'Yeni Anı Gezegeni İnşa Et'}
-              </Text>
+              <Orbit size={14} color="#FDE68A" />
+              <Text style={styles.headerEyebrow}>{eyebrow}</Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={[styles.closeBtn, isLight && { backgroundColor: 'rgba(0,0,0,0.05)' }]}>
-              <X size={18} color={theme.text} />
+            <TouchableOpacity
+              onPress={onClose}
+              style={styles.closeBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityLabel="Kapat"
+            >
+              <X size={17} color="#F8FAFC" />
             </TouchableOpacity>
           </View>
 
@@ -588,140 +650,153 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
             {/* ========================================================== */}
             {activeMode === 'view' && selectedPlanet && !isPremium && (
               <View style={styles.viewContent}>
-                <View style={[styles.noPhotosBox, isLight && { backgroundColor: theme.unitBg, borderColor: 'rgba(0,0,0,0.06)' }]}>
-                  <Sparkles size={24} color="#94A3B8" />
-                  <Text style={[styles.noPhotosText, { color: theme.textSecondary }]}>Bu anı gezegeni kilitli.</Text>
-                  <Text style={[styles.lockedContentText, { color: theme.textMuted }]}>
+                <View style={styles.hero}>
+                  <MiniPlanet planet={previewLook} size={76} />
+                  <Text style={styles.heroTitle}>Kilitli anı</Text>
+                  <Text style={styles.heroSub}>
                     Fotoğraflar, mektuplar ve ayrıntılar Premium üyeliğiniz yeniden aktif olduğunda açılır.
                   </Text>
                 </View>
                 <TouchableOpacity
+                  activeOpacity={0.88}
+                  onPress={() => {
+                    onClose();
+                    onPremiumRequired?.();
+                  }}
+                  style={styles.primaryBtn}
+                >
+                  <LinearGradient colors={GOLD_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtnGradient}>
+                    <Crown size={16} color="#3B1D00" />
+                    <Text style={styles.primaryBtnText}>Premium ile Aç</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+                <TouchableOpacity
                   activeOpacity={0.82}
                   onPress={handleDeletePlanet}
                   disabled={isDeleting}
-                  style={[styles.deleteBtn, isLight && { backgroundColor: 'rgba(239, 68, 68, 0.08)', borderColor: 'rgba(239, 68, 68, 0.2)' }]}
+                  style={styles.ghostDangerBtn}
                 >
-                  {isDeleting ? <ActivityIndicator size="small" color="#EF4444" /> : <><Trash2 size={15} color="#EF4444" /><Text style={styles.deleteBtnText}>Gezegeni Sil</Text></>}
+                  {isDeleting ? (
+                    <ActivityIndicator size="small" color="#F87171" />
+                  ) : (
+                    <>
+                      <Trash2 size={14} color="#F87171" />
+                      <Text style={styles.ghostDangerText}>Gezegeni Sil</Text>
+                    </>
+                  )}
                 </TouchableOpacity>
               </View>
             )}
             {activeMode === 'view' && selectedPlanet && isPremium && (
               <View style={styles.viewContent}>
-                {/* Gezegen Başlık & Kuşak Rozetleri */}
-                <View style={styles.viewHeroRow}>
-                  <View
-                    style={[
-                      styles.planetColorOrb,
-                      {
-                        backgroundColor: selectedPlanet.palette[0] || '#38BDF8',
-                        shadowColor: selectedPlanet.palette[0] || '#38BDF8',
-                      },
-                    ]}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.viewTitle, { color: theme.text }]}>{selectedPlanet.title}</Text>
-                    <View style={styles.badgeRow}>
-                      <View style={[styles.pillBadge, isLight && { backgroundColor: theme.unitBg, borderColor: 'rgba(0,0,0,0.06)' }]}>
-                        <Calendar size={11} color={theme.textMuted} />
-                        <Text style={[styles.pillText, isLight && { color: theme.textSecondary }]}>
-                          {dayjs(selectedPlanet.milestone_date).format('DD MMMM YYYY')}
+                {/* Gezegen, başlık ve künye */}
+                <View style={styles.hero}>
+                  <MiniPlanet planet={previewLook} size={76} />
+                  <Text style={styles.heroTitle}>{selectedPlanet.title}</Text>
+                  <View style={styles.metaRow}>
+                    {selectedPlanet.milestone_date ? (
+                      <View style={styles.metaPill}>
+                        <Calendar size={12} color="#FDE68A" />
+                        <Text style={styles.metaPillText}>
+                          {dayjs(selectedPlanet.milestone_date).format('D MMMM YYYY')}
                         </Text>
                       </View>
-                      <View style={[styles.pillBadge, styles.zoneBadge, isLight && { backgroundColor: 'rgba(56, 189, 248, 0.12)', borderColor: 'rgba(56, 189, 248, 0.25)' }]}>
-                        <Text style={[styles.zoneBadgeText, isLight && { color: '#0284C7' }]}>Kuşak {selectedPlanet.orbit_distance}</Text>
-                      </View>
-                      {selectedPlanet.is_auto_generated && (
-                        <View style={[styles.pillBadge, styles.autoBadge]}>
-                          <Sparkles size={11} color="#C084FC" />
-                          <Text style={styles.autoBadgeText}>Otomatik Anı</Text>
-                        </View>
-                      )}
+                    ) : null}
+                    <View style={styles.metaPill}>
+                      <Orbit size={12} color="#C4B5FD" />
+                      <Text style={styles.metaPillText}>
+                        {selectedPlanet.orbit_distance}. kuşak · {planetTypeLabel(selectedPlanet.planet_type)}
+                      </Text>
                     </View>
+                    {selectedPlanet.is_auto_generated && (
+                      <View style={[styles.metaPill, styles.metaPillAuto]}>
+                        <Sparkles size={12} color="#C084FC" />
+                        <Text style={[styles.metaPillText, styles.metaPillAutoText]}>Otomatik</Text>
+                      </View>
+                    )}
                   </View>
                 </View>
 
-                {/* AKSİYON BUTONLARI: DÜZENLE & SİL */}
-                <View style={styles.viewActionRow}>
-                  <TouchableOpacity
-                    activeOpacity={0.82}
-                    onPress={() => {
-                      if (!isPremium) {
-                        onPremiumRequired?.();
-                        return;
-                      }
-                      setActiveMode('edit');
-                    }}
-                    disabled={isDeleting}
-                    style={[styles.editBtn, isLight && { backgroundColor: 'rgba(56, 189, 248, 0.1)', borderColor: 'rgba(56, 189, 248, 0.25)' }]}
-                  >
-                    <Edit3 size={15} color={isLight ? '#0284C7' : '#38BDF8'} />
-                    <Text style={[styles.editBtnText, isLight && { color: '#0284C7' }]}>Düzenle</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    activeOpacity={0.82}
-                    onPress={handleDeletePlanet}
-                    disabled={isDeleting}
-                    style={[styles.deleteBtn, isLight && { backgroundColor: 'rgba(239, 68, 68, 0.08)', borderColor: 'rgba(239, 68, 68, 0.2)' }]}
-                  >
-                    {isDeleting ? (
-                      <ActivityIndicator size="small" color="#EF4444" />
-                    ) : (
-                      <>
-                        <Trash2 size={15} color="#EF4444" />
-                        <Text style={styles.deleteBtnText}>Sil</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </View>
-
-                {/* Açıklama / Aşk Hikayesi */}
-                {selectedPlanet.description && (
-                  <View style={[styles.descriptionCard, isLight && { backgroundColor: theme.unitBg, borderColor: 'rgba(0,0,0,0.06)' }]}>
-                    <Text style={[styles.descriptionText, { color: theme.text }]}>{selectedPlanet.description}</Text>
+                {/* Pencere anında açılır; ayrıntılar gelene kadar yer tutucu */}
+                {isLoadingDetails && (
+                  <View style={styles.loadingCard}>
+                    <ActivityIndicator size="small" color="#FDE68A" />
+                    <Text style={styles.loadingText}>Fotoğraflar ve hikâye yükleniyor…</Text>
                   </View>
                 )}
 
                 {/* FOTOĞRAF GALERİSİ */}
-                {selectedPlanet.media_urls && selectedPlanet.media_urls.length > 0 ? (
-                  <View style={styles.gallerySection}>
-                    <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>
-                      ANILAR VE FOTOĞRAFLAR ({selectedPlanet.media_urls.length})
-                    </Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryScroll}>
-                      {selectedPlanet.media_urls.map((url, idx) => (
+                {isLoadingDetails ? null : mediaUrls.length > 0 ? (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionLabel}>ANILAR · {mediaUrls.length} FOTOĞRAF</Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      decelerationRate="fast"
+                      snapToInterval={photoCardWidth + 12}
+                      style={styles.galleryScroll}
+                      contentContainerStyle={styles.galleryRow}
+                    >
+                      {mediaUrls.map((url, idx) => (
                         <TouchableOpacity
                           key={url + idx}
-                          activeOpacity={0.88}
+                          activeOpacity={0.9}
                           onPress={() => setFullscreenImage(url)}
-                          style={styles.galleryThumbWrapper}
+                          style={[styles.photoCard, { width: photoCardWidth }]}
+                          accessibilityLabel={`Fotoğraf ${idx + 1}, tam ekran aç`}
                         >
-                          <Image source={{ uri: url }} style={styles.galleryThumb} contentFit="cover" />
-                          <View style={styles.expandIconOverlay}>
-                            <Maximize2 size={12} color="#FFFFFF" />
+                          <Image source={{ uri: url }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
+                          <LinearGradient
+                            colors={['rgba(5, 3, 15, 0)', 'rgba(5, 3, 15, 0.6)']}
+                            style={styles.photoShade}
+                            pointerEvents="none"
+                          />
+                          <View style={styles.photoExpand}>
+                            <Maximize2 size={13} color="#FFFFFF" />
                           </View>
+                          {mediaUrls.length > 1 && (
+                            <Text style={styles.photoIndex}>
+                              {idx + 1}/{mediaUrls.length}
+                            </Text>
+                          )}
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
                   </View>
                 ) : (
-                  <View style={[styles.noPhotosBox, isLight && { backgroundColor: theme.unitBg, borderColor: 'rgba(0,0,0,0.06)' }]}>
-                    <Text style={[styles.noPhotosText, { color: theme.textSecondary }]}>Bu gezegene henüz fotoğraf eklenmemiş.</Text>
+                  <View style={styles.emptyPhotos}>
+                    <ImagePlus size={20} color="rgba(203, 213, 225, 0.5)" />
+                    <Text style={styles.emptyPhotosText}>Bu gezegene henüz fotoğraf eklenmemiş.</Text>
                   </View>
                 )}
 
+                {/* Açıklama / Aşk Hikayesi */}
+                {selectedPlanet.description ? (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionLabel}>HİKÂYEMİZ</Text>
+                    <View style={styles.storyCard}>
+                      <LinearGradient
+                        colors={['#FDE68A', '#F59E0B']}
+                        start={{ x: 0.5, y: 0 }}
+                        end={{ x: 0.5, y: 1 }}
+                        style={styles.storyAccent}
+                      />
+                      <Quote size={16} color="rgba(253, 230, 138, 0.65)" />
+                      <Text style={styles.storyText}>{selectedPlanet.description}</Text>
+                    </View>
+                  </View>
+                ) : null}
+
                 {/* İLİŞKİLİ MEKTUPLAR ALANI */}
                 {linkedLetterIds.length > 0 && (
-                  <View style={styles.lettersSection}>
-                    <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>
-                      İLİŞKİLİ MEKTUPLAR ({linkedLetterIds.length})
-                    </Text>
+                  <View style={styles.section}>
+                    <Text style={styles.sectionLabel}>İLİŞKİLİ MEKTUPLAR · {linkedLetterIds.length}</Text>
                     <View style={styles.lettersContainer}>
                       {linkedLetterIds.map((letterId, idx) => (
                         <TouchableOpacity
                           key={letterId || idx}
                           activeOpacity={0.82}
-                          style={[styles.letterCard, isLight && { backgroundColor: theme.unitBg, borderColor: 'rgba(0,0,0,0.06)' }]}
+                          style={styles.letterCard}
                           onPress={() => {
                             onClose();
                             try {
@@ -733,21 +808,49 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                         >
                           <View style={styles.letterCardLeft}>
                             <View style={styles.letterIconWrapper}>
-                              <Mail size={16} color="#C084FC" />
+                              <Mail size={16} color="#F9A8D4" />
                             </View>
                             <View>
-                              <Text style={[styles.letterCardTitle, { color: theme.text }]}>
-                                Mektup #{idx + 1}
-                              </Text>
-                              <Text style={[styles.letterCardSub, { color: theme.textMuted }]}>Mektubu Görüntüle</Text>
+                              <Text style={styles.letterCardTitle}>Mektup #{idx + 1}</Text>
+                              <Text style={styles.letterCardSub}>Mektubu görüntüle</Text>
                             </View>
                           </View>
-                          <ChevronRight size={16} color={isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255, 255, 255, 0.4)'} />
+                          <ChevronRight size={16} color="rgba(255, 255, 255, 0.4)" />
                         </TouchableOpacity>
                       ))}
                     </View>
                   </View>
                 )}
+
+                {/* AKSİYON BUTONLARI: DÜZENLE & SİL */}
+                <View style={[styles.viewActionRow, isLoadingDetails && styles.actionsDisabled]}>
+                  <TouchableOpacity
+                    activeOpacity={0.82}
+                    onPress={startEditing}
+                    disabled={isDeleting || isLoadingDetails}
+                    style={styles.editBtn}
+                  >
+                    <Edit3 size={15} color="#FDE68A" />
+                    <Text style={styles.editBtnText}>Düzenle</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    activeOpacity={0.82}
+                    onPress={handleDeletePlanet}
+                    disabled={isDeleting || isLoadingDetails}
+                    style={styles.deleteBtn}
+                    accessibilityLabel="Gezegeni sil"
+                  >
+                    {isDeleting ? (
+                      <ActivityIndicator size="small" color="#F87171" />
+                    ) : (
+                      <>
+                        <Trash2 size={15} color="#F87171" />
+                        <Text style={styles.deleteBtnText}>Sil</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
 
@@ -756,11 +859,24 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
             {/* ========================================================== */}
             {(activeMode === 'create' || activeMode === 'edit') && (
               <View style={styles.createContent}>
+                {/* Canlı önizleme: seçimler değiştikçe gezegen ve künye güncellenir */}
+                <View style={styles.previewCard}>
+                  <MiniPlanet planet={previewLook} size={54} />
+                  <View style={styles.previewText}>
+                    <Text style={styles.previewTitle} numberOfLines={1}>
+                      {title.trim() || 'Yeni anı gezegeni'}
+                    </Text>
+                    <Text style={styles.previewSub} numberOfLines={1}>
+                      {orbitZone}. kuşak · {planetTypeLabel(planetType)} · {formDateLabel}
+                    </Text>
+                  </View>
+                </View>
+
                 {/* CREATE MODU İÇİN LİMİT UYARISI */}
                 {activeMode === 'create' && !canAddManual && (
                   <View style={styles.limitWarningCard}>
                     <AlertCircle size={20} color="#F59E0B" />
-                    <View style={{ flex: 1 }}>
+                    <View style={styles.flexOne}>
                       <Text style={styles.limitWarningTitle}>Gezegen Limiti Dolu (10/10)</Text>
                       <Text style={styles.limitWarningText}>
                         Maksimum 10 anı gezegeni oluşturabilirsiniz. Yeni bir anı eklemek için lütfen mevcut gezegenlerden birini silin.
@@ -771,18 +887,11 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
 
                 {/* 1. BAŞLIK GİRDİSİ */}
                 <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { color: theme.textMuted }]}>ANI BAŞLIĞI (ZORUNLU)</Text>
+                  <Text style={styles.inputLabel}>ANI BAŞLIĞI</Text>
                   <TextInput
-                    style={[
-                      styles.textInput,
-                      {
-                        backgroundColor: isLight ? theme.inputBg : 'rgba(255, 255, 255, 0.06)',
-                        borderColor: isLight ? theme.inputBorder : 'rgba(255, 255, 255, 0.14)',
-                        color: theme.text,
-                      },
-                    ]}
+                    style={styles.textInput}
                     placeholder="Örn: İlk Tatilimiz, Kapadokya Balonları..."
-                    placeholderTextColor={isLight ? 'rgba(0, 0, 0, 0.35)' : 'rgba(255, 255, 255, 0.3)'}
+                    placeholderTextColor={PLACEHOLDER_COLOR}
                     value={title}
                     onChangeText={setTitle}
                     maxLength={60}
@@ -792,7 +901,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
 
                 {/* 2. TARİH SEÇİMİ (takvim / çark; elle yazdırılmaz) */}
                 <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { color: theme.textMuted }]}>ANI TARİHİ (BUGÜN VEYA GEÇMİŞ)</Text>
+                  <Text style={styles.inputLabel}>ANI TARİHİ</Text>
                   <TouchableOpacity
                     activeOpacity={0.8}
                     disabled={isSubmitting}
@@ -800,60 +909,48 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                       Keyboard.dismiss();
                       setShowDatePicker(true);
                     }}
-                    style={[
-                      styles.textInput,
-                      styles.dateFieldBtn,
-                      {
-                        backgroundColor: isLight ? theme.inputBg : 'rgba(255, 255, 255, 0.06)',
-                        borderColor: isLight ? theme.inputBorder : 'rgba(255, 255, 255, 0.14)',
-                      },
-                    ]}
+                    style={[styles.textInput, styles.dateFieldBtn]}
                   >
-                    <Calendar size={16} color="#38BDF8" />
-                    <Text style={[styles.dateFieldText, { color: theme.text }]}>
-                      {dayjs(milestoneDate).isValid() ? dayjs(milestoneDate).format('DD MMMM YYYY') : 'Tarih Seçin'}
-                    </Text>
-                    <ChevronRight size={16} color={theme.textMuted} />
+                    <Calendar size={16} color="#FDE68A" />
+                    <Text style={styles.dateFieldText}>{formDateLabel}</Text>
+                    <ChevronRight size={16} color="rgba(203, 213, 225, 0.5)" />
                   </TouchableOpacity>
                 </View>
 
                 {/* 3. YÖRÜNGE KUŞAĞI SEÇİMİ (1-5) */}
                 <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { color: theme.textMuted }]}>YÖRÜNGE KUŞAĞI (1: EN HIZLI - 5: EN SAKİN)</Text>
+                  <Text style={styles.inputLabel}>YÖRÜNGE KUŞAĞI</Text>
                   <View style={styles.zoneSelectorRow}>
-                    {ORBIT_ZONE_OPTIONS.map((item) => (
-                      <TouchableOpacity
-                        key={item.zone}
-                        activeOpacity={0.8}
-                        onPress={() => setOrbitZone(item.zone)}
-                        disabled={isSubmitting}
-                        style={[
-                          styles.zoneBtn,
-                          isLight && { backgroundColor: theme.unitBg, borderColor: 'rgba(0,0,0,0.08)' },
-                          orbitZone === item.zone && styles.zoneBtnActive,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.zoneBtnText,
-                            isLight && { color: theme.textSecondary },
-                            orbitZone === item.zone && styles.zoneBtnTextActive,
-                          ]}
+                    {ORBIT_ZONE_OPTIONS.map((item) => {
+                      const isSelected = orbitZone === item.zone;
+                      return (
+                        <TouchableOpacity
+                          key={item.zone}
+                          activeOpacity={0.8}
+                          onPress={() => setOrbitZone(item.zone)}
+                          disabled={isSubmitting}
+                          style={[styles.zoneBtn, isSelected && styles.zoneBtnActive]}
+                          accessibilityLabel={`${item.label}: ${item.periodDesc}`}
                         >
-                          {item.zone}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                          <Text style={[styles.zoneBtnText, isSelected && styles.zoneBtnTextActive]}>{item.zone}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
-                  <Text style={[styles.zoneHelpText, { color: theme.textMuted }]}>
-                    {ORBIT_ZONE_OPTIONS.find((z) => z.zone === orbitZone)?.periodDesc}
+                  <Text style={styles.zoneHelpText}>
+                    {ORBIT_ZONE_OPTIONS.find((z) => z.zone === orbitZone)?.periodDesc} · her anı kendi halkasında döner
                   </Text>
                 </View>
 
                 {/* 4. GEZEGEN TÜRÜ SEÇİMİ */}
                 <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { color: theme.textMuted }]}>GEZEGEN TÜRÜ</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeScroll}>
+                  <Text style={styles.inputLabel}>GEZEGEN TÜRÜ</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.typeScroll}
+                    contentContainerStyle={styles.typeRow}
+                  >
                     {PLANET_TYPE_OPTIONS.map((pt) => {
                       const isSelected = planetType === pt.type;
                       return (
@@ -862,21 +959,10 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                           activeOpacity={0.8}
                           onPress={() => setPlanetType(pt.type)}
                           disabled={isSubmitting}
-                          style={[
-                            styles.typeChip,
-                            isLight && { backgroundColor: theme.unitBg, borderColor: 'rgba(0,0,0,0.08)' },
-                            isSelected && styles.typeChipActive,
-                          ]}
+                          style={[styles.typeChip, isSelected && styles.typeChipActive]}
                         >
-                          <View
-                            style={[
-                              styles.typeChipOrb,
-                              { backgroundColor: pt.palette[0] },
-                            ]}
-                          />
-                          <Text style={[styles.typeChipText, isLight && { color: theme.textSecondary }, isSelected && styles.typeChipTextActive]}>
-                            {pt.label}
-                          </Text>
+                          <MiniPlanet planet={{ palette: pt.palette, planet_type: pt.type, is_locked: false }} size={20} glow={false} />
+                          <Text style={[styles.typeChipText, isSelected && styles.typeChipTextActive]}>{pt.label}</Text>
                         </TouchableOpacity>
                       );
                     })}
@@ -885,19 +971,11 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
 
                 {/* 5. AÇIKLAMA / NOT GİRDİSİ */}
                 <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { color: theme.textMuted }]}>ANI HİKAYESİ / NOT (İSTEĞE BAĞLI)</Text>
+                  <Text style={styles.inputLabel}>ANI HİKÂYESİ · İSTEĞE BAĞLI</Text>
                   <TextInput
-                    style={[
-                      styles.textInput,
-                      styles.textArea,
-                      {
-                        backgroundColor: isLight ? theme.inputBg : 'rgba(255, 255, 255, 0.06)',
-                        borderColor: isLight ? theme.inputBorder : 'rgba(255, 255, 255, 0.14)',
-                        color: theme.text,
-                      },
-                    ]}
+                    style={[styles.textInput, styles.textArea]}
                     placeholder="Bu anıyı sevgiliniz için ölümsüzleştiren satırları yazın..."
-                    placeholderTextColor={isLight ? 'rgba(0, 0, 0, 0.35)' : 'rgba(255, 255, 255, 0.3)'}
+                    placeholderTextColor={PLACEHOLDER_COLOR}
                     value={description}
                     onChangeText={setDescription}
                     multiline
@@ -910,22 +988,23 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                 {/* 6. FOTOĞRAF ALANI */}
                 <View style={styles.inputGroup}>
                   <View style={styles.photoHeaderRow}>
-                    <Text style={[styles.inputLabel, { color: theme.textMuted }]}>FOTOĞRAFLAR ({totalPhotosCount}/5)</Text>
+                    <Text style={styles.inputLabel}>FOTOĞRAFLAR · {totalPhotosCount}/5</Text>
                     {totalPhotosCount < 5 && (
-                      <TouchableOpacity
-                        onPress={handlePickPhotos}
-                        disabled={isSubmitting}
-                        style={[styles.addPhotoBtn, isLight && { backgroundColor: 'rgba(56, 189, 248, 0.1)' }]}
-                      >
-                        <ImagePlus size={14} color={isLight ? '#0284C7' : '#38BDF8'} />
-                        <Text style={[styles.addPhotoBtnText, isLight && { color: '#0284C7' }]}>Fotoğraf Ekle</Text>
+                      <TouchableOpacity onPress={handlePickPhotos} disabled={isSubmitting} style={styles.addPhotoBtn}>
+                        <ImagePlus size={14} color="#7DD3FC" />
+                        <Text style={styles.addPhotoBtnText}>Fotoğraf Ekle</Text>
                       </TouchableOpacity>
                     )}
                   </View>
 
                   {/* Fotoğraf Küçük Resimleri (Mevcut + Yeni) */}
                   {totalPhotosCount > 0 ? (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoPreviewScroll}>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      style={styles.photoPreviewScroll}
+                      contentContainerStyle={styles.photoPreviewRow}
+                    >
                       {/* Mevcut Fotoğraflar (Edit Modunda) */}
                       {existingPhotos.map((url, idx) => (
                         <View key={`exist_${url}_${idx}`} style={styles.photoThumbWrapper}>
@@ -934,6 +1013,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                             onPress={() => handleRemoveExistingPhoto(idx)}
                             disabled={isSubmitting}
                             style={styles.photoDeleteBtn}
+                            accessibilityLabel="Fotoğrafı kaldır"
                           >
                             <Trash2 size={12} color="#FFFFFF" />
                           </TouchableOpacity>
@@ -951,6 +1031,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                             onPress={() => handleRemoveNewPhoto(idx)}
                             disabled={isSubmitting}
                             style={styles.photoDeleteBtn}
+                            accessibilityLabel="Fotoğrafı kaldır"
                           >
                             <Trash2 size={12} color="#FFFFFF" />
                           </TouchableOpacity>
@@ -962,12 +1043,10 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                       activeOpacity={0.75}
                       onPress={handlePickPhotos}
                       disabled={isSubmitting}
-                      style={[styles.photoPlaceholderBox, isLight && { backgroundColor: theme.unitBg, borderColor: 'rgba(0,0,0,0.1)' }]}
+                      style={styles.photoPlaceholderBox}
                     >
-                      <ImagePlus size={24} color={isLight ? 'rgba(0, 0, 0, 0.35)' : 'rgba(255, 255, 255, 0.4)'} />
-                      <Text style={[styles.photoPlaceholderText, isLight && { color: theme.textMuted }]}>
-                        {"Galeri'den en fazla 5 fotoğraf seçin"}
-                      </Text>
+                      <ImagePlus size={22} color="rgba(203, 213, 225, 0.5)" />
+                      <Text style={styles.photoPlaceholderText}>{"Galeri'den en fazla 5 fotoğraf seçin"}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -981,7 +1060,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
 
                 {isSubmitting && (
                   <View style={styles.submittingBox}>
-                    <ActivityIndicator size="small" color="#38BDF8" />
+                    <ActivityIndicator size="small" color="#FDE68A" />
                     <Text style={styles.submittingText}>{uploadProgressText}</Text>
                   </View>
                 )}
@@ -993,52 +1072,43 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                       activeOpacity={0.82}
                       onPress={() => setActiveMode('view')}
                       disabled={isSubmitting}
-                      style={[styles.cancelBtn, isLight && { backgroundColor: theme.unitBg, borderColor: 'rgba(0,0,0,0.08)' }]}
+                      style={styles.cancelBtn}
                     >
-                      <Text style={[styles.cancelBtnText, isLight && { color: theme.textSecondary }]}>Vazgeç</Text>
+                      <Text style={styles.cancelBtnText}>Vazgeç</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      activeOpacity={0.85}
+                      activeOpacity={0.88}
                       onPress={handleUpdatePlanet}
                       disabled={isSubmitting}
-                      style={[styles.saveBtn, styles.flexBtn, isSubmitting && styles.saveBtnDisabled]}
+                      style={[styles.primaryBtn, styles.flexOne, isSubmitting && styles.primaryBtnDisabled]}
                     >
-                      <LinearGradient
-                        colors={['#0284C7', '#2563EB', '#7C3AED']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.saveBtnGradient}
-                      >
-                        <Check size={17} color="#FFFFFF" />
-                        <Text style={styles.saveBtnText}>
-                          {isSubmitting ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
-                        </Text>
+                      <LinearGradient colors={GOLD_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtnGradient}>
+                        <Check size={17} color="#3B1D00" />
+                        <Text style={styles.primaryBtnText}>{isSubmitting ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}</Text>
                       </LinearGradient>
                     </TouchableOpacity>
                   </View>
                 ) : (
                   <TouchableOpacity
-                    activeOpacity={0.85}
+                    activeOpacity={0.88}
                     onPress={handleCreatePlanet}
                     disabled={isSubmitting || !canAddManual || isCheckingLimit}
                     style={[
-                      styles.saveBtn,
-                      (isSubmitting || !canAddManual || isCheckingLimit) && styles.saveBtnDisabled,
+                      styles.primaryBtn,
+                      (isSubmitting || !canAddManual || isCheckingLimit) && styles.primaryBtnDisabled,
                     ]}
                   >
                     <LinearGradient
-                      colors={
-                        !canAddManual || isCheckingLimit
-                          ? ['#475569', '#334155']
-                          : ['#0284C7', '#2563EB', '#7C3AED']
-                      }
+                      colors={!canAddManual || isCheckingLimit ? DISABLED_GRADIENT : GOLD_GRADIENT}
                       start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.saveBtnGradient}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.primaryBtnGradient}
                     >
-                      <Sparkles size={18} color="#FFFFFF" />
-                      <Text style={styles.saveBtnText}>
+                      <Sparkles size={18} color={!canAddManual || isCheckingLimit ? '#E2E8F0' : '#3B1D00'} />
+                      <Text
+                        style={[styles.primaryBtnText, (!canAddManual || isCheckingLimit) && styles.primaryBtnTextDisabled]}
+                      >
                         {isCheckingLimit
                           ? 'Limit Kontrol Ediliyor...'
                           : isSubmitting
@@ -1074,10 +1144,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
         {fullscreenImage && (
           <Modal visible transparent animationType="fade" onRequestClose={() => setFullscreenImage(null)}>
             <View style={styles.fullscreenBackdrop}>
-              <TouchableOpacity
-                onPress={() => setFullscreenImage(null)}
-                style={styles.fullscreenCloseBtn}
-              >
+              <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.fullscreenCloseBtn} accessibilityLabel="Kapat">
                 <X size={20} color="#FFFFFF" />
               </TouchableOpacity>
               <Image source={{ uri: fullscreenImage }} style={styles.fullscreenImg} contentFit="contain" />
@@ -1089,33 +1156,58 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
       <DialogHost embedded />
     </Modal>
   );
-};
+});
 
 // ============================================================================
 // STİLLER
 // ============================================================================
 
+const GOLD_GRADIENT = ['#FEF3C7', '#FBBF24', '#F59E0B', '#D97706'] as const;
+const DISABLED_GRADIENT = ['#475569', '#334155'] as const;
+const PLACEHOLDER_COLOR = 'rgba(203, 213, 225, 0.38)';
+
+const SURFACE = 'rgba(255, 255, 255, 0.045)';
+const SURFACE_BORDER = 'rgba(255, 255, 255, 0.09)';
+const TEXT = '#F8FAFC';
+const TEXT_SECONDARY = 'rgba(226, 232, 240, 0.8)';
+const TEXT_MUTED = 'rgba(203, 213, 225, 0.58)';
+
 const styles = StyleSheet.create({
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(3, 2, 7, 0.75)',
+    backgroundColor: 'rgba(3, 2, 9, 0.72)',
     justifyContent: 'flex-end',
   },
   sheetContainer: {
-    maxHeight: SCREEN_HEIGHT * 0.88,
-    backgroundColor: 'rgba(15, 12, 30, 0.96)',
+    maxHeight: SCREEN_HEIGHT * 0.9,
+    backgroundColor: '#0B0820',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderBottomWidth: 0,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     overflow: 'hidden',
     paddingBottom: 30,
+  },
+  sheetGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 260,
+  },
+  sheetHairline: {
+    position: 'absolute',
+    top: 0,
+    left: 40,
+    right: 40,
+    height: 1,
   },
   dragHandle: {
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
     alignSelf: 'center',
     marginTop: 12,
   },
@@ -1124,208 +1216,181 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    paddingTop: 12,
+    paddingBottom: 6,
   },
   headerTitleBlock: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  headerTitle: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: -0.3,
+  headerEyebrow: {
+    color: 'rgba(253, 230, 138, 0.9)',
+    fontSize: 10.5,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: 2.2,
   },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: SURFACE_BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 40,
+    paddingTop: 6,
+    paddingBottom: 34,
+  },
+  flexOne: {
+    flex: 1,
   },
 
-  // VIEW MODE
+  // ─── İnceleme ─────────────────────────────────────────────────────────
   viewContent: {
-    gap: 16,
+    gap: 22,
   },
-  viewHeroRow: {
-    flexDirection: 'row',
+  hero: {
     alignItems: 'center',
-    gap: 14,
-  },
-  planetColorOrb: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  viewTitle: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: -0.4,
-    marginBottom: 4,
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  pillBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  pillText: {
-    color: '#CBD5E1',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  zoneBadge: {
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
-    borderWidth: 0.8,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
-  },
-  zoneBadgeText: {
-    color: '#38BDF8',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  autoBadge: {
-    backgroundColor: 'rgba(168, 85, 247, 0.15)',
-    borderWidth: 0.8,
-    borderColor: 'rgba(168, 85, 247, 0.3)',
-  },
-  autoBadgeText: {
-    color: '#C084FC',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-
-  // VIEW AKSİYON BUTONLARI (Düzenle & Sil)
-  viewActionRow: {
-    flexDirection: 'row',
     gap: 10,
-    marginTop: 4,
+    paddingTop: 6,
   },
-  editBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.25)',
-  },
-  editBtnText: {
-    color: '#38BDF8',
-    fontSize: 13.5,
-    fontWeight: '700',
-  },
-  deleteBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.25)',
-  },
-  deleteBtnText: {
-    color: '#EF4444',
-    fontSize: 13.5,
-    fontWeight: '700',
-  },
-
-  descriptionCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  descriptionText: {
-    color: 'rgba(255, 255, 255, 0.85)',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  gallerySection: {
-    marginTop: 4,
-  },
-  sectionLabel: {
-    color: 'rgba(255, 255, 255, 0.45)',
-    fontSize: 10.5,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    marginBottom: 10,
-  },
-  galleryScroll: {
-    flexDirection: 'row',
-  },
-  galleryThumbWrapper: {
-    width: 110,
-    height: 110,
-    borderRadius: 14,
-    overflow: 'hidden',
-    marginRight: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    position: 'relative',
-  },
-  galleryThumb: {
-    width: '100%',
-    height: '100%',
-  },
-  expandIconOverlay: {
-    position: 'absolute',
-    bottom: 6,
-    right: 6,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    padding: 4,
-    borderRadius: 6,
-  },
-  noPhotosBox: {
-    padding: 20,
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 14,
-  },
-  noPhotosText: {
-    color: 'rgba(255, 255, 255, 0.4)',
-    fontSize: 13,
-  },
-  lockedContentText: {
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 12,
-    lineHeight: 18,
+  heroTitle: {
+    color: TEXT,
+    fontSize: 23,
+    fontFamily: 'Inter_800ExtraBold',
+    letterSpacing: -0.4,
     textAlign: 'center',
   },
-
-  // İLİŞKİLİ MEKTUPLAR
-  lettersSection: {
-    marginTop: 6,
+  heroSub: {
+    color: TEXT_MUTED,
+    fontSize: 13,
+    fontFamily: 'Inter_400Regular',
+    lineHeight: 19,
+    textAlign: 'center',
+    paddingHorizontal: 12,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  metaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    height: 28,
+    paddingHorizontal: 11,
+    borderRadius: 14,
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: SURFACE_BORDER,
+  },
+  metaPillText: {
+    color: TEXT_SECONDARY,
+    fontSize: 12,
+    fontFamily: 'Inter_600SemiBold',
+  },
+  metaPillAuto: {
+    backgroundColor: 'rgba(192, 132, 252, 0.12)',
+    borderColor: 'rgba(192, 132, 252, 0.3)',
+  },
+  metaPillAutoText: {
+    color: '#E9D5FF',
+  },
+  section: {
+    gap: 10,
+  },
+  sectionLabel: {
+    color: TEXT_MUTED,
+    fontSize: 10,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: 1.8,
+  },
+  galleryScroll: {
+    marginHorizontal: -20,
+  },
+  galleryRow: {
+    gap: 12,
+    paddingHorizontal: 20,
+  },
+  photoCard: {
+    height: 210,
+    borderRadius: 22,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: SURFACE_BORDER,
+  },
+  photoShade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 80,
+  },
+  photoExpand: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(5, 3, 15, 0.55)',
+  },
+  photoIndex: {
+    position: 'absolute',
+    left: 14,
+    bottom: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 11,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: 0.5,
+  },
+  emptyPhotos: {
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 22,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+    backgroundColor: 'rgba(255, 255, 255, 0.025)',
+  },
+  emptyPhotosText: {
+    color: TEXT_MUTED,
+    fontSize: 12.5,
+    fontFamily: 'Inter_500Medium',
+  },
+  storyCard: {
+    gap: 8,
+    padding: 16,
+    paddingLeft: 20,
+    borderRadius: 18,
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: SURFACE_BORDER,
+    overflow: 'hidden',
+  },
+  storyAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 14,
+    bottom: 14,
+    width: 3,
+    borderRadius: 2,
+  },
+  storyText: {
+    color: TEXT_SECONDARY,
+    fontSize: 14.5,
+    fontFamily: 'Inter_400Regular',
+    lineHeight: 22,
   },
   lettersContainer: {
     gap: 8,
@@ -1334,11 +1399,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(168, 85, 247, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(168, 85, 247, 0.22)',
-    borderRadius: 14,
     padding: 12,
+    borderRadius: 16,
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: SURFACE_BORDER,
   },
   letterCardLeft: {
     flexDirection: 'row',
@@ -1348,70 +1413,191 @@ const styles = StyleSheet.create({
   letterIconWrapper: {
     width: 36,
     height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(168, 85, 247, 0.18)',
+    borderRadius: 12,
+    backgroundColor: 'rgba(244, 114, 182, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   letterCardTitle: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 2,
+    color: TEXT,
+    fontSize: 13.5,
+    fontFamily: 'Inter_700Bold',
   },
   letterCardSub: {
-    color: '#C084FC',
-    fontSize: 12,
-    fontWeight: '600',
+    color: TEXT_MUTED,
+    fontSize: 11.5,
+    fontFamily: 'Inter_500Medium',
+    marginTop: 1,
+  },
+  loadingCard: {
+    height: 120,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.035)',
+    borderWidth: 1,
+    borderColor: SURFACE_BORDER,
+  },
+  loadingText: {
+    color: TEXT_MUTED,
+    fontSize: 12.5,
+    fontFamily: 'Inter_500Medium',
+  },
+  actionsDisabled: {
+    opacity: 0.45,
+  },
+  viewActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  editBtn: {
+    flex: 1,
+    height: 50,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.4)',
+  },
+  editBtnText: {
+    color: '#FDE68A',
+    fontSize: 14,
+    fontFamily: 'Inter_700Bold',
+  },
+  deleteBtn: {
+    height: 50,
+    paddingHorizontal: 18,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(248, 113, 113, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(248, 113, 113, 0.28)',
+  },
+  deleteBtnText: {
+    color: '#F87171',
+    fontSize: 14,
+    fontFamily: 'Inter_700Bold',
+  },
+  ghostDangerBtn: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  ghostDangerText: {
+    color: '#F87171',
+    fontSize: 13,
+    fontFamily: 'Inter_600SemiBold',
+  },
+  primaryBtn: {
+    height: 54,
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  primaryBtnDisabled: {
+    opacity: 0.7,
+  },
+  primaryBtnGradient: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+  },
+  primaryBtnText: {
+    color: '#2A1300',
+    fontSize: 14.5,
+    fontFamily: 'Inter_800ExtraBold',
+    letterSpacing: -0.2,
+  },
+  primaryBtnTextDisabled: {
+    color: '#E2E8F0',
   },
 
-  // CREATE & EDIT MODE
+  // ─── Form ─────────────────────────────────────────────────────────────
   createContent: {
-    gap: 16,
+    gap: 18,
+  },
+  previewCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    padding: 14,
+    borderRadius: 20,
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: SURFACE_BORDER,
+  },
+  previewText: {
+    flex: 1,
+    minWidth: 0,
+    gap: 3,
+  },
+  previewTitle: {
+    color: TEXT,
+    fontSize: 16,
+    fontFamily: 'Inter_800ExtraBold',
+    letterSpacing: -0.2,
+  },
+  previewSub: {
+    color: TEXT_MUTED,
+    fontSize: 12,
+    fontFamily: 'Inter_500Medium',
   },
   limitWarningCard: {
     flexDirection: 'row',
-    alignItems: 'center',
     gap: 12,
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
-    borderRadius: 14,
     padding: 14,
+    borderRadius: 16,
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.32)',
   },
   limitWarningTitle: {
-    color: '#F59E0B',
+    color: '#FBBF24',
     fontSize: 13.5,
-    fontWeight: '700',
-    marginBottom: 2,
+    fontFamily: 'Inter_700Bold',
+    marginBottom: 3,
   },
   limitWarningText: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(253, 230, 138, 0.75)',
     fontSize: 12,
-    lineHeight: 16,
+    fontFamily: 'Inter_400Regular',
+    lineHeight: 17,
   },
   inputGroup: {
-    gap: 6,
+    gap: 8,
   },
   inputLabel: {
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 10.5,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    color: TEXT_MUTED,
+    fontSize: 10,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: 1.6,
   },
   textInput: {
-    height: 48,
+    minHeight: 50,
     borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
     paddingHorizontal: 14,
-    color: '#FFFFFF',
-    fontSize: 14.5,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    color: TEXT,
+    fontSize: 15,
+    fontFamily: 'Inter_500Medium',
   },
   textArea: {
-    height: 80,
-    paddingTop: 12,
+    minHeight: 96,
     textAlignVertical: 'top',
   },
   dateFieldBtn: {
@@ -1421,8 +1607,9 @@ const styles = StyleSheet.create({
   },
   dateFieldText: {
     flex: 1,
-    fontSize: 14.5,
-    fontWeight: '600',
+    color: TEXT,
+    fontSize: 15,
+    fontFamily: 'Inter_500Medium',
   },
   zoneSelectorRow: {
     flexDirection: 'row',
@@ -1430,63 +1617,61 @@ const styles = StyleSheet.create({
   },
   zoneBtn: {
     flex: 1,
-    height: 42,
+    height: 44,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   zoneBtnActive: {
-    backgroundColor: 'rgba(56, 189, 248, 0.25)',
-    borderColor: '#38BDF8',
+    backgroundColor: 'rgba(251, 191, 36, 0.14)',
+    borderColor: 'rgba(251, 191, 36, 0.6)',
   },
   zoneBtnText: {
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: 14,
-    fontWeight: '700',
+    color: TEXT_SECONDARY,
+    fontSize: 15,
+    fontFamily: 'Inter_700Bold',
   },
   zoneBtnTextActive: {
-    color: '#38BDF8',
+    color: '#FDE68A',
   },
   zoneHelpText: {
-    color: 'rgba(255, 255, 255, 0.4)',
-    fontSize: 11,
-    marginTop: 2,
+    color: TEXT_MUTED,
+    fontSize: 11.5,
+    fontFamily: 'Inter_500Medium',
   },
   typeScroll: {
-    flexDirection: 'row',
+    marginHorizontal: -20,
+  },
+  typeRow: {
+    gap: 8,
+    paddingHorizontal: 20,
   },
   typeChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    gap: 8,
+    height: 40,
+    paddingLeft: 10,
+    paddingRight: 14,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
-    marginRight: 8,
   },
   typeChipActive: {
-    backgroundColor: 'rgba(168, 85, 247, 0.2)',
-    borderColor: '#C084FC',
-  },
-  typeChipOrb: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    backgroundColor: 'rgba(251, 191, 36, 0.12)',
+    borderColor: 'rgba(251, 191, 36, 0.6)',
   },
   typeChipText: {
-    color: 'rgba(255, 255, 255, 0.65)',
-    fontSize: 12,
-    fontWeight: '600',
+    color: TEXT_SECONDARY,
+    fontSize: 13,
+    fontFamily: 'Inter_600SemiBold',
   },
   typeChipTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '700',
+    color: '#FDE68A',
   },
   photoHeaderRow: {
     flexDirection: 'row',
@@ -1496,23 +1681,32 @@ const styles = StyleSheet.create({
   addPhotoBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: 'rgba(125, 211, 252, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(125, 211, 252, 0.28)',
   },
   addPhotoBtnText: {
-    color: '#38BDF8',
+    color: '#7DD3FC',
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'Inter_700Bold',
   },
   photoPreviewScroll: {
-    flexDirection: 'row',
+    marginHorizontal: -20,
+  },
+  photoPreviewRow: {
+    gap: 10,
+    paddingHorizontal: 20,
   },
   photoThumbWrapper: {
-    width: 76,
-    height: 76,
-    borderRadius: 12,
+    width: 86,
+    height: 86,
+    borderRadius: 16,
     overflow: 'hidden',
-    marginRight: 8,
-    position: 'relative',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
   },
   photoThumb: {
     width: '100%',
@@ -1520,112 +1714,92 @@ const styles = StyleSheet.create({
   },
   photoDeleteBtn: {
     position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: 'rgba(239, 68, 68, 0.85)',
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    top: 6,
+    right: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 10,
+    backgroundColor: 'rgba(5, 3, 15, 0.65)',
   },
   savedPhotoBadge: {
     position: 'absolute',
-    bottom: 4,
-    left: 4,
-    backgroundColor: 'rgba(16, 185, 129, 0.85)',
+    left: 6,
+    bottom: 6,
     width: 16,
     height: 16,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#10B981',
   },
   photoPlaceholderBox: {
-    height: 76,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 8,
+    height: 96,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(255, 255, 255, 0.16)',
+    backgroundColor: 'rgba(255, 255, 255, 0.025)',
   },
   photoPlaceholderText: {
-    color: 'rgba(255, 255, 255, 0.4)',
-    fontSize: 12,
+    color: TEXT_MUTED,
+    fontSize: 12.5,
+    fontFamily: 'Inter_500Medium',
   },
   errorBox: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    padding: 10,
-    borderRadius: 10,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: 'rgba(248, 113, 113, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: 'rgba(248, 113, 113, 0.3)',
   },
   errorText: {
     color: '#FCA5A5',
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 12.5,
+    fontFamily: 'Inter_600SemiBold',
+    lineHeight: 18,
   },
   submittingBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    padding: 8,
+    gap: 10,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: 'rgba(251, 191, 36, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.25)',
   },
   submittingText: {
-    color: '#38BDF8',
+    flex: 1,
+    color: '#FDE68A',
     fontSize: 12.5,
-    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
   },
   formActionRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
+    gap: 10,
   },
   cancelBtn: {
-    flex: 1,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    height: 54,
+    paddingHorizontal: 20,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: SURFACE_BORDER,
   },
   cancelBtnText: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: TEXT_SECONDARY,
     fontSize: 14,
-    fontWeight: '700',
-  },
-  flexBtn: {
-    flex: 2,
-    marginTop: 0,
-  },
-  saveBtn: {
-    height: 50,
-    borderRadius: 25,
-    overflow: 'hidden',
-    marginTop: 8,
-  },
-  saveBtnDisabled: {
-    opacity: 0.6,
-  },
-  saveBtnGradient: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  saveBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14.5,
-    fontWeight: '700',
+    fontFamily: 'Inter_700Bold',
   },
 
-  // FULLSCREEN IMAGE MODAL
+  // ─── Tam ekran fotoğraf ───────────────────────────────────────────────
   fullscreenBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.95)',
@@ -1634,15 +1808,15 @@ const styles = StyleSheet.create({
   },
   fullscreenCloseBtn: {
     position: 'absolute',
-    top: 50,
-    right: 24,
-    zIndex: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    top: 56,
+    right: 20,
+    zIndex: 2,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
   },
   fullscreenImg: {
     width: SCREEN_WIDTH,

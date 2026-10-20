@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BlurView } from "expo-blur";
 import * as Location from "expo-location";
-import { useRouter } from "expo-router";
+import { useIsFocused, useRouter } from "expo-router";
 import { Heart } from "lucide-react-native";
 import { useCallback, useRef, useState } from "react";
 import {
@@ -57,6 +57,8 @@ const DEMO_NOTE_DESC =
 
 export default function MapScreen() {
   const router = useRouter();
+  // Durum çubuğunu yalnızca görünür sekme yönetir (dondurulmuş sekmenin eski StatusBar kaydı kalmasın)
+  const isFocused = useIsFocused();
   const { session, profile, isDemoMode } = useAuth();
   const {
     executeOrIntercept,
@@ -330,7 +332,7 @@ export default function MapScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle={isLight ? "dark-content" : "light-content"} />
+      {isFocused ? <StatusBar barStyle={isLight ? "dark-content" : "light-content"} /> : null}
 
       {/* ─── HARİTA ─────────────────────────────────────────────────────── */}
       <MapView

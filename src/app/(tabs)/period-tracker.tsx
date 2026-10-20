@@ -28,6 +28,7 @@ import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { usePageTour } from "@/hooks/usePageTour";
+import { useDeferredReady } from "@/hooks/useDeferredReady";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { useDemoAction } from "@/hooks/useDemoAction";
@@ -125,6 +126,28 @@ export default function PeriodTrackerScreen() {
     }
     return { cycleLength, nextPeriodDate, daysLeft, countdownText };
   }, [periodStarts, latestStart, today]);
+
+  // Takvime verilen tema nesnesi sabit kalmalı: her render'da yeni nesne gelirse react-native-calendars
+  // stil sayfasını ve 42 gün hücresini baştan oluşturuyordu
+  const calendarTheme = useMemo(() => ({
+    calendarBackground: "transparent",
+    textSectionTitleColor: theme.textMuted,
+    todayTextColor: "#ff4d6a",
+    selectedDayBackgroundColor: "#ff4d6a",
+    selectedDayTextColor: "#ffffff",
+    dayTextColor: theme.text,
+    textDisabledColor: isLight ? "rgba(0,0,0,0.22)" : "rgba(255,255,255,0.2)",
+    arrowColor: theme.accent,
+    monthTextColor: theme.text,
+    textMonthFontWeight: "700" as const,
+    textDayFontSize: 14.5,
+    textMonthFontSize: 16.5,
+    textDayHeaderFontSize: 11,
+    textDayHeaderFontWeight: "600" as const,
+  }), [theme.textMuted, theme.text, theme.accent, isLight]);
+
+  // Geçmiş kayıt listesi takvimin altında kalır: ilk karede çizilmez, hemen ardından eklenir
+  const showPastRecords = useDeferredReady();
 
   // Her başlangıçtan itibaren 5 günlük süreç (başlangıç günü dahil) otomatik boyanır
   const markedDates = useMemo(() => {
@@ -468,22 +491,7 @@ export default function PeriodTrackerScreen() {
                     onDayPress={handleDateClick}
                     markedDates={markedDates}
                     markingType={'custom'}
-                    theme={{
-                      calendarBackground: 'transparent',
-                      textSectionTitleColor: theme.textMuted,
-                      todayTextColor: '#ff4d6a',
-                      selectedDayBackgroundColor: '#ff4d6a',
-                      selectedDayTextColor: '#ffffff',
-                      dayTextColor: theme.text,
-                      textDisabledColor: isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.2)',
-                      arrowColor: theme.accent,
-                      monthTextColor: theme.text,
-                      textMonthFontWeight: '700',
-                      textDayFontSize: 14.5,
-                      textMonthFontSize: 16.5,
-                      textDayHeaderFontSize: 11,
-                      textDayHeaderFontWeight: '600'
-                    }}
+                    theme={calendarTheme}
                   />
                 )}
               </View>
@@ -492,7 +500,7 @@ export default function PeriodTrackerScreen() {
               <View style={styles.pastRecordsSection}>
                 <Text style={[styles.pastSectionTitle, { color: theme.textMuted }]}>GEÇMİŞ KAYITLAR</Text>
 
-                {!logs || logs.length === 0 ? (
+                {!showPastRecords ? null : !logs || logs.length === 0 ? (
                   <View style={[styles.emptyBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}>
                     <Text style={{ fontSize: 32, marginBottom: 8 }}>🌸</Text>
                     <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Henüz kayıtlı bir döngü günü bulunmuyor.</Text>

@@ -15,10 +15,13 @@
  * 5. Realtime Işıma Dalgası:
  *    Partner kıvılcım yolladığında ekranda yumuşak 1.8s altın/cyan kozmik ışıma dalgası patlar.
  * 6. Makro / Mikro Görünüm Geçişi:
- *    Sağ alttaki FAB ile Gök Kubbe (MacroSkyCanvas) ve Mikro Sistem arasında pürüzsüz geçiş.
+ *    Gök kubbede sağ alttaki FAB, yıldızın içinde cam paneldeki küre düğmesi ile
+ *    Gök Kubbe (MacroSkyCanvas) ve Mikro Sistem arasında pürüzsüz geçiş.
+ * 7. Yıldızın İçi: MicroSystemCanvas (sahne) + MicroStarHeader (başlık) + MicroSystemDock
+ *    (anı gezegenleri ve günlük ritüel). HUD burada temadan bağımsız koyu camdır.
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -28,6 +31,7 @@ import {
   ActivityIndicator,
   Platform,
   StatusBar,
+  type LayoutChangeEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -43,9 +47,7 @@ import * as Haptics from 'expo-haptics';
 import {
   Orbit,
   Globe,
-  Plus,
   Share2,
-  Zap,
   Clock,
   ArrowLeft,
   Sparkles,
@@ -77,8 +79,11 @@ import { SectorHUD } from './SectorHUD';
 import { SectorAtlasModal } from './SectorAtlasModal';
 import { SearchStarModal } from './SearchStarModal';
 import { HomeRadarOverlay } from './HomeRadarOverlay';
+import { MicroStarHeader } from './micro/MicroStarHeader';
+import { MicroSystemDock } from './micro/MicroSystemDock';
 import { PremiumPaywall } from '@/components/ui/PremiumPaywall';
 import type { PremiumFeatureSource } from '@/components/ui/PremiumPaywall.types';
+import { useCoupleAvatars } from '@/hooks/useCoupleAvatars';
 import { useSkyTileStream } from '../hooks/useSkyTileStream';
 
 import type {
@@ -105,6 +110,14 @@ const SKY_OVERVIEW_ZOOM = 1.2;
 const STAR_EXTERIOR_ZOOM = 3.0;
 const STAR_INTRO_FLIGHT_MS = 2400;
 
+// Yıldızın içi (mikro) yerleşimi: başlık üst çubuğun altında, cam panel en altta.
+// Ölçümler gelene kadar (onLayout) yörünge sistemi bu tahminlere göre ortalanır.
+const MICRO_HEADER_OFFSET = 60;
+const MICRO_HEADER_ESTIMATED_HEIGHT = 130;
+const MICRO_DOCK_ESTIMATED_HEIGHT = 196;
+/** Kapatılan anı gezegeninin hedef halkası bu kadar süre daha görünür kalır. */
+const PLANET_HIGHLIGHT_LINGER_MS = 2600;
+
 const SOLAR_DESCRIPTIONS: Record<string, string> = {
   'SOL-SUN': 'Güneş Sistemimizin kalbi, tüm evrenin yaşam kaynağı ☀️',
   'SOL-MERCURY': 'Güneşe en yakın, kalbimizin en sıcak ve tutkulu köşesi ☿',
@@ -118,6 +131,27 @@ const SOLAR_DESCRIPTIONS: Record<string, string> = {
   'SOL-NEPTUNE': 'Aşkımızın derinliği gibi dipsiz ve huzurlu okyanuslar diyarı 🌊',
   'SOL-PLUTO': 'Evrenin ucunda bile olsa birbirini asla unutmayan kalplerin simgesi 💜',
 };
+
+/** Ayrıntılar gelene kadar anı penceresinde gösterilen, harita verisinden kurulan önizleme kaydı. */
+function toPlanetPreview(planet: StarSystemMapPlanet, starId: string): StarExoplanetRecord {
+  return {
+    id: planet.id,
+    star_id: starId,
+    title: planet.display_title,
+    description: null,
+    milestone_date: null,
+    orbit_distance: planet.orbit_distance,
+    orbit_speed: planet.orbit_speed,
+    planet_type: planet.planet_type,
+    palette: planet.palette,
+    media_urls: [],
+    custom_metadata: {},
+    is_auto_generated: false,
+    window_started_at: null,
+    created_at: '',
+    updated_at: '',
+  };
+}
 
 function toMapPlanet(planet: StarExoplanetRecord): StarSystemMapPlanet {
   return {
@@ -216,6 +250,19 @@ export const OurStarScreen: React.FC = () => {
   const ambientMutedRef = useRef(false);
   const [isAmbientMuted, setIsAmbientMuted] = useState(false);
 
+  // ─── YILDIZIN İÇİ (MİKRO) DURUMU ───────────────────────────────────
+  // Her artış mikro sahnede yıldızdan kıvılcım şok dalgası yayar (dokunma, düğme, partner).
+  const [sparkSignal, setSparkSignal] = useState(0);
+  const [highlightPlanetId, setHighlightPlanetId] = useState<string | null>(null);
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [microHeroBottom, setMicroHeroBottom] = useState<number | null>(null);
+  const [microDockTop, setMicroDockTop] = useState<number | null>(null);
+  // Anı penceresi anında açılır; ayrıntılar (fotoğraf, hikâye) gelene kadar yükleniyor durumundadır.
+  const [isPlanetLoading, setIsPlanetLoading] = useState(false);
+  const planetRequestRef = useRef<string | null>(null);
+  // Premium çiftin fotoğrafları yıldız etrafındaki iki ruhun ucunda dolaşır (Premium değilse boş).
+  const { myAvatarUrl, partnerAvatarUrl } = useCoupleAvatars();
+
   // ─── IŞIMA DALGASI ANİMASYONU ──────────────────────────────────────
   const glowWaveOpacity = useSharedValue(0);
 
@@ -224,6 +271,7 @@ export const OurStarScreen: React.FC = () => {
       withTiming(0.5, { duration: 350, easing: Easing.out(Easing.cubic) }),
       withTiming(0, { duration: 1450, easing: Easing.in(Easing.cubic) })
     );
+    setSparkSignal((signal) => signal + 1);
   };
 
   const glowWaveStyle = useAnimatedStyle(() => ({
@@ -272,16 +320,6 @@ export const OurStarScreen: React.FC = () => {
 
     return () => clearInterval(timer);
   }, [liveCooldownSec]);
-
-  // Saniyeyi HH:MM:SS formatına çevirici
-  const formatCooldownTime = (totalSec: number): string => {
-    const hours = Math.floor(totalSec / 3600);
-    const minutes = Math.floor((totalSec % 3600) / 60);
-    const seconds = totalSec % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes
-      .toString()
-      .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  };
 
   // ─── AÇILIŞ SAHNESİ ────────────────────────────────────────────────
   // Tescilli yıldızı olan kullanıcıda (demo dahil) ekran, geniş gökyüzünden yıldızın parıltılı dış
@@ -565,6 +603,106 @@ export const OurStarScreen: React.FC = () => {
     }
   };
 
+  // Mikro sahne memo'lu: geri çağrıları kimliği değişmeyen sarmalayıcılarla verilir,
+  // böylece saniyelik geri sayım çizimleri sahneyi yeniden kurmaz.
+  const centerStarTouchRef = useRef(handleCenterStarTouch);
+  useLayoutEffect(() => {
+    centerStarTouchRef.current = handleCenterStarTouch;
+  });
+  const handleMicroStarTouch = useCallback(() => {
+    centerStarTouchRef.current();
+  }, []);
+
+  const clearPlanetHighlightTimer = useCallback(() => {
+    if (highlightTimerRef.current) {
+      clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = null;
+    }
+  }, []);
+  useEffect(() => clearPlanetHighlightTimer, [clearPlanetHighlightTimer]);
+
+  // Anı gezegenini aç (sahneden veya alt paneldeki karttan).
+  // Pencere ayrıntıları beklemeden ANINDA açılır: elimizdeki başlık/renk/türle başlar,
+  // fotoğraf ve hikâye sunucudan gelince dolar. Bu sırada düzenle/sil kapalıdır.
+  const handleOpenPlanet = useCallback(
+    (planet: StarSystemMapPlanet) => {
+      handlePremiumAction('exoplanet_view', () => {
+        if (planet.is_locked) {
+          setPremiumPaywallSource('exoplanet_view');
+          return;
+        }
+        clearPlanetHighlightTimer();
+        setHighlightPlanetId(planet.id);
+        try { Haptics.selectionAsync(); } catch {}
+        if (isDemoMode) {
+          const details = demoPlanetDetails.find((item) => item.id === planet.id);
+          if (details) {
+            setSelectedPlanet(details);
+            setExoplanetModalMode('view');
+          }
+          return;
+        }
+        if (!starDetails) return;
+
+        planetRequestRef.current = planet.id;
+        setSelectedPlanet(toPlanetPreview(planet, starDetails.star_id));
+        setIsPlanetLoading(true);
+        setExoplanetModalMode('view');
+
+        starService.getExoplanetDetails(planet.id)
+          .then((details) => {
+            // Kullanıcı bu arada pencereyi kapattıysa veya başka gezegen açtıysa yok say.
+            if (planetRequestRef.current !== planet.id) return;
+            setSelectedPlanet(details);
+            setIsPlanetLoading(false);
+          })
+          .catch((error) => {
+            if (planetRequestRef.current !== planet.id) return;
+            planetRequestRef.current = null;
+            setIsPlanetLoading(false);
+            setExoplanetModalMode(null);
+            setSelectedPlanet(null);
+            setHighlightPlanetId(null);
+            if (error instanceof PremiumRequiredError) {
+              setPremiumPaywallSource('exoplanet_view');
+              return;
+            }
+            showToast(error?.message || 'Gezegen ayrıntıları yüklenemedi.');
+          });
+      });
+    },
+    [clearPlanetHighlightTimer, demoPlanetDetails, handlePremiumAction, isDemoMode, showToast, starDetails]
+  );
+
+  const handleCreatePlanet = useCallback(() => {
+    handlePremiumAction('exoplanet_create', () => {
+      setSelectedPlanet(null);
+      setExoplanetModalMode('create');
+    });
+  }, [handlePremiumAction]);
+
+  const handleCloseExoplanetModal = useCallback(() => {
+    planetRequestRef.current = null;
+    setIsPlanetLoading(false);
+    setExoplanetModalMode(null);
+    // Kapatılan gezegen bir süre daha işaretli kalır: kullanıcı hangi anıya baktığını görür.
+    clearPlanetHighlightTimer();
+    highlightTimerRef.current = setTimeout(() => {
+      highlightTimerRef.current = null;
+      setHighlightPlanetId(null);
+    }, PLANET_HIGHLIGHT_LINGER_MS);
+  }, [clearPlanetHighlightTimer]);
+
+  const handleOpenCertificate = useCallback(() => setIsCertificateModalOpen(true), []);
+
+  const handleMicroHeroLayout = useCallback((event: LayoutChangeEvent) => {
+    const { y, height } = event.nativeEvent.layout;
+    setMicroHeroBottom(Math.round(y + height));
+  }, []);
+  const handleMicroDockLayout = useCallback((event: LayoutChangeEvent) => {
+    setMicroDockTop(Math.round(event.nativeEvent.layout.y));
+  }, []);
+
   const handleFocusMyStar = useCallback(() => {
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
     setFlyToTarget({ centerRa: myStarRa, centerDec: myStarDec, zoom: STAR_EXTERIOR_ZOOM, nonce: Date.now() });
@@ -605,13 +743,14 @@ export const OurStarScreen: React.FC = () => {
   // Makro (Gök Kubbe) / Mikro (yıldızın içi) geçişi
   const handleToggleViewMode = useCallback(() => {
     const nextMode = viewMode === 'micro' ? 'macro' : 'micro';
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
     setViewMode(nextMode);
     setSelectedMacroStar(null);
-    showToast(
-      nextMode === 'macro'
-        ? 'Gök Kubbeye çıkıldı; tüm evreni keşfedebilirsiniz 🌌'
-        : 'Yıldızınızın mikro çekim alanına girildi 🪐'
-    );
+    setHighlightPlanetId(null);
+    // İçeri girişi sahnenin kendi açılış animasyonu ve ipucu karşılar; yalnızca çıkışta bildirim.
+    if (nextMode === 'macro') {
+      showToast('Gök Kubbeye çıkıldı; tüm evreni keşfedebilirsiniz 🌌');
+    }
   }, [viewMode, showToast]);
 
   // Ortam sesini aç/kapat
@@ -646,15 +785,16 @@ export const OurStarScreen: React.FC = () => {
   };
 
   // ─── ANİ GEZEGENİ HANDLER'LARI ─────────────────────────────────────
-  const handlePlanetCreated = (newPlanet: StarExoplanetRecord) => {
+  // Kimlikleri sabit: memo'lu ExoplanetModal saniyelik geri sayım çizimlerinde yeniden çizilmez.
+  const handlePlanetCreated = useCallback((newPlanet: StarExoplanetRecord) => {
     if (isDemoMode) {
       setDemoPlanetDetails((prev) => [newPlanet, ...prev]);
     }
     setExoplanets((prev) => [toMapPlanet(newPlanet), ...prev]);
     showToast(`"${newPlanet.title}" anı gezegeni yörüngede dönmeye başladı! 🪐`);
-  };
+  }, [isDemoMode, showToast]);
 
-  const handlePlanetUpdated = (updatedPlanet: StarExoplanetRecord) => {
+  const handlePlanetUpdated = useCallback((updatedPlanet: StarExoplanetRecord) => {
     if (isDemoMode) {
       setDemoPlanetDetails((prev) => prev.map((p) => (p.id === updatedPlanet.id ? updatedPlanet : p)));
     }
@@ -663,16 +803,20 @@ export const OurStarScreen: React.FC = () => {
     );
     setSelectedPlanet(updatedPlanet);
     showToast(`"${updatedPlanet.title}" gezegeni güncellendi! ✨`);
-  };
+  }, [isDemoMode, showToast]);
 
-  const handlePlanetDeleted = (planetId: string) => {
+  const handlePlanetDeleted = useCallback((planetId: string) => {
     if (isDemoMode) {
       setDemoPlanetDetails((prev) => prev.filter((p) => p.id !== planetId));
     }
     setExoplanets((prev) => prev.filter((p) => p.id !== planetId));
     setSelectedPlanet(null);
     showToast('Anı gezegeni yörüngeden kaldırıldı.');
-  };
+  }, [isDemoMode, showToast]);
+
+  const handleExoplanetPremiumRequired = useCallback(() => {
+    handlePremiumAction('exoplanet_view', () => {});
+  }, [handlePremiumAction]);
 
   // ─── GÖKYÜZÜNDE SEÇİLEN YILDIZA BAĞLANTI İSTEĞİ GÖNDER ───────────────
   const handleConnectSelectedMacroStar = async () => {
@@ -712,6 +856,12 @@ export const OurStarScreen: React.FC = () => {
     }
   };
 
+  // Yıldızın içinde HUD her zaman koyu cam (uzay karanlıktır); gök kubbede tema izlenir.
+  const isMicroScene = viewMode === 'micro' && starDetails !== null;
+  const hudLight = isLight && !isMicroScene;
+  const microViewportTop = microHeroBottom ?? insets.top + MICRO_HEADER_OFFSET + MICRO_HEADER_ESTIMATED_HEIGHT;
+  const microViewportBottom = microDockTop ?? SCREEN_HEIGHT - insets.bottom - 10 - MICRO_DOCK_ESTIMATED_HEIGHT;
+
   // ─── YÜKLENİYOR EKRANI ─────────────────────────────────────────────
   if (isLoading) {
     return (
@@ -742,10 +892,11 @@ export const OurStarScreen: React.FC = () => {
         <View
           style={[
             styles.toastContainer,
-            {
-              top: insets.top + (viewMode === 'macro' && starDetails !== null ? 98 : 64),
-              zIndex: 999,
-            },
+            // Yıldızın içinde başlığı örtmemesi için cam panelin hemen üstünde belirir.
+            isMicroScene
+              ? { bottom: SCREEN_HEIGHT - microViewportBottom + 12 }
+              : { top: insets.top + (viewMode === 'macro' && starDetails !== null ? 98 : 64) },
+            { zIndex: 999 },
           ]}
           pointerEvents="none"
         >
@@ -753,8 +904,8 @@ export const OurStarScreen: React.FC = () => {
             style={[
               styles.toastInner,
               {
-                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 12, 30, 0.92)',
-                borderColor: isLight ? 'rgba(245, 158, 11, 0.5)' : 'rgba(245, 158, 11, 0.4)',
+                backgroundColor: hudLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 12, 30, 0.92)',
+                borderColor: hudLight ? 'rgba(245, 158, 11, 0.5)' : 'rgba(245, 158, 11, 0.4)',
               },
             ]}
           >
@@ -762,7 +913,7 @@ export const OurStarScreen: React.FC = () => {
             <Text
               style={[
                 styles.toastText,
-                { color: isLight ? '#92400E' : '#FCD34D' },
+                { color: hudLight ? '#92400E' : '#FCD34D' },
               ]}
               numberOfLines={2}
             >
@@ -779,18 +930,19 @@ export const OurStarScreen: React.FC = () => {
           style={[
             styles.backButton,
             {
-              backgroundColor: isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(7, 5, 18, 0.65)',
-              borderColor: isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.14)',
+              backgroundColor: hudLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(7, 5, 18, 0.65)',
+              borderColor: hudLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.14)',
             },
           ]}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           accessibilityLabel="Geri Dön"
         >
-          <ArrowLeft size={18} color={isLight ? theme.text : '#FFFFFF'} />
+          <ArrowLeft size={18} color={hudLight ? theme.text : '#FFFFFF'} />
         </TouchableOpacity>
 
         <View style={styles.badgeWrapper}>
-          {starDetails ? (
+          {/* Yıldızın içinde yıldız bilgisi aşağıdaki büyük başlıkta (MicroStarHeader) yer alır */}
+          {isMicroScene ? null : starDetails ? (
             <StarInfoBadge
               starDetails={starDetails}
               luminosityOverride={luminosityOverride}
@@ -836,8 +988,8 @@ export const OurStarScreen: React.FC = () => {
               style={[
                 styles.cosmicBagBtn,
                 {
-                  backgroundColor: isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(7, 5, 18, 0.65)',
-                  borderColor: isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(236, 72, 153, 0.35)',
+                  backgroundColor: hudLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(7, 5, 18, 0.65)',
+                  borderColor: hudLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(236, 72, 153, 0.35)',
                 },
               ]}
               accessibilityLabel="Kozmik Bağlar"
@@ -858,73 +1010,63 @@ export const OurStarScreen: React.FC = () => {
             style={[
               styles.cosmicBagBtn,
               {
-                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(7, 5, 18, 0.65)',
-                borderColor: isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.2)',
+                backgroundColor: hudLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(7, 5, 18, 0.65)',
+                borderColor: hudLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.2)',
               },
             ]}
             accessibilityLabel={isAmbientMuted ? 'Sesi Aç' : 'Sesi Kapat'}
           >
             {isAmbientMuted ? (
-              <VolumeX size={16} color={isLight ? '#6B7280' : 'rgba(255, 255, 255, 0.65)'} />
+              <VolumeX size={16} color={hudLight ? '#6B7280' : 'rgba(255, 255, 255, 0.65)'} />
             ) : (
-              <Volume2 size={16} color={isLight ? '#0284C7' : '#38BDF8'} />
+              <Volume2 size={16} color={hudLight ? '#0284C7' : '#38BDF8'} />
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity
-            activeOpacity={0.82}
-            onPress={() => setIsSearchModalOpen(true)}
-            style={[
-              styles.cosmicBagBtn,
-              {
-                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(7, 5, 18, 0.65)',
-                borderColor: isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(56, 189, 248, 0.35)',
-              },
-            ]}
-            accessibilityLabel="Yıldız Ara"
-          >
-            <Search size={16} color={isLight ? '#0284C7' : '#38BDF8'} />
-          </TouchableOpacity>
+          {/* Arama gök kubbeye aittir; yıldızın içinde gizlenir */}
+          {!isMicroScene && (
+            <TouchableOpacity
+              activeOpacity={0.82}
+              onPress={() => setIsSearchModalOpen(true)}
+              style={[
+                styles.cosmicBagBtn,
+                {
+                  backgroundColor: hudLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(7, 5, 18, 0.65)',
+                  borderColor: hudLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(56, 189, 248, 0.35)',
+                },
+              ]}
+              accessibilityLabel="Yıldız Ara"
+            >
+              <Search size={16} color={hudLight ? '#0284C7' : '#38BDF8'} />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
       {/* ─── ANA CANVAS SAHNESİ: MİKRO VEYA MAKRO ───────────────────── */}
       <View style={styles.canvasContainer}>
-        {viewMode === 'micro' && starDetails ? (
+        {isMicroScene && starDetails ? (
           <MicroSystemCanvas
             starDetails={starDetails}
             exoplanets={exoplanets}
             width={SCREEN_WIDTH}
             height={SCREEN_HEIGHT}
-            onSelectCenterStar={handleCenterStarTouch}
-            onSelectPlanet={(planet) => {
-              handlePremiumAction('exoplanet_view', () => {
-                if (planet.is_locked) {
-                  setPremiumPaywallSource('exoplanet_view');
-                  return;
-                }
-                if (isDemoMode) {
-                  const details = demoPlanetDetails.find((item) => item.id === planet.id);
-                  if (details) {
-                    setSelectedPlanet(details);
-                    setExoplanetModalMode('view');
-                  }
-                  return;
-                }
-                starService.getExoplanetDetails(planet.id)
-                  .then((details) => {
-                    setSelectedPlanet(details);
-                    setExoplanetModalMode('view');
-                  })
-                  .catch((error) => {
-                    if (error instanceof PremiumRequiredError) {
-                      setPremiumPaywallSource('exoplanet_view');
-                      return;
-                    }
-                    showToast(error?.message || 'Gezegen ayrıntıları yüklenemedi.');
-                  });
-              });
-            }}
+            viewportTop={microViewportTop}
+            viewportBottom={microViewportBottom}
+            luminosity={luminosityOverride}
+            resonanceActive={isResonanceActive}
+            highlightPlanetId={highlightPlanetId}
+            sparkSignal={sparkSignal}
+            myAvatarUrl={myAvatarUrl}
+            partnerAvatarUrl={partnerAvatarUrl}
+            onSelectCenterStar={handleMicroStarTouch}
+            onSelectPlanet={handleOpenPlanet}
+            paused={
+              exoplanetModalMode !== null ||
+              isCertificateModalOpen ||
+              isConnectionsModalOpen ||
+              premiumPaywallSource !== null
+            }
           />
         ) : (
           <MacroSkyCanvas
@@ -989,6 +1131,33 @@ export const OurStarScreen: React.FC = () => {
           />
         )}
       </View>
+
+      {/* ─── YILDIZIN İÇİ: BAŞLIK VE CAM PANEL ───────────────────────── */}
+      {isMicroScene && starDetails && (
+        <MicroStarHeader
+          starDetails={starDetails}
+          luminosity={luminosityOverride ?? starDetails.luminosity_level}
+          resonanceActive={isResonanceActive}
+          planetCount={exoplanets.length}
+          top={insets.top + MICRO_HEADER_OFFSET}
+          onPressCertificate={handleOpenCertificate}
+          onLayout={handleMicroHeroLayout}
+        />
+      )}
+      {isMicroScene && (
+        <MicroSystemDock
+          planets={exoplanets}
+          cooldownSec={liveCooldownSec}
+          isPremium={isPremium}
+          bottomInset={insets.bottom}
+          highlightPlanetId={highlightPlanetId}
+          onOpenPlanet={handleOpenPlanet}
+          onCreatePlanet={handleCreatePlanet}
+          onSpark={handleMicroStarTouch}
+          onExitToSky={handleToggleViewMode}
+          onLayout={handleMicroDockLayout}
+        />
+      )}
 
       {/* ─── MAKRO MOD: SEKTÖR HUD (Yalnızca tescilli yıldızı olan kullanıcı makro moddayken standalone gösterilir) ─── */}
       {viewMode === 'macro' && starDetails !== null && (
@@ -1094,14 +1263,14 @@ export const OurStarScreen: React.FC = () => {
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={() => {
+                  try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
                   setViewMode('micro');
                   setSelectedMacroStar(null);
-                  showToast(`"${starDetails?.custom_name || selectedMacroStar.custom_name}" mikro sistemine girildi 🪐`);
                 }}
                 style={styles.enterMicroBtn}
               >
                 <Orbit size={15} color="#030207" />
-                <Text style={styles.enterMicroBtnText}>Mikro Sisteme Gir 🪐</Text>
+                <Text style={styles.enterMicroBtnText}>Yıldızın İçine Gir 🪐</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 activeOpacity={0.85}
@@ -1229,169 +1398,114 @@ export const OurStarScreen: React.FC = () => {
 
       {/* Instruction Banner Removed to prevent overlap */}
 
-      {/* ─── ALT KONTROL BAR VE AKSİYON BUTONLARI ─────────────────────── */}
-      <View style={[styles.bottomControlBar, { paddingBottom: insets.bottom + 16 }]}>
-        {/* YILDIZI OLMAYAN KULLANICI İÇİN: KOZMİK RADAR BUTONU */}
-        {starDetails === null && (
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => {
-              setClaimTargetStar(null);
-              setClaimSectorId(null);
-              setIsClaimModalOpen(true);
-            }}
-            style={styles.radarLaunchBtn}
-            accessibilityLabel="Kozmik Radarla Yıldız Bul"
-          >
-            <LinearGradient
-              colors={['#0284C7', '#4F46E5']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.radarLaunchGradient}
+      {/* ─── ALT KONTROL BAR VE AKSİYON BUTONLARI (Gök Kubbe) ──────────── */}
+      {/* Yıldızın içinde bu çubuğun yerini MicroSystemDock alır. */}
+      {!isMicroScene && (
+        <View style={[styles.bottomControlBar, { paddingBottom: insets.bottom + 16 }]}>
+          {/* YILDIZI OLMAYAN KULLANICI İÇİN: KOZMİK RADAR BUTONU */}
+          {starDetails === null && (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => {
+                setClaimTargetStar(null);
+                setClaimSectorId(null);
+                setIsClaimModalOpen(true);
+              }}
+              style={styles.radarLaunchBtn}
+              accessibilityLabel="Kozmik Radarla Yıldız Bul"
             >
-              <Radio size={16} color="#FFFFFF" />
-              <Text style={styles.radarLaunchBtnText}>Kozmik Radarla Yıldız Bul ✨</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
-
-        {showHomeRadar && (
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={handleReturnHome}
-            style={styles.radarLaunchBtn}
-            accessibilityLabel="Evimize Dön"
-          >
-            <LinearGradient
-              colors={['#10B981', '#059669']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.radarLaunchGradient}
+              <LinearGradient
+                colors={['#0284C7', '#4F46E5']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.radarLaunchGradient}
+              >
+                <Radio size={16} color="#FFFFFF" />
+                <Text style={styles.radarLaunchBtnText}>Kozmik Radarla Yıldız Bul ✨</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+  
+          {showHomeRadar && (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={handleReturnHome}
+              style={styles.radarLaunchBtn}
+              accessibilityLabel="Evimize Dön"
             >
-              <Radio size={16} color="#FFFFFF" />
-              <Text style={styles.radarLaunchBtnText}>Evimize Dön ✨</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
-
-        {/* YILDIZIMIZA ODAKLAN FAB — doğrudan tek tıkla fly-to ve merkezleme */}
-        {viewMode === 'macro' && starDetails && (
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={handleFocusMyStar}
-            style={styles.focusStarFab}
-            accessibilityLabel="Yıldızımıza Odaklan"
-          >
-            <LinearGradient
-              colors={['#F59E0B', '#D97706']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.focusStarFabGradient}
+              <LinearGradient
+                colors={['#10B981', '#059669']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.radarLaunchGradient}
+              >
+                <Radio size={16} color="#FFFFFF" />
+                <Text style={styles.radarLaunchBtnText}>Evimize Dön ✨</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+  
+          {/* YILDIZIMIZA ODAKLAN FAB — doğrudan tek tıkla fly-to ve merkezleme */}
+          {viewMode === 'macro' && starDetails && (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={handleFocusMyStar}
+              style={styles.focusStarFab}
+              accessibilityLabel="Yıldızımıza Odaklan"
             >
-              <Sparkles size={18} color="#FFFFFF" />
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
-
-        {/* SOL/ORTA AKSİYON 1: YENİ ANİ GEZEGENİ EKLE (Sadece Mikro Modda) */}
-        {viewMode === 'micro' && starDetails && (
-          <TouchableOpacity
-            activeOpacity={0.82}
-            onPress={() => handlePremiumAction('exoplanet_create', () => {
-              setSelectedPlanet(null);
-              setExoplanetModalMode('create');
-            })}
-            style={[
-              styles.actionPillBtn,
-              {
-                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.92)' : 'rgba(7, 5, 18, 0.75)',
-                borderColor: isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(56, 189, 248, 0.3)',
-              },
-            ]}
-          >
-            <Plus size={16} color={isLight ? '#0284C7' : '#38BDF8'} />
-            <Text style={[styles.actionPillBtnText, { color: isLight ? '#0284C7' : '#38BDF8' }]}>
-              Anı Gezegeni Ekle
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {/* ORTA AKSİYON 2: GÜNLÜK KIVILCIM / COOLDOWN ROZETİ */}
-        {viewMode === 'micro' && starDetails && (
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={handleCenterStarTouch}
-            style={[
-              styles.sparkActionBtn,
-              liveCooldownSec > 0 && styles.sparkCooldownBadge,
-            ]}
-          >
-            {liveCooldownSec <= 0 ? (
               <LinearGradient
                 colors={['#F59E0B', '#D97706']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={styles.sparkBtnGradient}
+                style={styles.focusStarFabGradient}
               >
-                <Zap size={16} color="#FFFFFF" />
-                <Text style={styles.sparkBtnText}>Yıldızımızı Aydınlat ✨</Text>
+                <Sparkles size={18} color="#FFFFFF" />
               </LinearGradient>
-            ) : (
-              <View style={styles.cooldownBadgeContent}>
-                <View style={styles.cooldownHeaderRow}>
-                  <Sparkles size={11} color="#FBBF24" />
-                  <Text style={styles.cooldownBadgeTitle}>İlk Işığınız Göğe Yükseldi ✨</Text>
-                </View>
-                <View style={styles.cooldownTimerRow}>
-                  <Clock size={11} color="rgba(255, 255, 255, 0.6)" />
-                  <Text style={styles.cooldownTimerText}>{formatCooldownTime(liveCooldownSec)}</Text>
-                </View>
-              </View>
+            </TouchableOpacity>
+          )}
+  
+          {/* SAĞ ALT FAB: MAKRO / MİKRO MOD GEÇİŞİ */}
+          <View style={styles.modeSwitchWrapper}>
+            {/* Yıldızın dışındayken (Gök Kubbe) FAB'ın ne yaptığını açıklayan etiket */}
+            {viewMode === 'macro' && starDetails !== null && !selectedMacroStar && (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={handleToggleViewMode}
+                style={[
+                  styles.modeSwitchHint,
+                  {
+                    backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(10, 8, 24, 0.92)',
+                    borderColor: isLight ? 'rgba(245, 158, 11, 0.5)' : 'rgba(251, 191, 36, 0.45)',
+                  },
+                ]}
+                accessibilityLabel="Yıldızın İçine Gir"
+              >
+                <Text style={[styles.modeSwitchHintText, { color: isLight ? '#92400E' : '#FCD34D' }]}>
+                  Yıldızın İçine Gir ✨
+                </Text>
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
-        )}
-
-        {/* SAĞ ALT FAB: MAKRO / MİKRO MOD GEÇİŞİ */}
-        <View style={styles.modeSwitchWrapper}>
-          {/* Yıldızın dışındayken (Gök Kubbe) FAB'ın ne yaptığını açıklayan etiket */}
-          {viewMode === 'macro' && starDetails !== null && !selectedMacroStar && (
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={handleToggleViewMode}
               style={[
-                styles.modeSwitchHint,
+                styles.modeSwitchFab,
                 {
-                  backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(10, 8, 24, 0.92)',
-                  borderColor: isLight ? 'rgba(245, 158, 11, 0.5)' : 'rgba(251, 191, 36, 0.45)',
+                  backgroundColor: isLight ? 'rgba(255, 255, 255, 0.92)' : 'rgba(7, 5, 18, 0.8)',
+                  borderColor: isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.18)',
                 },
               ]}
-              accessibilityLabel="Yıldızın İçine Gir"
+              accessibilityLabel={viewMode === 'micro' ? 'Gök Kubbeye Çık' : 'Yıldızın İçine Gir'}
             >
-              <Text style={[styles.modeSwitchHintText, { color: isLight ? '#92400E' : '#FCD34D' }]}>
-                Yıldızın İçine Gir ✨
-              </Text>
+              {viewMode === 'micro' ? (
+                <Globe size={20} color="#38BDF8" />
+              ) : (
+                <Orbit size={20} color="#FBBF24" />
+              )}
             </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={handleToggleViewMode}
-            style={[
-              styles.modeSwitchFab,
-              {
-                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.92)' : 'rgba(7, 5, 18, 0.8)',
-                borderColor: isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.18)',
-              },
-            ]}
-            accessibilityLabel={viewMode === 'micro' ? 'Gök Kubbeye Çık' : 'Yıldızın İçine Gir'}
-          >
-            {viewMode === 'micro' ? (
-              <Globe size={20} color="#38BDF8" />
-            ) : (
-              <Orbit size={20} color="#FBBF24" />
-            )}
-          </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      )}
 
       {/* ─── MODALLAR ────────────────────────────────────────────────── */}
 
@@ -1433,12 +1547,13 @@ export const OurStarScreen: React.FC = () => {
           starId={starDetails.star_id}
           coupleId={coupleId || 999999}
           selectedPlanet={selectedPlanet}
-          onClose={() => setExoplanetModalMode(null)}
+          isLoadingDetails={isPlanetLoading}
+          onClose={handleCloseExoplanetModal}
           onPlanetCreated={handlePlanetCreated}
           onPlanetUpdated={handlePlanetUpdated}
           onPlanetDeleted={handlePlanetDeleted}
           isPremium={isPremium}
-          onPremiumRequired={() => handlePremiumAction('exoplanet_view', () => {})}
+          onPremiumRequired={handleExoplanetPremiumRequired}
         />
       )}
 
@@ -1543,7 +1658,8 @@ export const OurStarScreen: React.FC = () => {
           setFlyToTarget({
             centerRa: Number(item.ra),
             centerDec: Number(item.dec),
-            zoom: 2.5,
+            // Güneş Sistemi cisminde daha uzaktan bak: ~38° çapındaki tüm sistem ekrana sığsın.
+            zoom: solarObj ? 1.3 : 2.5,
             nonce: Date.now(),
           });
         }}
@@ -1686,84 +1802,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
-  },
-  actionPillBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    height: 44,
-    paddingHorizontal: 14,
-    borderRadius: 22,
-    backgroundColor: 'rgba(7, 5, 18, 0.75)',
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  actionPillBtnText: {
-    color: '#38BDF8',
-    fontSize: 12.5,
-    fontWeight: '700',
-  },
-  sparkActionBtn: {
-    flex: 1,
-    height: 44,
-    borderRadius: 22,
-    overflow: 'hidden',
-    shadowColor: '#F59E0B',
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  sparkBtnGradient: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-  },
-  sparkBtnText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: -0.2,
-  },
-  sparkCooldownBadge: {
-    backgroundColor: 'rgba(251, 191, 36, 0.12)',
-    borderWidth: 1.2,
-    borderColor: 'rgba(251, 191, 36, 0.4)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 4,
-  },
-  cooldownBadgeContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cooldownHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  cooldownBadgeTitle: {
-    color: '#FBBF24',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-  },
-  cooldownTimerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  cooldownTimerText: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 10,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    fontWeight: '600',
   },
   modeSwitchWrapper: {
     alignItems: 'flex-end',

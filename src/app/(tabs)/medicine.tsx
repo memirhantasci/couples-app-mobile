@@ -21,6 +21,7 @@ import { useAuth } from "@/context/AuthContext";
 import { cancelLocalNotification, notifyPartner } from "@/lib/notifications";
 import { scheduleMedicineReminder, medicineReminderId, syncLocalReminders } from "@/lib/reminderSync";
 import { useNotificationPriming } from "@/hooks/useNotificationPriming";
+import { useDeferredReady } from "@/hooks/useDeferredReady";
 import { PermissionPrimingModal } from "@/components/common/PermissionPrimingModal";
 import { useCustomNotification } from "@/context/NotificationContext";
 import { dayjs, todayString } from "@/lib/date";
@@ -72,6 +73,8 @@ export default function MedicineScreen() {
 
   // Hatırlatıcılar bildirim izni olmadan çalmaz: ilk ilaç kaydından sonra ön-onay kartı gösterilir.
   const priming = useNotificationPriming(userId);
+  // 14 günlük geçmiş listesi ekranın en altında: ilk karede çizilmez, hemen ardından eklenir
+  const showHistory = useDeferredReady();
   const primeAfterCloseRef = useRef(false);
 
   const closeManagerModal = () => {
@@ -673,7 +676,9 @@ export default function MedicineScreen() {
           </View>
 
           {/* GEÇMİŞ (SON 14 GÜN) */}
-          <MedicineHistoryList theme={theme} historyGrouped={historyGrouped} sortedDates={sortedDates} />
+          {showHistory && (
+            <MedicineHistoryList theme={theme} historyGrouped={historyGrouped} sortedDates={sortedDates} />
+          )}
         </ScrollView>
       </View>
 

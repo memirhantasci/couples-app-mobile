@@ -37,6 +37,7 @@ import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { MapPickerModal } from "@/components/MapPickerModal";
 import { usePageTour } from "@/hooks/usePageTour";
+import { useDeferredReady } from "@/hooks/useDeferredReady";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { DEMO_MEETINGS } from "@/constants/demoData";
@@ -47,6 +48,8 @@ import { toast } from "@/lib/toast";
 
 /** Güncelleme sorgusu hiçbir satırı değiştirmediğinde (buluşma başkasına ait / silinmiş) fırlatılır. */
 const MEETING_UPDATE_DENIED = "MEETING_UPDATE_DENIED";
+
+const PAST_MEETINGS_PAGE_SIZE = 10;
 
 export default function MeetingsScreen() {
   const router = useRouter();
@@ -61,6 +64,9 @@ export default function MeetingsScreen() {
   const userId = session?.user?.id ? session.user.id : null;
   const { getAvatarUrl } = useCoupleAvatars();
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("meetings");
+  // Geçmiş buluşmalar ekran dışında kalır: ilk karede çizilmez, hemen ardından eklenir ve sayfa sayfa açılır
+  const showPastSection = useDeferredReady();
+  const [pastVisibleCount, setPastVisibleCount] = useState(PAST_MEETINGS_PAGE_SIZE);
 
   const [showFormModal, setShowFormModal] = useState(false);
   const [title, setTitle] = useState("");
@@ -530,10 +536,10 @@ export default function MeetingsScreen() {
           </View>
 
           {/* GEÇMİŞ BULUŞMALAR BÖLÜMÜ */}
-          {pastMeetings.length > 0 && (
+          {showPastSection && pastMeetings.length > 0 && (
             <View style={styles.sectionBlock}>
               <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>GEÇMİŞ BULUŞMALAR</Text>
-              {pastMeetings.map((m) => {
+              {pastMeetings.slice(0, pastVisibleCount).map((m) => {
                 const formattedDate = dayjs(m.meeting_datetime).locale("tr").format("D MMMM YYYY");
 
                 return (
@@ -551,6 +557,17 @@ export default function MeetingsScreen() {
                   </View>
                 );
               })}
+              {pastMeetings.length > pastVisibleCount && (
+                <TouchableOpacity
+                  style={[styles.showMorePastBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+                  onPress={() => setPastVisibleCount((count) => count + PAST_MEETINGS_PAGE_SIZE)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.showMorePastText, { color: theme.accent }]}>
+                    Daha eski buluşmaları göster ({pastMeetings.length - pastVisibleCount})
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </ScrollView>
@@ -950,6 +967,17 @@ const createStyles = (theme: AppTheme) => {
     },
 
     /* GEÇMİŞ BULUŞMA KARTI */
+    showMorePastBtn: {
+      paddingVertical: 13,
+      borderRadius: 16,
+      borderWidth: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    showMorePastText: {
+      fontSize: 13.5,
+      fontFamily: "Inter_600SemiBold",
+    },
     pastMeetingCard: {
       flexDirection: "row",
       alignItems: "center",

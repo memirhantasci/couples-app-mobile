@@ -156,6 +156,10 @@ export default function TabsLayout() {
         tabBar={(props) => <CustomTabBar {...props} />}
         screenOptions={{
           headerShown: false,
+          // Açılmış ama şu an görünmeyen sekmeler dondurulur: her gezinmede hepsi baştan render
+          // edilmez. Aksi halde gezdikçe mount kalan sekme sayısı kadar ek iş birikir ve her yeni
+          // sayfa bir öncekinden yavaş açılırdı (ölçüm: 8 sekme açıkken geçiş ~3 kat daha yavaş).
+          freezeOnBlur: true,
         }}
       >
       {/* Kullanıcının seçebileceği tüm ana sekmeler */}

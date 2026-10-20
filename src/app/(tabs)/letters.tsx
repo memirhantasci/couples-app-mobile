@@ -146,7 +146,9 @@ export default function LettersScreen() {
         return {
           ...l,
           _type: "received" as const,
-          content: safeDecrypt(l.content),
+          // İçerik burada çözülmez: crypto-js saf JS olduğundan 30-60 mektubu birden çözmek ekranı
+          // kilitliyordu. Çözme yalnızca ekranda görünen/açılan satır için render'da (önbellekli) yapılır.
+          content: l.content,
           sender: senderObj ? { 
             ...senderObj, 
             username: senderObj.username ? (deterministicDecrypt(senderObj.username) || senderObj.username) : "Sevgilin" 
@@ -159,7 +161,7 @@ export default function LettersScreen() {
         return {
           ...l,
           _type: "sent" as const,
-          content: safeDecrypt(l.content),
+          content: l.content,
           receiver: receiverObj ? { 
             ...receiverObj, 
             username: receiverObj.username ? (deterministicDecrypt(receiverObj.username) || receiverObj.username) : "Sevgilin" 
@@ -404,6 +406,9 @@ export default function LettersScreen() {
     let relativeDate = dayjs(letter.created_at).format("DD MMMM YYYY");
     if (dayjs(letter.created_at).isSame(dayjs(), 'day')) relativeDate = "Bugün";
 
+    // Kilitli (henüz açılamayan) mektubun içeriği hiç çözülmez; açılabilir olanlar önbellekten gelir
+    const letterContent = canOpen ? safeDecrypt(letter.content) : "";
+
     return (
       <View 
         style={[
@@ -499,8 +504,8 @@ export default function LettersScreen() {
               ]} 
               numberOfLines={2}
             >
-              {canOpen 
-                ? letter.content 
+              {canOpen
+                ? letterContent
                 : "Bu mektup sevdiğin tarafından belirlenen tarihe kadar özel bir mühürle kilitlenmiştir..."}
             </Text>
           )}
@@ -511,7 +516,7 @@ export default function LettersScreen() {
               <View style={styles.letterContentHeaderRow}>
                 <Text style={[styles.letterContentLabel, { color: theme.accent }]}>Mektup İçeriği</Text>
               </View>
-              <Text style={[styles.letterContentText, { color: theme.text }]}>{letter.content}</Text>
+              <Text style={[styles.letterContentText, { color: theme.text }]}>{letterContent}</Text>
               {unlockDateStr ? (
                 <Text style={[styles.letterFooterNote, { color: theme.textMuted }]}>
                   {`Açılış Zamanı: ${dayjs(unlockDateStr).locale("tr").format("DD MMMM YYYY")}`}

@@ -348,9 +348,9 @@ function MacroSkyCanvasSkia({
         candidates.unshift(heroTapTarget(props.myStarRa, props.myStarDec, props.myStarName));
       }
       const hit = hitTestSky(x, y, { ra, dec, zoom }, width, height, candidates);
+      // Yıldız seçimi yalnızca dokunsal geri bildirim verir (ses yok).
       if (hit) {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-        playCelestialChime().catch(() => {});
       }
       props.onSelectStar(hit);
     },

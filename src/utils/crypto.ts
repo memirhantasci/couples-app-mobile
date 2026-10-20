@@ -14,7 +14,23 @@ const staticIv = CryptoJS.enc.Hex.parse(STATIC_IV_HEX);
 // Uygulama çalışma zamanında çifte özel türetilen dinamik oturum anahtarı
 let sessionKey: any = null;
 
+// crypto-js saf JS olduğu için Hermes'te yavaş (mektup/günlük başına onlarca ms). Aynı şifreli metin
+// sorgu yenilemelerinde, ekranlar arası geçişlerde ve her render'da tekrar tekrar çözülüyordu;
+// sonuçlar sınırlı bir önbellekte tutulur. Anahtar değişince (giriş/eşleşme/çıkış) boşaltılır.
+const DECRYPT_CACHE_LIMIT = 600;
+const decryptCache = new Map<string, string>();
+
+function rememberDecrypted(cipherText: string, plain: string) {
+  if (!plain) return; // Başarısız çözümler önbelleğe alınmaz: anahtar sonradan gelebilir
+  if (decryptCache.size >= DECRYPT_CACHE_LIMIT) {
+    const oldest = decryptCache.keys().next().value;
+    if (oldest !== undefined) decryptCache.delete(oldest);
+  }
+  decryptCache.set(cipherText, plain);
+}
+
 export function setSessionEncryptionKey(userId: string, coupleId: number | null, salt: string | null) {
+  decryptCache.clear();
   try {
     if (coupleId && salt) {
       // Çifte özel anahtar türetimi (256-bit)
@@ -86,9 +102,18 @@ function encryptWithKey(text: string, activeKey: any): string {
 }
 
 /**
- * Dinamik IV ile şifrelenmiş metni çözme
+ * Dinamik IV ile şifrelenmiş metni çözme (aynı şifreli metin için sonuç önbellekten gelir)
  */
 export function decrypt(text: string): string {
+  if (!text || !text.startsWith("enc:")) return decryptUncached(text);
+  const cached = decryptCache.get(text);
+  if (cached !== undefined) return cached;
+  const plain = decryptUncached(text);
+  rememberDecrypted(text, plain);
+  return plain;
+}
+
+function decryptUncached(text: string): string {
   if (!text) return "";
   try {
     // Deterministik şifrelenmişse doğrudan deterministik çözücüye yönlendir
@@ -172,9 +197,17 @@ export function deterministicEncrypt(text: string): string {
  */
 export function deterministicDecrypt(text: string): string {
   if (!text) return "";
-  try {
-    if (!text.startsWith("det:")) return text;
+  if (!text.startsWith("det:")) return text;
+  const cached = decryptCache.get(text);
+  if (cached !== undefined) return cached;
+  const plain = deterministicDecryptUncached(text);
+  // Hata durumunda fonksiyon şifreli metni aynen döndürür; bu başarı sayılmaz, önbelleğe alınmaz
+  if (plain !== text) rememberDecrypted(text, plain);
+  return plain;
+}
 
+function deterministicDecryptUncached(text: string): string {
+  try {
     const ciphertext = CryptoJS.enc.Hex.parse(text.substring(4));
 
     const decrypted = CryptoJS.AES.decrypt(
