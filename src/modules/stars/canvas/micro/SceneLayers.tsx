@@ -44,6 +44,13 @@ import {
   type StarfieldLayers,
 } from './microScene';
 
+/** İki parmakla yakınlaştırma/kaydırma kamerası (sistem merkezi etrafında). */
+export interface SceneCamera {
+  readonly zoom: SharedValue<number>;
+  readonly panX: SharedValue<number>;
+  readonly panY: SharedValue<number>;
+}
+
 // ============================================================================
 // UZAY FONU
 // ============================================================================
@@ -144,15 +151,17 @@ export interface OrbitPlaneProps {
   readonly zones: readonly { readonly radius: number; readonly occupied: boolean }[];
   readonly tilt: SharedValue<number>;
   readonly intro: SharedValue<number>;
+  readonly camera: SceneCamera;
 }
 
-export const OrbitPlane = React.memo(function OrbitPlane({ layout, zones, tilt, intro }: OrbitPlaneProps) {
+export const OrbitPlane = React.memo(function OrbitPlane({ layout, zones, tilt, intro, camera }: OrbitPlaneProps) {
   const { cx, cy, maxTilt, outer } = layout;
+  const { zoom, panX, panY } = camera;
   const transform = useDerivedValue(() => [
-    { translateX: cx },
-    { translateY: cy },
+    { translateX: cx + panX.value },
+    { translateY: cy + panY.value },
     { scaleY: Math.min(tilt.value, maxTilt) },
-    { scale: introOrbitFactor(intro.value) },
+    { scale: introOrbitFactor(intro.value) * zoom.value },
   ]);
   const opacity = useDerivedValue(() => intro.value);
   const discRadius = outer * 1.12;
@@ -201,6 +210,7 @@ export interface OrbitTrailProps {
   readonly layout: OrbitLayout;
   readonly tilt: SharedValue<number>;
   readonly intro: SharedValue<number>;
+  readonly camera: SceneCamera;
 }
 
 /**
@@ -218,14 +228,16 @@ export const OrbitTrail = React.memo(function OrbitTrail({
   layout,
   tilt,
   intro,
+  camera,
 }: OrbitTrailProps) {
   const base = index * BODY_STRIDE;
   const { cx, cy, maxTilt } = layout;
+  const { zoom, panX, panY } = camera;
   const transform = useDerivedValue(() => [
-    { translateX: cx },
-    { translateY: cy },
+    { translateX: cx + panX.value },
+    { translateY: cy + panY.value },
     { scaleY: Math.min(tilt.value, maxTilt) },
-    { scale: introOrbitFactor(intro.value) },
+    { scale: introOrbitFactor(intro.value) * zoom.value },
     { rotate: motion.value[base + B_ANGLE] ?? 0 },
   ]);
   const opacity = useDerivedValue(() => intro.value);
@@ -297,6 +309,7 @@ export interface StarCoreProps {
   readonly clock: SharedValue<number>;
   readonly intro: SharedValue<number>;
   readonly wave: SharedValue<number>;
+  readonly camera: SceneCamera;
 }
 
 const WHITE_0 = 'rgba(255, 255, 255, 0)';
@@ -309,9 +322,11 @@ export const StarCore = React.memo(function StarCore({
   clock,
   intro,
   wave,
+  camera,
 }: StarCoreProps) {
   const R = STAR_CORE_RADIUS;
   const { cx, cy } = layout;
+  const { zoom, panX, panY } = camera;
   // Parlaklık [0.1, 1] → ışıma gücü [0.5, 1]
   const lum = 0.45 + 0.55 * clamp(luminosity, 0.1, 1);
   const spikeLength = R * 4.6 * lum;
@@ -319,7 +334,11 @@ export const StarCore = React.memo(function StarCore({
 
   const transform = useDerivedValue(() => {
     const pulse = 1 + 0.045 * Math.sin(clock.value * 1.7);
-    return [{ translateX: cx }, { translateY: cy }, { scale: (0.55 + 0.45 * intro.value) * pulse }];
+    return [
+      { translateX: cx + panX.value },
+      { translateY: cy + panY.value },
+      { scale: (0.55 + 0.45 * intro.value) * pulse * zoom.value },
+    ];
   });
   const spikeTransform = useDerivedValue(() => [
     { rotate: 0.035 * Math.sin(clock.value * 0.35) },
@@ -451,16 +470,19 @@ export interface ShockWaveProps {
   readonly layout: OrbitLayout;
   readonly tilt: SharedValue<number>;
   readonly wave: SharedValue<number>;
+  readonly camera: SceneCamera;
 }
 
-export const ShockWave = React.memo(function ShockWave({ layout, tilt, wave }: ShockWaveProps) {
+export const ShockWave = React.memo(function ShockWave({ layout, tilt, wave, camera }: ShockWaveProps) {
   const { cx, cy, maxTilt, outer } = layout;
-  const reach = outer * 1.25 - STAR_CORE_RADIUS;
+  const { zoom, panX, panY } = camera;
+  const reach = outer * 1.15 - STAR_CORE_RADIUS;
 
   const transform = useDerivedValue(() => [
-    { translateX: cx },
-    { translateY: cy },
+    { translateX: cx + panX.value },
+    { translateY: cy + panY.value },
     { scaleY: Math.min(tilt.value, maxTilt) },
+    { scale: zoom.value },
   ]);
   const leadRadius = useDerivedValue(() => STAR_CORE_RADIUS + (1 - Math.pow(1 - wave.value, 3)) * reach);
   const leadOpacity = useDerivedValue(() => (wave.value < 1 ? Math.pow(1 - wave.value, 1.3) * 0.85 : 0));

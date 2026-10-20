@@ -14,8 +14,8 @@
 
 import type { SkPath, SkPathBuilder } from '@shopify/react-native-skia';
 import { Skia } from '../skiaBridge';
-import type { OrbitZone, PlanetType, StarSystemMapPlanet } from '../../types/star.types';
-import { calculateOrbitalAngularVelocity, ORBIT_CONFIG } from '../../types/star.types';
+import type { PlanetType, StarSystemMapPlanet } from '../../types/star.types';
+import { ORBIT_CONFIG } from '../../types/star.types';
 
 // ============================================================================
 // SABİTLER
@@ -36,9 +36,29 @@ export const DEFAULT_TILT = 0.56;
 export const MIN_TILT = 0.28;
 const MAX_TILT_LIMIT = 0.9;
 
-export const STAR_CORE_RADIUS = 24;
+export const STAR_CORE_RADIUS = 27;
 export const CENTER_TOUCH_RADIUS = 46;
 export const MIN_PLANET_TOUCH_RADIUS = 28;
+
+/**
+ * Yörünge şeritleri (dünya pikseli): her gezegen kendi halkasında döner, böylece iki
+ * gezegen aynı yörüngeyi paylaşmaz. Boş şeritler de kesikli halka olarak çizilir.
+ */
+export const LANE_INNER_RADIUS = 62;
+export const LANE_SPACING = 25;
+export const MIN_LANES = 8;
+
+/**
+ * Bütün anı gezegenleri aynı açısal hızla, bir galaksi gibi birlikte döner: hız farkı
+ * olsaydı komşu şeritlerdeki gezegenler zamanla hizalanıp üst üste binerdi.
+ */
+const SYSTEM_PERIOD_SEC = 46;
+/** Komşu şeritlerdeki gezegenler arası başlangıç açısı (altın açı ≈ 137.5°). */
+const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+
+/** İki parmakla yakınlaştırma sınırları (sığdırma ölçeğine göre çarpan değil, mutlak). */
+export const MAX_ZOOM = 3;
+export const MIN_ZOOM_FACTOR = 0.85;
 
 /** Sürüklemede 1 radyan dönüş için gereken piksel. */
 export const SPIN_PX_PER_RADIAN = 150;
@@ -68,14 +88,14 @@ export const B_ANGLE = 7;
 
 /** Gezegen tipine göre gövde yarıçapı (px, derinlik ölçeğinden önce). */
 export const PLANET_RADIUS_BY_TYPE: Record<PlanetType, number> = {
-  terrestrial: 10,
-  gas_giant: 15,
-  ice_world: 11,
-  ocean_world: 11,
-  crystal: 10,
-  volcanic: 11,
-  desert: 10,
-  ringed_giant: 14,
+  terrestrial: 12,
+  gas_giant: 16,
+  ice_world: 13,
+  ocean_world: 13,
+  crystal: 12,
+  volcanic: 13,
+  desert: 12,
+  ringed_giant: 15,
 };
 
 // ============================================================================
@@ -85,15 +105,19 @@ export const PLANET_RADIUS_BY_TYPE: Record<PlanetType, number> = {
 export interface OrbitLayout {
   readonly cx: number;
   readonly cy: number;
-  /** 1. kuşağın yarıçapı */
+  /** En içteki şeridin yarıçapı (dünya pikseli) */
   readonly inner: number;
-  /** 5. kuşağın yarıçapı */
+  /** En dıştaki şeridin yarıçapı (dünya pikseli) */
   readonly outer: number;
   readonly step: number;
+  /** Çizilen yörünge şeridi sayısı (en az MIN_LANES, gezegen sayısı kadar) */
+  readonly lanes: number;
   /** Çiftin iki ruhunun dolaştığı yakın yörünge */
   readonly soulRadius: number;
-  /** Mevcut dikey alana sığan en yüksek eğiklik */
+  /** Mevcut dikey alana sığan en yüksek eğiklik (sığdırma ölçeğinde) */
   readonly maxTilt: number;
+  /** Tüm sistemin ekrana sığdığı ölçek; açılış ve sıfırlama ölçeği budur */
+  readonly fitZoom: number;
 }
 
 export function clamp(value: number, min: number, max: number): number {
@@ -110,26 +134,61 @@ export function computeOrbitLayout(
   height: number,
   viewportTop = 0,
   viewportBottom = height,
+  planetCount = 0,
 ): OrbitLayout {
   const top = clamp(viewportTop, 0, height * 0.45);
   const bottom = clamp(viewportBottom, height * 0.55, height);
-  const outer = clamp(width / 2 - 26, 120, 210);
-  const inner = Math.max(58, outer * 0.38);
+  const lanes = Math.max(MIN_LANES, planetCount);
+  const inner = LANE_INNER_RADIUS;
+  const outer = inner + (lanes - 1) * LANE_SPACING;
+  const fitZoom = clamp((width / 2 - 22) / outer, 0.4, 1);
   const halfAvailable = Math.max(60, (bottom - top) / 2 - 24);
   return {
     cx: width / 2,
     cy: (top + bottom) / 2,
     inner,
     outer,
-    step: (outer - inner) / (ORBIT_CONFIG.ZONE_COUNT - 1),
+    step: LANE_SPACING,
+    lanes,
     soulRadius: inner * 0.62,
-    maxTilt: clamp(halfAvailable / outer, MIN_TILT + 0.08, MAX_TILT_LIMIT),
+    maxTilt: clamp(halfAvailable / (outer * fitZoom), MIN_TILT + 0.08, MAX_TILT_LIMIT),
+    fitZoom,
   };
 }
 
-export function zoneRadius(layout: OrbitLayout, zone: number): number {
-  const safeZone = clamp(Math.round(zone) || 1, 1, ORBIT_CONFIG.ZONE_COUNT);
-  return layout.inner + (safeZone - 1) * layout.step;
+export function laneRadius(layout: OrbitLayout, lane: number): number {
+  return layout.inner + clamp(lane, 0, layout.lanes - 1) * layout.step;
+}
+
+/**
+ * Her gezegene kendi şeridini verir. Kuşak anlamı korunur (1. kuşak içte, 5. kuşak dışta):
+ * gezegen kuşağına karşılık gelen şeride, doluysa en yakın boş şeride yerleşir.
+ */
+export function assignLanes(planets: readonly StarSystemMapPlanet[], laneCount: number): number[] {
+  const order = planets
+    .map((planet, index) => ({ planet, index }))
+    .sort((a, b) => a.planet.orbit_distance - b.planet.orbit_distance || a.planet.id.localeCompare(b.planet.id));
+  const taken = new Array<boolean>(laneCount).fill(false);
+  const lanes = new Array<number>(planets.length).fill(0);
+  for (const { planet, index } of order) {
+    const zone = clamp(Math.round(planet.orbit_distance) || 1, 1, ORBIT_CONFIG.ZONE_COUNT);
+    const desired = Math.round(((zone - 1) / (ORBIT_CONFIG.ZONE_COUNT - 1)) * (laneCount - 1));
+    for (let distance = 0; distance < laneCount; distance++) {
+      const outward = desired + distance;
+      const inward = desired - distance;
+      if (outward < laneCount && !taken[outward]) {
+        lanes[index] = outward;
+        taken[outward] = true;
+        break;
+      }
+      if (inward >= 0 && !taken[inward]) {
+        lanes[index] = inward;
+        taken[inward] = true;
+        break;
+      }
+    }
+  }
+  return lanes;
 }
 
 /** Gezegenin yörüngedeki başlangıç açısı: id'den türetilir, her açılışta aynı. */
@@ -143,25 +202,33 @@ export function deterministicPhase(id: string): number {
 
 /** Worklet'lere kapanış olarak verilen, gezegen başına sabit yörünge parametreleri. */
 export interface PlanetOrbitSpec {
+  readonly lane: number;
   readonly orbitRadius: number;
   readonly omega: number;
   readonly phase: number;
   readonly radius: number;
 }
 
+/**
+ * Gezegenler birbirine yaklaşmasın diye: her biri kendi şeridinde, komşu şeritler altın açı
+ * kadar aralıklı başlar ve hepsi aynı hızla döner — aradaki açı hiç değişmez.
+ */
 export function buildPlanetSpecs(
   planets: readonly StarSystemMapPlanet[],
   layout: OrbitLayout,
 ): PlanetOrbitSpec[] {
-  return planets.map((planet) => ({
-    orbitRadius: zoneRadius(layout, planet.orbit_distance),
-    omega: calculateOrbitalAngularVelocity(
-      clamp(Math.round(planet.orbit_distance) || 1, 1, ORBIT_CONFIG.ZONE_COUNT) as OrbitZone,
-      planet.orbit_speed || 1,
-    ),
-    phase: deterministicPhase(planet.id),
-    radius: PLANET_RADIUS_BY_TYPE[planet.planet_type] ?? 10,
-  }));
+  const lanes = assignLanes(planets, layout.lanes);
+  const omega = (2 * Math.PI) / SYSTEM_PERIOD_SEC;
+  return planets.map((planet, index) => {
+    const lane = lanes[index];
+    return {
+      lane,
+      orbitRadius: laneRadius(layout, lane),
+      omega,
+      phase: lane * GOLDEN_ANGLE,
+      radius: PLANET_RADIUS_BY_TYPE[planet.planet_type] ?? 10,
+    };
+  });
 }
 
 /** Açılış animasyonunda yörüngeler merkezden dışarı açılır. */
@@ -173,6 +240,7 @@ export function introOrbitFactor(intro: number): number {
 /**
  * Eğik düzlemdeki bir gövdenin ekran durumunu `out` dizisine yazar.
  * Derinlik = sin(açı): +1 izleyiciye en yakın (altta), -1 en uzak (üstte).
+ * `cx`/`cy` kaydırma dahil ekrandaki sistem merkezi, `zoom` kamera ölçeğidir.
  */
 export function writeBodyState(
   out: number[],
@@ -183,16 +251,17 @@ export function writeBodyState(
   angle: number,
   tilt: number,
   intro: number,
+  zoom: number,
 ) {
   'worklet';
-  const r = orbitRadius * introOrbitFactor(intro);
+  const r = orbitRadius * introOrbitFactor(intro) * zoom;
   const cos = Math.cos(angle);
   const sin = Math.sin(angle);
   const x = cx + cos * r;
   const y = cy + sin * r * tilt;
   // Eğiklik azaldıkça (yandan bakış) perspektif farkı büyür.
   const perspective = 1 - tilt;
-  const scale = (1 + 0.34 * perspective * sin) * (0.25 + 0.75 * intro);
+  const scale = (1 + 0.34 * perspective * sin) * (0.25 + 0.75 * intro) * zoom;
   // Işık yönü: gövdeden yıldıza (ekranda), birim vektör.
   const lx = cx - x;
   const ly = cy - y;

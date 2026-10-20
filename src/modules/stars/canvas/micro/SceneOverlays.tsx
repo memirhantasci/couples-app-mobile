@@ -79,7 +79,8 @@ const SoulAvatar = memo(function SoulAvatar({ index, souls, uri, color }: SoulAv
       transform: [
         { translateX: (m[base + B_X] ?? 0) - AVATAR_SIZE / 2 },
         { translateY: (m[base + B_Y] ?? 0) - AVATAR_SIZE / 2 },
-        { scale: m[base + B_SCALE] ?? 1 },
+        // Yakınlaştırınca fotoğraf büyür ama sahneyi kaplamaz.
+        { scale: clamp(m[base + B_SCALE] ?? 1, 0.5, 1.6) },
       ],
     };
   });

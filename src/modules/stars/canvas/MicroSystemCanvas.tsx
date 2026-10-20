@@ -18,8 +18,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import {
+import Animated, {
   Easing,
+  FadeIn,
+  FadeOut,
   cancelAnimation,
   runOnJS,
   runOnUI,
@@ -32,10 +34,10 @@ import {
 } from 'react-native-reanimated';
 import { LinearGradient as RNLinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
+import { Minimize2 } from 'lucide-react-native';
 
-import { isSkiaAvailable, Canvas, Points } from './skiaBridge';
+import { isSkiaAvailable, Canvas, Group, Points } from './skiaBridge';
 import type { CoupleStarDetails, StarSystemMapPlanet } from '@/modules/stars/types/star.types';
-import { ORBIT_CONFIG } from '@/modules/stars/types/star.types';
 import { useParticleSystem } from './useParticleSystem';
 import {
   B_DEPTH,
@@ -45,9 +47,11 @@ import {
   BODY_STRIDE,
   CENTER_TOUCH_RADIUS,
   DEFAULT_TILT,
+  MAX_ZOOM,
   MICRO_PALETTE,
   MIN_PLANET_TOUCH_RADIUS,
   MIN_TILT,
+  MIN_ZOOM_FACTOR,
   PLANET_TRAIL_DEG,
   SOUL_ANGULAR_VELOCITY,
   SOUL_TRAIL_DEG,
@@ -59,11 +63,11 @@ import {
   computeOrbitLayout,
   createStarfield,
   deterministicPhase,
+  laneRadius,
   makeArcPath,
   planetColors,
   rgba,
   writeBodyState,
-  zoneRadius,
 } from './micro/microScene';
 import { PlanetBody } from './micro/PlanetBody';
 import { OrbitPlane, OrbitTrail, ShockWave, SoulBody, SpaceBackdrop, StarCore } from './micro/SceneLayers';
@@ -130,11 +134,12 @@ function MicroSystemCanvasSkia({
   const canvasHeight = height ?? screen.height;
   const reduceMotion = useReducedMotion();
 
+  const planetTotal = exoplanets.length;
   const layout = useMemo(
-    () => computeOrbitLayout(canvasWidth, canvasHeight, viewportTop, viewportBottom),
-    [canvasWidth, canvasHeight, viewportTop, viewportBottom]
+    () => computeOrbitLayout(canvasWidth, canvasHeight, viewportTop, viewportBottom, planetTotal),
+    [canvasWidth, canvasHeight, viewportTop, viewportBottom, planetTotal]
   );
-  const { cx, cy, maxTilt, soulRadius } = layout;
+  const { cx, cy, maxTilt, soulRadius, fitZoom } = layout;
 
   const luminosity = luminosityProp ?? starDetails.luminosity_level ?? 1;
   const resonance = resonanceActive ?? starDetails.resonance_active;
@@ -158,6 +163,32 @@ function MicroSystemCanvasSkia({
   const panStartSpin = useSharedValue(0);
   const panStartTilt = useSharedValue(DEFAULT_TILT);
 
+  // Kamera: iki parmakla yakınlaştırma (odak noktası sabit kalır) ve kaydırma.
+  // Ölçek sığdırma ölçeğine göre çarpan olarak tutulur: gezegen sayısı/yerleşim değişince
+  // sistem kendiliğinden yeniden sığar, ayrıca sıfırlamaya gerek kalmaz.
+  const zoomFactor = useSharedValue(1);
+  const zoom = useDerivedValue(() => fitZoom * zoomFactor.value);
+  const panX = useSharedValue(0);
+  const panY = useSharedValue(0);
+  const pinchStartZoom = useSharedValue(fitZoom);
+  const pinchStartPanX = useSharedValue(0);
+  const pinchStartPanY = useSharedValue(0);
+  const pinchFocalX = useSharedValue(0);
+  const pinchFocalY = useSharedValue(0);
+  // React Compiler bu nesneyi kendisi memoize eder (paylaşılan değerler kimlik olarak sabittir).
+  const camera = { zoom, panX, panY };
+  const minZoom = fitZoom * MIN_ZOOM_FACTOR;
+
+  // "Tümünü gör" düğmesi yalnızca yakınlaştırılmış/kaydırılmışken görünür (iki parmak hareketi bitince güncellenir).
+  const [isCameraMoved, setIsCameraMoved] = useState(false);
+
+  const resetCamera = () => {
+    zoomFactor.set(withTiming(1, { duration: 450, easing: Easing.out(Easing.cubic) }));
+    panX.set(withTiming(0, { duration: 450, easing: Easing.out(Easing.cubic) }));
+    panY.set(withTiming(0, { duration: 450, easing: Easing.out(Easing.cubic) }));
+    setIsCameraMoved(false);
+  };
+
   const particles = useParticleSystem({
     centerX: cx,
     centerY: cy,
@@ -170,7 +201,7 @@ function MicroSystemCanvasSkia({
   const clockCallback = useFrameCallback((frameInfo) => {
     'worklet';
     if (frameInfo.timeSincePreviousFrame) {
-      clock.value += Math.min(0.1, frameInfo.timeSincePreviousFrame / 1000);
+      clock.set(clock.get() + Math.min(0.1, frameInfo.timeSincePreviousFrame / 1000));
     }
   });
 
@@ -183,10 +214,10 @@ function MicroSystemCanvasSkia({
   // Açılış: yörüngeler merkezden açılır, gövdeler yerine süzülür.
   useEffect(() => {
     if (reduceMotion) {
-      intro.value = 1;
+      intro.set(1);
       return;
     }
-    intro.value = withTiming(1, { duration: 1800, easing: Easing.out(Easing.cubic) });
+    intro.set(withTiming(1, { duration: 1800, easing: Easing.out(Easing.cubic) }));
   }, [intro, reduceMotion]);
 
   // ─── Gezegen yörünge parametreleri ─────────────────────────────────────
@@ -201,9 +232,12 @@ function MicroSystemCanvasSkia({
     const spinOffset = spin.value;
     const tl = Math.min(tilt.value, maxTilt);
     const it = intro.value;
+    const z = zoom.value;
+    const ox = cx + panX.value;
+    const oy = cy + panY.value;
     for (let i = 0; i < planetCount; i++) {
       const s = i * 3;
-      writeBodyState(out, i * BODY_STRIDE, cx, cy, flatSpecs[s], time * flatSpecs[s + 1] + flatSpecs[s + 2] + spinOffset, tl, it);
+      writeBodyState(out, i * BODY_STRIDE, ox, oy, flatSpecs[s], time * flatSpecs[s + 1] + flatSpecs[s + 2] + spinOffset, tl, it, z);
     }
     return out;
   });
@@ -217,8 +251,11 @@ function MicroSystemCanvasSkia({
     const lead = time * SOUL_ANGULAR_VELOCITY + soulPhase + spin.value;
     // İki ruh birbirinin karşısında ama hiç durmadan yakınlaşıp uzaklaşarak dans eder.
     const separation = Math.PI * (0.84 + 0.16 * Math.sin(time * 0.4));
-    writeBodyState(out, 0, cx, cy, soulRadius, lead, tl, it);
-    writeBodyState(out, BODY_STRIDE, cx, cy, soulRadius, lead + separation, tl, it);
+    const z = zoom.value;
+    const ox = cx + panX.value;
+    const oy = cy + panY.value;
+    writeBodyState(out, 0, ox, oy, soulRadius, lead, tl, it, z);
+    writeBodyState(out, BODY_STRIDE, ox, oy, soulRadius, lead + separation, tl, it, z);
     return out;
   });
 
@@ -227,13 +264,14 @@ function MicroSystemCanvasSkia({
     () => createStarfield(starDetails.star_id, canvasWidth, canvasHeight),
     [starDetails.star_id, canvasWidth, canvasHeight]
   );
+  // Her şerit bir halka: dolu şeritler altın, boşlar kesikli.
   const zones = useMemo(() => {
-    const occupied = new Set(exoplanets.map((p) => zoneRadius(layout, p.orbit_distance)));
-    return Array.from({ length: ORBIT_CONFIG.ZONE_COUNT }, (_, i) => {
-      const radius = zoneRadius(layout, i + 1);
-      return { radius, occupied: occupied.has(radius) };
-    });
-  }, [exoplanets, layout]);
+    const occupied = new Set(specs.map((spec) => spec.lane));
+    return Array.from({ length: layout.lanes }, (_, lane) => ({
+      radius: laneRadius(layout, lane),
+      occupied: occupied.has(lane),
+    }));
+  }, [specs, layout]);
   const trailPaths = useMemo(() => {
     const paths = new Map<number, ReturnType<typeof makeArcPath>>();
     for (const zone of zones) {
@@ -250,8 +288,8 @@ function MicroSystemCanvasSkia({
     if (sparkSignal === lastSparkRef.current) return;
     lastSparkRef.current = sparkSignal;
     if (!reduceMotion) {
-      wave.value = 0;
-      wave.value = withTiming(1, { duration: 1600, easing: Easing.out(Easing.quad) });
+      wave.set(0);
+      wave.set(withTiming(1, { duration: 1600, easing: Easing.out(Easing.quad) }));
     }
     runOnUI(triggerFirework)(cx, cy, resonance);
   }, [sparkSignal, reduceMotion, wave, triggerFirework, cx, cy, resonance]);
@@ -268,23 +306,65 @@ function MicroSystemCanvasSkia({
     if (planet) onSelectPlanet?.(planet);
   };
 
+  // Tek parmak: sistemi döndür (yatay) ve eğ (dikey).
   const pan = Gesture.Pan()
     .minDistance(12)
+    .maxPointers(1)
     .onStart(() => {
       'worklet';
       cancelAnimation(spin);
-      panStartSpin.value = spin.value;
-      panStartTilt.value = Math.min(tilt.value, maxTilt);
+      panStartSpin.set(spin.value);
+      panStartTilt.set(Math.min(tilt.value, maxTilt));
     })
     .onUpdate((event) => {
       'worklet';
       // Öndeki (alttaki) gövdeler parmağı takip eder.
-      spin.value = panStartSpin.value - event.translationX / SPIN_PX_PER_RADIAN;
-      tilt.value = clamp(panStartTilt.value + event.translationY / TILT_PX_PER_UNIT, MIN_TILT, maxTilt);
+      spin.set(panStartSpin.value - event.translationX / SPIN_PX_PER_RADIAN);
+      tilt.set(clamp(panStartTilt.value + event.translationY / TILT_PX_PER_UNIT, MIN_TILT, maxTilt));
     })
     .onEnd((event) => {
       'worklet';
-      spin.value = withDecay({ velocity: -event.velocityX / SPIN_PX_PER_RADIAN, deceleration: 0.995 });
+      spin.set(withDecay({ velocity: -event.velocityX / SPIN_PX_PER_RADIAN, deceleration: 0.995 }));
+    });
+
+  // İki parmak: parmakların arasındaki nokta sabit kalarak yakınlaş/uzaklaş; parmakları
+  // birlikte kaydırınca sahne de kayar.
+  const pinch = Gesture.Pinch()
+    .onStart((event) => {
+      'worklet';
+      cancelAnimation(zoomFactor);
+      cancelAnimation(panX);
+      cancelAnimation(panY);
+      pinchStartZoom.set(zoom.value);
+      pinchStartPanX.set(panX.value);
+      pinchStartPanY.set(panY.value);
+      pinchFocalX.set(event.focalX);
+      pinchFocalY.set(event.focalY);
+    })
+    .onUpdate((event) => {
+      'worklet';
+      const nextZoom = clamp(pinchStartZoom.value * event.scale, minZoom, MAX_ZOOM);
+      const ratio = nextZoom / pinchStartZoom.value;
+      // Başlangıç odağının altındaki dünya noktası, parmakların şu anki odağının altında kalır.
+      const anchorX = pinchFocalX.value - cx - pinchStartPanX.value;
+      const anchorY = pinchFocalY.value - cy - pinchStartPanY.value;
+      const limitX = layout.outer * nextZoom;
+      const limitY = layout.outer * maxTilt * nextZoom + 80;
+      zoomFactor.set(nextZoom / fitZoom);
+      panX.set(clamp(event.focalX - cx - anchorX * ratio, -limitX, limitX));
+      panY.set(clamp(event.focalY - cy - anchorY * ratio, -limitY, limitY));
+    })
+    .onEnd(() => {
+      'worklet';
+      // Neredeyse sığdırma ölçeğine dönüldüyse sistemi yumuşakça ortala.
+      if (zoom.value <= fitZoom * 1.04) {
+        zoomFactor.set(withTiming(1, { duration: 350 }));
+        panX.set(withTiming(0, { duration: 350 }));
+        panY.set(withTiming(0, { duration: 350 }));
+        runOnJS(setIsCameraMoved)(false);
+      } else {
+        runOnJS(setIsCameraMoved)(true);
+      }
     });
 
   const tap = Gesture.Tap()
@@ -310,9 +390,10 @@ function MicroSystemCanvasSkia({
           }
         }
       }
-      const sdx = event.x - cx;
-      const sdy = event.y - cy;
-      const starHit = sdx * sdx + sdy * sdy <= CENTER_TOUCH_RADIUS * CENTER_TOUCH_RADIUS;
+      const sdx = event.x - (cx + panX.value);
+      const sdy = event.y - (cy + panY.value);
+      const starTouch = CENTER_TOUCH_RADIUS * clamp(zoom.value, 0.7, 2);
+      const starHit = sdx * sdx + sdy * sdy <= starTouch * starTouch;
       // Yıldızın önünden geçen gezegen yıldızdan önce seçilir; arkadaki seçilmez.
       if (best >= 0 && (!starHit || m[best * BODY_STRIDE + B_DEPTH] > 0)) {
         runOnJS(handlePlanetHit)(best);
@@ -321,128 +402,161 @@ function MicroSystemCanvasSkia({
       }
     });
 
-  const gesture = Gesture.Race(pan, tap);
+  const gesture = Gesture.Race(pinch, pan, tap);
+
+  // Yıldız tozu dünya koordinatında üretilir; kamerayla birlikte taşınır ve ölçeklenir.
+  const particleTransform = useDerivedValue(() => [
+    { translateX: cx + panX.value },
+    { translateY: cy + panY.value },
+    { scale: zoom.value },
+    { translateX: -cx },
+    { translateY: -cy },
+  ]);
 
   const hintTop = (viewportTop ?? canvasHeight * 0.2) + 4;
-  const emptyCaptionTop = cy + layout.inner * DEFAULT_TILT + 34;
+  const emptyCaptionTop = cy + layout.inner * DEFAULT_TILT * fitZoom + 34;
+  const resetButtonTop = (viewportTop ?? canvasHeight * 0.2) + 6;
 
   return (
-    <GestureDetector gesture={gesture}>
-      <View style={[styles.container, { width: canvasWidth, height: canvasHeight }]}>
-        <Canvas style={{ width: canvasWidth, height: canvasHeight }}>
-          <SpaceBackdrop
-            width={canvasWidth}
-            height={canvasHeight}
-            layout={layout}
-            starColor={starColor}
-            starfield={starfield}
-            clock={clock}
-            spin={spin}
-          />
-          <OrbitPlane layout={layout} zones={zones} tilt={tilt} intro={intro} />
+    <View style={{ width: canvasWidth, height: canvasHeight }}>
+      <GestureDetector gesture={gesture}>
+        <View style={[styles.container, { width: canvasWidth, height: canvasHeight }]}>
+          <Canvas style={{ width: canvasWidth, height: canvasHeight }}>
+            <SpaceBackdrop
+              width={canvasWidth}
+              height={canvasHeight}
+              layout={layout}
+              starColor={starColor}
+              starfield={starfield}
+              clock={clock}
+              spin={spin}
+            />
+            <OrbitPlane layout={layout} zones={zones} tilt={tilt} intro={intro} camera={camera} />
 
-          {/* Kuyruk izleri */}
-          {exoplanets.map((planet, index) => {
-            const path = trailPaths.get(specs[index]?.orbitRadius ?? 0);
-            if (!path) return null;
-            return (
+            {/* Kuyruk izleri */}
+            {exoplanets.map((planet, index) => {
+              const path = trailPaths.get(specs[index]?.orbitRadius ?? 0);
+              if (!path) return null;
+              return (
+                <OrbitTrail
+                  key={`trail-${planet.id}`}
+                  index={index}
+                  motion={motion}
+                  path={path}
+                  color={planetColors(planet).primary}
+                  alpha={planet.is_locked ? 0.22 : 0.55}
+                  sweepDeg={PLANET_TRAIL_DEG}
+                  strokeWidth={2.2}
+                  layout={layout}
+                  tilt={tilt}
+                  intro={intro}
+                  camera={camera}
+                />
+              );
+            })}
+            {SOUL_COLORS.map((color, index) => (
               <OrbitTrail
-                key={`trail-${planet.id}`}
+                key={`soul-trail-${index}`}
                 index={index}
-                motion={motion}
-                path={path}
-                color={planetColors(planet).primary}
-                alpha={planet.is_locked ? 0.22 : 0.55}
-                sweepDeg={PLANET_TRAIL_DEG}
-                strokeWidth={2.2}
+                motion={souls}
+                path={soulTrailPath}
+                color={color}
+                alpha={resonance ? 0.85 : 0.6}
+                sweepDeg={SOUL_TRAIL_DEG}
+                strokeWidth={1.6}
                 layout={layout}
                 tilt={tilt}
                 intro={intro}
+                camera={camera}
               />
-            );
-          })}
-          {SOUL_COLORS.map((color, index) => (
-            <OrbitTrail
-              key={`soul-trail-${index}`}
-              index={index}
-              motion={souls}
-              path={soulTrailPath}
-              color={color}
-              alpha={resonance ? 0.85 : 0.6}
-              sweepDeg={SOUL_TRAIL_DEG}
-              strokeWidth={1.6}
+            ))}
+
+            {/* Yıldızın arkasındaki gövdeler */}
+            {exoplanets.map((planet, index) => (
+              <PlanetBody
+                key={`back-${planet.id}`}
+                index={index}
+                planet={planet}
+                radius={radii[index] ?? 10}
+                motion={motion}
+                clock={clock}
+                layer="back"
+                highlighted={index === highlightIndex}
+              />
+            ))}
+            {SOUL_COLORS.map((color, index) => (
+              <SoulBody key={`soul-back-${index}`} index={index} souls={souls} color={color} layer="back" resonance={resonance} />
+            ))}
+
+            <StarCore
               layout={layout}
-              tilt={tilt}
+              color={starColor}
+              luminosity={luminosity}
+              resonance={resonance}
+              clock={clock}
               intro={intro}
+              wave={wave}
+              camera={camera}
             />
-          ))}
+            <ShockWave layout={layout} tilt={tilt} wave={wave} camera={camera} />
 
-          {/* Yıldızın arkasındaki gövdeler */}
-          {exoplanets.map((planet, index) => (
-            <PlanetBody
-              key={`back-${planet.id}`}
-              index={index}
-              planet={planet}
-              radius={radii[index] ?? 10}
-              motion={motion}
-              clock={clock}
-              layer="back"
-              highlighted={index === highlightIndex}
-            />
-          ))}
-          {SOUL_COLORS.map((color, index) => (
-            <SoulBody key={`soul-back-${index}`} index={index} souls={souls} color={color} layer="back" resonance={resonance} />
-          ))}
+            {/* Yıldız tozu ve kıvılcım parçacıkları */}
+            <Group transform={particleTransform}>
+              <Points points={particles.basePoints} mode="points" strokeWidth={2.6} strokeCap="round" color={rgba(MICRO_PALETTE.goldSoft, 0.85)} />
+              <Points points={particles.res1Points} mode="points" strokeWidth={2.6} strokeCap="round" color={MICRO_PALETTE.gold} />
+              <Points points={particles.res2Points} mode="points" strokeWidth={2.6} strokeCap="round" color={MICRO_PALETTE.violet} />
+            </Group>
 
-          <StarCore
-            layout={layout}
-            color={starColor}
-            luminosity={luminosity}
-            resonance={resonance}
-            clock={clock}
+            {/* Yıldızın önündeki gövdeler */}
+            {SOUL_COLORS.map((color, index) => (
+              <SoulBody key={`soul-front-${index}`} index={index} souls={souls} color={color} layer="front" resonance={resonance} />
+            ))}
+            {exoplanets.map((planet, index) => (
+              <PlanetBody
+                key={`front-${planet.id}`}
+                index={index}
+                planet={planet}
+                radius={radii[index] ?? 10}
+                motion={motion}
+                clock={clock}
+                layer="front"
+                highlighted={index === highlightIndex}
+              />
+            ))}
+          </Canvas>
+
+          <SceneOverlays
+            planets={exoplanets}
+            radii={radii}
+            motion={motion}
+            souls={souls}
             intro={intro}
-            wave={wave}
+            soulColors={SOUL_COLORS}
+            myAvatarUrl={myAvatarUrl}
+            partnerAvatarUrl={partnerAvatarUrl}
+            hintTop={hintTop}
+            emptyCaptionTop={emptyCaptionTop}
+            showHint
           />
-          <ShockWave layout={layout} tilt={tilt} wave={wave} />
+        </View>
+      </GestureDetector>
 
-          {/* Yıldız tozu ve kıvılcım parçacıkları */}
-          <Points points={particles.basePoints} mode="points" strokeWidth={2.6} strokeCap="round" color={rgba(MICRO_PALETTE.goldSoft, 0.85)} />
-          <Points points={particles.res1Points} mode="points" strokeWidth={2.6} strokeCap="round" color={MICRO_PALETTE.gold} />
-          <Points points={particles.res2Points} mode="points" strokeWidth={2.6} strokeCap="round" color={MICRO_PALETTE.violet} />
-
-          {/* Yıldızın önündeki gövdeler */}
-          {SOUL_COLORS.map((color, index) => (
-            <SoulBody key={`soul-front-${index}`} index={index} souls={souls} color={color} layer="front" resonance={resonance} />
-          ))}
-          {exoplanets.map((planet, index) => (
-            <PlanetBody
-              key={`front-${planet.id}`}
-              index={index}
-              planet={planet}
-              radius={radii[index] ?? 10}
-              motion={motion}
-              clock={clock}
-              layer="front"
-              highlighted={index === highlightIndex}
-            />
-          ))}
-        </Canvas>
-
-        <SceneOverlays
-          planets={exoplanets}
-          radii={radii}
-          motion={motion}
-          souls={souls}
-          intro={intro}
-          soulColors={SOUL_COLORS}
-          myAvatarUrl={myAvatarUrl}
-          partnerAvatarUrl={partnerAvatarUrl}
-          hintTop={hintTop}
-          emptyCaptionTop={emptyCaptionTop}
-          showHint
-        />
-      </View>
-    </GestureDetector>
+      {/* Yakınlaştırılmış/kaydırılmışken: tüm sistemi yeniden sığdır */}
+      {isCameraMoved && (
+        <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(200)} style={[styles.resetWrap, { top: resetButtonTop }]}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={resetCamera}
+            style={styles.resetButton}
+            accessibilityRole="button"
+            accessibilityLabel="Tüm sistemi göster"
+          >
+            <Minimize2 size={14} color="#FDE68A" />
+            <Text style={styles.resetText}>Tümünü gör</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+    </View>
   );
 }
 
@@ -463,8 +577,9 @@ function MicroSystemCanvasFallback({
   const screen = Dimensions.get('window');
   const canvasWidth = width ?? screen.width;
   const canvasHeight = height ?? screen.height;
-  const layout = computeOrbitLayout(canvasWidth, canvasHeight, viewportTop, viewportBottom);
+  const layout = computeOrbitLayout(canvasWidth, canvasHeight, viewportTop, viewportBottom, exoplanets.length);
   const tilt = Math.min(DEFAULT_TILT, layout.maxTilt);
+  const k = layout.fitZoom;
   const starColor = starDetails.base_color || '#9DB4FF';
   const specs = buildPlanetSpecs(exoplanets, layout);
 
@@ -472,8 +587,8 @@ function MicroSystemCanvasFallback({
     <View style={[styles.container, { width: canvasWidth, height: canvasHeight }]}>
       <RNLinearGradient colors={['#120B2C', '#07051A', '#030209']} style={StyleSheet.absoluteFill} />
 
-      {Array.from({ length: ORBIT_CONFIG.ZONE_COUNT }, (_, i) => {
-        const radius = zoneRadius(layout, i + 1);
+      {Array.from({ length: layout.lanes }, (_, lane) => {
+        const radius = laneRadius(layout, lane) * k;
         return (
           <View
             key={radius}
@@ -516,9 +631,9 @@ function MicroSystemCanvasFallback({
       {exoplanets.map((planet, index) => {
         const spec = specs[index];
         if (!spec) return null;
-        const size = spec.radius * 2;
-        const x = layout.cx + Math.cos(spec.phase) * spec.orbitRadius;
-        const y = layout.cy + Math.sin(spec.phase) * spec.orbitRadius * tilt;
+        const size = spec.radius * 2 * k;
+        const x = layout.cx + Math.cos(spec.phase) * spec.orbitRadius * k;
+        const y = layout.cy + Math.sin(spec.phase) * spec.orbitRadius * tilt * k;
         return (
           <TouchableOpacity
             key={planet.id}
@@ -551,6 +666,26 @@ const styles = StyleSheet.create({
   container: {
     overflow: 'hidden',
     backgroundColor: '#030209',
+  },
+  resetWrap: {
+    position: 'absolute',
+    right: 16,
+  },
+  resetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 32,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: 'rgba(10, 8, 26, 0.82)',
+    borderWidth: 1,
+    borderColor: 'rgba(253, 230, 138, 0.4)',
+  },
+  resetText: {
+    color: '#FDE68A',
+    fontSize: 12,
+    fontFamily: 'Inter_600SemiBold',
   },
   fallbackOrbit: {
     position: 'absolute',

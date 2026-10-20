@@ -109,11 +109,11 @@ export const ORBIT_ZONE_OPTIONS: readonly {
   readonly label: string;
   readonly periodDesc: string;
 }[] = [
-  { zone: 1, label: 'Kuşak 1', periodDesc: 'En İç / Hızlı (14s)' },
-  { zone: 2, label: 'Kuşak 2', periodDesc: 'İç Yörünge (25s)' },
-  { zone: 3, label: 'Kuşak 3', periodDesc: 'Denge Kuşağı (36s)' },
-  { zone: 4, label: 'Kuşak 4', periodDesc: 'Dış Kuşak (48s)' },
-  { zone: 5, label: 'Kuşak 5', periodDesc: 'En Dış / Sakin (60s)' },
+  { zone: 1, label: 'Kuşak 1', periodDesc: 'Yıldıza en yakın yörünge' },
+  { zone: 2, label: 'Kuşak 2', periodDesc: 'İç yörünge' },
+  { zone: 3, label: 'Kuşak 3', periodDesc: 'Orta yörünge' },
+  { zone: 4, label: 'Kuşak 4', periodDesc: 'Dış yörünge' },
+  { zone: 5, label: 'Kuşak 5', periodDesc: 'Yıldıza en uzak yörünge' },
 ];
 
 // ============================================================================
@@ -938,7 +938,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                     })}
                   </View>
                   <Text style={styles.zoneHelpText}>
-                    {ORBIT_ZONE_OPTIONS.find((z) => z.zone === orbitZone)?.periodDesc} · 1 en hızlı, 5 en sakin
+                    {ORBIT_ZONE_OPTIONS.find((z) => z.zone === orbitZone)?.periodDesc} · her anı kendi halkasında döner
                   </Text>
                 </View>
 
