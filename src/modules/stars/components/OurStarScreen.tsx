@@ -1658,8 +1658,8 @@ export const OurStarScreen: React.FC = () => {
           setFlyToTarget({
             centerRa: Number(item.ra),
             centerDec: Number(item.dec),
-            // Güneş Sistemi cisminde biraz daha uzaktan bak: bütün sistem ekrana sığsın.
-            zoom: solarObj ? 2.0 : 2.5,
+            // Güneş Sistemi cisminde daha uzaktan bak: ~38° çapındaki tüm sistem ekrana sığsın.
+            zoom: solarObj ? 1.3 : 2.5,
             nonce: Date.now(),
           });
         }}

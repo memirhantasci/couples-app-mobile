@@ -4,8 +4,9 @@ import type { ViewportStarItem } from '../../types/star.types';
  * Güneş Sistemi cisimleri (rendered locally, never fetched from the catalog).
  *
  * Gök haritasında `computeSolarSystemLayout` kullanılır: Güneş merkezde, gezegenler
- * Güneş etrafındaki GERÇEK güncel açılarında ama sıkıştırılmış uzaklıklarda — bütün
- * sistem tek ekrana sığar, Ay Dünya'nın yanındadır.
+ * Güneş etrafındaki GERÇEK güncel açılarında ama sıkıştırılmış uzaklıklarda — birbirlerine
+ * bitişmeyecek kadar aralıklı, yine de hafifçe uzaklaşınca tek ekrana sığacak kadar derli
+ * toplu. Ay Dünya'nın yanındadır.
  *
  * Açılar uygulama açılışındaki tarih için JPL "Keplerian Elements for Approximate
  * Positions of the Major Planets" (1800–2050 tablosu) ile hesaplanır; Ay düşük
@@ -163,21 +164,24 @@ export function computeSolarSystemPositions(date: Date = new Date()): Record<str
 const ORRERY_CENTER = { ra: 270, dec: -8 } as const;
 /**
  * Güneş'ten görsel uzaklıklar (derece). Gerçek oranlar (Merkür 0.4 AU … Plüton 39 AU)
- * sıkıştırılmıştır: bütün sistem ~14° çapında, gök kubbede tek ekrana sığar.
+ * sıkıştırılmıştır: bütün sistem ~38° çapında, gök kubbede tek ekranda (hafif uzaklaşılınca)
+ * görülebilir. Gezegen işaretleri ekran pikseli cinsinden SABİT boyuttadır (yakınlaşınca
+ * büyümez) — komşu kuşaklar arası fark bu yüzden en geniş iki işaretin (Jüpiter + Satürn,
+ * ~40px parıltı) bile üst üste binmeyeceği kadar geniş tutulur.
  */
 const ORRERY_RADIUS_DEG: Record<string, number> = {
-  mercury: 1.3,
-  venus: 2.0,
-  earth: 2.8,
-  mars: 3.6,
-  jupiter: 4.5,
-  saturn: 5.3,
-  uranus: 6.0,
-  neptune: 6.6,
-  pluto: 7.2,
+  mercury: 4.2,
+  venus: 6.0,
+  earth: 8.1,
+  mars: 10.2,
+  jupiter: 12.5,
+  saturn: 14.6,
+  uranus: 16.4,
+  neptune: 18.0,
+  pluto: 19.6,
 };
-/** Ay'ın Dünya'ya görsel uzaklığı (derece). */
-const MOON_OFFSET_DEG = 0.75;
+/** Ay'ın Dünya'ya görsel uzaklığı (derece): Dünya'nın geniş parıltısından (16px) açıkça ayrı durur. */
+const MOON_OFFSET_DEG = 1.7;
 /** Yörünge düzlemine hafif eğik bakış: dikey eksen bu oranda basılır. */
 const ORRERY_TILT = 0.8;
 
