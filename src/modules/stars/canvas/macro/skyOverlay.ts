@@ -10,6 +10,7 @@ import { CONSTELLATION_LINES } from '../../config/constellationLines.data';
 import { SKY_SECTORS_LIST } from '../../config/skySectors.data';
 import { Skia } from '../skiaBridge';
 import { colorOf } from './starField';
+import { ORRERY_ORBITS } from './solarSystem';
 
 /**
  * Everything drawn around the stars, prepared once on the JS thread.
@@ -61,6 +62,9 @@ export interface SkyOverlay {
   /** Flat [fromRa, fromDec, toRa, toDec, ...] segments. */
   readonly constellations: readonly number[];
   readonly constellationPaint: SkPaint;
+  /** Güneş sistemi yörünge halkaları (derece cinsinden yarı eksenler) ve silik çizgi boyası. */
+  readonly orbits: typeof ORRERY_ORBITS;
+  readonly orbitPaint: SkPaint;
   readonly sectorLabels: readonly PositionedPicture[];
   readonly hero: HeroItem | null;
   readonly connections: readonly ConnectionItem[];
@@ -274,6 +278,7 @@ interface StaticOverlayAssets {
   readonly nebulae: readonly NebulaItem[];
   readonly constellations: readonly number[];
   readonly constellationPaint: SkPaint;
+  readonly orbitPaint: SkPaint;
   readonly connectionNode: SkPicture;
   readonly heroMarker: SkPicture;
   readonly sunMarker: SkPicture;
@@ -433,6 +438,8 @@ export function createStaticOverlayAssets(width: number, height: number): Static
     nebulae,
     constellations,
     constellationPaint: strokePaint('rgba(255, 255, 255, 0.18)', 1),
+    // Göze batmayan, soğuk tonlu ince halka: gezegenleri bir arada tutar ama dikkati çekmez
+    orbitPaint: strokePaint('rgba(165, 180, 252, 0.13)', 1),
     connectionNode,
     heroMarker,
     sunMarker,
@@ -574,6 +581,8 @@ export function buildSkyOverlay({
     nebulae: assets.nebulae,
     constellations: assets.constellations,
     constellationPaint: assets.constellationPaint,
+    orbits: ORRERY_ORBITS,
+    orbitPaint: assets.orbitPaint,
     sectorLabels,
     hero,
     connections: connectionItems,

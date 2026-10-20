@@ -186,6 +186,19 @@ const MOON_OFFSET_DEG = 1.7;
 const ORRERY_TILT = 0.8;
 
 /**
+ * Gezegen yörüngeleri: Güneş'in etrafında, gezegenlerin durduğu kuşaklarla AYNI elips (aynı yarıçap,
+ * aynı eğim ve RA boylam düzeltmesi). Gök haritasında silik birer halka olarak çizilir.
+ */
+export const ORRERY_ORBITS = {
+  ra: ORRERY_CENTER.ra,
+  dec: ORRERY_CENTER.dec,
+  rings: Object.values(ORRERY_RADIUS_DEG).map((radius) => ({
+    rx: radius / Math.cos((ORRERY_CENTER.dec * Math.PI) / 180),
+    ry: radius * ORRERY_TILT,
+  })),
+} as const;
+
+/**
  * Gök haritası için güneş sistemi yerleşimi: Güneş merkezde, her gezegen Güneş etrafındaki
  * GERÇEK güncel açısında (güneş merkezli ekliptik boylamı), ancak sıkıştırılmış uzaklıkta.
  * Ay, Dünya'nın hemen yanında gerçek yönündedir. Böylece cisimler ne düz bir sıra halinde

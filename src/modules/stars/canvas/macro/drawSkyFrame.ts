@@ -370,6 +370,20 @@ function drawSolarSystem(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay)
   }
 }
 
+/** Her gezegenin yörüngesi: Güneş merkezli silik elips. Tamamen ekran dışındakiler atlanır. */
+function drawOrbits(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay) {
+  'worklet';
+  const { orbits, orbitPaint } = overlay;
+  const cx = screenX(view, orbits.ra);
+  const cy = screenY(view, orbits.dec);
+  for (const ring of orbits.rings) {
+    const rx = ring.rx * view.scale;
+    const ry = ring.ry * view.scale;
+    if (cx + rx < 0 || cx - rx > view.width || cy + ry < 0 || cy - ry > view.height) continue;
+    canvas.drawOval(Skia.XYWHRect(cx - rx, cy - ry, rx * 2, ry * 2), orbitPaint);
+  }
+}
+
 function drawHero(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay) {
   'worklet';
   const hero = overlay.hero;
@@ -446,6 +460,7 @@ export function drawSkyFrame(
     drawSectorLabels(canvas, view, overlay);
     drawConstellations(canvas, view, overlay);
     drawConnectionLines(canvas, view, overlay, animSeconds);
+    drawOrbits(canvas, view, overlay);
   }
   drawStars(canvas, view, field, clock, animSeconds, paints);
   if (overlay) {
