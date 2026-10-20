@@ -74,6 +74,26 @@ export default function MenuScreen() {
       isNavigatingRef.current = false;
     }, 600);
 
+    // Menü, sekmelerin (tabs) ÜSTÜNDE duran bir modal. Bir sekmeye giderken önce kapatıp
+    // sonra bir kare sonra push edersek, modal kapanma animasyonu boyunca (birkaç yüz ms)
+    // önceki sekme görünür kalır — kullanıcı istediği sekmeye değil, eski sekmeye bakar.
+    // Çözüm: hedef bir sekmeyse ÖNCE o sekmeye geç (modalın arkasında, görünmeden), SONRA
+    // modalı kapat; kapanış açılınca zaten doğru sekme orada durur, eski sekme hiç görünmez.
+    const isTabRoute = path.startsWith("/(tabs)/");
+
+    if (isTabRoute) {
+      router.push(path as any);
+      if (router.canDismiss?.()) {
+        router.dismiss();
+      } else if (router.canGoBack()) {
+        router.back();
+      }
+      return;
+    }
+
+    // Sekme dışı rotalar (ör. /our-star, /paywall): bunlar kök yığına yeni bir ekran olarak
+    // eklenir, modalın üstüne değil. dismiss() hedefinin belirsizleşmemesi için eski sıra
+    // (önce kapat, sonra bir kare sonra it) korunur.
     if (router.canDismiss?.()) {
       router.dismiss();
       requestAnimationFrame(() => {
