@@ -38,6 +38,7 @@ export const DEMO_SESSION = {
 
 export const DEMO_HOME_DATA = {
   currentMood: "love",
+  partnerMood: "🥰",
   currentNote: "Bugün biraz yoğun geçti ama akşam kahvemi alıp balkonda rüzgarı dinlemek zihnimi çok dinlendirdi. Bazen küçük anların kıymetini bilmek insana huzur veriyor. ☕📖✨",
   meetings: [
     {

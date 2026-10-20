@@ -4,6 +4,8 @@ import { getCountdown, dayjs } from "@/lib/date";
 import { MapPin, X, Navigation } from "lucide-react-native";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { AppTheme } from "@/lib/theme";
+import { UserAvatar } from "@/components/avatar/UserAvatar";
+import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 
 export interface Meeting {
   id: number;
@@ -12,6 +14,8 @@ export interface Meeting {
   location_name?: string;
   latitude?: number;
   longitude?: number;
+  /** Buluşmayı planlayan kişi */
+  user_id?: string | null;
 }
 
 interface CountdownProps {
@@ -25,6 +29,9 @@ export const MeetingCountdown = memo(function MeetingCountdown({ meeting, theme 
 
   const [countdown, setCountdown] = useState(() => getCountdown(targetDate));
   const [showModal, setShowModal] = useState(false);
+  // Planlayanın profil fotoğrafı varsa konum ikonunun yerine imza olarak görünür
+  const { getAvatarUrl } = useCoupleAvatars();
+  const plannerAvatarUrl = getAvatarUrl(meeting.user_id);
 
   useEffect(() => {
     if (countdown.isPast) return;
@@ -86,9 +93,13 @@ export const MeetingCountdown = memo(function MeetingCountdown({ meeting, theme 
     >
       {/* Başlık Satırı */}
       <View style={styles.titleRow}>
-        <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
-          <MapPin size={13} color={theme.accent} />
-        </View>
+        {plannerAvatarUrl ? (
+          <UserAvatar uri={plannerAvatarUrl} size={28} borderWidth={1} />
+        ) : (
+          <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+            <MapPin size={13} color={theme.accent} />
+          </View>
+        )}
         <View style={{ flex: 1 }}>
           <Text style={[styles.sectionLabel, { color: theme.text }]}>Sıradaki Buluşma</Text>
           {meeting.location_name && (

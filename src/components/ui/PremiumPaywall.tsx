@@ -63,6 +63,11 @@ export function PremiumPaywall({
       description: "45 günlük anı döngüsünü devam ettirmek için Premium gerekli.",
       cta: "Otomatik Anıları Aç",
     },
+    avatar: {
+      name: "Özel Profil Fotoğrafı",
+      description: "👑 Sevgilinizle birbirinizin en tatlı fotoğraflarını profilinizde görmek için Premium'a geçin.",
+      cta: "Profil Fotoğrafını Aç",
+    },
   };
   const resolvedFeature = featureCopy[featureSource];
   const resolvedFeatureName = featureName ?? resolvedFeature.name;
@@ -73,6 +78,7 @@ export function PremiumPaywall({
     "📸 Fotoğraf Galerisi & Yükleme",
     "🩸 Regl Takvimi (Erkek Görünümü)",
     "📅 Fotoğraflı Özel Günler",
+    "👑 Özel Profil Fotoğrafı",
     "🚫 Reklamsız Deneyim",
   ];
 

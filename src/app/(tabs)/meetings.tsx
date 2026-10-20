@@ -15,6 +15,8 @@ import { appAlert } from "@/lib/dialog";
 import { DialogHost } from "@/components/ui/DialogHost";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { UserAvatar } from "@/components/avatar/UserAvatar";
+import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useRouter } from "expo-router";
@@ -57,6 +59,7 @@ export default function MeetingsScreen() {
 
   const coupleId = profile?.coupleId;
   const userId = session?.user?.id ? session.user.id : null;
+  const { getAvatarUrl } = useCoupleAvatars();
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("meetings");
 
   const [showFormModal, setShowFormModal] = useState(false);
@@ -453,6 +456,19 @@ export default function MeetingsScreen() {
                         <Clock size={13} color={theme.accent} />
                         <Text style={[styles.timePillText, { color: theme.text }]}>{formattedTime}</Text>
                       </View>
+                    </View>
+
+                    {/* Planlayan imzası */}
+                    <View style={styles.plannerRow}>
+                      <UserAvatar
+                        uri={getAvatarUrl(m.user_id)}
+                        name={isMyMeeting ? profile?.displayName : "Sevgilin"}
+                        size={22}
+                        borderWidth={1}
+                      />
+                      <Text style={[styles.plannerText, { color: theme.textSecondary }]} numberOfLines={1}>
+                        {isMyMeeting ? "Bu buluşmayı sen planladın ✨" : "Sevgilin bu buluşmayı planladı ✨"}
+                      </Text>
                     </View>
 
                     {/* Konum Satırı */}
@@ -896,6 +912,17 @@ const createStyles = (theme: AppTheme) => {
       fontSize: 12.5,
       fontFamily: "Inter_500Medium",
       color: isLight ? theme.text : "rgba(255,255,255,0.85)",
+    },
+    plannerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 10,
+    },
+    plannerText: {
+      flex: 1,
+      fontSize: 12.5,
+      fontFamily: "Inter_500Medium",
     },
     locationContainer: {
       flexDirection: "row",

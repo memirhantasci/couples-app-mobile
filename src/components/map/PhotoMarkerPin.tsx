@@ -1,21 +1,32 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
 import { Heart } from "lucide-react-native";
 import { Marker } from "react-native-maps";
 
 import { markerStyles } from "./mapMarkerStyles";
+import { PinAvatar } from "./MapPinMarkers";
 import type { PhotoPin, SelectedItem } from "./mapTypes";
 
 interface PhotoMarkerPinProps {
   photo: PhotoPin;
+  /** Fotoğrafı yükleyenin profil fotoğrafı (Premium) — varsa kalp rozetinin yerini alır */
+  avatarUrl?: string | null;
   onSelect: (item: SelectedItem) => void;
 }
 
 // ─── 1. FOTOĞRAF PİNİ (Polaroid Çerçeveli) ───────────────────────────────────
-function PhotoMarkerPinBase({ photo, onSelect }: PhotoMarkerPinProps) {
-  // Görsel yüklenene kadar marker'ın yeniden çizilmesine izin ver, sonra dondur.
+function PhotoMarkerPinBase({ photo, avatarUrl, onSelect }: PhotoMarkerPinProps) {
+  // Görseller (fotoğraf + varsa avatar) yüklenene kadar marker'ın yeniden çizilmesine izin ver, sonra dondur.
   const [tracksViewChanges, setTracksViewChanges] = useState(true);
+  const loadedCountRef = useRef(0);
+  const expectedLoads = avatarUrl ? 2 : 1;
+  const handleLoadEnd = () => {
+    loadedCountRef.current += 1;
+    if (loadedCountRef.current >= expectedLoads) {
+      setTimeout(() => setTracksViewChanges(false), 300);
+    }
+  };
 
   return (
     <Marker
@@ -30,14 +41,18 @@ function PhotoMarkerPinBase({ photo, onSelect }: PhotoMarkerPinProps) {
             style={styles.photoMarkerImg}
             contentFit="cover"
             cachePolicy="memory-disk"
-            onLoadEnd={() => {
-              setTimeout(() => setTracksViewChanges(false), 300);
-            }}
+            onLoadEnd={handleLoadEnd}
             transition={0}
           />
-          <View style={styles.photoHeartBadge}>
-            <Heart size={10} color="#fff" fill="#fff" />
-          </View>
+          {avatarUrl ? (
+            <View style={styles.photoAvatarBadge}>
+              <PinAvatar uri={avatarUrl} size={19} onLoadEnd={handleLoadEnd} />
+            </View>
+          ) : (
+            <View style={styles.photoHeartBadge}>
+              <Heart size={10} color="#fff" fill="#fff" />
+            </View>
+          )}
         </View>
         <View style={[markerStyles.markerStem, { borderTopColor: "#FFFFFF" }]} />
       </View>
@@ -70,6 +85,15 @@ const styles = StyleSheet.create({
     height: "100%",
     borderRadius: 10,
     backgroundColor: "#F3F4F6",
+  },
+  photoAvatarBadge: {
+    position: "absolute",
+    top: -7,
+    right: -7,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    backgroundColor: "#FFFFFF",
   },
   photoHeartBadge: {
     position: "absolute",

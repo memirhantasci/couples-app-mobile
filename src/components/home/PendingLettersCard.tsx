@@ -16,10 +16,13 @@ import { ChevronRight, Mail } from "lucide-react-native";
 import { dayjs } from "@/lib/date";
 import { AppTheme } from "@/lib/theme";
 import { decrypt } from "@/utils/crypto";
+import { UserAvatar } from "@/components/avatar/UserAvatar";
+import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 
 export interface PendingLetter {
   id: number;
   unlock_date: string;
+  sender_id?: string | null;
   sender?: { display_name?: string | null; username?: string | null };
 }
 
@@ -137,6 +140,7 @@ export const PendingLettersCard = memo(function PendingLettersCard({
   theme: AppTheme;
 }) {
   const router = useRouter();
+  const { getAvatarUrl } = useCoupleAvatars();
   const pendingLetters = getUpcomingLetters(letters);
   if (pendingLetters.length === 0) return null;
 
@@ -168,21 +172,40 @@ export const PendingLettersCard = memo(function PendingLettersCard({
           const unlockDate = dayjs(letter.unlock_date);
           const daysLeft = unlockDate.diff(today, "day");
           const name = senderLabel(letter);
+          const senderAvatarUrl = getAvatarUrl(letter.sender_id);
 
           return (
             <View
               key={letter.id}
               style={[styles.letterItem, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder }]}
             >
-              {/* Mühür */}
-              <LinearGradient
-                colors={[theme.accent, theme.accentLight]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.seal}
-              >
-                <Text style={styles.sealEmoji}>💌</Text>
-              </LinearGradient>
+              {/* Mühür — gönderenin fotoğrafı varsa pul olarak fotoğraf, köşesinde mum mühür */}
+              {senderAvatarUrl ? (
+                <UserAvatar
+                  uri={senderAvatarUrl}
+                  name={name}
+                  size={44}
+                  badge={
+                    <LinearGradient
+                      colors={[theme.accent, theme.accentLight]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={[styles.miniSeal, { borderColor: theme.unitBg }]}
+                    >
+                      <Text style={styles.miniSealEmoji}>💌</Text>
+                    </LinearGradient>
+                  }
+                />
+              ) : (
+                <LinearGradient
+                  colors={[theme.accent, theme.accentLight]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.seal}
+                >
+                  <Text style={styles.sealEmoji}>💌</Text>
+                </LinearGradient>
+              )}
 
               {/* İsim + önizleme + tarih */}
               <View style={styles.textBlock}>
@@ -332,6 +355,17 @@ const styles = StyleSheet.create({
   },
   sealEmoji: {
     fontSize: 20,
+  },
+  miniSeal: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  miniSealEmoji: {
+    fontSize: 10,
   },
   textBlock: {
     flex: 1,

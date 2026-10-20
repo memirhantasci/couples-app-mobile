@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
+import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 import { usePageTour } from "@/hooks/usePageTour";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
@@ -430,11 +431,8 @@ export default function CalendarScreen() {
     return pName || "Sevgilin";
   }, [data?.users, userId, profile?.displayName]);
 
-  const getAuthorAvatar = useCallback((itemUserId: string | undefined | null) => {
-    if (!itemUserId) return null;
-    const userObj = (data?.users as any[])?.find(u => u.id === itemUserId);
-    return userObj?.avatar_url || null;
-  }, [data?.users]);
+  // Premium'a özel profil fotoğrafları (premium bitince null → harf avatarı)
+  const { getAvatarUrl: getAuthorAvatar } = useCoupleAvatars();
 
   return (
     <ScreenBackground>

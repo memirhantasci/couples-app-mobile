@@ -34,6 +34,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Sparkles, Compass, Flame, Award } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
+import { useCoupleAvatars } from '@/hooks/useCoupleAvatars';
+import { CoupleAvatarRing } from '@/components/home/CoupleAvatarRing';
 import type { CoupleStarDetails } from '../types/star.types';
 
 // ============================================================================
@@ -89,6 +92,10 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
   style,
 }) => {
   const { theme, isLight } = useTheme();
+  const { profile } = useAuth();
+  // Ortak yıldızın etrafında iki ruh: çiftin profil fotoğrafları (Premium, en az biri varsa)
+  const { myAvatarUrl, partnerAvatarUrl } = useCoupleAvatars();
+  const showCoupleAvatars = !!(myAvatarUrl || partnerAvatarUrl);
 
   // Rezonans nabız animasyonu değeri (0 -> 1 -> 0)
   const pulseAnim = useSharedValue(0);
@@ -194,6 +201,18 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
                 </View>
               )}
             </View>
+
+            {showCoupleAvatars && (
+              <View style={styles.coupleAvatars}>
+                <CoupleAvatarRing
+                  myName={profile?.displayName}
+                  partnerName="Sevgilin"
+                  myAvatarUrl={myAvatarUrl}
+                  partnerAvatarUrl={partnerAvatarUrl}
+                  size={24}
+                />
+              </View>
+            )}
 
             {/* Sertifika Butonu Kısayolu */}
             {onPressCertificate && (
@@ -334,6 +353,10 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: -0.2,
+  },
+  coupleAvatars: {
+    marginRight: 8,
+    flexShrink: 0,
   },
   certIconBtn: {
     width: 26,
