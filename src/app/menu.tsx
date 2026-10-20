@@ -81,17 +81,14 @@ export default function MenuScreen() {
     // Menü, sekmelerin (tabs) ÜSTÜNDE duran bir modal. Bir sekmeye giderken önce kapatıp
     // sonra bir kare sonra push edersek, modal kapanma animasyonu boyunca (birkaç yüz ms)
     // önceki sekme görünür kalır — kullanıcı istediği sekmeye değil, eski sekmeye bakar.
-    // Çözüm: hedef bir sekmeyse ÖNCE o sekmeye geç (modalın arkasında, görünmeden), SONRA
-    // modalı kapat; kapanış açılınca zaten doğru sekme orada durur, eski sekme hiç görünmez.
+    // `push` + `dismiss` ise YANLIŞ: menü kök yığının odaktaki ekranı olduğu için push, mevcut
+    // sekmelere geçmek yerine kök yığına İKİNCİ bir (tabs) ekranı ekler, dismiss de onu kapatır
+    // ve menü açık kalır. `dismissTo` menüyü kaldırmayı ve hedef sekmeye geçmeyi tek adımda yapar:
+    // ne ikinci bir ekran oluşur ne de eski sekme görünür.
     const isTabRoute = path.startsWith("/(tabs)/");
 
     if (isTabRoute) {
-      router.push(path as any);
-      if (router.canDismiss?.()) {
-        router.dismiss();
-      } else if (router.canGoBack()) {
-        router.back();
-      }
+      router.dismissTo(path as any);
       return;
     }
 
