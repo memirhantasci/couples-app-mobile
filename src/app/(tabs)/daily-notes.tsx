@@ -46,8 +46,15 @@ interface DailyNote {
   content: string;
 }
 
-const cleanContentText = (raw: string) => {
-  if (!raw) return "";
+// Şifreli içeriği çözüp ekranda gösterilecek düz metne çevirir (çözme sonuçları önbellekli)
+const cleanContentText = (stored: string) => {
+  if (!stored) return "";
+  let raw = stored;
+  try {
+    raw = decrypt(stored) || stored;
+  } catch {
+    raw = stored;
+  }
   return raw
     .replace(/^\[Mod:\s*.*?\]\n?/, "")
     .replace(/^#\s*.*?\n\n?/, "")
@@ -91,16 +98,9 @@ export default function DailyNotesScreen() {
 
       if (error) throw error;
 
-      return (data ?? []).map((n: any) => ({
-        ...n,
-        content: (() => {
-          try {
-            return decrypt(n.content) || n.content;
-          } catch {
-            return n.content;
-          }
-        })(),
-      }));
+      // İçerik burada çözülmez: 90 notu birden çözmek (saf JS crypto) ekranı kilitliyordu.
+      // Çözme yalnızca ekranda görünen satırlar için render'da (önbellekli) yapılır.
+      return (data ?? []) as DailyNote[];
     },
     staleTime: 1000 * 60 * 5, // 5 dk — invalidateQueries zaten yeni not eklenince günceller
   });

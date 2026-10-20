@@ -223,7 +223,8 @@ export default function MemoriesScreen() {
     return (
       <Animated.View 
         key={memory.id}
-        entering={FadeInDown.delay(index * 60).duration(350)}
+        // Gecikme ilk birkaç kartla sınırlı: eskiden 15. kart 900 ms boş bekleyip sonra beliriyordu
+        entering={FadeInDown.delay(Math.min(index, 5) * 45).duration(280)}
         style={styles.memoryRow}
       >
         <View style={[styles.dateCircle, { borderColor: theme.accent, backgroundColor: theme.cardBg }]}>
@@ -349,6 +350,9 @@ export default function MemoriesScreen() {
             data={memories}
             keyExtractor={item => item.id.toString()}
             renderItem={renderMemory}
+            initialNumToRender={6}
+            maxToRenderPerBatch={8}
+            windowSize={7}
             contentContainerStyle={{ paddingBottom: 150 }}
             showsVerticalScrollIndicator={false}
             onEndReached={() => {

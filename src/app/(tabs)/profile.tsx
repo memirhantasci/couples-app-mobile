@@ -20,6 +20,7 @@ import { encrypt, decrypt } from "@/utils/crypto";
 import { sanitizeStrict } from "@/utils/sanitize";
 import { toast } from "@/lib/toast";
 import { usePageTour } from "@/hooks/usePageTour";
+import { useDeferredReady } from "@/hooks/useDeferredReady";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { useDemoAction } from "@/hooks/useDemoAction";
@@ -78,6 +79,8 @@ export default function ProfileScreen() {
   // Premium Modal
   const [showPremiumSuccess, setShowPremiumSuccess] = useState(false);
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("profile");
+  // Ekranın ilk karesinde yalnızca üst bölümler çizilir; kaydırınca görünen alt kartlar hemen ardından eklenir
+  const showLowerSections = useDeferredReady();
 
   // Yasal Sözleşmeler Modal State
   const [legalModalVisible, setLegalModalVisible] = useState(false);
@@ -405,91 +408,96 @@ export default function ProfileScreen() {
           {/* ─── ALT BAR MENÜSÜ ÖZELLEŞTİRME ─── */}
           <TabBarCustomizer theme={theme} isLight={isLight} />
 
-          {/* ─── KİŞİSEL BİLGİLER ─── */}
-          <PersonalInfoForm
-            theme={theme}
-            isLight={isLight}
-            displayName={displayName}
-            nameError={nameError}
-            gender={gender}
-            loading={profileLoading}
-            onChangeDisplayName={(val) => {
-              setDisplayName(val);
-              setNameError(false);
-            }}
-            onSelectGender={(g) => {
-              setGender(g);
-              setGlobalActiveTheme(g, themeMode);
-            }}
-            onSave={handleUpdateProfile}
-          />
+          {showLowerSections && (
+            <>
+              {/* ─── KİŞİSEL BİLGİLER ─── */}
+              <PersonalInfoForm
+                theme={theme}
+                isLight={isLight}
+                displayName={displayName}
+                nameError={nameError}
+                gender={gender}
+                loading={profileLoading}
+                onChangeDisplayName={(val) => {
+                  setDisplayName(val);
+                  setNameError(false);
+                }}
+                onSelectGender={(g) => {
+                  setGender(g);
+                  setGlobalActiveTheme(g, themeMode);
+                }}
+                onSave={handleUpdateProfile}
+              />
 
-          {/* ─── İLİŞKİ TARİHLERİ ─── */}
-          {coupleId && (
-            <RelationshipDatesCard
-              theme={theme}
-              isLight={isLight}
-              meetDate={meetDate}
-              relStartDate={relStartDate}
-              loading={datesLoading}
-              onChangeMeetDate={setMeetDate}
-              onChangeRelStartDate={setRelStartDate}
-              onSave={handleUpdateDates}
-            />
+              {/* ─── İLİŞKİ TARİHLERİ ─── */}
+              {coupleId && (
+                <RelationshipDatesCard
+                  theme={theme}
+                  isLight={isLight}
+                  meetDate={meetDate}
+                  relStartDate={relStartDate}
+                  loading={datesLoading}
+                  onChangeMeetDate={setMeetDate}
+                  onChangeRelStartDate={setRelStartDate}
+                  onSave={handleUpdateDates}
+                />
+              )}
+
+              {/* ─── PROMOSYON KODLARI ─── */}
+              <PromoCodeCard
+                theme={theme}
+                isLight={isLight}
+                executeOrIntercept={executeOrIntercept}
+                refreshProfile={refreshProfile}
+                onPremiumSuccess={() => setShowPremiumSuccess(true)}
+              />
+
+              {/* ─── SES & DOKUNSAL EFEKTLER (AUDIO & HAPTICS) ─── */}
+              <SoundHapticsTestBox theme={theme} isLight={isLight} />
+
+              {/* ─── UYGULAMA REHBERLERİ & TANITIMLAR ─── */}
+              <TourGuidesCard theme={theme} isLight={isLight} onOpenTour={openTour} />
+
+              {/* ─── OTURUM & GÜVENLİK ─── */}
+              <ModernSection
+                title="Oturum & Güvenlik"
+                icon={<LogOut size={18} color={theme.accent} />}
+                theme={theme}
+                defaultOpen={false}
+              >
+                <Text style={[profileSharedStyles.sessionHintText, { color: theme.textMuted }]}>
+                  Cihazınızdan güvenli bir şekilde çıkış yapın. Bildirim jetonlarınız temizlenecektir.
+                </Text>
+
+                <TouchableOpacity
+                  onPress={handleLogout}
+                  style={[
+                    profileSharedStyles.logoutBtn,
+                    {
+                      backgroundColor: isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)",
+                      borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.1)",
+                    },
+                  ]}
+                  activeOpacity={0.8}
+                >
+                  <LogOut size={16} color={theme.text} />
+                  <Text style={[profileSharedStyles.logoutBtnText, { color: theme.text }]}>Çıkış Yap</Text>
+                </TouchableOpacity>
+              </ModernSection>
+
+              {/* ─── YASAL BİLGİLER & GİZLİLİK SÖZLEŞMELERİ ─── */}
+              <LegalDocsList theme={theme} onOpenDoc={openLegal} />
+
+              {/* ─── TEHLİKE BÖLGESİ ─── */}
+              <DangerZoneCard
+                theme={theme}
+                isLight={isLight}
+                loading={deleteLoading}
+                onDeleteAccount={handleDeleteAccount}
+              />
+
+            </>
           )}
-
-          {/* ─── PROMOSYON KODLARI ─── */}
-          <PromoCodeCard
-            theme={theme}
-            isLight={isLight}
-            executeOrIntercept={executeOrIntercept}
-            refreshProfile={refreshProfile}
-            onPremiumSuccess={() => setShowPremiumSuccess(true)}
-          />
-
-          {/* ─── SES & DOKUNSAL EFEKTLER (AUDIO & HAPTICS) ─── */}
-          <SoundHapticsTestBox theme={theme} isLight={isLight} />
-
-          {/* ─── UYGULAMA REHBERLERİ & TANITIMLAR ─── */}
-          <TourGuidesCard theme={theme} isLight={isLight} onOpenTour={openTour} />
-
-          {/* ─── OTURUM & GÜVENLİK ─── */}
-          <ModernSection
-            title="Oturum & Güvenlik"
-            icon={<LogOut size={18} color={theme.accent} />}
-            theme={theme}
-            defaultOpen={false}
-          >
-            <Text style={[profileSharedStyles.sessionHintText, { color: theme.textMuted }]}>
-              Cihazınızdan güvenli bir şekilde çıkış yapın. Bildirim jetonlarınız temizlenecektir.
-            </Text>
-
-            <TouchableOpacity
-              onPress={handleLogout}
-              style={[
-                profileSharedStyles.logoutBtn,
-                {
-                  backgroundColor: isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)",
-                  borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.1)",
-                },
-              ]}
-              activeOpacity={0.8}
-            >
-              <LogOut size={16} color={theme.text} />
-              <Text style={[profileSharedStyles.logoutBtnText, { color: theme.text }]}>Çıkış Yap</Text>
-            </TouchableOpacity>
-          </ModernSection>
-
-          {/* ─── YASAL BİLGİLER & GİZLİLİK SÖZLEŞMELERİ ─── */}
-          <LegalDocsList theme={theme} onOpenDoc={openLegal} />
-
-          {/* ─── TEHLİKE BÖLGESİ ─── */}
-          <DangerZoneCard
-            theme={theme}
-            isLight={isLight}
-            loading={deleteLoading}
-            onDeleteAccount={handleDeleteAccount}
-          />
 
           {/* Alt Tab Bar İçin Ekstra Ferah Boşluk */}
           <View style={{ height: 120 }} />
