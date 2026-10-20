@@ -1,17 +1,16 @@
 import type { ViewportStarItem } from '../../types/star.types';
 
 /**
- * Güneş Sistemi cisimleri — gökyüzündeki GERÇEK konumlarında (rendered locally,
- * never fetched from the catalog).
+ * Güneş Sistemi cisimleri (rendered locally, never fetched from the catalog).
  *
- * Konumlar uygulama açılışındaki tarih için hesaplanır:
- * - Gezegenler: JPL "Keplerian Elements for Approximate Positions of the Major
- *   Planets" (1800–2050 tablosu) → güneş merkezli konum → Dünya'dan bakış (yer merkezli)
- *   → ekliptik → ekvatoral (RA/Dec). Doğruluk ~yay dakikası; harita için fazlasıyla yeterli.
- * - Güneş: Dünya konumunun tersi.
- * - Ay: düşük hassasiyetli seri (~1–2°).
- * - Dünya: gökyüzünde bir noktası yoktur (üstünde duruyoruz); Güneş'ten bakıldığında
- *   göründüğü yöne, yani Güneş'in tam karşısına (antisolar nokta) yerleştirilir.
+ * Gök haritasında `computeSolarSystemLayout` kullanılır: Güneş merkezde, gezegenler
+ * Güneş etrafındaki GERÇEK güncel açılarında ama sıkıştırılmış uzaklıklarda — bütün
+ * sistem tek ekrana sığar, Ay Dünya'nın yanındadır.
+ *
+ * Açılar uygulama açılışındaki tarih için JPL "Keplerian Elements for Approximate
+ * Positions of the Major Planets" (1800–2050 tablosu) ile hesaplanır; Ay düşük
+ * hassasiyetli seriyle (~1–2°). `computeSolarSystemPositions` ise cisimlerin gerçek
+ * gökyüzü RA/Dec'ini verir (doğrulama ve ileride gerçek gökyüzü görünümü için).
  */
 
 const DEG = Math.PI / 180;
@@ -136,7 +135,7 @@ function round4(value: number): number {
   return Math.round(value * 10000) / 10000;
 }
 
-/** Verilen an için Güneş, Ay, Dünya (antisolar) ve gezegenlerin RA/Dec'i. */
+/** Verilen an için Güneş, Ay, Dünya (antisolar) ve gezegenlerin gerçek gökyüzü RA/Dec'i. */
 export function computeSolarSystemPositions(date: Date = new Date()): Record<string, { ra: number; dec: number }> {
   const jd = julianDay(date);
   const days = jd - 2451545.0;
@@ -156,6 +155,58 @@ export function computeSolarSystemPositions(date: Date = new Date()): Record<str
     positions[code] = { ra: round4(positions[code].ra), dec: round4(positions[code].dec) };
   }
   return positions;
+}
+
+// ─── Gök haritasındaki derli toplu güneş sistemi ────────────────────────────
+
+/** Gök haritasında Güneş'in durduğu nokta (sistemin merkezi). */
+const ORRERY_CENTER = { ra: 270, dec: -8 } as const;
+/**
+ * Güneş'ten görsel uzaklıklar (derece). Gerçek oranlar (Merkür 0.4 AU … Plüton 39 AU)
+ * sıkıştırılmıştır: bütün sistem ~14° çapında, gök kubbede tek ekrana sığar.
+ */
+const ORRERY_RADIUS_DEG: Record<string, number> = {
+  mercury: 1.3,
+  venus: 2.0,
+  earth: 2.8,
+  mars: 3.6,
+  jupiter: 4.5,
+  saturn: 5.3,
+  uranus: 6.0,
+  neptune: 6.6,
+  pluto: 7.2,
+};
+/** Ay'ın Dünya'ya görsel uzaklığı (derece). */
+const MOON_OFFSET_DEG = 0.75;
+/** Yörünge düzlemine hafif eğik bakış: dikey eksen bu oranda basılır. */
+const ORRERY_TILT = 0.8;
+
+/**
+ * Gök haritası için güneş sistemi yerleşimi: Güneş merkezde, her gezegen Güneş etrafındaki
+ * GERÇEK güncel açısında (güneş merkezli ekliptik boylamı), ancak sıkıştırılmış uzaklıkta.
+ * Ay, Dünya'nın hemen yanında gerçek yönündedir. Böylece cisimler ne düz bir sıra halinde
+ * dizilir ne de bütün gökyüzüne dağılır.
+ */
+export function computeSolarSystemLayout(date: Date = new Date()): Record<string, { ra: number; dec: number }> {
+  const days = julianDay(date) - 2451545.0;
+  const centuries = days / 36525;
+  const cosCenterDec = Math.cos(ORRERY_CENTER.dec * DEG);
+  const place = (angleRad: number, radiusDeg: number, originRa: number = ORRERY_CENTER.ra, originDec: number = ORRERY_CENTER.dec) => ({
+    ra: round4(normalizeDegrees(originRa + (Math.cos(angleRad) * radiusDeg) / cosCenterDec)),
+    dec: round4(originDec + Math.sin(angleRad) * radiusDeg * ORRERY_TILT),
+  });
+
+  const layout: Record<string, { ra: number; dec: number }> = {
+    'SOL-SUN': { ra: ORRERY_CENTER.ra, dec: ORRERY_CENTER.dec },
+  };
+  for (const name of Object.keys(ORRERY_RADIUS_DEG)) {
+    const helio = heliocentricPosition(ELEMENTS[name], centuries);
+    layout[`SOL-${name.toUpperCase()}`] = place(Math.atan2(helio.y, helio.x), ORRERY_RADIUS_DEG[name]);
+  }
+  const moon = moonDirection(days);
+  const earth = layout['SOL-EARTH'];
+  layout['SOL-MOON'] = place(Math.atan2(moon.y, moon.x), MOON_OFFSET_DEG, earth.ra, earth.dec);
+  return layout;
 }
 
 type SolarBody = Omit<ViewportStarItem, 'ra' | 'dec'>;
@@ -306,9 +357,9 @@ const SOLAR_BODIES: readonly SolarBody[] = [
   },
 ];
 
-const POSITIONS_AT_LAUNCH = computeSolarSystemPositions();
+const POSITIONS_AT_LAUNCH = computeSolarSystemLayout();
 
-/** Uygulama açılışındaki gerçek gökyüzü konumlarıyla Güneş Sistemi cisimleri. */
+/** Uygulama açılışındaki gerçek dizilimle (derli toplu yerleşimde) Güneş Sistemi cisimleri. */
 export const SOLAR_SYSTEM_OBJECTS: ViewportStarItem[] = SOLAR_BODIES.map((body) => ({
   ...body,
   ...POSITIONS_AT_LAUNCH[body.catalog_code],
