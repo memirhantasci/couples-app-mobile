@@ -19,8 +19,8 @@ export interface CoupleWidgetPayload {
   partnerName: string;
   /** Sevgili olma (yoksa tanışma) tarihi, YYYY-MM-DD */
   startDate: string | null;
-  /** Premium bitiş zamanı (ISO). null = süresiz. Widget bu andan sonra kendini kilitler. */
-  premiumUntil: string | null;
+  /** Premium bitiş zamanı (epoch ms). null = süresiz. Widget bu andan sonra kendini kilitler. */
+  premiumUntilMs: number | null;
   partnerMoodEmoji: string | null;
   partnerMoodLabel: string | null;
   /** Ruh halinin ait olduğu gün (YYYY-MM-DD); başka güne ait ruh hali gösterilmez. */
@@ -48,7 +48,7 @@ const EMPTY_PAYLOAD: CoupleWidgetPayload = {
   myName: "",
   partnerName: "",
   startDate: null,
-  premiumUntil: null,
+  premiumUntilMs: null,
   partnerMoodEmoji: null,
   partnerMoodLabel: null,
   moodDate: null,
@@ -141,9 +141,8 @@ function pushToIos(payload: CoupleWidgetPayload): void {
     entries.push({ date: midnight, props: payload });
   }
   // Premium bittiği anda widget kendini kilitlesin
-  if (payload.premiumUntil) {
-    const until = new Date(payload.premiumUntil);
-    if (until.getTime() > now.getTime()) entries.push({ date: until, props: payload });
+  if (payload.premiumUntilMs && payload.premiumUntilMs > now.getTime()) {
+    entries.push({ date: new Date(payload.premiumUntilMs), props: payload });
   }
   entries.sort((a, b) => a.date.getTime() - b.date.getTime());
 
@@ -202,12 +201,13 @@ export function syncCoupleWidget(input: CoupleWidgetInput): Promise<boolean> {
     ]);
 
     const hasMood = !!input.partnerMoodEmoji;
+    const premiumUntilMs = input.premiumExpiresAt ? Date.parse(input.premiumExpiresAt) : NaN;
     return pushPayload({
       state: "ready",
       myName: input.myName?.trim() || "",
       partnerName: input.partnerName?.trim() || "Sevgilin",
       startDate: input.startDate ? input.startDate.substring(0, 10) : null,
-      premiumUntil: input.premiumExpiresAt ?? null,
+      premiumUntilMs: Number.isFinite(premiumUntilMs) ? premiumUntilMs : null,
       partnerMoodEmoji: hasMood ? input.partnerMoodEmoji! : null,
       partnerMoodLabel: hasMood ? input.partnerMoodLabel ?? null : null,
       moodDate: hasMood ? dayjs().format("YYYY-MM-DD") : null,

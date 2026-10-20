@@ -24,7 +24,7 @@ export interface CoupleWidgetProps {
   myName?: string;
   partnerName?: string;
   startDate?: string | null;
-  premiumUntil?: string | null;
+  premiumUntilMs?: number | null;
   partnerMoodEmoji?: string | null;
   partnerMoodLabel?: string | null;
   moodDate?: string | null;
@@ -46,9 +46,8 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
 
   // Premium bittiği an widget uygulama açılmadan kendini kilitler
   let locked = state === 'locked';
-  if (state === 'ready' && props.premiumUntil) {
-    const until = new Date(props.premiumUntil).getTime();
-    if (!isNaN(until) && until <= now.getTime()) locked = true;
+  if (state === 'ready' && props.premiumUntilMs && props.premiumUntilMs <= now.getTime()) {
+    locked = true;
   }
 
   const pad2 = (n: number) => (n < 10 ? '0' + n : '' + n);
