@@ -52,7 +52,18 @@
         {
           "widgets": [
             {
-              "name": "CoupleWidget"
+              "name": "CoupleWidget",
+              "displayName": "Aşkımızın Yolculuğu",
+              "description": "Kaç gündür birlikte olduğunuzu, çift fotoğrafınızı ve sevgilinin ruh halini ana ekranda gör.",
+              "ios": {
+                "supportedFamilies": [
+                  "systemSmall",
+                  "systemMedium",
+                  "accessoryCircular",
+                  "accessoryRectangular",
+                  "accessoryInline"
+                ]
+              }
             }
           ]
         }
