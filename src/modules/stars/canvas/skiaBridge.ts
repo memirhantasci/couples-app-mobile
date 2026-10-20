@@ -27,6 +27,9 @@ let pointsComponent: any = null;
 let vecFunc: any = null;
 let dashPathEffectComponent: any = null;
 let blurMaskComponent: any = null;
+let linearGradientComponent: any = null;
+let rectComponent: any = null;
+let ovalComponent: any = null;
 
 let skiaAvailable = false;
 
@@ -49,6 +52,9 @@ try {
     vecFunc = skiaModule.vec;
     dashPathEffectComponent = skiaModule.DashPathEffect;
     blurMaskComponent = skiaModule.BlurMask;
+    linearGradientComponent = skiaModule.LinearGradient;
+    rectComponent = skiaModule.Rect;
+    ovalComponent = skiaModule.Oval;
 
     skiaAvailable = true;
   }
@@ -74,3 +80,6 @@ export const Points = pointsComponent;
 export const vec = vecFunc;
 export const DashPathEffect = dashPathEffectComponent;
 export const BlurMask = blurMaskComponent;
+export const LinearGradient = linearGradientComponent;
+export const Rect = rectComponent;
+export const Oval = ovalComponent;
