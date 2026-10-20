@@ -186,6 +186,35 @@ const MOON_OFFSET_DEG = 1.7;
 const ORRERY_TILT = 0.8;
 
 /**
+ * Gezegen yörüngeleri: Güneş'in etrafında, gezegenlerin durduğu kuşaklarla AYNI elips (aynı yarıçap,
+ * aynı eğim ve RA boylam düzeltmesi). Gök haritasında silik birer halka olarak çizilir.
+ */
+export const ORRERY_ORBITS = {
+  ra: ORRERY_CENTER.ra,
+  dec: ORRERY_CENTER.dec,
+  rings: Object.values(ORRERY_RADIUS_DEG).map((radius) => ({
+    rx: radius / Math.cos((ORRERY_CENTER.dec * Math.PI) / 180),
+    ry: radius * ORRERY_TILT,
+  })),
+} as const;
+
+/** Dış yörüngenin (Plüton) dışında bırakılan pay: yıldızlar halkaya yapışık durmasın. */
+const SOLAR_CLEARANCE = 1.06;
+
+/**
+ * Nokta, güneş sisteminin (en dış yörüngenin) içinde mi? Bu alanda gezegenlerden başka hiçbir yıldız
+ * çizilmez/seçilmez; aksi halde sistem içinde sanki başka yıldızlar varmış gibi görünür.
+ */
+export function isInsideSolarSystem(ra: number, dec: number): boolean {
+  const outer = ORRERY_ORBITS.rings[ORRERY_ORBITS.rings.length - 1];
+  const dRa = ((((ra - ORRERY_ORBITS.ra) % 360) + 540) % 360) - 180;
+  const dDec = dec - ORRERY_ORBITS.dec;
+  const x = dRa / (outer.rx * SOLAR_CLEARANCE);
+  const y = dDec / (outer.ry * SOLAR_CLEARANCE);
+  return x * x + y * y <= 1;
+}
+
+/**
  * Gök haritası için güneş sistemi yerleşimi: Güneş merkezde, her gezegen Güneş etrafındaki
  * GERÇEK güncel açısında (güneş merkezli ekliptik boylamı), ancak sıkıştırılmış uzaklıkta.
  * Ay, Dünya'nın hemen yanında gerçek yönündedir. Böylece cisimler ne düz bir sıra halinde

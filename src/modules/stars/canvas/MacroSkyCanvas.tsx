@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import { useAnimatedReaction, useDerivedValue, useFrameCallback, useSharedValue } from 'react-native-reanimated';
@@ -31,7 +31,7 @@ import {
   skyBoundsForCamera,
   skyBoundsForMotion,
 } from './macro/skyProjection';
-import { SOLAR_SYSTEM_OBJECTS } from './macro/solarSystem';
+import { SOLAR_SYSTEM_OBJECTS, isInsideSolarSystem } from './macro/solarSystem';
 import { EMPTY_STAR_FIELD, StarFieldBuilder, type StarField } from './macro/starField';
 import { starVisibility } from './macro/starStyle';
 import { useSkyCamera } from './macro/useSkyCamera';
@@ -155,7 +155,7 @@ function heroTapTarget(ra: number, dec: number, name?: string): ViewportStarItem
  * rebuilds star data when new stars arrive.
  */
 function MacroSkyCanvasSkia({
-  stars,
+  stars: allStars,
   initialCamera,
   targetCamera,
   onTargetCameraConsumed,
@@ -172,6 +172,13 @@ function MacroSkyCanvasSkia({
   const myStarRa = myStarCoords?.ra;
   const myStarDec = myStarCoords?.dec;
   const myStarName = myStarCoords?.name;
+
+  // Güneş sisteminin içinde gezegenlerden başka yıldız bulunmaz (kullanıcının kendi yıldızı hariç:
+  // o ayrı bir işaretle çizilir). Çizim, dokunma ve etiketler aynı süzülmüş listeyi kullanır.
+  const stars = useMemo(
+    () => allStars.filter((star) => star.is_mine || !isInsideSolarSystem(star.ra, star.dec)),
+    [allStars],
+  );
 
   const fontProvider = useFonts(LABEL_FONTS);
 

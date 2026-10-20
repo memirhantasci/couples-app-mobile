@@ -83,6 +83,8 @@ export default function CalendarScreen() {
 
   const [selectedDate, setSelectedDate] = useState<string>(today);
   const [currentMonth, setCurrentMonth] = useState<string>(today);
+  // Verinin ortalandığı ay: görüntülenen ay yüklü 3 aylık pencerenin dışına çıkınca değişir
+  const [dataAnchor, setDataAnchor] = useState<string>(today);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [saving, setSaving] = useState(false);
@@ -105,6 +107,7 @@ export default function CalendarScreen() {
     isPremium,
     canSeePeriod,
     isDemoMode,
+    anchorMonth: dataAnchor,
   });
 
   // Kullanıcı başına regl başlangıçları (kayıtlar yalnızca başlangıç gününü tutar; 5 günlük süreç buradan türetilir)
@@ -186,13 +189,17 @@ export default function CalendarScreen() {
     setSelectedDate(day.dateString);
   }, []);
 
-  const handlePrevMonth = useCallback(() => {
-    setCurrentMonth(prev => dayjs(prev).subtract(1, "month").format("YYYY-MM-DD"));
-  }, []);
+  const moveMonth = useCallback((delta: number) => {
+    const next = dayjs(currentMonth).startOf("month").add(delta, "month");
+    setCurrentMonth(next.format("YYYY-MM-DD"));
+    // Yüklü pencere (ortadaki ay ± 1) dışına çıkıldıysa veriyi yeni aya göre yeniden ortala
+    if (Math.abs(next.diff(dayjs(dataAnchor).startOf("month"), "month")) > 1) {
+      setDataAnchor(next.format("YYYY-MM-DD"));
+    }
+  }, [currentMonth, dataAnchor]);
 
-  const handleNextMonth = useCallback(() => {
-    setCurrentMonth(prev => dayjs(prev).add(1, "month").format("YYYY-MM-DD"));
-  }, []);
+  const handlePrevMonth = useCallback(() => moveMonth(-1), [moveMonth]);
+  const handleNextMonth = useCallback(() => moveMonth(1), [moveMonth]);
 
   // Seçili güne ait veriler
   const selectedDayNotes = useMemo(() => {
