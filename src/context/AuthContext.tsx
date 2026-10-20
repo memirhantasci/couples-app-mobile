@@ -10,6 +10,7 @@ import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { getOrCreateDeviceId } from "@/utils/device";
 import { isDatesSkipped } from "@/lib/datesSkip";
 import { useQueryClient } from "@tanstack/react-query";
+import { clearCoupleWidget } from "@/utils/widgetBridge";
 
 import { Platform, AppState } from "react-native";
 
@@ -367,6 +368,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsDeviceAuthorized(null);
         profileFetchedForUser.current = null;
         AsyncStorage.removeItem(CACHED_PROFILE_KEY).catch(() => {});
+        // Oturum bitti (çıkış, hesap silme, geçersiz token): widget'taki önceki hesap verisi silinsin
+        clearCoupleWidget().catch(() => {});
         setIsLoading(false);
         RevenueCatService.logOut();
       } else {
@@ -569,6 +572,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Clear device auth cache on sign-out so next user gets a fresh check
     await AsyncStorage.removeItem(DEVICE_AUTH_CACHE_KEY).catch(() => {});
     await AsyncStorage.removeItem(CACHED_PROFILE_KEY).catch(() => {});
+    await clearCoupleWidget().catch(() => {});
 
     // Bu cihaz artık bu hesaba ait değil: zamanlanmış yerel hatırlatıcıları (ilaç, buluşma, mektup...)
     // ve cihazın push kaydını temizle. Aksi halde aynı telefonda başka hesap açıldığında önceki

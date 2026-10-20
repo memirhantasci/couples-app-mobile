@@ -73,6 +73,8 @@ Uygulamanın mevcut kaynak kodları satır satır incelendiğinde karşılaşıl
   7. Onay Kutusu 1: Kullanım Koşulları ve Gizlilik Politikası (Zorunlu checkbox)
   8. Onay Kutusu 2: KVKK Aydınlatma Metni ve Açık Rıza (Zorunlu checkbox)
 - **Kayıp:** Kullanıcı daha uygulamaya adım atmadan **8 farklı karar ve girdi engeliyle** karşılaşıyor. Sosyal Giriş (Google ile Devam Et / Apple ile Giriş Yap) olmadığı için mobilde tek tek klavye ile yazmak büyük bir sürtünme kaynağı.
+--google ve apple ile giriş kesinlikle koymak zorundayız
+
 
 ### 3. E-Posta OTP Doğrulaması (`verify.tsx`)
 - **Dosya:** `src/app/(auth)/verify.tsx`
@@ -88,6 +90,7 @@ Uygulamanın mevcut kaynak kodları satır satır incelendiğinde karşılaşıl
 - **Dosya:** `src/app/(setup)/pairing.tsx`
 - **Olan Olay:** Ekranda 6 haneli kod var (`X9K2P1`). Altta "Partnerin bekleniyor..." yazıyor.
 - **Problem:** Eğer partner o sırada işte, okulda, uykuda veya telefondan uzaktaysa, kayıt olan kullanıcı **bu ekranda hapsoluyor**. Uygulamanın içine girip tek başına hiçbir şey yapamıyor (örneğin sevgilisine sürpriz bir ilk mektup yazamıyor, tanışma fotoğraflarını yükleyemiyor).
+--ancak bu maddeyi değiştiremeyiz her eşleşmeden giren veri yükler kaybolur gereksiz veri birikir
 
 ### 6. Tarih Seçim Ekranı (`dates.tsx`)
 - **Dosya:** `src/app/(setup)/dates.tsx`
@@ -137,6 +140,7 @@ Kullanıcıların en nefret ettiği şey, uygulamanın henüz hiçbir değer ür
     > *"Sevgilinden bir mektup geldiğinde, ilacını içtiğinde veya seni özlediğinde anında haberdar olmak ister misin? ❤️"*  
     > `[Evet, Bildirimleri Aç]` `[Şimdilik Geç]`
   - **B Senaryosu:** Kullanıcı ilk kez sevgilisine mektup gönderdikten veya anı paylaştıktan hemen sonra.
+  --eşleşme tamamlandığı anda olmaz daha uygulamayı bilmiyor herhangşbşr bildirim gerekecek eylemden sonra sorulması lazım ama her eylemde sormak olmaz bezdirir
 
 #### 2. Galeri / Kamera İzni Ne Zaman İstenmeli?
 - **Yanlış An:** Uygulama açılışında veya profil oluştururken.
@@ -181,8 +185,10 @@ Kullanıcı eşleşme kodunu paylaştıktan sonra ekranın altına şu seçenekl
 │     (Kozmik haritayı keşfet)                           │
 └────────────────────────────────────────────────────────┘
 ```
+--hAKLISIN AMA zaten demo modu var ya orda göremez mi bebn şunu istemiyorum kullancılar birbirne eşleşmeden databaseye bir veri kaydedilsin istemiyorum bu biraz sıkıntı yaratabşilir bilmiyorum benim söylediğim doğru olmak zorunda değil sen de fikrini söyleyebilrisin.belkide senin dediğin de olabilir.
 
 **Psikolojik Etki:** Kullanıcı bekleme hissinden çıkar, "üretme ve hediye hazırlama" psikolojisine girer. Partneri ertesi gün uygulamaya girdiğinde boş bir arayüz yerine mühürlü bir aşk mektubu ve fotoğrafla karşılaşır. Bu durum **D1 (ilk gün) retention oranını %70'in üzerine çıkarır.**
+
 
 ---
 

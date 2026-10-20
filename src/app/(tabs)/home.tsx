@@ -37,7 +37,7 @@ import { useClockBucket } from "@/hooks/useClockBucket";
 import { getGreeting, getSpecialDayState } from "@/lib/specialDays";
 import { AnniversaryGlow } from "@/components/home/AnniversaryGlow";
 import { LoveMeter } from "@/components/home/LoveMeter";
-import { MoodSelector } from "@/components/home/MoodSelector";
+import { MoodSelector, MOODS } from "@/components/home/MoodSelector";
 import { DailyNoteCard } from "@/components/home/DailyNoteCard";
 import { MeetingCountdown, type Meeting } from "@/components/home/MeetingCountdown";
 import { PendingLettersCard, PendingLettersBadge } from "@/components/home/PendingLettersCard";
@@ -345,36 +345,43 @@ export default function HomeScreen() {
   }, [dashboardData?.meetings, meetingTick]);
 
   // ─── ANA EKRAN WIDGET SENKRONİZASYONU ───
+  // Gün sayısı widget içinde hesaplanır; buradan yalnızca tarih, isimler, partnerin bugünkü ruh hali
+  // ve profil fotoğrafları gider. Özel günlük notu gizlilik gereği widget'a ASLA gönderilmez.
+  const partnerMoodEmoji: string | null = dashboardData?.partnerMood ?? null;
+  const partnerMoodLabel = partnerMoodEmoji
+    ? MOODS.find((m) => m.emoji === partnerMoodEmoji)?.label ?? null
+    : null;
+  const isPremiumActive = !!profile?.isPremium;
+  const premiumExpiresAt = profile?.premiumExpiresAt ?? null;
+  const hasDashboard = !!dashboardData;
   useEffect(() => {
-    if (!dashboardData) return;
-    const moodMap: Record<string, { emoji: string; label: string }> = {
-      happy: { emoji: "🥰", label: "Aşk Dolu" },
-      calm: { emoji: "😌", label: "Huzurlu" },
-      excited: { emoji: "✨", label: "Heyecanlı" },
-      tired: { emoji: "😴", label: "Yorgun" },
-      sad: { emoji: "🥺", label: "Şefkat İstiyor" },
-      loved: { emoji: "💖", label: "Sevgi Dolu" },
-    };
-    const moodObj = (dashboardData.currentMood && moodMap[dashboardData.currentMood])
-      ? moodMap[dashboardData.currentMood]
-      : { emoji: "🥰", label: "Aşk Dolu" };
-
-    let meetingDays: number | null = null;
-    if (activeMeeting?.meeting_datetime) {
-      meetingDays = dayjs(activeMeeting.meeting_datetime).diff(dayjs(), "day");
-    }
-
+    // Demo oturumunda gerçek bir çift yok: widget'a hiçbir şey gönderilmez
+    if (isDemoMode || !hasDashboard) return;
     syncCoupleWidget({
-      partnerName: name,
-      daysTogether: daysSinceTogether || daysSinceMeeting || 0,
-      moodEmoji: moodObj.emoji,
-      moodLabel: moodObj.label,
-      dailyNote: dashboardData.currentNote,
-      nextMeetingTitle: activeMeeting?.title,
-      nextMeetingDays: meetingDays,
-      loveScore: loveMeter,
+      isPremium: isPremiumActive,
+      premiumExpiresAt,
+      myName: profile?.displayName,
+      partnerName: partnerDisplayName,
+      startDate: relDate || meetDate || null,
+      partnerMoodEmoji,
+      partnerMoodLabel,
+      myAvatarUrl,
+      partnerAvatarUrl,
     });
-  }, [dashboardData, activeMeeting, name, daysSinceTogether, daysSinceMeeting, loveMeter]);
+  }, [
+    isDemoMode,
+    hasDashboard,
+    isPremiumActive,
+    premiumExpiresAt,
+    profile?.displayName,
+    partnerDisplayName,
+    relDate,
+    meetDate,
+    partnerMoodEmoji,
+    partnerMoodLabel,
+    myAvatarUrl,
+    partnerAvatarUrl,
+  ]);
 
   // ─── SPOTLIGHT TURU ───
   // Eşleşme sonrası ilk Ana Sayfa ziyaretinde bir kez otomatik başlar; demo/misafir modunda asla.
