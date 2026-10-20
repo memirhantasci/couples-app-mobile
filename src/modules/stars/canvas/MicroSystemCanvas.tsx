@@ -93,6 +93,11 @@ export interface MicroSystemCanvasProps {
   /** Çiftin fotoğrafları (Premium): yıldız etrafındaki iki ruhun ucunda dolaşır. */
   readonly myAvatarUrl?: string | null;
   readonly partnerAvatarUrl?: string | null;
+  /**
+   * Üstte bir pencere (anı, sertifika, paywall) açıkken sahne donar: arkadaki 60 FPS
+   * çizim ve bulanıklık durur, pencere açılış/kapanış animasyonları akıcı kalır.
+   */
+  readonly paused?: boolean;
 }
 
 /** Ben → altın, sevgilim → gül. */
@@ -118,6 +123,7 @@ function MicroSystemCanvasSkia({
   sparkSignal = 0,
   myAvatarUrl,
   partnerAvatarUrl,
+  paused = false,
 }: MicroSystemCanvasProps) {
   const screen = Dimensions.get('window');
   const canvasWidth = width ?? screen.width;
@@ -169,9 +175,10 @@ function MicroSystemCanvasSkia({
   });
 
   useEffect(() => {
-    particleCallback.setActive(isFocused);
-    clockCallback.setActive(isFocused);
-  }, [isFocused, particleCallback, clockCallback]);
+    const running = isFocused && !paused;
+    particleCallback.setActive(running);
+    clockCallback.setActive(running);
+  }, [isFocused, paused, particleCallback, clockCallback]);
 
   // Açılış: yörüngeler merkezden açılır, gövdeler yerine süzülür.
   useEffect(() => {

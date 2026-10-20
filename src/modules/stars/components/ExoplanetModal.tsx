@@ -38,7 +38,6 @@ import {
 import { appAlert } from '@/lib/dialog';
 import { DialogHost } from '@/components/ui/DialogHost';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -134,13 +133,19 @@ export interface ExoplanetModalProps {
   /** Second-line UI guard; all mutations are also gated by backend RPCs. */
   readonly isPremium?: boolean;
   readonly onPremiumRequired?: () => void;
+  /**
+   * İnceleme modunda `selectedPlanet` yalnızca harita verisinden kurulmuş bir önizlemedir;
+   * ayrıntılar (fotoğraf, hikâye, tarih) sunucudan gelene kadar düzenle/sil kapalıdır.
+   */
+  readonly isLoadingDetails?: boolean;
 }
 
 // ============================================================================
 // ANA BİLEŞEN
 // ============================================================================
 
-export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
+/** Memo'lu: üst ekranın saniyelik geri sayım çizimleri açık pencereyi yeniden çizmez. */
+export const ExoplanetModal = React.memo(function ExoplanetModal({
   visible,
   mode,
   starId,
@@ -152,7 +157,8 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
   onPlanetDeleted,
   isPremium = false,
   onPremiumRequired,
-}) => {
+  isLoadingDetails = false,
+}: ExoplanetModalProps) {
   const router = useRouter();
 
   // Aktif mod (Prop ile başlar, 'view' içinden 'edit'e geçebilir)
@@ -599,7 +605,6 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       {/* iOS: klavye açılınca sayfa yukarı itilir; Android: KeyboardAwareScrollView odaktaki alanı görünür tutar */}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalBackdrop}>
-        <BlurView intensity={Platform.OS === 'ios' ? 60 : 100} tint="dark" style={StyleSheet.absoluteFill} />
 
         <View style={styles.sheetContainer}>
           <LinearGradient
@@ -712,8 +717,16 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                   </View>
                 </View>
 
+                {/* Pencere anında açılır; ayrıntılar gelene kadar yer tutucu */}
+                {isLoadingDetails && (
+                  <View style={styles.loadingCard}>
+                    <ActivityIndicator size="small" color="#FDE68A" />
+                    <Text style={styles.loadingText}>Fotoğraflar ve hikâye yükleniyor…</Text>
+                  </View>
+                )}
+
                 {/* FOTOĞRAF GALERİSİ */}
-                {mediaUrls.length > 0 ? (
+                {isLoadingDetails ? null : mediaUrls.length > 0 ? (
                   <View style={styles.section}>
                     <Text style={styles.sectionLabel}>ANILAR · {mediaUrls.length} FOTOĞRAF</Text>
                     <ScrollView
@@ -810,11 +823,11 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                 )}
 
                 {/* AKSİYON BUTONLARI: DÜZENLE & SİL */}
-                <View style={styles.viewActionRow}>
+                <View style={[styles.viewActionRow, isLoadingDetails && styles.actionsDisabled]}>
                   <TouchableOpacity
                     activeOpacity={0.82}
                     onPress={startEditing}
-                    disabled={isDeleting}
+                    disabled={isDeleting || isLoadingDetails}
                     style={styles.editBtn}
                   >
                     <Edit3 size={15} color="#FDE68A" />
@@ -824,7 +837,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
                   <TouchableOpacity
                     activeOpacity={0.82}
                     onPress={handleDeletePlanet}
-                    disabled={isDeleting}
+                    disabled={isDeleting || isLoadingDetails}
                     style={styles.deleteBtn}
                     accessibilityLabel="Gezegeni sil"
                   >
@@ -1143,7 +1156,7 @@ export const ExoplanetModal: React.FC<ExoplanetModalProps> = ({
       <DialogHost embedded />
     </Modal>
   );
-};
+});
 
 // ============================================================================
 // STİLLER
@@ -1415,6 +1428,24 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     fontFamily: 'Inter_500Medium',
     marginTop: 1,
+  },
+  loadingCard: {
+    height: 120,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.035)',
+    borderWidth: 1,
+    borderColor: SURFACE_BORDER,
+  },
+  loadingText: {
+    color: TEXT_MUTED,
+    fontSize: 12.5,
+    fontFamily: 'Inter_500Medium',
+  },
+  actionsDisabled: {
+    opacity: 0.45,
   },
   viewActionRow: {
     flexDirection: 'row',

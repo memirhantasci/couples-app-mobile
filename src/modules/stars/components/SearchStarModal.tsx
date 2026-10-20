@@ -24,6 +24,7 @@ import { Search, X, Star, Sun, Globe } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { starService } from '../api/starService';
 import { CelestialSearchResult } from '../types/star.types';
+import { SOLAR_SYSTEM_OBJECTS } from '../canvas/macro/solarSystem';
 
 interface SearchStarModalProps {
   visible: boolean;
@@ -31,7 +32,7 @@ interface SearchStarModalProps {
   onSelectStar: (item: CelestialSearchResult) => void;
 }
 
-const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = [
+const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999901',
     entity_type: 'common',
@@ -167,7 +168,11 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = [
     dec: 89.2641,
     is_own_star: false,
   },
-];
+] satisfies CelestialSearchResult[]).map((item) => {
+  // Güneş Sistemi cisimleri gökyüzündeki güncel (hesaplanan) konumlarına uçar.
+  const solar = SOLAR_SYSTEM_OBJECTS.find((body) => body.catalog_code === item.catalog_code);
+  return solar ? { ...item, ra: solar.ra, dec: solar.dec } : item;
+});
 
 function normalizeText(text: string): string {
   if (!text) return '';

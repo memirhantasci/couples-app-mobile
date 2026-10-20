@@ -132,6 +132,27 @@ const SOLAR_DESCRIPTIONS: Record<string, string> = {
   'SOL-PLUTO': 'Evrenin ucunda bile olsa birbirini asla unutmayan kalplerin simgesi 💜',
 };
 
+/** Ayrıntılar gelene kadar anı penceresinde gösterilen, harita verisinden kurulan önizleme kaydı. */
+function toPlanetPreview(planet: StarSystemMapPlanet, starId: string): StarExoplanetRecord {
+  return {
+    id: planet.id,
+    star_id: starId,
+    title: planet.display_title,
+    description: null,
+    milestone_date: null,
+    orbit_distance: planet.orbit_distance,
+    orbit_speed: planet.orbit_speed,
+    planet_type: planet.planet_type,
+    palette: planet.palette,
+    media_urls: [],
+    custom_metadata: {},
+    is_auto_generated: false,
+    window_started_at: null,
+    created_at: '',
+    updated_at: '',
+  };
+}
+
 function toMapPlanet(planet: StarExoplanetRecord): StarSystemMapPlanet {
   return {
     id: planet.id,
@@ -236,6 +257,9 @@ export const OurStarScreen: React.FC = () => {
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [microHeroBottom, setMicroHeroBottom] = useState<number | null>(null);
   const [microDockTop, setMicroDockTop] = useState<number | null>(null);
+  // Anı penceresi anında açılır; ayrıntılar (fotoğraf, hikâye) gelene kadar yükleniyor durumundadır.
+  const [isPlanetLoading, setIsPlanetLoading] = useState(false);
+  const planetRequestRef = useRef<string | null>(null);
   // Premium çiftin fotoğrafları yıldız etrafındaki iki ruhun ucunda dolaşır (Premium değilse boş).
   const { myAvatarUrl, partnerAvatarUrl } = useCoupleAvatars();
 
@@ -597,7 +621,9 @@ export const OurStarScreen: React.FC = () => {
   }, []);
   useEffect(() => clearPlanetHighlightTimer, [clearPlanetHighlightTimer]);
 
-  // Anı gezegenini aç (sahneden veya alt paneldeki karttan)
+  // Anı gezegenini aç (sahneden veya alt paneldeki karttan).
+  // Pencere ayrıntıları beklemeden ANINDA açılır: elimizdeki başlık/renk/türle başlar,
+  // fotoğraf ve hikâye sunucudan gelince dolar. Bu sırada düzenle/sil kapalıdır.
   const handleOpenPlanet = useCallback(
     (planet: StarSystemMapPlanet) => {
       handlePremiumAction('exoplanet_view', () => {
@@ -616,12 +642,26 @@ export const OurStarScreen: React.FC = () => {
           }
           return;
         }
+        if (!starDetails) return;
+
+        planetRequestRef.current = planet.id;
+        setSelectedPlanet(toPlanetPreview(planet, starDetails.star_id));
+        setIsPlanetLoading(true);
+        setExoplanetModalMode('view');
+
         starService.getExoplanetDetails(planet.id)
           .then((details) => {
+            // Kullanıcı bu arada pencereyi kapattıysa veya başka gezegen açtıysa yok say.
+            if (planetRequestRef.current !== planet.id) return;
             setSelectedPlanet(details);
-            setExoplanetModalMode('view');
+            setIsPlanetLoading(false);
           })
           .catch((error) => {
+            if (planetRequestRef.current !== planet.id) return;
+            planetRequestRef.current = null;
+            setIsPlanetLoading(false);
+            setExoplanetModalMode(null);
+            setSelectedPlanet(null);
             setHighlightPlanetId(null);
             if (error instanceof PremiumRequiredError) {
               setPremiumPaywallSource('exoplanet_view');
@@ -631,7 +671,7 @@ export const OurStarScreen: React.FC = () => {
           });
       });
     },
-    [clearPlanetHighlightTimer, demoPlanetDetails, handlePremiumAction, isDemoMode, showToast]
+    [clearPlanetHighlightTimer, demoPlanetDetails, handlePremiumAction, isDemoMode, showToast, starDetails]
   );
 
   const handleCreatePlanet = useCallback(() => {
@@ -642,6 +682,8 @@ export const OurStarScreen: React.FC = () => {
   }, [handlePremiumAction]);
 
   const handleCloseExoplanetModal = useCallback(() => {
+    planetRequestRef.current = null;
+    setIsPlanetLoading(false);
     setExoplanetModalMode(null);
     // Kapatılan gezegen bir süre daha işaretli kalır: kullanıcı hangi anıya baktığını görür.
     clearPlanetHighlightTimer();
@@ -743,15 +785,16 @@ export const OurStarScreen: React.FC = () => {
   };
 
   // ─── ANİ GEZEGENİ HANDLER'LARI ─────────────────────────────────────
-  const handlePlanetCreated = (newPlanet: StarExoplanetRecord) => {
+  // Kimlikleri sabit: memo'lu ExoplanetModal saniyelik geri sayım çizimlerinde yeniden çizilmez.
+  const handlePlanetCreated = useCallback((newPlanet: StarExoplanetRecord) => {
     if (isDemoMode) {
       setDemoPlanetDetails((prev) => [newPlanet, ...prev]);
     }
     setExoplanets((prev) => [toMapPlanet(newPlanet), ...prev]);
     showToast(`"${newPlanet.title}" anı gezegeni yörüngede dönmeye başladı! 🪐`);
-  };
+  }, [isDemoMode, showToast]);
 
-  const handlePlanetUpdated = (updatedPlanet: StarExoplanetRecord) => {
+  const handlePlanetUpdated = useCallback((updatedPlanet: StarExoplanetRecord) => {
     if (isDemoMode) {
       setDemoPlanetDetails((prev) => prev.map((p) => (p.id === updatedPlanet.id ? updatedPlanet : p)));
     }
@@ -760,16 +803,20 @@ export const OurStarScreen: React.FC = () => {
     );
     setSelectedPlanet(updatedPlanet);
     showToast(`"${updatedPlanet.title}" gezegeni güncellendi! ✨`);
-  };
+  }, [isDemoMode, showToast]);
 
-  const handlePlanetDeleted = (planetId: string) => {
+  const handlePlanetDeleted = useCallback((planetId: string) => {
     if (isDemoMode) {
       setDemoPlanetDetails((prev) => prev.filter((p) => p.id !== planetId));
     }
     setExoplanets((prev) => prev.filter((p) => p.id !== planetId));
     setSelectedPlanet(null);
     showToast('Anı gezegeni yörüngeden kaldırıldı.');
-  };
+  }, [isDemoMode, showToast]);
+
+  const handleExoplanetPremiumRequired = useCallback(() => {
+    handlePremiumAction('exoplanet_view', () => {});
+  }, [handlePremiumAction]);
 
   // ─── GÖKYÜZÜNDE SEÇİLEN YILDIZA BAĞLANTI İSTEĞİ GÖNDER ───────────────
   const handleConnectSelectedMacroStar = async () => {
@@ -1014,6 +1061,12 @@ export const OurStarScreen: React.FC = () => {
             partnerAvatarUrl={partnerAvatarUrl}
             onSelectCenterStar={handleMicroStarTouch}
             onSelectPlanet={handleOpenPlanet}
+            paused={
+              exoplanetModalMode !== null ||
+              isCertificateModalOpen ||
+              isConnectionsModalOpen ||
+              premiumPaywallSource !== null
+            }
           />
         ) : (
           <MacroSkyCanvas
@@ -1494,12 +1547,13 @@ export const OurStarScreen: React.FC = () => {
           starId={starDetails.star_id}
           coupleId={coupleId || 999999}
           selectedPlanet={selectedPlanet}
+          isLoadingDetails={isPlanetLoading}
           onClose={handleCloseExoplanetModal}
           onPlanetCreated={handlePlanetCreated}
           onPlanetUpdated={handlePlanetUpdated}
           onPlanetDeleted={handlePlanetDeleted}
           isPremium={isPremium}
-          onPremiumRequired={() => handlePremiumAction('exoplanet_view', () => {})}
+          onPremiumRequired={handleExoplanetPremiumRequired}
         />
       )}
 

@@ -10,7 +10,7 @@
  */
 
 import React, { memo, useEffect } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View, type LayoutChangeEvent } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, type LayoutChangeEvent } from 'react-native';
 import Animated, {
   Easing,
   FadeInUp,
@@ -22,7 +22,6 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Crown, Globe, Heart, Plus, Zap } from 'lucide-react-native';
 
@@ -238,7 +237,6 @@ export const MicroSystemDock = memo(function MicroSystemDock({
       onLayout={onLayout}
     >
       <View style={styles.panel}>
-        {Platform.OS === 'ios' && <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />}
         <LinearGradient
           colors={['rgba(253, 230, 138, 0)', 'rgba(253, 230, 138, 0.5)', 'rgba(253, 230, 138, 0)']}
           start={{ x: 0, y: 0.5 }}
@@ -311,7 +309,8 @@ const styles = StyleSheet.create({
     gap: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.09)',
-    backgroundColor: Platform.OS === 'ios' ? 'rgba(10, 8, 26, 0.55)' : 'rgba(10, 8, 26, 0.92)',
+    // Canlı bulanıklık yok: 60 FPS sahnenin üstünde her karede yeniden hesaplanıp takılmaya yol açıyordu.
+    backgroundColor: 'rgba(10, 8, 26, 0.88)',
   },
   topHairline: {
     position: 'absolute',
