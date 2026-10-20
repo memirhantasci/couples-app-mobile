@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronLeft, Plus, AlignJustify, Camera,
+  Grid3X3, Grid2X2, Square,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -241,18 +242,45 @@ export default function PhotosScreen() {
           </View>
         </View>
 
-        {/* ─── KONTROL ÇUBUĞU (YENİ YÜKLE) ─── */}
+        {/* ─── KONTROL ÇUBUĞU (GÖRÜNÜM SEÇİCİ & YENİ YÜKLE) ─── */}
         {isPremium && (
           <View style={[styles.controlBar, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
             {/* Hızlı Yükle Butonu */}
             <TouchableOpacity
-              style={[styles.uploadQuickBtn, { backgroundColor: theme.accent, flex: 1, justifyContent: "center" }]}
+              style={[styles.uploadQuickBtn, { backgroundColor: theme.accent }]}
               onPress={goToUpload}
               activeOpacity={0.85}
             >
               <Plus size={16} color="#ffffff" />
               <Text style={styles.uploadQuickBtnText}>Fotoğraf Ekle</Text>
             </TouchableOpacity>
+
+            {/* Görünüm Modları: 3'lü, 2'li, 1'li */}
+            <View style={styles.viewModePills}>
+              <TouchableOpacity
+                style={[styles.viewModeBtn, viewMode === "grid3" && { backgroundColor: theme.unitBg }]}
+                onPress={() => setViewMode("grid3")}
+                hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+              >
+                <Grid3X3 size={16} color={viewMode === "grid3" ? theme.accent : theme.textMuted} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.viewModeBtn, viewMode === "grid2" && { backgroundColor: theme.unitBg }]}
+                onPress={() => setViewMode("grid2")}
+                hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+              >
+                <Grid2X2 size={16} color={viewMode === "grid2" ? theme.accent : theme.textMuted} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.viewModeBtn, viewMode === "single" && { backgroundColor: theme.unitBg }]}
+                onPress={() => setViewMode("single")}
+                hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+              >
+                <Square size={16} color={viewMode === "single" ? theme.accent : theme.textMuted} />
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -408,6 +436,21 @@ const createStyles = (theme: AppTheme) => {
       color: "#ffffff",
       fontSize: 13,
       fontFamily: "Inter_700Bold",
+    },
+    viewModePills: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
+      padding: 3,
+      borderRadius: 14,
+      gap: 4,
+    },
+    viewModeBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
     },
 
     /* LİSTE BOŞLUKLARI */

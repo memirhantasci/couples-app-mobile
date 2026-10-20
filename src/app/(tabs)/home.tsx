@@ -11,7 +11,8 @@ import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { prefetchCalendarData } from "@/hooks/useCalendarData";
 import {
   dayjs,
   daysSince,
@@ -64,6 +65,24 @@ export default function HomeScreen() {
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
   const { myAvatarUrl, partnerAvatarUrl } = useCoupleAvatars();
+  const queryClient = useQueryClient();
+  const isPremium = (profile?.isPremium ?? false) || isDemoMode;
+  const isFemale = profile?.gender === "female";
+  const canSeePeriod = isFemale || isPremium;
+
+  // 🚀 Arka planda Aşk Takvimi verilerini önceden önbelleğe al (Prefetch)
+  // Böylece Takvim sekmesine basıldığında sıfır bekleme süresiyle (0ms) açılır
+  useEffect(() => {
+    if (coupleId || isDemoMode) {
+      prefetchCalendarData(queryClient, {
+        coupleId,
+        userId,
+        isPremium,
+        canSeePeriod,
+        isDemoMode,
+      });
+    }
+  }, [queryClient, coupleId, userId, isPremium, canSeePeriod, isDemoMode]);
 
   const [cachedScore, setCachedScore] = useState<LoveScoreResult | null>(null);
   const [isWrappedVisible, setIsWrappedVisible] = useState(false);

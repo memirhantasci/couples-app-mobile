@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { LocaleConfig } from "react-native-calendars";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
 import { decrypt, deterministicDecrypt } from "@/utils/crypto";
 import { sanitize } from "@/utils/sanitize";
@@ -26,12 +26,6 @@ import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 import { usePageTour } from "@/hooks/usePageTour";
 import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
-import {
-  DEMO_CALENDAR_NOTES,
-  DEMO_CALENDAR_USERS,
-  DEMO_PARTNER_ID,
-  DEMO_PHOTOS,
-} from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { CALENDAR_COLORS } from "@/components/calendar/calendarColors";
@@ -43,6 +37,7 @@ import { NoteMemoryCard } from "@/components/calendar/NoteMemoryCard";
 import { CalendarPhotoLightbox } from "@/components/calendar/CalendarPhotoLightbox";
 import { PERIOD_DURATION_DAYS, getPeriodDays, getPeriodStarts } from "@/lib/periodCycle";
 import { MOODS } from "@/components/home/MoodSelector";
+import { useCalendarData } from "@/hooks/useCalendarData";
 
 // Veritabanında ruh hali genelde emoji olarak saklanır; eski/demo kayıtlardaki ham anahtarlar (ör. "love") için eşleme.
 const MOOD_KEY_DISPLAY: Record<string, { emoji: string; label: string }> = {
@@ -103,117 +98,13 @@ export default function CalendarScreen() {
   const [showPaywall, setShowPaywall] = useState(false);
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("calendar");
 
-  // Veri çekme
-  const { data, isLoading } = useQuery({
-    queryKey: ["calendar_data", coupleId, isPremium, canSeePeriod, isDemoMode],
-    enabled: !!coupleId || !!userId || isDemoMode,
-    queryFn: async () => {
-      if (isDemoMode) {
-        return {
-          // Takvim notları çiftin ORTAK defteridir. Kişiye özel "Günlük Notum" kayıtları (DEMO_DAILY_NOTES)
-          // burada gösterilmez; demo da ortak aşk notlarıyla dolar.
-          notes: DEMO_CALENDAR_NOTES,
-          moods: [
-            { date: today, mood_type: "love", user_id: userId },
-            { date: today, mood_type: "😍", user_id: DEMO_PARTNER_ID },
-          ],
-          photos: DEMO_PHOTOS.map(p => ({
-            id: p.id,
-            user_id: p.user_id,
-            image_url: p.image_url,
-            title: p.title,
-            description: p.description,
-            taken_date: p.taken_date,
-            taken_time: p.taken_time,
-          })),
-          meetings: [
-            { id: 1, title: "Romantik Akşam Yemeği 🍷", location: "Boğaz Manzaralı Restoran", meeting_datetime: `${today}T19:30:00`, status: "approved", created_by: userId }
-          ],
-          periods: canSeePeriod ? [
-            { id: 1, date: dayjs().subtract(2, "day").format("YYYY-MM-DD"), user_id: "demo-partner" }
-          ] : [],
-          users: DEMO_CALENDAR_USERS,
-        };
-      }
-      const threeMonthsAgo = dayjs().subtract(2, "month").startOf("month").format("YYYY-MM-DD");
-      const threeMonthsLater = dayjs().add(2, "month").endOf("month").format("YYYY-MM-DD");
-
-      const [notesRes, moodsRes, photosRes, meetingsRes, periodsRes, usersRes] = await Promise.all([
-        supabase
-          .from("calendar_notes")
-          .select("id, date, note, user_id, created_at")
-          .eq("couple_id", coupleId)
-          .gte("date", threeMonthsAgo)
-          .lte("date", threeMonthsLater),
-        supabase
-          .from("moods")
-          .select("date, mood_type, user_id")
-          .eq("couple_id", coupleId)
-          .gte("date", threeMonthsAgo)
-          .lte("date", threeMonthsLater),
-        isPremium ? supabase
-          .from("photo_archive")
-          .select("id, user_id, image_url, title, description, taken_date, taken_time")
-          .eq("couple_id", coupleId)
-          .gte("taken_date", threeMonthsAgo)
-          .lte("taken_date", threeMonthsLater)
-          .order("taken_time", { ascending: false }) : Promise.resolve({ data: [] }),
-        supabase
-          .from("meetings")
-          .select("id, title, location, meeting_datetime, status, created_by")
-          .eq("couple_id", coupleId)
-          .gte("meeting_datetime", `${threeMonthsAgo}T00:00:00`)
-          .lte("meeting_datetime", `${threeMonthsLater}T23:59:59`),
-        canSeePeriod && coupleId
-          ? supabase
-            .from("period_logs")
-            .select("id, date, user_id")
-            .eq("couple_id", coupleId)
-            // Pencere öncesinde başlayıp pencereye taşan 5 günlük süreçler de gelsin
-            .gte("date", dayjs(threeMonthsAgo).subtract(PERIOD_DURATION_DAYS - 1, "day").format("YYYY-MM-DD"))
-            .lte("date", threeMonthsLater)
-          : Promise.resolve({ data: [] }),
-        supabase
-          .from("users")
-          .select("*")
-          .eq("couple_id", coupleId),
-      ]);
-
-      const userMap = (usersRes.data || []).reduce((acc: any, u: any) => {
-        acc[u.id] = {
-          ...u,
-          display_name: u.display_name ? decrypt(u.display_name) : null,
-        };
-        return acc;
-      }, {});
-
-      return {
-        notes: (notesRes.data || []).map((n: any) => ({
-          ...n,
-          user: userMap[n.user_id],
-        })),
-        moods: (moodsRes.data || []).map((m: any) => ({
-          ...m,
-          user: userMap[m.user_id],
-        })),
-        photos: (photosRes.data || []).map((p: any) => ({
-          ...p,
-          title: p.title ? decrypt(p.title) : null,
-          description: p.description ? decrypt(p.description) : null,
-          uploader: userMap[p.user_id],
-        })),
-        meetings: (meetingsRes.data || []).map((m: any) => ({
-          ...m,
-          creator: userMap[m.created_by],
-        })),
-        periods: (periodsRes.data || []).map((p: any) => ({
-          ...p,
-          user: userMap[p.user_id],
-        })),
-        users: Object.values(userMap) as any[],
-      };
-    },
-    staleTime: 1000 * 60 * 5,
+  // 🚀 Optimize Edilmiş Veri Çekme Hook'u (3 ay aralığı, cache optimizasyonu, 0ms geçiş)
+  const { data, isLoading } = useCalendarData({
+    coupleId,
+    userId,
+    isPremium,
+    canSeePeriod,
+    isDemoMode,
   });
 
   // Kullanıcı başına regl başlangıçları (kayıtlar yalnızca başlangıç gününü tutar; 5 günlük süreç buradan türetilir)
@@ -225,8 +116,9 @@ export default function CalendarScreen() {
     return Object.entries(datesByUser).map(([uid, dates]) => ({ userId: uid, starts: getPeriodStarts(dates) }));
   }, [data]);
 
-  // Takvim işaretli günleri
-  const markedDates = useMemo(() => {
+  // 🚀 PERFORMANS OPTİMİZASYONU 1: Baz takvim noktaları (selectedDate'e BAĞIMSIZ)
+  // Kullanıcı takvimde bir güne tıkladığında bu ağır döngü TEKRAR ÇALIŞMAZ (0ms).
+  const baseMarks = useMemo(() => {
     if (!data) return {};
     const marks: Record<string, any> = {};
 
@@ -257,8 +149,7 @@ export default function CalendarScreen() {
       });
     }
 
-    // 🎨 3.4 Çözümü: Gün hücresi içinde 4+ noktanın taşmasını önlemek için en fazla 3 nokta tut
-    // Regl noktası 5 gün boyunca görünmeli; kesilecekse diğerleri kesilir
+    // 🎨 Gün hücresi içinde 4+ noktanın taşmasını önlemek için en fazla 3 nokta tut
     Object.keys(marks).forEach(d => {
       if (marks[d].dots && marks[d].dots.length > 3) {
         const periodDot = marks[d].dots.find((dot: any) => dot.key === "period");
@@ -266,6 +157,13 @@ export default function CalendarScreen() {
         marks[d].dots = periodDot ? [...others.slice(0, 2), periodDot] : others.slice(0, 3);
       }
     });
+
+    return marks;
+  }, [data, periodStartsByUser, isPremium, canSeePeriod, userId]);
+
+  // 🚀 PERFORMANS OPTİMİZASYONU 2: Sadece seçili günün vurgulanması (Anlık shallow copy, 0ms tepki)
+  const markedDates = useMemo(() => {
+    const marks: Record<string, any> = { ...baseMarks };
 
     if (marks[selectedDate]) {
       marks[selectedDate] = {
@@ -282,7 +180,7 @@ export default function CalendarScreen() {
     }
 
     return marks;
-  }, [data, selectedDate, theme.accent, userId, isPremium, canSeePeriod, periodStartsByUser]);
+  }, [baseMarks, selectedDate, theme.accent]);
 
   const onDayPress = useCallback((day: { dateString: string }) => {
     setSelectedDate(day.dateString);

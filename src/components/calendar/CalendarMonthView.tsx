@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react-native";
@@ -43,7 +43,7 @@ interface CalendarMonthViewProps {
   onNextMonth: () => void;
 }
 
-export function CalendarMonthView({
+function CalendarMonthViewComponent({
   theme,
   isLight,
   currentMonth,
@@ -54,6 +54,59 @@ export function CalendarMonthView({
   onNextMonth,
 }: CalendarMonthViewProps) {
   const legendEntries = canSeePeriod ? [...LEGEND_ENTRIES, PERIOD_LEGEND_ENTRY] : LEGEND_ENTRIES;
+
+  // 🚀 PERFORMANS: Takvim tema nesnesini memoize ederek her render'da stylesheet recalculation yapılmasını önlüyoruz
+  const calendarTheme = useMemo(
+    () => ({
+      calendarBackground: "transparent",
+      textSectionTitleColor: theme.textMuted,
+      selectedDayBackgroundColor: theme.accent,
+      selectedDayTextColor: "#ffffff",
+      todayTextColor: theme.accent,
+      dayTextColor: theme.text,
+      textDisabledColor: isLight ? "rgba(0,0,0,0.22)" : "rgba(255,255,255,0.2)",
+      dotColor: theme.accent,
+      selectedDotColor: "#ffffff",
+      monthTextColor: theme.text,
+      textDayFontSize: 14,
+      textDayHeaderFontSize: 11.5,
+      textDayHeaderFontWeight: "600" as const,
+      ...({
+        "stylesheet.calendar.header": {
+          header: {
+            display: "none",
+          },
+        },
+        "stylesheet.day.multiDot": {
+          base: {
+            width: 36,
+            height: 36,
+            alignItems: "center",
+            paddingTop: 4,
+            borderRadius: 12,
+          },
+          today: {
+            borderColor: theme.accent,
+            borderWidth: 1.5,
+            borderRadius: 12,
+          },
+          selected: {
+            backgroundColor: theme.accent,
+            borderRadius: 12,
+          },
+          dot: {
+            width: 5,
+            height: 5,
+            marginTop: 2,
+            marginHorizontal: 1,
+            borderRadius: 2.5,
+            opacity: 1,
+          },
+        },
+      } as any),
+    }),
+    [theme.accent, theme.text, theme.textMuted, isLight]
+  );
 
   return (
     <>
@@ -79,59 +132,12 @@ export function CalendarMonthView({
       <View style={[styles.calendarCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
         <Calendar
           current={currentMonth}
-          key={`${currentMonth}_${theme.id}_${theme.gender}`}
+          key={theme.id}
           firstDay={1}
           onDayPress={onDayPress}
           markedDates={markedDates}
-          markingType={'multi-dot'}
-          theme={{
-            calendarBackground: 'transparent',
-            textSectionTitleColor: theme.textMuted,
-            selectedDayBackgroundColor: theme.accent,
-            selectedDayTextColor: '#ffffff',
-            todayTextColor: theme.accent,
-            dayTextColor: theme.text,
-            textDisabledColor: isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.2)',
-            dotColor: theme.accent,
-            selectedDotColor: '#ffffff',
-            monthTextColor: theme.text,
-            textDayFontSize: 14,
-            textDayHeaderFontSize: 11.5,
-            textDayHeaderFontWeight: '600',
-            ...({
-              'stylesheet.calendar.header': {
-                header: {
-                  display: 'none',
-                },
-              },
-              'stylesheet.day.multiDot': {
-                base: {
-                  width: 36,
-                  height: 36,
-                  alignItems: 'center',
-                  paddingTop: 4,
-                  borderRadius: 12,
-                },
-                today: {
-                  borderColor: theme.accent,
-                  borderWidth: 1.5,
-                  borderRadius: 12,
-                },
-                selected: {
-                  backgroundColor: theme.accent,
-                  borderRadius: 12,
-                },
-                dot: {
-                  width: 5,
-                  height: 5,
-                  marginTop: 2,
-                  marginHorizontal: 1,
-                  borderRadius: 2.5,
-                  opacity: 1,
-                },
-              },
-            } as any),
-          }}
+          markingType={"multi-dot"}
+          theme={calendarTheme}
         />
 
         {/* LEJANT (RENK KILAVUZU) */}
@@ -158,6 +164,8 @@ export function CalendarMonthView({
     </>
   );
 }
+
+export const CalendarMonthView = React.memo(CalendarMonthViewComponent);
 
 const styles = StyleSheet.create({
   /* AY GEZGİNİ */

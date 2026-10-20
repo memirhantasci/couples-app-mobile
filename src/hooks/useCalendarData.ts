@@ -1,0 +1,196 @@
+import { useQuery, type QueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { dayjs, todayString } from "@/lib/date";
+import { decrypt } from "@/utils/crypto";
+import { PERIOD_DURATION_DAYS } from "@/lib/periodCycle";
+import {
+  DEMO_CALENDAR_NOTES,
+  DEMO_CALENDAR_USERS,
+  DEMO_PARTNER_ID,
+  DEMO_PHOTOS,
+} from "@/constants/demoData";
+
+export interface CalendarFetchParams {
+  coupleId: number | null | undefined;
+  userId: string | null | undefined;
+  isPremium: boolean;
+  canSeePeriod: boolean;
+  isDemoMode: boolean;
+}
+
+export function getCalendarQueryKey(
+  coupleId: number | null | undefined,
+  isPremium: boolean,
+  canSeePeriod: boolean,
+  isDemoMode: boolean
+) {
+  return ["calendar_data", coupleId, isPremium, canSeePeriod, isDemoMode];
+}
+
+export async function fetchCalendarData(params: CalendarFetchParams) {
+  const { coupleId, userId, isPremium, canSeePeriod, isDemoMode } = params;
+  const today = todayString();
+
+  if (isDemoMode) {
+    return {
+      notes: DEMO_CALENDAR_NOTES,
+      moods: [
+        { date: today, mood_type: "love", user_id: userId },
+        { date: today, mood_type: "😍", user_id: DEMO_PARTNER_ID },
+      ],
+      photos: DEMO_PHOTOS.map((p) => ({
+        id: p.id,
+        user_id: p.user_id,
+        image_url: p.image_url,
+        title: p.title,
+        description: p.description,
+        taken_date: p.taken_date,
+        taken_time: p.taken_time,
+      })),
+      meetings: [
+        {
+          id: 1,
+          title: "Romantik Akşam Yemeği 🍷",
+          location: "Boğaz Manzaralı Restoran",
+          meeting_datetime: `${today}T19:30:00`,
+          status: "approved",
+          created_by: userId,
+        },
+      ],
+      periods: canSeePeriod
+        ? [
+            {
+              id: 1,
+              date: dayjs().subtract(2, "day").format("YYYY-MM-DD"),
+              user_id: "demo-partner",
+            },
+          ]
+        : [],
+      users: DEMO_CALENDAR_USERS,
+    };
+  }
+
+  if (!coupleId) {
+    return {
+      notes: [],
+      moods: [],
+      photos: [],
+      meetings: [],
+      periods: [],
+      users: [],
+    };
+  }
+
+  // 🚀 PERFORMANS OPTİMİZASYONU:
+  // 5 ay yerine 3 ay (önceki ay, mevcut ay, sonraki ay) sorgulanır.
+  // Bu hem veri aktarım süresini hem de işlem yükünü yarı yarıya azaltır.
+  const startDate = dayjs().subtract(1, "month").startOf("month").format("YYYY-MM-DD");
+  const endDate = dayjs().add(1, "month").endOf("month").format("YYYY-MM-DD");
+
+  const [notesRes, moodsRes, photosRes, meetingsRes, periodsRes, usersRes] = await Promise.all([
+    supabase
+      .from("calendar_notes")
+      .select("id, date, note, user_id, created_at")
+      .eq("couple_id", coupleId)
+      .gte("date", startDate)
+      .lte("date", endDate),
+    supabase
+      .from("moods")
+      .select("date, mood_type, user_id")
+      .eq("couple_id", coupleId)
+      .gte("date", startDate)
+      .lte("date", endDate),
+    isPremium
+      ? supabase
+          .from("photo_archive")
+          .select("id, user_id, image_url, title, description, taken_date, taken_time")
+          .eq("couple_id", coupleId)
+          .gte("taken_date", startDate)
+          .lte("taken_date", endDate)
+          .order("taken_time", { ascending: false })
+      : Promise.resolve({ data: [] }),
+    supabase
+      .from("meetings")
+      .select("id, title, location, meeting_datetime, status, created_by")
+      .eq("couple_id", coupleId)
+      .gte("meeting_datetime", `${startDate}T00:00:00`)
+      .lte("meeting_datetime", `${endDate}T23:59:59`),
+    canSeePeriod
+      ? supabase
+          .from("period_logs")
+          .select("id, date, user_id")
+          .eq("couple_id", coupleId)
+          .gte("date", dayjs(startDate).subtract(PERIOD_DURATION_DAYS - 1, "day").format("YYYY-MM-DD"))
+          .lte("date", endDate)
+      : Promise.resolve({ data: [] }),
+    // '*' yerine sadece gerekli hafif sütunlar
+    supabase
+      .from("users")
+      .select("id, display_name, username, avatar_url")
+      .eq("couple_id", coupleId),
+  ]);
+
+  const userMap = (usersRes.data || []).reduce((acc: any, u: any) => {
+    acc[u.id] = {
+      ...u,
+      display_name: u.display_name ? decrypt(u.display_name) : null,
+    };
+    return acc;
+  }, {});
+
+  return {
+    notes: (notesRes.data || []).map((n: any) => ({
+      ...n,
+      user: userMap[n.user_id],
+    })),
+    moods: (moodsRes.data || []).map((m: any) => ({
+      ...m,
+      user: userMap[m.user_id],
+    })),
+    photos: (photosRes.data || []).map((p: any) => ({
+      ...p,
+      title: p.title ? decrypt(p.title) : null,
+      description: p.description ? decrypt(p.description) : null,
+      uploader: userMap[p.user_id],
+    })),
+    meetings: (meetingsRes.data || []).map((m: any) => ({
+      ...m,
+      creator: userMap[m.created_by],
+    })),
+    periods: (periodsRes.data || []).map((p: any) => ({
+      ...p,
+      user: userMap[p.user_id],
+    })),
+    users: Object.values(userMap) as any[],
+  };
+}
+
+/**
+ * ⚡ Takvim verisini arka planda önceden yükler (Prefetch)
+ * Kullanıcı ana sayfadayken çağrılır, böylece Takvim sekmesine tıklandığı an
+ * veri beklemeden sıfır gecikmeyle (0ms) açılır.
+ */
+export function prefetchCalendarData(queryClient: QueryClient, params: CalendarFetchParams) {
+  const { coupleId, isPremium, canSeePeriod, isDemoMode } = params;
+  if (!coupleId && !isDemoMode) return;
+
+  const key = getCalendarQueryKey(coupleId, isPremium, canSeePeriod, isDemoMode);
+  queryClient.prefetchQuery({
+    queryKey: key,
+    queryFn: () => fetchCalendarData(params),
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+export function useCalendarData(params: CalendarFetchParams) {
+  const { coupleId, userId, isPremium, canSeePeriod, isDemoMode } = params;
+
+  return useQuery({
+    queryKey: getCalendarQueryKey(coupleId, isPremium, canSeePeriod, isDemoMode),
+    enabled: !!coupleId || !!userId || isDemoMode,
+    queryFn: () => fetchCalendarData(params),
+    staleTime: 1000 * 60 * 5, // 5 dakika taze kalır
+    gcTime: 1000 * 60 * 30, // 30 dakika hafızada tutulur
+    placeholderData: (previousData) => previousData, // Arka plan yenilemelerinde ekranda sıçrama olmasın
+  });
+}
