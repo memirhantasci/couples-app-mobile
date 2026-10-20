@@ -198,6 +198,22 @@ export const ORRERY_ORBITS = {
   })),
 } as const;
 
+/** Dış yörüngenin (Plüton) dışında bırakılan pay: yıldızlar halkaya yapışık durmasın. */
+const SOLAR_CLEARANCE = 1.06;
+
+/**
+ * Nokta, güneş sisteminin (en dış yörüngenin) içinde mi? Bu alanda gezegenlerden başka hiçbir yıldız
+ * çizilmez/seçilmez; aksi halde sistem içinde sanki başka yıldızlar varmış gibi görünür.
+ */
+export function isInsideSolarSystem(ra: number, dec: number): boolean {
+  const outer = ORRERY_ORBITS.rings[ORRERY_ORBITS.rings.length - 1];
+  const dRa = ((((ra - ORRERY_ORBITS.ra) % 360) + 540) % 360) - 180;
+  const dDec = dec - ORRERY_ORBITS.dec;
+  const x = dRa / (outer.rx * SOLAR_CLEARANCE);
+  const y = dDec / (outer.ry * SOLAR_CLEARANCE);
+  return x * x + y * y <= 1;
+}
+
 /**
  * Gök haritası için güneş sistemi yerleşimi: Güneş merkezde, her gezegen Güneş etrafındaki
  * GERÇEK güncel açısında (güneş merkezli ekliptik boylamı), ancak sıkıştırılmış uzaklıkta.
