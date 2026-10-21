@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Gesture } from 'react-native-gesture-handler';
 import {
   cancelAnimation,
@@ -450,139 +450,148 @@ export function useSkyCamera({
     },
   );
 
-  // Explicit 'worklet' directives keep every callback on the UI thread even if
-  // the compiler hoists it out of the builder chain.
-  const pan = Gesture.Pan()
-    .minDistance(10)
-    .averageTouches(true)
-    .onBegin(() => {
-      'worklet';
-      stopMotion();
-    })
-    .onStart(() => {
-      'worklet';
-      panActive.set(true);
-    })
-    .onChange((event) => {
-      'worklet';
-      // While two fingers pinch, the pinch moves the map with their midpoint.
-      if (pinchActive.get() && pinchTwoFingers.get()) return;
-      if (skipNextPanDelta.get()) {
-        // First event after a pinch: the touch centroid may jump when a finger lifts.
-        skipNextPanDelta.set(false);
-        return;
-      }
-      if (mode.get() !== MODE_DIRECT) bake();
-      setDirect(panStep(readCamera(), event.changeX, event.changeY, height));
-    })
-    .onEnd((event) => {
-      'worklet';
-      panVelocityX.set(event.velocityX);
-      panVelocityY.set(event.velocityY);
-    })
-    .onFinalize(() => {
-      'worklet';
-      panActive.set(false);
-      skipNextPanDelta.set(false);
-      settleAfterGesture();
-    });
-
-  const pinch = Gesture.Pinch()
-    .onBegin(() => {
-      'worklet';
-      stopMotion();
-    })
-    .onStart((event) => {
-      'worklet';
-      if (mode.get() !== MODE_DIRECT) bake();
-      pinchActive.set(true);
-      pinchTwoFingers.set(event.numberOfPointers >= 2);
-      lastFocalX.set(event.focalX);
-      lastFocalY.set(event.focalY);
-    })
-    .onChange((event) => {
-      'worklet';
-      if (event.numberOfPointers < 2) {
-        // A finger lifted while the pinch is still alive (iOS): its focal
-        // point jumps to the remaining finger, so stop zooming here and let
-        // the pan follow that finger instead.
-        if (pinchTwoFingers.get()) {
-          pinchTwoFingers.set(false);
-          skipNextPanDelta.set(true);
+  // Built once per mount (not on every render): Gesture.* always returns a new
+  // handler instance, and GestureDetector re-attaches the native recognizer
+  // whenever that identity changes. Rebuilding on every render (as this used
+  // to) tears the recognizer down and reattaches it on every parent re-render
+  // -- including the throttled camera/bounds reports fired *while a gesture is
+  // still moving*, so any screen that re-renders more often while panning (a
+  // moving focal point, more frequent state updates, etc.) could cut an
+  // in-flight momentum fling short almost immediately. Every worklet below
+  // only closes over shared values and stable refs, so memoizing changes
+  // nothing it reads -- width/height are included only in case the viewport
+  // itself is ever resized.
+  const gesture = useMemo(() => {
+    // Explicit 'worklet' directives keep every callback on the UI thread even if
+    // the compiler hoists it out of the builder chain.
+    const pan = Gesture.Pan()
+      .minDistance(10)
+      .averageTouches(true)
+      .onBegin(() => {
+        'worklet';
+        stopMotion();
+      })
+      .onStart(() => {
+        'worklet';
+        panActive.set(true);
+      })
+      .onChange((event) => {
+        'worklet';
+        // While two fingers pinch, the pinch moves the map with their midpoint.
+        if (pinchActive.get() && pinchTwoFingers.get()) return;
+        if (skipNextPanDelta.get()) {
+          // First event after a pinch: the touch centroid may jump when a finger lifts.
+          skipNextPanDelta.set(false);
+          return;
         }
-        return;
-      }
-      if (!pinchTwoFingers.get()) {
-        // Second finger back: re-anchor instead of applying the jump.
-        pinchTwoFingers.set(true);
+        if (mode.get() !== MODE_DIRECT) bake();
+        setDirect(panStep(readCamera(), event.changeX, event.changeY, height));
+      })
+      .onEnd((event) => {
+        'worklet';
+        panVelocityX.set(event.velocityX);
+        panVelocityY.set(event.velocityY);
+      })
+      .onFinalize(() => {
+        'worklet';
+        panActive.set(false);
+        skipNextPanDelta.set(false);
+        settleAfterGesture();
+      });
+
+    const pinch = Gesture.Pinch()
+      .onBegin(() => {
+        'worklet';
+        stopMotion();
+      })
+      .onStart((event) => {
+        'worklet';
+        if (mode.get() !== MODE_DIRECT) bake();
+        pinchActive.set(true);
+        pinchTwoFingers.set(event.numberOfPointers >= 2);
         lastFocalX.set(event.focalX);
         lastFocalY.set(event.focalY);
-        return;
-      }
-      if (mode.get() !== MODE_DIRECT) bake();
-      setDirect(
-        pinchStep(
-          readCamera(),
-          lastFocalX.get(),
-          lastFocalY.get(),
-          event.focalX,
-          event.focalY,
-          event.scaleChange,
-          width,
-          height,
-        ),
-      );
-      lastFocalX.set(event.focalX);
-      lastFocalY.set(event.focalY);
-      lastPinchAt.set(eventTimeMs());
-    })
-    .onFinalize(() => {
-      'worklet';
-      if (pinchActive.get()) {
+      })
+      .onChange((event) => {
+        'worklet';
+        if (event.numberOfPointers < 2) {
+          // A finger lifted while the pinch is still alive (iOS): its focal
+          // point jumps to the remaining finger, so stop zooming here and let
+          // the pan follow that finger instead.
+          if (pinchTwoFingers.get()) {
+            pinchTwoFingers.set(false);
+            skipNextPanDelta.set(true);
+          }
+          return;
+        }
+        if (!pinchTwoFingers.get()) {
+          // Second finger back: re-anchor instead of applying the jump.
+          pinchTwoFingers.set(true);
+          lastFocalX.set(event.focalX);
+          lastFocalY.set(event.focalY);
+          return;
+        }
+        if (mode.get() !== MODE_DIRECT) bake();
+        setDirect(
+          pinchStep(
+            readCamera(),
+            lastFocalX.get(),
+            lastFocalY.get(),
+            event.focalX,
+            event.focalY,
+            event.scaleChange,
+            width,
+            height,
+          ),
+        );
+        lastFocalX.set(event.focalX);
+        lastFocalY.set(event.focalY);
         lastPinchAt.set(eventTimeMs());
-        skipNextPanDelta.set(true);
-      }
-      pinchActive.set(false);
-      pinchTwoFingers.set(false);
-      settleAfterGesture();
-    });
+      })
+      .onFinalize(() => {
+        'worklet';
+        if (pinchActive.get()) {
+          lastPinchAt.set(eventTimeMs());
+          skipNextPanDelta.set(true);
+        }
+        pinchActive.set(false);
+        pinchTwoFingers.set(false);
+        settleAfterGesture();
+      });
 
-  const singleTap = Gesture.Tap()
-    .maxDuration(450)
-    .maxDistance(24)
-    .onEnd((event, success) => {
-      'worklet';
-      if (!success) return;
-      const current = readCamera();
-      runOnJS(emitTap)(event.x, event.y, current.ra, current.dec, current.zoom);
-    });
+    const singleTap = Gesture.Tap()
+      .maxDuration(450)
+      .maxDistance(24)
+      .onEnd((event, success) => {
+        'worklet';
+        if (!success) return;
+        const current = readCamera();
+        runOnJS(emitTap)(event.x, event.y, current.ra, current.dec, current.zoom);
+      });
 
-  const doubleTap = Gesture.Tap()
-    .numberOfTaps(2)
-    .maxDelay(260)
-    .maxDistance(28)
-    .onEnd((event, success) => {
-      'worklet';
-      if (!success) return;
-      startSettle(event.x, event.y, clampZoom(readCamera().zoom * 2), TAP_ZOOM_DURATION_MS);
-    });
+    const doubleTap = Gesture.Tap()
+      .numberOfTaps(2)
+      .maxDelay(260)
+      .maxDistance(28)
+      .onEnd((event, success) => {
+        'worklet';
+        if (!success) return;
+        startSettle(event.x, event.y, clampZoom(readCamera().zoom * 2), TAP_ZOOM_DURATION_MS);
+      });
 
-  const twoFingerTap = Gesture.Tap()
-    .minPointers(2)
-    .maxDuration(280)
-    .maxDistance(24)
-    .onEnd((event, success) => {
-      'worklet';
-      if (!success) return;
-      startSettle(event.x, event.y, clampZoom(readCamera().zoom / 2), TAP_ZOOM_DURATION_MS);
-    });
+    const twoFingerTap = Gesture.Tap()
+      .minPointers(2)
+      .maxDuration(280)
+      .maxDistance(24)
+      .onEnd((event, success) => {
+        'worklet';
+        if (!success) return;
+        startSettle(event.x, event.y, clampZoom(readCamera().zoom / 2), TAP_ZOOM_DURATION_MS);
+      });
 
-  const gesture = Gesture.Simultaneous(
-    pan,
-    pinch,
-    twoFingerTap,
-    Gesture.Exclusive(doubleTap, singleTap),
-  );
+    return Gesture.Simultaneous(pan, pinch, twoFingerTap, Gesture.Exclusive(doubleTap, singleTap));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [width, height]);
 
   return { camera, gesture, flightRequest };
 }
