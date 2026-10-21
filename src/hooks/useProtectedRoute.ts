@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useRouter, useSegments, useRootNavigationState } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
+import { getOrCreateDeviceId } from "@/utils/device";
 
 export function useProtectedRoute() {
   const { session, isLoading, profile, isDeviceAuthorized, isDemoMode, enterDemoMode } = useAuth();
@@ -53,12 +54,20 @@ export function useProtectedRoute() {
         // If the device is not authorized for this user, force them to verify-device screen
         if (isDeviceAuthorized === false) {
           if (!currentRoute.includes("verify-device") && !currentRoute.includes("verify") && !currentRoute.includes("login")) {
-            router.replace({
-              pathname: "/(auth)/verify-device",
-              params: {
-                userId: session.user.id,
-                email: session.user.email || "",
-              },
+            // verify-device.tsx cihazı yetkilendirmek için deviceId parametresine ihtiyaç duyar
+            // (upsert'in "user_id, device_id" conflict hedefi). Eskiden burada eksikti: kullanıcı
+            // yetkisiz bir cihazla (ör. yeniden kurulumda Keychain'deki oturum hayatta kalırken
+            // cihaz kimliği sıfırlanmış) uygulamayı her açtığında deviceId'siz bu ekrana düşüyor,
+            // doğrulama kodu girince cihaz hiç kaydolmuyor ya da hata fırlatıyordu.
+            getOrCreateDeviceId().then((deviceId) => {
+              router.replace({
+                pathname: "/(auth)/verify-device",
+                params: {
+                  userId: session.user.id,
+                  deviceId,
+                  email: session.user.email || "",
+                },
+              });
             });
           }
           return;

@@ -160,8 +160,6 @@ function MicroSystemCanvasSkia({
   const tilt = useSharedValue(DEFAULT_TILT);
   const spin = useSharedValue(0);
   const wave = useSharedValue(1);
-  const panStartSpin = useSharedValue(0);
-  const panStartTilt = useSharedValue(DEFAULT_TILT);
 
   // Kamera: iki parmakla yakınlaştırma (odak noktası sabit kalır) ve kaydırma.
   // Ölçek sığdırma ölçeğine göre çarpan olarak tutulur: gezegen sayısı/yerleşim değişince
@@ -175,6 +173,10 @@ function MicroSystemCanvasSkia({
   const pinchStartPanY = useSharedValue(0);
   const pinchFocalX = useSharedValue(0);
   const pinchFocalY = useSharedValue(0);
+  const pinchStartScale = useSharedValue(1);
+  const pinchPointers = useSharedValue(0);
+  // Bu dokunuşta iki parmak hareketi başladıysa tek parmak sürüklemesi parmaklar kalkana dek susar.
+  const pinchEngaged = useSharedValue(false);
   // React Compiler bu nesneyi kendisi memoize eder (paylaşılan değerler kimlik olarak sabittir).
   const camera = { zoom, panX, panY };
   const minZoom = fitZoom * MIN_ZOOM_FACTOR;
@@ -306,26 +308,45 @@ function MicroSystemCanvasSkia({
     if (planet) onSelectPlanet?.(planet);
   };
 
-  // Tek parmak: sistemi döndür (yatay) ve eğ (dikey).
+  // Tek parmak: sistemi döndür (yatay) ve eğ (dikey). Hassasiyet yakınlaştırmaya bölünür;
+  // böylece her ölçekte öndeki (alttaki) gövdeler parmağı aynı hızla takip eder, yakındayken savrulmaz.
   const pan = Gesture.Pan()
     .minDistance(12)
     .maxPointers(1)
+    .onBegin(() => {
+      'worklet';
+      pinchEngaged.set(false);
+    })
     .onStart(() => {
       'worklet';
       cancelAnimation(spin);
-      panStartSpin.set(spin.value);
-      panStartTilt.set(Math.min(tilt.value, maxTilt));
     })
-    .onUpdate((event) => {
+    .onChange((event) => {
       'worklet';
-      // Öndeki (alttaki) gövdeler parmağı takip eder.
-      spin.set(panStartSpin.value - event.translationX / SPIN_PX_PER_RADIAN);
-      tilt.set(clamp(panStartTilt.value + event.translationY / TILT_PX_PER_UNIT, MIN_TILT, maxTilt));
+      // iOS'ta ikinci parmak gelince de ilk parmağın sürüklemesi sürer; sahneyi yalnızca pinch yönetir.
+      if (pinchEngaged.value) return;
+      const k = zoomFactor.value;
+      spin.set(spin.value - event.changeX / (SPIN_PX_PER_RADIAN * k));
+      tilt.set(clamp(Math.min(tilt.value, maxTilt) + event.changeY / (TILT_PX_PER_UNIT * k), MIN_TILT, maxTilt));
     })
-    .onEnd((event) => {
+    .onEnd((event, success) => {
       'worklet';
-      spin.set(withDecay({ velocity: -event.velocityX / SPIN_PX_PER_RADIAN, deceleration: 0.995 }));
+      // İkinci parmak gelince iptal edilen sürükleme fırlatılmaz.
+      if (!success || pinchEngaged.value) return;
+      spin.set(withDecay({ velocity: -event.velocityX / (SPIN_PX_PER_RADIAN * zoomFactor.value), deceleration: 0.995 }));
     });
+
+  // Pinch'in mutlak hesabının dayanağı: o anki kamera, odak, ölçek ve parmak sayısı.
+  const anchorPinch = (focalX: number, focalY: number, scale: number, pointers: number) => {
+    'worklet';
+    pinchStartZoom.set(fitZoom * zoomFactor.value);
+    pinchStartPanX.set(panX.value);
+    pinchStartPanY.set(panY.value);
+    pinchFocalX.set(focalX);
+    pinchFocalY.set(focalY);
+    pinchStartScale.set(scale);
+    pinchPointers.set(pointers);
+  };
 
   // İki parmak: parmakların arasındaki nokta sabit kalarak yakınlaş/uzaklaş; parmakları
   // birlikte kaydırınca sahne de kayar.
@@ -335,15 +356,22 @@ function MicroSystemCanvasSkia({
       cancelAnimation(zoomFactor);
       cancelAnimation(panX);
       cancelAnimation(panY);
-      pinchStartZoom.set(zoom.value);
-      pinchStartPanX.set(panX.value);
-      pinchStartPanY.set(panY.value);
-      pinchFocalX.set(event.focalX);
-      pinchFocalY.set(event.focalY);
+      // Süren dönme ataleti yakınlaştırılan gezegeni parmakların altından kaydırmasın.
+      cancelAnimation(spin);
+      pinchEngaged.set(true);
+      anchorPinch(event.focalX, event.focalY, event.scale, event.numberOfPointers);
     })
     .onUpdate((event) => {
       'worklet';
-      const nextZoom = clamp(pinchStartZoom.value * event.scale, minZoom, MAX_ZOOM);
+      // Bir parmak kalkınca pinch bitmez (iOS ve Android), odak kalan parmağa sıçrar; üçüncü
+      // parmakta da yeni ağırlık merkezine. Sıçramayı uygulamak yerine yeni düzene tutturulur.
+      if (event.numberOfPointers !== pinchPointers.value) {
+        anchorPinch(event.focalX, event.focalY, event.scale, event.numberOfPointers);
+        return;
+      }
+      // Tek parmak kaldıysa sahne donar; ikinci parmak gelince kaldığı yerden sürer.
+      if (event.numberOfPointers < 2) return;
+      const nextZoom = clamp(pinchStartZoom.value * (event.scale / pinchStartScale.value), minZoom, MAX_ZOOM);
       const ratio = nextZoom / pinchStartZoom.value;
       // Başlangıç odağının altındaki dünya noktası, parmakların şu anki odağının altında kalır.
       const anchorX = pinchFocalX.value - cx - pinchStartPanX.value;
@@ -357,7 +385,7 @@ function MicroSystemCanvasSkia({
     .onEnd(() => {
       'worklet';
       // Neredeyse sığdırma ölçeğine dönüldüyse sistemi yumuşakça ortala.
-      if (zoom.value <= fitZoom * 1.04) {
+      if (zoomFactor.value <= 1.04) {
         zoomFactor.set(withTiming(1, { duration: 350 }));
         panX.set(withTiming(0, { duration: 350 }));
         panY.set(withTiming(0, { duration: 350 }));
@@ -402,7 +430,9 @@ function MicroSystemCanvasSkia({
       }
     });
 
-  const gesture = Gesture.Race(pinch, pan, tap);
+  // Race olsaydı ikinci parmak inmeden önce kayan ilk parmak sürüklemeyi kazanır, pinch o dokunuşta
+  // hiç başlamazdı; eşzamanlıyken ikinci parmak gelince pinch devralır.
+  const gesture = Gesture.Race(Gesture.Simultaneous(pinch, pan), tap);
 
   // Yıldız tozu dünya koordinatında üretilir; kamerayla birlikte taşınır ve ölçeklenir.
   const particleTransform = useDerivedValue(() => [
