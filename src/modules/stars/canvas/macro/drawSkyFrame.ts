@@ -130,18 +130,21 @@ function drawStar(
   'worklet';
   const { fill, stroke } = paints;
   const r = star.radius * style.zoomBonus;
-  const mediumGlow = style.glow * (1 - style.detail);
   const detail = style.detail;
+  // Unclaimed stars glow softly from medium zoom on. A claimed star glows as
+  // strongly as its couple is active at every zoom, so lively stars stand out
+  // even in the overview; close in, the halo below takes over.
+  const glow = (star.claimed ? star.luminosity : style.glow) * (1 - detail);
   fill.setColor(rgb);
 
   if (detail > 0.01 && star.claimed && !star.resonance) {
     fill.setAlphaf(0.4 * star.luminosity * detail * opacity);
     canvas.drawCircle(x, y, r + 14, fill);
   }
-  if (mediumGlow > 0.01) {
-    fill.setAlphaf(0.25 * mediumGlow * opacity);
+  if (glow > 0.01) {
+    fill.setAlphaf(0.25 * glow * opacity);
     canvas.drawCircle(x, y, r * 2.5, fill);
-    fill.setAlphaf(0.45 * mediumGlow * opacity);
+    fill.setAlphaf(0.45 * glow * opacity);
     canvas.drawCircle(x, y, r * 1.6, fill);
   }
   if (detail > 0.01) {

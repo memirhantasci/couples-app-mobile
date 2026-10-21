@@ -1,7 +1,7 @@
 import { Easing, withTiming, type SharedValue } from 'react-native-reanimated';
 import type { ViewportStarItem } from '../../types/star.types';
 import { normalizeRa } from './skyProjection';
-import { magnitudeToAlpha, starBaseRadius } from './starStyle';
+import { starBaseRadius, starCoreAlpha } from './starStyle';
 
 /**
  * Star data prepared on the JS thread for per-frame drawing on the UI thread.
@@ -25,6 +25,7 @@ export interface StarRender {
   /** Radius in pixels before the zoom bonus. */
   readonly radius: number;
   readonly alpha: number;
+  /** Activity brightness (see ViewportStarItem.luminosity_level); only drawn for claimed stars. */
   readonly luminosity: number;
   readonly claimed: boolean;
   readonly resonance: boolean;
@@ -134,7 +135,7 @@ export class StarFieldBuilder {
         dec: star.dec,
         magnitude: star.magnitude,
         radius: starBaseRadius(star.magnitude, star.spectral_type),
-        alpha: magnitudeToAlpha(star.magnitude, luminosity),
+        alpha: starCoreAlpha(star.magnitude, star.is_claimed, luminosity),
         luminosity,
         claimed: star.is_claimed,
         resonance: star.resonance_active,

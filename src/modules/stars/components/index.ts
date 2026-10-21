@@ -26,3 +26,4 @@ export { HomeRadarOverlay } from './HomeRadarOverlay';
 export type { HomeRadarOverlayProps } from './HomeRadarOverlay';
 
 export { OurStarScreen } from './OurStarScreen';
+export { StarPointsToastHost } from './StarPointsToastHost';

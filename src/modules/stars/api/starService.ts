@@ -21,10 +21,12 @@ import type {
   CreateExoplanetDto,
   CreateExoplanetFromMediaParams,
   GetStarsViewportParams,
+  MyStarBrightness,
   PendingConnectionDetail,
   SectorDynamicOverview,
   SendStarSparkParams,
   SparkCooldownError,
+  StarBrightnessInfo,
   StarConnectionRecord,
   StarExoplanetRecord,
   StarSystemMapPlanet,
@@ -782,6 +784,29 @@ export async function getStarIdByCatalogId(catalogId: number): Promise<string | 
 }
 
 // ============================================================================
+// 7B. YILDIZ PARLAKLIĞI (AKTİVİTE PUANI)
+// ============================================================================
+// Puanları veritabanı trigger'ları verir; istemci yalnızca okur.
+
+/** Kendi yıldızımızın kümülatif skoru, parlaklığı ve bugünkü puanı. Çifti olmayan kullanıcıda `null`. */
+export async function getMyStarBrightness(): Promise<MyStarBrightness | null> {
+  return withSmartRetry(async () => {
+    const { data, error } = await supabase.rpc('get_my_star_brightness');
+    if (error) handleSupabaseError(error);
+    return (data ?? null) as MyStarBrightness | null;
+  });
+}
+
+/** Gökyüzünde seçilen yıldızın parlaklığı; skor yalnızca kendi ve bağlı yıldızlar için döner. */
+export async function getStarBrightness(catalogId: number): Promise<StarBrightnessInfo> {
+  return withSmartRetry(async () => {
+    const { data, error } = await supabase.rpc('get_star_brightness', { p_catalog_id: catalogId });
+    if (error) handleSupabaseError(error);
+    return data as StarBrightnessInfo;
+  });
+}
+
+// ============================================================================
 // 8. GÖKYÜZÜ SEKTÖRLERİ API (STAGE 6)
 // ============================================================================
 
@@ -869,6 +894,8 @@ export const starService = {
   getPendingConnections,
   checkConnectionLimit,
   getStarIdByCatalogId,
+  getMyStarBrightness,
+  getStarBrightness,
   getSectorsOverview,
   claimStarInSector,
   invalidateSectorsCache,

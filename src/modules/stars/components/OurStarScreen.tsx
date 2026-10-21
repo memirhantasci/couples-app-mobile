@@ -91,6 +91,8 @@ import type {
   PendingConnectionDetail,
   CoupleStarDetails,
   FlyToTarget,
+  MyStarBrightness,
+  StarBrightnessInfo,
   StarExoplanetRecord,
   StarSystemMapPlanet,
   ViewportStarItem,
@@ -165,6 +167,39 @@ function toMapPlanet(planet: StarExoplanetRecord): StarSystemMapPlanet {
   };
 }
 
+const formatLightPercent = (value: number) => `%${Math.round(Math.max(0, Math.min(1, value)) * 100)}`;
+
+/**
+ * Seçilen yıldız kartındaki ışık satırı; gösterilecek bir şey yoksa null.
+ * Gece işi 5. hareketsiz günün sonunda ışığı azaltmaya başlar.
+ */
+function describeStarLight(
+  star: ViewportStarItem,
+  myBrightness: MyStarBrightness | null,
+  friendLight: StarBrightnessInfo | null
+): string | null {
+  if (star.catalog_code?.startsWith('SOL-')) return null;
+
+  if (star.is_mine) {
+    if (!myBrightness) return null;
+    let text = `Işık ${formatLightPercent(myBrightness.brightness)} · ${myBrightness.cumulative_score} puan`;
+    if (myBrightness.points_today > 0) text += ` · bugün +${myBrightness.points_today}`;
+    const idleDays = myBrightness.days_inactive ?? 0;
+    if (idleDays >= 6) text += ' · ışık sönüyor, bugün bir anı paylaşın';
+    else if (idleDays === 5) text += ' · bugün aktivite olmazsa ışık azalmaya başlar';
+    return text;
+  }
+
+  if (!star.is_claimed) return 'Bu yıldız kimse tarafından yönetilmiyor';
+  if (friendLight?.visibility === 'friend') {
+    return `Işık ${formatLightPercent(friendLight.brightness)} · ${friendLight.cumulative_score ?? 0} puan`;
+  }
+  if (star.is_connected === true) return `Işık ${formatLightPercent(star.luminosity_level)}`;
+  // Eski sunucu sürümü bağlantı bilgisini göndermiyorsa ışık hakkında bir şey söylenmez
+  if (star.is_connected === undefined) return null;
+  return 'Işık gizemli ✨ Yıldızlarınızı bağlayınca gerçek ışığını görürsünüz';
+}
+
 export const OurStarScreen: React.FC = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -187,8 +222,15 @@ export const OurStarScreen: React.FC = () => {
   // Other couples' stars stream in by sky tile while the camera moves. Only
   // the user's own star keeps a realtime subscription.
   const skyTiles = useSkyTileStream();
-  const { prefetch: prefetchSkyTiles } = skyTiles;
+  const { prefetch: prefetchSkyTiles, refresh: refreshSkyTiles } = skyTiles;
   const [selectedMacroStar, setSelectedMacroStar] = useState<ViewportStarItem | null>(null);
+  // Aktivite puanından gelen yıldız ışığı (yalnızca kendi çiftimizin gerçek puanı).
+  const [myBrightness, setMyBrightness] = useState<MyStarBrightness | null>(null);
+  // Gök kubbede seçilen bağlı (arkadaş) yıldızın gerçek ışığı ve puanı.
+  const [selectedStarLight, setSelectedStarLight] = useState<{
+    catalogId: number;
+    info: StarBrightnessInfo;
+  } | null>(null);
 
   // Güvenli Geri Dönüş Fonksiyonu (Navigation Stack boşsa ana ekrana döner)
   const handleBack = useCallback(() => {
@@ -351,6 +393,13 @@ export const OurStarScreen: React.FC = () => {
     [prefetchSkyTiles]
   );
 
+  // Puanı veritabanı trigger'ları verir; ekran yalnızca güncel ışığı okur. Hata sessizdir,
+  // son bilinen değer (ya da yıldızın kendi luminosity değeri) gösterilmeye devam eder.
+  const refreshMyBrightness = useCallback(() => {
+    if (isDemoMode || !coupleId) return;
+    starService.getMyStarBrightness().then(setMyBrightness).catch(() => {});
+  }, [isDemoMode, coupleId]);
+
   // ─── VERİ YÜKLEME VE RECONCILIATION ────────────────────────────────
   const loadStarData = useCallback(
     async (isSilent: boolean = false) => {
@@ -410,6 +459,7 @@ export const OurStarScreen: React.FC = () => {
         }
         setLiveCooldownSec(details.cooldown_remaining_seconds || 0);
         queueStarIntro(Number(details.ra), Number(details.dec));
+        refreshMyBrightness();
 
         // Anı ötegezegenlerini çek
         const planets = await starService.getStarExoplanets(details.star_id);
@@ -439,7 +489,7 @@ export const OurStarScreen: React.FC = () => {
         }
       }
     },
-    [coupleId, isDemoMode, showToast, queueStarIntro]
+    [coupleId, isDemoMode, showToast, queueStarIntro, refreshMyBrightness]
   );
 
   const isInitialMountRef = useRef(true);
@@ -792,7 +842,8 @@ export const OurStarScreen: React.FC = () => {
     }
     setExoplanets((prev) => [toMapPlanet(newPlanet), ...prev]);
     showToast(`"${newPlanet.title}" anı gezegeni yörüngede dönmeye başladı! 🪐`);
-  }, [isDemoMode, showToast]);
+    refreshMyBrightness();
+  }, [isDemoMode, showToast, refreshMyBrightness]);
 
   const handlePlanetUpdated = useCallback((updatedPlanet: StarExoplanetRecord) => {
     if (isDemoMode) {
@@ -812,11 +863,36 @@ export const OurStarScreen: React.FC = () => {
     setExoplanets((prev) => prev.filter((p) => p.id !== planetId));
     setSelectedPlanet(null);
     showToast('Anı gezegeni yörüngeden kaldırıldı.');
-  }, [isDemoMode, showToast]);
+    // Silinen gezegenin puanı geri alınır; ışık buna göre güncellenir.
+    refreshMyBrightness();
+  }, [isDemoMode, showToast, refreshMyBrightness]);
 
   const handleExoplanetPremiumRequired = useCallback(() => {
     handlePremiumAction('exoplanet_view', () => {});
   }, [handlePremiumAction]);
+
+  // ─── SEÇİLEN BAĞLI YILDIZIN GERÇEK IŞIĞI ────────────────────────────
+  // Gök kubbe karosu bağlı yıldızın ışığını zaten taşır; puanı ayrıca sorulur.
+  // Bağlı olmayan yıldızlar için sunucu gerçek değeri hiç vermez (gizemli ışık).
+  const selectedCatalogId = selectedMacroStar?.catalog_id;
+  const selectedIsFriend =
+    !!selectedMacroStar &&
+    selectedMacroStar.is_connected === true &&
+    selectedMacroStar.is_claimed &&
+    !selectedMacroStar.is_mine;
+  useEffect(() => {
+    if (isDemoMode || !selectedIsFriend || selectedCatalogId == null) return;
+    let cancelled = false;
+    starService
+      .getStarBrightness(selectedCatalogId)
+      .then((info) => {
+        if (!cancelled && info) setSelectedStarLight({ catalogId: selectedCatalogId, info });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isDemoMode, selectedIsFriend, selectedCatalogId]);
 
   // ─── GÖKYÜZÜNDE SEÇİLEN YILDIZA BAĞLANTI İSTEĞİ GÖNDER ───────────────
   const handleConnectSelectedMacroStar = async () => {
@@ -855,6 +931,17 @@ export const OurStarScreen: React.FC = () => {
       setIsConnectingStar(false);
     }
   };
+
+  // Yıldızın ışığı aktivite puanından gelir (gök kubbede başkalarının gördüğü değerle aynı).
+  // Kıvılcım ışıma dalgası ve rezonansla hissedilir; yüklenene kadar ve demoda eski değer kullanılır.
+  const starLight = myBrightness?.brightness ?? luminosityOverride;
+  const selectedStarLightText = selectedMacroStar
+    ? describeStarLight(
+        selectedMacroStar,
+        myBrightness,
+        selectedStarLight?.catalogId === selectedMacroStar.catalog_id ? selectedStarLight.info : null
+      )
+    : null;
 
   // Yıldızın içinde HUD her zaman koyu cam (uzay karanlıktır); gök kubbede tema izlenir.
   const isMicroScene = viewMode === 'micro' && starDetails !== null;
@@ -945,7 +1032,7 @@ export const OurStarScreen: React.FC = () => {
           {isMicroScene ? null : starDetails ? (
             <StarInfoBadge
               starDetails={starDetails}
-              luminosityOverride={luminosityOverride}
+              luminosityOverride={starLight}
               isResonanceActive={isResonanceActive}
               viewMode={viewMode}
               onPressCertificate={() => setIsCertificateModalOpen(true)}
@@ -966,6 +1053,8 @@ export const OurStarScreen: React.FC = () => {
             <ConnectionRequestBadge
               pendingRequests={pendingRequests}
               onConnectionChanged={() => {
+                // Yeni bağlanan yıldızın gerçek ışığı için gök kubbe karolarını tazele
+                refreshSkyTiles();
                 Promise.all([
                   starService.getMyStarConnections(),
                   starService.getPendingConnections(),
@@ -1053,7 +1142,7 @@ export const OurStarScreen: React.FC = () => {
             height={SCREEN_HEIGHT}
             viewportTop={microViewportTop}
             viewportBottom={microViewportBottom}
-            luminosity={luminosityOverride}
+            luminosity={starLight}
             resonanceActive={isResonanceActive}
             highlightPlanetId={highlightPlanetId}
             sparkSignal={sparkSignal}
@@ -1136,7 +1225,7 @@ export const OurStarScreen: React.FC = () => {
       {isMicroScene && starDetails && (
         <MicroStarHeader
           starDetails={starDetails}
-          luminosity={luminosityOverride ?? starDetails.luminosity_level}
+          luminosity={starLight ?? starDetails.luminosity_level}
           resonanceActive={isResonanceActive}
           planetCount={exoplanets.length}
           top={insets.top + MICRO_HEADER_OFFSET}
@@ -1256,6 +1345,21 @@ export const OurStarScreen: React.FC = () => {
               RA/DEC: <Text style={styles.macroStarHighlight}>{Number(selectedMacroStar.ra).toFixed(1)}° / {Number(selectedMacroStar.dec).toFixed(1)}°</Text>
             </Text>
           </View>
+
+          {/* Aktivite ışığı: kendi ve bağlı yıldızlarda gerçek değer, diğerlerinde gizemli */}
+          {selectedStarLightText && (
+            <View
+              style={[
+                styles.macroStarLightRow,
+                { backgroundColor: isLight ? 'rgba(245, 158, 11, 0.08)' : 'rgba(251, 191, 36, 0.08)' },
+              ]}
+            >
+              <Sparkles size={12} color={isLight ? '#B45309' : '#FBBF24'} />
+              <Text style={[styles.macroStarLightText, { color: isLight ? '#92400E' : '#FDE68A' }]}>
+                {selectedStarLightText}
+              </Text>
+            </View>
+          )}
 
           {/* Aksiyon */}
           {selectedMacroStar.is_mine ? (
@@ -1579,7 +1683,9 @@ export const OurStarScreen: React.FC = () => {
             showToast('Gök Kubbede tescilli bir yıldıza dokunarak bağ kurabilirsiniz 🌌');
           }}
           onConnectionChanged={() => {
-            // Aktif bağlantıları ve rozeti yenile (canvas güncellemesi için)
+            // Aktif bağlantıları ve rozeti yenile (canvas güncellemesi için); bağlantı
+            // değişince yıldızların gerçek/gizemli ışığı da değişir
+            refreshSkyTiles();
             Promise.all([
               starService.getMyStarConnections(),
               starService.getPendingConnections(),
@@ -1999,6 +2105,19 @@ const styles = StyleSheet.create({
   macroStarHighlight: {
     color: '#38BDF8',
     fontWeight: '700',
+  },
+  macroStarLightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  macroStarLightText: {
+    fontSize: 11,
+    fontWeight: '600',
+    flexShrink: 1,
   },
   claimThisStarBtn: {
     flexDirection: 'row',

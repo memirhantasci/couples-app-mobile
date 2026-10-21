@@ -23,6 +23,8 @@ export {
   canAddManualExoplanet,
   createExoplanetFromMedia,
   sendSpark,
+  getMyStarBrightness,
+  getStarBrightness,
   getSectorsOverview,
   claimStarInSector,
   invalidateSectorsCache,

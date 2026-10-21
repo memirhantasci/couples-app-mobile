@@ -53,6 +53,8 @@ export class SkyTileStreamController {
   private lastSignature = '';
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private active = true;
+  /** Cached tiles fetched at or before this time are stale regardless of age. */
+  private staleBefore = -Infinity;
 
   constructor(options: SkyTileStreamOptions) {
     this.options = {
@@ -103,6 +105,20 @@ export class SkyTileStreamController {
     this.pump();
   }
 
+  /**
+   * Server-side star state changed (e.g. a star connection, which reveals a
+   * friend's real brightness): every cached tile becomes stale. Visible tiles
+   * refetch now while staying on screen; the rest refetch when next seen.
+   */
+  refresh() {
+    if (!this.active) return;
+    this.staleBefore = this.options.now();
+    // In-flight responses were computed before the change.
+    for (const controller of this.inFlight.values()) controller.abort();
+    this.inFlight.clear();
+    if (this.viewport) this.setViewport(this.viewport);
+  }
+
   activate() {
     this.active = true;
   }
@@ -128,7 +144,7 @@ export class SkyTileStreamController {
       if (failedAt !== undefined && now - failedAt < this.options.retryAfterMs) continue;
       const record = this.store.peek(tile.key);
       if (!record) missing.push(tile);
-      else if (now - record.fetchedAt > this.options.staleMs) stale.push(tile);
+      else if (now - record.fetchedAt > this.options.staleMs || record.fetchedAt <= this.staleBefore) stale.push(tile);
     }
     return [...missing, ...stale];
   }

@@ -35,10 +35,16 @@ export function magnitudeToRadius(magnitude: number, spectralType: string | null
   return starBaseRadius(magnitude, spectralType) * starZoomBonus(zoom);
 }
 
-export function magnitudeToAlpha(magnitude: number, luminosity: number): number {
+/**
+ * Core opacity of a star. Unclaimed stars keep their natural catalog
+ * brightness; a claimed star's opacity follows its couple's activity
+ * brightness (0.10 → 0.37, 1.00 → 1.00), whatever its magnitude.
+ */
+export function starCoreAlpha(magnitude: number, claimed: boolean, brightness: number): number {
   'worklet';
+  if (claimed) return 0.3 + 0.7 * Math.max(0, Math.min(1, brightness));
   const normalized = Math.max(0, Math.min(1, 1 - (magnitude + 2) / 11));
-  return 0.45 + normalized * 0.55 * luminosity;
+  return 0.45 + normalized * 0.55;
 }
 
 /**

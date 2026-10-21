@@ -41,6 +41,7 @@ export function useSkyTileStream() {
 
   const onBoundsChange = useCallback((viewport: SkyViewport) => controller.setViewport(viewport), [controller]);
   const prefetch = useCallback((viewport: SkyViewport) => controller.prefetch(viewport), [controller]);
+  const refresh = useCallback(() => controller.refresh(), [controller]);
 
-  return { stars, onBoundsChange, prefetch };
+  return { stars, onBoundsChange, prefetch, refresh };
 }

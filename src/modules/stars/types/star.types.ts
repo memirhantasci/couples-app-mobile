@@ -277,6 +277,12 @@ export interface ViewportStarItem {
    * - `string` (gerçek isim): Kullanıcının kendi çiftine ait yıldız (`is_mine === true`).
    */
   readonly custom_name: string | null;
+  /**
+   * Aktivite parlaklığı [0.10, 1.00]:
+   * - Kendi yıldızınız ve bağlı (arkadaş) yıldızlar: çiftin gerçek parlaklığı.
+   * - Diğer tescilli yıldızlar: izleyiciye ve güne göre sabit "gizemli" değer (0.10–0.90).
+   * - Boştaki yıldızlar: 0.20.
+   */
   readonly luminosity_level: number;
   readonly resonance_active: boolean;
   /**
@@ -284,6 +290,8 @@ export interface ViewportStarItem {
    * (ör. "A 💕 M"). Kendi yıldızınız veya boştaki yıldızlar için `null`.
    */
   readonly owner_initials?: string | null;
+  /** Kabul edilmiş bir yıldız bağlantınız var: `luminosity_level` gerçek değerdir. */
+  readonly is_connected?: boolean;
 }
 
 /**
@@ -606,6 +614,61 @@ export interface PendingConnectionDetail {
   readonly other_star_id: string;
   readonly other_star_name: string;
   readonly is_incoming: boolean;
+  readonly created_at: string;
+}
+
+
+// ============================================================================
+// 9B. YILDIZ PARLAKLIĞI (AKTİVİTE PUANI)
+// ============================================================================
+
+/** Puan kazandıran aktiviteler (`activity_point_rules.activity_type`). */
+export type StarActivityType =
+  | 'mood'
+  | 'medicine'
+  | 'calendar_note'
+  | 'pinned_note'
+  | 'period_tracking'
+  | 'letter'
+  | 'planet'
+  | 'photo'
+  | 'diary'
+  | 'profile_pic'
+  | 'meeting'
+  | 'memory';
+
+/** `get_my_star_brightness` RPC dönüşü. */
+export interface MyStarBrightness {
+  readonly cumulative_score: number;
+  /** [0.20, 1.00] */
+  readonly brightness: number;
+  /** Parlaklığın %100 olduğu skor. */
+  readonly full_brightness_score: number;
+  readonly points_today: number;
+  readonly last_activity_date: string | null;
+  readonly days_inactive: number | null;
+}
+
+/**
+ * `get_star_brightness` RPC dönüşü. Skor yalnızca kendi yıldızımız (`self`) ve
+ * bağlı yıldızlar (`friend`) için gelir; `hidden` gökyüzündeki gizemli değerdir.
+ */
+export interface StarBrightnessInfo {
+  readonly visibility: 'self' | 'friend' | 'hidden' | 'unclaimed';
+  readonly brightness: number;
+  readonly cumulative_score?: number;
+  readonly last_activity_date?: string | null;
+}
+
+/** `couple_activity_log` satırı (realtime "+N puan" bildirimi için). */
+export interface CoupleActivityLogRecord {
+  readonly id: number;
+  readonly couple_id: number;
+  readonly user_id: string | null;
+  readonly activity_type: StarActivityType;
+  readonly activity_date: string;
+  readonly points: number;
+  readonly status: 'awarded' | 'capped' | 'revoked';
   readonly created_at: string;
 }
 

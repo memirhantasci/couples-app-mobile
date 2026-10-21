@@ -13,6 +13,7 @@ import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 import { ToastHost } from "@/components/ui/ToastHost";
 import { DialogHost } from "@/components/ui/DialogHost";
 import { LetterArrivalHost } from "@/components/letters/LetterArrivalHost";
+import { StarPointsToastHost } from "@/modules/stars/components/StarPointsToastHost";
 
 import {
   useFonts,
@@ -194,6 +195,8 @@ export default function RootLayout() {
                 <RootLayoutNav />
                 {/* Partnerinden mektup gelmişse uygulamaya girince sol üstten uçup konan kuş */}
                 <LetterArrivalHost />
+                {/* Yıldızı parlatan aktivitelerde "+N puan 🌟" bildirimi */}
+                <StarPointsToastHost />
                 {/* Alert yerine süzülen hap bildirimleri; ağacın en üstünde çizilir */}
                 <ToastHost />
                 {/* Alert.alert yerine cam efektli, pastel tonlu diyalog kartları (onay / uzun uyarılar) */}
