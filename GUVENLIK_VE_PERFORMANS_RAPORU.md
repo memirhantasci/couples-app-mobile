@@ -43,6 +43,10 @@ Uygulama genelinde yapılan kapsamlı kod ve veritabanı denetiminde:
   ```
 * **Manipülasyon Riski:** 
   Anahtar doğrudan mobil uygulamanın kaynak kodunda sabittir. APK veya iOS IPA paketini açan herhangi biri, Hermes bytecode üzerinden bu 32 baytlık anahtarı 10 saniyede çıkartabilir. Bu anahtarla **bütün kullanıcıların** mektupları, günlük notları ve isimleri anında çözülebilir. Bu bir End-to-End Encryption (E2EE) değil, yalancı bir gizliliktir.
+* **Ek Bulgu — Çift Anahtarının Girdileri Veritabanında:**
+  İçerikler (`encrypt()`) çifte özel bir oturum anahtarıyla şifreleniyor: `PBKDF2(coupleId, encryption_salt)` (`src/utils/crypto.ts`, `setSessionEncryptionKey`). Ancak bu anahtarın iki girdisi de veritabanında duruyor (`couples.id` ve `couples.encryption_salt`, bkz. migration `021_couple_encryption_salt.sql`). Gizli bir parça (sır/parola) yok. Dolayısıyla veritabanı dökümüne erişen biri, aynı türetmeyi yaparak çiftin içeriklerini çözebilir. Bu koruma, yalnızca istemci üzerinden erişimi zorlaştırır; veritabanı erişimine karşı etkisi yoktur.
+  Sabit anahtar da ayrıca kullanılmaya devam ediyor: kullanıcı adı ve e-posta için deterministik şifreleme (`det:`), `encryptStatic()` çağrıları (giriş/kayıt formları) ve oturum anahtarı hazır değilken `encrypt()` içindeki yedek (`sessionKey || key`).
+  * **Çözüm Önerisi:** Çift anahtarına sunucuda tutulan gizli bir bileşen eklemek (ör. Supabase Vault'ta bir sır) ve mevcut verileri yeniden şifrelemek; ya da anahtarı tamamen cihazda tutan gerçek E2EE'ye geçmek. Sabit anahtar yedeklerinin tamamen kaldırılması da ayrıca yapılmalı.
 * **Çözüm Önerisi:**
   1. **Seçenek A (Çift Bazlı E2EE):** İki partner eşleştiğinde cihazlarında `expo-secure-store` / Hardware Keystore kullanarak çift özel anahtarı türetmeli (örn. PBKDF2 veya ECDH anahtar değişimi). Sunucu dahi bu anahtarı bilemez.
   2. **Seçenek B (Sunucu Tarafı PGCrypto / Vault):** Şifreleme/çözme işlemleri istemcide değil, Supabase PostgreSQL `pgcrypto` eklentisiyle ve sadece yetkili RLS oturumunda (auth.uid) sunucuda yapılmalıdır.
