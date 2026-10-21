@@ -116,7 +116,7 @@ function SceneHint({ top }: { top: number }) {
       <View style={styles.hintPill}>
         <View style={styles.hintRow}>
           <Sparkles size={12} color="#FDE68A" />
-          <Text style={styles.hintText}>Yıldıza dokun, ışığını gönder</Text>
+          <Text style={styles.hintText}>Yıldıza dokun, sevgine titreşim gönder</Text>
         </View>
         <View style={styles.hintRow}>
           <Hand size={12} color="#C4B5FD" />

@@ -1,9 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <gradient
-        android:angle="315"
-        android:endColor="#1E0F24"
-        android:startColor="#3A1840" />
-    <corners android:radius="24dp" />
-</shape>
+<!-- Gece moru degrade + sağ üstte gül rengi, sol altta mor ışıltı (iOS widget'ıyla aynı renkler) -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="315"
+                android:centerColor="#1F0B2A"
+                android:endColor="#120818"
+                android:startColor="#3F1240"
+                android:type="linear" />
+            <corners android:radius="@dimen/couple_widget_radius" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:centerX="0.92"
+                android:centerY="0.04"
+                android:endColor="#00FF5C8A"
+                android:gradientRadius="95%"
+                android:startColor="#8CFF5C8A"
+                android:type="radial" />
+            <corners android:radius="@dimen/couple_widget_radius" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:centerX="0.05"
+                android:centerY="1.0"
+                android:endColor="#00965AFF"
+                android:gradientRadius="85%"
+                android:startColor="#47965AFF"
+                android:type="radial" />
+            <corners android:radius="@dimen/couple_widget_radius" />
+        </shape>
+    </item>
+</layer-list>

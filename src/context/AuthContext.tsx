@@ -3,7 +3,7 @@ import { registerForPushNotifications, syncPushTokenIfPermitted } from "@/lib/no
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { RevenueCatService } from "@/lib/revenuecat";
-import React, { createContext, useCallback, useContext, useEffect, useState, useMemo, useRef } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useEffectEvent, useState, useMemo, useRef } from "react";
 import { decrypt, deterministicDecrypt, setSessionEncryptionKey } from "@/utils/crypto";
 import { setAdLoggingOut } from "../utils/adFlags";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
@@ -11,6 +11,9 @@ import { getOrCreateDeviceId } from "@/utils/device";
 import { isDatesSkipped } from "@/lib/datesSkip";
 import { useQueryClient } from "@tanstack/react-query";
 import { clearCoupleWidget } from "@/utils/widgetBridge";
+import { appAlert } from "@/lib/dialog";
+import { toast } from "@/lib/toast";
+import { dayjs } from "@/lib/date";
 
 import { Platform, AppState } from "react-native";
 
@@ -156,6 +159,34 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
     tokenBalance: user.token_balance ?? 0,
     encryptionSalt: coupleObj?.encryption_salt ?? null,
   };
+}
+
+/**
+ * Silme talebi bekleyen hesap: silme ancak kullanıcının kendi açık seçimiyle iptal edilir
+ * (sessizce değil). Diyalog kapatılamaz; ya silme iptal edilir ya oturum kapanır.
+ */
+function showPendingDeletionPrompt(scheduledFor: string, signOut: () => Promise<void>) {
+  const deletionDay = dayjs(scheduledFor).format("D MMMM YYYY");
+  appAlert(
+    "Hesabın silinmek üzere",
+    `Bu hesap için silme talebi var: hesabın ve ilişkinize ait tüm veriler ${deletionDay} tarihinde kalıcı olarak silinecek.\n\nHesabını kullanmaya devam etmek istiyorsan silmeyi iptal et.`,
+    [
+      { text: "Çıkış Yap", style: "cancel", onPress: () => { signOut().catch(() => {}); } },
+      {
+        text: "Silmeyi İptal Et",
+        onPress: async () => {
+          const { error } = await supabase.rpc("cancel_account_deletion");
+          if (error) {
+            toast.error("Silme iptal edilemedi. Bağlantını kontrol edip tekrar dene.");
+            showPendingDeletionPrompt(scheduledFor, signOut);
+            return;
+          }
+          toast.success("Silme işlemi iptal edildi. Tekrar hoş geldin 💕");
+        },
+      },
+    ],
+    { cancelable: false, forceDialog: true, tone: "warning" }
+  );
 }
 
 /**
@@ -589,6 +620,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     await supabase.auth.signOut();
   }, [isDemoMode, exitDemoMode, profile?.coupleId]);
+
+  // Silinmek üzere olan hesapla giriş yapıldı (bkz. showPendingDeletionPrompt)
+  const signOutRef = useRef(signOut);
+  useEffect(() => {
+    signOutRef.current = signOut;
+  }, [signOut]);
+  const promptPendingDeletion = useEffectEvent((scheduledFor: string) => {
+    showPendingDeletionPrompt(scheduledFor, () => signOutRef.current());
+  });
+
+  const deletionCheckedForUser = useRef<string | null>(null);
+  useEffect(() => {
+    if (isDemoMode) return;
+    const userId = session?.user?.id;
+    if (!userId) {
+      // Aynı hesapla yeniden girişte tekrar bakılsın
+      deletionCheckedForUser.current = null;
+      return;
+    }
+    if (deletionCheckedForUser.current === userId) return;
+    deletionCheckedForUser.current = userId;
+
+    let cancelled = false;
+    supabase
+      .from("account_deletion_requests")
+      .select("scheduled_for")
+      .eq("user_id", userId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        // Hata (ör. ağ) durumunda kullanıcı engellenmez; bir sonraki açılışta yeniden bakılır
+        if (cancelled || error || !data?.scheduled_for) return;
+        promptPendingDeletion(data.scheduled_for);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user?.id, isDemoMode]);
 
   // Demo modunda tüketicilere HER ZAMAN sabit demo oturumu ve premium'lu demo profili sunulur;
   // iç state'e yanlışlıkla yazılan herhangi bir değer arayüzü (kilitler, sayaçlar) bozamaz.

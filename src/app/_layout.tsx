@@ -1,13 +1,16 @@
-import "react-native-gesture-handler";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "../global.css";
-import React, { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
+import React, { useEffect, useEffectEvent } from "react";
 import { Stack, router } from "expo-router";
 import * as Linking from "expo-linking";
 import * as SplashScreen from "expo-splash-screen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
+import { TabBarProvider } from "@/context/TabBarContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 import { supabase } from "@/lib/supabase";
+import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { configureAndroidNotificationChannel, notifyPairingComplete } from "@/lib/notifications";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 import { ToastHost } from "@/components/ui/ToastHost";
@@ -41,17 +44,16 @@ const queryClient = new QueryClient({
   },
 });
 
-import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
-
 // ─── Inner layout: has access to AuthContext ──────────────────────────────────
 
 function RootLayoutNav() {
-  const { session, isLoading, profile, isDemoMode, exitDemoMode, refreshProfile } = useAuth();
+  const { session, isLoading, isDemoMode, exitDemoMode, refreshProfile } = useAuth();
 
   // Enforce role-based routing
   useProtectedRoute();
 
-  const [fontsLoaded] = useFonts({
+  // Fonts load asynchronously in the background; system font fills in the gap (~200ms)
+  useFonts({
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
@@ -60,7 +62,6 @@ function RootLayoutNav() {
   });
 
   // Hide splash as soon as auth state is resolved — don't wait for fonts
-  // Fonts load asynchronously in the background; system font fills in the gap (~200ms)
   useEffect(() => {
     if (!isLoading) {
       SplashScreen.hideAsync().catch(() => {});
@@ -76,22 +77,8 @@ function RootLayoutNav() {
     return () => clearTimeout(timer);
   }, []);
 
-  // ── Deep link listener (Foreground and cold-start deep links) ─────────────
-  useEffect(() => {
-    // 1. Cold-start URL
-    Linking.getInitialURL().then((url) => {
-      if (url) handleDeepLink(url);
-    });
-
-    // 2. Foreground / background URL listener
-    const subscription = Linking.addEventListener("url", ({ url }) => {
-      handleDeepLink(url);
-    });
-
-    return () => subscription.remove();
-  }, [session?.user?.id, isDemoMode]);
-
-  async function handleDeepLink(url: string) {
+  // Always sees the latest session / demo state without re-subscribing the URL listener.
+  const handleDeepLink = useEffectEvent(async (url: string) => {
     const parsed = Linking.parse(url);
     const { hostname, queryParams } = parsed;
 
@@ -155,7 +142,23 @@ function RootLayoutNav() {
         params: { token_hash: queryParams.token_hash as string },
       });
     }
-  }
+  });
+
+  // ── Deep link listener (Foreground and cold-start deep links) ─────────────
+  // Re-runs on sign-in / demo changes so a cold-start invite link is handled for the new session.
+  useEffect(() => {
+    // 1. Cold-start URL
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink(url);
+    });
+
+    // 2. Foreground / background URL listener
+    const subscription = Linking.addEventListener("url", ({ url }) => {
+      handleDeepLink(url);
+    });
+
+    return () => subscription.remove();
+  }, [session?.user?.id, isDemoMode]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
@@ -178,11 +181,6 @@ function RootLayoutNav() {
     </Stack>
   );
 }
-
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { ThemeProvider } from "@/context/ThemeContext";
-import { TabBarProvider } from "@/context/TabBarContext";
-import { NotificationProvider } from "@/context/NotificationContext";
 
 export default function RootLayout() {
   return (
@@ -209,4 +207,3 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
-

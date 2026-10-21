@@ -405,6 +405,14 @@ export function formatMessagingStyleNotification(
       body = "Partnerin katıldı! Birlikte harika anılar biriktirmeye hazırsınız ✨";
       break;
     }
+    case "account_deletion": {
+      // Ortak verilerin silineceği haberi: kalpli başlık yakışmaz
+      title = name;
+      subtitle = "Hesap Silme";
+      channelId = "partner_messages";
+      body = trimmedBody || "Hesabını silme talebinde bulundu.";
+      break;
+    }
     default: {
       const cleanT = cleanNotificationText(rawTitle);
       title = `${name} ❤️`;

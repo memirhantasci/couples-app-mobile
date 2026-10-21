@@ -6,7 +6,7 @@
  * Bu yönetici:
  * 1. `star-resonance:${starId}` WebSocket kanalı üzerinden çiftler arası canlı senkronizasyon sağlar.
  * 2. Çift katmanlı (ağ + istemci) filtrelemeyle kullanıcının kendi kıvılcımlarını echo yapmasını önler.
- * 3. Daily spark ritüelini önce DB'ye yazar; onay sonrası WebSocket broadcast fırlatır.
+ * 3. (Günlük ışık ritüeli kaldırıldı: yıldızın parlaklığı çiftin aktivitesinden gelir.)
  * 4. Love ping akışında anında yerel haptic ve WebSocket yayını tetikler; DB yazımını 2s debounce
  *    edip modül düzeyindeki 60s kalkanıyla sessizce filtreler (suppress).
  * 5. Tekil RealtimeChannel nesnesi üzerinden hem Broadcast hem Postgres Changes dinleyicilerini
@@ -18,7 +18,6 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { starService, SparkCooldownException } from '../api/starService';
 import type {
-  CoupleStarDetails,
   ResonanceEvent,
   SparkBroadcastPayload,
 } from '../types/star.types';
@@ -198,65 +197,6 @@ export class StarSparkManager {
       );
 
     await this.channel.subscribe();
-  }
-
-  // ==========================================================================
-  // GÜNLÜK KIVILCIM (DAILY SPARK) RİTÜELİ
-  // ==========================================================================
-
-  /**
-   * Günlük kıvılcım ritüelini tetikler.
-   *
-   * İşlem Sırası:
-   * 1. DB: `send_star_spark` RPC çağrılır.
-   * 2. DB başarılı olduktan SONRA kanala `daily_spark` WebSocket broadcast fırlatılır.
-   * 3. DB P0001 (cooldown) verirse WebSocket yayını YAPILMAZ; SparkCooldownException fırlatılır.
-   */
-  public async triggerDailySpark(message?: string): Promise<CoupleStarDetails> {
-    // 1. Önce veritabanına yazım yap
-    const updatedDetails = await starService.sendSpark({
-      starId: this.starId,
-      sparkType: 'daily_spark',
-      message: message ? message.trim() : undefined,
-    });
-
-    // 2. DB onayından sonra parlaklığı güncelle
-    this.currentLuminosity = updatedDetails.luminosity_level;
-
-    // 3. WebSocket yayını yap (partner anında görsün)
-    if (this.channel) {
-      const broadcastPayload: SparkBroadcastPayload = {
-        starId: this.starId,
-        senderId: this.senderId,
-        senderName: this.senderName,
-        sparkType: 'daily_spark',
-        message: message ? message.trim() : undefined,
-        newLuminosity: updatedDetails.luminosity_level,
-        timestamp: new Date().toISOString(),
-      };
-
-      try {
-        await this.channel.send({
-          type: 'broadcast',
-          event: 'spark',
-          payload: broadcastPayload,
-        });
-      } catch (broadcastErr) {
-        if (__DEV__) {
-          console.warn(
-            `[StarSparkManager] triggerDailySpark: WebSocket broadcast iletilemedi (starId: ${this.starId}):`,
-            broadcastErr,
-          );
-        }
-      }
-    } else if (__DEV__) {
-      console.warn(
-        `[StarSparkManager] triggerDailySpark: Kanal aktif değil (starId: ${this.starId}). ` +
-          `DB başarıyla güncellendi ancak anlık WebSocket broadcast gönderilemedi. Partner senkronizasyonu postgres_changes üzerinden gerçekleşecektir.`,
-      );
-    }
-
-    return updatedDetails;
   }
 
   // ==========================================================================

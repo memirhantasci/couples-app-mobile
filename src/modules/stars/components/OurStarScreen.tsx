@@ -8,17 +8,17 @@
  * 2. Focus vs. Realtime Çakışma Önleme (LWW 5000ms pencere kuralı):
  *    Partner sinyalleri anlık işlenir; useFocusEffect arkada sessizce veriyi tazelerken
  *    taze realtime kıvılcımlarını ezmez.
- * 3. Canlı İstemci Sayacı ve İlk Tescil Rozeti:
- *    Cooldown aktifse buton "Bugünkü İlk Işığınız Göğe Yükseldi ✨" rozetine ve canlı sayaca dönüşür.
- * 4. Etkileşim ve Kıvılcım / Ping Yönetimi:
- *    Yıldıza dokunulduğunda yerel haptik + StarSparkManager (günlük hak varsa spark, yoksa love ping).
+ * 3. Yıldızın Işığı:
+ *    Parlaklık çiftin uygulamadaki aktivitesinden gelir (couple_activity_score); günlük ışık ritüeli yoktur.
+ * 4. Etkileşim ve Sevgi Titreşimi:
+ *    Yıldıza dokunulduğunda yerel haptik + StarSparkManager üzerinden partnere love ping.
  * 5. Realtime Işıma Dalgası:
- *    Partner kıvılcım yolladığında ekranda yumuşak 1.8s altın/cyan kozmik ışıma dalgası patlar.
+ *    Partner yıldıza dokunduğunda ekranda yumuşak 1.8s altın/cyan kozmik ışıma dalgası patlar.
  * 6. Makro / Mikro Görünüm Geçişi:
  *    Gök kubbede sağ alttaki FAB, yıldızın içinde cam paneldeki küre düğmesi ile
  *    Gök Kubbe (MacroSkyCanvas) ve Mikro Sistem arasında pürüzsüz geçiş.
  * 7. Yıldızın İçi: MicroSystemCanvas (sahne) + MicroStarHeader (başlık) + MicroSystemDock
- *    (anı gezegenleri ve günlük ritüel). HUD burada temadan bağımsız koyu camdır.
+ *    (anı gezegenleri). HUD burada temadan bağımsız koyu camdır.
  */
 
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
@@ -65,7 +65,7 @@ import { startCosmicAmbient, stopCosmicAmbient } from '@/lib/soundEffects';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { DEMO_STAR_DETAILS, DEMO_STAR_EXOPLANETS } from '@/constants/demoData';
-import { starService, PremiumRequiredError, SparkCooldownException } from '../api/starService';
+import { starService, PremiumRequiredError } from '../api/starService';
 import { StarSparkManager } from '../services/StarSparkManager';
 import { MicroSystemCanvas } from '../canvas/MicroSystemCanvas';
 import { MacroSkyCanvas, SOLAR_SYSTEM_OBJECTS, computeBounds } from '../canvas/MacroSkyCanvas';
@@ -116,7 +116,7 @@ const STAR_INTRO_FLIGHT_MS = 2400;
 // Ölçümler gelene kadar (onLayout) yörünge sistemi bu tahminlere göre ortalanır.
 const MICRO_HEADER_OFFSET = 60;
 const MICRO_HEADER_ESTIMATED_HEIGHT = 130;
-const MICRO_DOCK_ESTIMATED_HEIGHT = 196;
+const MICRO_DOCK_ESTIMATED_HEIGHT = 190;
 /** Kapatılan anı gezegeninin hedef halkası bu kadar süre daha görünür kalır. */
 const PLANET_HIGHLIGHT_LINGER_MS = 2600;
 
@@ -246,8 +246,6 @@ export const OurStarScreen: React.FC = () => {
   const [isResonanceActive, setIsResonanceActive] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Canlı Geri Sayım Sayacı (Saniye)
-  const [liveCooldownSec, setLiveCooldownSec] = useState<number>(0);
   // Modallar
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
   const [claimTargetStar, setClaimTargetStar] = useState<ViewportStarItem | null>(null);
@@ -350,19 +348,6 @@ export const OurStarScreen: React.FC = () => {
     setIsHomeRadarOpen(true);
   }, []);
 
-
-
-  // ─── CANLI COOLDOWN SAYACI (TICKER) ────────────────────────────────
-  useEffect(() => {
-    if (liveCooldownSec <= 0) return;
-
-    const timer = setInterval(() => {
-      setLiveCooldownSec((prev) => Math.max(0, prev - 1));
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [liveCooldownSec]);
-
   // ─── AÇILIŞ SAHNESİ ────────────────────────────────────────────────
   // Tescilli yıldızı olan kullanıcıda (demo dahil) ekran, geniş gökyüzünden yıldızın parıltılı dış
   // görünümüne yavaşça süzülerek açılır; kamera doğrudan yıldızın içine dalmaz. Uçuş, gök kubbe
@@ -410,7 +395,6 @@ export const OurStarScreen: React.FC = () => {
         setDemoPlanetDetails(DEMO_STAR_EXOPLANETS);
         setLuminosityOverride(DEMO_STAR_DETAILS.luminosity_level);
         setIsResonanceActive(DEMO_STAR_DETAILS.resonance_active);
-        setLiveCooldownSec(DEMO_STAR_DETAILS.cooldown_remaining_seconds || 0);
         queueStarIntro(Number(DEMO_STAR_DETAILS.ra), Number(DEMO_STAR_DETAILS.dec));
         setIsLoading(false);
         return;
@@ -457,7 +441,6 @@ export const OurStarScreen: React.FC = () => {
           setLuminosityOverride(details.luminosity_level);
           setIsResonanceActive(details.resonance_active);
         }
-        setLiveCooldownSec(details.cooldown_remaining_seconds || 0);
         queueStarIntro(Number(details.ra), Number(details.dec));
         refreshMyBrightness();
 
@@ -556,25 +539,15 @@ export const OurStarScreen: React.FC = () => {
       onPartnerSpark: (spark: SparkBroadcastPayload) => {
         lastRealtimeSparkAtRef.current = Date.now();
 
-        // Anlık Işıma ve Haptic
+        // Anlık Işıma ve Haptic. Parlaklık değişmez: yıldızın ışığı çiftin aktivitesinden gelir
+        // (eski sürümlerden gelen daily_spark da yalnızca sevgi titreşimi olarak karşılanır).
         triggerGlowWave();
         try {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } catch {}
 
-        // Parlaklığı anında güncelle
-        setLuminosityOverride(spark.newLuminosity);
-        setStarDetails((prev) =>
-          prev ? { ...prev, luminosity_level: spark.newLuminosity } : null
-        );
-
-        // Toast Bildirimi
         const partnerTitle = spark.senderName || 'Sevgilin';
-        if (spark.sparkType === 'daily_spark') {
-          showToast(`${partnerTitle} yıldızınıza günlük ışığını gönderdi! ✨`);
-        } else {
-          showToast(`${partnerTitle} yıldızınıza dokunarak sevgi titreşimi gönderdi! 💫`);
-        }
+        showToast(`${partnerTitle} yıldızınıza dokunarak sevgi titreşimi gönderdi! 💫`);
       },
       onResonanceChange: (event: ResonanceEvent) => {
         setIsResonanceActive(event.active);
@@ -599,62 +572,21 @@ export const OurStarScreen: React.FC = () => {
     }
   }, [currentStarLum]);
 
-  // ─── MERKEZ YILDIZA DOKUNMA & KIVILCIM / PING YÖNETİMİ ──────────────
+  // ─── MERKEZ YILDIZA DOKUNMA: SEVGİ TİTREŞİMİ ───────────────────────
+  // Yıldıza dokunmak partnere anlık titreşim gönderir; parlaklığı değiştirmez.
   const handleCenterStarTouch = async () => {
-    if (isDemoMode) {
-      try {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-      } catch {}
-      triggerGlowWave();
-      setLuminosityOverride(1.0);
-      setIsResonanceActive(true);
-      if (liveCooldownSec <= 0) {
-        setLiveCooldownSec(72000);
-        showToast('Bugünkü ışığınız göğe yükseldi! Yıldızınız parladı ✨');
-      } else {
-        showToast('Yıldıza dokundun; sevgi titreşimi eşine iletildi 💫');
-      }
-      return;
-    }
+    if (!isDemoMode && (!starDetails || !sparkManagerRef.current)) return;
 
-    if (!starDetails || !sparkManagerRef.current) return;
-
-    // 1. Günlük hak varsa Daily Spark dene
-    if (liveCooldownSec <= 0) {
-      try {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-        triggerGlowWave();
-
-        const updated = await sparkManagerRef.current.triggerDailySpark();
-        setStarDetails(updated);
-        setLuminosityOverride(updated.luminosity_level);
-        setLiveCooldownSec(updated.cooldown_remaining_seconds || 72000); // 20 saat
-        showToast('Bugünkü ışığınız göğe yükseldi! Yıldızınız parladı ✨');
-      } catch (err: any) {
-        // P0001 cooldown hatası yakalanırsa sessizce yerel süreyi güncelle ve Love Ping'e düş
-        if (err instanceof SparkCooldownException || err?.code === 'P0001') {
-          const remaining = err.remainingSeconds || 72000;
-          setLiveCooldownSec(remaining);
-          // Sessiz Love Ping Fallback
-          sparkManagerRef.current.queueLovePing().catch(() => {});
-          showToast('Günlük ışık kotası dolu, sevgi titreşimi iletildi 💫');
-        } else {
-          showToast('Kıvılcım gönderilemedi, lütfen tekrar deneyin.');
-        }
-      }
-    } else {
-      // 2. Cooldown aktifse: Anında Love Ping
-      try {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      } catch {}
-      triggerGlowWave();
-      sparkManagerRef.current.queueLovePing().catch(() => {});
-      showToast('Yıldıza dokundun; sevgi titreşimi eşine iletildi 💫');
-    }
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {}
+    triggerGlowWave();
+    sparkManagerRef.current?.queueLovePing().catch(() => {});
+    showToast('Yıldıza dokundun; sevgi titreşimi eşine iletildi 💫');
   };
 
   // Mikro sahne memo'lu: geri çağrıları kimliği değişmeyen sarmalayıcılarla verilir,
-  // böylece saniyelik geri sayım çizimleri sahneyi yeniden kurmaz.
+  // böylece üst bileşenin yeniden çizimleri sahneyi yeniden kurmaz.
   const centerStarTouchRef = useRef(handleCenterStarTouch);
   useLayoutEffect(() => {
     centerStarTouchRef.current = handleCenterStarTouch;
@@ -826,7 +758,6 @@ export const OurStarScreen: React.FC = () => {
   const handleClaimSuccess = (claimed: CoupleStarDetails) => {
     setStarDetails(claimed);
     setLuminosityOverride(claimed.luminosity_level);
-    setLiveCooldownSec(claimed.cooldown_remaining_seconds || 72000);
     setIsClaimModalOpen(false);
     setViewMode('micro');
     // Anı gezegenlerini sıfırdan çek
@@ -1236,13 +1167,11 @@ export const OurStarScreen: React.FC = () => {
       {isMicroScene && (
         <MicroSystemDock
           planets={exoplanets}
-          cooldownSec={liveCooldownSec}
           isPremium={isPremium}
           bottomInset={insets.bottom}
           highlightPlanetId={highlightPlanetId}
           onOpenPlanet={handleOpenPlanet}
           onCreatePlanet={handleCreatePlanet}
-          onSpark={handleMicroStarTouch}
           onExitToSky={handleToggleViewMode}
           onLayout={handleMicroDockLayout}
         />

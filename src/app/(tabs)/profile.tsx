@@ -12,6 +12,7 @@ import { PremiumSuccessModal } from "@/components/ui/PremiumSuccessModal";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
+import { notifyPartner } from "@/lib/notifications";
 import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { setGlobalActiveTheme, type AppTheme } from "@/lib/theme";
@@ -69,7 +70,6 @@ export default function ProfileScreen() {
   const [meetDate, setMeetDate] = useState("");
   const [relStartDate, setRelStartDate] = useState("");
   const [coupleId, setCoupleId] = useState<string | null>(null);
-  const [deletionDate, setDeletionDate] = useState<string | null>(null);
 
   const [profileLoading, setProfileLoading] = useState(false);
   const [datesLoading, setDatesLoading] = useState(false);
@@ -130,14 +130,13 @@ export default function ProfileScreen() {
         if (userData.couple_id) {
           const { data: coupleData } = await supabase
             .from("couples")
-            .select("meet_date, relationship_start_date, deletion_scheduled_at")
+            .select("meet_date, relationship_start_date")
             .eq("id", userData.couple_id)
             .single();
 
           if (coupleData) {
             setMeetDate(coupleData.meet_date ?? "");
             setRelStartDate(coupleData.relationship_start_date ?? "");
-            setDeletionDate(coupleData.deletion_scheduled_at ?? null);
           }
         }
       }
@@ -236,7 +235,9 @@ export default function ProfileScreen() {
     ]);
   }
 
-  // Hesap Silme
+  // Hesap Silme: sunucuda 7 gün sonrası için talep açılır, tüm cihazlarda oturum kapanır.
+  // Silmeyi saatlik bir sunucu işi yapar (dosyalar, veriler, hesap); bu süre içinde aynı
+  // hesapla giriş yapan kullanıcıya silmeyi iptal etme seçeneği sunulur (AuthContext).
   async function handleDeleteAccount() {
     if (executeOrIntercept(
       () => {},
@@ -247,41 +248,46 @@ export default function ProfileScreen() {
     }
     appAlert(
       "⚠️ Hesabını Sil",
-      "Eğer hesabınızı silerseniz, tüm fotoğraflarınız, mektuplarınız ve hatıralarınız 1 hafta sonra kalıcı olarak silinir.\n\nBu 1 hafta içinde herhangi biriniz giriş yaparsa silinme otomatik iptal edilir.\n\nOnaylıyor musunuz?",
+      "Hesabın ve ilişkinize ait tüm fotoğraflar, mektuplar, günlükler ve anılar 7 gün sonra kalıcı olarak silinir. Partnerinin hesabı kalır ancak ortak veriler onun için de silinir.\n\nBu 7 gün içinde aynı hesapla giriş yaparak silmeyi iptal edebilirsin.\n\nAktif bir aboneliğin varsa App Store veya Google Play üzerinden ayrıca iptal etmelisin.",
       [
         { text: "Vazgeç", style: "cancel" },
-        {
-          text: "Evet, Hesabımı Sil",
-          style: "destructive",
-          onPress: async () => {
-            if (!coupleId) {
-              appAlert("Hata", "Çift bilgisi bulunamadı.");
-              return;
-            }
-            setDeleteLoading(true);
-            const deletionScheduledAt = new Date();
-            deletionScheduledAt.setDate(deletionScheduledAt.getDate() + 7);
-
-            const { error } = await supabase
-              .from("couples")
-              .update({ deletion_scheduled_at: deletionScheduledAt.toISOString() })
-              .eq("id", coupleId);
-
-            setDeleteLoading(false);
-
-            if (error) {
-              appAlert("Hata", "İşlem gerçekleştirilemedi. Lütfen tekrar deneyin.");
-              return;
-            }
-
-            if (session?.user?.id) {
-              await supabase.from("push_tokens").delete().eq("user_id", session.user.id);
-            }
-            await signOut();
-            router.replace("/(auth)/login");
-          },
-        },
+        { text: "Evet, Hesabımı Sil", style: "destructive", onPress: confirmDeleteAccount },
       ]
+    );
+  }
+
+  async function confirmDeleteAccount() {
+    const userId = session?.user?.id;
+    if (!userId) return;
+
+    setDeleteLoading(true);
+    const { data: scheduledFor, error } = await supabase.rpc("request_account_deletion");
+    if (error || !scheduledFor) {
+      setDeleteLoading(false);
+      appAlert("Hata", "Silme talebi oluşturulamadı. Lütfen bağlantını kontrol edip tekrar dene.");
+      return;
+    }
+
+    const deletionDay = dayjs(scheduledFor as string).format("D MMMM YYYY");
+    // Partner ortak anıların silineceğini önceden bilsin (oturum kapanmadan gönderilmeli)
+    if (profile?.coupleId && profile.isPaired) {
+      await notifyPartner(
+        profile.coupleId,
+        userId,
+        "Hesap silme talebi",
+        `Partnerin hesabını silme talebinde bulundu. Ortak anılarınız ${deletionDay} tarihinde kalıcı olarak silinecek.`,
+        { type: "account_deletion" }
+      );
+    }
+
+    await signOut();
+    setDeleteLoading(false);
+    router.replace("/(auth)/login");
+    appAlert(
+      "Hesabın silinmek üzere",
+      `Hesabın ve tüm verilerin ${deletionDay} tarihinde kalıcı olarak silinecek. Fikrini değiştirirsen bu tarihe kadar giriş yapıp silmeyi iptal edebilirsin.`,
+      [{ text: "Tamam" }],
+      { forceDialog: true }
     );
   }
 
@@ -385,16 +391,6 @@ export default function ProfileScreen() {
               </View>
             </View>
           </View>
-
-          {/* SİLİNME UYARISI */}
-          {deletionDate && (
-            <View style={styles.deletionWarningBox}>
-              <Text style={styles.deletionWarningTitle}>⚠️ Hesabınız Silinmek Üzere</Text>
-              <Text style={styles.deletionWarningText}>
-                {dayjs(deletionDate).format("D MMMM YYYY")} tarihinde hesabınız kalıcı olarak silinecektir. Uygulamayı kullanmaya devam ederek bu işlemi iptal edebilirsiniz.
-              </Text>
-            </View>
-          )}
 
           {/* ─── TEMA & GÖRÜNÜM TERCİHİ ─── */}
           <ThemePicker
@@ -683,27 +679,6 @@ const createStyles = (theme: AppTheme) => {
       fontSize: 16,
       fontFamily: "Inter_700Bold",
       color: isLight ? "#A16207" : "#ffd700",
-    },
-
-    /* SİLİNME UYARISI */
-    deletionWarningBox: {
-      backgroundColor: "rgba(255, 77, 106, 0.12)",
-      borderWidth: 1,
-      borderColor: "rgba(255, 77, 106, 0.3)",
-      borderRadius: 16,
-      padding: 16,
-      gap: 6,
-    },
-    deletionWarningTitle: {
-      color: "#ff4d6a",
-      fontSize: 14,
-      fontFamily: "Inter_700Bold",
-    },
-    deletionWarningText: {
-      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.7)",
-      fontSize: 12.5,
-      fontFamily: "Inter_400Regular",
-      lineHeight: 18,
     },
   });
 };

@@ -4,16 +4,18 @@ const fs = require("fs");
 const path = require("path");
 
 /**
- * Android ana ekran widget'ı için Expo Config Plugin (expo-widgets yalnızca iOS'u destekler).
+ * Android ana ekran / kilit ekranı widget'ı için Expo Config Plugin (expo-widgets'ın Android modu
+ * deneysel olduğu için kapalı; kendi AppWidget'ımız kullanılır).
  *
  * Kaynak dosyalar `plugins/android-widget/` altında gerçek Kotlin/XML olarak durur:
- *   - *.kt            → android/app/src/main/java/<paket>/   (`__PACKAGE__` paket adıyla değiştirilir)
- *   - res/**          → android/app/src/main/res/
- *   - couple_widget.xml iki kez yazılır: nötr ilk yerleşim ve widget seçicideki örnek önizleme.
+ *   - *.kt   → android/app/src/main/java/<paket>/   (`__PACKAGE__` paket adıyla değiştirilir)
+ *   - res/** → android/app/src/main/res/  (küçük/orta/büyük yerleşim + seçici önizlemesi)
  */
 const SOURCE_DIR = path.join(__dirname, "android-widget");
 const RECEIVER_NAME = ".CoupleWidgetProvider";
 const KOTLIN_FILES = ["CoupleWidgetProvider.kt", "CoupleWidgetModule.kt", "CoupleWidgetPackage.kt"];
+/** Eski sürümlerin ürettiği, artık kullanılmayan kaynaklar (önceden prebuild edilmiş klasörde kalmasın). */
+const OBSOLETE_RES = ["drawable/couple_widget_avatar_bg.xml", "drawable/couple_widget_mood_bg.xml"];
 
 function getPackageName(config) {
   const pkg = config.android && config.android.package;
@@ -101,24 +103,11 @@ module.exports = function withAndroidWidget(config) {
         fs.writeFileSync(path.join(javaDir, file), source.split("__PACKAGE__").join(packageName), "utf8");
       }
 
-      const resSource = path.join(SOURCE_DIR, "res");
       const resTarget = path.join(mainDir, "res");
-      copyDirectory(resSource, resTarget);
-
-      // Orta boy yerleşim: ilk yükleme nötr ("—"), widget seçici önizlemesi örnek veriyle
-      const template = fs.readFileSync(path.join(resSource, "layout", "couple_widget.xml"), "utf8");
-      const label = "gündür birlikte ❤️";
-      const layoutDir = path.join(resTarget, "layout");
-      fs.writeFileSync(
-        path.join(layoutDir, "couple_widget.xml"),
-        template.split("__DAYS__").join("—").split("__LABEL__").join(label),
-        "utf8"
-      );
-      fs.writeFileSync(
-        path.join(layoutDir, "couple_widget_preview.xml"),
-        template.split("__DAYS__").join("142").split("__LABEL__").join(label),
-        "utf8"
-      );
+      for (const file of OBSOLETE_RES) {
+        fs.rmSync(path.join(resTarget, file), { force: true });
+      }
+      copyDirectory(path.join(SOURCE_DIR, "res"), resTarget);
 
       return cfg;
     },

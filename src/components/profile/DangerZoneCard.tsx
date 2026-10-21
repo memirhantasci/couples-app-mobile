@@ -22,7 +22,7 @@ export function DangerZoneCard({ theme, isLight, loading, onDeleteAccount }: Dan
       <View style={[styles.dangerNoticeBox, isLight && { backgroundColor: "rgba(255, 77, 106, 0.08)", borderColor: "rgba(255, 77, 106, 0.25)" }]}>
         <Text style={styles.dangerNoticeTitle}>⚠️ KVKK md. 11 Kapsamında Veri İmhası</Text>
         <Text style={[styles.dangerNoticeText, { color: isLight ? "#991B1B" : "rgba(255,255,255,0.7)" }]}>
-          Unutulma hakkınız uyarınca hesabınızı sildiğinizde, ilişkinize ait tüm ortak fotoğraflar, şifreli mektuplar, günlükler ve veriler 7 günlük cayma süresi sonunda sunucularımızdan kalıcı olarak imha edilir.
+          Unutulma hakkınız uyarınca hesabınızı sildiğinizde hesabınız, profil fotoğrafınız ve ilişkinize ait tüm ortak fotoğraflar, şifreli mektuplar, günlükler ve veriler 7 günlük cayma süresi sonunda sunucularımızdan kalıcı olarak imha edilir. Bu süre içinde aynı hesapla giriş yaparak vazgeçebilirsiniz.
         </Text>
       </View>
 

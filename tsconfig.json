@@ -19,6 +19,7 @@
   ],
   "exclude": [
     "node_modules",
-    "scratch"
+    "scratch",
+    "supabase/functions"
   ]
 }

@@ -715,7 +715,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                 <View style={[styles.firstSparkNote, { backgroundColor: isLight ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.12)', borderColor: isLight ? 'rgba(16, 185, 129, 0.25)' : 'rgba(16, 185, 129, 0.3)' }]}>
                   <CheckCircle2 size={16} color="#10B981" />
                   <Text style={[styles.firstSparkText, { color: isLight ? '#065F46' : '#A7F3D0' }]}>
-                    Bugünkü İlk Işığınız Göğe Yükseldi! Yıldızınız %100 parlaklıkla parlıyor.
+                    Yıldızınız gökyüzünde! Birlikte paylaştığınız her anı onu daha da parlatacak.
                   </Text>
                 </View>
 
