@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronLeft, Plus, AlignJustify, Camera,
-  Grid3X3, Grid2X2, Square,
+  Grid3X3, Grid2X2, Square, ArrowUpDown,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -57,6 +57,7 @@ export default function PhotosScreen() {
   // Görünüm Modu: 2'li (varsayılan dengeli), 3'lü (kompakt hızlı gezinti), single (büyük kartlar)
   const [viewMode, setViewMode] = useState<ViewMode>("grid2");
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
 
   const PAGE_SIZE = 30;
 
@@ -68,19 +69,24 @@ export default function PhotosScreen() {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["photo_archive", coupleId, isDemoMode],
+    queryKey: ["photo_archive", coupleId, isDemoMode, sortOrder],
     enabled: (!!coupleId && isPremium) || isDemoMode,
     initialPageParam: 0,
     queryFn: async ({ pageParam = 0 }) => {
       if (isDemoMode) {
-        return DEMO_PHOTOS as any;
+        const sorted = [...(DEMO_PHOTOS as any[])].sort((a, b) => {
+          const diff = new Date(a.taken_date).getTime() - new Date(b.taken_date).getTime();
+          return sortOrder === "asc" ? diff : -diff;
+        });
+        return sorted as any;
       }
+      const asc = sortOrder === "asc";
       const { data, error } = await supabase
         .from("photo_archive")
         .select("id, image_url, thumb_url, taken_date, taken_time, title, description, user_id, created_at, storage_path")
         .eq("couple_id", coupleId)
-        .order("taken_date", { ascending: false })
-        .order("created_at", { ascending: false })
+        .order("taken_date", { ascending: asc })
+        .order("created_at", { ascending: asc })
         .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
 
       if (error) throw error;
@@ -253,6 +259,18 @@ export default function PhotosScreen() {
             >
               <Plus size={16} color="#ffffff" />
               <Text style={styles.uploadQuickBtnText}>Fotoğraf Ekle</Text>
+            </TouchableOpacity>
+
+            {/* Tarih Sıralama Toggleu */}
+            <TouchableOpacity
+              style={[styles.sortBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)" }]}
+              onPress={() => setSortOrder(s => s === "desc" ? "asc" : "desc")}
+              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+            >
+              <ArrowUpDown size={14} color={theme.accent} />
+              <Text style={[styles.sortBtnText, { color: theme.textSecondary }]}>
+                {sortOrder === "desc" ? "Yeniden Eskiye" : "Eskiden Yeniye"}
+              </Text>
             </TouchableOpacity>
 
             {/* Görünüm Modları: 3'lü, 2'li, 1'li */}
@@ -436,6 +454,18 @@ const createStyles = (theme: AppTheme) => {
       color: "#ffffff",
       fontSize: 13,
       fontFamily: "Inter_700Bold",
+    },
+    sortBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      paddingHorizontal: 10,
+      paddingVertical: 7,
+      borderRadius: 12,
+    },
+    sortBtnText: {
+      fontSize: 11,
+      fontFamily: "Inter_600SemiBold",
     },
     viewModePills: {
       flexDirection: "row",

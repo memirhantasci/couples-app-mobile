@@ -38,15 +38,15 @@ export function AnniversaryGlow({ active, radius, isLight, children }: Anniversa
   const gold = isLight ? GOLD_LIGHT : GOLD_DARK;
   return (
     <View>
-      {active ? <GlowHalo radius={radius} gold={gold} /> : null}
+      {active ? <GlowHalo radius={radius} gold={gold} isLight={isLight} /> : null}
       {children}
-      {active ? <GlowSheen radius={radius} gold={gold} /> : null}
+      {active ? <GlowSheen radius={radius} gold={gold} isLight={isLight} /> : null}
     </View>
   );
 }
 
 /** Kartın ARKASINDA kalan, dışa taşan halka katmanları (kart opak olduğu için yalnızca kenar boşluğunda görünür). */
-function GlowHalo({ radius, gold }: { radius: number; gold: string }) {
+function GlowHalo({ radius, gold, isLight }: { radius: number; gold: string; isLight: boolean }) {
   const reduceMotion = useReducedMotion();
   const breath = useSharedValue(reduceMotion ? 0.6 : 0);
 
@@ -72,19 +72,18 @@ function GlowHalo({ radius, gold }: { radius: number; gold: string }) {
 
   return (
     <Animated.View pointerEvents="none" style={[styles.layer, animatedStyle]}>
-      <View style={[styles.ring, ringBox(10, radius), { borderWidth: 8, borderColor: `rgba(${gold}, 0.07)` }]} />
-      <View style={[styles.ring, ringBox(5, radius), { borderWidth: 5, borderColor: `rgba(${gold}, 0.16)` }]} />
+      <View style={[styles.ring, ringBox(10, radius), { borderWidth: 8, borderColor: `rgba(${gold}, ${isLight ? 0.05 : 0.07})` }]} />
+      <View style={[styles.ring, ringBox(5, radius), { borderWidth: 5, borderColor: `rgba(${gold}, ${isLight ? 0.12 : 0.16})` }]} />
       <View
         style={[
           styles.ring,
           ringBox(2, radius),
           {
             borderWidth: 1.5,
-            borderColor: `rgba(${gold}, 0.95)`,
-            // iOS'ta gerçek bir yumuşak parlama; Android'de halkalar aynı etkiyi verir
+            borderColor: `rgba(${gold}, ${isLight ? 0.55 : 0.95})`,
             shadowColor: `rgb(${gold})`,
-            shadowOpacity: 0.75,
-            shadowRadius: 14,
+            shadowOpacity: isLight ? 0.28 : 0.75,
+            shadowRadius: isLight ? 7 : 14,
             shadowOffset: { width: 0, height: 0 },
           },
         ]}
@@ -114,7 +113,7 @@ function ringBox(inset: number, radius: number) {
 }
 
 /** Kartın ÜZERİNDE: ara ara geçen ışık süzmesi + köşelerde göz kırpan yıldızlar. */
-function GlowSheen({ radius, gold }: { radius: number; gold: string }) {
+function GlowSheen({ radius, gold, isLight }: { radius: number; gold: string; isLight: boolean }) {
   const reduceMotion = useReducedMotion();
   const cardWidth = useSharedValue(0);
   const sheen = useSharedValue(0);
@@ -185,7 +184,10 @@ function GlowSheen({ radius, gold }: { radius: number; gold: string }) {
         {!reduceMotion && (
           <Animated.View style={[styles.sheen, sheenStyle]}>
             <LinearGradient
-              colors={["rgba(255,255,255,0)", `rgba(${gold}, 0.26)`, "rgba(255,255,255,0)"]}
+              colors={isLight
+                ? [`rgba(${gold}, 0)`, `rgba(${gold}, 0.16)`, `rgba(${gold}, 0)`]
+                : ["rgba(255,255,255,0)", `rgba(${gold}, 0.26)`, "rgba(255,255,255,0)"]
+              }
               start={{ x: 0, y: 0.5 }}
               end={{ x: 1, y: 0.5 }}
               style={StyleSheet.absoluteFill}
