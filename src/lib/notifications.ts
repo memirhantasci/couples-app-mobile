@@ -126,11 +126,15 @@ export async function requestPushNotificationPermission(userId: string): Promise
 // Foreground bildirim işleyicisi (Expo SDK 57 uyumlu).
 // Uygulama açıkken sistem banner'ı bastırılır: NotificationContext zaten kendi tasarımımız olan
 // uygulama içi kartı gösteriyor, ikisi birden çıkarsa kullanıcı aynı bildirimi iki kez görür.
-// Bildirim yine de bildirim merkezine düşer (shouldShowList) ve ses çalar.
+// ÖNEMLİ: shouldShowBanner yalnızca iOS'ta UNNotificationPresentationOptions'a eşlenir; Android'de
+// açılır (drop-down) uyarıyı gerçekte shouldPlaySound belirler — "no matter what the priority is"
+// (bkz. Expo dokümantasyonu). shouldPlaySound true kaldığı sürece Android kanal önemi MAX olduğundan
+// sistem, uygulama içi kart açıkken bile kendi banner'ını gösteriyordu. Bu yüzden burada false.
+// Bildirim yine de bildirim merkezine (shade) sessizce düşer (shouldShowList).
 // Rozet (badge) sunucudan her push'ta 1 olarak gelir; uygulama açılınca clearNotificationBadge ile sıfırlanır.
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldPlaySound: true,
+    shouldPlaySound: false,
     shouldSetBadge: false,
     shouldShowBanner: false,
     shouldShowList: true,
@@ -235,6 +239,11 @@ export function cleanNotificationText(text: string | null | undefined): string {
       return "";
     }
   });
+
+  // 3. Güvenlik ağı: veritabanından gelen, yukarıdaki iki standart kalıba tam uymayan
+  // (örn. kesilmiş/bozuk IV-cipher çifti ya da ileride eklenebilecek başka bir şifreleme öneki)
+  // "enc:" / "det:" ile başlayan artık parçalar da bildirime çıplak şifreli metin olarak sızmasın.
+  result = result.replace(/\b(?:enc|det):\S*/g, "");
 
   return result.replace(/\s+/g, " ").trim();
 }

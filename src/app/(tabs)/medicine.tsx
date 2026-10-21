@@ -324,6 +324,21 @@ export default function MedicineScreen() {
           formattedTimes.forEach((t: string) => scheduleMedicineReminder(newMed.id, payload.name, t));
         }
 
+        notifyPartner(
+          coupleId,
+          userId,
+          "Yeni İlaç Eklendi 💊",
+          values.isPartnerAdd
+            ? `Sevgilin senin için yeni bir ilaç ekledi: ${cleanMedName}`
+            : `Sevgilin yeni bir ilaç ekledi: ${cleanMedName}`,
+          {
+            type: "medicine",
+            medicineName: cleanMedName,
+            route: "/(tabs)/medicine",
+            actionLabel: "İlaç Takibine Git 💊",
+          }
+        );
+
         toast.success("Yeni ilaç kaydedildi 🎉", { delay: 350 });
       }
 

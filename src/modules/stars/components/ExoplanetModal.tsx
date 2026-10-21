@@ -64,6 +64,8 @@ import {
   Quote,
 } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
+import { notifyPartner } from '@/lib/notifications';
 import { DateTimePickerSheet } from '@/components/ui/DateTimePickerSheet';
 import { starService } from '../api/starService';
 import { planetColors, rgba, type PlanetLook } from '../canvas/micro/microScene';
@@ -160,6 +162,8 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
   isLoadingDetails = false,
 }: ExoplanetModalProps) {
   const router = useRouter();
+  const { session } = useAuth();
+  const currentUserId = session?.user?.id ?? '';
 
   // Aktif mod (Prop ile başlar, 'view' içinden 'edit'e geçebilir)
   const [activeMode, setActiveMode] = useState<'view' | 'edit' | 'create'>(mode);
@@ -468,6 +472,21 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
         };
       } else {
         newPlanet = await starService.createExoplanet(starId, payload, uploadedPaths);
+
+        if (coupleId !== 999999 && currentUserId) {
+          notifyPartner(
+            coupleId,
+            currentUserId,
+            'Yeni Bir Anı Gezegeni ✨',
+            `Sevgilin yörüngeye yeni bir anı gezegeni yerleştirdi: "${trimmedTitle}"`,
+            {
+              type: 'photo',
+              memoryTitle: trimmedTitle,
+              route: '/our-star',
+              actionLabel: 'Gezegeni Gör 🪐',
+            }
+          );
+        }
       }
 
       try {
