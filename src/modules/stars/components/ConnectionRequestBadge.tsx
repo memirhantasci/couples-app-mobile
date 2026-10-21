@@ -215,7 +215,7 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
                           <Sparkles size={14} color="#F59E0B" />
                         </View>
                         <Text style={[styles.requestPromptText, { color: theme.text }]}>
-                          <Text style={styles.starNameBold}>"{req.other_star_name}"</Text> yıldızı bağlantı kurmak istiyor
+                          <Text style={styles.starNameBold}>“{req.other_star_name}”</Text> yıldızı bağlantı kurmak istiyor
                         </Text>
                       </View>
 

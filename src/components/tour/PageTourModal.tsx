@@ -88,11 +88,11 @@ export function PageTourModal({ visible, guide, onClose }: PageTourModalProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   // Reset to first step when modal opens
-  React.useEffect(() => {
-    if (visible) {
-      setCurrentIndex(0);
-    }
-  }, [visible]);
+  const [wasVisible, setWasVisible] = useState(visible);
+  if (wasVisible !== visible) {
+    setWasVisible(visible);
+    if (visible) setCurrentIndex(0);
+  }
 
   if (!guide || !visible) return null;
 

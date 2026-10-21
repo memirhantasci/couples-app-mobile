@@ -238,6 +238,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const initialSessionProcessed = useRef(false);
   // Track whether profile has been fetched at least once for current session
   const profileFetchedForUser = useRef<string | null>(null);
+  // Oturum olayı geri çağrısı güncel profil durumunu closure'a takılmadan okuyabilsin diye
+  const hasProfileRef = useRef(false);
+  useEffect(() => {
+    hasProfileRef.current = !!profile;
+  }, [profile]);
 
   const checkDeviceAuth = useCallback(async (userId: string): Promise<boolean> => {
     try {
@@ -404,6 +409,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
         RevenueCatService.logOut();
       } else {
+        // Yeni bir hesap için profil henüz çekilmediyse (ve önbellekte yoksa) yönlendirme profili beklesin
+        if (profileFetchedForUser.current !== newSession.user.id && !hasProfileRef.current) {
+          setIsLoading(true);
+        }
         setAdLoggingOut(false);
         // For TOKEN_REFRESHED events, don't re-run device auth check
         if (event === 'TOKEN_REFRESHED') return;
@@ -436,11 +445,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // If we don't have a cached profile loaded yet, keep loading active until fetch
-    if (!profile) {
-      setIsLoading(true);
-    }
-
+    // Önbellekte profil yoksa yükleme durumu onAuthStateChange'de açıldı; burada yalnızca çekilir
     profileFetchedForUser.current = userId;
 
     fetchProfile(userId)
@@ -583,6 +588,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.remove();
   }, [profile?.premiumExpiresAt, refreshProfile]);
 
+  const signedInCoupleId = profile?.coupleId ?? null;
   const signOut = useCallback(async () => {
     if (isDemoMode) {
       exitDemoMode();
@@ -590,13 +596,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setAdLoggingOut(true);
     profileFetchedForUser.current = null;
-    
+
     // Çift özelindeki önbellekleri ve hassas yerel verileri sıfırla
-    if (profile?.coupleId) {
-      await AsyncStorage.removeItem(`@love_score_${profile.coupleId}`).catch(() => {});
-      await AsyncStorage.removeItem(`@couples_letter_draft_${profile.coupleId}`).catch(() => {});
-      await AsyncStorage.removeItem(`@defaults_seeded_${profile.coupleId}`).catch(() => {});
-      await AsyncStorage.removeItem(`@period_notif_scheduled_${profile.coupleId}`).catch(() => {});
+    if (signedInCoupleId) {
+      await AsyncStorage.removeItem(`@love_score_${signedInCoupleId}`).catch(() => {});
+      await AsyncStorage.removeItem(`@couples_letter_draft_${signedInCoupleId}`).catch(() => {});
+      await AsyncStorage.removeItem(`@defaults_seeded_${signedInCoupleId}`).catch(() => {});
+      await AsyncStorage.removeItem(`@period_notif_scheduled_${signedInCoupleId}`).catch(() => {});
     }
     await AsyncStorage.removeItem("@pending_invite_code").catch(() => {});
     
@@ -619,7 +625,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     await supabase.auth.signOut();
-  }, [isDemoMode, exitDemoMode, profile?.coupleId]);
+  }, [isDemoMode, exitDemoMode, signedInCoupleId]);
 
   // Silinmek üzere olan hesapla giriş yapıldı (bkz. showPendingDeletionPrompt)
   const signOutRef = useRef(signOut);

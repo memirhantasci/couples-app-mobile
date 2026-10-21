@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Modal,
   View,
@@ -47,11 +47,13 @@ export function LegalModal({
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<LegalDocType>(initialDoc);
 
-  useEffect(() => {
-    if (visible && initialDoc) {
-      setActiveTab(initialDoc);
-    }
-  }, [visible, initialDoc]);
+  // Her açılışta istenen belgeden başlanır
+  const openKey = visible ? initialDoc : null;
+  const [appliedOpenKey, setAppliedOpenKey] = useState(openKey);
+  if (appliedOpenKey !== openKey) {
+    setAppliedOpenKey(openKey);
+    if (openKey) setActiveTab(openKey);
+  }
 
   const currentDoc = LEGAL_DOCS[activeTab] || LEGAL_DOCS.kvkk;
 

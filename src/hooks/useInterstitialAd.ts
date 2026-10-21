@@ -39,13 +39,15 @@ export function useInterstitialAd() {
   const { session, profile, isLoading } = useAuth();
   const isPremium = profile?.isPremium === true;
   
-  const [loaded, setLoaded] = useState(false);
+  const [adLoaded, setLoaded] = useState(false);
+  // Uygunluk bitince (premium, çıkış, oturum yok) reklam hazır sayılmaz
+  const canShowAds = !!session && !isLoading && !!profile && !isPremium;
+  const loaded = adLoaded && canShowAds;
 
   useEffect(() => {
     if (isExpoGo || !interstitial) return;
     // If logging out, unauthenticated, loading, or premium: never load ads
     if (getIsAdLoggingOut() || !session || isLoading || !profile || isPremium) {
-      setLoaded(false);
       return;
     }
 
@@ -57,6 +59,7 @@ export function useInterstitialAd() {
       try {
         if (getIsAdLoggingOut() || !session || isPremium) return;
         if (!interstitial.loaded) {
+          setLoaded(false);
           interstitial.load();
         } else {
           setLoaded(true);

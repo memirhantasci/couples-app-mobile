@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useEffectEvent, useState } from "react";
 import { View, Text, TouchableOpacity, Modal, StyleSheet, ActivityIndicator, TurboModuleRegistry } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { DialogHost } from "@/components/ui/DialogHost";
@@ -71,6 +71,32 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
     }
   }, [error]);
 
+  // Yalnızca reklam kapandığında effect'ten çağrılır; güncel refreshProfile / onSuccess'i görür.
+  // Durum güncellemeleri istek zincirinin içinde yapılır (effect gövdesinde senkron değil).
+  const handleEarnReward = useEffectEvent(() => {
+    void Promise.resolve()
+      .then(async () => {
+        setRewarding(true);
+        const { error } = await supabase.rpc("earn_tokens", {
+          p_reason: "ad_reward"
+        });
+
+        if (error) throw error;
+
+        await refreshProfile();
+        // Reklam modalı onSuccess ile kapanır → pil kapanışı bekleyip modalın önünde görünsün
+        toast.success("25 Token kazandın!", { title: "Tebrikler!", emoji: "🪙", delay: 350 });
+        onSuccess();
+      })
+      .catch((error: any) => {
+        logger.error("Earn token error:", error);
+        appAlert("Hata", "Token eklenirken bir hata oluştu.");
+      })
+      .finally(() => {
+        setRewarding(false);
+      });
+  });
+
   useEffect(() => {
     if (isClosed) {
       if (isEarnedReward) {
@@ -81,27 +107,6 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
       }
     }
   }, [isClosed, isEarnedReward, load]);
-
-  const handleEarnReward = async () => {
-    setRewarding(true);
-    try {
-      const { error } = await supabase.rpc("earn_tokens", {
-        p_reason: "ad_reward"
-      });
-      
-      if (error) throw error;
-      
-      await refreshProfile();
-      // Reklam modalı onSuccess ile kapanır → pil kapanışı bekleyip modalın önünde görünsün
-      toast.success("25 Token kazandın!", { title: "Tebrikler!", emoji: "🪙", delay: 350 });
-      onSuccess();
-    } catch (error: any) {
-      logger.error("Earn token error:", error);
-      appAlert("Hata", "Token eklenirken bir hata oluştu.");
-    } finally {
-      setRewarding(false);
-    }
-  };
 
   const showAd = () => {
     if (isLoaded) {

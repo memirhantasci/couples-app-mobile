@@ -123,9 +123,12 @@ export function MapPickerModal({
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
 
-  useEffect(() => {
+  // Uygulama teması değişince harita teması varsayılanına döner
+  const [themeFor, setThemeFor] = useState(isAppLight);
+  if (themeFor !== isAppLight) {
+    setThemeFor(isAppLight);
     setMapTheme(isAppLight ? "romantic" : "midnight");
-  }, [isAppLight]);
+  }
 
   // Varsayılan Konum (İstanbul)
   const defaultRegion: Region = {
@@ -207,10 +210,9 @@ export function MapPickerModal({
     await fetchAddress(coord.latitude, coord.longitude);
   };
 
-  // GPS Konumuna Git
-  const moveToUserLocation = async (silent = false) => {
+  // GPS konumunu bulup haritayı oraya götürür (yükleniyor bayrağını çağıran yönetir)
+  const locateUser = async (silent: boolean) => {
     try {
-      setIsLocating(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         if (!silent) {
@@ -240,40 +242,55 @@ export function MapPickerModal({
       } catch {
         // sessizce geç
       }
-    } finally {
-      setIsLocating(false);
     }
   };
 
-  // Modal Açıldığında
-  useEffect(() => {
+  // GPS Konumuna Git
+  const moveToUserLocation = (silent = false) => {
+    setIsLocating(true);
+    return locateUser(silent).finally(() => setIsLocating(false));
+  };
+
+  // Modal Açıldığında: seçim başlangıç konumuna sıfırlanır (render sırasında), harita oraya
+  // ya da başlangıç konumu yoksa GPS konumuna gider (effect). Anahtar değere göredir: üst bileşen
+  // her çizimde yeni bir konum nesnesi verse de seçim boşuna sıfırlanmaz.
+  const hasInitialLocation =
+    !!initialLocation && isValidCoordinate(initialLocation.latitude, initialLocation.longitude);
+  const openKey = visible
+    ? hasInitialLocation
+      ? `${initialLocation!.latitude},${initialLocation!.longitude},${initialLocation!.locationName ?? ""}`
+      : "gps"
+    : "closed";
+  const [appliedOpenKey, setAppliedOpenKey] = useState<string | null>(null);
+  if (appliedOpenKey !== openKey) {
+    setAppliedOpenKey(openKey);
     if (visible) {
       setIsMapReady(false);
-      if (initialLocation && isValidCoordinate(initialLocation.latitude, initialLocation.longitude)) {
-        setSelectedCoord({
-          latitude: initialLocation.latitude,
-          longitude: initialLocation.longitude,
-        });
-        setResolvedAddress(initialLocation.locationName || "");
-        setTimeout(() => {
-          mapRef.current?.animateToRegion(
-            {
-              latitude: initialLocation.latitude,
-              longitude: initialLocation.longitude,
-              latitudeDelta: 0.015,
-              longitudeDelta: 0.015,
-            },
-            500
-          );
-        }, 300);
+      if (hasInitialLocation) {
+        setSelectedCoord({ latitude: initialLocation!.latitude, longitude: initialLocation!.longitude });
+        setResolvedAddress(initialLocation!.locationName || "");
       } else {
         // Geçersiz veya 0,0 konum durumunda ASLA okyanusa gitme, kullanıcının GPS konumuna git
         setSelectedCoord(null);
         setResolvedAddress("");
-        moveToUserLocation(true);
+        setIsLocating(true);
       }
     }
-  }, [visible, initialLocation]);
+  }
+
+  useEffect(() => {
+    if (!visible) return;
+    if (hasInitialLocation) {
+      const target = { latitude: initialLocation!.latitude, longitude: initialLocation!.longitude };
+      const timer = setTimeout(() => {
+        mapRef.current?.animateToRegion({ ...target, latitudeDelta: 0.015, longitudeDelta: 0.015 }, 500);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+    void locateUser(true).finally(() => setIsLocating(false));
+    // Yalnızca açılış anahtarı değiştiğinde çalışır
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openKey]);
 
   // Haritaya Tıklama
   const handleMapPress = async (e: any) => {

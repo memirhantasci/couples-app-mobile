@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useEffectEvent, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -52,12 +52,38 @@ export const InAppNotificationBanner: React.FC<InAppNotificationBannerProps> = (
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // Animation values
-  const translateY = useRef(new Animated.Value(-160)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
-  const progressAnim = useRef(new Animated.Value(1)).current;
-  const scaleAnim = useRef(new Animated.Value(0.92)).current;
+  // Animation values (bileşen ömrü boyunca sabit nesneler)
+  const [translateY] = useState(() => new Animated.Value(-160));
+  const [opacity] = useState(() => new Animated.Value(0));
+  const [progressAnim] = useState(() => new Animated.Value(1));
+  const [scaleAnim] = useState(() => new Animated.Value(0.92));
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleDismiss = () => {
+    if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: -170,
+        duration: 240,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      onDismiss();
+    });
+  };
+
+  // Kaydırma hareketi bir kez kurulur ve yalnızca kapatma isteğini sayar; kapatmayı aşağıdaki
+  // effect güncel handleDismiss ile yapar (hareket nesnesi eski bir closure'a takılmaz)
+  const [swipeDismissCount, setSwipeDismissCount] = useState(0);
+  const dismissFromSwipe = useEffectEvent(() => handleDismiss());
+  useEffect(() => {
+    if (swipeDismissCount > 0) dismissFromSwipe();
+  }, [swipeDismissCount]);
 
   useEffect(() => {
     if (notification) {
@@ -116,26 +142,8 @@ export const InAppNotificationBanner: React.FC<InAppNotificationBannerProps> = (
     };
   }, [notification]);
 
-  const handleDismiss = () => {
-    if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
-    Animated.parallel([
-      Animated.timing(translateY, {
-        toValue: -170,
-        duration: 240,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      onDismiss();
-    });
-  };
-
   // Pan responder for swipe up to dismiss
-  const panResponder = useRef(
+  const [panResponder] = useState(() =>
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gestureState) => {
         return Math.abs(gestureState.dy) > 5;
@@ -147,7 +155,7 @@ export const InAppNotificationBanner: React.FC<InAppNotificationBannerProps> = (
       },
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dy < -30 || gestureState.vy < -0.5) {
-          handleDismiss();
+          setSwipeDismissCount((count) => count + 1);
         } else {
           Animated.spring(translateY, {
             toValue: 0,
@@ -157,7 +165,7 @@ export const InAppNotificationBanner: React.FC<InAppNotificationBannerProps> = (
         }
       },
     })
-  ).current;
+  );
 
   if (!notification) return null;
 

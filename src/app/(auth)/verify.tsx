@@ -38,14 +38,15 @@ export default function VerifyScreen() {
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [autoVerified, setAutoVerified] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState<number>(0);
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
   // ── Path B: Deep link auto-verify ────────────────────────────────────────
+  const isDeepLinkVerify = !!(params.token_hash && params.type);
+  const autoVerifyStartedRef = useRef(false);
   useEffect(() => {
-    if (params.token_hash && params.type && !autoVerified) {
-      setAutoVerified(true);
+    if (params.token_hash && params.type && !autoVerifyStartedRef.current) {
+      autoVerifyStartedRef.current = true;
       handleDeepLinkVerify(params.token_hash, params.type);
     }
   }, [params.token_hash]);
@@ -245,7 +246,7 @@ export default function VerifyScreen() {
     }
   }
 
-  if (autoVerified && isLoading) {
+  if (isDeepLinkVerify && isLoading) {
     return (
       <View
         style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#080811" }}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -37,16 +37,13 @@ export default function CompleteProfileScreen() {
   const metadata = session?.user?.user_metadata ?? {};
   const suggestedName = String(metadata.full_name || metadata.name || "").trim();
 
-  const [name, setName] = useState(suggestedName);
-  const [nameEdited, setNameEdited] = useState(false);
+  // Kullanıcı dokunana kadar öneri (örn. sonradan gelen Apple adı) gösterilir
+  const [editedName, setEditedName] = useState<string | null>(null);
+  const nameEdited = editedName !== null;
+  const name = editedName ?? suggestedName;
   const [gender, setGender] = useState<Gender | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
-
-  // Öneri (örn. Apple adı) oturuma sonradan gelirse, kullanıcı henüz dokunmadıysa doldur
-  useEffect(() => {
-    if (!nameEdited && suggestedName) setName(suggestedName);
-  }, [suggestedName, nameEdited]);
 
   const selected = GENDER_OPTIONS.find((g) => g.value === gender);
   const accent = selected?.color ?? "#FF4D6D";
@@ -134,8 +131,7 @@ export default function CompleteProfileScreen() {
               <TextInput
                 value={name}
                 onChangeText={(text) => {
-                  setNameEdited(true);
-                  setName(text);
+                  setEditedName(text);
                   if (error) setError("");
                 }}
                 placeholder="Örn. Selin"

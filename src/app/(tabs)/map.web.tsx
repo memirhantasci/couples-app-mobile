@@ -12,7 +12,7 @@ export default function MapScreen() {
           <Text style={styles.title}>Aşk Haritası</Text>
           <Text style={styles.desc}>
             İnteraktif anı haritası mobil cihazlara (iOS / Android) özeldir.
-            Web ortamında "Bizim Yıldızımız", Fotoğraflar ve diğer modülleri deneyimleyebilirsiniz.
+            Web ortamında “Bizim Yıldızımız”, Fotoğraflar ve diğer modülleri deneyimleyebilirsiniz.
           </Text>
         </View>
       </View>

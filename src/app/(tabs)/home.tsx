@@ -109,6 +109,8 @@ export default function HomeScreen() {
   });
 
   const currentMonthKey = dayjs().format("YYYY_MM");
+  const dayOfMonth = dayjs().date();
+  const isWrappedPeriod = dayOfMonth >= 27 || dayOfMonth <= 5;
 
   useEffect(() => {
     if (coupleId && !isDemoMode) {
@@ -119,13 +121,9 @@ export default function HomeScreen() {
   }, [coupleId, isDemoMode]);
 
   // Aylık Couple Wrapped: Sadece ayda bir kez (ayın 27'si ile takip eden ayın 5'i arası) ve kullanıcı kapatmadıysa göster
+  // Dönem dışında banner render'da gizlenir (isWrappedPeriod); burada yalnızca dönemdeki durum okunur
   useEffect(() => {
-    const dayOfMonth = dayjs().date();
-    const isMonthlyPeriod = dayOfMonth >= 27 || dayOfMonth <= 5;
-    if (!isMonthlyPeriod) {
-      setShowWrappedBanner(false);
-      return;
-    }
+    if (!isWrappedPeriod) return;
 
     AsyncStorage.getItem(`@wrapped_dismissed_${currentMonthKey}`).then((val) => {
       if (!val) {
@@ -139,14 +137,14 @@ export default function HomeScreen() {
         setShowWrappedBanner(false);
       }
     });
-  }, [coupleId, profile?.relationshipStartDate, profile?.meetDate, isDemoMode, currentMonthKey]);
+  }, [coupleId, profile?.relationshipStartDate, profile?.meetDate, isDemoMode, currentMonthKey, isWrappedPeriod]);
 
   const dismissWrappedBanner = async () => {
     setShowWrappedBanner(false);
     await AsyncStorage.setItem(`@wrapped_dismissed_${currentMonthKey}`, "true");
   };
 
-  const { data: dashboardData, isLoading, refetch, isRefetching } = useQuery({
+  const { data: dashboardData, dataUpdatedAt, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["home_dashboard", coupleId, userId, today, isDemoMode],
     enabled: !!userId || isDemoMode,
     queryFn: async () => {
@@ -346,22 +344,23 @@ export default function HomeScreen() {
   // ─── BULUŞMA KARTI ───
   // Seçim render anında yapılır: buluşma saati geçince sıradaki buluşmaya geçilir,
   // kutlama süresi (30 dk) dolunca kart kalkar; hiçbiri yeniden sorgu gerektirmez.
-  const [meetingTick, setMeetingTick] = useState(0);
+  // "Şimdi" render'da okunmaz: verinin geldiği an ile zamanlayıcının son uyandığı anın büyüğüdür.
+  const [meetingClock, setMeetingClock] = useState(0);
+  const meetingNow = Math.max(dataUpdatedAt, meetingClock);
   const activeMeeting = useMemo(
-    () => pickActiveMeeting<Meeting>(dashboardData?.meetings, Date.now()),
-    // meetingTick yalnızca yeniden hesaplamayı tetikler
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [dashboardData?.meetings, meetingTick]
+    () => pickActiveMeeting<Meeting>(dashboardData?.meetings, meetingNow),
+    [dashboardData?.meetings, meetingNow]
   );
 
   useEffect(() => {
-    const boundary = nextMeetingBoundary(dashboardData?.meetings, Date.now());
+    const boundary = nextMeetingBoundary(dashboardData?.meetings, meetingNow);
     if (boundary === null) return;
-    // setTimeout üst sınırı ~24.8 gün; daha uzaksa sınırda uyanıp yeniden planlanır
-    const delay = Math.min(boundary - Date.now() + 250, 2147483647);
-    const timer = setTimeout(() => setMeetingTick((t) => t + 1), delay);
+    // Sınır geçmişte kaldıysa (ör. önbellekten gelen veri) hemen uyanır.
+    // setTimeout üst sınırı ~24.8 gün; daha uzaksa sınırda uyanıp yeniden planlanır.
+    const delay = Math.min(Math.max(0, boundary - Date.now() + 250), 2147483647);
+    const timer = setTimeout(() => setMeetingClock(Date.now()), delay);
     return () => clearTimeout(timer);
-  }, [dashboardData?.meetings, meetingTick]);
+  }, [dashboardData?.meetings, meetingNow]);
 
   // ─── ANA EKRAN WIDGET SENKRONİZASYONU ───
   // Gün sayısı widget içinde hesaplanır; buradan yalnızca tarih, isimler, partnerin bugünkü ruh hali
@@ -620,7 +619,7 @@ export default function HomeScreen() {
           />
 
           {/* ─── COUPLE WRAPPED BANNER (Ayda 1 Kez Dönemsel) ─── */}
-          {showWrappedBanner && (
+          {showWrappedBanner && isWrappedPeriod && (
             <TouchableOpacity
               style={[styles.wrappedBanner, { borderColor: "rgba(255, 77, 109, 0.35)" }]}
               onPress={() => setIsWrappedVisible(true)}

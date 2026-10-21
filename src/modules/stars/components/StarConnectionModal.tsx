@@ -133,32 +133,46 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   // ─── VERİ YÜKLEME ──────────────────────────────────────────────────
-  const loadData = useCallback(async () => {
-    if (!visible) return;
-    setIsLoading(true);
-    setErrorMessage(null);
-    try {
-      const [connections, pending, limitOk, coupleRow] = await Promise.all([
+  // Yükleme durumunu çağıran açar (açılışta render sırasında, eylem sonrası loadData içinde);
+  // sonuç ve hata her zaman istek bittikten sonra yazılır.
+  const fetchData = useCallback(
+    () =>
+      Promise.all([
         starService.getMyStarConnections(),
         starService.getPendingConnections(),
         starService.checkConnectionLimit(coupleId).catch(() => true),
         supabase.from('couples').select('pairing_code').eq('id', coupleId).maybeSingle(),
-      ]);
-      setActiveConnections(connections);
-      setPendingConnections(pending);
-      setCanConnect(limitOk);
-      setPairingCode(coupleRow.data?.pairing_code ?? null);
-      setHasLoaded(true);
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'Bağlantı bilgileri yüklenirken hata oluştu.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [visible, coupleId]);
+      ])
+        .then(([connections, pending, limitOk, coupleRow]) => {
+          setActiveConnections(connections);
+          setPendingConnections(pending);
+          setCanConnect(limitOk);
+          setPairingCode(coupleRow.data?.pairing_code ?? null);
+          setHasLoaded(true);
+        })
+        .catch((err: any) => {
+          setErrorMessage(err?.message || 'Bağlantı bilgileri yüklenirken hata oluştu.');
+        })
+        .finally(() => {
+          setIsLoading(false);
+        }),
+    [coupleId]
+  );
 
-  useEffect(() => {
+  const loadData = useCallback(async () => {
+    if (!visible) return;
+    setIsLoading(true);
+    setErrorMessage(null);
+    await fetchData();
+  }, [visible, fetchData]);
+
+  // Açılışta yükleme başlar; kapanınca ekran sıfırlanır (bir sonraki açılış temiz başlasın)
+  const [wasVisible, setWasVisible] = useState(false);
+  if (wasVisible !== visible) {
+    setWasVisible(visible);
     if (visible) {
-      void loadData();
+      setIsLoading(true);
+      setErrorMessage(null);
     } else {
       setSearchQuery('');
       setSearchResults([]);
@@ -172,7 +186,11 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
       setActiveTab('code');
       setCodeCopied(false);
     }
-  }, [visible, loadData]);
+  }
+
+  useEffect(() => {
+    if (visible) void fetchData();
+  }, [visible, fetchData]);
 
   // ─── ÇİFT KODUNU KOPYALA ─────────────────────────────────────────────
   const handleCopyPairingCode = useCallback(async () => {
@@ -831,7 +849,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                   {searchPerformed && searchResults.length === 0 && !isSearching && (
                     <View style={styles.emptyResults}>
                       <Text style={[styles.emptyResultsText, { color: theme.textSecondary }]}>
-                        "{searchQuery}" adında tescilli başka bir çift yıldızı bulunamadı.
+                        “{searchQuery}” adında tescilli başka bir çift yıldızı bulunamadı.
                       </Text>
                     </View>
                   )}
@@ -885,7 +903,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                         <Text style={styles.stepNumberText}>3</Text>
                       </View>
                       <Text style={[styles.stepItemText, { color: theme.textSecondary }]}>
-                        Açılan yıldız kartındaki <Text style={styles.stepHighlight}>"Yıldızımızı Bağla ✨"</Text> butonuna basın.
+                        Açılan yıldız kartındaki <Text style={styles.stepHighlight}>“Yıldızımızı Bağla ✨”</Text> butonuna basın.
                       </Text>
                     </View>
                   </View>

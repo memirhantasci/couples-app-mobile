@@ -114,6 +114,20 @@ export default function LoginScreen() {
   );
   const [activeInviteCode, setActiveInviteCode] = useState<string | null>(inviteCode || null);
 
+  // Login fields
+  const [loginUsername, setLoginUsername] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [showLoginPass, setShowLoginPass] = useState(false);
+
+  // Register fields
+  const [regDisplayName, setRegDisplayName] = useState("");
+  const [regUsername, setRegUsername] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [showRegPass, setShowRegPass] = useState(false);
+  const [regGender, setRegGender] = useState<"male" | "female">("female");
+  const [regPairingCode, setRegPairingCode] = useState("");
+
   React.useEffect(() => {
     async function loadInviteCode() {
       const stored = await AsyncStorage.getItem("@pending_invite_code");
@@ -128,24 +142,13 @@ export default function LoginScreen() {
     loadInviteCode();
   }, [inviteCode]);
 
-  React.useEffect(() => {
+  // Ekran açıkken parametreler değişirse (ör. davet bağlantısı) modu güncelle; ilk değer yukarıda hesaplandı
+  const [modeInputs, setModeInputs] = useState({ initialMode, activeInviteCode });
+  if (modeInputs.initialMode !== initialMode || modeInputs.activeInviteCode !== activeInviteCode) {
+    setModeInputs({ initialMode, activeInviteCode });
     if (initialMode === "register" || activeInviteCode) setMode("register");
     else if (initialMode === "login") setMode("login");
-  }, [initialMode, activeInviteCode]);
-
-  // Login fields
-  const [loginUsername, setLoginUsername] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [showLoginPass, setShowLoginPass] = useState(false);
-
-  // Register fields
-  const [regDisplayName, setRegDisplayName] = useState("");
-  const [regUsername, setRegUsername] = useState("");
-  const [regEmail, setRegEmail] = useState("");
-  const [regPassword, setRegPassword] = useState("");
-  const [showRegPass, setShowRegPass] = useState(false);
-  const [regGender, setRegGender] = useState<"male" | "female">("female");
-  const [regPairingCode, setRegPairingCode] = useState("");
+  }
 
   // Legal Modal States
   const [legalModalVisible, setLegalModalVisible] = useState(false);
@@ -889,7 +892,7 @@ export default function LoginScreen() {
                   >
                     KVKK Metni
                   </Text>
-                  'ni kabul etmiş sayılırsınız.
+                  ’ni kabul etmiş sayılırsınız.
                 </Text>
               </View>
             </View>
@@ -1105,7 +1108,7 @@ export default function LoginScreen() {
           {mode === "register" && (
             <View style={styles.registerLegalNotice}>
               <Text style={styles.loginLegalText}>
-                Hesap Oluştur'a ya da Apple / Google ile devam etmeye dokunarak{" "}
+                Hesap Oluştur’a ya da Apple / Google ile devam etmeye dokunarak{" "}
                 <Text
                   style={[styles.legalLink, { color: activeAccent }]}
                   onPress={() => openLegalDoc("terms")}
@@ -1126,7 +1129,7 @@ export default function LoginScreen() {
                 >
                   KVKK Aydınlatma Metni
                 </Text>
-                'ni kabul etmiş sayılırsınız.
+                ’ni kabul etmiş sayılırsınız.
               </Text>
             </View>
           )}

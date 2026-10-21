@@ -6,7 +6,7 @@
  * Tüm tema modlarıyla (Beyaz, Mavi, Pembe, Gece) tam uyumludur.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -195,62 +195,64 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
 }) => {
   const { theme, isLight } = useTheme();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<CelestialSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  // Uzak sonuçlar ait oldukları sorguyla saklanır: geç gelen eski yanıt yeni sorguyu ezmez
+  const [remote, setRemote] = useState<{ query: string; items: CelestialSearchResult[] } | null>(null);
 
-  useEffect(() => {
-    if (!visible) {
-      setQuery('');
-      setResults([]);
-    }
-  }, [visible]);
+  // Kapanınca arama sıfırlanır
+  if (!visible && query !== '') {
+    setQuery('');
+  }
 
-  useEffect(() => {
-    const trimmed = query.trim();
-    if (trimmed.length < 1) {
-      setResults([]);
-      return;
-    }
+  const trimmed = query.trim();
 
-    // 1. Instant local match for high responsiveness
+  // 1. Instant local match for high responsiveness
+  const localMatches = useMemo(() => {
+    if (trimmed.length < 1) return [];
     const norm = normalizeText(trimmed);
-    const localMatches = LOCAL_CELESTIAL_OBJECTS.filter((obj) => {
+    return LOCAL_CELESTIAL_OBJECTS.filter((obj) => {
       const nName = normalizeText(obj.display_name);
       const nCode = normalizeText(obj.catalog_code);
       return nName.includes(norm) || nCode.includes(norm);
     });
+  }, [trimmed]);
 
-    if (trimmed.length < 2) {
-      setResults(localMatches);
-      return;
+  const results = useMemo(() => {
+    if (trimmed.length < 2 || remote?.query !== trimmed) return localMatches;
+    // Deduplicate local + remote results
+    const seen = new Set<string>();
+    const merged: CelestialSearchResult[] = [];
+    for (const item of [...localMatches, ...remote.items]) {
+      const key = item.catalog_code || item.entity_id;
+      if (!seen.has(key)) {
+        seen.add(key);
+        merged.push(item);
+      }
     }
+    return merged;
+  }, [trimmed, localMatches, remote]);
 
-    // 2. Debounced remote search
+  // 2. Debounced remote search
+  useEffect(() => {
+    if (trimmed.length < 2) return;
+    let cancelled = false;
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
         const remoteData = await starService.searchCelestialUniverse(trimmed);
-        // Deduplicate local + remote results
-        const seen = new Set<string>();
-        const merged: CelestialSearchResult[] = [];
-
-        for (const item of [...localMatches, ...remoteData]) {
-          const key = item.catalog_code || item.entity_id;
-          if (!seen.has(key)) {
-            seen.add(key);
-            merged.push(item);
-          }
-        }
-        setResults(merged);
+        if (!cancelled) setRemote({ query: trimmed, items: remoteData });
       } catch {
-        setResults(localMatches);
+        if (!cancelled) setRemote({ query: trimmed, items: [] });
       } finally {
         setLoading(false);
       }
     }, 200);
 
-    return () => clearTimeout(timer);
-  }, [query]);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [trimmed]);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>

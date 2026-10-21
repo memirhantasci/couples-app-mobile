@@ -57,11 +57,17 @@ export function CoupleWrappedModal({
   const shareCardRef = useRef<View>(null);
   const progressTimerRef = useRef<any>(null);
 
+  // Her slayt (ve her açılış) ilerleme çubuğu sıfırdan başlar
+  const [progressFor, setProgressFor] = useState({ visible, currentSlide, data });
+  if (progressFor.visible !== visible || progressFor.currentSlide !== currentSlide || progressFor.data !== data) {
+    setProgressFor({ visible, currentSlide, data });
+    if (visible && data) setProgress(0);
+  }
+
   // Otomatik slayt ilerleme
   useEffect(() => {
     if (!visible || !data) return;
 
-    setProgress(0);
     const interval = 50;
     const step = (interval / SLIDE_DURATION) * 100;
 
@@ -192,7 +198,7 @@ export function CoupleWrappedModal({
 
                 <View style={styles.quoteBox}>
                   <Text style={styles.quoteText}>
-                    "Aşk, birlikte geçirilen her günü bir hediye gibi hissettirmektir."
+                    “Aşk, birlikte geçirilen her günü bir hediye gibi hissettirmektir.”
                   </Text>
                 </View>
               </View>
@@ -314,7 +320,7 @@ export function CoupleWrappedModal({
                     ) : (
                       <>
                         <Share2 size={18} color="#FFFFFF" />
-                        <Text style={styles.shareBtnText}>Instagram Story'de Paylaş</Text>
+                        <Text style={styles.shareBtnText}>Instagram Story’de Paylaş</Text>
                       </>
                     )}
                   </LinearGradient>

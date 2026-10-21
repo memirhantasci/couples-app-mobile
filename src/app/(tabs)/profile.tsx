@@ -91,19 +91,18 @@ export default function ProfileScreen() {
     setLegalModalVisible(true);
   };
 
+  // Demo profili sunucuya gitmeden, ilk çizimde bir kez doldurulur
+  if (isDemoMode && !dataLoaded) {
+    setDisplayName(DEMO_PROFILE.displayName ?? "Misafir (Demo)");
+    setGender("female");
+    setMeetDate(DEMO_PROFILE.meetDate ?? "");
+    setRelStartDate(DEMO_PROFILE.relationshipStartDate ?? "");
+    setDataLoaded(true);
+  }
+
   // Verileri yükle
   React.useEffect(() => {
-    if (isDemoMode) {
-      if (!dataLoaded) {
-        setDisplayName(DEMO_PROFILE.displayName ?? "Misafir (Demo)");
-        setGender("female");
-        setMeetDate(DEMO_PROFILE.meetDate ?? "");
-        setRelStartDate(DEMO_PROFILE.relationshipStartDate ?? "");
-        setDataLoaded(true);
-      }
-      return;
-    }
-    if (!session?.user?.id || dataLoaded) return;
+    if (isDemoMode || !session?.user?.id || dataLoaded) return;
     const uid = session.user.id;
     (async () => {
       const { data: userData } = await supabase
