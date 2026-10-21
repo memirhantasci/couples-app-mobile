@@ -19,11 +19,11 @@ export const LEGAL_DOCS: Record<LegalDocType, LegalDocument> = {
     id: "kvkk",
     title: "KVKK Aydınlatma Metni",
     badge: "6698 Sayılı Kanun",
-    lastUpdated: "Eylül 2026",
+    lastUpdated: "Ekim 2026",
     summary: "Kişisel verilerinizin işlenme amaçları, toplanma yöntemleri, hukuki sebepleri ve 6698 Sayılı KVKK 11. madde kapsamındaki haklarınız hakkında bilgilendirme.",
     content: [
       "1. VERİ SORUMLUSU",
-      "Couples App (\"Uygulama\" veya \"Veri Sorumlusu\") olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu (\"KVKK\") ve ilgili mevzuat uyarınca, kullanıcılarımızın kişisel verilerinin güvenliğine ve gizliliğine azami hassasiyet göstermekteyiz. İşbu Aydınlatma Metni, mobil uygulamamız üzerinden toplanan kişisel verilerinizin hangi amaçlarla işlendiğini ve haklarınızı açıklamaktadır.",
+      "Veri sorumlusu unvanı: [ŞİRKET ÜNVANI] · Adres: [ADRES] · MERSİS/VKN: [NUMARA]. Couples App (\"Uygulama\" veya \"Veri Sorumlusu\") olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu (\"KVKK\") ve ilgili mevzuat uyarınca, kullanıcılarımızın kişisel verilerinin güvenliğine ve gizliliğine azami hassasiyet göstermekteyiz. İşbu Aydınlatma Metni, mobil uygulamamız üzerinden toplanan kişisel verilerinizin hangi amaçlarla işlendiğini ve haklarınızı açıklamaktadır.",
 
       "2. İŞLENEN KİŞİSEL VERİ KATEGORİLERİ VE VERİ TÜRLERİ",
       "Uygulamamızın sunduğu çift anı defteri, zaman kilitli mektuplar, konum tabanlı buluşma planları ve sağlık/döngü takip fonksiyonları kapsamında aşağıdaki kişisel verileriniz işlenmektedir:\n" +
@@ -32,9 +32,10 @@ export const LEGAL_DOCS: Record<LegalDocType, LegalDocument> = {
       "• Görsel ve İşitsel Kayıtlar: Ortak galeriye veya günlüklere yüklediğiniz fotoğraflar, anı görselleri ve profil avatarları.\n" +
       "• Lokasyon (Konum) Bilgileri: Buluşma noktası seçimi ve anılarınıza isteğe bağlı eklenen GPS koordinatları ve harita pinleri.\n" +
       "• Özel Nitelikli Kişisel Veriler (Sağlık Bilgileri): Kadın kullanıcılar ve çiftleri için döngü/regl başlangıç ve tahmin tarihleri, günlük ilaç/vitamin saatleri ve takip kayıtları.\n" +
-      "• Mesajlaşma ve Anı Verileri: Zaman kilitli mektuplar, günlük notları ve ruh hali (mood) seçimleri. (Bu veriler yerel olarak ve sunucuda şifreli/hash formatında saklanmaktadır).\n" +
+      "• Mesajlaşma ve Anı Verileri: Zaman kilitli mektuplar, günlük notları ve ruh hali (mood) seçimleri. (Bu veriler yerel olarak ve sunucuda şifreli olarak saklanmaktadır).\n" +
       "• Müşteri İşlem ve Finansal Bilgiler: RevenueCat ve uygulama mağazası (App Store / Google Play) üzerinden sağlanan anonim işlem tokenları, abonelik durumu, paket türü ve token bakiyesi.\n" +
-      "• Cihaz ve İşlem Güvenliği: Cihaz modeli, işletim sistemi versiyonu, push bildirim tokenları, benzersiz cihaz kimliği (UUID), son oturum açma zamanı ve güvenlik logları.",
+      "• Cihaz ve İşlem Güvenliği: Cihaz modeli, işletim sistemi versiyonu, push bildirim tokenları, benzersiz cihaz kimliği (UUID), son oturum açma zamanı ve güvenlik logları.\n" +
+      "• Reklam Verileri: Uygulamada gösterilen reklamlar için Google AdMob tarafından işlenen reklam kimliği ve reklam etkileşim verileri (yalnızca kişiselleştirilmemiş reklam talebi ile sınırlı).",
 
       "3. KİŞİSEL VERİLERİN İŞLENME AMAÇLARI",
       "Kişisel verileriniz aşağıdaki amaçlarla (\"Amaçlar\") KVKK'nın 5. ve 6. maddelerine uygun olarak işlenmektedir:\n" +
@@ -47,10 +48,12 @@ export const LEGAL_DOCS: Record<LegalDocType, LegalDocument> = {
       "• Bilgi güvenliği süreçlerinin yürütülmesi ve siber saldırılara/brute-force denemelerine karşı koruma sağlanması.",
 
       "4. KİŞİSEL VERİLERİN AKTARILDIĞI TARAFLAR",
-      "Kişisel verileriniz, kanunun emrettiği istisnalar haricinde hiçbir üçüncü tarafa reklam veya ticari amaçla satılmaz. Veriler yalnızca hizmetin ifası için teknik altyapı sağlayıcılarımızla paylaşılır:\n" +
+      "Kişisel verileriniz, kanunun emrettiği istisnalar haricinde hiçbir üçüncü tarafa reklam veya ticari amaçla satılmaz. Veriler yalnızca hizmetin ifası için aşağıdaki sağlayıcılarla paylaşılır. Bu sağlayıcıların bir kısmı yurt dışında yerleşiktir; veriler bu nedenle KVKK md. 9 kapsamında yurt dışına aktarılabilir:\n" +
       "• Supabase Inc.: Güvenli PostgreSQL veritabanı, uçtan uca şifreleme ve kimlik doğrulama altyapısı,\n" +
       "• RevenueCat Inc.: Uygulama içi satın alma, abonelik doğrulama ve iade altyapısı,\n" +
       "• Google Cloud / Firebase & Expo Notifications: Push bildirimlerinin cihazınıza güvenle ulaştırılması,\n" +
+      "• Google LLC (AdMob ve Google Haritalar): reklam gösterimi ve harita hizmetleri,\n" +
+      "• Apple Inc. ve Google LLC: Apple ile giriş ve Google ile giriş hizmetleri,\n" +
       "• Yetkili Kamu Kurum ve Kuruluşları: Yargı kararları veya yasal zorunluluklar halinde yetkili adli/idari makamlar.",
 
       "5. VERİ TOPLAMANIN YÖNTEMİ VE HUKUKİ SEBEPLERİ",
@@ -60,10 +63,10 @@ export const LEGAL_DOCS: Record<LegalDocType, LegalDocument> = {
       "• KVKK md. 5/1 ve md. 6/2: Sağlık verileri (regl/ilaç takibi), hassas konum verileri ve pazarlama/bildirim süreçleri için vermiş olduğunuz Açık Rıza.",
 
       "6. VERİLERİN GÜVENLİĞİ VE ŞİFRELEME (AES-256)",
-      "Couples App, kullanıcıların özel hayatının gizliliğini korumak adına gelişmiş kriptografik yöntemler kullanır. Günlük notlarınız, mektuplarınız ve hassas kullanıcı bilgileriniz veritabanında simetrik ve deterministik şifreleme (AES standartları) ile korunmaktadır. Veritabanına fiziksel erişim olsa dahi şifre çözme anahtarı olmaksızın içerikler okunamamaktadır.",
+      "Couples App, kullanıcıların özel hayatının gizliliğini korumak adına gelişmiş kriptografik yöntemler kullanır. Günlük notlarınız, mektuplarınız ve hassas kullanıcı bilgileriniz veritabanında simetrik ve deterministik şifreleme (AES standartları) ile korunmaktadır. Şifreleme anahtarı uygulamanın içinde bulunur; bu nedenle şifreleme, veritabanına erişimi olan birine karşı tek başına tam bir koruma sağlamaz. Veritabanı erişimi, oturum açmış ve ilgili çifte ait kullanıcılarla sınırlandırılmıştır.",
 
       "7. VERİ SAKLAMA VE SİLME (UNUTULMA HAKKI)",
-      "Kullanıcı profil ayarlarından hesabını silme talebinde bulunduğunda, veriler derhal kullanıma kapatılır ve 7 günlük güvenlik/cayma süresinin ardından tüm ortak fotoğraflar, günlükler, mektuplar ve hesap kayıtları geri döndürülemez biçimde sunuculardan kalıcı olarak silinir.",
+      "Profil > Hesap Yönetimi & Tehlike Bölgesi bölümünden hesabınızı silme talebinde bulunabilirsiniz. Talep 7 gün beklemeye alınır; bu süre içinde aynı hesapla giriş yaparak talebi iptal edebilirsiniz. 7 gün sonunda hesabınıza ait profil bilgileri, dosyalar, günlükler ve mektuplar sunuculardan geri döndürülemez biçimde silinir. Partneriniz kendi hesabıyla kullanmaya devam eder; ortak anılar ise her iki taraftan da silinir ve partneriniz çiftten ayrılmış olur. Yedek kopyalar [YEDEK SÜRESİ] gün içinde otomatik olarak imha edilir.",
 
       "8. KVKK'NIN 11. MADDESİ KAPSAMINDAKİ HAKLARINIZ",
       "KVKK 11. maddesi uyarınca dilediğiniz zaman Veri Sorumlumuza başvurarak:\n" +
@@ -84,7 +87,7 @@ export const LEGAL_DOCS: Record<LegalDocType, LegalDocument> = {
     id: "privacy",
     title: "Gizlilik Politikası",
     badge: "Privacy Policy",
-    lastUpdated: "Eylül 2026",
+    lastUpdated: "Ekim 2026",
     summary: "Uygulamamızın veri toplama, işleme, koruma prensipleri ve gizliliğinizi nasıl koruduğumuzun detayları.",
     content: [
       "1. GİRİŞ VE TAAHHÜDÜMÜZ",
@@ -94,16 +97,17 @@ export const LEGAL_DOCS: Record<LegalDocType, LegalDocument> = {
       "• Hesap Bilgileri: Kayıt sırasında belirttiğiniz ad, kullanıcı adı, e-posta adresi ve şifreniz (güvenli hash olarak).\n" +
       "• İlişki ve Anı İçeriği: Eklediğiniz fotoğraflar, anı açıklamaları, mektuplar ve takvim notları. Bu içerikler yalnızca siz ve eşleştiğiniz partneriniz tarafından görüntülenebilir.\n" +
       "• Döngü ve Sağlık Verileri: Regl başlangıç tarihleri ve ilaç saatleri. Bu veriler yalnızca döngü tahmini ve size zamanında hatırlatıcı bildirim göndermek için işlenir.\n" +
-      "• Konum Bilgileri: Yalnızca siz harita üzerinde bir buluşma noktası seçtiğinizde veya fotoğraflarınıza isteğe bağlı konum eklediğinizde alınır; arka planda sürekli konum takibi yapılmaz.",
+      "• Konum Bilgileri: Yalnızca siz harita üzerinde bir buluşma noktası seçtiğinizde veya fotoğraflarınıza isteğe bağlı konum eklediğinizde alınır; arka planda sürekli konum takibi yapılmaz.\n" +
+      "• Üçüncü taraf hizmetler: Google AdMob (reklam), Google Haritalar (harita), Apple/Google ile giriş, Supabase (veritabanı), RevenueCat (abonelik) ve Expo (bildirim). Ayrıntılar için KVKK Aydınlatma Metni, 4. bölüm.",
 
       "3. GÜVENLİK VE VERİ ŞİFRELEMESİ",
-      "Tüm veri iletişimi SSL/TLS protokolleri ile şifreli olarak gerçekleşir. Özel günlükler ve mektuplar şifrelenmiş olarak depolanır. Cihazınızda oturum anahtarları şifrelenmiş yerel hafızada (Secure AsyncStorage) saklanır.",
+      "Tüm veri iletişimi SSL/TLS protokolleri ile şifreli olarak gerçekleşir. Özel günlükler ve mektuplar şifrelenmiş olarak depolanır. Oturum bilgileri cihazınızda uygulamanın yerel depolama alanında tutulur; cihazınızı kilit ekranıyla korumanız önerilir.",
 
       "4. ÇEREZLER VE CİHAZ KİMLİĞİ",
       "Uygulama içinde yetkisiz cihaz girişlerini tespit etmek ve brute-force saldırılarını önlemek amacıyla rastgele üretilmiş bir 'Cihaz Kimliği' (UUID) kullanılır. Bu kimlik kişisel profilinizle ilişkilendirilerek başka bir cihazdan giriş yapıldığında e-posta onayı (OTP) istememizi sağlar.",
 
       "5. HESAP SİLME VE VERİLERİN İMHASI (GDPR & KVKK UYUMLU)",
-      "Hesabınızı istediğiniz zaman Profil > Ayarlar > Hesabımı Sil adımından silebilirsiniz. Silme talebi verildiğinde çiftin ortak havuzu 7 günlük bir güvenlik beklemesine alınır. 7 gün içinde herhangi bir partner giriş yapmazsa, tüm mektuplar, fotoğraflar, sohbetler ve veritabanı kayıtları sunuculardan kalıcı olarak silinir ve geri getirilemez.",
+      "Hesabınızı istediğiniz zaman Profil > Hesap Yönetimi & Tehlike Bölgesi bölümünden silebilirsiniz. Talep 7 gün beklemeye alınır; bu süre içinde yalnızca hesabın sahibi aynı hesapla giriş yaparak talebi iptal edebilir. 7 gün sonunda hesabınıza ait kayıtlar, dosyalar ve ortak anılar sunuculardan kalıcı olarak silinir ve geri getirilemez.",
 
       "6. YAŞ SINIRI",
       "Couples App, 16 yaşından küçüklerin kullanımına yönelik değildir. 16 yaşın altındaki bir kullanıcının veri sağladığı tespit edilirse veriler derhal silinir.",
@@ -117,7 +121,7 @@ export const LEGAL_DOCS: Record<LegalDocType, LegalDocument> = {
     id: "terms",
     title: "Kullanım Koşulları (EULA)",
     badge: "Kullanıcı Sözleşmesi",
-    lastUpdated: "Eylül 2026",
+    lastUpdated: "Ekim 2026",
     summary: "Uygulamayı kullanırken uyulması gereken genel kurallar, hesap güvenliği, çift eşleşmesi ve sorumluluk sınırları.",
     content: [
       "1. SÖZLEŞMENİN KABULÜ",
@@ -151,7 +155,7 @@ export const LEGAL_DOCS: Record<LegalDocType, LegalDocument> = {
     id: "consent",
     title: "Açık Rıza Metni",
     badge: "Özel Nitelikli Veri",
-    lastUpdated: "Eylül 2026",
+    lastUpdated: "Ekim 2026",
     summary: "Sağlık (döngü/regl) verileri, hassas konum verileri ve bildirim süreçlerine ilişkin açık rıza beyanı.",
     content: [
       "1. AÇIK RIZANIN KAPSAMI VE NİTELİĞİ",
@@ -172,13 +176,13 @@ export const LEGAL_DOCS: Record<LegalDocType, LegalDocument> = {
     id: "subscription",
     title: "Abonelik ve İade Koşulları",
     badge: "App Store & Play Store",
-    lastUpdated: "Eylül 2026",
+    lastUpdated: "Ekim 2026",
     summary: "Premium abonelik, 14 günlük ücretsiz deneme, otomatik yenileme, iptal prosedürü ve iade şartları.",
     content: [
       "1. COUPLES PREMIUM ABONELİĞİ VE KAPSAMI",
       "Couples App Premium, çiftlerden birinin abone olması halinde her iki partner için de geçerli olan ortak bir abonelik modelidir. Premium avantajları:\n" +
       "• Sınırsız fotoğraf yükleme ve ortak yüksek çözünürlüklü galeri,\n" +
-      "• Erkek partnerler için özel regl/döngü takvimi görünümü ve bildirimleri,\n" +
+      "• Döngü takibi ve ilgili hatırlatıcı bildirimleri,\n" +
       "• Zaman kilitli sınırsız mektup yazma ve ileri tarihli teslimatlar,\n" +
       "• Tüm banner ve geçiş reklamlarından tamamen arındırılmış deneyim,\n" +
       "• Fotoğraflı geçmiş takvim günleri ve özel gün sayaçları.",
