@@ -1,6 +1,6 @@
 import type { ViewportStarItem } from '../../types/star.types';
 import { pxPerDegree, shortestRaDelta, type SkyCamera } from './skyProjection';
-import { magnitudeToRadius } from './starStyle';
+import { starLight, starRadius, UNCLAIMED_STAR_BRIGHTNESS } from './starStyle';
 
 const MIN_TOUCH_RADIUS = 52;
 const SOLAR_TOUCH_RADIUS = 64;
@@ -27,7 +27,8 @@ export function hitTestSky(
     const starY = height / 2 - (star.dec - camera.dec) * scale;
     const isSolar = star.catalog_code.startsWith('SOL-');
     const sizeFactor = star.catalog_code === 'SOL-SUN' ? 3 : star.is_mine ? 1.6 : 1;
-    const radius = magnitudeToRadius(star.magnitude, star.spectral_type, camera.zoom) * sizeFactor;
+    const light = starLight(star.is_claimed, star.luminosity_level ?? UNCLAIMED_STAR_BRIGHTNESS);
+    const radius = starRadius(light, camera.zoom) * sizeFactor;
     const touchRadius = Math.max(radius + 30, isSolar ? SOLAR_TOUCH_RADIUS : MIN_TOUCH_RADIUS);
     const distance = Math.hypot(x - starX, y - starY);
     if (distance <= touchRadius && distance < nearestDistance) {

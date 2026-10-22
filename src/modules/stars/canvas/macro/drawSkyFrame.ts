@@ -3,7 +3,16 @@ import { Skia } from '../skiaBridge';
 import type { SkyOverlay } from './skyOverlay';
 import { pxPerDegree, shortestRaDelta, type SkyCamera } from './skyProjection';
 import { colorOf, STAR_FADE_MS, type StarField, type StarRender } from './starField';
-import { magnitudeToRadius, smoothstep, starZoomBonus, twinkleFactor, visibleMagnitudeLimit } from './starStyle';
+import {
+  MAGNITUDE_FADE,
+  MAX_STAR_BASE_RADIUS_PX,
+  smoothstep,
+  starActivity,
+  starRadius,
+  starZoomBonus,
+  twinkleFactor,
+  visibleMagnitudeLimit,
+} from './starStyle';
 
 /** A shooting star currently crossing the screen, in screen-space pixels. */
 export interface ActiveMeteor {
@@ -131,10 +140,11 @@ function drawStar(
   const { fill, stroke } = paints;
   const r = star.radius * style.zoomBonus;
   const detail = style.detail;
-  // Unclaimed stars glow softly from medium zoom on. A claimed star glows as
-  // strongly as its couple is active at every zoom, so lively stars stand out
-  // even in the overview; close in, the halo below takes over.
-  const glow = (star.claimed ? star.luminosity : style.glow) * (1 - detail);
+  // A claimed star glows as strongly as its couple is active at every zoom, so
+  // lively stars stand out even in the overview. Unclaimed stars share one
+  // faint baseline glow that fades in from medium zoom; close in, the halo
+  // below takes over.
+  const glow = star.luminosity * (star.claimed ? 1 : style.glow) * (1 - detail);
   fill.setColor(rgb);
 
   if (detail > 0.01 && star.claimed && !star.resonance) {
@@ -157,9 +167,11 @@ function drawStar(
     fill.setAlphaf(star.alpha * core * opacity);
     canvas.drawCircle(x, y, r, fill);
   }
-  if (detail > 0.01 && star.magnitude <= 3.5) {
+  // Only activity heats a star's centre white; unclaimed stars have none.
+  const heat = starActivity(star.luminosity);
+  if (detail > 0.01 && heat > 0.01) {
     fill.setColor(paints.white);
-    fill.setAlphaf(Math.min(1, star.alpha * 1.2) * detail * opacity);
+    fill.setAlphaf(Math.min(1, star.alpha * 1.2) * heat * detail * opacity);
     canvas.drawCircle(x, y, Math.max(1, r * 0.35), fill);
   }
   if (star.resonance) {
@@ -191,8 +203,8 @@ function drawStars(
   };
   const halfWidthDeg = width / 2 / scale;
   const halfHeightDeg = height / 2 / scale;
-  // Largest star radius (3.5px base × 3.2 magnitude scale) plus its reach.
-  const marginDeg = (11.2 * style.zoomBonus * 2.5 + STAR_REACH_PX) / scale;
+  // Largest star radius (a fully lit one) plus its reach.
+  const marginDeg = (MAX_STAR_BASE_RADIUS_PX * style.zoomBonus * 2.5 + STAR_REACH_PX) / scale;
 
   for (const cell of field.cells) {
     if (cell.minDec - marginDeg > camera.dec + halfHeightDeg) continue;
@@ -204,10 +216,10 @@ function drawStars(
     for (const star of cell.stars) {
       const visibility = star.claimed
         ? 1
-        : Math.min(1, (style.magnitudeLimit + 0.35 - star.magnitude) / 0.35);
+        : Math.min(1, (style.magnitudeLimit + MAGNITUDE_FADE - star.magnitude) / MAGNITUDE_FADE);
       if (visibility <= 0.01) continue;
       const fade = star.bornAt > 0 ? Math.max(0, Math.min(1, (clock - star.bornAt) / STAR_FADE_MS)) : 1;
-      const twinkle = twinkleFactor(star.magnitude, star.ra, star.dec, animSeconds);
+      const twinkle = twinkleFactor(star.luminosity, star.ra, star.dec, animSeconds);
       const opacity = visibility * fade * twinkle;
       if (opacity <= 0.01) continue;
 
@@ -408,7 +420,7 @@ function drawLabels(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay) {
       const x = screenX(view, item.ra);
       const y = screenY(view, item.dec);
       if (!isOnScreen(view, x, y, 120)) continue;
-      drawAt(canvas, item.label, x, y + magnitudeToRadius(item.magnitude, item.spectralType, zoom) + 20);
+      drawAt(canvas, item.label, x, y + starRadius(item.light, zoom) + 20);
     }
     if (claimedAlpha < 0.998) canvas.restore();
   }

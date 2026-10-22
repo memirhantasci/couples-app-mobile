@@ -22,6 +22,7 @@ import { Sparkles, UserPlus, LogIn, X } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import type { ViewportStarItem } from '../types/star.types';
+import { UNCLAIMED_STAR_BRIGHTNESS } from '../canvas/macro/starStyle';
 
 export interface StarDemoAuthModalProps {
   readonly visible: boolean;
@@ -119,7 +120,7 @@ export const StarDemoAuthModal: React.FC<StarDemoAuthModalProps> = ({
                   : targetStar.catalog_code}
               </Text>
               <Text style={[styles.starBadgeMag, { color: theme.textMuted }]}>
-                {targetStar.magnitude} mag
+                Işık %{Math.round(UNCLAIMED_STAR_BRIGHTNESS * 100)}
               </Text>
             </View>
           )}

@@ -47,6 +47,7 @@ import { moderateStarName } from '../utils/nameModeration';
 import { computeOwnCoupleInitials } from '../utils/ownerInitials';
 import type { CoupleStarDetails, ViewportStarItem } from '../types/star.types';
 import { SKY_SECTORS, type SectorConfig } from '../config/skySectors.data';
+import { UNCLAIMED_STAR_BRIGHTNESS } from '../canvas/macro/starStyle';
 
 // ============================================================================
 // TİPLER VE SABİTLER
@@ -465,7 +466,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                         </Text>
                       ) : null}
                       <Text style={[styles.preSelectedStarCoords, { color: theme.textMuted }]}>
-                        RA {Number(preSelectedStar.ra).toFixed(2)}° / DEC {Number(preSelectedStar.dec) >= 0 ? '+' : ''}{Number(preSelectedStar.dec).toFixed(2)}° • {preSelectedStar.magnitude} mag
+                        RA {Number(preSelectedStar.ra).toFixed(2)}° / DEC {Number(preSelectedStar.dec) >= 0 ? '+' : ''}{Number(preSelectedStar.dec).toFixed(2)}° • Işık %{Math.round(UNCLAIMED_STAR_BRIGHTNESS * 100)}
                       </Text>
                     </View>
                     <View style={[styles.preSelectedStarSpectral, isLight && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]}>

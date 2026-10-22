@@ -1,7 +1,7 @@
 import { Easing, withTiming, type SharedValue } from 'react-native-reanimated';
 import type { ViewportStarItem } from '../../types/star.types';
 import { normalizeRa } from './skyProjection';
-import { starBaseRadius, starCoreAlpha } from './starStyle';
+import { starBaseRadius, starCoreAlpha, starLight, UNCLAIMED_STAR_BRIGHTNESS } from './starStyle';
 
 /**
  * Star data prepared on the JS thread for per-frame drawing on the UI thread.
@@ -10,7 +10,7 @@ import { starBaseRadius, starCoreAlpha } from './starStyle';
  * zooming never swaps pre-recorded pictures (no size jumps, no cross-fades).
  * The JS thread only rebuilds this when star data changes. Visible stars
  * stay few at any zoom because the magnitude limit tightens as the view
- * widens.
+ * widens; magnitude never changes how a star looks (see starStyle).
  */
 
 export const STAR_FADE_MS = 260;
@@ -25,7 +25,7 @@ export interface StarRender {
   /** Radius in pixels before the zoom bonus. */
   readonly radius: number;
   readonly alpha: number;
-  /** Activity brightness (see ViewportStarItem.luminosity_level); only drawn for claimed stars. */
+  /** Light the star is drawn with (see starLight): the same baseline for every unclaimed star. */
   readonly luminosity: number;
   readonly claimed: boolean;
   readonly resonance: boolean;
@@ -129,13 +129,13 @@ export class StarFieldBuilder {
       nextBornAt.set(star.catalog_id, bornAt);
 
       const ra = normalizeRa(star.ra);
-      const luminosity = star.luminosity_level ?? 1;
+      const luminosity = starLight(star.is_claimed, star.luminosity_level ?? UNCLAIMED_STAR_BRIGHTNESS);
       const render: StarRender = {
         ra,
         dec: star.dec,
         magnitude: star.magnitude,
-        radius: starBaseRadius(star.magnitude, star.spectral_type),
-        alpha: starCoreAlpha(star.magnitude, star.is_claimed, luminosity),
+        radius: starBaseRadius(luminosity),
+        alpha: starCoreAlpha(luminosity),
         luminosity,
         claimed: star.is_claimed,
         resonance: star.resonance_active,

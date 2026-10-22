@@ -1,13 +1,24 @@
 /**
  * Star sizing, brightness and visibility, shared by the per-frame renderer
- * (UI thread) and hit-testing (JS thread). Sizes match the previous
- * renderer; everything is continuous in zoom so nothing pops while zooming.
+ * (UI thread) and hit-testing (JS thread). Everything is continuous in zoom
+ * so nothing pops while zooming.
+ *
+ * A star's look never follows its catalog magnitude: unclaimed stars all
+ * shine with the same low, steady light, and a claimed star only grows
+ * brighter as its couple's activity feeds it. Magnitude is used solely to
+ * decide which stars are loaded/shown at a zoom (level of detail).
  */
 
-const STAR_BASE_RADIUS_PX: Readonly<Record<string, number>> = {
-  O: 3.5, B: 3.2, A: 3.0, F: 2.8, G: 2.6, K: 2.4, M: 2.2,
-};
-const FALLBACK_STAR_RADIUS = 2.4;
+/**
+ * Light of every unclaimed star: the server's brightness for a score of 0
+ * (`calculate_star_brightness(0)`), so a freshly claimed star looks exactly
+ * like an unclaimed one until its couple's activity lights it up.
+ */
+export const UNCLAIMED_STAR_BRIGHTNESS = 0.2;
+/** Radius in pixels, before the zoom bonus, of a star at the baseline light. */
+const BASE_STAR_RADIUS_PX = 2.2;
+/** How much a fully lit star (brightness 1.0) grows over the baseline radius. */
+const FULL_LIGHT_GROWTH = 0.8;
 
 export function smoothstep(edge0: number, edge1: number, value: number): number {
   'worklet';
@@ -15,12 +26,27 @@ export function smoothstep(edge0: number, edge1: number, value: number): number 
   return t * t * (3 - 2 * t);
 }
 
-/** Zoom-independent part of a star's radius, in pixels. */
-export function starBaseRadius(magnitude: number, spectralType: string | null | undefined): number {
+/**
+ * Light (0.20…1.00) a star is drawn with. Unclaimed stars always get the
+ * baseline; claimed stars never drop below it, so no unclaimed star ever
+ * outshines a claimed one.
+ */
+export function starLight(claimed: boolean, brightness: number): number {
   'worklet';
-  const baseClass = (spectralType || 'G').charAt(0).toUpperCase();
-  const baseRadius = STAR_BASE_RADIUS_PX[baseClass] ?? FALLBACK_STAR_RADIUS;
-  return baseRadius * Math.max(0.6, Math.min(3.2, 1 + (3 - magnitude) * 0.25));
+  if (!claimed) return UNCLAIMED_STAR_BRIGHTNESS;
+  return Math.max(UNCLAIMED_STAR_BRIGHTNESS, Math.min(1, brightness));
+}
+
+/** 0 at the baseline light → 1 at full light: how much activity has lit a star. */
+export function starActivity(light: number): number {
+  'worklet';
+  return Math.max(0, Math.min(1, (light - UNCLAIMED_STAR_BRIGHTNESS) / (1 - UNCLAIMED_STAR_BRIGHTNESS)));
+}
+
+/** Zoom-independent part of a star's radius, in pixels. */
+export function starBaseRadius(light: number): number {
+  'worklet';
+  return BASE_STAR_RADIUS_PX * (1 + FULL_LIGHT_GROWTH * starActivity(light));
 }
 
 /** How much every star grows with zoom (same curve as before, capped at 5.5×). */
@@ -30,27 +56,24 @@ export function starZoomBonus(zoom: number): number {
 }
 
 /** Screen radius in pixels of a star drawn at `zoom`. */
-export function magnitudeToRadius(magnitude: number, spectralType: string | null | undefined, zoom: number): number {
+export function starRadius(light: number, zoom: number): number {
   'worklet';
-  return starBaseRadius(magnitude, spectralType) * starZoomBonus(zoom);
+  return starBaseRadius(light) * starZoomBonus(zoom);
 }
 
-/**
- * Core opacity of a star. Unclaimed stars keep their natural catalog
- * brightness; a claimed star's opacity follows its couple's activity
- * brightness (0.10 → 0.37, 1.00 → 1.00), whatever its magnitude.
- */
-export function starCoreAlpha(magnitude: number, claimed: boolean, brightness: number): number {
+/** Largest base radius any star can have (a fully lit one), in pixels. */
+export const MAX_STAR_BASE_RADIUS_PX = BASE_STAR_RADIUS_PX * (1 + FULL_LIGHT_GROWTH);
+
+/** Core opacity of a star: 0.44 at the baseline light, 1.00 at full light. */
+export function starCoreAlpha(light: number): number {
   'worklet';
-  if (claimed) return 0.3 + 0.7 * Math.max(0, Math.min(1, brightness));
-  const normalized = Math.max(0, Math.min(1, 1 - (magnitude + 2) / 11));
-  return 0.45 + normalized * 0.55;
+  return 0.3 + 0.7 * light;
 }
 
 /**
  * Faintest unclaimed magnitude shown at a zoom. It rises smoothly through the
  * RPC's limits (3.8 below zoom 1.5, 5.8 below 4, then 9.0) as the matching
- * tile level loads, so faint stars fade in while zooming instead of popping.
+ * tile level loads, so more stars fade in while zooming instead of popping.
  */
 export function visibleMagnitudeLimit(zoom: number): number {
   'worklet';
@@ -60,27 +83,27 @@ export function visibleMagnitudeLimit(zoom: number): number {
   return 3.8 + 2.0 * toMedium + 3.2 * toHigh;
 }
 
-/** Brightest magnitude a star still twinkles at; past it, light is too steady to flicker. */
-const TWINKLE_MAGNITUDE_LIMIT = 4.0;
-/** How much a twinkling star's brightness swings, as a fraction of its base opacity. */
+/** How much a fully lit star's brightness swings, as a fraction of its base opacity. */
 const TWINKLE_DEPTH = 0.22;
 
 /**
  * Brightness multiplier (centred on 1) for a star's "breathing" twinkle.
- * The phase and speed are derived from its own position, so stars never
- * pulse in lockstep; stars at/above the magnitude limit never twinkle.
+ * Only activity makes a star twinkle: unclaimed and unlit stars stay steady,
+ * and the swing deepens with the couple's light. The phase and speed are
+ * derived from its own position, so stars never pulse in lockstep.
  */
-export function twinkleFactor(magnitude: number, ra: number, dec: number, animSeconds: number): number {
+export function twinkleFactor(light: number, ra: number, dec: number, animSeconds: number): number {
   'worklet';
-  if (magnitude >= TWINKLE_MAGNITUDE_LIMIT) return 1;
+  const depth = TWINKLE_DEPTH * starActivity(light);
+  if (depth <= 0) return 1;
   const seed = ra * 12.9898 + dec * 78.233;
   const phase = seed - Math.floor(seed / (2 * Math.PI)) * (2 * Math.PI);
   const speed = 0.7 + (seed - Math.floor(seed)) * 0.9;
-  return 1 + TWINKLE_DEPTH * Math.sin(animSeconds * speed + phase);
+  return 1 + depth * Math.sin(animSeconds * speed + phase);
 }
 
 /** Magnitudes over which a star fades out past the visible limit. */
-const MAGNITUDE_FADE = 0.35;
+export const MAGNITUDE_FADE = 0.35;
 
 /** 0…1 visibility of a star at a zoom; claimed stars always show. */
 export function starVisibility(magnitude: number, claimed: boolean, zoom: number): number {

@@ -11,6 +11,7 @@ import { SKY_SECTORS_LIST } from '../../config/skySectors.data';
 import { Skia } from '../skiaBridge';
 import { colorOf } from './starField';
 import { ORRERY_ORBITS } from './solarSystem';
+import { starLight, UNCLAIMED_STAR_BRIGHTNESS } from './starStyle';
 
 /**
  * Everything drawn around the stars, prepared once on the JS thread.
@@ -40,8 +41,8 @@ export interface SolarItem extends PositionedPicture {
 export interface ClaimedLabelItem {
   readonly ra: number;
   readonly dec: number;
-  readonly magnitude: number;
-  readonly spectralType: string;
+  /** Light the star is drawn with (see starLight), so the pill sits just below it. */
+  readonly light: number;
   readonly label: SkPicture;
 }
 
@@ -569,8 +570,7 @@ export function buildSkyOverlay({
     claimedLabels.push({
       ra: star.ra,
       dec: star.dec,
-      magnitude: star.magnitude,
-      spectralType: star.spectral_type || 'G',
+      light: starLight(true, star.luminosity_level ?? UNCLAIMED_STAR_BRIGHTNESS),
       label,
     });
   }

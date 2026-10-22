@@ -78,6 +78,7 @@ import { starService, PremiumRequiredError } from '../api/starService';
 import { StarSparkManager } from '../services/StarSparkManager';
 import { MicroSystemCanvas } from '../canvas/MicroSystemCanvas';
 import { MacroSkyCanvas, SOLAR_SYSTEM_OBJECTS, computeBounds } from '../canvas/MacroSkyCanvas';
+import { UNCLAIMED_STAR_BRIGHTNESS } from '../canvas/macro/starStyle';
 import { StarInfoBadge } from './StarInfoBadge';
 import { ClaimStarModal } from './ClaimStarModal';
 import { StarDemoAuthModal } from './StarDemoAuthModal';
@@ -179,7 +180,27 @@ function toMapPlanet(planet: StarExoplanetRecord): StarSystemMapPlanet {
 const formatLightPercent = (value: number) => `%${Math.round(Math.max(0, Math.min(1, value)) * 100)}`;
 
 /**
- * Seçilen yıldız kartındaki ışık satırı; gösterilecek bir şey yoksa null.
+ * Seçilen yıldız kartındaki "Parlaklık" değeri. Yıldızlarda katalog kadiri (mag)
+ * gösterilmez: sahipsiz yıldızların hepsi aynı sabit, sönük ışıkla parlar;
+ * tescilli bir yıldızın ışığı yalnızca çiftin aktivitesiyle artar. Gök cisimleri
+ * (Güneş Sistemi) yıldız sahiplenmenin parçası olmadığı için gerçek kadirini korur.
+ */
+function describeStarLightValue(
+  star: ViewportStarItem,
+  myLight: number | null,
+  friendLight: StarBrightnessInfo | null
+): string {
+  if (star.catalog_code?.startsWith('SOL-')) return `${star.magnitude} mag`;
+  if (!star.is_claimed) return formatLightPercent(UNCLAIMED_STAR_BRIGHTNESS);
+  if (star.is_mine) return formatLightPercent(myLight ?? star.luminosity_level);
+  if (friendLight?.visibility === 'friend') return formatLightPercent(friendLight.brightness);
+  if (star.is_connected === true) return formatLightPercent(star.luminosity_level);
+  return 'Gizemli ✨';
+}
+
+/**
+ * Seçilen yıldız kartındaki ışık açıklaması (yüzde, üstteki "Parlaklık"
+ * değerinde); gösterilecek bir şey yoksa null.
  * Gece işi 5. hareketsiz günün sonunda ışığı azaltmaya başlar.
  */
 function describeStarLight(
@@ -191,7 +212,7 @@ function describeStarLight(
 
   if (star.is_mine) {
     if (!myBrightness) return null;
-    let text = `Işık ${formatLightPercent(myBrightness.brightness)} · ${myBrightness.cumulative_score} puan`;
+    let text = `${myBrightness.cumulative_score} aktivite puanı`;
     if (myBrightness.points_today > 0) text += ` · bugün +${myBrightness.points_today}`;
     const idleDays = myBrightness.days_inactive ?? 0;
     if (idleDays >= 6) text += ' · ışık sönüyor, bugün bir anı paylaşın';
@@ -199,14 +220,13 @@ function describeStarLight(
     return text;
   }
 
-  if (!star.is_claimed) return 'Bu yıldız kimse tarafından yönetilmiyor';
-  if (friendLight?.visibility === 'friend') {
-    return `Işık ${formatLightPercent(friendLight.brightness)} · ${friendLight.cumulative_score ?? 0} puan`;
+  if (!star.is_claimed) {
+    return 'Sahipsiz yıldızların hepsi aynı sönük ışıkla parlar · tescillenince aşkınızla parlamaya başlar';
   }
-  if (star.is_connected === true) return `Işık ${formatLightPercent(star.luminosity_level)}`;
-  // Eski sunucu sürümü bağlantı bilgisini göndermiyorsa ışık hakkında bir şey söylenmez
-  if (star.is_connected === undefined) return null;
-  return 'Işık gizemli ✨ Yıldızlarınızı bağlayınca gerçek ışığını görürsünüz';
+  if (friendLight?.visibility === 'friend') return `${friendLight.cumulative_score ?? 0} aktivite puanı`;
+  // Bağlı yıldızın ışığı üstte yazar; eski sunucu bağlantı bilgisini göndermiyorsa da söylenecek bir şey yok
+  if (star.is_connected !== false) return null;
+  return 'Yıldızlarınızı bağlayınca gerçek ışığını görürsünüz';
 }
 
 export const OurStarScreen: React.FC = () => {
@@ -902,12 +922,13 @@ export const OurStarScreen: React.FC = () => {
   // Yıldızın ışığı aktivite puanından gelir (gök kubbede başkalarının gördüğü değerle aynı).
   // Kıvılcım ışıma dalgası ve rezonansla hissedilir; yüklenene kadar ve demoda eski değer kullanılır.
   const starLight = myBrightness?.brightness ?? luminosityOverride;
+  const selectedFriendLight =
+    selectedMacroStar && selectedStarLight?.catalogId === selectedMacroStar.catalog_id ? selectedStarLight.info : null;
   const selectedStarLightText = selectedMacroStar
-    ? describeStarLight(
-        selectedMacroStar,
-        myBrightness,
-        selectedStarLight?.catalogId === selectedMacroStar.catalog_id ? selectedStarLight.info : null
-      )
+    ? describeStarLight(selectedMacroStar, myBrightness, selectedFriendLight)
+    : null;
+  const selectedStarLightValue = selectedMacroStar
+    ? describeStarLightValue(selectedMacroStar, starLight ?? null, selectedFriendLight)
     : null;
 
   // Yıldızın içinde HUD her zaman koyu cam (uzay karanlıktır); gök kubbede tema izlenir.
@@ -1304,14 +1325,14 @@ export const OurStarScreen: React.FC = () => {
               Tayf: <Text style={styles.macroStarHighlight}>{selectedMacroStar.spectral_type}</Text>
             </Text>
             <Text style={[styles.macroStarDetailText, { color: theme.textSecondary }]}>
-              Parlaklık: <Text style={styles.macroStarHighlight}>{selectedMacroStar.magnitude} mag</Text>
+              Parlaklık: <Text style={styles.macroStarHighlight}>{selectedStarLightValue}</Text>
             </Text>
             <Text style={[styles.macroStarDetailText, { color: theme.textSecondary }]}>
               RA/DEC: <Text style={styles.macroStarHighlight}>{Number(selectedMacroStar.ra).toFixed(1)}° / {Number(selectedMacroStar.dec).toFixed(1)}°</Text>
             </Text>
           </View>
 
-          {/* Aktivite ışığı: kendi ve bağlı yıldızlarda gerçek değer, diğerlerinde gizemli */}
+          {/* Işık açıklaması: kendi/bağlı yıldızda puan, sahipsizde sabit ışık, diğerlerinde gizemli */}
           {selectedStarLightText && (
             <View
               style={[
