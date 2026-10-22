@@ -88,7 +88,6 @@ import { ConnectionRequestBadge } from './ConnectionRequestBadge';
 import { SectorHUD } from './SectorHUD';
 import { SectorAtlasModal } from './SectorAtlasModal';
 import { SearchStarModal } from './SearchStarModal';
-import { HomeRadarOverlay } from './HomeRadarOverlay';
 import { MicroStarHeader } from './micro/MicroStarHeader';
 import { MicroSystemDock } from './micro/MicroSystemDock';
 import { PremiumPaywall } from '@/components/ui/PremiumPaywall';
@@ -284,7 +283,6 @@ export const OurStarScreen: React.FC = () => {
   const [selectedPlanet, setSelectedPlanet] = useState<StarExoplanetRecord | null>(null);
   const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
   const [isConnectionsModalOpen, setIsConnectionsModalOpen] = useState(false);
-  const [isHomeRadarOpen, setIsHomeRadarOpen] = useState(false);
   const [premiumPaywallSource, setPremiumPaywallSource] = useState<PremiumFeatureSource | null>(null);
 
   // Yıldız bağlantıları (canvas takımyıldızı çizgileri için)
@@ -382,12 +380,6 @@ export const OurStarScreen: React.FC = () => {
     }
     action();
   }, [isAuthLoading, isDemoMode, isPremium, profile]);
-
-  // Eve Dönüş Radarı Tetikleyici
-  const handleReturnHome = useCallback(() => {
-    hapticStamp();
-    setIsHomeRadarOpen(true);
-  }, []);
 
   // ─── AÇILIŞ SAHNESİ ────────────────────────────────────────────────
   // Tescilli yıldızı olan kullanıcıda (demo dahil) ekran, geniş gökyüzünden yıldızın parıltılı dış
@@ -767,11 +759,6 @@ export const OurStarScreen: React.FC = () => {
     showToast('Yıldızımıza süzülüyoruz ✨');
   }, [myStarRa, myStarDec, starDetails, showToast, prefetchSkyTiles]);
 
-  const handleHomeRadarComplete = useCallback(() => {
-    setIsHomeRadarOpen(false);
-    handleFocusMyStar();
-  }, [handleFocusMyStar]);
-
   // Makro (Gök Kubbe) / Mikro (yıldızın içi) geçişi
   const handleToggleViewMode = useCallback(() => {
     if (!starDetails && viewMode === 'macro') {
@@ -1039,8 +1026,8 @@ export const OurStarScreen: React.FC = () => {
         </View>
 
         <View style={styles.topRightActions}>
-          {/* Gelen Bağlantı İstekleri Rozeti */}
-          {starDetails && !isDemoMode && (
+          {/* Gelen Bağlantı İstekleri Rozeti (Yalnızca makro sahnede) */}
+          {!isMicroScene && starDetails && !isDemoMode && (
             <ConnectionRequestBadge
               pendingRequests={pendingRequests}
               onConnectionChanged={() => {
@@ -1060,8 +1047,8 @@ export const OurStarScreen: React.FC = () => {
             />
           )}
 
-          {/* KOZMİK BAĞLAR BUTONU — yalnızca tescilli yıldız varsa göster */}
-          {starDetails && !isDemoMode && (
+          {/* KOZMİK BAĞLAR BUTONU — yalnızca tescilli yıldız varsa ve makro sahnede göster */}
+          {!isMicroScene && starDetails && !isDemoMode && (
             <TouchableOpacity
               activeOpacity={0.82}
               onPress={() => setIsConnectionsModalOpen(true)}
@@ -1253,7 +1240,7 @@ export const OurStarScreen: React.FC = () => {
           style={[
             styles.macroStarCard,
             {
-              bottom: insets.bottom + 80,
+              bottom: insets.bottom + 16,
               backgroundColor: isLight ? 'rgba(255, 255, 255, 0.96)' : 'rgba(10, 8, 24, 0.94)',
               borderColor: selectedMacroStar.is_mine
                 ? 'rgba(245, 158, 11, 0.6)'
@@ -1506,10 +1493,16 @@ export const OurStarScreen: React.FC = () => {
 
       {/* ─── ALT KONTROL BAR VE AKSİYON BUTONLARI (Gök Kubbe) ──────────── */}
       {/* Yıldızın içinde bu çubuğun yerini MicroSystemDock alır. */}
-      {!isMicroScene && (
-        <View style={[styles.bottomControlBar, { paddingBottom: insets.bottom + 16 }]}>
+      {!isMicroScene && !selectedMacroStar && (
+        <View
+          style={[
+            styles.bottomControlBar,
+            { paddingBottom: insets.bottom + 16 },
+            starDetails !== null && !showHomeRadar && { justifyContent: 'flex-end' },
+          ]}
+        >
           {/* YILDIZI OLMAYAN KULLANICI İÇİN: REHBER KART & KOZMİK TARAMA ALTERNATİFİ */}
-          {starDetails === null && !selectedMacroStar && (
+          {starDetails === null && (
             <View
               style={[
                 styles.onboardingGuideCard,
@@ -1555,85 +1548,46 @@ export const OurStarScreen: React.FC = () => {
             </View>
           )}
 
-          {showHomeRadar && (
+          {/* YILDIZI OLAN KULLANICI: YALNIZCA YILDIZDAN UZAKLAŞTIĞINDA TEK BİR 'YILDIZIMIZA DÖN' BUTONU */}
+          {starDetails !== null && showHomeRadar && (
             <TouchableOpacity
               activeOpacity={0.85}
-              onPress={handleReturnHome}
-              style={styles.radarLaunchBtn}
-              accessibilityLabel="Evimize Dön"
+              onPress={handleFocusMyStar}
+              style={styles.returnHomeBtn}
+              accessibilityLabel="Yıldızımıza Dön"
             >
               <LinearGradient
                 colors={['#10B981', '#059669']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={styles.radarLaunchGradient}
+                style={styles.returnHomeGradient}
               >
-                <Radio size={16} color="#FFFFFF" />
-                <Text style={styles.radarLaunchBtnText}>Evimize Dön ✨</Text>
+                <Sparkles size={15} color="#FFFFFF" />
+                <Text style={styles.returnHomeBtnText}>Yıldızımıza Dön ✨</Text>
               </LinearGradient>
             </TouchableOpacity>
           )}
 
-          {/* YILDIZIMIZA ODAKLAN FAB — doğrudan tek tıkla fly-to ve merkezleme */}
-          {viewMode === 'macro' && starDetails && (
+          {/* SAĞ ALT FAB: MAKRO / MİKRO MOD GEÇİŞİ (Yalnızca yıldızı olan kullanıcılar için, tekil ve sade) */}
+          {starDetails !== null && (
             <TouchableOpacity
               activeOpacity={0.85}
-              onPress={handleFocusMyStar}
-              style={styles.focusStarFab}
-              accessibilityLabel="Yıldızımıza Odaklan"
+              onPress={handleToggleViewMode}
+              style={[
+                styles.modeSwitchFab,
+                {
+                  backgroundColor: isLight ? 'rgba(255, 255, 255, 0.94)' : 'rgba(15, 12, 30, 0.88)',
+                  borderColor: isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(251, 191, 36, 0.35)',
+                },
+              ]}
+              accessibilityLabel={viewMode === 'micro' ? 'Gök Kubbeye Çık' : 'Yıldızın İçine Gir'}
             >
-              <LinearGradient
-                colors={['#F59E0B', '#D97706']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.focusStarFabGradient}
-              >
-                <Sparkles size={18} color="#FFFFFF" />
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-
-          {/* SAĞ ALT FAB: MAKRO / MİKRO MOD GEÇİŞİ (Yalnızca yıldızı olan kullanıcılar için) */}
-          {starDetails !== null && (
-            <View style={styles.modeSwitchWrapper}>
-              {/* Yıldızın dışındayken (Gök Kubbe) FAB'ın ne yaptığını açıklayan etiket */}
-              {viewMode === 'macro' && !selectedMacroStar && (
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={handleToggleViewMode}
-                  style={[
-                    styles.modeSwitchHint,
-                    {
-                      backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(10, 8, 24, 0.92)',
-                      borderColor: isLight ? 'rgba(245, 158, 11, 0.5)' : 'rgba(251, 191, 36, 0.45)',
-                    },
-                  ]}
-                  accessibilityLabel="Yıldızın İçine Gir"
-                >
-                  <Text style={[styles.modeSwitchHintText, { color: isLight ? '#92400E' : '#FCD34D' }]}>
-                    Yıldızın İçine Gir ✨
-                  </Text>
-                </TouchableOpacity>
+              {viewMode === 'micro' ? (
+                <Globe size={20} color="#38BDF8" />
+              ) : (
+                <Orbit size={20} color="#FBBF24" />
               )}
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={handleToggleViewMode}
-                style={[
-                  styles.modeSwitchFab,
-                  {
-                    backgroundColor: isLight ? 'rgba(255, 255, 255, 0.92)' : 'rgba(7, 5, 18, 0.8)',
-                    borderColor: isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.18)',
-                  },
-                ]}
-                accessibilityLabel={viewMode === 'micro' ? 'Gök Kubbeye Çık' : 'Yıldızın İçine Gir'}
-              >
-                {viewMode === 'micro' ? (
-                  <Globe size={20} color="#38BDF8" />
-                ) : (
-                  <Orbit size={20} color="#FBBF24" />
-                )}
-              </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
           )}
         </View>
       )}
@@ -1744,13 +1698,6 @@ export const OurStarScreen: React.FC = () => {
         }}
       />
       {/* ─── ARAMA MODAL'I ────────────────────────────────────────────── */}
-      {/* 6. EVE DÖNÜŞ RADARI OVERLAY */}
-      <HomeRadarOverlay
-        visible={isHomeRadarOpen}
-        starDetails={starDetails}
-        onComplete={handleHomeRadarComplete}
-        onClose={() => setIsHomeRadarOpen(false)}
-      />
 
       <SearchStarModal
         visible={isSearchModalOpen}
@@ -1936,24 +1883,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 8,
   },
-  modeSwitchWrapper: {
-    alignItems: 'flex-end',
-  },
-  modeSwitchHint: {
-    position: 'absolute',
-    bottom: 52,
-    right: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 14,
-    borderWidth: 1,
-    minWidth: 150,
-    alignItems: 'center',
-  },
-  modeSwitchHintText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
   modeSwitchFab: {
     width: 44,
     height: 44,
@@ -1968,22 +1897,28 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-  focusStarFab: {
-    width: 44,
+  returnHomeBtn: {
     height: 44,
     borderRadius: 22,
     overflow: 'hidden',
-    shadowColor: '#F59E0B',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  focusStarFabGradient: {
-    width: 44,
-    height: 44,
+  returnHomeGradient: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    height: 44,
+  },
+  returnHomeBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
   macroStarCard: {
     position: 'absolute',

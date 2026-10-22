@@ -4,7 +4,7 @@ Bu belge, uygulamadaki bildirilen hataları, arayüz aksaklıklarını ve talep 
 
 > **Geliştirici Notu:** Bu dokümanda doğrudan kod yamaları veya "şunu şöyle yaz" talimatları yer almamaktadır. Her maddenin **mevcut durumu (sorun)**, **kullanıcı beklentisi** ve araştırmayı hızlandırmak için **derinlemesine mimari bağlamı (ilgili dosyalar, state'ler ve akışlar)** sunulmuştur. Çözüm mimarisini ve kod uygulamasını Claude kendisi tasarlamalıdır.
 > 
-> *Not: Tamamlanan 1.1, 1.2, 1.3, 1.5, 2.1, 2.2, 2.3, 2.4, 2.5, 2.7, 3.1 ve 3.2 numaralı görevler başarıyla tamamlanarak dokümandan temizlenmiştir. Geriye yalnızca üzerinde çalışılacak aktif görevler bırakılmıştır.*
+> *Not: Tamamlanan 1.1, 1.2, 1.3, 1.5, 1.6, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 2.10, 2.11, 2.12, 3.1 ve 3.2 numaralı görevler başarıyla tamamlanarak dokümandan temizlenmiştir. Geriye yalnızca üzerinde çalışılacak aktif görevler bırakılmıştır.*
 
 ---
 
@@ -28,31 +28,11 @@ Bu belge, uygulamadaki bildirilen hataları, arayüz aksaklıklarını ve talep 
 
 ---
 
-## 🟡 2. BÖLÜM: ORTA İŞLER (Feature Polish & Consistency)
-
----
-
-### Görev 2.6: Yıldızımız Ekranı Alt Panelindeki (Dock & HUD) Buton Karmaşıklığının Giderilmesi
-* **Kategori:** Orta / UX Sadeleştirme & Ergonomi
-* **Mevcut Sorun:**
-  "Bizim Yıldızımız" ekranında hem makro görünümde (gök kubbe) hem de mikro görünümde (yıldızın içi) ekranın alt ve sağ kenarlarında çok sayıda buton (anı gezegenleri dock'u, gök kubbeye dön butonu, ses aç/kapat, arama, takımyıldızı bağlantıları, tescil sertifikası vb.) yer almakta; butonlar görsel hiyerarşiyi bozarak karmaşa yaratmaktadır.
-* **Kullanıcı Beklentisi:**
-  Alt kontrol çubuğunun ve yüzen butonların gereksiz kalabalıktan arındırılması, kullanıcının o an nerede olduğunu (gökyüzünde mi yoksa kendi yıldızının içinde mi) net hissettiren, sezgisel ve minimalist bir kontrol mimarisine kavuşturulması.
-* **Araştırma & Mimari Bağlam:**
-  * **İlgili Dosyalar:**
-    * [`src/modules/stars/components/OurStarScreen.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/modules/stars/components/OurStarScreen.tsx)
-    * [`src/modules/stars/components/micro/MicroSystemDock.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/modules/stars/components/micro/MicroSystemDock.tsx)
-  * **İnceleme Notu:**
-    `OurStarScreen.tsx` satır 1010-1065 arasında yer alan `cosmicBagRow` yüzen buton grubu (bağlantı rozeti, ses aç/kapat, arama butonu) ile `MicroSystemDock.tsx` içerisindeki alt kartlar ve "Gök Kubbeye Dön" eylemi görsel ve dokunma alanı olarak çakışabilmektedir. Mikro ve makro sahneler arasındaki buton ayrımının daha temiz bir hiyerarşiye oturtulması hedeflenmektedir.
-
----
-
 ## 📌 Aktif Görevler Özet Tablosu
 
 | No | Görev Başlığı | Modül / Dosya | Zorluk | Öncelik | Durum |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **1.4** | Yıldızımızdaki "Kıvılcım" terimi ve UX anlatımı | `MicroStarHeader.tsx`, `StarSparkManager.ts` | 🟢 Kolay | Orta | Beklemede |
-| **2.6** | Yıldızımız ekranı alt panel buton karmaşıklığının giderilmesi | `OurStarScreen.tsx`, `MicroSystemDock.tsx` | 🟡 Orta | Orta | Beklemede |
 | **4.1** | Güvenli Kasa & Şifreleme Revizyonu (Private Storage & Vault Modeli) | `crypto.ts`, `photos.tsx`, `login.tsx`, Supabase | 🔴 Zor | Kritik | Kod tamamlandı — migration + `auth-gateway` dağıtımı bekliyor |
 
 ---
@@ -61,7 +41,7 @@ Bu belge, uygulamadaki bildirilen hataları, arayüz aksaklıklarını ve talep 
 
 * [ ] Kıvılcım sayacı kalkacak mı yoksa sevgi titreşimi/rezonansı olarak yeniden mi adlandırılacak?
 * [ ] Uygulama şifrelemesi (4.1) yeni cihaz oturum zırhı mimarisine göre test edilmeli.
-* [ ] Yıldız ekranındaki alt panel kontrolleri (Dock & FAB) sadeleştirilmeli.
+* [x] Yıldız ekranındaki alt panel kontrolleri (Dock & FAB) sadeleştirildi ve çakışmalar giderildi.
 * [ ] Uygulamadaki tüm ses efektleri ve dokunsal bildirimler (haptic) test edilmeli.
 * [ ] Yıldız tescil, claim ve puanlama mantığı 0'dan temiz hesapla test edilmeli.
 * [ ] Arkadaş yıldız ekleme ve takımyıldızı bağları test edilmeli.
