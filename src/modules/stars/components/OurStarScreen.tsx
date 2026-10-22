@@ -774,6 +774,9 @@ export const OurStarScreen: React.FC = () => {
 
   // Makro (Gök Kubbe) / Mikro (yıldızın içi) geçişi
   const handleToggleViewMode = useCallback(() => {
+    if (!starDetails && viewMode === 'macro') {
+      return;
+    }
     const nextMode = viewMode === 'micro' ? 'macro' : 'micro';
     hapticStamp();
     setViewMode(nextMode);
@@ -783,7 +786,7 @@ export const OurStarScreen: React.FC = () => {
     if (nextMode === 'macro') {
       showToast('Gök Kubbeye çıkıldı; tüm evreni keşfedebilirsiniz 🌌');
     }
-  }, [viewMode, showToast]);
+  }, [viewMode, starDetails, showToast]);
 
   // Ortam sesini aç/kapat (Kalıcı tercih + Genel ses ayarı denetimi)
   const handleToggleAmbient = useCallback(async () => {

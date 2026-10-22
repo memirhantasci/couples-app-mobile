@@ -28,35 +28,6 @@ Bu belge, uygulamadaki bildirilen hataları, arayüz aksaklıklarını ve talep 
 
 ---
 
-### Görev 1.6: Yıldız Seçilmemişken Ruh Hali / Aktivite Girişinde "+1 Puan Yıldızınız Parladı" Bildiriminin Engellenmesi
-* **Kategori:** Kolay / UX & Mantıksal Durum Yönetimi
-* **Mevcut Sorun:**
-  Kullanıcı henüz bir çift yıldızı seçmemişken (`starDetails === null` / veritabanında yıldız yokken), ana ekrandan veya takvimden ruh hali, ilaç vb. aktivite girdiğinde ekranda `+1 puan, yıldızınız parladı 🌟` şeklinde toast bildirimi çıkmaktadır. Kullanıcı henüz yıldızı olmadığını bildiği için "Daha yıldız seçmemişken yıldızım nasıl parlıyor?" kafa karışıklığı yaşamaktadır.
-* **Kullanıcı Beklentisi:**
-  Çiftin henüz tescillenmiş bir yıldızı yoksa bu toast bildiriminin doğrudan bastırılması (gösterilmemesi) veya alternatif olarak "Aktivite puanı kazandınız! Yıldızınızı seçtiğinizde bu puanla parlayacak ✨" şeklinde motive edici, tutarlı bir dille sunulması.
-* **Araştırma & Mimari Bağlam:**
-  * **İlgili Dosyalar:**
-    * [`src/modules/stars/components/StarPointsToastHost.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/modules/stars/components/StarPointsToastHost.tsx) (Satır 40-55)
-    * [`src/modules/stars/api/starService.ts`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/modules/stars/api/starService.ts)
-  * **İnceleme Notu:**
-    `StarPointsToastHost.tsx` bileşeni, `couple_activity_log` tablosundaki `INSERT` postgres_changes olaylarını dinlemektedir. Trigger aktiviteyi logladığı anda bileşen kullanıcının bir yıldıza sahip olup olmadığını (`getMyStarDetails` veya bir boolean state/cache) sorgulamaksızın doğrudan `toast.success('+${entry.points} puan, yıldızınız parladı 🌟')` çalıştırmaktadır. Kullanıcının yıldız sahipliği kontrol edilerek koşula bağlanmalıdır.
-
----
-
-### Görev 1.7: Yıldız Seçim Ekranında Sağ Alttaki Yüzen Mod Butonunun (Orbit FAB) Gizlenmesi
-* **Kategori:** Kolay / UI Durum Yönetimi & Görsel Tutarlılık
-* **Mevcut Sorun:**
-  Kullanıcı henüz yıldızını seçmemişken gökyüzü atlası (makro sahne) ekranının sağ altında, mikro evrene geçiş yapmaya yarayan `Orbit` ikonlu yüzen FAB butonu (`styles.modeSwitchFab`) görünmeye devam etmektedir. Kullanıcının henüz bir yıldızı bulunmadığı için bu butona basıldığında tanımsız/boş bir mikro sahneye geçilmeye çalışılmaktadır.
-* **Kullanıcı Beklentisi:**
-  Yıldızı olmayan kullanıcı için sağ alttaki bu geçiş butonu tamamen gizlenmeli; kullanıcı yalnızca gökyüzünü keşfetmeye ve boş bir yıldız seçmeye odaklanmalıdır. Yalnızca yıldız başarıyla tescillendikten sonra mikro sistem FAB'ı aktif olmalıdır.
-* **Araştırma & Mimari Bağlam:**
-  * **İlgili Dosyalar:**
-    * [`src/modules/stars/components/OurStarScreen.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/modules/stars/components/OurStarScreen.tsx) (Satır 1570-1610)
-  * **İnceleme Notu:**
-    `OurStarScreen.tsx` satır 1571'de yer alan `<View style={styles.modeSwitchWrapper}>` bloğu ve içerisindeki `modeSwitchFab` butonu, `starDetails` kontrolüne tabi tutulmadan koşulsuz olarak render edilmektedir. `starDetails !== null` şartı eklenerek yıldızsız durumlarda buton gizlenmelidir.
-
----
-
 ## 🟡 2. BÖLÜM: ORTA İŞLER (Feature Polish & Consistency)
 
 ---
