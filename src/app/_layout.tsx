@@ -12,6 +12,9 @@ import { NotificationProvider } from "@/context/NotificationContext";
 import { supabase } from "@/lib/supabase";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { configureAndroidNotificationChannel, notifyPairingComplete } from "@/lib/notifications";
+import { normalizePairingCode, translatePairingError } from "@/lib/pairingCode";
+import { navigateAfterAuth } from "@/lib/navigate";
+import { toast } from "@/lib/toast";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 import { ToastHost } from "@/components/ui/ToastHost";
 import { DialogHost } from "@/components/ui/DialogHost";
@@ -97,7 +100,7 @@ function RootLayoutNav() {
 
     // couplesapp://invite?code=... OR couplesapp://pair?code=...
     if ((hostname === "invite" || hostname === "pair") && queryParams?.code) {
-      const code = (queryParams.code as string).trim().toUpperCase();
+      const code = normalizePairingCode(queryParams.code as string);
       await AsyncStorage.setItem("@pending_invite_code", code);
 
       // If user is already authenticated with an active session:
@@ -109,8 +112,13 @@ function RootLayoutNav() {
             const joined = Array.isArray(data) ? data[0] : data;
             if (joined?.result_is_paired) notifyPairingComplete(joined.result_couple_id, session.user.id);
             await AsyncStorage.removeItem("@pending_invite_code");
-            await refreshProfile();
-            router.replace("/(setup)/dates");
+            navigateAfterAuth(await refreshProfile());
+            return;
+          }
+          if (error.message.includes("ALREADY_PAIRED")) {
+            // Kurulmuş çift başka bir davetle bozulmaz; kullanıcı olduğu yerde kalır
+            await AsyncStorage.removeItem("@pending_invite_code");
+            toast.info(translatePairingError(error.message));
             return;
           }
         } catch {

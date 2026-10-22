@@ -20,6 +20,14 @@ import { useTheme } from "@/context/ThemeContext";
 import { sanitizeStrict } from "@/utils/sanitize";
 import { toast } from "@/lib/toast";
 import { getCooldownStatus } from "@/lib/cooldown";
+import {
+  type DatesChangeStatus,
+  daysUntilPeriodEnd,
+  fetchDatesChangeStatus,
+  parseDatesChangeStatus,
+  translateDatesError,
+} from "@/lib/relationshipDates";
+import { formatDateTR } from "@/lib/date";
 import { usePageTour } from "@/hooks/usePageTour";
 import { useDeferredReady } from "@/hooks/useDeferredReady";
 import { PageTourModal } from "@/components/tour/PageTourModal";
@@ -78,7 +86,7 @@ export default function ProfileScreen() {
   // Cooldown zaman damgaları
   const [nameLastChangedAt, setNameLastChangedAt] = useState<string | null>(null);
   const [genderLastChangedAt, setGenderLastChangedAt] = useState<string | null>(null);
-  const [datesLastChangedAt, setDatesLastChangedAt] = useState<string | null>(null);
+  const [datesStatus, setDatesStatus] = useState<DatesChangeStatus | null>(null);
 
   const [profileLoading, setProfileLoading] = useState(false);
   const [datesLoading, setDatesLoading] = useState(false);
@@ -100,7 +108,7 @@ export default function ProfileScreen() {
     setLegalModalVisible(true);
   };
 
-  // Cooldown durumları (30 gün isim, 90 gün cinsiyet, 30 gün çift bazlı tarihler)
+  // Cooldown durumları (30 gün isim, 90 gün cinsiyet). Çift bazlı tarih hakları sunucudan gelir (datesStatus).
   const nameCooldown = useMemo(
     () => getCooldownStatus(nameLastChangedAt, 30),
     [nameLastChangedAt]
@@ -108,10 +116,6 @@ export default function ProfileScreen() {
   const genderCooldown = useMemo(
     () => getCooldownStatus(genderLastChangedAt, 90),
     [genderLastChangedAt]
-  );
-  const datesCooldown = useMemo(
-    () => getCooldownStatus(datesLastChangedAt, 30),
-    [datesLastChangedAt]
   );
 
   // Değişiklik kontrolleri
@@ -163,7 +167,7 @@ export default function ProfileScreen() {
         if (userData.couple_id) {
           const { data: coupleData } = await supabase
             .from("couples")
-            .select("meet_date, relationship_start_date, dates_last_changed_at")
+            .select("meet_date, relationship_start_date")
             .eq("id", userData.couple_id)
             .single();
 
@@ -174,8 +178,8 @@ export default function ProfileScreen() {
             setInitialMeetDate(mDate);
             setRelStartDate(rDate);
             setInitialRelStartDate(rDate);
-            setDatesLastChangedAt(coupleData.dates_last_changed_at ?? null);
           }
+          setDatesStatus(await fetchDatesChangeStatus());
         }
       }
       setDataLoaded(true);
@@ -330,21 +334,19 @@ export default function ProfileScreen() {
       return;
     }
 
-    // Çift bazlı cooldown kontrolü
-    if (!datesCooldown.canChange) {
-      appAlert(
-        "İlişki Tarihleri Kilitli 🔒",
-        `İlişki tarihleri siz veya partneriniz tarafından yakın zamanda güncellendi. Çift olarak sonraki değişiklik için ${datesCooldown.remainingDays} gün beklemeniz gerekmektedir.`,
-        [{ text: "Anladım" }],
-        { tone: "warning" }
-      );
+    // Çift bazlı hak kontrolü (asıl denetim sunucuda; bu yalnızca erken bilgilendirme)
+    if (datesStatus?.hasDates && datesStatus.remaining <= 0) {
+      showDatesLimitAlert(datesStatus);
       return;
     }
 
     // Çift bazlı onay uyarısı
+    const rightNote = !datesStatus || !datesStatus.hasDates
+      ? "İlişki tarihlerinizi ilk kez kaydediyorsunuz; bu kayıt değişiklik hakkı harcamaz."
+      : `⚠️ Bu işlem çiftinizin değişiklik haklarından birini kullanır (bu dönem kalan: ${datesStatus.remaining}). Haklar çift bazlıdır; partnerinizin yaptığı değişiklik de aynı haktan düşer.`;
     appAlert(
       "İlişki Tarihlerini Güncelle 💕",
-      "İlişki tarihlerinizi güncellemek üzeresiniz. Bu işlem ana sayfa sayaçlarınızı ve Özel Günler arşivinizi güncelleyecektir.\n\n⚠️ Bu hak çift bazlıdır; siz güncellediğinizde partneriniz de dahil olmak üzere her iki taraf için sonraki 30 gün boyunca tarih değişimi kilitlenecektir. Onaylıyor musunuz?",
+      `İlişki tarihlerinizi güncellemek üzeresiniz. Bu işlem ana sayfa sayaçlarınızı ve Özel Günler arşivinizi güncelleyecektir.\n\n${rightNote}\n\nOnaylıyor musunuz?`,
       [
         { text: "Vazgeç", style: "cancel" },
         { text: "Onayla ve Güncelle", style: "default", onPress: () => executeSaveDates() },
@@ -353,28 +355,43 @@ export default function ProfileScreen() {
     );
   }
 
+  function showDatesLimitAlert(status: DatesChangeStatus) {
+    const days = daysUntilPeriodEnd(status.periodEndsAt);
+    const when = status.periodEndsAt ? `${formatDateTR(status.periodEndsAt)} (${days} gün sonra)` : "bir sonraki dönemde";
+    appAlert(
+      "İlişki Tarihleri Kilitli 🔒",
+      `Bu dönemki değişiklik hakları siz veya partneriniz tarafından kullanıldı. Yeni hakkınız ${when} açılacak.`,
+      [{ text: "Anladım" }],
+      { tone: "warning" }
+    );
+  }
+
   async function executeSaveDates() {
     if (!coupleId) return;
     setDatesLoading(true);
-    const nowIso = new Date().toISOString();
-    const { error } = await supabase
-      .from("couples")
-      .update({
-        meet_date: meetDate ? meetDate : null,
-        relationship_start_date: relStartDate,
-        dates_last_changed_at: nowIso,
-      })
-      .eq("id", coupleId);
+    const { data, error } = await supabase.rpc("change_relationship_dates", {
+      p_relationship_start_date: relStartDate,
+      p_meet_date: meetDate ? meetDate : null,
+    });
 
     if (error) {
       setDatesLoading(false);
-      appAlert("Hata", error.message || "Tarihler güncellenemedi. Lütfen tekrar deneyin.");
+      if (error.message.includes("DATES_CHANGE_LIMIT")) {
+        // Partner bu arada son hakkı kullanmış olabilir: güncel durumu göster
+        const fresh = await fetchDatesChangeStatus();
+        setDatesStatus(fresh);
+        if (fresh) {
+          showDatesLimitAlert(fresh);
+          return;
+        }
+      }
+      appAlert("Hata", translateDatesError(error.message));
       return;
     }
 
     setInitialMeetDate(meetDate);
     setInitialRelStartDate(relStartDate);
-    setDatesLastChangedAt(nowIso);
+    setDatesStatus(parseDatesChangeStatus(data));
 
     // Özel Günler / Anılar tablosundaki ilgili kartları senkronize et
     try {
@@ -672,7 +689,7 @@ export default function ProfileScreen() {
                   meetDate={meetDate}
                   relStartDate={relStartDate}
                   loading={datesLoading}
-                  datesCooldown={datesCooldown}
+                  datesStatus={datesStatus}
                   hasChanges={hasDatesChanges}
                   onChangeMeetDate={setMeetDate}
                   onChangeRelStartDate={setRelStartDate}

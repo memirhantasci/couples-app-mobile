@@ -18,7 +18,6 @@ import { useAuth, DEVICE_AUTH_CACHE_KEY } from "@/context/AuthContext";
 import { ArrowLeft, ShieldAlert, RefreshCw } from "lucide-react-native";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { navigateAfterAuth } from "@/lib/navigate";
-import { isDatesSkipped } from "@/lib/datesSkip";
 import { toast } from "@/lib/toast";
 
 const OTP_LENGTH = 6;
@@ -143,35 +142,9 @@ export default function VerifyDeviceScreen() {
         timestamp: Date.now(),
       }));
       setIsDeviceAuthorized(true);
-      await refreshProfile();
 
-      // Route user correctly based on couple state
-      const { data: userData } = await supabase
-        .from("users")
-        .select("display_name, couple_id")
-        .eq("id", userId)
-        .single();
-
-      let couple: any = null;
-      if (userData?.couple_id) {
-        const { data: cData } = await supabase
-          .from("couples")
-          .select("meet_date, relationship_start_date")
-          .eq("id", userData.couple_id)
-          .single();
-        if (cData) {
-          couple = cData;
-        }
-      }
-
-      navigateAfterAuth({
-        coupleId: userData?.couple_id ?? null,
-        meetDate: couple?.meet_date ?? null,
-        relationshipStartDate: couple?.relationship_start_date ?? null,
-        isPaired: !!userData?.couple_id,
-        hasDates: !!couple?.relationship_start_date || (await isDatesSkipped(userId)),
-        displayName: userData?.display_name ?? null,
-      });
+      // Route user correctly based on couple state (eşleşme ölçütü AuthContext ile aynı: 2 üye)
+      navigateAfterAuth(await refreshProfile());
     } catch (e: any) {
       setErrorMsg("Beklenmedik bir hata oluştu.");
       setIsLoading(false);

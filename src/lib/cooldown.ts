@@ -4,10 +4,10 @@
  * Kurallar:
  * - Görünen İsim: 30 günde 1 (Kişi bazlı)
  * - Cinsiyet: 90 günde 1 (Kişi bazlı)
- * - İlişki Tarihleri: 30 günde 1 (Çift/İlişki bazlı - partnerlerden biri değiştirirse ikisi için kilitlenir)
- * 
+ * - İlişki Tarihleri: çift bazlı haklar sunucuda tutulur (bkz. relationshipDates.ts)
+ *
  * İlk Hak Kuralı:
- * Kurulum aşamasında (onboarding) yanlış yazılmış olabileceği için kullanıcılara ve çifte
+ * Kurulum aşamasında (onboarding) yanlış yazılmış olabileceği için kullanıcılara
  * kurulumdan sonra beklemeden kullanabilecekleri 1 anında düzeltme hakkı hazır verilir.
  * Bu hak kullanıldığında ilgili cooldown sayacı başlar.
  */

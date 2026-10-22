@@ -5,7 +5,7 @@ import { CalendarHeart, Calendar, Heart, ChevronRight, Lock, Clock, Sparkles } f
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 import type { AppTheme } from "@/lib/theme";
-import type { CooldownStatus } from "@/lib/cooldown";
+import { type DatesChangeStatus, daysUntilPeriodEnd } from "@/lib/relationshipDates";
 import { ModernSection } from "./ModernSection";
 import { profileSharedStyles } from "./profileSharedStyles";
 
@@ -17,7 +17,8 @@ interface RelationshipDatesCardProps {
   meetDate: string;
   relStartDate: string;
   loading: boolean;
-  datesCooldown?: CooldownStatus;
+  /** Sunucudaki çift bazlı değişiklik hakları (ilk 30 günde 2, sonra her 30 günde 1) */
+  datesStatus?: DatesChangeStatus | null;
   hasChanges?: boolean;
   onChangeMeetDate: (value: string) => void;
   onChangeRelStartDate: (value: string) => void;
@@ -30,7 +31,7 @@ export function RelationshipDatesCard({
   meetDate,
   relStartDate,
   loading,
-  datesCooldown,
+  datesStatus,
   hasChanges = true,
   onChangeMeetDate,
   onChangeRelStartDate,
@@ -39,7 +40,8 @@ export function RelationshipDatesCard({
   const [showMeetDatePicker, setShowMeetDatePicker] = useState(false);
   const [showRelDatePicker, setShowRelDatePicker] = useState(false);
 
-  const isLocked = datesCooldown ? !datesCooldown.canChange : false;
+  const isLocked = !!datesStatus?.hasDates && datesStatus.remaining <= 0;
+  const periodEndText = datesStatus?.periodEndsAt ? dayjs(datesStatus.periodEndsAt).format("D MMMM YYYY") : null;
 
   const pickerBtnStyle = [
     styles.datePickerBtn,
@@ -66,22 +68,26 @@ export function RelationshipDatesCard({
               Tarihler Kilitli (Çift Bazlı Kısıtlama)
             </Text>
             <Text style={[styles.lockCardText, { color: isLight ? "#555555" : "rgba(255,255,255,0.7)" }]}>
-              İlişki tarihleri siz veya partneriniz tarafından yakın zamanda güncellendi. Çift olarak sonraki değişiklik için <Text style={{ fontFamily: "Inter_700Bold" }}>{datesCooldown?.remainingDays} gün</Text> kaldı.
+              Bu dönemki değişiklik hakları siz veya partneriniz tarafından kullanıldı. Yeni hakkınız{" "}
+              <Text style={{ fontFamily: "Inter_700Bold" }}>{daysUntilPeriodEnd(datesStatus?.periodEndsAt ?? null)} gün</Text>
+              {periodEndText ? ` sonra (${periodEndText})` : " sonra"} açılacak.
             </Text>
           </View>
         </View>
-      ) : datesCooldown?.isInitialFreeRight ? (
+      ) : datesStatus && datesStatus.remaining > 0 ? (
         <View style={[styles.freeRightCard, { backgroundColor: theme.pillAccentBg, borderColor: theme.cardBorder }]}>
           <Sparkles size={15} color={theme.accent} style={{ marginTop: 1 }} />
           <Text style={[styles.freeRightText, { color: theme.accent }]}>
-            Çiftinizin 1 ücretsiz düzeltme hakkı hazır. Tarihleri güncellediğinizde her iki taraf için 30 günlük bekleme süresi başlar.
+            {datesStatus.hasDates
+              ? `Çiftinizin bu dönem ${datesStatus.remaining} değişiklik hakkı var${periodEndText ? ` (dönem ${periodEndText} tarihinde yenilenir)` : ""}. İlk 30 günde 2, sonrasında her 30 günde 1 hak tanınır.`
+              : "İlk kayıt değişiklik hakkı harcamaz. Sonrasında ilk 30 günde 2, ardından her 30 günde 1 değişiklik hakkınız olur."}
           </Text>
         </View>
       ) : (
         <View style={styles.normalHintRow}>
           <Clock size={12} color={theme.textMuted} />
           <Text style={[styles.normalHintText, { color: theme.textMuted }]}>
-            İlişki tarihleri çift bazlı olarak her 30 günde bir güncellenebilir.
+            İlişki tarihleri çift bazlı olarak ilk 30 günde 2, sonrasında her 30 günde 1 kez güncellenebilir.
           </Text>
         </View>
       )}
@@ -232,6 +238,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   normalHintText: {
+    flex: 1,
     fontSize: 12,
     fontFamily: "Inter_400Regular",
   },

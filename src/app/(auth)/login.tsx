@@ -28,7 +28,7 @@ import {
   Sparkles
 } from "lucide-react-native";
 import { getOrCreateDeviceId } from "@/utils/device";
-import { isDatesSkipped } from "@/lib/datesSkip";
+import { normalizePairingCode } from "@/lib/pairingCode";
 import { LegalModal } from "@/components/legal/LegalModal";
 import { LegalDocType } from "@/constants/legalTexts";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -112,7 +112,7 @@ type Mode = "login" | "register";
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { initialMode, inviteCode } = useLocalSearchParams<{ initialMode?: string; inviteCode?: string }>();
-  const { setIsDeviceAuthorized, enterDemoMode } = useAuth();
+  const { setIsDeviceAuthorized, enterDemoMode, refreshProfile } = useAuth();
   const [mode, setMode] = useState<"login" | "register">(
     initialMode === "register" || !!inviteCode ? "register" : "login"
   );
@@ -135,7 +135,7 @@ export default function LoginScreen() {
   React.useEffect(() => {
     async function loadInviteCode() {
       const stored = await AsyncStorage.getItem("@pending_invite_code");
-      const effectiveCode = (inviteCode || stored || "").trim().toUpperCase();
+      const effectiveCode = normalizePairingCode(inviteCode || stored);
       if (effectiveCode) {
         setActiveInviteCode(effectiveCode);
         setRegPairingCode(effectiveCode);
@@ -381,33 +381,9 @@ export default function LoginScreen() {
       setLockedUntil(null);
       await AsyncStorage.removeItem(BRUTE_FORCE_KEY).catch(() => {});
 
-      // Route user according to couple & profile status
-      const { data: userData } = await supabase
-        .from("users")
-        .select("display_name, couple_id")
-        .eq("id", userId)
-        .single();
-
-      let couple: any = null;
-      if (userData?.couple_id) {
-        const { data: cData } = await supabase
-          .from("couples")
-          .select("meet_date, relationship_start_date")
-          .eq("id", userData.couple_id)
-          .single();
-        if (cData) {
-          couple = cData;
-        }
-      }
-
-      navigateAfterAuth({
-        coupleId: userData?.couple_id ?? null,
-        meetDate: couple?.meet_date ?? null,
-        relationshipStartDate: couple?.relationship_start_date ?? null,
-        isPaired: !!userData?.couple_id,
-        hasDates: !!couple?.relationship_start_date || (await isDatesSkipped(userId)),
-        displayName: userData?.display_name ?? null,
-      });
+      // Route user according to couple & profile status (eşleşme ölçütü AuthContext ile aynı: 2 üye;
+      // tek kişilik bekleme çifti olan kullanıcı tarih ekranına gidip geri fırlatılmasın)
+      navigateAfterAuth(await refreshProfile());
     } catch (e: any) {
       setErrorMsg("Beklenmedik bir hata oluştu.");
     } finally {
@@ -500,7 +476,7 @@ export default function LoginScreen() {
 
       // The user profile is automatically created in public.users via Supabase trigger
 
-      const cleanPairingCode = regPairingCode.trim().toUpperCase() || activeInviteCode?.trim().toUpperCase() || "";
+      const cleanPairingCode = normalizePairingCode(regPairingCode || activeInviteCode);
       if (cleanPairingCode) {
         await AsyncStorage.setItem("@pending_invite_code", cleanPairingCode);
       }
@@ -559,10 +535,9 @@ export default function LoginScreen() {
   // ─── Social Auth (Google / Apple) ─────────────────────────────────────────
 
   // Sosyal giriş sonrası cihazı yetkilendirir; profil ve yönlendirme AuthContext + useProtectedRoute'a bırakılır
-  // (handleRegister ile aynı yaklaşım — refreshProfile burada eski oturum closure'ı yüzünden profili sıfırlar).
+  // (handleRegister ile aynı yaklaşım).
   async function handleSocialSuccess(user: SupabaseUser) {
-    const cleanPairingCode =
-      regPairingCode.trim().toUpperCase() || activeInviteCode?.trim().toUpperCase() || "";
+    const cleanPairingCode = normalizePairingCode(regPairingCode || activeInviteCode);
     if (cleanPairingCode) {
       await AsyncStorage.setItem("@pending_invite_code", cleanPairingCode);
     }
@@ -1057,10 +1032,12 @@ export default function LoginScreen() {
                   </View>
                   <TextInput
                     value={regPairingCode}
-                    onChangeText={setRegPairingCode}
+                    onChangeText={(t) => setRegPairingCode(normalizePairingCode(t))}
                     placeholder="Örn. X7Y9Z2"
                     placeholderTextColor="rgba(255,255,255,0.25)"
                     autoCapitalize="characters"
+                    autoCorrect={false}
+                    autoComplete="off"
                     selectionColor={activeAccent}
                     style={styles.textInputField}
                   />

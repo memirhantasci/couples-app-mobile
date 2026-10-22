@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useEffectEvent, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -13,18 +13,21 @@ import {
 import * as Clipboard from "expo-clipboard";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Link, Share2, LogOut, Sparkles, Check, Copy } from "lucide-react-native";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { notifyPairingComplete } from "@/lib/notifications";
+import { navigateAfterAuth } from "@/lib/navigate";
+import { isDefinitivePairingError, normalizePairingCode, translatePairingError } from "@/lib/pairingCode";
 import { useNotificationPriming } from "@/hooks/useNotificationPriming";
 import { PermissionPrimingModal } from "@/components/common/PermissionPrimingModal";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type PairingStatus = {
+  coupleId: number | null;
   pairingCode: string | null;
   memberCount: number;
   isPaired: boolean;
@@ -33,238 +36,126 @@ type PairingStatus = {
 
 // ─── RPC Helpers ─────────────────────────────────────────────────────────────
 
-async function fetchPairingStatus(userId: string): Promise<PairingStatus> {
-  try {
-    // 1. Kullanıcının mevcut couple_id'sini kontrol et
-    const { data: user, error: userError } = await supabase
-      .from("users")
-      .select("couple_id")
-      .eq("id", userId)
-      .maybeSingle();
-
-    if (userError) {
-      console.warn("[pairing] user query error:", userError.message);
-    }
-
-    let coupleId = user?.couple_id;
-
-    // 2. Eğer user'da couple_id yoksa, bekleyen bir davet kodu var mı kontrol et ve eşleşmeyi dene
-    if (!coupleId) {
-      const pendingCode = (await AsyncStorage.getItem("@pending_invite_code"))?.trim().toUpperCase();
-      if (pendingCode && pendingCode.length >= 4) {
-        const { data: joinData, error: joinErr } = await supabase.rpc("join_couple_by_code_uuid", {
-          p_code: pendingCode,
-        });
-        if (!joinErr) {
-          await AsyncStorage.removeItem("@pending_invite_code");
-          const res = Array.isArray(joinData) ? joinData[0] : joinData;
-          coupleId = res?.result_couple_id;
-          // Davet bağlantısıyla gelen taraf eşleşmeyi tamamladı: bekleme ekranındaki partnere haber ver
-          if (res?.result_is_paired) notifyPairingComplete(coupleId, userId);
-        }
-      }
-    }
-
-    // 3. Eğer user'da hala couple_id yoksa, yerel hafızada daha önce oluşturulmuş bir coupleId var mı kontrol et
-    if (!coupleId) {
-      const cachedCoupleId = await AsyncStorage.getItem(`@user_couple_id_${userId}`);
-      if (cachedCoupleId) {
-        const parsed = parseInt(cachedCoupleId, 10);
-        if (!isNaN(parsed)) {
-          const { data: c } = await supabase
-            .from("couples")
-            .select("id, pairing_code")
-            .eq("id", parsed)
-            .maybeSingle();
-          if (c) {
-            coupleId = c.id;
-          }
-        }
-      }
-    }
-
-    // 4. Hala coupleId yoksa ve bekleyen kod da yoksa yeni bir couple oluştur
-    if (!coupleId) {
-      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-      let code = "";
-      for (let i = 0; i < 6; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-
-      // DİKKAT: 'is_paired' PostgreSQL'de GENERATED column olduğu için insert objesine eklenmez!
-      const { data: newCouple, error: insertError } = await supabase
-        .from("couples")
-        .insert({ pairing_code: code, member_count: 0 })
-        .select("id, pairing_code")
-        .single();
-
-      if (!insertError && newCouple) {
-        coupleId = newCouple.id;
-        await AsyncStorage.setItem(`@user_couple_id_${userId}`, String(newCouple.id));
-        await AsyncStorage.setItem(`@user_pairing_code_${userId}`, newCouple.pairing_code);
-
-        // Kullanıcıyı bu yeni couple ile eşleştir
-        try {
-          const { error: joinError } = await supabase.rpc("join_couple_by_code_uuid", {
-            p_code: code,
-          });
-          if (joinError) {
-            await supabase
-              .from("users")
-              .update({ couple_id: newCouple.id })
-              .eq("id", userId);
-          }
-        } catch {
-          // Trigger kısıtı varsa silent catch
-        }
-
-        return {
-          pairingCode: newCouple.pairing_code,
-          memberCount: 0,
-          isPaired: false,
-          hasDates: false,
-        };
-      } else {
-        console.warn("[pairing] insert couple error:", insertError?.message);
-        const cachedCode = await AsyncStorage.getItem(`@user_pairing_code_${userId}`);
-        if (cachedCode) {
-          return { pairingCode: cachedCode, memberCount: 0, isPaired: false, hasDates: false };
-        }
-      }
-    }
-
-    // 4. coupleId varsa detayları getir
-    if (coupleId) {
-      const { data: couple, error: coupleError } = await supabase
-        .from("couples")
-        .select("pairing_code, member_count, is_paired, meet_date, relationship_start_date")
-        .eq("id", coupleId)
-        .maybeSingle();
-
-      if (!coupleError && couple) {
-        let pairingCode = couple.pairing_code;
-
-        // Kod boşsa hemen yeni bir 6 haneli kod oluşturup kaydet
-        if (!pairingCode) {
-          const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-          let newCode = "";
-          for (let i = 0; i < 6; i++) {
-            newCode += chars.charAt(Math.floor(Math.random() * chars.length));
-          }
-          const { error: codeErr } = await supabase
-            .from("couples")
-            .update({ pairing_code: newCode })
-            .eq("id", coupleId);
-
-          if (!codeErr) {
-            pairingCode = newCode;
-          }
-        }
-
-        if (pairingCode) {
-          await AsyncStorage.setItem(`@user_pairing_code_${userId}`, pairingCode);
-        }
-
-        return {
-          pairingCode: pairingCode ?? null,
-          memberCount: couple.member_count ?? 0,
-          isPaired: couple.is_paired ?? false,
-          hasDates: !!couple.relationship_start_date,
-        };
-      }
-    }
-
-    // Son çare: local storage'dan kodu al
-    const cachedCode = await AsyncStorage.getItem(`@user_pairing_code_${userId}`);
-    return {
-      pairingCode: cachedCode ?? null,
-      memberCount: 0,
-      isPaired: false,
-      hasDates: false,
-    };
-  } catch (err) {
-    console.error("[pairing] fetchPairingStatus caught error:", err);
-    const cachedCode = await AsyncStorage.getItem(`@user_pairing_code_${userId}`);
-    return {
-      pairingCode: cachedCode ?? null,
-      memberCount: 0,
-      isPaired: false,
-      hasDates: false,
-    };
-  }
-}
-
-function translatePairingError(msg: string): string {
-  if (!msg) return "Bir hata oluştu, lütfen tekrar deneyin.";
-  if (msg.includes("INVALID_CODE")) return "Girdiğin kod geçersiz veya kullanım dışı.";
-  if (msg.includes("CODE_ALREADY_USED")) return "Bu eşleşme kodu daha önce kullanılmış.";
-  if (msg.includes("SELF_CODE")) return "Kendi eşleşme kodunu kullanamazsın.";
-  if (msg.includes("COUPLE_FULL")) return "Bu kod artık kullanılamıyor.";
-  if (msg.includes("doğrudan değiştirilemez")) return "Eşleşme işlemi tamamlanamadı, lütfen tekrar deneyin.";
-  return msg;
+// Bekleme çifti ve kodu sunucuda tek, kilitli bir işlemde getirilir / oluşturulur. Eskiden istemci
+// önce çift ekleyip sonra katılıyordu; yarışta yetim çiftler ve ekranda kalan geçersiz kodlar oluşuyordu.
+async function fetchPairingStatus(): Promise<PairingStatus> {
+  const { data, error } = await supabase.rpc("get_or_create_my_couple");
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    coupleId: row?.result_couple_id ?? null,
+    pairingCode: row?.result_pairing_code ?? null,
+    memberCount: row?.result_member_count ?? 0,
+    isPaired: row?.result_is_paired ?? false,
+    hasDates: row?.result_has_dates ?? false,
+  };
 }
 
 // ─── Pairing Screen ──────────────────────────────────────────────────────────
 
 export default function PairingScreen() {
   const router = useRouter();
-  const { session, refreshProfile, signOut, enterDemoMode } = useAuth();
+  const queryClient = useQueryClient();
+  const { session, profile, refreshProfile, signOut, enterDemoMode } = useAuth();
   const userId = session?.user?.id;
   const params = useLocalSearchParams<{ code?: string }>();
 
-  const [inputCode, setInputCode] = useState(params.code ?? "");
+  const [inputCode, setInputCode] = useState(normalizePairingCode(params.code));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  // Bekleyen davet kodu denenmeden kullanıcıya boşuna kendi bekleme çifti açılmasın
+  const [autoPairChecked, setAutoPairChecked] = useState(false);
+  const finishingRef = useRef(false);
   const priming = useNotificationPriming(userId);
 
   const { data: status, isLoading } = useQuery<PairingStatus>({
     queryKey: ["pairing-status", userId],
-    queryFn: () => fetchPairingStatus(userId!),
-    enabled: !!userId,
+    queryFn: fetchPairingStatus,
+    enabled: !!userId && autoPairChecked,
     refetchInterval: 3500,
     refetchIntervalInBackground: false,
   });
 
-  useEffect(() => {
-    if (!status) return;
-    if (status.isPaired) {
-      refreshProfile();
-      router.replace("/(setup)/dates");
+  // Eşleşme tamamlandı: profil yenilenmeden yönlendirilirse koruyucu (useProtectedRoute) eski
+  // "eşleşmemiş" profile bakıp kullanıcıyı bu ekrana geri atıyordu
+  const finishPairing = useCallback(async () => {
+    if (finishingRef.current) return;
+    finishingRef.current = true;
+    await AsyncStorage.removeItem("@pending_invite_code");
+    const fresh = await refreshProfile();
+    if (fresh?.isPaired) {
+      navigateAfterAuth(fresh);
+    } else {
+      // Profil henüz okunamadı; bir sonraki yoklamada tekrar denenir
+      finishingRef.current = false;
     }
-  }, [status?.isPaired, refreshProfile, router]);
+  }, [refreshProfile]);
 
-  // Hafızada bekleyen davet kodu varsa veya route param gelmişse otomatik eşleş
   useEffect(() => {
+    if (status?.isPaired) finishPairing();
+  }, [status?.isPaired, finishPairing]);
+
+  // Profil bu bekleme çiftini tanısın: partner katıldığı an realtime ile haber gelir (yoklama yedekte)
+  useEffect(() => {
+    if (status?.coupleId && status.coupleId !== profile?.coupleId) refreshProfile();
+  }, [status?.coupleId, profile?.coupleId, refreshProfile]);
+
+  async function joinWithCode(code: string) {
+    const { data, error } = await supabase.rpc("join_couple_by_code_uuid", {
+      p_code: code,
+    });
+
+    if (error) {
+      // Zaten eşleşmiş (ör. iki taraf aynı anda birbirinin kodunu girdi): hata değil, devam et
+      if (error.message.includes("ALREADY_PAIRED")) {
+        await finishPairing();
+        return;
+      }
+      setSubmitError(translatePairingError(error.message));
+      // Sunucu kodu kesin olarak reddettiyse aynı kod her açılışta sessizce yeniden denenmesin
+      if (isDefinitivePairingError(error.message)) {
+        await AsyncStorage.removeItem("@pending_invite_code");
+      }
+      return;
+    }
+
+    const result = Array.isArray(data) ? data[0] : data;
+    if (result?.result_is_paired) {
+      // Partner A'nın telefonuna "Partnerin katıldı!" bildirimi (beklemeyi gerektirmez)
+      notifyPairingComplete(result.result_couple_id, userId);
+      await finishPairing();
+    } else {
+      queryClient.invalidateQueries({ queryKey: ["pairing-status", userId] });
+    }
+  }
+
+  const autoJoin = useEffectEvent((code: string) => joinWithCode(code));
+
+  // Kayıtta girilen kod, davet bağlantısı ya da route parametresiyle gelen kod varsa otomatik eşleş.
+  // Başarısız olursa kod giriş kutusunda kalır ve hata görünür.
+  useEffect(() => {
+    if (!userId) return;
     async function checkAutoPair() {
-      if (!userId || status?.isPaired) return;
-      const pending = (params.code || (await AsyncStorage.getItem("@pending_invite_code")))?.trim().toUpperCase();
-      if (pending && pending.length >= 4) {
+      const stored = await AsyncStorage.getItem("@pending_invite_code");
+      const pending = normalizePairingCode(params.code || stored);
+      if (pending.length >= 4) {
+        setInputCode(pending);
         setIsSubmitting(true);
         setSubmitError("");
         try {
-          const { data, error } = await supabase.rpc("join_couple_by_code_uuid", {
-            p_code: pending,
-          });
-          if (!error) {
-            await AsyncStorage.removeItem("@pending_invite_code");
-            const result = Array.isArray(data) ? data[0] : data;
-            if (result?.result_is_paired) {
-              notifyPairingComplete(result.result_couple_id, userId);
-              await refreshProfile();
-              router.replace("/(setup)/dates");
-            }
-          }
+          await autoJoin(pending);
         } catch {
-          // sessiz fallback
+          // sessiz fallback: kullanıcı kodu elle tekrar deneyebilir
         } finally {
           setIsSubmitting(false);
         }
       }
+      setAutoPairChecked(true);
     }
     checkAutoPair();
-  }, [userId, params.code, status?.isPaired, refreshProfile, router]);
+  }, [userId, params.code]);
 
   async function handleShareInvite() {
     const code = status?.pairingCode;
@@ -297,7 +188,7 @@ export default function PairingScreen() {
   }
 
   async function handleSubmit() {
-    const code = inputCode.trim().toUpperCase();
+    const code = normalizePairingCode(inputCode);
     if (code.length < 4) {
       setSubmitError("Geçerli bir eşleşme kodu gir.");
       return;
@@ -307,33 +198,17 @@ export default function PairingScreen() {
 
     setIsSubmitting(true);
     setSubmitError("");
-
-    const { data, error } = await supabase.rpc("join_couple_by_code_uuid", {
-      p_code: code,
-    });
-
-    if (error) {
-      setSubmitError(translatePairingError(error.message));
+    try {
+      await joinWithCode(code);
+    } catch {
+      setSubmitError(translatePairingError(undefined));
+    } finally {
       setIsSubmitting(false);
-      return;
-    }
-
-    const result = Array.isArray(data) ? data[0] : data;
-    const isPaired: boolean = result?.result_is_paired ?? false;
-
-    setIsSubmitting(false);
-
-    if (isPaired) {
-      // Partner A'nın telefonuna "Partnerin katıldı!" bildirimi (beklemeyi gerektirmez)
-      notifyPairingComplete(result?.result_couple_id, userId);
-      await AsyncStorage.removeItem("@pending_invite_code");
-      await refreshProfile();
-      router.replace("/(setup)/dates");
     }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  if (isLoading) {
+  if (!autoPairChecked || isLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: "#0A0A10", alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator color="#FF4D6A" size="large" />
@@ -553,12 +428,11 @@ export default function PairingScreen() {
             <TextInput
               value={inputCode}
               onChangeText={(t) => {
-                setInputCode(t.toUpperCase());
+                setInputCode(normalizePairingCode(t));
                 if (submitError) setSubmitError("");
               }}
               placeholder="XXXXXX"
               placeholderTextColor="rgba(255,255,255,0.2)"
-              maxLength={6}
               autoCapitalize="characters"
               autoCorrect={false}
               style={{

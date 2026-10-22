@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -14,7 +14,18 @@ import { router } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { setDatesSkipped } from "@/lib/datesSkip";
+import { translateDatesError } from "@/lib/relationshipDates";
+import { formatDateTR } from "@/lib/date";
+import { toast } from "@/lib/toast";
 import { Calendar, Check, ChevronRight, Heart, Sparkles } from "lucide-react-native";
+
+// İlk kaydeden kazanır: partner tarihleri bizden önce kaydettiyse sayaçlar onun tarihinden başlar
+function announcePartnerDates(relationshipStartDate: string) {
+  toast.info(
+    `Partnerin ilişki tarihinizi ${formatDateTR(relationshipStartDate)} olarak kaydetti; sayacınız bu günden başladı. Yanlışsa Profil › İlişki Tarihleri'nden düzeltebilirsiniz.`,
+    { title: "Tarihiniz belirlendi 💕", duration: 7000 }
+  );
+}
 
 function formatDate(date: Date): string {
   const year = date.getFullYear();
@@ -68,8 +79,11 @@ function WebDateInput({
 }
 
 export default function DatesScreen() {
-  const { session, refreshProfile } = useAuth();
+  const { session, profile, refreshProfile } = useAuth();
   const userId = session?.user?.id;
+  // Kendi kaydımız sürerken gelen tarih değişikliği "partner kaydetti" diye duyurulmasın
+  const savingRef = useRef(false);
+  const relDateAtMountRef = useRef(profile?.relationshipStartDate ?? null);
 
   // Tanışma tarihi opsiyonel; yalnızca sevgili olma tarihi zorunlu
   const [meetDate, setMeetDate] = useState(new Date());
@@ -120,6 +134,15 @@ export default function DatesScreen() {
     loadExistingDates();
   }, [userId, refreshProfile]);
 
+  // Partner bu ekrandayken tarihleri kaydetti (realtime ile profil yenilendi). Ana sayfaya
+  // yönlendirmeyi koruyucu (useProtectedRoute) yapar; burada yalnızca kullanıcıya neden olduğu söylenir.
+  useEffect(() => {
+    const next = profile?.relationshipStartDate;
+    if (!next || relDateAtMountRef.current || savingRef.current) return;
+    savingRef.current = true;
+    announcePartnerDates(next);
+  }, [profile?.relationshipStartDate]);
+
   function onMeetDateConfirm(selected: Date) {
     setShowMeetPicker(false);
     setMeetDate(selected);
@@ -166,49 +189,31 @@ export default function DatesScreen() {
     }
     setIsLoading(true);
     setError("");
+    savingRef.current = true;
 
     try {
-      const { data: user, error: userError } = await supabase
-        .from("users")
-        .select("couple_id")
-        .eq("id", userId)
-        .single();
+      // Sunucu satırı kilitler: iki partner aynı saniyede kaydetse bile yalnızca ilk kayıt yazılır,
+      // sonraki kayıt ilk tarihi ezmez ve değişiklik hakkı harcamaz
+      const { data, error: saveError } = await supabase.rpc("set_initial_relationship_dates", {
+        p_relationship_start_date: relStr,
+        p_meet_date: includeMeetDate ? formatDate(meetDate) : null,
+      });
 
-      if (userError || !user?.couple_id) {
-        setError("Eşleşme bilgisi alınamadı. Lütfen tekrar dene.");
-        setIsLoading(false);
+      if (saveError) {
+        savingRef.current = false;
+        setError(translateDatesError(saveError.message));
         return;
       }
 
-      const { error: coupleError } = await supabase
-        .from("couples")
-        .select("meet_date, relationship_start_date")
-        .eq("id", user.couple_id)
-        .single();
-
-      if (coupleError) {
-        setError("Eşleşme bilgileri alınırken hata oluştu: " + coupleError.message);
-        setIsLoading(false);
-        return;
-      }
-
-      const { error: updateError } = await supabase
-        .from("couples")
-        .update({
-          meet_date: includeMeetDate ? formatDate(meetDate) : null,
-          relationship_start_date: formatDate(relDate),
-        })
-        .eq("id", user.couple_id);
-
-      if (updateError) {
-        setError("Tarihler kaydedilirken bir hata oluştu: " + updateError.message);
-        setIsLoading(false);
-        return;
+      const result = Array.isArray(data) ? data[0] : data;
+      if (result && !result.result_applied && result.result_relationship_start_date) {
+        announcePartnerDates(result.result_relationship_start_date);
       }
 
       await refreshProfile();
       router.replace("/(tabs)/home");
     } catch (err: any) {
+      savingRef.current = false;
       setError("Beklenmedik bir hata oluştu: " + (err?.message || ""));
     } finally {
       setIsLoading(false);

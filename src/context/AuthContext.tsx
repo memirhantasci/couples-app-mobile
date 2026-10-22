@@ -52,7 +52,8 @@ interface AuthContextValue {
   isDeviceAuthorized: boolean | null;
   setIsDeviceAuthorized: (val: boolean | null) => void;
   checkDeviceAuth: (userId: string) => Promise<boolean>;
-  refreshProfile: () => Promise<void>;
+  /** Profili sunucudan yeniden çeker ve güncel hâlini döndürür (oturum yoksa null). */
+  refreshProfile: () => Promise<CoupleProfile | null>;
   signOut: () => Promise<void>;
   isDemoMode: boolean;
   enterDemoMode: () => void;
@@ -66,7 +67,7 @@ const AuthContext = createContext<AuthContextValue>({
   isDeviceAuthorized: null,
   setIsDeviceAuthorized: () => { },
   checkDeviceAuth: async () => false,
-  refreshProfile: async () => { },
+  refreshProfile: async () => null,
   signOut: async () => { },
   isDemoMode: false,
   enterDemoMode: () => { },
@@ -240,6 +241,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     hasProfileRef.current = !!profile;
   }, [profile]);
 
+  // Aynı anda süren profil okumalarından yalnızca en son başlayanı state'e yazılır. Aksi halde
+  // eşleşmeden önce başlamış yavaş bir okuma, eşleşmeden sonraki yenilemeyi ezip kullanıcıyı
+  // (useProtectedRoute aracılığıyla) eşleşme ekranına geri atabiliyordu.
+  const profileRequestSeqRef = useRef(0);
+  const loadProfile = useCallback(async (userId: string): Promise<CoupleProfile> => {
+    const seq = ++profileRequestSeqRef.current;
+    const p = await fetchProfile(userId);
+    if (seq === profileRequestSeqRef.current) {
+      setProfile(p);
+      saveCachedProfile(p);
+    }
+    return p;
+  }, []);
+
   const checkDeviceAuth = useCallback(async (userId: string): Promise<boolean> => {
     try {
       const deviceId = await getOrCreateDeviceId();
@@ -353,7 +368,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // This cuts startup time roughly in half vs sequential execution
         const [, freshProfile] = await Promise.all([
           withTimeout(checkDeviceAuth(userId), DEVICE_AUTH_TIMEOUT_MS, false),
-          fetchProfile(userId).catch((err) => {
+          loadProfile(userId).catch((err) => {
             console.error("[AuthProvider] initial fetchProfile error:", err);
             return null;
           }),
@@ -362,8 +377,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!mounted) return;
 
         if (freshProfile) {
-          setProfile(freshProfile);
-          saveCachedProfile(freshProfile);
           // Non-blocking background syncs
           RevenueCatService.logIn(userId).catch(() => {});
           syncPushTokenIfPermitted(userId).catch(() => {});
@@ -432,7 +445,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(rcTimer);
       subscription.unsubscribe();
     };
-  }, [checkDeviceAuth, queryClient]);
+  }, [checkDeviceAuth, loadProfile, queryClient]);
 
   // Anahtar ilk kez türetildiğinde ya da çift değiştiğinde, anahtar gelmeden çözülemeyip boş
   // görünen içerikler (ör. girişten hemen sonra açılan ana sayfa) yeniden çekilir
@@ -455,10 +468,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Önbellekte profil yoksa yükleme durumu onAuthStateChange'de açıldı; burada yalnızca çekilir
     profileFetchedForUser.current = userId;
 
-    fetchProfile(userId)
-      .then((p) => {
-        setProfile(p);
-        saveCachedProfile(p);
+    loadProfile(userId)
+      .then(() => {
         setIsLoading(false);
 
         // Non-blocking background syncs
@@ -470,21 +481,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Even on error, we must stop loading. Use cached profile if available.
         setIsLoading(false);
       });
-  }, [session?.user?.id]);
+  }, [session?.user?.id, loadProfile]);
 
-  const refreshProfile = useCallback(async () => {
+  const refreshProfile = useCallback(async (): Promise<CoupleProfile | null> => {
     // Demo profili sunucuda yoktur: yenileme, premium'lu örnek profili boş bir profille ezip
     // sayaçları boşaltıyor ve kilit duvarlarını çıkarıyordu (ör. uygulama arka plandan dönünce).
-    if (isDemoModeRef.current) return;
-    if (!session?.user?.id) {
+    if (isDemoModeRef.current) return DEMO_PROFILE;
+    // State'teki oturum yerine istemcinin güncel oturumu okunur: giriş / doğrulama ekranı yeni
+    // oturum açıldıktan hemen sonra çağırdığında eski (boş) oturum closure'ı profili silmesin
+    const { data: { session: current } } = await supabase.auth.getSession();
+    const userId = current?.user?.id;
+    if (!userId) {
       setProfile(null);
       await AsyncStorage.removeItem(CACHED_PROFILE_KEY).catch(() => {});
-      return;
+      return null;
     }
-    const p = await fetchProfile(session.user.id);
-    setProfile(p);
-    saveCachedProfile(p);
-  }, [session]);
+    return loadProfile(userId);
+  }, [loadProfile]);
 
   // Realtime listener for database changes (e.g. premium status, token balance)
   useEffect(() => {

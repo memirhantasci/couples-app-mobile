@@ -16,17 +16,17 @@ import { useLocalSearchParams, router } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { toast } from "@/lib/toast";
 import { navigateAfterAuth } from "@/lib/navigate";
-import { registerForPushNotifications } from "@/lib/notifications";
+import { notifyPairingComplete, registerForPushNotifications } from "@/lib/notifications";
 import { ArrowLeft, Mail } from "lucide-react-native";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { getOrCreateDeviceId } from "@/utils/device";
-import { isDatesSkipped } from "@/lib/datesSkip";
+import { normalizePairingCode } from "@/lib/pairingCode";
 import { useAuth, DEVICE_AUTH_CACHE_KEY } from "@/context/AuthContext";
 
 const OTP_LENGTH = 6;
 
 export default function VerifyScreen() {
-  const { setIsDeviceAuthorized } = useAuth();
+  const { setIsDeviceAuthorized, refreshProfile } = useAuth();
   const params = useLocalSearchParams<{
     email?: string;
     token_hash?: string;
@@ -183,50 +183,28 @@ export default function VerifyScreen() {
   }
 
   async function routeUser(userId: string) {
-    // 1. Bekleyen bir davet kodu var mı kontrol et
-    const pendingCode = (params.inviteCode || (await AsyncStorage.getItem("@pending_invite_code")))?.trim().toUpperCase();
-    if (pendingCode && pendingCode.length >= 4) {
+    // Kayıtta girilen (ya da davet bağlantısından gelen) kodla eşleşmeyi dene. Başarısız olursa kod
+    // hafızada kalır; eşleşme ekranı aynı kodu tekrar dener ve hatayı kullanıcıya orada gösterir.
+    const pendingCode = normalizePairingCode(params.inviteCode || (await AsyncStorage.getItem("@pending_invite_code")));
+    if (pendingCode.length >= 4) {
       try {
-        const { error: joinError } = await supabase.rpc("join_couple_by_code_uuid", {
+        const { data, error: joinError } = await supabase.rpc("join_couple_by_code_uuid", {
           p_code: pendingCode,
         });
         if (!joinError) {
           await AsyncStorage.removeItem("@pending_invite_code");
-          // Eşleşme tamamlandı! Doğrudan ilişki tarihi seçme ekranına yönlendir
-          router.replace("/(setup)/dates");
-          return;
+          const joined = Array.isArray(data) ? data[0] : data;
+          // Bekleme ekranındaki partnere haber ver
+          if (joined?.result_is_paired) notifyPairingComplete(joined.result_couple_id, userId);
         }
       } catch {
         // Hata durumunda standart akışa devam et
       }
     }
 
-    const { data: userData } = await supabase
-      .from("users")
-      .select("display_name, couple_id")
-      .eq("id", userId)
-      .single();
-
-    let couple: any = null;
-    if (userData?.couple_id) {
-      const { data: cData } = await supabase
-        .from("couples")
-        .select("meet_date, relationship_start_date")
-        .eq("id", userData.couple_id)
-        .single();
-      if (cData) {
-        couple = cData;
-      }
-    }
-
-    navigateAfterAuth({
-      coupleId: userData?.couple_id ?? null,
-      meetDate: couple?.meet_date ?? null,
-      relationshipStartDate: couple?.relationship_start_date ?? null,
-      isPaired: !!userData?.couple_id,
-      hasDates: !!couple?.relationship_start_date || (await isDatesSkipped(userId)),
-      displayName: userData?.display_name ?? null,
-    });
+    // Yönlendirmeden önce profil yenilenmeli: eşleşme öncesinden kalan "eşleşmemiş" profil,
+    // koruyucunun (useProtectedRoute) kullanıcıyı tarih ekranından eşleşme ekranına geri atmasına yol açıyordu
+    navigateAfterAuth(await refreshProfile());
   }
 
   async function handleResend() {
