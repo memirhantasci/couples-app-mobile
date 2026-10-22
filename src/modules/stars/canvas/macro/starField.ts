@@ -28,6 +28,7 @@ export interface StarRender {
   /** Light the star is drawn with (see starLight): the same baseline for every unclaimed star. */
   readonly luminosity: number;
   readonly claimed: boolean;
+  readonly isMine?: boolean;
   readonly resonance: boolean;
   /** Index into `StarField.palette`. */
   readonly color: number;
@@ -112,8 +113,7 @@ export class StarFieldBuilder {
     let fading = false;
 
     for (const star of stars) {
-      // The user's own star is drawn by the hero beacon overlay.
-      if (star.is_mine) continue;
+      // The user's star shines with authentic astronomical brightness and color alongside other stars.
       const hex = star.base_color || '#FFFFFF';
       let color = paletteIndex.get(hex);
       if (color === undefined) {
@@ -138,6 +138,7 @@ export class StarFieldBuilder {
         alpha: starCoreAlpha(luminosity),
         luminosity,
         claimed: star.is_claimed,
+        isMine: Boolean(star.is_mine),
         resonance: star.resonance_active,
         color,
         bornAt,

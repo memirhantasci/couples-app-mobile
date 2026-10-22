@@ -402,13 +402,21 @@ function drawOrbits(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay) {
   }
 }
 
-function drawHero(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay) {
+function drawHero(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, animSeconds: number) {
   'worklet';
   const hero = overlay.hero;
   if (!hero) return;
   const x = screenX(view, hero.ra);
   const y = screenY(view, hero.dec);
-  if (isOnScreen(view, x, y, 60)) drawAt(canvas, hero.picture, x, y);
+  if (!isOnScreen(view, x, y, 60)) return;
+
+  // Çift yörünge halkalarının nefes alan canlı hissi vermesi için çok hafif harmonik nabız
+  const pulse = 1 + 0.025 * Math.sin(animSeconds * 1.5);
+  canvas.save();
+  canvas.translate(x, y);
+  if (pulse !== 1) canvas.scale(pulse, pulse);
+  canvas.drawPicture(hero.picture);
+  canvas.restore();
 }
 
 function drawLabels(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay) {
@@ -483,7 +491,7 @@ export function drawSkyFrame(
   drawStars(canvas, view, field, clock, animSeconds, paints);
   if (overlay) {
     drawSolarSystem(canvas, view, overlay);
-    drawHero(canvas, view, overlay);
+    drawHero(canvas, view, overlay, animSeconds);
     drawLabels(canvas, view, overlay);
   }
   drawMeteor(canvas, activeMeteor, animSeconds);

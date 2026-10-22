@@ -1169,6 +1169,12 @@ export const OurStarScreen: React.FC = () => {
                     ra: Number(starDetails.ra),
                     dec: Number(starDetails.dec),
                     name: starDetails.custom_name || 'Bizim Yıldızımız',
+                    luminosity: starLight ?? starDetails.luminosity_level ?? UNCLAIMED_STAR_BRIGHTNESS,
+                    base_color: starDetails.base_color,
+                    spectral_type: starDetails.spectral_type,
+                    catalog_id: starDetails.catalog_id,
+                    catalog_code: starDetails.catalog_code,
+                    resonance_active: isResonanceActive,
                   }
                 : undefined
             }
@@ -1279,9 +1285,8 @@ export const OurStarScreen: React.FC = () => {
                 style={[
                   styles.macroStarColorDot,
                   {
-                    backgroundColor: selectedMacroStar.is_mine
-                      ? '#F59E0B'
-                      : selectedMacroStar.base_color || '#9DB4FF',
+                    backgroundColor:
+                      selectedMacroStar.base_color || starDetails?.base_color || '#F59E0B',
                   },
                 ]}
               />

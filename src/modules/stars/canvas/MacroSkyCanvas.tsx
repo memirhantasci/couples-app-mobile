@@ -32,7 +32,7 @@ import {
 } from './macro/skyProjection';
 import { SOLAR_SYSTEM_OBJECTS, isInsideSolarSystem } from './macro/solarSystem';
 import { EMPTY_STAR_FIELD, StarFieldBuilder, type StarField } from './macro/starField';
-import { starVisibility } from './macro/starStyle';
+import { starVisibility, UNCLAIMED_STAR_BRIGHTNESS } from './macro/starStyle';
 import { useSkyCamera } from './macro/useSkyCamera';
 
 export { SOLAR_SYSTEM_OBJECTS };
@@ -65,7 +65,17 @@ export interface MacroSkyCanvasProps {
   /** A shooting star was tapped mid-flight; the caller may show a "wish made" toast. */
   readonly onWishGranted?: () => void;
   readonly connections?: ActiveStarConnection[];
-  readonly myStarCoords?: { readonly ra: number; readonly dec: number; readonly name?: string };
+  readonly myStarCoords?: {
+    readonly ra: number;
+    readonly dec: number;
+    readonly name?: string;
+    readonly luminosity?: number;
+    readonly base_color?: string;
+    readonly spectral_type?: string;
+    readonly catalog_id?: number;
+    readonly catalog_code?: string;
+    readonly resonance_active?: boolean;
+  };
   readonly width?: number;
   readonly height?: number;
 }
@@ -126,21 +136,33 @@ function toCameraState(ra: number, dec: number, zoom: number, width: number, hei
   };
 }
 
-function heroTapTarget(ra: number, dec: number, name?: string): ViewportStarItem {
+function heroTapTarget(
+  ra: number,
+  dec: number,
+  name?: string,
+  extra?: {
+    luminosity?: number;
+    base_color?: string;
+    spectral_type?: string;
+    catalog_id?: number;
+    catalog_code?: string;
+    resonance_active?: boolean;
+  },
+): ViewportStarItem {
   return {
-    catalog_id: 999999,
-    catalog_code: 'OUR-STAR',
+    catalog_id: extra?.catalog_id ?? 999999,
+    catalog_code: extra?.catalog_code ?? 'OUR-STAR',
     common_name: name || 'Bizim Yıldızımız',
     ra,
     dec,
     magnitude: 1.5,
-    spectral_type: 'G',
-    base_color: '#FBBF24',
+    spectral_type: extra?.spectral_type ?? 'G',
+    base_color: extra?.base_color ?? '#FBBF24',
     is_claimed: true,
     is_mine: true,
     custom_name: name || 'Bizim Yıldızımız',
-    luminosity_level: 1.0,
-    resonance_active: false,
+    luminosity_level: extra?.luminosity ?? UNCLAIMED_STAR_BRIGHTNESS,
+    resonance_active: extra?.resonance_active ?? false,
   };
 }
 
@@ -172,12 +194,47 @@ function MacroSkyCanvasSkia({
   const myStarDec = myStarCoords?.dec;
   const myStarName = myStarCoords?.name;
 
-  // Güneş sisteminin içinde gezegenlerden başka yıldız bulunmaz (kullanıcının kendi yıldızı hariç:
-  // o ayrı bir işaretle çizilir). Çizim, dokunma ve etiketler aynı süzülmüş listeyi kullanır.
-  const stars = useMemo(
-    () => allStars.filter((star) => star.is_mine || !isInsideSolarSystem(star.ra, star.dec)),
-    [allStars],
-  );
+  // Güneş sisteminin içinde gezegenlerden başka yıldız bulunmaz (kullanıcının kendi yıldızı hariç).
+  // Çizim, dokunma ve etiketler aynı süzülmüş listeyi kullanır.
+  const stars = useMemo(() => {
+    const filtered = allStars.filter((star) => star.is_mine || !isInsideSolarSystem(star.ra, star.dec));
+    const myIndex = filtered.findIndex((star) => star.is_mine);
+    if (myIndex >= 0) {
+      if (
+        myStarCoords?.luminosity !== undefined &&
+        filtered[myIndex].luminosity_level !== myStarCoords.luminosity
+      ) {
+        const copy = [...filtered];
+        copy[myIndex] = {
+          ...copy[myIndex],
+          luminosity_level: myStarCoords.luminosity,
+          base_color: myStarCoords.base_color ?? copy[myIndex].base_color,
+          custom_name: myStarName ?? copy[myIndex].custom_name,
+        };
+        return copy;
+      }
+      return filtered;
+    }
+    // Eşleşen karo henüz yüklenmediyse bile kullanıcının kendi yıldızı makro haritada eksiksiz yer alır
+    if (myStarRa !== undefined && myStarDec !== undefined) {
+      filtered.push({
+        catalog_id: myStarCoords?.catalog_id ?? 999999,
+        catalog_code: myStarCoords?.catalog_code ?? 'OUR-STAR',
+        common_name: myStarName || 'Bizim Yıldızımız',
+        ra: myStarRa,
+        dec: myStarDec,
+        magnitude: 2.0,
+        spectral_type: myStarCoords?.spectral_type ?? 'G',
+        base_color: myStarCoords?.base_color ?? '#FBBF24',
+        is_claimed: true,
+        is_mine: true,
+        custom_name: myStarName || 'Bizim Yıldızımız',
+        luminosity_level: myStarCoords?.luminosity ?? UNCLAIMED_STAR_BRIGHTNESS,
+        resonance_active: myStarCoords?.resonance_active ?? false,
+      });
+    }
+    return filtered;
+  }, [allStars, myStarRa, myStarDec, myStarName, myStarCoords]);
 
   const fontProvider = useFonts(LABEL_FONTS);
 
@@ -277,6 +334,7 @@ function MacroSkyCanvasSkia({
     myStarRa,
     myStarDec,
     myStarName,
+    myStarCoords,
   });
   useEffect(() => {
     propsRef.current = {
@@ -289,6 +347,7 @@ function MacroSkyCanvasSkia({
       myStarRa,
       myStarDec,
       myStarName,
+      myStarCoords,
     };
   });
   const lastCameraReportAtRef = useRef(0);
@@ -351,7 +410,11 @@ function MacroSkyCanvasSkia({
         ...props.stars.filter((star) => star.is_claimed || starVisibility(star.magnitude, star.is_claimed, zoom) > 0.05),
       ];
       if (props.myStarRa !== undefined && props.myStarDec !== undefined) {
-        candidates.unshift(heroTapTarget(props.myStarRa, props.myStarDec, props.myStarName));
+        const existingMine = props.stars.find((s) => s.is_mine);
+        candidates.unshift(
+          existingMine ??
+            heroTapTarget(props.myStarRa, props.myStarDec, props.myStarName, props.myStarCoords),
+        );
       }
       const hit = hitTestSky(x, y, { ra, dec, zoom }, width, height, candidates);
       // Yıldız seçimi yalnızca dokunsal geri bildirim verir (ses yok).
