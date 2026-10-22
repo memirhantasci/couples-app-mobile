@@ -329,6 +329,28 @@ export function formatMessagingStyleNotification(
         : "Sana mühürlü bir mektup bıraktı 📜";
       break;
     }
+    case "letter_delete_request": {
+      // Alıcının onayı olmadan mektup silinmez: bildirim bir karar ister
+      title = `${name} 💌`;
+      subtitle = "Mektup Silme Onayı";
+      channelId = "letters_channel";
+      const letterTitle = field(data?.letterTitle);
+      body = letterTitle
+        ? `"${letterTitle}" mektubunun silinmesi için onayını istiyor. Sen onay vermeden silinmez.`
+        : "Bir mektubunun silinmesi için onayını istiyor. Sen onay vermeden silinmez.";
+      break;
+    }
+    case "letter_delete_response": {
+      title = `${name} 💌`;
+      subtitle = "Mektup Silme İsteği";
+      channelId = "letters_channel";
+      const letterTitle = field(data?.letterTitle);
+      const subject = letterTitle ? `"${letterTitle}" mektubunun` : "Mektubunun";
+      body = data?.approved
+        ? `${subject} silinmesine izin verdi.`
+        : `${subject} saklanmasını istedi 💛`;
+      break;
+    }
     case "medicine":
     case "medicine_reminder": {
       title = `${name} 💊`;

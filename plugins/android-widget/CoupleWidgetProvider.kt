@@ -34,7 +34,9 @@ import kotlin.math.roundToLong
  *
  * - Gün sayısı ve sıradaki dönüm noktası burada, `startDate`'ten hesaplanır: uygulama açılmasa da doğru kalır.
  * - Üç yerleşim: küçük (2x2), orta (4x2), büyük (4x3+; kilit ekranı widget alanı da bu boydadır).
- * - Gece yarısı, saat/tarih/saat dilimi değişimi ve Premium bitişinde widget kendini yeniler.
+ *   Çift fotoğrafları her boyda sağ üst köşede küçük ve yan yana durur, birbirini örtmez.
+ * - Okunmamış rozeti: uygulamanın bildirdiği sayı + o zamandan beri kilidi açılan mektuplar; dokununca mektuplar açılır.
+ * - Gece yarısı, saat/tarih/saat dilimi değişimi, Premium bitişi ve mektup açılışlarında widget kendini yeniler.
  * - Premium değilse / giriş yoksa kilit ve giriş görünümü gösterir.
  */
 class CoupleWidgetProvider : AppWidgetProvider() {
@@ -80,6 +82,7 @@ class CoupleWidgetProvider : AppWidgetProvider() {
         private const val DAY_MS = 86_400_000.0
         private const val HOME_URL = "couplesapp:///home"
         private const val PAYWALL_URL = "couplesapp:///paywall"
+        private const val LETTERS_URL = "couplesapp:///letters"
 
         // Yerleşim eşikleri (dp). Android 12+ eşlemesinde de aynı değerler kullanılır.
         // Yatay yerleşimler 4 hücre genişliği ister (70n - 30 = 250dp); daha dar widget dikey küçük yerleşimi alır.
@@ -91,9 +94,9 @@ class CoupleWidgetProvider : AppWidgetProvider() {
 
         /** Her yerleşimdeki fotoğrafın (halka içi) çapı, dp. */
         private enum class SizeClass(val avatarDp: Int, val layout: Int) {
-            SMALL(38, R.layout.couple_widget_small),
-            MEDIUM(54, R.layout.couple_widget),
-            LARGE(78, R.layout.couple_widget_large)
+            SMALL(24, R.layout.couple_widget_small),
+            MEDIUM(28, R.layout.couple_widget),
+            LARGE(36, R.layout.couple_widget_large)
         }
 
         /** Tüm widget örneklerini güncel veriyle yeniden çizer. */
@@ -129,7 +132,9 @@ class CoupleWidgetProvider : AppWidgetProvider() {
             val moodLabel: String?,
             val moodDate: String?,
             val myAvatar: String?,
-            val partnerAvatar: String?
+            val partnerAvatar: String?,
+            val unreadCount: Int,
+            val letterUnlocksMs: List<Long>
         )
 
         private fun str(obj: JSONObject, key: String): String? {
@@ -139,7 +144,7 @@ class CoupleWidgetProvider : AppWidgetProvider() {
         }
 
         private fun readData(context: Context): WidgetData {
-            val signedOut = WidgetData("signedOut", "", "", null, null, null, null, null, null, null)
+            val signedOut = WidgetData("signedOut", "", "", null, null, null, null, null, null, null, 0, emptyList())
             val raw = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(DATA_KEY, null)
             if (raw.isNullOrEmpty()) return signedOut
             return try {
@@ -154,11 +159,21 @@ class CoupleWidgetProvider : AppWidgetProvider() {
                     moodLabel = str(obj, "partnerMoodLabel"),
                     moodDate = str(obj, "moodDate"),
                     myAvatar = str(obj, "myAvatarPath"),
-                    partnerAvatar = str(obj, "partnerAvatarPath")
+                    partnerAvatar = str(obj, "partnerAvatarPath"),
+                    unreadCount = max(0, obj.optInt("unreadCount", 0)),
+                    letterUnlocksMs = obj.optJSONArray("letterUnlocksMs")?.let { array ->
+                        (0 until array.length()).map { array.optLong(it) }.filter { it > 0L }
+                    } ?: emptyList()
                 )
             } catch (ignored: Throwable) {
                 signedOut
             }
+        }
+
+        /** Uygulamanın son senkronda bildirdiği okunmamışlar + o zamandan beri kilidi açılan mektuplar. */
+        private fun unreadCount(data: WidgetData): Int {
+            val now = System.currentTimeMillis()
+            return data.unreadCount + data.letterUnlocksMs.count { it <= now }
         }
 
         private fun isLocked(data: WidgetData): Boolean {
@@ -416,13 +431,32 @@ class CoupleWidgetProvider : AppWidgetProvider() {
                     setOptionalText(views, R.id.chip_milestone, if (mood == null) milestone else null)
                 }
                 SizeClass.LARGE -> {
+                    // Büyük boyda ruh hali kendi kartında: büyük emoji + durum
                     setOptionalText(views, R.id.widget_detail, null)
-                    setOptionalText(views, R.id.chip_mood, mood)
+                    setOptionalText(views, R.id.chip_mood, null)
                     setOptionalText(views, R.id.chip_milestone, milestone)
+                    if (mood != null) {
+                        views.setTextViewText(R.id.mood_card_emoji, data.moodEmoji)
+                        views.setTextViewText(R.id.mood_card_title, "${data.partnerName} bugün")
+                        views.setTextViewText(R.id.mood_card_label, data.moodLabel ?: "ruh halini paylaştı")
+                        views.setViewVisibility(R.id.mood_card, View.VISIBLE)
+                    } else {
+                        views.setViewVisibility(R.id.mood_card, View.GONE)
+                    }
                 }
             }
 
             views.setOnClickPendingIntent(android.R.id.background, clickIntent(context, HOME_URL, 0))
+
+            // Okunmamış rozeti: dokununca doğrudan mektuplar açılır
+            val unread = unreadCount(data)
+            if (unread > 0) {
+                views.setTextViewText(R.id.widget_unread, "✉ " + (if (unread > 9) "9+" else unread.toString()))
+                views.setViewVisibility(R.id.widget_unread, View.VISIBLE)
+                views.setOnClickPendingIntent(R.id.widget_unread, clickIntent(context, LETTERS_URL, 2))
+            } else {
+                views.setViewVisibility(R.id.widget_unread, View.GONE)
+            }
             return views
         }
 
@@ -474,7 +508,7 @@ class CoupleWidgetProvider : AppWidgetProvider() {
             return views
         }
 
-        // ─── Zamanlı yenileme (gece yarısı + Premium bitişi) ───────────────────────
+        // ─── Zamanlı yenileme (gece yarısı + Premium bitişi + mektup açılışı) ──────
 
         private fun refreshPendingIntent(context: Context): PendingIntent {
             val intent = Intent(context, CoupleWidgetProvider::class.java).apply { action = ACTION_REFRESH }
@@ -495,9 +529,15 @@ class CoupleWidgetProvider : AppWidgetProvider() {
                 }.timeInMillis
 
                 var triggerAt = midnight
-                val until = readData(context).premiumUntilMs
-                if (until != null && until > System.currentTimeMillis()) {
+                val data = readData(context)
+                val now = System.currentTimeMillis()
+                val until = data.premiumUntilMs
+                if (until != null && until > now) {
                     triggerAt = min(triggerAt, until + 1_000)
+                }
+                // Bir mektubun kilidi açıldığında okunmamış rozeti hemen artsın
+                data.letterUnlocksMs.filter { it > now }.minOrNull()?.let { nextUnlock ->
+                    triggerAt = min(triggerAt, nextUnlock + 5_000)
                 }
                 // Hassas olmayan alarm: özel izin gerektirmez, cihaz uyanıkken tetiklenir
                 alarmManager.set(AlarmManager.RTC, triggerAt, refreshPendingIntent(context))

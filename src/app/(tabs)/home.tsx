@@ -50,6 +50,7 @@ import { DEMO_HOME_DATA, DEMO_LOVE_SCORE } from "@/constants/demoData";
 import { CoupleWrappedModal } from "@/components/wrapped/CoupleWrappedModal";
 import { computeCoupleWrapped, CoupleWrappedData } from "@/utils/wrappedCalculator";
 import { syncCoupleWidget } from "@/utils/widgetBridge";
+import { fetchWidgetUnread } from "@/lib/widgetUnread";
 import { CoupleAvatarRing } from "@/components/home/CoupleAvatarRing";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 
@@ -363,8 +364,9 @@ export default function HomeScreen() {
   }, [dashboardData?.meetings, meetingNow]);
 
   // ─── ANA EKRAN WIDGET SENKRONİZASYONU ───
-  // Gün sayısı widget içinde hesaplanır; buradan yalnızca tarih, isimler, partnerin bugünkü ruh hali
-  // ve profil fotoğrafları gider. Özel günlük notu gizlilik gereği widget'a ASLA gönderilmez.
+  // Gün sayısı widget içinde hesaplanır; buradan yalnızca tarih, isimler, partnerin bugünkü ruh hali,
+  // profil fotoğrafları ve okunmamış sayısı gider. Özel günlük notu ve mektup içerikleri gizlilik
+  // gereği widget'a ASLA gönderilmez.
   const partnerMoodEmoji: string | null = dashboardData?.partnerMood ?? null;
   const partnerMoodLabel = partnerMoodEmoji
     ? MOODS.find((m) => m.emoji === partnerMoodEmoji)?.label ?? null
@@ -375,20 +377,36 @@ export default function HomeScreen() {
   useEffect(() => {
     // Demo oturumunda gerçek bir çift yok: widget'a hiçbir şey gönderilmez
     if (isDemoMode || !hasDashboard) return;
-    syncCoupleWidget({
-      isPremium: isPremiumActive,
-      premiumExpiresAt,
-      myName: profile?.displayName,
-      partnerName: partnerDisplayName,
-      startDate: relDate || meetDate || null,
-      partnerMoodEmoji,
-      partnerMoodLabel,
-      myAvatarUrl,
-      partnerAvatarUrl,
+    let cancelled = false;
+    // Okunmamış rozeti yalnızca Premium widget'ta görünür; ücretsiz kullanıcı için sorgulanmaz.
+    // Pano her yenilendiğinde (dataUpdatedAt) yeniden sayılır.
+    const unreadPromise =
+      isPremiumActive && userId && coupleId ? fetchWidgetUnread(userId, coupleId) : Promise.resolve(null);
+    unreadPromise.then((unread) => {
+      if (cancelled) return;
+      syncCoupleWidget({
+        isPremium: isPremiumActive,
+        premiumExpiresAt,
+        myName: profile?.displayName,
+        partnerName: partnerDisplayName,
+        startDate: relDate || meetDate || null,
+        partnerMoodEmoji,
+        partnerMoodLabel,
+        myAvatarUrl,
+        partnerAvatarUrl,
+        unreadCount: unread?.unreadCount ?? 0,
+        letterUnlocksMs: unread?.letterUnlocksMs ?? [],
+      });
     });
+    return () => {
+      cancelled = true;
+    };
   }, [
     isDemoMode,
     hasDashboard,
+    dataUpdatedAt,
+    userId,
+    coupleId,
     isPremiumActive,
     premiumExpiresAt,
     profile?.displayName,

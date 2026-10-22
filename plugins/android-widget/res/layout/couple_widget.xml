@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Orta (4x2) ve ilk yerleşim: solda fotoğraflar, sağda sayaç ve kart.
+<!-- Orta (4x2) ve ilk yerleşim: üst şeritte başlık, okunmamış rozeti ve sağ üst köşede yan yana küçük
+     fotoğraflar (birbirini örtmez); altında sayaç ve kart.
      Kimlikler üç yerleşimde ortaktır (CoupleWidgetProvider hepsine yazar); kullanılmayanlar gizli. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@android:id/background"
@@ -13,83 +14,19 @@
         android:id="@+id/content_group"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <FrameLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <FrameLayout
-                    android:layout_width="58dp"
-                    android:layout_height="58dp"
-                    android:background="@drawable/couple_widget_avatar_ring"
-                    android:padding="2dp">
-
-                    <TextView
-                        android:id="@+id/avatar_me_initial"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:background="@drawable/couple_widget_initial_bg"
-                        android:fontFamily="sans-serif-medium"
-                        android:gravity="center"
-                        android:text="♥"
-                        android:textColor="#FFFFFF"
-                        android:textSize="22sp" />
-
-                    <ImageView
-                        android:id="@+id/avatar_me_img"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:contentDescription="@null"
-                        android:scaleType="centerCrop"
-                        android:visibility="gone" />
-                </FrameLayout>
-
-                <FrameLayout
-                    android:layout_width="58dp"
-                    android:layout_height="58dp"
-                    android:layout_marginStart="-14dp"
-                    android:background="@drawable/couple_widget_avatar_ring"
-                    android:padding="2dp">
-
-                    <TextView
-                        android:id="@+id/avatar_partner_initial"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:background="@drawable/couple_widget_initial_bg"
-                        android:fontFamily="sans-serif-medium"
-                        android:gravity="center"
-                        android:text="♥"
-                        android:textColor="#FFFFFF"
-                        android:textSize="22sp" />
-
-                    <ImageView
-                        android:id="@+id/avatar_partner_img"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:contentDescription="@null"
-                        android:scaleType="centerCrop"
-                        android:visibility="gone" />
-                </FrameLayout>
-            </LinearLayout>
-        </FrameLayout>
+        android:orientation="vertical">
 
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="14dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
             <TextView
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
                 android:fontFamily="sans-serif-medium"
                 android:letterSpacing="0.14"
                 android:maxLines="1"
@@ -97,93 +34,172 @@
                 android:textColor="#FFC2D4"
                 android:textSize="9sp" />
 
-            <LinearLayout
+            <TextView
+                android:id="@+id/widget_unread"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
-                android:baselineAligned="true"
-                android:orientation="horizontal">
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/couple_widget_unread_bg"
+                android:fontFamily="sans-serif-medium"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:paddingStart="7dp"
+                android:paddingTop="3dp"
+                android:paddingEnd="7dp"
+                android:paddingBottom="3dp"
+                android:text=""
+                android:textColor="#FFFFFF"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <FrameLayout
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/couple_widget_avatar_ring"
+                android:padding="2dp">
 
                 <TextView
-                    android:id="@+id/widget_days"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="sans-serif-black"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:text="—"
-                    android:textColor="#FFFFFF"
-                    android:textSize="36sp" />
-
-                <TextView
-                    android:id="@+id/widget_days_unit"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="5dp"
+                    android:id="@+id/avatar_me_initial"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/couple_widget_initial_bg"
                     android:fontFamily="sans-serif-medium"
-                    android:text="gün"
-                    android:textColor="#FFC2D4"
-                    android:textSize="15sp"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:text="♥"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp" />
+
+                <ImageView
+                    android:id="@+id/avatar_me_img"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@null"
+                    android:scaleType="centerCrop"
                     android:visibility="gone" />
-            </LinearLayout>
+            </FrameLayout>
+
+            <FrameLayout
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="5dp"
+                android:background="@drawable/couple_widget_avatar_ring"
+                android:padding="2dp">
+
+                <TextView
+                    android:id="@+id/avatar_partner_initial"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/couple_widget_initial_bg"
+                    android:fontFamily="sans-serif-medium"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:text="♥"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp" />
+
+                <ImageView
+                    android:id="@+id/avatar_partner_img"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@null"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:baselineAligned="true"
+            android:orientation="horizontal">
 
             <TextView
-                android:id="@+id/widget_days_label"
-                android:layout_width="match_parent"
+                android:id="@+id/widget_days"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-black"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text="—"
+                android:textColor="#FFFFFF"
+                android:textSize="32sp" />
+
+            <TextView
+                android:id="@+id/widget_days_unit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="gün"
+                android:textColor="#FFC2D4"
+                android:textSize="14sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/widget_days_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif-medium"
+            android:maxLines="1"
+            android:text="birlikte ♥"
+            android:textColor="#DCCBE6"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/widget_detail"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/chip_mood"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/couple_widget_chip_bg"
                 android:ellipsize="end"
                 android:fontFamily="sans-serif-medium"
                 android:maxLines="1"
-                android:text="birlikte ♥"
-                android:textColor="#DCCBE6"
-                android:textSize="12sp" />
-
-            <TextView
-                android:id="@+id/widget_detail"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:paddingStart="9dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="9dp"
+                android:paddingBottom="4dp"
+                android:text=""
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
                 android:visibility="gone" />
 
-            <LinearLayout
+            <TextView
+                android:id="@+id/chip_milestone"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/chip_mood"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/couple_widget_chip_bg"
-                    android:ellipsize="end"
-                    android:fontFamily="sans-serif-medium"
-                    android:maxLines="1"
-                    android:paddingStart="9dp"
-                    android:paddingTop="4dp"
-                    android:paddingEnd="9dp"
-                    android:paddingBottom="4dp"
-                    android:text=""
-                    android:textColor="#FFFFFF"
-                    android:textSize="11sp"
-                    android:visibility="gone" />
-
-                <TextView
-                    android:id="@+id/chip_milestone"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/couple_widget_chip_bg"
-                    android:ellipsize="end"
-                    android:fontFamily="sans-serif-medium"
-                    android:maxLines="1"
-                    android:paddingStart="9dp"
-                    android:paddingTop="4dp"
-                    android:paddingEnd="9dp"
-                    android:paddingBottom="4dp"
-                    android:text=""
-                    android:textColor="#FFFFFF"
-                    android:textSize="11sp"
-                    android:visibility="gone" />
-            </LinearLayout>
+                android:background="@drawable/couple_widget_chip_bg"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:paddingStart="9dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="9dp"
+                android:paddingBottom="4dp"
+                android:text=""
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
 

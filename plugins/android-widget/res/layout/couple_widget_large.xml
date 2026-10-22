@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Büyük (4x3 ve üstü; kilit ekranı widget alanı da bu boydadır): ortada büyük fotoğraflar,
-     altında sayaç ve kartlar. Kimlikler üç yerleşimde ortaktır; kullanılmayanlar gizli. -->
+<!-- Büyük (4x3 ve üstü; kilit ekranı widget alanı da bu boydadır): üst şeritte başlık, okunmamış rozeti ve
+     sağ üst köşede yan yana küçük fotoğraflar; ortada sayaç, altta partnerin ruh hali kartı ve dönüm noktası.
+     Kimlikler üç yerleşimde ortaktır; kullanılmayanlar gizli. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@android:id/background"
     android:layout_width="match_parent"
@@ -26,6 +27,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:ellipsize="end"
                 android:fontFamily="sans-serif-medium"
                 android:letterSpacing="0.14"
                 android:maxLines="1"
@@ -33,81 +35,81 @@
                 android:textColor="#FFC2D4"
                 android:textSize="10sp" />
 
-            <ImageView
-                android:layout_width="14dp"
-                android:layout_height="14dp"
-                android:contentDescription="@null"
-                android:src="@drawable/ic_couple_widget_heart" />
-        </LinearLayout>
-
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
-
-        <FrameLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
-
-            <LinearLayout
+            <TextView
+                android:id="@+id/widget_unread"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/couple_widget_unread_bg"
+                android:fontFamily="sans-serif-medium"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:paddingStart="8dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="4dp"
+                android:text=""
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
 
-                <FrameLayout
-                    android:layout_width="84dp"
-                    android:layout_height="84dp"
-                    android:background="@drawable/couple_widget_avatar_ring"
-                    android:padding="3dp">
+            <FrameLayout
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/couple_widget_avatar_ring"
+                android:padding="2dp">
 
-                    <TextView
-                        android:id="@+id/avatar_me_initial"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:background="@drawable/couple_widget_initial_bg"
-                        android:fontFamily="sans-serif-medium"
-                        android:gravity="center"
-                        android:text="♥"
-                        android:textColor="#FFFFFF"
-                        android:textSize="32sp" />
+                <TextView
+                    android:id="@+id/avatar_me_initial"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/couple_widget_initial_bg"
+                    android:fontFamily="sans-serif-medium"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:text="♥"
+                    android:textColor="#FFFFFF"
+                    android:textSize="15sp" />
 
-                    <ImageView
-                        android:id="@+id/avatar_me_img"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:contentDescription="@null"
-                        android:scaleType="centerCrop"
-                        android:visibility="gone" />
-                </FrameLayout>
+                <ImageView
+                    android:id="@+id/avatar_me_img"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@null"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
+            </FrameLayout>
 
-                <FrameLayout
-                    android:layout_width="84dp"
-                    android:layout_height="84dp"
-                    android:layout_marginStart="-18dp"
-                    android:background="@drawable/couple_widget_avatar_ring"
-                    android:padding="3dp">
+            <FrameLayout
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/couple_widget_avatar_ring"
+                android:padding="2dp">
 
-                    <TextView
-                        android:id="@+id/avatar_partner_initial"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:background="@drawable/couple_widget_initial_bg"
-                        android:fontFamily="sans-serif-medium"
-                        android:gravity="center"
-                        android:text="♥"
-                        android:textColor="#FFFFFF"
-                        android:textSize="32sp" />
+                <TextView
+                    android:id="@+id/avatar_partner_initial"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/couple_widget_initial_bg"
+                    android:fontFamily="sans-serif-medium"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:text="♥"
+                    android:textColor="#FFFFFF"
+                    android:textSize="15sp" />
 
-                    <ImageView
-                        android:id="@+id/avatar_partner_img"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:contentDescription="@null"
-                        android:scaleType="centerCrop"
-                        android:visibility="gone" />
-                </FrameLayout>
-            </LinearLayout>
-        </FrameLayout>
+                <ImageView
+                    android:id="@+id/avatar_partner_img"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@null"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
+            </FrameLayout>
+        </LinearLayout>
 
         <FrameLayout
             android:layout_width="match_parent"
@@ -129,7 +131,7 @@
                 android:maxLines="1"
                 android:text="—"
                 android:textColor="#FFFFFF"
-                android:textSize="50sp" />
+                android:textSize="54sp" />
 
             <TextView
                 android:id="@+id/widget_days_unit"
@@ -139,7 +141,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:text="gün"
                 android:textColor="#FFC2D4"
-                android:textSize="19sp"
+                android:textSize="20sp"
                 android:visibility="gone" />
         </LinearLayout>
 
@@ -166,47 +168,82 @@
             android:layout_height="0dp"
             android:layout_weight="1" />
 
+        <!-- Partnerin bugünkü ruh hali: büyük emoji + durum -->
         <LinearLayout
+            android:id="@+id/mood_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/couple_widget_card_bg"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="14dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="10dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/mood_card_emoji"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="false"
+                android:text=""
+                android:textSize="26sp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/mood_card_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-medium"
+                    android:maxLines="1"
+                    android:text=""
+                    android:textColor="#FFC2D4"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/mood_card_label"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-black"
+                    android:maxLines="1"
+                    android:text=""
+                    android:textColor="#FFFFFF"
+                    android:textSize="15sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/chip_mood"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="horizontal">
+            android:visibility="gone" />
 
-            <TextView
-                android:id="@+id/chip_mood"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:background="@drawable/couple_widget_chip_bg"
-                android:ellipsize="end"
-                android:fontFamily="sans-serif-medium"
-                android:maxLines="1"
-                android:paddingStart="10dp"
-                android:paddingTop="5dp"
-                android:paddingEnd="10dp"
-                android:paddingBottom="5dp"
-                android:text=""
-                android:textColor="#FFFFFF"
-                android:textSize="12sp"
-                android:visibility="gone" />
-
-            <TextView
-                android:id="@+id/chip_milestone"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/couple_widget_chip_bg"
-                android:ellipsize="end"
-                android:fontFamily="sans-serif-medium"
-                android:maxLines="1"
-                android:paddingStart="10dp"
-                android:paddingTop="5dp"
-                android:paddingEnd="10dp"
-                android:paddingBottom="5dp"
-                android:text=""
-                android:textColor="#FFFFFF"
-                android:textSize="12sp"
-                android:visibility="gone" />
-        </LinearLayout>
+        <TextView
+            android:id="@+id/chip_milestone"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/couple_widget_chip_bg"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif-medium"
+            android:maxLines="1"
+            android:paddingStart="10dp"
+            android:paddingTop="5dp"
+            android:paddingEnd="10dp"
+            android:paddingBottom="5dp"
+            android:text=""
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:visibility="gone" />
     </LinearLayout>
 
     <LinearLayout

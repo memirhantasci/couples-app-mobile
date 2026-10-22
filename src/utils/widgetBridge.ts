@@ -28,6 +28,10 @@ export interface CoupleWidgetPayload {
   /** Yerel dosya (file://) yolları; yoksa baş harf gösterilir */
   myAvatarPath: string | null;
   partnerAvatarPath: string | null;
+  /** Senkron anında bekleyenler: son ziyaretten beri gelen/açılan mektuplar + onay bekleyen silme istekleri */
+  unreadCount: number;
+  /** Alıcısı olunan kilitli mektupların açılış anları (epoch ms); widget geçenleri rozete kendisi ekler */
+  letterUnlocksMs: number[];
 }
 
 export interface CoupleWidgetInput {
@@ -41,6 +45,8 @@ export interface CoupleWidgetInput {
   partnerMoodLabel?: string | null;
   myAvatarUrl?: string | null;
   partnerAvatarUrl?: string | null;
+  unreadCount?: number;
+  letterUnlocksMs?: number[];
 }
 
 const EMPTY_PAYLOAD: CoupleWidgetPayload = {
@@ -54,10 +60,14 @@ const EMPTY_PAYLOAD: CoupleWidgetPayload = {
   moodDate: null,
   myAvatarPath: null,
   partnerAvatarPath: null,
+  unreadCount: 0,
+  letterUnlocksMs: [],
 };
 
 // iOS'ta sistem her gece yarısı widget'ı yeniden çizer; bu kadar gün önceden zamanlanır
 const IOS_TIMELINE_DAYS = 30;
+// Widget'a gönderilen en fazla mektup açılış anı (en yakınları)
+const MAX_LETTER_UNLOCKS = 20;
 
 // ─── Fotoğraf dosyaları ──────────────────────────────────────────────────────
 
@@ -144,6 +154,10 @@ function pushToIos(payload: CoupleWidgetPayload): void {
   if (payload.premiumUntilMs && payload.premiumUntilMs > now.getTime()) {
     entries.push({ date: new Date(payload.premiumUntilMs), props: payload });
   }
+  // Mektubun kilidi açıldığı anda okunmamış rozeti artsın
+  for (const unlockMs of payload.letterUnlocksMs) {
+    if (unlockMs > now.getTime()) entries.push({ date: new Date(unlockMs + 5000), props: payload });
+  }
   entries.sort((a, b) => a.date.getTime() - b.date.getTime());
 
   coupleWidget.updateTimeline(entries);
@@ -161,6 +175,17 @@ async function pushToAndroid(payload: CoupleWidgetPayload): Promise<void> {
 // Aynı veriyle art arda gelen çağrılar (ana sayfa her render'da tetikleyebilir) tekrar çalışmasın
 let lastSignature = "";
 let queue: Promise<unknown> = Promise.resolve();
+// Son gönderilen "hazır" veri: mektuplar ekranı yalnızca okunmamış sayısını değiştirebilsin
+let lastReadyPayload: CoupleWidgetPayload | null = null;
+
+/** Yalnızca gelecekteki açılışlar kalır (geçenler artık unreadCount içinde sayılır), en yakınları önce. */
+function upcomingUnlocks(unlocks: readonly number[] | undefined): number[] {
+  const now = Date.now();
+  return (unlocks ?? [])
+    .filter((ms) => Number.isFinite(ms) && ms > now)
+    .sort((a, b) => a - b)
+    .slice(0, MAX_LETTER_UNLOCKS);
+}
 
 async function pushPayload(payload: CoupleWidgetPayload): Promise<boolean> {
   if (Platform.OS !== "ios" && Platform.OS !== "android") return false;
@@ -191,6 +216,7 @@ function enqueue<T>(task: () => Promise<T>): Promise<T> {
 export function syncCoupleWidget(input: CoupleWidgetInput): Promise<boolean> {
   return enqueue(async () => {
     if (!input.isPremium) {
+      lastReadyPayload = null;
       await removeAllAvatarFiles();
       return pushPayload({ ...EMPTY_PAYLOAD, state: "locked" });
     }
@@ -202,7 +228,7 @@ export function syncCoupleWidget(input: CoupleWidgetInput): Promise<boolean> {
 
     const hasMood = !!input.partnerMoodEmoji;
     const premiumUntilMs = input.premiumExpiresAt ? Date.parse(input.premiumExpiresAt) : NaN;
-    return pushPayload({
+    const payload: CoupleWidgetPayload = {
       state: "ready",
       myName: input.myName?.trim() || "",
       partnerName: input.partnerName?.trim() || "Sevgilin",
@@ -213,13 +239,35 @@ export function syncCoupleWidget(input: CoupleWidgetInput): Promise<boolean> {
       moodDate: hasMood ? dayjs().format("YYYY-MM-DD") : null,
       myAvatarPath,
       partnerAvatarPath,
-    });
+      unreadCount: Math.max(0, input.unreadCount ?? 0),
+      letterUnlocksMs: upcomingUnlocks(input.letterUnlocksMs),
+    };
+    lastReadyPayload = payload;
+    return pushPayload(payload);
+  });
+}
+
+/**
+ * Mektuplar ekranı görüldüğünde okunmamış rozetini günceller (yeni gelenler okunmuş sayılır,
+ * yalnızca yanıt bekleyen silme istekleri kalır). Widget kilitli ya da hiç senkronlanmamışsa bir şey yapmaz.
+ */
+export function setCoupleWidgetUnread(unreadCount: number): Promise<boolean> {
+  return enqueue(async () => {
+    if (!lastReadyPayload) return false;
+    const payload: CoupleWidgetPayload = {
+      ...lastReadyPayload,
+      unreadCount: Math.max(0, unreadCount),
+      letterUnlocksMs: upcomingUnlocks(lastReadyPayload.letterUnlocksMs),
+    };
+    lastReadyPayload = payload;
+    return pushPayload(payload);
   });
 }
 
 /** Çıkış / hesap silme: önceki hesabın verisi ve fotoğrafları ekranda kalmasın. */
 export function clearCoupleWidget(): Promise<boolean> {
   return enqueue(async () => {
+    lastReadyPayload = null;
     await removeAllAvatarFiles();
     return pushPayload({ ...EMPTY_PAYLOAD });
   });

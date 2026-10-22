@@ -4,6 +4,7 @@ import {
   Circle,
   HStack,
   Image,
+  Link,
   Rectangle,
   Spacer,
   Text,
@@ -35,9 +36,10 @@ import { createWidget, type WidgetEnvironment } from 'expo-widgets';
  * Bu dosya izole bir çalışma zamanında koşar: hook, async, dış import ve modül kapsamı
  * değişkeni KULLANILAMAZ. Tüm sabitler/yardımcılar bileşenin içinde tanımlanır.
  *
- * Tasarım: gece moru zemin + gül rengi ışıltı, halkalı çift fotoğrafları, büyük gün sayacı ve
- * sıradaki dönüm noktası (yıl dönümü ya da 100'ün katı günler). Android karşılığı:
- * plugins/android-widget/ (aynı içerik ve renkler).
+ * Tasarım: gece moru zemin + gül rengi ışıltı, sağ üst köşede yan yana (örtüşmeyen) küçük çift
+ * fotoğrafları ve okunmamış rozeti, büyük gün sayacı, partnerin bugünkü ruh hali ve sıradaki dönüm
+ * noktası (yıl dönümü ya da 100'ün katı günler). Android karşılığı: plugins/android-widget/
+ * (aynı içerik ve renkler).
  */
 export interface CoupleWidgetProps {
   state?: 'ready' | 'locked' | 'signedOut';
@@ -50,6 +52,8 @@ export interface CoupleWidgetProps {
   moodDate?: string | null;
   myAvatarPath?: string | null;
   partnerAvatarPath?: string | null;
+  unreadCount?: number;
+  letterUnlocksMs?: number[] | null;
 }
 
 export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironment) {
@@ -126,6 +130,16 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
   const daysText = days === null ? '—' : group(days);
   const initial = (name: string) => (name ? name.trim().charAt(0).toLocaleUpperCase('tr-TR') : '♥');
   const homeURL = 'couplesapp:///home';
+  const lettersURL = 'couplesapp:///letters';
+
+  // Okunmamış rozeti: uygulamanın son senkronda bildirdiği bekleyenler + o zamandan beri kilidi
+  // açılan mektuplar (uygulama açılmasa da açılış anında artar)
+  let unread = props.unreadCount && props.unreadCount > 0 ? props.unreadCount : 0;
+  const unlocks = props.letterUnlocksMs || [];
+  for (let i = 0; i < unlocks.length; i++) {
+    if (unlocks[i] <= now.getTime()) unread += 1;
+  }
+  const unreadText = unread > 9 ? '9+' : String(unread);
 
   // ─── Kilit ekranı (accessory) aileleri: tek renkli, sistem tonuyla çizilir ───
   if (family === 'accessoryInline') {
@@ -184,7 +198,11 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
           <Text modifiers={[font({ size: 12, weight: 'medium' }), lineLimit(1), minimumScaleFactor(0.8)]}>
             {moodText ?? names}
           </Text>
-          {milestone ? (
+          {unread > 0 ? (
+            <Text modifiers={[font({ size: 11, weight: 'semibold' }), lineLimit(1), minimumScaleFactor(0.8)]}>
+              {'✉ ' + unreadText + ' okunmamış'}
+            </Text>
+          ) : milestone ? (
             <Text modifiers={[font({ size: 11 }), lineLimit(1), minimumScaleFactor(0.8), opacity(0.8)]}>{milestone}</Text>
           ) : null}
         </VStack>
@@ -245,7 +263,7 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
 
   // Halkalı fotoğraf; fotoğraf yoksa degrade zeminde baş harf
   const avatar = (path: string | null | undefined, name: string, size: number) => {
-    const ring = size >= 60 ? 3 : 2;
+    const ring = size >= 34 ? 2 : 1.5;
     return (
       <ZStack modifiers={[frame({ width: size + ring * 2, height: size + ring * 2 })]}>
         <Circle modifiers={[foregroundStyle(fullColor ? 'rgba(255, 255, 255, 0.92)' : 'rgba(255, 255, 255, 0.5)')]} />
@@ -281,18 +299,23 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
     );
   };
 
-  const heartBadge = (size: number) => (
-    <ZStack modifiers={[frame({ width: size, height: size })]}>
-      <Circle modifiers={[foregroundStyle(WHITE)]} />
-      <Image systemName="heart.fill" size={size * 0.5} color={ROSE} />
-    </ZStack>
-  );
-
-  // İki fotoğraf zarifçe yan yana hafifçe örtüşür (yüzleri kapatan rozet olmadan temiz görünüm)
-  const couple = (size: number, overlap: number) => (
-    <HStack spacing={-overlap}>
+  // İki küçük fotoğraf sağ üst köşede yan yana durur; hiçbiri diğerinin üstüne binmez
+  const couple = (size: number) => (
+    <HStack spacing={size >= 34 ? 5 : 4}>
       {avatar(props.myAvatarPath, me, size)}
       {avatar(props.partnerAvatarPath, partner, size)}
+    </HStack>
+  );
+
+  const unreadBadge = (size: number) => (
+    <HStack
+      spacing={3}
+      modifiers={[padding({ horizontal: 7, vertical: 3 }), background(ROSE, shapes.capsule())]}
+    >
+      <Image systemName="envelope.fill" size={size - 1} color={WHITE} />
+      <Text modifiers={[font({ size, weight: 'bold', design: 'rounded' }), foregroundStyle(WHITE), lineLimit(1)]}>
+        {unreadText}
+      </Text>
     </HStack>
   );
 
@@ -315,6 +338,16 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
     <Text modifiers={[font({ size, weight: 'bold' }), kerning(1.4), foregroundStyle(BLUSH), lineLimit(1), minimumScaleFactor(0.7)]}>
       AŞKIMIZIN YOLCULUĞU
     </Text>
+  );
+
+  // Üst şerit: solda başlık, sağda okunmamış rozeti (dokununca mektuplar) ve fotoğraflar
+  const topBar = (avatarSize: number, eyebrowSize: number, badgeSize: number) => (
+    <HStack spacing={6}>
+      {eyebrow(eyebrowSize)}
+      <Spacer />
+      {unread > 0 ? <Link destination={lettersURL}>{unreadBadge(badgeSize)}</Link> : null}
+      {couple(avatarSize)}
+    </HStack>
   );
 
   // ─── Kilitli / giriş yapılmamış ───
@@ -365,14 +398,16 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
     </Text>
   );
 
-  // ─── Küçük: fotoğraflar üstte, sayaç altta ───
+  // ─── Küçük: üstte okunmamış rozeti ve fotoğraflar, altta sayaç ───
+  // Küçük widget tek bağlantı taşır: okunmamış varsa dokunuş doğrudan mektuplara gider
   if (isSmall) {
     return shell(
-      homeURL,
+      unread > 0 ? lettersURL : homeURL,
       <VStack alignment="leading" spacing={0} modifiers={[padding({ all: edge })]}>
-        <HStack>
-          {couple(38, 10)}
+        <HStack spacing={4}>
+          {unread > 0 ? unreadBadge(10) : null}
           <Spacer />
+          {couple(26)}
         </HStack>
         <Spacer />
         {counter(34, 14)}
@@ -388,46 +423,66 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
     );
   }
 
-  // ─── Büyük: ortada büyük fotoğraflar, altında sayaç ve kartlar ───
+  // Büyük boyda partnerin bugünkü ruh hali kendi kartında: büyük emoji + durum
+  const moodCard = () => (
+    <HStack
+      spacing={10}
+      modifiers={[
+        padding({ horizontal: 14, vertical: 10 }),
+        background(CHIP, shapes.roundedRectangle({ cornerRadius: 16 })),
+      ]}
+    >
+      <Text modifiers={[font({ size: 28 })]}>{props.partnerMoodEmoji ?? ''}</Text>
+      <VStack alignment="leading" spacing={1}>
+        <Text modifiers={[font({ size: 11, weight: 'semibold' }), foregroundStyle(BLUSH), lineLimit(1)]}>
+          {partner + ' bugün'}
+        </Text>
+        <Text
+          modifiers={[
+            font({ size: 15, weight: 'bold', design: 'rounded' }),
+            foregroundStyle(WHITE),
+            lineLimit(1),
+            minimumScaleFactor(0.8),
+          ]}
+        >
+          {props.partnerMoodLabel || 'ruh halini paylaştı'}
+        </Text>
+      </VStack>
+      <Spacer />
+    </HStack>
+  );
+
+  // ─── Büyük: üst şeritte fotoğraflar, ortada sayaç, altta ruh hali kartı ve dönüm noktası ───
   if (isLarge) {
     return shell(
       homeURL,
       <VStack spacing={0} modifiers={[padding({ all: 20 })]}>
-        <HStack>
-          {eyebrow(11)}
-          <Spacer />
-          <Image systemName="heart.fill" size={14} color={ROSE} />
-        </HStack>
+        {topBar(36, 11, 11)}
         <Spacer />
-        {couple(86, 18)}
-        <Spacer />
-        {counter(56, 20)}
+        {counter(60, 22)}
         {subtitle(14)}
         <Spacer />
-        <HStack spacing={8}>
-          {moodText ? chip(moodText, 13) : null}
+        <VStack spacing={8}>
+          {moodVisible ? moodCard() : null}
           {milestone ? chip(milestone, 13) : null}
-        </HStack>
+        </VStack>
       </VStack>
     );
   }
 
-  // ─── Orta: solda fotoğraflar, sağda sayaç ve kartlar ───
+  // ─── Orta: üst şeritte fotoğraflar, altında sayaç ve kart ───
   return shell(
     homeURL,
-    <HStack spacing={14} modifiers={[padding({ all: edge })]}>
-      {couple(58, 14)}
-      <VStack alignment="leading" spacing={3}>
-        {eyebrow(10)}
-        {counter(40, 16)}
-        {subtitle(12)}
-        <HStack spacing={6} modifiers={[padding({ top: 3 })]}>
-          {moodText ? chip(moodText, 11) : null}
-          {milestone && !moodText ? chip(milestone, 11) : null}
-        </HStack>
-      </VStack>
+    <VStack alignment="leading" spacing={2} modifiers={[padding({ all: edge })]}>
+      {topBar(28, 10, 10)}
       <Spacer />
-    </HStack>
+      {counter(34, 15)}
+      {subtitle(12)}
+      <HStack spacing={6}>
+        {moodText ? chip(moodText, 11) : null}
+        {milestone && !moodText ? chip(milestone, 11) : null}
+      </HStack>
+    </VStack>
   );
 }
 

@@ -3,56 +3,12 @@
 Bu belge, uygulamadaki bildirilen hataları, arayüz aksaklıklarını ve talep edilen yeni özellikleri Claude'un en az araştırma token'ı harcayarak doğrudan çözüme odaklanabilmesi amacıyla hazırlanmıştır. 
 
 > **Geliştirici Notu:** Bu dokümanda doğrudan kod yamaları veya "şunu şöyle yaz" talimatları yer almamaktadır. Her maddenin **mevcut durumu (sorun)**, **kullanıcı beklentisi** ve araştırmayı hızlandırmak için **derinlemesine mimari bağlamı (ilgili dosyalar, state'ler ve akışlar)** sunulmuştur. Çözüm mimarisini ve kod uygulamasını Claude kendisi tasarlamalıdır.
+> 
+> *Not: Tamamlanan 1.1, 1.2, 1.3, 1.5, 2.1, 2.2, 2.3 ve 2.4 numaralı görevler dokümandan temizlenmiş; geriye yalnızca üzerinde çalışılacak aktif görevler bırakılmıştır.*
 
 ---
 
 ## 🟢 1. BÖLÜM: KOLAY İŞLER (Quick Wins)
-
----
-
-### Görev 1.1: Galeri Tam Ekran Görünümünde (Lightbox) Silme Onay Uyarısının Arkada Kalması
-* **Kategori:** Kolay / Bugfix
-* **Mevcut Sorun:**
-  Kullanıcı ortak galeride herhangi bir fotoğrafı büyüttüğünde (tam ekran Lightbox modalı açıldığında), sağ üstteki çöp kutusu (sil) butonuna bastığında silme onaylama uyarısı ekranda görünmemektedir. Kullanıcı fotoğrafı parmağıyla kaydırıp veya kapatıp tam ekrandan çıktığında (fotoğraf küçüldüğünde), arkada kalmış olan onay uyarısıyla karşılaşmaktadır.
-* **Kullanıcı Beklentisi:**
-  Fotoğraf tam ekran büyütülmüş haldeyken sil butonuna basıldığında, silme onay diyalog kartı fotoğrafın üzerinde doğrudan belirgin şekilde açılmalı; kullanıcı "Sil" veya "Vazgeç" dediğinde işlem fotoğraf kapanmadan anında yönetilebilmelidir.
-* **Araştırma & Mimari Bağlam:**
-  * **İlgili Dosyalar:**
-    * [`src/components/photos/PhotoLightboxModal.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/components/photos/PhotoLightboxModal.tsx)
-    * [`src/app/(tabs)/photos.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/app/(tabs)/photos.tsx)
-    * [`src/lib/dialog.ts`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/lib/dialog.ts)
-  * **İnceleme Notu:**
-    Uygulama genelinde sistem `Alert.alert` yerine özel cam efektli diyaloglar (`appAlert` - `src/lib/dialog.ts`) kullanmaktadır. Bu diyaloglar kök katmandaki `<DialogHost />` (`src/app/_layout.tsx`) tarafından ekrana basılır. Ancak `PhotoLightboxModal`, React Native'in tam ekran yerel `<Modal>` bileşenini kullanmaktadır. React Native mimarisinde native modallar kök görünümdeki tüm elemanların üzerine çıktığı için, `appAlert` çağrıldığında diyalog kartı modalın fiziksel olarak arkasında (kök ekranda) kalmaktadır. `src/lib/dialog.ts` dosyasının ilk satırlarındaki dokümantasyon incelendiğinde, modal içi uyarılar için `<DialogHost embedded />` desteğinin tasarlandığı görülmektedir.
-
----
-
-### Görev 1.2: Güneş Sistemi Cisimleri Tıklandığında Beyaz Modda Açıklama Metninin Okunamaması
-* **Kategori:** Kolay / UI-Kontrast
-* **Mevcut Sorun:**
-  Gök kubbe ekranında Güneş Sistemi referans cisimlerine (Güneş, Venüs, Dünya, Mars vb.) tıklandığında ekranın altında beliren bilgi kartındaki altın/sarı renkli açıklama metni, uygulama beyaz (açık) moddayken açık arka plan üzerinde kaybolmakta ve hiçbir şekilde okunamamaktadır.
-* **Kullanıcı Beklentisi:**
-  Açık (beyaz) moddayken de koyu moddayken de Güneş Sistemi cisimlerine tıklandığında çıkan açıklama metninin zeminle kusursuz bir kontrasta sahip olması, rahatça ve net bir şekilde okunabilmesi.
-* **Araştırma & Mimari Bağlam:**
-  * **İlgili Dosya:**
-    * [`src/modules/stars/components/OurStarScreen.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/modules/stars/components/OurStarScreen.tsx)
-  * **İnceleme Notu:**
-    `OurStarScreen.tsx` içerisinde Güneş Sistemi gök cisimleri `selectedMacroStar.catalog_code?.startsWith('SOL-')` bloğu ile kontrol edilmektedir. Metinler `SOLAR_DESCRIPTIONS` sözlüğünden çekilerek `solarObjectBanner` kapsayıcısı ve `solarObjectText` stiliyle çizilmektedir. Stil tanımları incelendiğinde `solarObjectText` renginin statik olarak `#FDE68A` (açık sarı/gold) verildiği ve `isLight` tema durumuna göre dinamik bir metin veya zemin rengi almadığı görülmektedir.
-
----
-
-### Görev 1.3: Sayfa Geçişlerinde ve Ana Sayfaya Tıklamada Yaşanan Saliselik Beyaz Işık Patlaması (White Flash / Flicker)
-* **Kategori:** Kolay / Navigasyon Performansı & Tema Bütünlüğü
-* **Mevcut Sorun:**
-  Alt gezinme çubuğundaki sekmeler arasında geçiş yaparken (özellikle Ana Sayfa sekmesine veya diğer sekmelere ilk tıklandığı anlarda) saliselik beyaz bir ışık patlaması / beyaz ekran parlaması yaşanmaktadır. Koyu temada gezinirken bu durum gözü ciddi şekilde rahatsız etmektedir.
-* **Kullanıcı Beklentisi:**
-  Sekmeler arası veya sayfalar arası geçişlerde hiçbir beyaz kare veya parlayış görünmemeli; geçiş anında uygulamanın aktif temasına ait zemin rengi kesintisiz korunmalıdır.
-* **Araştırma & Mimari Bağlam:**
-  * **İlgili Dosyalar:**
-    * [`src/app/(tabs)/_layout.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/app/(tabs)/_layout.tsx)
-    * [`src/app/_layout.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/app/_layout.tsx)
-    * [`src/components/ui/ScreenBackground.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/components/ui/ScreenBackground.tsx)
-  * **İnceleme Notu:**
-    Expo Router ve React Navigation mimarisinde `<Tabs>` ve `<Stack>` bileşenlerinin varsayılan konteyner arka plan rengi native düzeyde saf beyazdır (`#FFFFFF`). `TabsLayout` (`src/app/(tabs)/_layout.tsx`) bileşeni incelendiğinde, sekmelerin `freezeOnBlur: true` ile dondurulduğu ve sekmeyi saran dış `View` ile `Tabs` bileşeninin `screenOptions` / `sceneStyle` (veya `contentStyle`) zemin renginin temaya (`theme.bg` / `theme.bgGradient`) bağlanmadığı tespit edilmiştir. Sekme unfreeze olurken veya ilk mount anında, sayfa içeriği henüz ilk pikselini çizmeden önce altındaki native beyaz konteyner saliselik olarak görünmektedir.
 
 ---
 
@@ -72,87 +28,12 @@ Bu belge, uygulamadaki bildirilen hataları, arayüz aksaklıklarını ve talep 
 
 ---
 
-### Görev 1.5: Widget Görünümünde İki Profil Fotoğrafı Arasındaki Kalp İkonunun Fotoğrafları Örtmesi
-* **Kategori:** Kolay / Widget UI Düzeltmesi
-* **Mevcut Sorun:**
-  Kilit ekranı ve ana ekran widget'larında çiftin iki profil fotoğrafı yan yana birleştirilirken, tam birleşim noktalarının üzerine konulan beyaz çerçeveli kalp ikonu fotoğraflardaki yüzleri kapatmakta, estetik olmayan ve fotoğrafların görünmesini engelleyen bir yapı oluşturmaktadır.
-* **Kullanıcı Beklentisi:**
-  Profil fotoğraflarının yüzleri örtmeyecek şekilde temiz görünmesi; aradaki örtücü kalp rozetinin kaldırılması veya fotoğrafları kapatmayacak şık, minimalist bir halka/çift çerçevesi kurgulanması.
-* **Araştırma & Mimari Bağlam:**
-  * **İlgili Dosyalar:**
-    * [`widgets/CoupleWidget.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/widgets/CoupleWidget.tsx) (iOS WidgetKit / Swift UI)
-    * [`plugins/android-widget/CoupleWidgetProvider.kt`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/plugins/android-widget/CoupleWidgetProvider.kt) (Android RemoteViews)
-  * **İnceleme Notu:**
-    `widgets/CoupleWidget.tsx` dosyasındaki `couple` fonksiyonu incelendiğinde:
-    İki avatar `HStack spacing={-overlap}` ile birbirine yaklaştırılmakta ve üzerine `ZStack` içinde `{heartBadge(Math.round(size * 0.42))}` yerleştirilmektedir. Bu `heartBadge`, avatarların tam göbeğine oturduğundan kullanıcıların yüz detaylarını doğrudan perdelemektedir.
-
----
-
 ## 🟡 2. BÖLÜM: ORTA İŞLER (Feature Polish & Consistency)
 
 ---
 
-### Görev 2.1: Fotoğraf Galerisi ve Haritada Başkasının Yüklediği Fotoğrafı Partnerin Silememesi (Sahiplik Kuralı) [TAMAMLANDI ✅]
-* **Kategori:** Orta / Yetkilendirme & Güvenlik
-* **Mevcut Sorun:**
-  Çiftlerden biri (X kişisi) galeriye veya haritaya bir fotoğraf yüklediğinde, diğer kişinin (Y kişisi) bu fotoğrafı silebilmesi istenmeyen bir durumdur. Şu an bazı ekranlarda (özellikle harita detay kartında ve silme fonksiyonlarının parametrik çağrılarında) silme aksiyonu partner için de tetiklenebilmektedir.
-* **Kullanıcı Beklentisi:**
-  X kişisi fotoğrafı yüklediyse, Y kişisi o fotoğrafı silememelidir. Sadece yükleyen kişi (sahibi) silebilmelidir. Partnerin arayüzünde silme butonu hiç gösterilmemeli; haritadan veya galeriden silme fonksiyonu çağrılsa bile sahiplik kontrolü yapılarak işlem reddedilmelidir.
-* **Uygulanan Çözüm:**
-  * `PhotoLightboxModal.tsx` ve `PhotoSingleCell.tsx` içerisinde `isOwner` kontrolü `Boolean(userId && photo.user_id && photo.user_id === userId)` şeklinde sıkılaştırıldı; partner arayüzünde silme butonu gizlendi.
-  * `photos.tsx` (`handleDelete`) ve `map.tsx` (`handleDeletePhoto` & `handleDeleteNote`) fonksiyonlarına fonksiyon seviyesinde sahiplik koruması eklendi; partner silmeye çalışırsa uyarı diyalogu verilip işlem engellendi.
-  * Silme sorgularına `.eq("user_id", userId)` koşulu eklendi.
-  * `MapDetailCard.tsx` içerisindeki `isOwner` prop'u boolean tip garantisiyle bağlandı.
-  * Supabase veritabanı seviyesinde `supabase/migrations/20261022000001_restrict_photo_delete_to_owner.sql` migrasyonu oluşturularak `photo_archive` tablosundaki DELETE RLS politikası `couple_id = get_my_couple_id() AND user_id = auth.uid()` şeklinde sıkılaştırıldı.
-
----
-
-### Görev 2.2: Profilde İlişki Tarihleri (Sevgililik ve Tanışma) Değiştiğinde Özel Günlerdeki İlgili Kartların Güncellenmesi [TAMAMLANDI ✅]
-* **Kategori:** Orta / Veri Senkronizasyonu & State Bütünlüğü
-* **Mevcut Sorun:**
-  Profil / Ayarlar ekranından tanışma tarihi veya sevgili olma tarihi değiştirildiğinde, Özel Günler / Anılar (`memories`) ekranında önceden oluşturulmuş olan "Tanışma Yıl Dönümümüz" ve "Sevgili Olma Yıl Dönümümüz" kartlarının tarihleri güncellenmemekte; eski tarihlerde sabit kalmaktadır.
-* **Kullanıcı Beklentisi:**
-  Profil üzerinden ilişki tarihleri (tanışma veya sevgili olma) güncellendiğinde, Özel Günler listesindeki varsayılan bu iki kartın da tarihleri otomatik olarak yeni tarihlerle senkronize olmalı; sayaçlar ile anı kartları arasında tarih çelişkisi yaşanmamalıdır.
-* **Uygulanan Çözüm:**
-  * `src/app/(tabs)/profile.tsx` içerisindeki `handleUpdateDates` fonksiyonuna `memories` tablosu senkronizasyonu eklendi: `couples` tablosu güncellendikten hemen sonra "Tanışma Yıl Dönümümüz" ve "Sevgili Olma Yıl Dönümümüz" kayıtları aranıp yeni tarihlerle veritabanında güncelleniyor, yoksa otomatik ekleniyor.
-  * Güncelleme sonrasında `["memories"]`, `["calendar_data"]` ve `["home_dashboard"]` React Query önbellekleri anında geçersiz kılınarak arayüzün anlık tazelenmesi sağlandı.
-  * `src/app/(tabs)/memories.tsx` içerisindeki kontrol güncellendi; mevcut varsayılan kartların tarihleri profildeki güncel tarihlerle farklıysa sayfa açılışında da otomatik olarak senkronize ediliyor.
-
----
-
-### Görev 2.3: Aşk Haritasının Uygulama Tema Moduna Göre Gece/Gündüz Modunu Otomatik Senkronize Etmesi [TAMAMLANDI ✅]
-* **Kategori:** Orta / Tema & UI Tutarlılığı
-* **Mevcut Sorun:**
-  Kullanıcı uygulamayı gece modunda veya koyu modda kullanıyor olsa dahi, Aşk Haritası sekmesine geçildiğinde harita her zaman varsayılan açık/krem ("romantic") temasında açılmaktadır. Kullanıcının sistem teması haritaya yansımamaktadır.
-* **Kullanıcı Beklentisi:**
-  Kullanıcı beyaz (açık) modda değilse (koyu mod, gece modu vb. kullanıyorsa), Aşk Haritası otomatik olarak gece/midnight modunda açılmalıdır. Kullanıcı beyaz/açık modda ise sade ve aydınlık harita stili ile açılmalıdır.
-* **Uygulanan Çözüm:**
-  * `src/app/(tabs)/map.tsx` içerisinde `useTheme()` hook'undan `isLight: isAppLight` çekildi.
-  * Harita başlangıç teması `isAppLight ? "silver" : "midnight"` olarak dinamik başlatıldı (koyu/gece modunda `midnight`, beyaz/açık modda minimalist sade `silver`).
-  * `userManualThemeRef` referansı eklenerek kullanıcının oturum içinde harita üzerindeki tema seçiciden yaptığı manuel seçimler korunurken, genel tema modu değişiminde haritanın otomatik gece/gündüz adaptasyonu sağlandı.
-
----
-
-### Görev 2.4: Bizim Yıldızımız Ekranında Ses ve Titreşimin Kalıcılığı & Genel Ayarlara Tam Bağlanması [TAMAMLANDI ✅]
-* **Kategori:** Orta / Ses & Haptik Mimarisi
-* **Mevcut Sorunlar:**
-  1. *Kalıcılık Hatası:* Kullanıcı Yıldızımız ekranında sağ üstteki butonla ortam sesini kapattıktan sonra ana sayfaya dönüp tekrar yıldız ekranına girdiğinde, ses tekrar açık olarak çalmaya başlamaktadır (kullanıcının kapatma tercihi sıfırlanmaktadır).
-  2. *Genel Ayar Entegrasyon Eksikliği:* Profil / Ayarlar altındaki "Ses & Dokunsal Efektler" bölümünden uygulama içi sesler veya dokunsal titreşim (Haptics) kapatıldığında, Yıldızımız ekranındaki ses çalmaya ve yıldıza dokunulduğunda titreşim vermeye devam etmektedir.
-  3. *Ses Tınısı İhtiyacı:* Yıldız modülündeki ambiyans sesinin daha kaliteli, büyüleyici ve dinlendirici bir kozmik tını ile güncellenmesi gerekmektedir.
-* **Kullanıcı Beklentisi:**
-  * Yıldız ekranındaki ses açma/kapama tercihi kalıcı olmalı; kullanıcı sesi kapattıysa sayfadan çıkıp tekrar girdiğinde ses kapalı kalmalıdır.
-  * Profildeki "Uygulama İçi Sesler" veya "Dokunsal Titreşim" anahtarları kapatıldığında, yıldız ekranı dahil tüm uygulamadaki ilgili ses ve titreşimler anında ve eksiksiz olarak susturulmalıdır.
-  * Uygulamadaki tüm ses efektlerinin (mektup, ilaç, harita, fotoğraf vb.) tek tek çalışıp çalışmadığı ve anahtarlara uyup uymadığı doğrulanmalı; ambiyans sesi yenilenmelidir.
-* **Uygulanan Çözüm:**
-  * `OurStarScreen.tsx` içinde ortam sesi kapatma durumu `@star_ambient_muted` anahtarıyla AsyncStorage'a kaydedildi; ekran her açıldığında ve odaklandığında kalıcı tercih korunuyor.
-  * `useFocusEffect` içinde hem `@star_ambient_muted` hem de profil ayarlarındaki `getSoundEffectsEnabled()` aynı anda doğrulanıyor; ayarlardan ses kapalıysa yıldız sesi asla başlamıyor.
-  * `src/lib/soundEffects.ts` içindeki `setSoundEffectsEnabled(false)` fonksiyonuna `stopCosmicAmbient()` eklendi; ayarlardan ses kapatıldığı salisede yıldız sesi de anında susturuluyor.
-  * `OurStarScreen.tsx`, `StarSparkManager.ts`, `MacroSkyCanvas.tsx`, `HomeRadarOverlay.tsx`, `ClaimStarModal.tsx`, `ExoplanetModal.tsx`, `StarConnectionModal.tsx` ve `ConnectionRequestBadge.tsx` bileşenlerindeki tüm ham `expo-haptics` çağrıları `src/lib/soundEffects.ts` altındaki merkezi haptik yardımcılarına (`hapticTap`, `hapticStamp`, `hapticSuccess`, `hapticError`, `hapticSelection`) bağlandı. Böylece kullanıcı ayarlardan titreşimi kapattığında yıldız modülündeki tüm titreşimler eksiksiz olarak susuyor.
-  * `assets/sounds/cosmic_ambient.wav` sesi 44.1 kHz, 16-bit stereo, Eb Maj9 armonik tınıları, ince binaural derinlik, uzay rüzgarı dokusu ve sıfır klik geçişli kusursuz döngü (seamless loop) ile yeniden sentezlenerek büyüleyici bir kozmik tınıya kavuşturuldu.
-
----
-
-### Görev 2.5: Sahipsiz / Tescilsiz Yıldızların Farklı Parlaklıklarda Olması ve Mag Değerlerinin Tutarsızlığı
+### Görev 2.5: Sahipsiz / Tescilsiz Yıldızların Farklı Parlaklıklarda Olması ve Mag Değerlerinin Tutarsızlığı [TAMAMLANDI ✅]
+* **Uygulanan Çözüm:** Yıldızın görünümü artık hiçbir zaman katalog kadirinden (`mag`) gelmiyor. Tüm sahipsiz yıldızlar aynı sabit ve düşük ışıkla (`UNCLAIMED_STAR_BRIGHTNESS = 0.20`, sunucunun 0 puanlı parlaklığı) aynı boyutta, titreşmeden ve beyaz çekirdek olmadan çizilir; tescilli yıldızın boyutu, opaklığı, ışıması ve titreşimi yalnızca çiftin aktivite ışığıyla büyür (tescilli yıldız hiçbir zaman sahipsizden sönük çizilmez). Kadir yalnızca hangi zoom'da hangi yıldızların yükleneceğini belirler. Seçilen yıldız kartında "Parlaklık" artık `mag` değil: sahipsizlerde herkes için `%20`, kendi/bağlı yıldızda gerçek ışık, diğer tescillilerde "Gizemli" yazar; sahiplenme ve demo modallarındaki `mag` gösterimi de kaldırıldı (`starStyle.ts`, `starField.ts`, `drawSkyFrame.ts`, `hitTest.ts`, `skyOverlay.ts`, `OurStarScreen.tsx`, `ClaimStarModal.tsx`, `StarDemoAuthModal.tsx`).
 * **Kategori:** Orta / Gökyüzü Render Mantığı & Star HUD
 * **Mevcut Sorun:**
   Gökyüzü haritasında sahipsiz (tescilsiz) yıldızların üzerine tıklandığında bazı yıldızlar çok parlak, bazıları çok sönük görünmektedir. Alt kartta ise astronomik katalogdaki kadir (`magnitude` / `mag`) değerleri listelenmektedir. Ancak tescilsiz yıldızlar henüz hiçbir çifte ait olmadığından, bu parlaklık farklılıkları ve mag değerleri arayüzde mantıksal bir kafa karışıklığı yaratmaktadır.
@@ -185,13 +66,41 @@ Bu belge, uygulamadaki bildirilen hataları, arayüz aksaklıklarını ve talep 
 ---
 
 ### Görev 2.7: Profil Bilgileri (Görünen İsim, Cinsiyet, İlişki Tarihleri) İçin Değişiklik Kısıtlamaları & Tema Uyum Mantığı
-* **Kategori:** Orta / İş Mantığı (Business Logic) & Tema Senkronizasyonu
+* **Kategori:** Orta / İş Mantığı (Business Logic), Kısıtlamalar (Cooldown) & Tema Senkronizasyonu
 * **Mevcut Sorunlar:**
   1. *Sınırsız Değişiklik Açığı:* Görünen isim, cinsiyet tercihi ve ilişki başlangıç/tanışma tarihleri kullanıcı tarafından hiçbir sınır, cooldown veya hak kısıtlaması olmaksızın anlık olarak sınırsız kez değiştirilebilmektedir. Bu durum veritabanında gereksiz manipülasyonlara ve partner tarafında tutarsızlıklara yol açabilmektedir.
   2. *Cinsiyet Değişimi Tema Uyumsuzluğu:* Kullanıcı cinsiyet tercihini değiştirdiğinde (örneğin Kadın'dan Erkek'e veya tam tersi), arayüz tema seçeneklerinin ve mevcut aktif temanın bu yeni cinsiyete göre otomatik güncellenmesi gerekirken tema uyumsuz kalabilmektedir.
-* **Kullanıcı Beklentisi:**
-  * Görünen ismin, cinsiyet tercihinin ve ilişki tarihlerinin kaç kez veya hangi sıklıkla değiştirilebileceğine dair mantıklı bir kısıtlama / bekleme süresi politikası kurgulanması.
-  * Cinsiyet tercihi değiştiğinde arayüz tema modlarının da anında yeni cinsiyet profiline göre adapte olması.
+* **Kullanıcının Belirlediği Kesin İş Mantığı ve Kurallar:**
+
+  #### 1. Görünen İsim (30 Günde 1 - Kişi Bazlı):
+  * **Periyot:** Kullanıcı görünen ismini **30 günde bir** değiştirebilir.
+  * **İlk Kurulum Hakkı:** Kullanıcı hesap kurulumunda ismini yanlış veya eksik yazmış olabileceğinden, kurulumdan sonra **30 gün beklemesi istenmez**; kurulum anında doğrudan kullanabileceği **1 adet anında değişiklik hakkı** hazır olarak tanımlıdır.
+  * **Sayaç Başlangıcı:** Bu ilk hak kullanıldığı anda 30 günlük bekleme süresi (cooldown) başlar. Süre dolmadan yeni bir isim değişikliği yapılamaz.
+  * **Yetki Kapsamı:** **Kişi bazlıdır**. Kullanıcının isim değişikliği yalnızca kendi profilini bağlar, partnerin isim değiştirme hakkını veya süresini etkilemez.
+  * **Arayüz Bildirimi:** Kilitliyken butonda veya form altında *"Sonraki isim değişikliği için X gün kaldı"* bilgisi verilir. Değişiklik onay modalında: *"İsminizi değiştirmek üzeresiniz. Bu işlem sonrasında 30 gün boyunca tekrar isim değiştiremezsiniz. Onaylıyor musunuz?"* uyarısı gösterilir.
+
+  #### 2. Cinsiyet Tercihi (90 Günde 1 - Kişi Bazlı + Anında Tema Senkronizasyonu):
+  * **Periyot:** Cinsiyet tercihi **90 günde bir** değiştirilebilir.
+  * **İlk Kurulum Hakkı:** Kurulum aşamasında yanlış cinsiyet seçilmiş olma ihtimaline karşılık kullanıcıya **1 adet anında düzeltme hakkı** hazır verilir; kurulumdan hemen sonra 90 gün beklenmez.
+  * **Sayaç Başlangıcı:** Bu ilk değişiklik yapıldığı andan itibaren 90 günlük bekleme süresi devreye girer.
+  * **Yetki Kapsamı:** **Kişi bazlıdır**.
+  * **Otomatik Tema & Modül Senkronizasyonu:**
+    - Cinsiyet değiştirildiği anda `ThemeContext` anında yeni cinsiyete adapte edilmelidir.
+    - Örneğin Kadın'dan Erkek'e geçildiyse kadın gül temasından erkek varsayılan temasına (veya tersi) pürüzsüz geçiş sağlanmalı ve tema seçici kartları anında yeni cinsiyet paletini sunmalıdır.
+    - Regl takvimi gibi cinsiyete özel modüller ve arayüz kartları anında kullanıcının yeni cinsiyetine uygun duruma getirilmelidir.
+  * **Arayüz Bildirimi:** Onay modalında: *"Cinsiyet tercihinizi değiştirmek üzeresiniz. Bu işlem tema paletinizi ve cinsiyete özel modülleri doğrudan güncelleyecektir. Sonraki 90 gün boyunca tekrar cinsiyet değiştiremezsiniz. Onaylıyor musunuz?"* uyarısı yer alır.
+
+  #### 3. İlişki Tarihleri: Tanışma & Sevgili Olma (30 Günde 1 - İLİŞKİ / ÇİFT BAZLI):
+  * **Periyot:** İlişki tarihleri (Tanışma Tarihi ve Sevgili Olma Tarihi) **30 günde bir** değiştirilebilir.
+  * **İlk Kurulum Hakkı:** Kurulum sırasında tarihlerin yanlış girilmiş olma ihtimali yüksek olduğundan, kurulumdan sonra 30 gün beklenmez; **çifte hemen kullanabileceği 1 ortak düzeltme hakkı** doğrudan hazır verilir.
+  * **ÇİFT (İLİŞKİ) BAZLI KURAL (ÇOK ÖNEMLİ):**
+    - Bu hak kişi bazlı **değildir**, doğrudan **ilişki / çift (couple) bazlıdır**.
+    - Çiftlerden herhangi bir tanesi (Partner A veya Partner B) tarihleri güncellediği anda **o ortak hak tamamen biter**.
+    - **Her iki partner için birden** 30 günlük bekleme süresi başlar. Değişikliği yapmayan diğer partner de sonraki 30 gün boyunca tarihleri değiştiremez.
+    - 30 gün dolduktan sonra çift ortak olarak tekrar 1 hak kazanır (hangi partner önce davranırsa o hak ikisi için de tekrar tüketilir).
+  * **Arayüz Bildirimi:** Değişiklik öncesi onay modalında açıkça belirtilmelidir: *"İlişki tarihlerinizi güncellemek üzeresiniz. Bu işlem ana sayfa sayaçlarınızı ve Özel Günler arşivinizi güncelleyecektir. Bu hak çift bazlıdır; siz güncellediğinizde partneriniz de dahil olmak üzere her iki taraf için sonraki 30 gün boyunca tarih değişimi kilitlenecektir. Onaylıyor musunuz?"*
+  * **Kilit Durumu:** Süre devam ederken her iki tarafın profilinde de tarih seçici alanında kilit ikonu ve *"İlişki tarihleri partneriniz veya sizin tarafınızdan yakın zamanda güncellendi. Sonraki değişiklik için X gün kaldı"* mesajı yer almalıdır.
+
 * **Araştırma & Mimari Bağlam:**
   * **İlgili Dosyalar:**
     * [`src/app/(tabs)/profile.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/app/(tabs)/profile.tsx)
@@ -199,8 +108,15 @@ Bu belge, uygulamadaki bildirilen hataları, arayüz aksaklıklarını ve talep 
     * [`src/lib/theme.ts`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/lib/theme.ts)
     * [`src/components/profile/PersonalInfoForm.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/components/profile/PersonalInfoForm.tsx)
     * [`src/components/profile/ThemePicker.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/components/profile/ThemePicker.tsx)
-  * **İnceleme Notu:**
-    `profile.tsx` dosyasındaki `handleUpdateProfile` ve `handleUpdateDates` doğrudan `users` ve `couples` tablolarını güncellemektedir; veritabanında veya istemcide herhangi bir rate-limit veya değişiklik sayısı sayacı tutulmamaktadır. Ayrıca `PersonalInfoForm` içindeki yerel `gender` state'i değiştiğinde, `ThemeContext` bu değişikliği sunucuya kaydedilip profil yenilenene kadar bilmemektedir; kaydedildiğinde ise mevcut `themeMode` ("current" vb.) yeni cinsiyetin varsayılan temasına pürüzsüz geçirilmelidir.
+    * `supabase/migrations/`
+  * **Veritabanı & Şema Tasarım Rehberi:**
+    1. **`users` Tablosu (Kişi Bazlı):**
+       * `name_last_changed_at TIMESTAMPTZ DEFAULT NULL`
+       * `gender_last_changed_at TIMESTAMPTZ DEFAULT NULL`
+       * *İlk Hak Mantığı:* Değer `NULL` iken kullanıcının ilk hakkı hazır kabul edilir. Değişiklik yapıldığı anda `NOW()` yazılır. Değer `NULL` değilse `NOW() - last_changed_at >= interval '30 days'` (veya '90 days') kontrolü yapılır. Böylece hem yeni kullanıcılar hem de mevcut kullanıcılar için ek bayrağa gerek kalmadan ilk hak kusursuz işler.
+    2. **`couples` Tablosu (Çift Bazlı):**
+       * `dates_last_changed_at TIMESTAMPTZ DEFAULT NULL`
+       * *Çift Bazlı İlk Hak Mantığı:* `couples` tablosundaki bu alan `NULL` iken çiftin 1 ilk düzeltme hakkı vardır. Çiftlerden kim güncellerse güncellesin `dates_last_changed_at = NOW()` yapılır. Böylece her iki kullanıcı da sorgulandığında `couples` tablosundaki ortak zaman damgasını okur ve ikisi için birden 30 günlük kilit devreye girer.
 
 ---
 
@@ -208,7 +124,13 @@ Bu belge, uygulamadaki bildirilen hataları, arayüz aksaklıklarını ve talep 
 
 ---
 
-### Görev 3.1: Mektuplarda Silme ve Gizleme Politikası (Ürün Kararı & Mimari Tasarım)
+### Görev 3.1: Mektuplarda Silme ve Gizleme Politikası (Ürün Kararı & Mimari Tasarım) [TAMAMLANDI ✅]
+* **Uygulanan Ürün Kararı:**
+  1. Gönderilen mektup açılış gününe kadar **silinemez** (mektup karşı tarafa ulaşmalı).
+  2. Her iki taraf da mektubu **yalnızca kendi listesinden gizleyebilir** ve "Gizlenenler" görünümünden dilediği an geri getirebilir (ör. uygulamayı denerken yazılan deneme mektubu yer kaplamaz). Gizlemek partneri etkilemez.
+  3. Açılıştan **72 saat** sonra gönderen silme **isteyebilir**; alıcıya bildirim gider ve mektup kartında "Saklansın / Silinmesine İzin Ver" kararı çıkar. **Alıcı onay vermeden mektup silinmez.**
+  4. Onaylanan mektup en erken açılıştan **5 gün** sonra silinir (onay daha sonra verilirse hemen). Silinene kadar gönderen isteğini geri çekebilir, alıcı onayından vazgeçebilir. Reddedilen istek 72 saat sonra yeniden gönderilebilir.
+* **Uygulanan Mimari:** `20261022000002_letter_hide_and_deletion_consent.sql` — `hidden_by_sender`, `hidden_by_receiver`, `deletion_requested_at`, `deletion_approved_at`, `deletion_rejected_at` kolonları; `set_letter_hidden`, `request_letter_deletion`, `cancel_letter_deletion`, `respond_letter_deletion` RPC'leri; onaylanıp vakti gelenleri silen saatlik `letter-deletion-purge` pg_cron işi. Göndericinin mektubu doğrudan silmesine/güncellemesine izin veren eski "Update/Delete own sent letters" politikaları kaldırıldı. İstemci kuralları: `src/lib/letterPolicy.ts`; arayüz: `letters.tsx` (kart "⋯" menüsü, karar kutusu, durum şeritleri, onay bekleyen istek bandı, Gizlenenler görünümü).
 * **Kategori:** Zor / Ürün Kararı, Veri Güvenliği & RLS
 * **Mevcut Durum:**
   Zaman kilitli mektuplar modülünde (`letters`) şu an hiçbir silme veya gizleme mekanizması bulunmamaktadır. Gönderilen veya alınan mektuplar kalıcı olarak listede durmaktadır.
@@ -224,11 +146,17 @@ Bu belge, uygulamadaki bildirilen hataları, arayüz aksaklıklarını ve talep 
     * [`src/app/(tabs)/letters.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/app/(tabs)/letters.tsx)
     * `supabase/migrations/` (özellikle `letters` tablosu RLS politikaları)
   * **İnceleme Notu:**
-    Mektuplar uçtan uca AES şifrelidir (`encrypt` / `decrypt`). `letters` tablosunda `018_security_and_manipulation_fixes.sql` migration'ı ile kilitli mektupların erken okunması RLS seviyesinde engellenmiştir. Silme veya gizleme özelliği eklendiğinde `letters` tablosuna `is_hidden_by_sender`, `is_hidden_by_receiver` veya `deleted_at` gibi kolonların gerekip gerekmediği ve RLS kuralları Claude tarafından değerlendirilmelidir.
+    Mektuplar uçtan uca AES şifrelidir (`encrypt` / `decrypt`). `letters` tablosunda `018_security_and_manipulation_fixes.sql` migration'ı ile kilitli mektupların erken okunması RLS seviyesinde engellenmiştir. Silme veya gizleme özelliği eklendiğinde `letters` tablosuna `is_hidden_by_sender`, `is_hidden_by_receiver` veya `deleted_at` gibi kolonların gerekip gerekmediği ve RLS kuralları değerlendirilmelidir.
 
 ---
 
-### Görev 3.2: Widget İyileştirmeleri: Fotoğraf Yerleşimi, Partner Ruh Hali, Bildirim Sayacı & Premium Kilitleme
+### Görev 3.2: Widget İyileştirmeleri: Fotoğraf Yerleşimi, Partner Ruh Hali, Bildirim Sayacı & Premium Kilitleme [TAMAMLANDI ✅]
+* **Uygulanan Çözüm (iOS + Android aynı):**
+  1. Çift fotoğrafları her boyda **sağ üst köşede küçük ve yan yana**; birbirini örtmez.
+  2. Partnerin bugünkü ruh hali küçük/orta boyda kartta, büyük boyda büyük emojili ayrı bir kartta ("Ayşe bugün · Mutlu").
+  3. **Okunmamış rozeti** (`unreadCount` + `letterUnlocksMs`): mektuplar ekranına son girişten beri gelen/açılan mektuplar + yanıt bekleyen silme istekleri. Alıcıya gelen kilitli mektupların açılış anları da widget'a verilir; uygulama kapalıyken mektup açıldığında rozet kendiliğinden artar (iOS zaman çizelgesi kaydı, Android alarm). Rozete dokununca mektuplar açılır; mektuplar ekranı görülünce rozet sıfırlanır (`src/lib/widgetUnread.ts`).
+  4. Premium kilidi korunuyor: ücretsiz kullanıcıda kilit görünümü ve paywall bağlantısı; Premium bitişinde widget kendini kilitler.
+  * **Sınır:** Uygulama kapalıyken partnerin yeni gönderdiği mektup ya da push bildirimleri rozete ancak uygulama bir sonraki açılışta senkronlandığında yansır (arka planda push işleme yok).
 * **Kategori:** Zor / iOS WidgetKit & Android AppWidget Çift Platform Geliştirmesi
 * **Mevcut Durum:**
   Mevcut widget yapısında fotoğraflar ekranın ortasında büyük ve örtüşen şekilde yer almakta; partnerin anlık ruh hali ve bekleyen okunmamış bildirimler widget üzerinde kompakt biçimde yer almamaktadır. Ayrıca widget'ların Premium aboneliğe bağlı kılınması kuralının tam olarak işletilmesi gerekmektedir.
@@ -249,21 +177,22 @@ Bu belge, uygulamadaki bildirilen hataları, arayüz aksaklıklarını ve talep 
 
 ---
 
-## 📌 Özet Görev Dağılım Tablosu
+## 📌 Aktif Görevler Özet Tablosu
 
-| No | Görev Başlığı | Modül / Dosya | Zorluk | Öncelik |
-| :--- | :--- | :--- | :--- | :--- |
-| **1.1** | Galeri Lightbox silme onayının modal arkasında kalması | `PhotoLightboxModal.tsx`, `dialog.ts` | 🟢 Kolay | Yüksek |
-| **1.2** | Güneş sistemi cisimlerinde beyaz modda açıklama okunmaması | `OurStarScreen.tsx` | 🟢 Kolay | Yüksek |
-| **1.3** | Sekme ve sayfa geçişlerindeki saliselik beyaz flaş (flicker) | `(tabs)/_layout.tsx`, `_layout.tsx` | 🟢 Kolay | Yüksek |
-| **1.4** | Yıldızımızdaki "Kıvılcım" terimi ve UX anlatımı | `MicroStarHeader.tsx`, `StarSparkManager.ts` | 🟢 Kolay | Orta |
-| **1.5** | Widget'ta fotoğrafların üzerini örten kalbin kaldırılması | `CoupleWidget.tsx`, `CoupleWidgetProvider.kt` | 🟢 Kolay | Yüksek |
-| **2.1** | Başkasının yüklediği fotoğrafı partnerin silememesi kuralı | `photos.tsx`, `map.tsx`, `MapDetailCard.tsx` | 🟡 Orta | Kritik |
-| **2.2** | İlişki tarihleri değiştiğinde anılardaki 2 kartın güncellenmesi | `profile.tsx`, `memories.tsx` | 🟡 Orta | Yüksek |
-| **2.3** | Aşk haritasının gece/gündüz moduna otomatik senkronizasyonu | `map.tsx`, `mapStyles.ts` | 🟡 Orta | Orta |
-| **2.4** | Yıldız ses/titreşim kalıcılığı ve genel ayarlara tam uyum | `OurStarScreen.tsx`, `soundEffects.ts` | 🟡 Orta | Yüksek |
-| **2.5** | Sahipsiz yıldızların eşit düşük parlaklığa ve mag tutarlılığına çekilmesi | `starStyle.ts`, `OurStarScreen.tsx` | 🟡 Orta | Orta |
-| **2.6** | Yıldızımız ekranı alt panel buton karmaşıklığının giderilmesi | `OurStarScreen.tsx`, `MicroSystemDock.tsx` | 🟡 Orta | Orta |
-| **2.7** | Görünen isim, cinsiyet ve tarih değişim limitleri & tema senkronu | `profile.tsx`, `ThemeContext.tsx` | 🟡 Orta | Orta |
-| **3.1** | Mektuplarda silme/gizleme politikası tasarımı ve RLS kurgusu | `letters.tsx`, Supabase RLS | 🔴 Zor | Orta |
-| **3.2** | Widget sağ üst avatar, ruh hali, bildirim sayısı & premium kilit | `CoupleWidget.tsx`, `widgetBridge.ts` | 🔴 Zor | Yüksek |
+| No | Görev Başlığı | Modül / Dosya | Zorluk | Öncelik | Durum |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **1.4** | Yıldızımızdaki "Kıvılcım" terimi ve UX anlatımı | `MicroStarHeader.tsx`, `StarSparkManager.ts` | 🟢 Kolay | Orta | Beklemede |
+| **2.5** | Sahipsiz yıldızların eşit düşük parlaklığa ve mag tutarlılığına çekilmesi | `starStyle.ts`, `OurStarScreen.tsx` | 🟡 Orta | Orta | Tamamlandı ✅ |
+| **2.6** | Yıldızımız ekranı alt panel buton karmaşıklığının giderilmesi | `OurStarScreen.tsx`, `MicroSystemDock.tsx` | 🟡 Orta | Orta | Beklemede |
+| **2.7** | Görünen isim, cinsiyet ve tarih değişim limitleri & tema senkronu | `profile.tsx`, `ThemeContext.tsx`, Supabase | 🟡 Orta | Yüksek | Kurallar Belirlendi |
+| **3.1** | Mektuplarda silme/gizleme politikası tasarımı ve RLS kurgusu | `letters.tsx`, Supabase RLS | 🔴 Zor | Orta | Tamamlandı ✅ |
+| **3.2** | Widget sağ üst avatar, ruh hali, bildirim sayısı & premium kilit | `CoupleWidget.tsx`, `widgetBridge.ts` | 🔴 Zor | Yüksek | Tamamlandı ✅ |
+
+
+kıvılcım kalkacak mı duracak mı karar ver 
+uygulama şifrelemesi ne kadar güvenli ona göre ilerle 
+yıldızda en alttaki karmaşıklığı gider 
+uygulamadaki tüm sesleri test et 
+yıldız mantığı çalışıyor mu test et 
+Arkadaş ekle yıldız olarak test et
+fotoğaf yüklemeye sınır konmalı mı 
