@@ -4,7 +4,7 @@ Bu belge, uygulamadaki bildirilen hataları, arayüz aksaklıklarını ve talep 
 
 > **Geliştirici Notu:** Bu dokümanda doğrudan kod yamaları veya "şunu şöyle yaz" talimatları yer almamaktadır. Her maddenin **mevcut durumu (sorun)**, **kullanıcı beklentisi** ve araştırmayı hızlandırmak için **derinlemesine mimari bağlamı (ilgili dosyalar, state'ler ve akışlar)** sunulmuştur. Çözüm mimarisini ve kod uygulamasını Claude kendisi tasarlamalıdır.
 > 
-> *Not: Tamamlanan 1.1, 1.2, 1.3, 1.5, 2.1, 2.2, 2.3, 2.4, 2.5, 3.1 ve 3.2 numaralı görevler başarıyla commit edilerek dokümandan temizlenmiştir. Geriye yalnızca üzerinde çalışılacak aktif görevler bırakılmıştır.*
+> *Not: Tamamlanan 1.1, 1.2, 1.3, 1.5, 2.1, 2.2, 2.3, 2.4, 2.5, 2.7, 3.1 ve 3.2 numaralı görevler başarıyla tamamlanarak dokümandan temizlenmiştir. Geriye yalnızca üzerinde çalışılacak aktif görevler bırakılmıştır.*
 
 ---
 
@@ -47,68 +47,12 @@ Bu belge, uygulamadaki bildirilen hataları, arayüz aksaklıklarını ve talep 
 
 ---
 
-### Görev 2.7: Profil Bilgileri (Görünen İsim, Cinsiyet, İlişki Tarihleri) İçin Değişiklik Kısıtlamaları & Tema Uyum Mantığı
-* **Kategori:** Orta / İş Mantığı (Business Logic), Kısıtlamalar (Cooldown) & Tema Senkronizasyonu
-* **Mevcut Sorunlar:**
-  1. *Sınırsız Değişiklik Açığı:* Görünen isim, cinsiyet tercihi ve ilişki başlangıç/tanışma tarihleri kullanıcı tarafından hiçbir sınır, cooldown veya hak kısıtlaması olmaksızın anlık olarak sınırsız kez değiştirilebilmektedir. Bu durum veritabanında gereksiz manipülasyonlara ve partner tarafında tutarsızlıklara yol açabilmektedir.
-  2. *Cinsiyet Değişimi Tema Uyumsuzluğu:* Kullanıcı cinsiyet tercihini değiştirdiğinde (örneğin Kadın'dan Erkek'e veya tam tersi), arayüz tema seçeneklerinin ve mevcut aktif temanın bu yeni cinsiyete göre otomatik güncellenmesi gerekirken tema uyumsuz kalabilmektedir.
-* **Kullanıcının Belirlediği Kesin İş Mantığı ve Kurallar:**
-
-  #### 1. Görünen İsim (30 Günde 1 - Kişi Bazlı):
-  * **Periyot:** Kullanıcı görünen ismini **30 günde bir** değiştirebilir.
-  * **İlk Kurulum Hakkı:** Kullanıcı hesap kurulumunda ismini yanlış veya eksik yazmış olabileceğinden, kurulumdan sonra **30 gün beklemesi istenmez**; kurulum anında doğrudan kullanabileceği **1 adet anında değişiklik hakkı** hazır olarak tanımlıdır.
-  * **Sayaç Başlangıcı:** Bu ilk hak kullanıldığı anda 30 günlük bekleme süresi (cooldown) başlar. Süre dolmadan yeni bir isim değişikliği yapılamaz.
-  * **Yetki Kapsamı:** **Kişi bazlıdır**. Kullanıcının isim değişikliği yalnızca kendi profilini bağlar, partnerin isim değiştirme hakkını veya süresini etkilemez.
-  * **Arayüz Bildirimi:** Kilitliyken butonda veya form altında *"Sonraki isim değişikliği için X gün kaldı"* bilgisi verilir. Değişiklik onay modalında: *"İsminizi değiştirmek üzeresiniz. Bu işlem sonrasında 30 gün boyunca tekrar isim değiştiremezsiniz. Onaylıyor musunuz?"* uyarısı gösterilir.
-
-  #### 2. Cinsiyet Tercihi (90 Günde 1 - Kişi Bazlı + Anında Tema Senkronizasyonu):
-  * **Periyot:** Cinsiyet tercihi **90 günde bir** değiştirilebilir.
-  * **İlk Kurulum Hakkı:** Kurulum aşamasında yanlış cinsiyet seçilmiş olma ihtimaline karşılık kullanıcıya **1 adet anında düzeltme hakkı** hazır verilir; kurulumdan hemen sonra 90 gün beklenmez.
-  * **Sayaç Başlangıcı:** Bu ilk değişiklik yapıldığı andan itibaren 90 günlük bekleme süresi devreye girer.
-  * **Yetki Kapsamı:** **Kişi bazlıdır**.
-  * **Otomatik Tema & Modül Senkronizasyonu:**
-    - Cinsiyet değiştirildiği anda `ThemeContext` anında yeni cinsiyete adapte edilmelidir.
-    - Örneğin Kadın'dan Erkek'e geçildiyse kadın gül temasından erkek varsayılan temasına (veya tersi) pürüzsüz geçiş sağlanmalı ve tema seçici kartları anında yeni cinsiyet paletini sunmalıdır.
-    - Regl takvimi gibi cinsiyete özel modüller ve arayüz kartları anında kullanıcının yeni cinsiyetine uygun duruma getirilmelidir.
-  * **Arayüz Bildirimi:** Onay modalında: *"Cinsiyet tercihinizi değiştirmek üzeresiniz. Bu işlem tema paletinizi ve cinsiyete özel modülleri doğrudan güncelleyecektir. Sonraki 90 gün boyunca tekrar cinsiyet değiştiremezsiniz. Onaylıyor musunuz?"* uyarısı yer alır.
-
-  #### 3. İlişki Tarihleri: Tanışma & Sevgili Olma (30 Günde 1 - İLİŞKİ / ÇİFT BAZLI):
-  * **Periyot:** İlişki tarihleri (Tanışma Tarihi ve Sevgili Olma Tarihi) **30 günde bir** değiştirilebilir.
-  * **İlk Kurulum Hakkı:** Kurulum sırasında tarihlerin yanlış girilmiş olma ihtimali yüksek olduğundan, kurulumdan sonra 30 gün beklenmez; **çifte hemen kullanabileceği 1 ortak düzeltme hakkı** doğrudan hazır verilir.
-  * **ÇİFT (İLİŞKİ) BAZLI KURAL (ÇOK ÖNEMLİ):**
-    - Bu hak kişi bazlı **değildir**, doğrudan **ilişki / çift (couple) bazlıdır**.
-    - Çiftlerden herhangi bir tanesi (Partner A veya Partner B) tarihleri güncellediği anda **o ortak hak tamamen biter**.
-    - **Her iki partner için birden** 30 günlük bekleme süresi başlar. Değişikliği yapmayan diğer partner de sonraki 30 gün boyunca tarihleri değiştiremez.
-    - 30 gün dolduktan sonra çift ortak olarak tekrar 1 hak kazanır (hangi partner önce davranırsa o hak ikisi için de tekrar tüketilir).
-  * **Arayüz Bildirimi:** Değişiklik öncesi onay modalında açıkça belirtilmelidir: *"İlişki tarihlerinizi güncellemek üzeresiniz. Bu işlem ana sayfa sayaçlarınızı ve Özel Günler arşivinizi güncelleyecektir. Bu hak çift bazlıdır; siz güncellediğinizde partneriniz de dahil olmak üzere her iki taraf için sonraki 30 gün boyunca tarih değişimi kilitlenecektir. Onaylıyor musunuz?"*
-  * **Kilit Durumu:** Süre devam ederken her iki tarafın profilinde de tarih seçici alanında kilit ikonu ve *"İlişki tarihleri partneriniz veya sizin tarafınızdan yakın zamanda güncellendi. Sonraki değişiklik için X gün kaldı"* mesajı yer almalıdır.
-
-* **Araştırma & Mimari Bağlam:**
-  * **İlgili Dosyalar:**
-    * [`src/app/(tabs)/profile.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/app/(tabs)/profile.tsx)
-    * [`src/context/ThemeContext.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/context/ThemeContext.tsx)
-    * [`src/lib/theme.ts`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/lib/theme.ts)
-    * [`src/components/profile/PersonalInfoForm.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/components/profile/PersonalInfoForm.tsx)
-    * [`src/components/profile/ThemePicker.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/components/profile/ThemePicker.tsx)
-    * `supabase/migrations/`
-  * **Veritabanı & Şema Tasarım Rehberi:**
-    1. **`users` Tablosu (Kişi Bazlı):**
-       * `name_last_changed_at TIMESTAMPTZ DEFAULT NULL`
-       * `gender_last_changed_at TIMESTAMPTZ DEFAULT NULL`
-       * *İlk Hak Mantığı:* Değer `NULL` iken kullanıcının ilk hakkı hazır kabul edilir. Değişiklik yapıldığı anda `NOW()` yazılır. Değer `NULL` değilse `NOW() - last_changed_at >= interval '30 days'` (veya '90 days') kontrolü yapılır. Böylece hem yeni kullanıcılar hem de mevcut kullanıcılar için ek bayrağa gerek kalmadan ilk hak kusursuz işler.
-    2. **`couples` Tablosu (Çift Bazlı):**
-       * `dates_last_changed_at TIMESTAMPTZ DEFAULT NULL`
-       * *Çift Bazlı İlk Hak Mantığı:* `couples` tablosundaki bu alan `NULL` iken çiftin 1 ilk düzeltme hakkı vardır. Çiftlerden kim güncellerse güncellesin `dates_last_changed_at = NOW()` yapılır. Böylece her iki kullanıcı da sorgulandığında `couples` tablosundaki ortak zaman damgasını okur ve ikisi için birden 30 günlük kilit devreye girer.
-
----
-
 ## 📌 Aktif Görevler Özet Tablosu
 
 | No | Görev Başlığı | Modül / Dosya | Zorluk | Öncelik | Durum |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **1.4** | Yıldızımızdaki "Kıvılcım" terimi ve UX anlatımı | `MicroStarHeader.tsx`, `StarSparkManager.ts` | 🟢 Kolay | Orta | Beklemede |
 | **2.6** | Yıldızımız ekranı alt panel buton karmaşıklığının giderilmesi | `OurStarScreen.tsx`, `MicroSystemDock.tsx` | 🟡 Orta | Orta | Beklemede |
-| **2.7** | Görünen isim, cinsiyet ve tarih değişim limitleri & tema senkronu | `profile.tsx`, `ThemeContext.tsx`, Supabase | 🟡 Orta | Yüksek | Kurallar Belirlendi |
 | **4.1** | Güvenli Kasa & Şifreleme Revizyonu (Private Storage & Vault Modeli) | `crypto.ts`, `photos.tsx`, `login.tsx`, Supabase | 🔴 Zor | Kritik | Mimari Hazırlandı |
 
 

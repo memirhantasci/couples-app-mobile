@@ -20,6 +20,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { encrypt, decrypt } from "@/utils/crypto";
 import { sanitizeStrict } from "@/utils/sanitize";
 import { toast } from "@/lib/toast";
+import { getCooldownStatus } from "@/lib/cooldown";
 import { usePageTour } from "@/hooks/usePageTour";
 import { useDeferredReady } from "@/hooks/useDeferredReady";
 import { PageTourModal } from "@/components/tour/PageTourModal";
@@ -65,11 +66,20 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
 
   const [displayName, setDisplayName] = useState("");
+  const [initialDisplayName, setInitialDisplayName] = useState("");
   const [nameError, setNameError] = useState(false);
   const [gender, setGender] = useState<"male" | "female">("female");
+  const [initialGender, setInitialGender] = useState<"male" | "female">("female");
   const [meetDate, setMeetDate] = useState("");
+  const [initialMeetDate, setInitialMeetDate] = useState("");
   const [relStartDate, setRelStartDate] = useState("");
+  const [initialRelStartDate, setInitialRelStartDate] = useState("");
   const [coupleId, setCoupleId] = useState<string | null>(null);
+
+  // Cooldown zaman damgaları
+  const [nameLastChangedAt, setNameLastChangedAt] = useState<string | null>(null);
+  const [genderLastChangedAt, setGenderLastChangedAt] = useState<string | null>(null);
+  const [datesLastChangedAt, setDatesLastChangedAt] = useState<string | null>(null);
 
   const [profileLoading, setProfileLoading] = useState(false);
   const [datesLoading, setDatesLoading] = useState(false);
@@ -91,12 +101,40 @@ export default function ProfileScreen() {
     setLegalModalVisible(true);
   };
 
+  // Cooldown durumları (30 gün isim, 90 gün cinsiyet, 30 gün çift bazlı tarihler)
+  const nameCooldown = useMemo(
+    () => getCooldownStatus(nameLastChangedAt, 30),
+    [nameLastChangedAt]
+  );
+  const genderCooldown = useMemo(
+    () => getCooldownStatus(genderLastChangedAt, 90),
+    [genderLastChangedAt]
+  );
+  const datesCooldown = useMemo(
+    () => getCooldownStatus(datesLastChangedAt, 30),
+    [datesLastChangedAt]
+  );
+
+  // Değişiklik kontrolleri
+  const isNameChanged = displayName.trim() !== initialDisplayName.trim();
+  const isGenderChanged = gender !== initialGender;
+  const hasProfileChanges = isNameChanged || isGenderChanged;
+
+  const isMeetDateChanged = (meetDate || "") !== (initialMeetDate || "");
+  const isRelDateChanged = (relStartDate || "") !== (initialRelStartDate || "");
+  const hasDatesChanges = isMeetDateChanged || isRelDateChanged;
+
   // Demo profili sunucuya gitmeden, ilk çizimde bir kez doldurulur
   if (isDemoMode && !dataLoaded) {
-    setDisplayName(DEMO_PROFILE.displayName ?? "Misafir (Demo)");
+    const dName = DEMO_PROFILE.displayName ?? "Misafir (Demo)";
+    setDisplayName(dName);
+    setInitialDisplayName(dName);
     setGender("female");
+    setInitialGender("female");
     setMeetDate(DEMO_PROFILE.meetDate ?? "");
+    setInitialMeetDate(DEMO_PROFILE.meetDate ?? "");
     setRelStartDate(DEMO_PROFILE.relationshipStartDate ?? "");
+    setInitialRelStartDate(DEMO_PROFILE.relationshipStartDate ?? "");
     setDataLoaded(true);
   }
 
@@ -107,7 +145,7 @@ export default function ProfileScreen() {
     (async () => {
       const { data: userData } = await supabase
         .from("users")
-        .select("display_name, gender, couple_id")
+        .select("display_name, gender, couple_id, name_last_changed_at, gender_last_changed_at")
         .eq("id", uid)
         .single();
 
@@ -122,20 +160,32 @@ export default function ProfileScreen() {
         if (!cleanName && userData.display_name && !userData.display_name.startsWith("enc:") && !userData.display_name.startsWith("det:")) {
           cleanName = userData.display_name;
         }
-        setDisplayName(cleanName || profile?.username || "");
-        setGender((userData.gender as "male" | "female") ?? "female");
+        const loadedName = cleanName || profile?.username || "";
+        const loadedGender = (userData.gender as "male" | "female") ?? "female";
+
+        setDisplayName(loadedName);
+        setInitialDisplayName(loadedName);
+        setGender(loadedGender);
+        setInitialGender(loadedGender);
         setCoupleId(userData.couple_id ?? null);
+        setNameLastChangedAt(userData.name_last_changed_at ?? null);
+        setGenderLastChangedAt(userData.gender_last_changed_at ?? null);
 
         if (userData.couple_id) {
           const { data: coupleData } = await supabase
             .from("couples")
-            .select("meet_date, relationship_start_date")
+            .select("meet_date, relationship_start_date, dates_last_changed_at")
             .eq("id", userData.couple_id)
             .single();
 
           if (coupleData) {
-            setMeetDate(coupleData.meet_date ?? "");
-            setRelStartDate(coupleData.relationship_start_date ?? "");
+            const mDate = coupleData.meet_date ?? "";
+            const rDate = coupleData.relationship_start_date ?? "";
+            setMeetDate(mDate);
+            setInitialMeetDate(mDate);
+            setRelStartDate(rDate);
+            setInitialRelStartDate(rDate);
+            setDatesLastChangedAt(coupleData.dates_last_changed_at ?? null);
           }
         }
       }
@@ -153,24 +203,119 @@ export default function ProfileScreen() {
       return;
     }
     if (!session?.user?.id) return;
-    if (displayName.trim().length < 2) {
+
+    if (!hasProfileChanges) {
+      toast.info("Profil bilgilerinizde herhangi bir değişiklik yapmadınız.");
+      return;
+    }
+
+    if (isNameChanged && displayName.trim().length < 2) {
       setNameError(true);
       toast.warning("Lütfen en az 2 karakterden oluşan bir isim girin.", { title: "Eksik bilgi" });
       return;
     }
+
+    // Cooldown engelleri
+    if (isNameChanged && !nameCooldown.canChange) {
+      appAlert(
+        "İsim Değişikliği Kısıtlı 🔒",
+        `Görünen isminizi 30 günde bir değiştirebilirsiniz. Bir sonraki değişiklik için ${nameCooldown.remainingDays} gün beklemeniz gerekmektedir.`,
+        [{ text: "Anladım" }],
+        { tone: "warning" }
+      );
+      return;
+    }
+
+    if (isGenderChanged && !genderCooldown.canChange) {
+      appAlert(
+        "Cinsiyet Değişikliği Kısıtlı 🔒",
+        `Cinsiyet tercihinizi 90 günde bir değiştirebilirsiniz. Bir sonraki değişiklik için ${genderCooldown.remainingDays} gün beklemeniz gerekmektedir.`,
+        [{ text: "Anladım" }],
+        { tone: "warning" }
+      );
+      return;
+    }
+
+    // Onay diyalogları
+    if (isNameChanged && isGenderChanged) {
+      appAlert(
+        "Profil Değişikliği Onayı 👤",
+        "İsminizi ve cinsiyet tercihinizi değiştirmek üzeresiniz.\n\n• İsminizi güncelledikten sonra 30 gün boyunca tekrar değiştiremezsiniz.\n• Cinsiyet tercihinizi güncelledikten sonra tema paletiniz ve özel modüller doğrudan güncellenecek olup 90 gün boyunca tekrar değiştiremezsiniz.\n\nOnaylıyor musunuz?",
+        [
+          { text: "Vazgeç", style: "cancel" },
+          { text: "Onayla ve Kaydet", style: "default", onPress: () => executeSaveProfile() },
+        ],
+        { tone: "warning" }
+      );
+      return;
+    }
+
+    if (isNameChanged) {
+      appAlert(
+        "İsim Değişikliği Onayı 👤",
+        "İsminizi değiştirmek üzeresiniz. Bu işlem sonrasında 30 gün boyunca tekrar isim değiştiremezsiniz.\n\nOnaylıyor musunuz?",
+        [
+          { text: "Vazgeç", style: "cancel" },
+          { text: "Onayla ve Kaydet", style: "default", onPress: () => executeSaveProfile() },
+        ],
+        { tone: "warning" }
+      );
+      return;
+    }
+
+    if (isGenderChanged) {
+      appAlert(
+        "Cinsiyet Değişikliği Onayı 🌸",
+        "Cinsiyet tercihinizi değiştirmek üzeresiniz. Bu işlem tema paletinizi ve cinsiyete özel modülleri doğrudan güncelleyecektir.\n\nSonraki 90 gün boyunca tekrar cinsiyet değiştiremezsiniz. Onaylıyor musunuz?",
+        [
+          { text: "Vazgeç", style: "cancel" },
+          { text: "Onayla ve Kaydet", style: "default", onPress: () => executeSaveProfile() },
+        ],
+        { tone: "warning" }
+      );
+      return;
+    }
+  }
+
+  async function executeSaveProfile() {
+    if (!session?.user?.id) return;
     setProfileLoading(true);
     const cleanDisplayName = sanitizeStrict(displayName.trim());
+    const nowIso = new Date().toISOString();
+    const updatePayload: Record<string, any> = {};
+
+    if (isNameChanged) {
+      updatePayload.display_name = encrypt(cleanDisplayName);
+      updatePayload.name_last_changed_at = nowIso;
+    }
+    if (isGenderChanged) {
+      updatePayload.gender = gender;
+      updatePayload.gender_last_changed_at = nowIso;
+    }
+
     const { error } = await supabase
       .from("users")
-      .update({ display_name: encrypt(cleanDisplayName), gender })
+      .update(updatePayload)
       .eq("id", session.user.id);
     setProfileLoading(false);
 
     if (error) {
-      appAlert("Hata", "Profil güncellenemedi. Lütfen tekrar deneyin.");
+      appAlert("Hata", error.message || "Profil güncellenemedi. Lütfen tekrar deneyin.");
     } else {
+      if (isNameChanged) {
+        setInitialDisplayName(cleanDisplayName);
+        setNameLastChangedAt(nowIso);
+      }
+      if (isGenderChanged) {
+        setInitialGender(gender);
+        setGenderLastChangedAt(nowIso);
+        // Anında tema ve stil senkronizasyonu
+        setGlobalActiveTheme(gender, themeMode);
+      }
       await refreshProfile();
       queryClient.invalidateQueries({ queryKey: ["user_gender"] });
+      queryClient.invalidateQueries({ queryKey: ["period_logs"] });
+      queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
       toast.success("Profil bilgilerin güncellendi ✨");
     }
   }
@@ -185,24 +330,62 @@ export default function ProfileScreen() {
       return;
     }
     if (!coupleId) return;
+
+    if (!hasDatesChanges) {
+      toast.info("İlişki tarihlerinde herhangi bir değişiklik yapmadınız.");
+      return;
+    }
+
     if (!relStartDate) {
       toast.warning("Lütfen sevgililik tarihinizi belirleyin.", { title: "Eksik tarih" });
       return;
     }
+
+    // Çift bazlı cooldown kontrolü
+    if (!datesCooldown.canChange) {
+      appAlert(
+        "İlişki Tarihleri Kilitli 🔒",
+        `İlişki tarihleri siz veya partneriniz tarafından yakın zamanda güncellendi. Çift olarak sonraki değişiklik için ${datesCooldown.remainingDays} gün beklemeniz gerekmektedir.`,
+        [{ text: "Anladım" }],
+        { tone: "warning" }
+      );
+      return;
+    }
+
+    // Çift bazlı onay uyarısı
+    appAlert(
+      "İlişki Tarihlerini Güncelle 💕",
+      "İlişki tarihlerinizi güncellemek üzeresiniz. Bu işlem ana sayfa sayaçlarınızı ve Özel Günler arşivinizi güncelleyecektir.\n\n⚠️ Bu hak çift bazlıdır; siz güncellediğinizde partneriniz de dahil olmak üzere her iki taraf için sonraki 30 gün boyunca tarih değişimi kilitlenecektir. Onaylıyor musunuz?",
+      [
+        { text: "Vazgeç", style: "cancel" },
+        { text: "Onayla ve Güncelle", style: "default", onPress: () => executeSaveDates() },
+      ],
+      { tone: "warning" }
+    );
+  }
+
+  async function executeSaveDates() {
+    if (!coupleId) return;
     setDatesLoading(true);
+    const nowIso = new Date().toISOString();
     const { error } = await supabase
       .from("couples")
       .update({
         meet_date: meetDate ? meetDate : null,
         relationship_start_date: relStartDate,
+        dates_last_changed_at: nowIso,
       })
       .eq("id", coupleId);
 
     if (error) {
       setDatesLoading(false);
-      appAlert("Hata", "Tarihler güncellenemedi. Lütfen tekrar deneyin.");
+      appAlert("Hata", error.message || "Tarihler güncellenemedi. Lütfen tekrar deneyin.");
       return;
     }
+
+    setInitialMeetDate(meetDate);
+    setInitialRelStartDate(relStartDate);
+    setDatesLastChangedAt(nowIso);
 
     // Özel Günler / Anılar tablosundaki ilgili kartları senkronize et
     try {
@@ -258,6 +441,18 @@ export default function ProfileScreen() {
     queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
     queryClient.invalidateQueries({ queryKey: ["memories"] });
     queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
+
+    const parsedCoupleId = coupleId ? parseInt(coupleId, 10) : (profile?.coupleId ?? null);
+    if (parsedCoupleId && session?.user?.id) {
+      notifyPartner(
+        parsedCoupleId,
+        session.user.id,
+        "İlişki Tarihlerimiz Güncellendi 💕",
+        `${displayName || "Partnerin"} ilişki tarihlerimizi güncelledi.`,
+        { type: "milestone" }
+      ).catch(() => {});
+    }
+
     toast.success("İlişki tarihlerin ve özel günlerin güncellendi 💕");
   }
 
@@ -466,6 +661,9 @@ export default function ProfileScreen() {
                 nameError={nameError}
                 gender={gender}
                 loading={profileLoading}
+                nameCooldown={nameCooldown}
+                genderCooldown={genderCooldown}
+                hasChanges={hasProfileChanges}
                 onChangeDisplayName={(val) => {
                   setDisplayName(val);
                   setNameError(false);
@@ -485,6 +683,8 @@ export default function ProfileScreen() {
                   meetDate={meetDate}
                   relStartDate={relStartDate}
                   loading={datesLoading}
+                  datesCooldown={datesCooldown}
+                  hasChanges={hasDatesChanges}
                   onChangeMeetDate={setMeetDate}
                   onChangeRelStartDate={setRelStartDate}
                   onSave={handleUpdateDates}

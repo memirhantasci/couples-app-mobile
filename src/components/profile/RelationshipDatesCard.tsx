@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
 import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
-import { CalendarHeart, Calendar, Heart, ChevronRight } from "lucide-react-native";
+import { CalendarHeart, Calendar, Heart, ChevronRight, Lock, Clock, Sparkles } from "lucide-react-native";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 import type { AppTheme } from "@/lib/theme";
+import type { CooldownStatus } from "@/lib/cooldown";
 import { ModernSection } from "./ModernSection";
 import { profileSharedStyles } from "./profileSharedStyles";
 
@@ -16,6 +17,8 @@ interface RelationshipDatesCardProps {
   meetDate: string;
   relStartDate: string;
   loading: boolean;
+  datesCooldown?: CooldownStatus;
+  hasChanges?: boolean;
   onChangeMeetDate: (value: string) => void;
   onChangeRelStartDate: (value: string) => void;
   onSave: () => void;
@@ -27,6 +30,8 @@ export function RelationshipDatesCard({
   meetDate,
   relStartDate,
   loading,
+  datesCooldown,
+  hasChanges = true,
   onChangeMeetDate,
   onChangeRelStartDate,
   onSave,
@@ -34,9 +39,15 @@ export function RelationshipDatesCard({
   const [showMeetDatePicker, setShowMeetDatePicker] = useState(false);
   const [showRelDatePicker, setShowRelDatePicker] = useState(false);
 
+  const isLocked = datesCooldown ? !datesCooldown.canChange : false;
+
   const pickerBtnStyle = [
     styles.datePickerBtn,
-    { backgroundColor: theme.unitBg, borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" },
+    {
+      backgroundColor: isLocked ? (isLight ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.03)") : theme.unitBg,
+      borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
+      opacity: isLocked ? 0.6 : 1,
+    },
   ];
 
   return (
@@ -46,20 +57,53 @@ export function RelationshipDatesCard({
       theme={theme}
       defaultOpen={false}
     >
+      {/* Çift Bazlı Kısıtlama Bilgilendirme Kartı */}
+      {isLocked ? (
+        <View style={[styles.lockCard, { backgroundColor: "rgba(255, 179, 0, 0.08)", borderColor: "rgba(255, 179, 0, 0.25)" }]}>
+          <Lock size={16} color="#FFB300" style={{ marginTop: 2 }} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.lockCardTitle, { color: "#FFB300" }]}>
+              Tarihler Kilitli (Çift Bazlı Kısıtlama)
+            </Text>
+            <Text style={[styles.lockCardText, { color: isLight ? "#555555" : "rgba(255,255,255,0.7)" }]}>
+              İlişki tarihleri siz veya partneriniz tarafından yakın zamanda güncellendi. Çift olarak sonraki değişiklik için <Text style={{ fontFamily: "Inter_700Bold" }}>{datesCooldown?.remainingDays} gün</Text> kaldı.
+            </Text>
+          </View>
+        </View>
+      ) : datesCooldown?.isInitialFreeRight ? (
+        <View style={[styles.freeRightCard, { backgroundColor: theme.pillAccentBg, borderColor: theme.cardBorder }]}>
+          <Sparkles size={15} color={theme.accent} style={{ marginTop: 1 }} />
+          <Text style={[styles.freeRightText, { color: theme.accent }]}>
+            Çiftinizin 1 ücretsiz düzeltme hakkı hazır. Tarihleri güncellediğinizde her iki taraf için 30 günlük bekleme süresi başlar.
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.normalHintRow}>
+          <Clock size={12} color={theme.textMuted} />
+          <Text style={[styles.normalHintText, { color: theme.textMuted }]}>
+            İlişki tarihleri çift bazlı olarak her 30 günde bir güncellenebilir.
+          </Text>
+        </View>
+      )}
+
+      {/* Tanışma Tarihi */}
       <View style={profileSharedStyles.inputGroup}>
-        <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>TANIŞMA TARİHİ (İSTEĞE BAĞLI)</Text>
+        <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>
+          TANIŞMA TARİHİ (İSTEĞE BAĞLI)
+        </Text>
         <TouchableOpacity
-          onPress={() => setShowMeetDatePicker(true)}
+          onPress={() => !isLocked && setShowMeetDatePicker(true)}
           style={pickerBtnStyle}
           activeOpacity={0.8}
+          disabled={isLocked || loading}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <Calendar size={18} color={theme.accent} />
-            <Text style={[styles.datePickerBtnText, { color: theme.text }]}>
+            <Text style={[styles.datePickerBtnText, { color: isLocked ? theme.textMuted : theme.text }]}>
               {meetDate ? dayjs(meetDate).format("DD MMMM YYYY") : "Tarih Seçiniz"}
             </Text>
           </View>
-          <ChevronRight size={16} color={theme.textMuted} />
+          {!isLocked && <ChevronRight size={16} color={theme.textMuted} />}
         </TouchableOpacity>
 
         <DateTimePickerSheet
@@ -67,7 +111,6 @@ export function RelationshipDatesCard({
           mode="date"
           title="Tanışma Tarihi"
           value={meetDate ? dayjs(meetDate).toDate() : new Date()}
-          // Tanışma, sevgili olma tarihinden sonra olamaz (kurulum ekranındaki kuralla aynı)
           maximumDate={relStartDate && dayjs(relStartDate).isBefore(dayjs(), "day") ? dayjs(relStartDate).toDate() : new Date()}
           onCancel={() => setShowMeetDatePicker(false)}
           onConfirm={(selectedDate) => {
@@ -77,20 +120,24 @@ export function RelationshipDatesCard({
         />
       </View>
 
+      {/* Sevgili Olma Tarihi */}
       <View style={profileSharedStyles.inputGroup}>
-        <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>SEVGİLİ OLMA TARİHİ</Text>
+        <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>
+          SEVGİLİ OLMA TARİHİ
+        </Text>
         <TouchableOpacity
-          onPress={() => setShowRelDatePicker(true)}
+          onPress={() => !isLocked && setShowRelDatePicker(true)}
           style={pickerBtnStyle}
           activeOpacity={0.8}
+          disabled={isLocked || loading}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <Heart size={18} color={theme.accent} />
-            <Text style={[styles.datePickerBtnText, { color: theme.text }]}>
+            <Text style={[styles.datePickerBtnText, { color: isLocked ? theme.textMuted : theme.text }]}>
               {relStartDate ? dayjs(relStartDate).format("DD MMMM YYYY") : "Tarih Seçiniz"}
             </Text>
           </View>
-          <ChevronRight size={16} color={theme.textMuted} />
+          {!isLocked && <ChevronRight size={16} color={theme.textMuted} />}
         </TouchableOpacity>
 
         <DateTimePickerSheet
@@ -107,10 +154,15 @@ export function RelationshipDatesCard({
         />
       </View>
 
+      {/* Güncelle Butonu */}
       <TouchableOpacity
-        style={[profileSharedStyles.actionSaveBtn, { backgroundColor: theme.accent }]}
+        style={[
+          profileSharedStyles.actionSaveBtn,
+          { backgroundColor: theme.accent },
+          (isLocked || !hasChanges) && { opacity: 0.5 },
+        ]}
         onPress={onSave}
-        disabled={loading}
+        disabled={loading || isLocked || !hasChanges}
         activeOpacity={0.88}
       >
         {loading ? (
@@ -138,5 +190,49 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Inter_500Medium",
     color: "#ffffff",
+  },
+  lockCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 14,
+  },
+  lockCardTitle: {
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
+    marginBottom: 3,
+  },
+  lockCardText: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 16,
+  },
+  freeRightCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 14,
+  },
+  freeRightText: {
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+    lineHeight: 16,
+    flex: 1,
+  },
+  normalHintRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 12,
+  },
+  normalHintText: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
   },
 });

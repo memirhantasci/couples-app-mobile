@@ -1,7 +1,8 @@
 import React from "react";
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
-import { User } from "lucide-react-native";
+import { User, Lock, Clock, Sparkles } from "lucide-react-native";
 import type { AppTheme } from "@/lib/theme";
+import type { CooldownStatus } from "@/lib/cooldown";
 import { ModernSection } from "./ModernSection";
 import { profileSharedStyles } from "./profileSharedStyles";
 
@@ -12,6 +13,9 @@ interface PersonalInfoFormProps {
   nameError: boolean;
   gender: "male" | "female";
   loading: boolean;
+  nameCooldown?: CooldownStatus;
+  genderCooldown?: CooldownStatus;
+  hasChanges?: boolean;
   onChangeDisplayName: (value: string) => void;
   onSelectGender: (gender: "male" | "female") => void;
   onSave: () => void;
@@ -24,11 +28,16 @@ export function PersonalInfoForm({
   nameError,
   gender,
   loading,
+  nameCooldown,
+  genderCooldown,
+  hasChanges = true,
   onChangeDisplayName,
   onSelectGender,
   onSave,
 }: PersonalInfoFormProps) {
   const fieldBorder = isLight ? theme.cardBorder : "rgba(255,255,255,0.08)";
+  const isNameLocked = nameCooldown ? !nameCooldown.canChange : false;
+  const isGenderLocked = genderCooldown ? !genderCooldown.canChange : false;
 
   return (
     <ModernSection
@@ -37,14 +46,28 @@ export function PersonalInfoForm({
       theme={theme}
       defaultOpen={true}
     >
+      {/* 1. Görünen İsim */}
       <View style={profileSharedStyles.inputGroup}>
-        <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>GÖRÜNEN İSİM</Text>
+        <View style={styles.labelRow}>
+          <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>
+            GÖRÜNEN İSİM
+          </Text>
+          {isNameLocked && (
+            <View style={[styles.badge, { backgroundColor: "rgba(255, 179, 0, 0.12)", borderColor: "rgba(255, 179, 0, 0.3)" }]}>
+              <Lock size={11} color="#FFB300" />
+              <Text style={[styles.badgeText, { color: "#FFB300" }]}>
+                {nameCooldown?.remainingDays} gün kaldı
+              </Text>
+            </View>
+          )}
+        </View>
+
         <TextInput
           style={[
             styles.textInput,
             {
-              backgroundColor: theme.unitBg,
-              color: theme.text,
+              backgroundColor: isNameLocked ? (isLight ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.03)") : theme.unitBg,
+              color: isNameLocked ? theme.textMuted : theme.text,
               borderColor: fieldBorder,
             },
             nameError && styles.inputError,
@@ -54,11 +77,49 @@ export function PersonalInfoForm({
           placeholder="Adınız..."
           placeholderTextColor={theme.textMuted}
           maxLength={50}
+          editable={!isNameLocked && !loading}
         />
+
+        {/* İsim Bilgilendirme Notu */}
+        <View style={styles.hintContainer}>
+          {isNameLocked ? (
+            <View style={styles.hintRow}>
+              <Clock size={12} color={theme.textMuted} />
+              <Text style={[styles.hintText, { color: theme.textMuted }]}>
+                İsim 30 günde bir değiştirilebilir. Sonraki değişiklik için {nameCooldown?.remainingDays} gün beklemeniz gerekmektedir.
+              </Text>
+            </View>
+          ) : nameCooldown?.isInitialFreeRight ? (
+            <View style={styles.hintRow}>
+              <Sparkles size={12} color={theme.accent} />
+              <Text style={[styles.hintText, { color: theme.accent }]}>
+                1 ücretsiz değişiklik hakkınız hazır (Değişiklikten sonra 30 gün cooldown başlar).
+              </Text>
+            </View>
+          ) : (
+            <Text style={[styles.hintText, { color: theme.textMuted }]}>
+              İsim her 30 günde bir kez değiştirilebilir.
+            </Text>
+          )}
+        </View>
       </View>
 
+      {/* 2. Cinsiyet Tercihi */}
       <View style={profileSharedStyles.inputGroup}>
-        <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>CİNSİYET TERCİHİ</Text>
+        <View style={styles.labelRow}>
+          <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>
+            CİNSİYET TERCİHİ
+          </Text>
+          {isGenderLocked && (
+            <View style={[styles.badge, { backgroundColor: "rgba(255, 179, 0, 0.12)", borderColor: "rgba(255, 179, 0, 0.3)" }]}>
+              <Lock size={11} color="#FFB300" />
+              <Text style={[styles.badgeText, { color: "#FFB300" }]}>
+                {genderCooldown?.remainingDays} gün kaldı
+              </Text>
+            </View>
+          )}
+        </View>
+
         <View style={styles.genderSelectRow}>
           {(["female", "male"] as const).map((g) => {
             const isSelected = gender === g;
@@ -67,11 +128,13 @@ export function PersonalInfoForm({
                 key={g}
                 onPress={() => onSelectGender(g)}
                 activeOpacity={0.8}
+                disabled={isGenderLocked || loading}
                 style={[
                   styles.genderBtn,
                   {
                     backgroundColor: theme.unitBg,
                     borderColor: fieldBorder,
+                    opacity: isGenderLocked && !isSelected ? 0.45 : 1,
                   },
                   isSelected && {
                     borderColor: theme.accent,
@@ -94,12 +157,40 @@ export function PersonalInfoForm({
             );
           })}
         </View>
+
+        {/* Cinsiyet Bilgilendirme Notu */}
+        <View style={styles.hintContainer}>
+          {isGenderLocked ? (
+            <View style={styles.hintRow}>
+              <Clock size={12} color={theme.textMuted} />
+              <Text style={[styles.hintText, { color: theme.textMuted }]}>
+                Cinsiyet tercihi 90 günde bir değiştirilebilir. Kalan süre: {genderCooldown?.remainingDays} gün.
+              </Text>
+            </View>
+          ) : genderCooldown?.isInitialFreeRight ? (
+            <View style={styles.hintRow}>
+              <Sparkles size={12} color={theme.accent} />
+              <Text style={[styles.hintText, { color: theme.accent }]}>
+                1 ücretsiz düzeltme hakkınız hazır (Değişiklikten sonra 90 gün cooldown başlar).
+              </Text>
+            </View>
+          ) : (
+            <Text style={[styles.hintText, { color: theme.textMuted }]}>
+              Cinsiyet tercihi her 90 günde bir değiştirilebilir.
+            </Text>
+          )}
+        </View>
       </View>
 
+      {/* Kaydet Butonu */}
       <TouchableOpacity
-        style={[profileSharedStyles.actionSaveBtn, { backgroundColor: theme.accent }]}
+        style={[
+          profileSharedStyles.actionSaveBtn,
+          { backgroundColor: theme.accent },
+          (!hasChanges || (isNameLocked && isGenderLocked)) && { opacity: 0.5 },
+        ]}
         onPress={onSave}
-        disabled={loading}
+        disabled={loading || !hasChanges || (isNameLocked && isGenderLocked)}
         activeOpacity={0.88}
       >
         {loading ? (
@@ -113,6 +204,25 @@ export function PersonalInfoForm({
 }
 
 const styles = StyleSheet.create({
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+  },
   textInput: {
     borderRadius: 14,
     borderWidth: 1,
@@ -146,5 +256,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Inter_600SemiBold",
     color: "rgba(255,255,255,0.6)",
+  },
+  hintContainer: {
+    marginTop: 6,
+  },
+  hintRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 6,
+  },
+  hintText: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 16,
+    flex: 1,
   },
 });
