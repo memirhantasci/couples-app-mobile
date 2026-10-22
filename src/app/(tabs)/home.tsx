@@ -457,10 +457,14 @@ export default function HomeScreen() {
                   style={[styles.greetingText, { color: theme.text, flexShrink: 1 }]}
                   numberOfLines={1}
                   ellipsizeMode="tail"
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.75}
                 >
                   {greeting.text}, {name}
                 </Text>
-                <Text style={[styles.greetingEmoji, { flexShrink: 0 }]}>{greeting.emoji}</Text>
+                {greeting.emoji ? (
+                  <Text style={[styles.greetingEmoji, { flexShrink: 0 }]}>{greeting.emoji}</Text>
+                ) : null}
               </View>
               <View style={styles.dateBadgeRow}>
                 <Calendar size={13} color={theme.textMuted} />
@@ -761,10 +765,10 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   greetingText: {
-    fontSize: 24,
+    fontSize: 20,
     fontFamily: "Inter_700Bold",
     color: "#ffffff",
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
   },
   greetingEmoji: {
     fontSize: 22,

@@ -31,6 +31,7 @@ import {
   ActivityIndicator,
   Platform,
   StatusBar,
+  BackHandler,
   type LayoutChangeEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -88,6 +89,7 @@ import { ConnectionRequestBadge } from './ConnectionRequestBadge';
 import { SectorHUD } from './SectorHUD';
 import { SectorAtlasModal } from './SectorAtlasModal';
 import { SearchStarModal } from './SearchStarModal';
+import { SKY_SECTORS } from '../config/skySectors.data';
 import { MicroStarHeader } from './micro/MicroStarHeader';
 import { MicroSystemDock } from './micro/MicroSystemDock';
 import { PremiumPaywall } from '@/components/ui/PremiumPaywall';
@@ -260,14 +262,35 @@ export const OurStarScreen: React.FC = () => {
     info: StarBrightnessInfo;
   } | null>(null);
 
-  // Güvenli Geri Dönüş Fonksiyonu (Navigation Stack boşsa ana ekrana döner)
+  // Güvenli Geri Dönüş Fonksiyonu: Yıldızın içindeyse gök kubbeye döner; gök kubbedeyse ana ekrana döner
   const handleBack = useCallback(() => {
+    if (viewMode === 'micro') {
+      setViewMode('macro');
+      setSelectedMacroStar(null);
+      setHighlightPlanetId(null);
+      return;
+    }
     if (router.canGoBack()) {
       router.back();
     } else {
       router.replace('/(tabs)/home');
     }
-  }, [router]);
+  }, [viewMode, router]);
+
+  // Android donanım geri tuşu: Yıldızın içindeyse gök kubbeye döner
+  useEffect(() => {
+    const onBackPress = () => {
+      if (viewMode === 'micro') {
+        setViewMode('macro');
+        setSelectedMacroStar(null);
+        setHighlightPlanetId(null);
+        return true;
+      }
+      return false;
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => sub.remove();
+  }, [viewMode]);
 
   // Realtime & Rezonans State
   const [luminosityOverride, setLuminosityOverride] = useState<number | undefined>(undefined);
@@ -450,7 +473,6 @@ export const OurStarScreen: React.FC = () => {
         if (!details) {
           setStarDetails(null);
           setViewMode('macro');
-          setIsClaimModalOpen(true);
           return;
         }
 
@@ -1501,7 +1523,7 @@ export const OurStarScreen: React.FC = () => {
             starDetails !== null && !showHomeRadar && { justifyContent: 'flex-end' },
           ]}
         >
-          {/* YILDIZI OLMAYAN KULLANICI İÇİN: REHBER KART & KOZMİK TARAMA ALTERNATİFİ */}
+          {/* YILDIZI OLMAYAN KULLANICI İÇİN: GÖK KUBBE REHBER KARTI */}
           {starDetails === null && (
             <View
               style={[
@@ -1517,34 +1539,13 @@ export const OurStarScreen: React.FC = () => {
                   <Sparkles size={16} color="#FBBF24" />
                 </View>
                 <Text style={[styles.onboardingGuideTitle, { color: theme.text }]}>
-                  Aşkınızın Yıldızını Seçin
+                  Aşkınızın Yıldızını Seçin ✨
                 </Text>
               </View>
 
-              <Text style={[styles.onboardingGuideSubtitle, { color: theme.textSecondary }]}>
-                Gökyüzündeki boş bir yıldıza dokunarak çiftinizin yıldızını seçebilir veya Kozmik Tarama ile otomatik bulabilirsiniz.
+              <Text style={[styles.onboardingGuideSubtitle, { color: theme.textSecondary, marginBottom: 0 }]}>
+                Gökyüzünde özgürce gezinin; aşkınıza layık boşta parıldayan bir yıldıza dokunup "Bu Yıldızı Seç" ile çiftinize tescil edin.
               </Text>
-
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={() => {
-                  setClaimTargetStar(null);
-                  setClaimSectorId(null);
-                  setIsClaimModalOpen(true);
-                }}
-                style={styles.onboardingRadarBtn}
-                accessibilityLabel="Kozmik Tarama ile Otomatik Bul"
-              >
-                <LinearGradient
-                  colors={['#0284C7', '#4F46E5']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.radarLaunchGradient}
-                >
-                  <Radio size={15} color="#FFFFFF" />
-                  <Text style={styles.radarLaunchBtnText}>Kozmik Tarama ile Otomatik Bul ✨</Text>
-                </LinearGradient>
-              </TouchableOpacity>
             </View>
           )}
 
@@ -1692,9 +1693,16 @@ export const OurStarScreen: React.FC = () => {
         }}
         onClaimFromSector={(sectorId) => {
           if (!coupleId || isDemoMode) return;
-          setClaimSectorId(sectorId);
-          setClaimTargetStar(null);
-          setIsClaimModalOpen(true);
+          const sec = SKY_SECTORS[sectorId];
+          if (sec) {
+            setFlyToTarget({
+              centerRa: sec.center.ra,
+              centerDec: sec.center.dec,
+              zoom: 1.8,
+            });
+            setViewMode('macro');
+            showToast(`${sec.name} sektörüne yönlendirildiniz. Boş bir yıldıza dokunarak seçebilirsiniz ✨`);
+          }
         }}
       />
       {/* ─── ARAMA MODAL'I ────────────────────────────────────────────── */}

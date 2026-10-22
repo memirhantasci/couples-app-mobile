@@ -79,7 +79,7 @@ export function getDayPeriod(hour: number): DayPeriod {
 const PERIOD_GREETING: Record<DayPeriod, { text: string; emoji: string }> = {
   morning: { text: "Günaydın", emoji: "☀️" },
   afternoon: { text: "Tünaydın", emoji: "🌸" },
-  evening: { text: "İyi Akşamlar", emoji: "🌆" },
+  evening: { text: "İyi Akşamlar", emoji: "" },
   night: { text: "Tatlı Rüyalar", emoji: "🌙" },
 };
 
