@@ -16,7 +16,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AlertCircle, ArrowRight, Sparkles, User as UserIcon } from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { encryptStatic } from "@/utils/crypto";
 
 type Gender = "male" | "female";
 
@@ -69,10 +68,10 @@ export default function CompleteProfileScreen() {
     setIsSaving(true);
     setError("");
     try {
-      // Klasik kayıttaki gibi statik anahtarla şifrele: oturum anahtarı eşleşmeyle değişse de isim çözülebilir kalır
+      // Görünen isim düz metin saklanır (RLS ile yalnızca kişi ve partneri okur)
       const { data, error: updateError } = await supabase
         .from("users")
-        .update({ display_name: encryptStatic(trimmedName), gender })
+        .update({ display_name: trimmedName, gender })
         .eq("id", userId)
         .select("id");
 

@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { BlurView } from "expo-blur";
-import { Image } from "expo-image";
+import { StorageImage } from "@/components/common/StorageImage";
 import {
   Calendar,
   Camera,
@@ -113,7 +113,7 @@ function PhotoDetail({
           activeOpacity={0.85}
           style={styles.photoThumbContainer}
         >
-          <Image source={{ uri: photo.image_url }} style={styles.photoDetailThumb} contentFit="cover" />
+          <StorageImage bucket="photos" path={photo.thumb_path || photo.storage_path} style={styles.photoDetailThumb} contentFit="cover" />
           <View style={styles.zoomIconBadge}>
             <ZoomIn size={12} color="#fff" />
           </View>

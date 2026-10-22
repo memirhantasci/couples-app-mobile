@@ -42,7 +42,7 @@ export function useMapData({ coupleId, isPremium, isDemoMode }: UseMapDataArgs) 
       if (isDemoMode) {
         return DEMO_PHOTOS.map((p) => ({
           id: p.id,
-          image_url: p.image_url,
+          storage_path: p.storage_path,
           latitude: p.latitude!,
           longitude: p.longitude!,
           location_name: p.city || "Özel Konum",
@@ -55,7 +55,7 @@ export function useMapData({ coupleId, isPremium, isDemoMode }: UseMapDataArgs) 
       const { data, error } = await supabase
         .from("photo_archive")
         .select(
-          "id, image_url, thumb_url, latitude, longitude, location_name, taken_date, title, description, user_id",
+          "id, storage_path, thumb_path, latitude, longitude, location_name, taken_date, title, description, user_id",
         )
         .eq("couple_id", coupleId)
         .not("latitude", "is", null)

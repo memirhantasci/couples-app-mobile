@@ -6,7 +6,7 @@ import { Platform } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { logger } from "@/utils/logger";
-import { decrypt, deterministicDecrypt } from "@/utils/crypto";
+import { decrypt } from "@/utils/crypto";
 import dayjs from "dayjs";
 
 /**
@@ -205,8 +205,8 @@ export function configureAndroidNotificationChannel() {
 }
 
 /**
- * Herhangi bir metin içinde bulunabilecek şifreli verileri (enc:... veya det:...)
- * tespit edip otomatik olarak deşifre eder.
+ * Herhangi bir metin içinde bulunabilecek şifreli içerikleri ("enc:...") tespit edip
+ * çiftin anahtarıyla çözer; çözülemeyenleri siler.
  * Kesinlikle hiçbir bildirimde şifreli veri gitmemesini garanti eder.
  */
 export function cleanNotificationText(text: string | null | undefined): string {
@@ -214,36 +214,12 @@ export function cleanNotificationText(text: string | null | undefined): string {
 
   let result = String(text);
 
-  // 1. Dinamik AES Şifreleme: "enc:IV_HEX:CIPHERTEXT_HEX"
-  result = result.replace(/enc:[a-fA-F0-9]+:[a-fA-F0-9]+/g, (match) => {
-    try {
-      const dec = decrypt(match);
-      if (dec && !dec.startsWith("enc:")) {
-        return dec;
-      }
-      return "";
-    } catch {
-      return "";
-    }
-  });
+  // 1. "enc:IV_HEX:CIPHERTEXT_HEX" (decrypt çözülemeyen metin için "" döner)
+  result = result.replace(/enc:[a-fA-F0-9]+:[a-fA-F0-9]+/g, (match) => decrypt(match));
 
-  // 2. Deterministik AES Şifreleme: "det:CIPHERTEXT_HEX"
-  result = result.replace(/det:[a-fA-F0-9]+/g, (match) => {
-    try {
-      const dec = deterministicDecrypt(match);
-      if (dec && !dec.startsWith("det:")) {
-        return dec;
-      }
-      return "";
-    } catch {
-      return "";
-    }
-  });
-
-  // 3. Güvenlik ağı: veritabanından gelen, yukarıdaki iki standart kalıba tam uymayan
-  // (örn. kesilmiş/bozuk IV-cipher çifti ya da ileride eklenebilecek başka bir şifreleme öneki)
-  // "enc:" / "det:" ile başlayan artık parçalar da bildirime çıplak şifreli metin olarak sızmasın.
-  result = result.replace(/\b(?:enc|det):\S*/g, "");
+  // 2. Güvenlik ağı: yukarıdaki kalıba tam uymayan (örn. kesilmiş/bozuk IV-cipher çifti)
+  // "enc:" ile başlayan artık parçalar da bildirime çıplak şifreli metin olarak sızmasın.
+  result = result.replace(/\benc:\S*/g, "");
 
   return result.replace(/\s+/g, " ").trim();
 }
@@ -261,7 +237,7 @@ function truncate(text: string, max: number): string {
 /**
  * Push `data` yükündeki tüm metin değerlerini cleanNotificationText'ten geçirir.
  * Uygulama içi kart (metadata) ve bildirime dokununca açılan ekranlar bu yükü okur;
- * ham "enc:..." / "det:..." değerlerinin oraya da sızmaması için savunma amaçlıdır.
+ * ham "enc:..." değerlerinin oraya da sızmaması için savunma amaçlıdır.
  */
 function cleanPayloadData(data: Record<string, unknown> | undefined): Record<string, unknown> {
   const result: Record<string, unknown> = {};

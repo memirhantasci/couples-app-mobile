@@ -2,17 +2,26 @@ const CryptoJS = require('crypto-js');
 import * as ExpoCrypto from 'expo-crypto';
 import { logger } from '@/utils/logger';
 
-// Sabit şifreleme anahtarı (EXPO_PUBLIC_ENCRYPTION_KEY ile scryptSync türevi)
-// scryptSync("super-secret-encryption-key-for-couples-app", "salt", 32)
-const KEY_HEX = "3586ea4b5cd90cdb13366ae400da5f29463a257598515ca486615356de7283c3";
-// MD5(KEY) ile türetilen sabit IV
-const STATIC_IV_HEX = "02febf2c962068a78e99631707c8ef9d";
+/**
+ * Çifte özel içeriklerin (mektup içeriği, günlük notu) simetrik şifrelenmesi.
+ *
+ * Kodda ya da diskte hiçbir anahtar durmaz. Anahtar, oturum açıkken yalnızca çiftin üyelerinin
+ * (RLS ile) okuyabildiği `couples.encryption_salt` ve çift kimliğinden bellekte türetilir; oturum
+ * kapanınca silinir. Yeni bir cihazda e-posta ve şifreyle giriş yapmak aynı anahtarı yeniden
+ * ürettiği için kurtarma kelimesi gerekmez, eski içerikler kayıpsız çözülür.
+ *
+ * Kullanıcı adı ve görünen isim gibi profil alanları şifrelenmez (RLS ile korunur).
+ *
+ * Format: "enc:IV_HEX:CIPHERTEXT_HEX" — AES-256-CBC, her şifrelemede rastgele IV.
+ */
 
-const key = CryptoJS.enc.Hex.parse(KEY_HEX);
-const staticIv = CryptoJS.enc.Hex.parse(STATIC_IV_HEX);
+const ENC_PREFIX = "enc:";
+const KEY_DERIVATION_ITERATIONS = 1000;
 
-// Uygulama çalışma zamanında çifte özel türetilen dinamik oturum anahtarı
-let sessionKey: any = null;
+let coupleKey: any = null;
+// Aynı çift için profil her yenilendiğinde PBKDF2'yi ve çözme önbelleğini boşa harcamamak için
+let coupleKeyFingerprint: string | null = null;
+const keyListeners = new Set<() => void>();
 
 // crypto-js saf JS olduğu için Hermes'te yavaş (mektup/günlük başına onlarca ms). Aynı şifreli metin
 // sorgu yenilemelerinde, ekranlar arası geçişlerde ve her render'da tekrar tekrar çözülüyordu;
@@ -29,40 +38,66 @@ function rememberDecrypted(cipherText: string, plain: string) {
   decryptCache.set(cipherText, plain);
 }
 
-export function setSessionEncryptionKey(userId: string, coupleId: number | null, salt: string | null) {
-  decryptCache.clear();
-  try {
-    if (coupleId && salt) {
-      // Çifte özel anahtar türetimi (256-bit)
-      sessionKey = CryptoJS.PBKDF2(coupleId.toString(), salt, { keySize: 256 / 32, iterations: 1000 });
-      logger.info(`Session encryption key set for couple ${coupleId}`);
-    } else {
-      // Çifti olmayan kullanıcılar için kendi ID'si üzerinden fallback anahtar
-      sessionKey = CryptoJS.PBKDF2(userId, "solo-fallback-salt", { keySize: 256 / 32, iterations: 1000 });
-      logger.info(`Session encryption key set for solo user`);
-    }
-  } catch (err) {
-    logger.error("Failed to set session encryption key:", err);
-    sessionKey = null;
+function notifyKeyChange() {
+  keyListeners.forEach((listener) => listener());
+}
+
+/** Anahtar hazır değilken şifreleme yapılmaz: içerik asla düz metin olarak yazılmamalı. */
+export class EncryptionKeyUnavailableError extends Error {
+  constructor() {
+    super("Şifreleme anahtarı henüz hazır değil. Lütfen birkaç saniye sonra tekrar dene.");
+    this.name = "EncryptionKeyUnavailableError";
   }
 }
 
 /**
- * Dinamik IV ile rastgele şifreleme (Her seferinde farklı IV)
- * Format: "enc:IV_HEX:CIPHERTEXT_HEX"
+ * Çiftin anahtarını bellekte türetir. Çifti olmayan (eşleşme bekleyen) kullanıcıda anahtar yoktur;
+ * şifreli içerik yazan ekranlar yalnızca eşleşmiş kullanıcılara açıktır.
+ * Anahtar değiştiyse true döner.
  */
-export function encrypt(text: string): string {
-  return encryptWithKey(text, sessionKey || key);
+export function setCoupleEncryptionKey(coupleId: number | null, salt: string | null): boolean {
+  if (!coupleId || !salt) return clearEncryptionKey();
+
+  const fingerprint = CryptoJS.SHA256(`${coupleId}:${salt}`).toString(CryptoJS.enc.Hex);
+  if (fingerprint === coupleKeyFingerprint) return false;
+
+  try {
+    coupleKey = CryptoJS.PBKDF2(String(coupleId), salt, {
+      keySize: 256 / 32,
+      iterations: KEY_DERIVATION_ITERATIONS,
+      hasher: CryptoJS.algo.SHA256,
+    });
+    coupleKeyFingerprint = fingerprint;
+  } catch (err) {
+    logger.error("Failed to derive couple encryption key:", err);
+    coupleKey = null;
+    coupleKeyFingerprint = null;
+  }
+  decryptCache.clear();
+  notifyKeyChange();
+  return true;
 }
 
-/**
- * Oturum anahtarından bağımsız, sabit anahtarla şifreler (format `encrypt` ile aynı).
- * Kullanıcının kendi profil alanları (display_name) için: bu alanlar çift anahtarı
- * değişse bile (eşleşme sonrası) decrypt()'in statik anahtar fallback'iyle çözülebilmeli.
- * Klasik kayıt formu da oturum yokken tam olarak bu anahtarla şifreler.
- */
-export function encryptStatic(text: string): string {
-  return encryptWithKey(text, key);
+/** Oturum kapanınca anahtarı ve çözülmüş içerik önbelleğini bellekten siler. Anahtar vardıysa true döner. */
+export function clearEncryptionKey(): boolean {
+  const hadKey = coupleKey !== null;
+  coupleKey = null;
+  coupleKeyFingerprint = null;
+  decryptCache.clear();
+  if (hadKey) notifyKeyChange();
+  return hadKey;
+}
+
+export function hasEncryptionKey(): boolean {
+  return coupleKey !== null;
+}
+
+/** Anahtar türetildiğinde, değiştiğinde ya da silindiğinde haber verir. */
+export function onEncryptionKeyChange(listener: () => void): () => void {
+  keyListeners.add(listener);
+  return () => {
+    keyListeners.delete(listener);
+  };
 }
 
 /**
@@ -84,146 +119,56 @@ function getRandomBytesWordArray(byteCount: number) {
   return CryptoJS.lib.WordArray.create(words, byteCount);
 }
 
-function encryptWithKey(text: string, activeKey: any): string {
+/**
+ * Çiftin anahtarıyla, her seferinde farklı IV ile şifreler.
+ * Anahtar yoksa EncryptionKeyUnavailableError fırlatır.
+ */
+export function encrypt(text: string): string {
   if (!text) return text;
-  try {
-    const iv = getRandomBytesWordArray(16);
-    const encrypted = CryptoJS.AES.encrypt(text, activeKey, {
-      iv: iv,
-      mode: CryptoJS.mode.CBC,
-      padding: CryptoJS.pad.Pkcs7,
-    });
-    
-    return `enc:${iv.toString(CryptoJS.enc.Hex)}:${encrypted.ciphertext.toString(CryptoJS.enc.Hex)}`;
-  } catch (err) {
-    logger.error("Encryption error:", err);
-    return text;
-  }
+  if (!coupleKey) throw new EncryptionKeyUnavailableError();
+
+  const iv = getRandomBytesWordArray(16);
+  const encrypted = CryptoJS.AES.encrypt(text, coupleKey, {
+    iv: iv,
+    mode: CryptoJS.mode.CBC,
+    padding: CryptoJS.pad.Pkcs7,
+  });
+  return `${ENC_PREFIX}${iv.toString(CryptoJS.enc.Hex)}:${encrypted.ciphertext.toString(CryptoJS.enc.Hex)}`;
 }
 
 /**
- * Dinamik IV ile şifrelenmiş metni çözme (aynı şifreli metin için sonuç önbellekten gelir)
+ * Şifreli metni çözer (aynı şifreli metin için sonuç önbellekten gelir). Şifresiz metni olduğu
+ * gibi döner; çözülemeyen metin (anahtar yok ya da başka çiftin anahtarı) için "" döner —
+ * şifreli metin hiçbir zaman ekrana çıkmaz.
  */
 export function decrypt(text: string): string {
-  if (!text || !text.startsWith("enc:")) return decryptUncached(text);
+  if (!text) return "";
+  if (!text.startsWith(ENC_PREFIX)) return text;
   const cached = decryptCache.get(text);
   if (cached !== undefined) return cached;
-  const plain = decryptUncached(text);
+  if (!coupleKey) return "";
+  const plain = decryptWithKey(text, coupleKey);
   rememberDecrypted(text, plain);
   return plain;
 }
 
-function decryptUncached(text: string): string {
-  if (!text) return "";
+function decryptWithKey(text: string, key: any): string {
+  const parts = text.split(":");
+  if (parts.length !== 3) return "";
   try {
-    // Deterministik şifrelenmişse doğrudan deterministik çözücüye yönlendir
-    if (text.startsWith("det:")) {
-      return deterministicDecrypt(text);
-    }
-
-    if (!text.startsWith("enc:")) return text; // Şifrelenmemiş düz metin
-
-    const parts = text.split(":");
-    if (parts.length !== 3) return "";
-
-    const iv = CryptoJS.enc.Hex.parse(parts[1]);
-    const ciphertext = CryptoJS.enc.Hex.parse(parts[2]);
-
-    // 1. Önce aktif anahtarla (varsa sessionKey, yoksa statik key) dene
-    const primaryKey = sessionKey || key;
-    let decryptedText = "";
-
-    try {
-      const decrypted = CryptoJS.AES.decrypt(
-        // @ts-ignore
-        { ciphertext: ciphertext },
-        primaryKey,
-        {
-          iv: iv,
-          mode: CryptoJS.mode.CBC,
-          padding: CryptoJS.pad.Pkcs7,
-        }
-      );
-      decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
-    } catch (_) {}
-
-    // 2. Eğer sessionKey kullanıldıysa ve çözüm başarısız olduysa, statik key ile fallback yap
-    if (!decryptedText && sessionKey) {
-      try {
-        const fallbackDecrypted = CryptoJS.AES.decrypt(
-          // @ts-ignore
-          { ciphertext: ciphertext },
-          key,
-          {
-            iv: iv,
-            mode: CryptoJS.mode.CBC,
-            padding: CryptoJS.pad.Pkcs7,
-          }
-        );
-        decryptedText = fallbackDecrypted.toString(CryptoJS.enc.Utf8);
-      } catch (_) {}
-    }
-
-    return decryptedText;
-  } catch (err) {
-    logger.error("Decryption error:", err);
-    return "";
-  }
-}
-
-/**
- * Deterministik şifreleme (Aynı metin her zaman aynı şifreli çıktıyı verir)
- * Kullanıcı adı, e-posta gibi veritabanında tam eşleşme aranacak alanlar için kullanılır.
- * Format: "det:CIPHERTEXT_HEX"
- */
-export function deterministicEncrypt(text: string): string {
-  if (!text) return text;
-  try {
-    const encrypted = CryptoJS.AES.encrypt(text, key, {
-      iv: staticIv,
-      mode: CryptoJS.mode.CBC,
-      padding: CryptoJS.pad.Pkcs7,
-    });
-
-    return `det:${encrypted.ciphertext.toString(CryptoJS.enc.Hex)}`;
-  } catch (err) {
-    logger.error("Deterministic encryption error:", err);
-    return text;
-  }
-}
-
-/**
- * Deterministik şifrelenmiş metni çözme
- */
-export function deterministicDecrypt(text: string): string {
-  if (!text) return "";
-  if (!text.startsWith("det:")) return text;
-  const cached = decryptCache.get(text);
-  if (cached !== undefined) return cached;
-  const plain = deterministicDecryptUncached(text);
-  // Hata durumunda fonksiyon şifreli metni aynen döndürür; bu başarı sayılmaz, önbelleğe alınmaz
-  if (plain !== text) rememberDecrypted(text, plain);
-  return plain;
-}
-
-function deterministicDecryptUncached(text: string): string {
-  try {
-    const ciphertext = CryptoJS.enc.Hex.parse(text.substring(4));
-
     const decrypted = CryptoJS.AES.decrypt(
       // @ts-ignore
-      { ciphertext: ciphertext },
+      { ciphertext: CryptoJS.enc.Hex.parse(parts[2]) },
       key,
       {
-        iv: staticIv,
+        iv: CryptoJS.enc.Hex.parse(parts[1]),
         mode: CryptoJS.mode.CBC,
         padding: CryptoJS.pad.Pkcs7,
       }
     );
-
     return decrypted.toString(CryptoJS.enc.Utf8);
-  } catch (err) {
-    logger.error("Deterministic decryption error:", err);
-    return text;
+  } catch {
+    // Yanlış anahtar geçersiz UTF-8 üretir; bu bir hata değil, çözülemeyen içeriktir
+    return "";
   }
 }

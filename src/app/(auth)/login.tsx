@@ -17,7 +17,8 @@ import { supabase } from "@/lib/supabase";
 import { navigateAfterAuth } from "@/lib/navigate";
 import { registerForPushNotifications } from "@/lib/notifications";
 import { useAuth, DEVICE_AUTH_CACHE_KEY } from "@/context/AuthContext";
-import { encrypt, decrypt, deterministicEncrypt } from "@/utils/crypto";
+import { signInWithUsername } from "@/lib/authGateway";
+import { isValidUsername, normalizeUsername, USERNAME_MAX_LENGTH } from "@/lib/username";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { logger } from "@/utils/logger";
 import { 
@@ -37,6 +38,9 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 WebBrowser.maybeCompleteAuthSession();
+
+// users.check_display_name_length ile aynı sınır
+const DISPLAY_NAME_MAX_LENGTH = 50;
 
 // ─── Social Auth Helpers ─────────────────────────────────────────────────────
 
@@ -234,6 +238,16 @@ export default function LoginScreen() {
     setSuccessMsg("");
   }
 
+  function showEmailNotConfirmed(email: string) {
+    setErrorMsg("E-posta adresiniz henüz doğrulanmamış.");
+    setTimeout(() => {
+      router.push({
+        pathname: "/(auth)/verify",
+        params: { email },
+      });
+    }, 1500);
+  }
+
   function handleEnterDemo() {
     enterDemoMode();
     router.replace("/(tabs)/home");
@@ -257,70 +271,48 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
-      let emailToUse = loginUsername.trim();
-      const isEmail = emailToUse.includes("@");
+      const identifier = loginUsername.trim();
+      const password = loginPassword.trim();
+      let signedInUser: SupabaseUser;
 
-      if (!isEmail) {
-        const plainUsername = emailToUse.toLowerCase();
-        const encryptedUsername = deterministicEncrypt(plainUsername);
-        
-        let { data: emailData, error: rpcError } = await supabase.rpc(
-          "get_email_by_username",
-          { p_username: encryptedUsername }
-        );
-
-        // Fallback for older test accounts that were registered before encryption was added
-        if (!emailData && !rpcError) {
-          const { data: fallbackData } = await supabase.rpc(
-            "get_email_by_username",
-            { p_username: plainUsername }
-          );
-          if (fallbackData) {
-            emailData = fallbackData;
-          }
-        }
-
-        if (rpcError || !emailData) {
+      if (identifier.includes("@")) {
+        const email = identifier.toLowerCase();
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error || !data.user) {
           registerFailedAttempt();
-          setErrorMsg("Bu kullanıcı adı bulunamadı.");
-          setIsLoading(false);
+          if (error?.message.includes("Email not confirmed")) {
+            showEmailNotConfirmed(email);
+          } else {
+            setErrorMsg("E-posta veya şifre hatalı.");
+          }
           return;
         }
-
-        emailToUse = emailData;
-      }
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: emailToUse,
-        password: loginPassword.trim(),
-      });
-
-      if (error) {
-        registerFailedAttempt();
-        if (error.message.includes("Email not confirmed")) {
-          setErrorMsg("E-posta adresiniz henüz doğrulanmamış.");
-          setTimeout(() => {
-            router.push({
-              pathname: "/(auth)/verify",
-              params: { email: emailToUse },
-            });
-          }, 1500);
-        } else {
-          setErrorMsg("E-posta veya şifre hatalı.");
+        signedInUser = data.user;
+      } else {
+        // Kullanıcı adının e-postası istemciye gelmez: şifre sunucuda doğrulanır, oturum döner
+        const result = await signInWithUsername(normalizeUsername(identifier), password);
+        if (!result.ok) {
+          if (result.code === "too_many_requests") {
+            setErrorMsg("Çok fazla deneme yapıldı. Lütfen birkaç dakika sonra tekrar dene.");
+          } else if (result.code === "unavailable") {
+            setErrorMsg("Giriş şu anda yapılamıyor. Bağlantını kontrol edip tekrar dene.");
+          } else {
+            registerFailedAttempt();
+            if (result.code === "email_not_confirmed" && result.email) {
+              showEmailNotConfirmed(result.email);
+            } else {
+              setErrorMsg("Kullanıcı adı veya şifre hatalı.");
+            }
+          }
+          return;
         }
-        setIsLoading(false);
-        return;
+        signedInUser = result.user;
       }
 
-      if (!data.user) {
-        registerFailedAttempt();
-        setErrorMsg("Giriş başarısız.");
-        setIsLoading(false);
-        return;
-      }
+      const emailToUse = signedInUser.email ?? "";
 
       // --- Device Verification ---
-      const userId = data.user.id;
+      const userId = signedInUser.id;
       const deviceId = await getOrCreateDeviceId();
 
       const { data: auths, error: authError } = await supabase
@@ -414,7 +406,7 @@ export default function LoginScreen() {
         relationshipStartDate: couple?.relationship_start_date ?? null,
         isPaired: !!userData?.couple_id,
         hasDates: !!couple?.relationship_start_date || (await isDatesSkipped(userId)),
-        displayName: userData?.display_name ? decrypt(userData.display_name) : null,
+        displayName: userData?.display_name ?? null,
       });
     } catch (e: any) {
       setErrorMsg("Beklenmedik bir hata oluştu.");
@@ -426,16 +418,23 @@ export default function LoginScreen() {
   async function handleRegister() {
     clearErrors();
 
-    if (!regDisplayName.trim()) {
+    const displayName = regDisplayName.trim();
+    const username = normalizeUsername(regUsername);
+
+    if (!displayName) {
       setErrorMsg("Görünen isim gerekli.");
       return;
     }
-    if (!regUsername.trim() || regUsername.length < 3) {
+    if (displayName.length > DISPLAY_NAME_MAX_LENGTH) {
+      setErrorMsg(`Görünen isim en fazla ${DISPLAY_NAME_MAX_LENGTH} karakter olabilir.`);
+      return;
+    }
+    if (username.length < 3) {
       setErrorMsg("Kullanıcı adı en az 3 karakter olmalı.");
       return;
     }
-    if (!/^[a-zA-Z0-9_]+$/.test(regUsername)) {
-      setErrorMsg("Kullanıcı adı sadece harf, rakam ve _ içerebilir.");
+    if (!isValidUsername(username)) {
+      setErrorMsg("Kullanıcı adı yalnızca a-z harfleri, rakam ve _ içerebilir.");
       return;
     }
     if (!regEmail.trim() || !regEmail.includes("@")) {
@@ -449,29 +448,33 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
-      const encryptedUsername = deterministicEncrypt(regUsername.trim().toLowerCase());
+      // Kayıt öncesi oturum yok; users tablosu RLS ile kapalı olduğundan uygunluk sunucuda sorulur
+      const { data: isAvailable, error: availabilityError } = await supabase.rpc("is_username_available", {
+        p_username: username,
+      });
 
-      const { data: existing } = await supabase
-        .from("users")
-        .select("id")
-        .eq("username", encryptedUsername)
-        .maybeSingle();
-
-      if (existing) {
+      if (availabilityError) {
+        setErrorMsg(
+          availabilityError.message.includes("TOO_MANY_REQUESTS")
+            ? "Çok fazla deneme yapıldı. Lütfen birkaç dakika sonra tekrar dene."
+            : "Kullanıcı adı kontrol edilemedi. Lütfen tekrar dene."
+        );
+        return;
+      }
+      if (!isAvailable) {
         setErrorMsg("Bu kullanıcı adı zaten alınmış.");
-        setIsLoading(false);
         return;
       }
 
-      const encryptedDisplayName = encrypt(regDisplayName.trim());
-      
+      // Kullanıcı adı ve görünen isim düz metin saklanır (RLS ile korunur); profil satırını
+      // handle_new_user tetikleyicisi oluşturur
       const { data, error } = await supabase.auth.signUp({
         email: regEmail.trim().toLowerCase(),
         password: regPassword.trim(),
         options: {
           data: {
-            username: encryptedUsername,
-            display_name: encryptedDisplayName,
+            username,
+            display_name: displayName,
             gender: regGender,
           }
         }
@@ -480,10 +483,12 @@ export default function LoginScreen() {
       if (error) {
         if (error.message.includes("already registered")) {
           setErrorMsg("Bu e-posta zaten kayıtlı.");
+        } else if (error.message.includes("Database error saving new user")) {
+          // Uygunluk kontrolüyle kayıt arasında aynı kullanıcı adı başkasınca alındı
+          setErrorMsg("Bu kullanıcı adı az önce alındı. Lütfen başka bir kullanıcı adı dene.");
         } else {
           setErrorMsg(error.message);
         }
-        setIsLoading(false);
         return;
       }
 
@@ -926,6 +931,7 @@ export default function LoginScreen() {
                   <TextInput
                     value={regDisplayName}
                     onChangeText={setRegDisplayName}
+                    maxLength={DISPLAY_NAME_MAX_LENGTH}
                     placeholder="Örn. Selin Yılmaz"
                     placeholderTextColor="rgba(255,255,255,0.25)"
                     selectionColor={activeAccent}
@@ -944,6 +950,7 @@ export default function LoginScreen() {
                   <TextInput
                     value={regUsername}
                     onChangeText={setRegUsername}
+                    maxLength={USERNAME_MAX_LENGTH}
                     placeholder="seliny"
                     placeholderTextColor="rgba(255,255,255,0.25)"
                     autoCapitalize="none"

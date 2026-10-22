@@ -12,55 +12,43 @@ import {
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { supabase } from "@/lib/supabase";
-import { deterministicEncrypt } from "@/utils/crypto";
+import { requestPasswordReset } from "@/lib/authGateway";
+import { normalizeUsername } from "@/lib/username";
 import { ArrowLeft, Lock } from "lucide-react-native";
 
 export default function ForgotPasswordScreen() {
-  const [username, setUsername] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
   async function handleSend() {
     setErrorMsg("");
-    if (!username.trim()) {
-      setErrorMsg("Lütfen kullanıcı adınızı girin.");
+    const value = identifier.trim();
+    if (!value) {
+      setErrorMsg("Lütfen kullanıcı adınızı ya da e-posta adresinizi girin.");
       return;
     }
 
     setIsLoading(true);
     try {
-      const encryptedUsername = deterministicEncrypt(username.trim().toLowerCase());
+      const normalized = value.includes("@") ? value.toLowerCase() : normalizeUsername(value);
 
-      // Server-side RPC: looks the username up, rate-limits by IP and
-      // stores only a bcrypt hash of the OTP (see reset_password_with_otp,
-      // which is the one that actually updates the Supabase Auth password).
-      const { data, error } = await supabase.rpc("request_password_reset_otp", {
-        p_username: encryptedUsername,
-      });
+      // Kod Supabase Auth'un kurtarma e-postasıyla hesabın kayıtlı adresine gider; istemciye ne kod
+      // ne e-posta döner, yanıt hesabın var olup olmadığını da belli etmez
+      const result = await requestPasswordReset(normalized);
 
-      if (error || !data || data.length === 0) {
-        if (error?.message?.includes("TOO_MANY_REQUESTS")) {
-          setErrorMsg("Çok fazla deneme yapıldı. Lütfen birkaç dakika sonra tekrar deneyin.");
-        } else {
-          setErrorMsg("Bu kullanıcı adına sahip bir hesap bulunamadı.");
-        }
-        setIsLoading(false);
+      if (!result.ok) {
+        setErrorMsg(
+          result.code === "too_many_requests"
+            ? "Çok fazla deneme yapıldı. Lütfen birkaç dakika sonra tekrar deneyin."
+            : "Kod gönderilemedi. Bağlantını kontrol edip tekrar dene."
+        );
         return;
       }
 
-      const { result_user_id: userId, result_otp: otpCode } = data[0];
-
-      // Henüz gerçek SMS/e-posta gönderimi yok; geliştirme sürecinde kodu
-      // konsola da basıyoruz.
-      console.log("-----------------------------------------");
-      console.log("🔑 OTP CODE (PASSWORD RESET):", otpCode);
-      console.log("-----------------------------------------");
-
-      // Go to reset password screen with userId
       router.push({
         pathname: "/(auth)/reset-password",
-        params: { userId: String(userId) }
+        params: { identifier: normalized },
       });
     } catch (e) {
       setErrorMsg("Beklenmedik bir hata oluştu.");
@@ -140,7 +128,7 @@ export default function ForgotPasswordScreen() {
               paddingHorizontal: 8,
             }}
           >
-            Endişelenme, sana yardımcı olacağız. E-posta adresini girerek başlayabilirsin.
+            Endişelenme, sana yardımcı olacağız. Kullanıcı adını ya da e-posta adresini girerek başlayabilirsin.
           </Text>
 
           {/* Input */}
@@ -152,12 +140,12 @@ export default function ForgotPasswordScreen() {
               marginLeft: 2,
             }}
           >
-            Kullanıcı Adı
+            Kullanıcı Adı veya E-posta
           </Text>
           <TextInput
-            value={username}
-            onChangeText={setUsername}
-            placeholder="ornek@kullanici.com"
+            value={identifier}
+            onChangeText={setIdentifier}
+            placeholder="kullaniciadi veya ornek@mail.com"
             placeholderTextColor="rgba(255,255,255,0.25)"
             autoCapitalize="none"
             autoCorrect={false}

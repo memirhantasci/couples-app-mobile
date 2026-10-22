@@ -9,6 +9,8 @@ import * as ImagePicker from "expo-image-picker";
 import { useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { removeStoredFiles, seedStorageImage } from "@/lib/storageImages";
+import { StorageImage } from "@/components/common/StorageImage";
 import { useQueryClient } from "@tanstack/react-query";
 import { logger } from "@/utils/logger";
 import { decode } from "base64-arraybuffer";
@@ -53,7 +55,8 @@ export default function AddMemoryScreen() {
   const [title, setTitle] = useState(params.title as string || "");
   const [date, setDate] = useState(params.date as string || todayString());
   const [description, setDescription] = useState(params.description as string || "");
-  const [imageUrl, setImageUrl] = useState(params.image_url as string || "");
+  // "memories" bucket'ındaki mevcut fotoğrafın yolu (düzenlemede)
+  const [imagePath, setImagePath] = useState(params.image_path as string || "");
   const [localImage, setLocalImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({ title: false, date: false });
@@ -68,7 +71,7 @@ export default function AddMemoryScreen() {
         setTitle("");
         setDate(todayString());
         setDescription("");
-        setImageUrl("");
+        setImagePath("");
         setLocalImage(null);
         setErrors({ title: false, date: false });
         setLoading(false);
@@ -125,8 +128,10 @@ export default function AddMemoryScreen() {
 
     setLoading(true);
 
+    // Yeni seçilen fotoğrafın yüklendiği yol: kayıt başarısız olursa geri silinir
+    let uploadedPath: string | null = null;
     try {
-      let finalImageUrl = imageUrl;
+      let finalImagePath = imagePath || null;
 
       // Upload image if a new one was selected
       if (localImage && localImage.base64) {
@@ -153,11 +158,9 @@ export default function AddMemoryScreen() {
 
         if (uploadError) throw uploadError;
 
-        const { data: publicUrlData } = supabase.storage
-          .from("memories")
-          .getPublicUrl(filePath);
-
-        finalImageUrl = publicUrlData.publicUrl;
+        // Bucket private: kayda URL değil yol yazılır, görüntülerken imzalanır
+        uploadedPath = filePath;
+        finalImagePath = filePath;
       }
 
       // Save to database
@@ -171,7 +174,7 @@ export default function AddMemoryScreen() {
             date: date,
             title: cleanTitle,
             description: cleanDescription,
-            image_url: finalImageUrl || null,
+            image_path: finalImagePath,
           })
           .eq("id", Number(params.id));
         error = res.error;
@@ -180,7 +183,7 @@ export default function AddMemoryScreen() {
           date: date,
           title: cleanTitle,
           description: cleanDescription,
-          image_url: finalImageUrl || null,
+          image_path: finalImagePath,
           is_default: false,
         };
         if (coupleId) payload.couple_id = coupleId;
@@ -189,6 +192,17 @@ export default function AddMemoryScreen() {
       }
 
       if (error) throw error;
+
+      if (uploadedPath && localImage) {
+        // Yeni fotoğraf ağdan yeniden inmeden cihazdaki kopyasından açılsın
+        seedStorageImage("memories", uploadedPath, localImage.uri);
+        // Düzenlemede değiştirilen eski fotoğraf depoda sahipsiz kalmasın
+        if (imagePath && imagePath !== uploadedPath) {
+          removeStoredFiles("memories", [imagePath]).catch(() => {});
+        }
+      }
+      // Kayıt artık bu dosyayı gösteriyor: sonraki adımlarda hata olsa da dosya silinmemeli
+      uploadedPath = null;
 
       queryClient.invalidateQueries({ queryKey: ["memories"] });
 
@@ -216,6 +230,7 @@ export default function AddMemoryScreen() {
       router.replace("/(tabs)/memories");
     } catch (error: any) {
       logger.error("Memory save error:", error);
+      if (uploadedPath) removeStoredFiles("memories", [uploadedPath]).catch(() => {});
       appAlert("Hata", "Anı kaydedilirken bir hata oluştu.");
     } finally {
       setLoading(false);
@@ -320,8 +335,8 @@ export default function AddMemoryScreen() {
             <TouchableOpacity style={[styles.imagePicker, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder, borderWidth: 1 }]} onPress={pickImage}>
               {localImage ? (
                 <Image source={{ uri: localImage.uri }} style={styles.previewImg} contentFit="cover" />
-              ) : imageUrl ? (
-                <Image source={{ uri: imageUrl }} style={styles.previewImg} contentFit="cover" />
+              ) : imagePath ? (
+                <StorageImage bucket="memories" path={imagePath} style={styles.previewImg} contentFit="cover" />
               ) : (
                 <View style={styles.imagePlaceholder}>
                   <ImagePlus color={theme.textMuted} size={32} />

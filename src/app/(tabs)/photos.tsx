@@ -20,6 +20,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { supabase } from "@/lib/supabase";
+import { deleteArchivedPhoto } from "@/lib/photoArchive";
 import { useAuth } from "@/context/AuthContext";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
@@ -83,7 +84,7 @@ export default function PhotosScreen() {
       const asc = sortOrder === "asc";
       const { data, error } = await supabase
         .from("photo_archive")
-        .select("id, image_url, thumb_url, taken_date, taken_time, title, description, user_id, created_at, storage_path")
+        .select("id, storage_path, thumb_path, taken_date, taken_time, title, description, user_id, created_at")
         .eq("couple_id", coupleId)
         .order("taken_date", { ascending: asc })
         .order("created_at", { ascending: asc })
@@ -145,32 +146,18 @@ export default function PhotosScreen() {
         text: "Sil",
         style: "destructive",
         onPress: async () => {
+          if (!userId) return;
           if (currentPhoto?.id === id) {
             setSelectedIndex(null);
           }
-          // 1. Önce Storage'dan dosyaları sil (ana görsel + küçük resim orphan temizliği)
-          if (photoToDelete?.storage_path) {
-            const filesToRemove: string[] = [photoToDelete.storage_path];
-            if (photoToDelete.thumb_url) {
-              const urlParts = photoToDelete.thumb_url.split("/photos/");
-              if (urlParts.length > 1) {
-                filesToRemove.push(decodeURIComponent(urlParts[1]));
-              }
-            }
-            await supabase.storage.from("photos").remove(filesToRemove).catch(() => {});
-          }
-          // 2. Sonra veritabanı kaydını sil (hem id hem user_id doğrulaması ile)
-          let query = supabase.from("photo_archive").delete().eq("id", id);
-          if (userId) {
-            query = query.eq("user_id", userId);
-          }
-          const { error } = await query;
-          if (error) {
-            appAlert("Hata", "Fotoğraf silinirken bir hata oluştu.");
-          } else {
+          // Önce kayıt (yalnızca yükleyen), sonra depodaki dosyalar (tam boy + küçük resim)
+          try {
+            await deleteArchivedPhoto(photoToDelete, userId);
             queryClient.invalidateQueries({ queryKey: ["photo_archive", coupleId] });
             queryClient.invalidateQueries({ queryKey: ["map_photos", coupleId] });
             queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
+          } catch {
+            appAlert("Hata", "Fotoğraf silinirken bir hata oluştu.");
           }
         }
       }

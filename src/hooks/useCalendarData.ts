@@ -1,7 +1,6 @@
 import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { dayjs, todayString } from "@/lib/date";
-import { decrypt } from "@/utils/crypto";
 import { PERIOD_DURATION_DAYS } from "@/lib/periodCycle";
 import {
   DEMO_CALENDAR_NOTES,
@@ -45,7 +44,7 @@ export async function fetchCalendarData(params: CalendarFetchParams) {
       photos: DEMO_PHOTOS.map((p) => ({
         id: p.id,
         user_id: p.user_id,
-        image_url: p.image_url,
+        storage_path: p.storage_path,
         title: p.title,
         description: p.description,
         taken_date: p.taken_date,
@@ -108,7 +107,7 @@ export async function fetchCalendarData(params: CalendarFetchParams) {
     isPremium
       ? supabase
           .from("photo_archive")
-          .select("id, user_id, image_url, title, description, taken_date, taken_time")
+          .select("id, user_id, storage_path, title, description, taken_date, taken_time")
           .eq("couple_id", coupleId)
           .gte("taken_date", startDate)
           .lte("taken_date", endDate)
@@ -136,10 +135,7 @@ export async function fetchCalendarData(params: CalendarFetchParams) {
   ]);
 
   const userMap = (usersRes.data || []).reduce((acc: any, u: any) => {
-    acc[u.id] = {
-      ...u,
-      display_name: u.display_name ? decrypt(u.display_name) : null,
-    };
+    acc[u.id] = u;
     return acc;
   }, {});
 
@@ -154,8 +150,6 @@ export async function fetchCalendarData(params: CalendarFetchParams) {
     })),
     photos: (photosRes.data || []).map((p: any) => ({
       ...p,
-      title: p.title ? decrypt(p.title) : null,
-      description: p.description ? decrypt(p.description) : null,
       uploader: userMap[p.user_id],
     })),
     meetings: (meetingsRes.data || []).map((m: any) => ({

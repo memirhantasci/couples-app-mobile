@@ -1,6 +1,5 @@
 import { safeStorage } from "@/lib/safeStorage";
 import { supabase } from "@/lib/supabase";
-import { decrypt, deterministicDecrypt } from "@/utils/crypto";
 import { logger } from "@/utils/logger";
 
 // ─── Yeni Gelen Mektup Algılama ──────────────────────────────────────────────
@@ -106,10 +105,7 @@ export async function fetchArrivedLetters(
         .select("display_name, username")
         .eq("id", newest.sender_id)
         .maybeSingle();
-      if (sender?.display_name) senderName = decrypt(sender.display_name) || null;
-      if (!senderName && sender?.username) {
-        senderName = deterministicDecrypt(sender.username) || sender.username;
-      }
+      senderName = sender?.display_name || sender?.username || null;
     } catch {
       senderName = null;
     }

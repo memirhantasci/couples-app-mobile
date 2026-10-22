@@ -4,16 +4,12 @@
  * @description Bir yıldızı tescillerken, çiftin iki üyesinin baş harflerini
  * (ör. "A 💕 M") hesaplar.
  *
- * `users.display_name` / `users.username` istemci tarafında AES ile
- * şifrelenir (bkz. src/utils/crypto.ts) ve veritabanı bu alanları çözemez.
- * Bu yüzden baş harfler yalnızca KENDİ çiftinin satırlarını okuyabilen
- * istemci tarafından hesaplanır (aynı desen: src/app/(tabs)/home.tsx), tam
- * isim değil yalnızca 1 harf gönderilir — diğer çiftlere karşı mahremiyet
- * korunur.
+ * Baş harfler yalnızca KENDİ çiftinin satırlarını okuyabilen istemci
+ * tarafından hesaplanır (aynı desen: src/app/(tabs)/home.tsx), tam isim değil
+ * yalnızca 1 harf gönderilir — diğer çiftlere karşı mahremiyet korunur.
  */
 
 import { supabase } from '@/lib/supabase';
-import { decrypt, deterministicDecrypt } from '@/utils/crypto';
 
 interface CoupleUserRow {
   readonly id: string;
@@ -44,14 +40,7 @@ export async function computeOwnCoupleInitials(coupleId: number): Promise<string
     if (error || !data || data.length === 0) return null;
 
     const initials = (data as CoupleUserRow[])
-      .map((row) => {
-        const name = row.display_name
-          ? decrypt(row.display_name)
-          : row.username
-          ? deterministicDecrypt(row.username)
-          : null;
-        return initialOf(name);
-      })
+      .map((row) => initialOf(row.display_name || row.username))
       .filter((value): value is string => Boolean(value));
 
     if (initials.length === 0) return null;

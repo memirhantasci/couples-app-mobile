@@ -46,6 +46,7 @@ import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 import { useMapData } from "@/hooks/useMapData";
 import { usePageTour } from "@/hooks/usePageTour";
 import { notifyPartner } from "@/lib/notifications";
+import { deleteArchivedPhoto } from "@/lib/photoArchive";
 import { playStampDrop } from "@/lib/soundEffects";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/context/ThemeContext";
@@ -252,17 +253,16 @@ export default function MapScreen() {
           text: "Sil",
           style: "destructive",
           onPress: async () => {
-            let query = supabase.from("photo_archive").delete().eq("id", photo.id);
-            if (userId) {
-              query = query.eq("user_id", userId);
-            }
-            const { error } = await query;
-            if (error) {
-              appAlert("Hata", "Fotoğraf silinirken bir hata oluştu.");
-            } else {
+            if (!userId) return;
+            // Önce kayıt (yalnızca yükleyen), sonra depodaki dosyalar (tam boy + küçük resim)
+            try {
+              await deleteArchivedPhoto(photo, userId);
               queryClient.invalidateQueries({ queryKey: ["map_photos", coupleId] });
               queryClient.invalidateQueries({ queryKey: ["photo_archive", coupleId] });
+              queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
               setSelectedItem(null);
+            } catch {
+              appAlert("Hata", "Fotoğraf silinirken bir hata oluştu.");
             }
           },
         },

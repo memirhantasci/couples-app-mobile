@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 import { BlurView } from "expo-blur";
-import { Image } from "expo-image";
+import { StorageImage } from "@/components/common/StorageImage";
 import { Navigation, X } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRealTopInset } from "@/hooks/useRealTopInset";
@@ -53,7 +53,7 @@ export function MapPhotoLightbox({ photo, accent, onClose }: MapPhotoLightboxPro
           </View>
 
           <View style={styles.lightboxImageWrapper}>
-            <Image source={{ uri: photo.image_url }} style={styles.lightboxImage} contentFit="contain" />
+            <StorageImage bucket="photos" path={photo.storage_path} style={styles.lightboxImage} contentFit="contain" />
           </View>
 
           <View style={[styles.lightboxFooter, { paddingBottom: insets.bottom + 16 }]}>

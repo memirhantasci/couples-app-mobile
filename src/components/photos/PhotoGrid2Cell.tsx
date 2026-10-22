@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from "react-native";
-import { Image } from "expo-image";
+import { StorageImage } from "@/components/common/StorageImage";
 import { Maximize2 } from "lucide-react-native";
 import { dayjs } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
@@ -29,8 +29,9 @@ function PhotoGrid2CellBase({ item, index, theme, onPress }: PhotoGrid2CellProps
       ]}
     >
       <View style={styles.grid2ImgContainer}>
-        <Image
-          source={{ uri: item.thumb_url ?? item.image_url }}
+        <StorageImage
+          bucket="photos"
+          path={item.thumb_path ?? item.storage_path}
           style={styles.grid2Img}
           contentFit="cover"
           cachePolicy="memory-disk"

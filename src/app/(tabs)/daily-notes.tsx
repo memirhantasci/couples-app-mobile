@@ -46,16 +46,11 @@ interface DailyNote {
   content: string;
 }
 
-// Şifreli içeriği çözüp ekranda gösterilecek düz metne çevirir (çözme sonuçları önbellekli)
+// Şifreli içeriği çözüp ekranda gösterilecek düz metne çevirir (çözme sonuçları önbellekli).
+// Çözülemeyen içerik boş kalır: şifreli metin ekrana çıkmaz.
 const cleanContentText = (stored: string) => {
   if (!stored) return "";
-  let raw = stored;
-  try {
-    raw = decrypt(stored) || stored;
-  } catch {
-    raw = stored;
-  }
-  return raw
+  return decrypt(stored)
     .replace(/^\[Mod:\s*.*?\]\n?/, "")
     .replace(/^#\s*.*?\n\n?/, "")
     .trim();

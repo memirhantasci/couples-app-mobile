@@ -17,7 +17,6 @@ import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { setGlobalActiveTheme, type AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
-import { encrypt, decrypt } from "@/utils/crypto";
 import { sanitizeStrict } from "@/utils/sanitize";
 import { toast } from "@/lib/toast";
 import { getCooldownStatus } from "@/lib/cooldown";
@@ -150,17 +149,7 @@ export default function ProfileScreen() {
         .single();
 
       if (userData) {
-        let cleanName = profile?.displayName;
-        if (!cleanName && userData.display_name) {
-          const dec = decrypt(userData.display_name);
-          if (dec && !dec.startsWith("enc:") && !dec.startsWith("det:")) {
-            cleanName = dec;
-          }
-        }
-        if (!cleanName && userData.display_name && !userData.display_name.startsWith("enc:") && !userData.display_name.startsWith("det:")) {
-          cleanName = userData.display_name;
-        }
-        const loadedName = cleanName || profile?.username || "";
+        const loadedName = profile?.displayName || userData.display_name || profile?.username || "";
         const loadedGender = (userData.gender as "male" | "female") ?? "female";
 
         setDisplayName(loadedName);
@@ -285,7 +274,7 @@ export default function ProfileScreen() {
     const updatePayload: Record<string, any> = {};
 
     if (isNameChanged) {
-      updatePayload.display_name = encrypt(cleanDisplayName);
+      updatePayload.display_name = cleanDisplayName;
       updatePayload.name_last_changed_at = nowIso;
     }
     if (isGenderChanged) {

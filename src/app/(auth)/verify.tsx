@@ -18,7 +18,6 @@ import { toast } from "@/lib/toast";
 import { navigateAfterAuth } from "@/lib/navigate";
 import { registerForPushNotifications } from "@/lib/notifications";
 import { ArrowLeft, Mail } from "lucide-react-native";
-import { decrypt } from "@/utils/crypto";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { getOrCreateDeviceId } from "@/utils/device";
 import { isDatesSkipped } from "@/lib/datesSkip";
@@ -226,7 +225,7 @@ export default function VerifyScreen() {
       relationshipStartDate: couple?.relationship_start_date ?? null,
       isPaired: !!userData?.couple_id,
       hasDates: !!couple?.relationship_start_date || (await isDatesSkipped(userId)),
-      displayName: userData?.display_name ? decrypt(userData.display_name) : null,
+      displayName: userData?.display_name ?? null,
     });
   }
 

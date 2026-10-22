@@ -54,7 +54,14 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
       setSubmitting(false);
       return;
     }
-    const encryptedContent = encrypt(cleanContent);
+    let encryptedContent: string;
+    try {
+      encryptedContent = encrypt(cleanContent);
+    } catch (err) {
+      setSubmitting(false);
+      toast.error(err instanceof Error ? err.message : "Bilinmeyen hata", { title: "Not kaydedilemedi" });
+      return;
+    }
 
     const { error } = await supabase.rpc("save_daily_note", {
       p_date: today,

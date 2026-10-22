@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from "react-native";
-import { Image } from "expo-image";
+import { StorageImage } from "@/components/common/StorageImage";
 import { X, Clock, Calendar as CalendarIcon } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRealTopInset } from "@/hooks/useRealTopInset";
@@ -55,8 +55,9 @@ export function CalendarPhotoLightbox({ photo, theme, getAuthorName, onClose }: 
         {/* Tam Ekran Fotoğraf */}
         <View style={styles.lightboxMainArea}>
           {photo && (
-            <Image
-              source={{ uri: photo.image_url }}
+            <StorageImage
+              bucket="photos"
+              path={photo.storage_path}
               style={styles.lightboxImg}
               contentFit="contain"
             />

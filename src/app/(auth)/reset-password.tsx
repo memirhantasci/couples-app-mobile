@@ -11,11 +11,11 @@ import {
 } from "react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useLocalSearchParams, router } from "expo-router";
-import { supabase } from "@/lib/supabase";
+import { resetPasswordWithCode } from "@/lib/authGateway";
 import { ArrowLeft } from "lucide-react-native";
 
 export default function ResetPasswordScreen() {
-  const params = useLocalSearchParams<{ userId?: string }>();
+  const params = useLocalSearchParams<{ identifier?: string }>();
   const [otpCode, setOtpCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -37,29 +37,27 @@ export default function ResetPasswordScreen() {
       setError("Şifreler eşleşmiyor.");
       return;
     }
+    if (!params.identifier) {
+      setError("Lütfen şifre sıfırlamayı baştan başlat.");
+      return;
+    }
 
     setIsLoading(true);
     try {
-      // Verifies the OTP server-side and updates the real Supabase Auth
-      // password (auth.users.encrypted_password) in one atomic RPC, so the
-      // new password actually works with auth.signInWithPassword afterwards.
-      const { error } = await supabase.rpc("reset_password_with_otp", {
-        p_user_id: params.userId,
-        p_otp: otpCode.trim(),
-        p_new_password: newPassword.trim(),
-      });
+      // Kod, Supabase Auth'un kurtarma e-postasıyla gelir; sunucu kodu doğrulayıp şifreyi günceller
+      // ve hesabın diğer oturumlarını kapatır (bkz. supabase/functions/auth-gateway)
+      const result = await resetPasswordWithCode(params.identifier, otpCode.trim(), newPassword.trim());
 
-      if (error) {
-        if (error.message.includes("EXPIRED_CODE")) {
-          setError("Bu kodun süresi dolmuş.");
-        } else if (error.message.includes("INVALID_CODE")) {
-          setError("Geçersiz kod.");
-        } else if (error.message.includes("WEAK_PASSWORD")) {
+      if (!result.ok) {
+        if (result.code === "invalid_code") {
+          setError("Kod geçersiz ya da süresi dolmuş.");
+        } else if (result.code === "weak_password") {
           setError("Şifreniz en az 6 karakter olmalı.");
+        } else if (result.code === "too_many_requests") {
+          setError("Çok fazla deneme yapıldı. Lütfen birkaç dakika sonra tekrar deneyin.");
         } else {
           setError("Şifre güncellenirken bir hata oluştu.");
         }
-        setIsLoading(false);
         return;
       }
 
@@ -154,7 +152,7 @@ export default function ResetPasswordScreen() {
             Yeni Şifre Belirle
           </Text>
           <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 15, lineHeight: 22, marginBottom: 32 }}>
-            Konsola (veya e-postana) gelen 6 haneli kodu ve yeni şifreni gir.
+            Bu bilgilerle bir hesap varsa kayıtlı e-postana bir doğrulama kodu gönderdik. Kodu ve yeni şifreni gir.
           </Text>
 
           <Text style={labelStyle}>Doğrulama Kodu</Text>

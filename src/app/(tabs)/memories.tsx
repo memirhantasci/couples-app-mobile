@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList } from "react-native";
 import { appAlert } from "@/lib/dialog";
-import { Image } from "expo-image";
+import { StorageImage } from "@/components/common/StorageImage";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { removeStoredFiles } from "@/lib/storageImages";
 import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs } from "@/lib/date";
 import { Plus, Trash2, Pencil, Menu, ChevronLeft, PlusCircle, AlignJustify } from "lucide-react-native";
@@ -147,7 +148,7 @@ export default function MemoriesScreen() {
       }
       const { data, error } = await supabase
         .from("memories")
-        .select("id, date, title, description, image_url, is_default")
+        .select("id, date, title, description, image_path, is_default")
         .eq("couple_id", coupleId)
         .order("date", { ascending: false })
         .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
@@ -182,9 +183,12 @@ export default function MemoriesScreen() {
           style: "destructive",
           onPress: async () => {
             setDeletingId(id);
+            const imagePath = (memories.find((m) => m.id === id) as { image_path?: string | null } | undefined)?.image_path;
             const { error } = await supabase.from("memories").delete().eq("id", id);
             setDeletingId(null);
             if (!error) {
+              // Kayıt silindikten sonra fotoğrafı depoda sahipsiz kalmasın
+              removeStoredFiles("memories", [imagePath]).catch(() => {});
               queryClient.invalidateQueries({ queryKey: ["memories"] });
             } else {
               appAlert("Hata", "Silinirken bir hata oluştu.");
@@ -223,7 +227,7 @@ export default function MemoriesScreen() {
         title: memory.title, 
         date: memory.date, 
         description: memory.description || "", 
-        image_url: memory.image_url || "" 
+        image_path: memory.image_path || ""
       }
     });
   };
@@ -301,9 +305,9 @@ export default function MemoriesScreen() {
             <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>{memory.description}</Text>
           ) : null}
 
-          {memory.image_url && (
+          {memory.image_path && (
             <View style={styles.imageBox}>
-              <Image source={{ uri: memory.image_url }} style={styles.image} contentFit="cover" />
+              <StorageImage bucket="memories" path={memory.image_path} style={styles.image} contentFit="cover" />
             </View>
           )}
         </View>

@@ -1,7 +1,8 @@
 export interface PhotoPin {
   id: number;
-  image_url: string;
-  thumb_url?: string | null;
+  /** "photos" bucket'ındaki yol (demo verisinde tam URL); StorageImage ile imzalanarak çizilir. */
+  storage_path: string;
+  thumb_path?: string | null;
   latitude: number;
   longitude: number;
   location_name?: string | null;

@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
 } from "react-native";
 import { Image } from "expo-image";
+import { StorageImage } from "@/components/common/StorageImage";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { LocaleConfig } from "react-native-calendars";
@@ -10,7 +11,6 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
-import { decrypt, deterministicDecrypt } from "@/utils/crypto";
 import { sanitize } from "@/utils/sanitize";
 import {
   ChevronLeft, AlignJustify,
@@ -321,19 +321,11 @@ export default function CalendarScreen() {
     if (!itemUserId) return "İsimsiz";
     if (itemUserId === userId) {
       const myUserObj = (data?.users as any[])?.find(u => u.id === userId);
-      let name = myUserObj?.display_name || myUserObj?.first_name || myUserObj?.full_name || profile?.displayName;
-      if (!name && myUserObj?.username) {
-        name = deterministicDecrypt(myUserObj.username) || myUserObj.username;
-      }
-      return name || "Sen";
+      return myUserObj?.display_name || profile?.displayName || myUserObj?.username || "Sen";
     }
 
     const partnerObj = (data?.users as any[])?.find(u => u.id !== userId);
-    let pName = partnerObj?.display_name || partnerObj?.first_name || partnerObj?.full_name;
-    if (!pName && partnerObj?.username) {
-      pName = deterministicDecrypt(partnerObj.username) || partnerObj.username;
-    }
-    return pName || "Sevgilin";
+    return partnerObj?.display_name || partnerObj?.username || "Sevgilin";
   }, [data?.users, userId, profile?.displayName]);
 
   // Premium'a özel profil fotoğrafları (premium bitince null → harf avatarı)
@@ -449,7 +441,7 @@ export default function CalendarScreen() {
                           onPress={() => setSelectedPhoto(photo)}
                         >
                           <View style={{ position: "relative" }}>
-                            <Image source={{ uri: photo.image_url }} style={styles.photoImg} contentFit="cover" />
+                            <StorageImage bucket="photos" path={photo.storage_path} style={styles.photoImg} contentFit="cover" />
                             <View style={styles.photoExpandBadge}>
                               <Maximize2 size={12} color="#ffffff" />
                             </View>

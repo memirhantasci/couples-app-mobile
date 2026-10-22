@@ -19,7 +19,6 @@ import { ArrowLeft, ShieldAlert, RefreshCw } from "lucide-react-native";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { navigateAfterAuth } from "@/lib/navigate";
 import { isDatesSkipped } from "@/lib/datesSkip";
-import { decrypt } from "@/utils/crypto";
 import { toast } from "@/lib/toast";
 
 const OTP_LENGTH = 6;
@@ -171,7 +170,7 @@ export default function VerifyDeviceScreen() {
         relationshipStartDate: couple?.relationship_start_date ?? null,
         isPaired: !!userData?.couple_id,
         hasDates: !!couple?.relationship_start_date || (await isDatesSkipped(userId)),
-        displayName: userData?.display_name ? decrypt(userData.display_name) : null,
+        displayName: userData?.display_name ?? null,
       });
     } catch (e: any) {
       setErrorMsg("Beklenmedik bir hata oluştu.");

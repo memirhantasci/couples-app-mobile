@@ -53,7 +53,7 @@ Bu belge, uygulamadaki bildirilen hataları, arayüz aksaklıklarını ve talep 
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **1.4** | Yıldızımızdaki "Kıvılcım" terimi ve UX anlatımı | `MicroStarHeader.tsx`, `StarSparkManager.ts` | 🟢 Kolay | Orta | Beklemede |
 | **2.6** | Yıldızımız ekranı alt panel buton karmaşıklığının giderilmesi | `OurStarScreen.tsx`, `MicroSystemDock.tsx` | 🟡 Orta | Orta | Beklemede |
-| **4.1** | Güvenli Kasa & Şifreleme Revizyonu (Private Storage & Vault Modeli) | `crypto.ts`, `photos.tsx`, `login.tsx`, Supabase | 🔴 Zor | Kritik | Mimari Hazırlandı |
+| **4.1** | Güvenli Kasa & Şifreleme Revizyonu (Private Storage & Vault Modeli) | `crypto.ts`, `photos.tsx`, `login.tsx`, Supabase | 🔴 Zor | Kritik | Kod tamamlandı — migration + `auth-gateway` dağıtımı bekliyor |
 
 
 kıvılcım kalkacak mı duracak mı karar ver 

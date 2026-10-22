@@ -23,7 +23,7 @@ import { supabase } from "@/lib/supabase";
 import { notifyPartner } from "@/lib/notifications";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
-import { encrypt, decrypt, deterministicDecrypt } from "@/utils/crypto";
+import { encrypt, decrypt } from "@/utils/crypto";
 import { 
   Lock, ChevronRight, LockKeyhole, Calendar as CalendarIcon, 
   X, AlignJustify, PenLine, Send, ChevronLeft, 
@@ -78,26 +78,11 @@ const isHiddenForMe = (letter: any): boolean =>
   isHiddenBy(letter, letter._type) &&
   !(letter._type === "received" && letterDeletionState(letter) === "pending");
 
-const safeDecrypt = (val: string | null | undefined): string => {
-  if (!val) return "";
-  try {
-    const dec = decrypt(val);
-    return dec || val;
-  } catch {
-    return val;
-  }
-};
+// Çözülemeyen içerik "" olur: şifreli metin kullanıcıya asla gösterilmez
+const safeDecrypt = (val: string | null | undefined): string => (val ? decrypt(val) : "");
 
-// Çözülemeyen şifreli değerler ("enc:" / "det:") kullanıcıya asla gösterilmemeli.
-const readableName = (val: string | null | undefined): string => {
-  if (!val) return "";
-  const trimmed = val.trim();
-  if (trimmed.startsWith("enc:") || trimmed.startsWith("det:")) {
-    const dec = decrypt(trimmed);
-    return dec && !dec.startsWith("enc:") && !dec.startsWith("det:") ? dec : "";
-  }
-  return trimmed;
-};
+// Kullanıcı adı ve görünen isim düz metin saklanır
+const readableName = (val: string | null | undefined): string => (val ?? "").trim();
 
 export default function LettersScreen() {
   const router = useRouter();
@@ -158,10 +143,7 @@ export default function LettersScreen() {
       ]);
 
       const userMap = (usersRes.data || []).reduce((acc: any, u: any) => {
-        acc[u.id] = {
-          ...u,
-          display_name: u.display_name ? safeDecrypt(u.display_name) : null,
-        };
+        acc[u.id] = u;
         return acc;
       }, {});
 
@@ -175,10 +157,7 @@ export default function LettersScreen() {
           // İçerik burada çözülmez: crypto-js saf JS olduğundan 30-60 mektubu birden çözmek ekranı
           // kilitliyordu. Çözme yalnızca ekranda görünen/açılan satır için render'da (önbellekli) yapılır.
           content: l.content,
-          sender: senderObj ? { 
-            ...senderObj, 
-            username: senderObj.username ? (deterministicDecrypt(senderObj.username) || senderObj.username) : "Sevgilin" 
-          } : null
+          sender: senderObj ? { ...senderObj, username: senderObj.username || "Sevgilin" } : null
         };
       });
 
@@ -188,10 +167,7 @@ export default function LettersScreen() {
           ...l,
           _type: "sent" as const,
           content: l.content,
-          receiver: receiverObj ? { 
-            ...receiverObj, 
-            username: receiverObj.username ? (deterministicDecrypt(receiverObj.username) || receiverObj.username) : "Sevgilin" 
-          } : null
+          receiver: receiverObj ? { ...receiverObj, username: receiverObj.username || "Sevgilin" } : null
         };
       });
 
@@ -214,11 +190,7 @@ export default function LettersScreen() {
         .select("id, username, display_name")
         .eq("role", "USER")
         .eq("couple_id", coupleId);
-      return (data || []).map(u => ({
-        ...u,
-        username: deterministicDecrypt(u.username) || u.username,
-        display_name: u.display_name ? decrypt(u.display_name) : null
-      })).filter(u => u.id !== userId && u.id !== Number(userId));
+      return (data || []).filter(u => u.id !== userId && u.id !== Number(userId));
     }
   });
 

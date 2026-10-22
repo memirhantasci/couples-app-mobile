@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { Image } from "expo-image";
+import { StorageImage } from "@/components/common/StorageImage";
 import { Heart } from "lucide-react-native";
 import { Marker } from "react-native-maps";
 
@@ -36,8 +36,9 @@ function PhotoMarkerPinBase({ photo, avatarUrl, onSelect }: PhotoMarkerPinProps)
     >
       <View style={styles.photoMarkerWrapper}>
         <View style={styles.photoPolaroidFrame}>
-          <Image
-            source={{ uri: photo.thumb_url || photo.image_url }}
+          <StorageImage
+            bucket="photos"
+            path={photo.thumb_path || photo.storage_path}
             style={styles.photoMarkerImg}
             contentFit="cover"
             cachePolicy="memory-disk"

@@ -15,7 +15,6 @@ import Animated, {
 import { ChevronRight, Mail } from "lucide-react-native";
 import { dayjs } from "@/lib/date";
 import { AppTheme } from "@/lib/theme";
-import { decrypt } from "@/utils/crypto";
 import { UserAvatar } from "@/components/avatar/UserAvatar";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 
@@ -33,19 +32,8 @@ export function getUpcomingLetters(letters: PendingLetter[] | null | undefined):
   return letters.filter((letter) => !dayjs(letter.unlock_date).isBefore(today, "day"));
 }
 
-// Çözülemeyen şifreli değerler ("enc:" / "det:") kullanıcıya asla gösterilmez.
-function readableName(val: string | null | undefined): string {
-  if (!val) return "";
-  const trimmed = val.trim();
-  if (trimmed.startsWith("enc:") || trimmed.startsWith("det:")) {
-    const dec = decrypt(trimmed);
-    return dec && !dec.startsWith("enc:") && !dec.startsWith("det:") ? dec : "";
-  }
-  return trimmed;
-}
-
 function senderLabel(letter: PendingLetter): string {
-  return readableName(letter.sender?.display_name) || readableName(letter.sender?.username) || "Sevgilin";
+  return letter.sender?.display_name?.trim() || letter.sender?.username?.trim() || "Sevgilin";
 }
 
 function daysLeftLabel(daysLeft: number): string {

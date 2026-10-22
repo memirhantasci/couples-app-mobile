@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Modal, StatusBar, StyleSheet } from "react-native";
-import { Image } from "expo-image";
+import { StorageImage } from "@/components/common/StorageImage";
 import { X, Trash2, Calendar, Clock, ChevronLeft, ChevronRight } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRealTopInset } from "@/hooks/useRealTopInset";
@@ -96,8 +96,9 @@ export function PhotoLightboxModal({
           ) : null}
 
           {currentPhoto && (
-            <Image
-              source={{ uri: currentPhoto.image_url }}
+            <StorageImage
+              bucket="photos"
+              path={currentPhoto.storage_path}
               style={styles.lightboxImg}
               contentFit="contain"
             />

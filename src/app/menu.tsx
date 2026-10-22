@@ -21,7 +21,6 @@ import {
 } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 
-import { decrypt, deterministicDecrypt } from "@/utils/crypto";
 import { dayjs, daysSince } from "@/lib/date";
 import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
@@ -136,15 +135,7 @@ export default function MenuScreen() {
         .neq("id", currentUserId)
         .maybeSingle();
 
-      if (data?.display_name) {
-        const dec = decrypt(data.display_name);
-        if (dec && !dec.startsWith("enc:")) return dec;
-      }
-      if (data?.username) {
-        const dec = deterministicDecrypt(data.username);
-        if (dec && !dec.startsWith("det:")) return dec;
-      }
-      return "Sevgilin";
+      return data?.display_name || data?.username || "Sevgilin";
     },
     staleTime: 1000 * 60 * 60,
   });

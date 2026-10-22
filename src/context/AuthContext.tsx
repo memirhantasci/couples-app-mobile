@@ -4,7 +4,8 @@ import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { RevenueCatService } from "@/lib/revenuecat";
 import React, { createContext, useCallback, useContext, useEffect, useEffectEvent, useState, useMemo, useRef } from "react";
-import { decrypt, deterministicDecrypt, setSessionEncryptionKey } from "@/utils/crypto";
+import { clearEncryptionKey, hasEncryptionKey, onEncryptionKeyChange, setCoupleEncryptionKey } from "@/utils/crypto";
+import { clearStorageImages } from "@/lib/storageImages";
 import { setAdLoggingOut } from "../utils/adFlags";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { getOrCreateDeviceId } from "@/utils/device";
@@ -42,7 +43,6 @@ export interface CoupleProfile {
   /** Retained so an open app can react exactly when a timed entitlement ends. */
   premiumExpiresAt?: string | null;
   tokenBalance: number;
-  encryptionSalt: string | null;
 }
 
 interface AuthContextValue {
@@ -109,8 +109,8 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
     .eq("id", userId)
     .single();
 
+  // Okuma başarısızsa mevcut anahtara dokunulmaz: geçici bir ağ hatası içerikleri çözülemez bırakmasın
   if (error || !user) {
-    setSessionEncryptionKey(userId, null, null);
     return {
       coupleId: null,
       meetDate: null,
@@ -123,23 +123,19 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
       isPremium: false,
       premiumExpiresAt: null,
       tokenBalance: 0,
-      encryptionSalt: null,
     };
   }
 
   // Handle both possible shapes from Supabase join (array or object depending on relation type)
   const coupleObj = Array.isArray(user.couples) ? user.couples[0] : user.couples;
   
-  // Set the dynamic encryption key for this session before any decryption
+  // Çift anahtarı yalnızca bellekte türetilir; salt profil önbelleğine (diske) yazılmaz
   const parsedCoupleId = user.couple_id ? parseInt(String(user.couple_id), 10) : null;
-  setSessionEncryptionKey(userId, parsedCoupleId, coupleObj?.encryption_salt ?? null);
+  setCoupleEncryptionKey(parsedCoupleId, coupleObj?.encryption_salt ?? null);
 
   // Premium durumunu kontrol et (süresi dolmuş mu?)
   const premiumExpiresAt = coupleObj?.premium_expires_at;
   const isPremiumActive = !!(coupleObj?.is_premium && (!premiumExpiresAt || new Date(premiumExpiresAt) > new Date()));
-
-  const decDisplayName = user.display_name ? decrypt(user.display_name) : null;
-  const decUsername = user.username ? deterministicDecrypt(user.username) : null;
 
   // Tanışma tarihi opsiyonel: sevgili olma tarihi yeterli ya da kullanıcı "Daha Sonra Belirle" demiş olmalı
   const datesSkipped = await isDatesSkipped(userId);
@@ -151,13 +147,12 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
     isPaired: !!(user.couple_id && coupleObj?.member_count >= 2),
     hasDates: !!coupleObj?.relationship_start_date || datesSkipped,
     needsProfileSetup: !user.gender,
-    displayName: decDisplayName || decUsername || null,
-    username: decUsername || null,
+    displayName: user.display_name || user.username || null,
+    username: user.username || null,
     gender: user.gender ?? null,
     isPremium: isPremiumActive,
     premiumExpiresAt: premiumExpiresAt ?? null,
     tokenBalance: user.token_balance ?? 0,
-    encryptionSalt: coupleObj?.encryption_salt ?? null,
   };
 }
 
@@ -220,7 +215,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(DEMO_PROFILE);
     setIsDeviceAuthorized(true);
     setIsLoading(false);
-    setSessionEncryptionKey(DEMO_SESSION.user.id, DEMO_PROFILE.coupleId, DEMO_PROFILE.encryptionSalt);
+    // Demo verisi şifresizdir; önceki bir oturumun anahtarı demoda kalmasın
+    clearEncryptionKey();
   }, []);
 
   const exitDemoMode = useCallback(() => {
@@ -230,7 +226,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
     setIsDeviceAuthorized(null);
     setIsLoading(false);
-    setSessionEncryptionKey("", null, null);
+    clearEncryptionKey();
   }, []);
 
   // Track whether initial session from getSession() has been processed
@@ -400,6 +396,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setSession(newSession);
       if (!newSession) {
+        // Oturum bitti: şifreleme anahtarı, çözülmüş içerikleri tutan sorgu önbelleği ve
+        // fotoğraf önbellekleri bellekten/diskten silinir
+        clearEncryptionKey();
+        queryClient.clear();
+        clearStorageImages().catch(() => {});
         setProfile(null);
         setIsDeviceAuthorized(null);
         profileFetchedForUser.current = null;
@@ -431,7 +432,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(rcTimer);
       subscription.unsubscribe();
     };
-  }, [checkDeviceAuth]);
+  }, [checkDeviceAuth, queryClient]);
+
+  // Anahtar ilk kez türetildiğinde ya da çift değiştiğinde, anahtar gelmeden çözülemeyip boş
+  // görünen içerikler (ör. girişten hemen sonra açılan ana sayfa) yeniden çekilir
+  useEffect(() => onEncryptionKeyChange(() => {
+    if (hasEncryptionKey()) queryClient.invalidateQueries();
+  }), [queryClient]);
 
   useEffect(() => {
     if (isDemoMode) return;

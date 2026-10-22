@@ -18,7 +18,6 @@ export const DEMO_PROFILE: CoupleProfile = {
   gender: "female",
   isPremium: true,
   tokenBalance: 350,
-  encryptionSalt: "demo-salt-123",
 };
 
 export const DEMO_SESSION = {
@@ -128,9 +127,10 @@ export const DEMO_LETTERS = [
 export const DEMO_PHOTOS = [
   // Güncel anılar: Aşk Haritası'nın açılış görünümü (İstanbul) ve takvimin bugünkü sayfası boş kalmasın diye
   // ilk açılışta görünen örnek fotoğraflar. En yeniden eskiye sıralıdır.
+  // storage_path burada tam URL'dir; StorageImage tam URL'leri imzalamadan gösterir.
   {
     id: 309,
-    image_url: "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=800&auto=format&fit=crop&q=80",
+    storage_path: "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=800&auto=format&fit=crop&q=80",
     title: "Galata'da Gün Batımı 🌇",
     description: "Simitlerimizi paylaşıp kulenin gölgesinde gün batımını izledik. Bütün şehir sanki sadece bizimdi.",
     taken_date: dayjs().format("YYYY-MM-DD"),
@@ -142,7 +142,7 @@ export const DEMO_PHOTOS = [
   },
   {
     id: 310,
-    image_url: "https://images.unsplash.com/photo-1474552226712-ac0f0961a954?w=800&auto=format&fit=crop&q=80",
+    storage_path: "https://images.unsplash.com/photo-1474552226712-ac0f0961a954?w=800&auto=format&fit=crop&q=80",
     title: "Moda Sahilinde Bisiklet Turu 🚲💕",
     description: "Elele tutuşup pedal çevirdiğimiz, gökyüzünün pembeye döndüğü o güzel akşam.",
     taken_date: dayjs().format("YYYY-MM-DD"),
@@ -154,7 +154,7 @@ export const DEMO_PHOTOS = [
   },
   {
     id: 311,
-    image_url: "https://images.unsplash.com/photo-1527838832700-5059252407fa?w=800&auto=format&fit=crop&q=80",
+    storage_path: "https://images.unsplash.com/photo-1527838832700-5059252407fa?w=800&auto=format&fit=crop&q=80",
     title: "Sultanahmet'te Mavi Saat 💜",
     description: "Minarelerin arkasında gökyüzü pembeye boyanırken sana sarıldığım an.",
     taken_date: dayjs().subtract(1, "day").format("YYYY-MM-DD"),
@@ -166,7 +166,7 @@ export const DEMO_PHOTOS = [
   },
   {
     id: 301,
-    image_url: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&auto=format&fit=crop&q=80",
+    storage_path: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&auto=format&fit=crop&q=80",
     title: "Paris'te Gün Batımı 🗼✨",
     description: "Eyfel Kulesi'nin ışıkları ilk kez yandığı o büyüleyici an... Sen ve Sen Nehri'nin serin esintisi.",
     taken_date: dayjs().subtract(180, "day").format("YYYY-MM-DD"),
@@ -178,7 +178,7 @@ export const DEMO_PHOTOS = [
   },
   {
     id: 302,
-    image_url: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800&auto=format&fit=crop&q=80",
+    storage_path: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800&auto=format&fit=crop&q=80",
     title: "Aşk Çeşmesi Dileğimiz ⛲🪙",
     description: "Gözlerimizi kapatıp Trevi Çeşmesi'ne bozuk para fırlatırken ikimizin de aynı dileği tuttuğuna emindim.",
     taken_date: dayjs().subtract(210, "day").format("YYYY-MM-DD"),
@@ -190,7 +190,7 @@ export const DEMO_PHOTOS = [
   },
   {
     id: 303,
-    image_url: "https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=800&auto=format&fit=crop&q=80",
+    storage_path: "https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=800&auto=format&fit=crop&q=80",
     title: "Kanallar Arası Bisiklet Turu 🚲🌷",
     description: "Sonbahar yaprakları kanallara dökülürken el ele kaybolduğumuz o huzur dolu öğleden sonra.",
     taken_date: dayjs().subtract(320, "day").format("YYYY-MM-DD"),
@@ -202,7 +202,7 @@ export const DEMO_PHOTOS = [
   },
   {
     id: 304,
-    image_url: "https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=800&auto=format&fit=crop&q=80",
+    storage_path: "https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=800&auto=format&fit=crop&q=80",
     title: "Belvedere Bahçeleri Valsı 🎻🏰",
     description: "Saray bahçesinde yankılanan keman ezgileri eşliğinde dans ettiğimiz masalsı gün.",
     taken_date: dayjs().subtract(410, "day").format("YYYY-MM-DD"),
@@ -214,7 +214,7 @@ export const DEMO_PHOTOS = [
   },
   {
     id: 305,
-    image_url: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=800&auto=format&fit=crop&q=80",
+    storage_path: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=800&auto=format&fit=crop&q=80",
     title: "Kapadokya Balon Turumuz 🎈🌅",
     description: "Sabahın ilk ışıklarında gökyüzüne yükselirken tuttuğumuz o dilek...",
     taken_date: dayjs().subtract(45, "day").format("YYYY-MM-DD"),
@@ -226,7 +226,7 @@ export const DEMO_PHOTOS = [
   },
   {
     id: 306,
-    image_url: "https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?w=800&auto=format&fit=crop&q=80",
+    storage_path: "https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?w=800&auto=format&fit=crop&q=80",
     title: "Kaputaş'ın Turkuaz Büyüsü 🌊🏖️",
     description: "Kanyondan inen o merdivenlerin sonunda karşılaştığımız sonsuz mavilik ve saçlarına vuran rüzgar.",
     taken_date: dayjs().subtract(90, "day").format("YYYY-MM-DD"),
@@ -238,7 +238,7 @@ export const DEMO_PHOTOS = [
   },
   {
     id: 307,
-    image_url: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&auto=format&fit=crop&q=80",
+    storage_path: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&auto=format&fit=crop&q=80",
     title: "Sisli Yayla Masalı 🌲⛰️",
     description: "Bulutların üzerinde salıncakta sallanırken içtiğimiz taze demlenmiş dağ çayının tadı hala damağımızda.",
     taken_date: dayjs().subtract(135, "day").format("YYYY-MM-DD"),
@@ -250,7 +250,7 @@ export const DEMO_PHOTOS = [
   },
   {
     id: 308,
-    image_url: "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=800&auto=format&fit=crop&q=80",
+    storage_path: "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=800&auto=format&fit=crop&q=80",
     title: "Şirince'nin Taş Sokakları 🍇🏡",
     description: "Zeytin ağaçları arasında, begonvillerin gölgesinde el yapımı meyve şerbetlerimizi yudumladığımız gün.",
     taken_date: dayjs().subtract(260, "day").format("YYYY-MM-DD"),

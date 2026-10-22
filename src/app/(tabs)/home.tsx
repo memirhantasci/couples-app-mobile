@@ -21,7 +21,7 @@ import {
 } from "@/lib/date";
 import { getQuoteForDay } from "@/lib/quotes";
 import { MEETING_CELEBRATION_MINUTES, pickActiveMeeting, nextMeetingBoundary } from "@/lib/activeMeeting";
-import { decrypt, deterministicDecrypt } from "@/utils/crypto";
+import { decrypt } from "@/utils/crypto";
 import { computeLoveScore, getCachedLoveScore, getCachedLoveScoreSync, LoveScoreResult } from "@/lib/loveScore";
 import { scheduleDateLocalNotification, cancelLocalNotification } from "@/lib/notifications";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -203,10 +203,7 @@ export default function HomeScreen() {
       ]);
 
       const userMap = (usersRes.data || []).reduce((acc: any, u: any) => {
-        acc[u.id] = {
-          ...u,
-          display_name: u.display_name ? decrypt(u.display_name) : null,
-        };
+        acc[u.id] = u;
         return acc;
       }, {});
 
@@ -214,8 +211,8 @@ export default function HomeScreen() {
       const partner = rawPartner ? {
         id: rawPartner.id,
         gender: rawPartner.gender,
-        display_name: rawPartner.display_name ? decrypt(rawPartner.display_name) : null,
-        username: rawPartner.username ? (deterministicDecrypt(rawPartner.username) || rawPartner.username) : "",
+        display_name: rawPartner.display_name ?? null,
+        username: rawPartner.username ?? "",
       } : null;
 
       return {
@@ -225,20 +222,10 @@ export default function HomeScreen() {
         // Hangi buluşmanın kartta görüneceği render anında seçilir (zaman geçtikçe değişebilir)
         meetings: (meetingRes.data ?? []) as any[],
         partner,
-        pendingLetters: (lettersRes.data || []).map((l: any) => {
-          const senderObj = userMap[l.sender_id];
-          return {
-            ...l,
-            sender: senderObj
-              ? {
-                ...senderObj,
-                username: senderObj.username
-                  ? deterministicDecrypt(senderObj.username) || senderObj.username
-                  : "",
-              }
-              : undefined,
-          };
-        }),
+        pendingLetters: (lettersRes.data || []).map((l: any) => ({
+          ...l,
+          sender: userMap[l.sender_id],
+        })),
       };
     },
     staleTime: 1000 * 60 * 5,

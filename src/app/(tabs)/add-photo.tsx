@@ -24,6 +24,7 @@ import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { supabase } from "@/lib/supabase";
+import { removeStoredFiles, seedStorageImage } from "@/lib/storageImages";
 import { useAuth } from "@/context/AuthContext";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
@@ -251,7 +252,8 @@ export default function AddPhotoScreen() {
         throw new Error("Fotoğraf işlenemedi. Lütfen fotoğrafı tekrar seçin.");
       }
 
-      // Tam boy görsel yükleme — base64 decode ile doğrudan ArrayBuffer yüklemesi
+      // Tam boy görsel yükleme — base64 decode ile doğrudan ArrayBuffer yüklemesi.
+      // Bucket private: veritabanına URL değil yalnızca depolama yolu yazılır, görüntülerken imzalanır.
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
       const filePath = `${coupleId}/${fileName}`;
 
@@ -263,11 +265,8 @@ export default function AddPhotoScreen() {
 
       if (uploadError) throw new Error("Fotoğraf yüklenemedi: " + uploadError.message);
 
-      const { data: publicUrlData } = supabase.storage.from("photos").getPublicUrl(filePath);
-      const imageUrl = publicUrlData.publicUrl;
-
       // Thumbnail yükleme — galeri ızgarası için hızlı küçük resim
-      let thumbUrl: string | null = null;
+      let thumbPath: string | null = null;
       if (localImage.thumbBase64) {
         try {
           const thumbFileName = `${Date.now()}_${Math.random().toString(36).substring(7)}_thumb.jpg`;
@@ -275,10 +274,7 @@ export default function AddPhotoScreen() {
           const { error: thumbError } = await supabase.storage
             .from("photos")
             .upload(thumbFilePath, decode(localImage.thumbBase64), { contentType: "image/jpeg" });
-          if (!thumbError) {
-            const { data: thumbUrlData } = supabase.storage.from("photos").getPublicUrl(thumbFilePath);
-            thumbUrl = thumbUrlData.publicUrl;
-          }
+          if (!thumbError) thumbPath = thumbFilePath;
         } catch (thumbErr) {
           // Thumbnail başarısız olsa bile ana görsel yüklemeye devam et
           logger.error("Thumbnail upload error (non-fatal):", thumbErr);
@@ -298,9 +294,8 @@ export default function AddPhotoScreen() {
       const { error: dbError } = await supabase.from("photo_archive").insert({
         couple_id: coupleId,
         user_id: userId,
-        image_url: imageUrl,
-        thumb_url: thumbUrl,
         storage_path: filePath,
+        thumb_path: thumbPath,
         title: cleanTitle,
         description: cleanDescription,
         taken_date: takenDate,
@@ -312,7 +307,15 @@ export default function AddPhotoScreen() {
         location_name: validLocationName,
       });
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        // Kayıt oluşmadıysa yüklenen dosyalar depoda sahipsiz kalmasın
+        await removeStoredFiles("photos", [filePath, thumbPath]);
+        throw dbError;
+      }
+
+      // Yeni fotoğraf galeride ağdan yeniden inmeden, cihazdaki kopyasından açılsın
+      seedStorageImage("photos", filePath, localImage.uri);
+      if (thumbPath && localImage.thumbUri) seedStorageImage("photos", thumbPath, localImage.thumbUri);
 
       queryClient.invalidateQueries({ queryKey: ["photo_archive", coupleId] });
       queryClient.invalidateQueries({ queryKey: ["map_photos", coupleId] });

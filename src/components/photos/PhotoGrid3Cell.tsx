@@ -1,6 +1,6 @@
 import React from "react";
 import { TouchableOpacity, StyleSheet, Dimensions } from "react-native";
-import { Image } from "expo-image";
+import { StorageImage } from "@/components/common/StorageImage";
 import type { PhotoItem } from "./photoTypes";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -20,8 +20,9 @@ function PhotoGrid3CellBase({ item, index, onPress }: PhotoGrid3CellProps) {
       onPress={() => onPress(index)}
       style={[styles.grid3Box, { width: itemSize, height: itemSize }]}
     >
-      <Image
-        source={{ uri: item.thumb_url ?? item.image_url }}
+      <StorageImage
+        bucket="photos"
+        path={item.thumb_path ?? item.storage_path}
         style={styles.grid3Img}
         contentFit="cover"
         cachePolicy="memory-disk"

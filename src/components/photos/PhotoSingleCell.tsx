@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Image } from "expo-image";
+import { StorageImage } from "@/components/common/StorageImage";
 import { Calendar, Clock, Trash2, Maximize2 } from "lucide-react-native";
 import { dayjs } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
@@ -55,8 +55,9 @@ function PhotoSingleCellBase({ item, index, isMine, theme, isLight, onPress, onD
         onPress={() => onPress(index)}
         style={styles.singleTouchable}
       >
-        <Image
-          source={{ uri: item.image_url }}
+        <StorageImage
+          bucket="photos"
+          path={item.storage_path}
           style={styles.singleImg}
           contentFit="cover"
           cachePolicy="memory-disk"
