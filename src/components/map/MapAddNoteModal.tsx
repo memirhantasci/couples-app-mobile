@@ -115,7 +115,7 @@ export function MapAddNoteModal({ visible, accent, isSaving, onSave, onClose }: 
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <MapAddNoteForm accent={accent} isSaving={isSaving} onSave={onSave} onClose={onClose} />
       {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
-      <DialogHost embedded />
+      <DialogHost embedded visible={visible} />
     </Modal>
   );
 }

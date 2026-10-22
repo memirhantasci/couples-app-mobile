@@ -9,7 +9,6 @@ import {
   Modal,
 } from "react-native";
 import { appAlert } from "@/lib/dialog";
-import { DialogHost } from "@/components/ui/DialogHost";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -558,8 +557,6 @@ export default function MenuScreen() {
           description={modalConfig.description}
         />
       )}
-      {/* Bu ekran yerel modal olarak sunulduğunda kök katman arkada kalır: diyaloglar burada çizilir */}
-      <DialogHost embedded />
     </ScreenBackground>
   );
 }

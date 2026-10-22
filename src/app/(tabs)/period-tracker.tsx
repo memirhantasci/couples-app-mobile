@@ -586,7 +586,7 @@ export default function PeriodTrackerScreen() {
           </View>
         </View>
         {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
-        <DialogHost embedded />
+        <DialogHost embedded visible={!!selectedDate} />
       </Modal>
 
       {/* ─── PREMIUM PAYWALL MODALI ─── */}

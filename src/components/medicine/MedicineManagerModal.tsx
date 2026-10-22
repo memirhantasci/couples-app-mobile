@@ -86,7 +86,7 @@ export function MedicineManagerModal({ visible, onClose, ...formProps }: Medicin
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <MedicineManagerForm onClose={onClose} {...formProps} />
       {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
-      <DialogHost embedded />
+      <DialogHost embedded visible={visible} />
     </Modal>
   );
 }

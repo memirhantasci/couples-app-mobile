@@ -1505,30 +1505,53 @@ export const OurStarScreen: React.FC = () => {
       {/* Yıldızın içinde bu çubuğun yerini MicroSystemDock alır. */}
       {!isMicroScene && (
         <View style={[styles.bottomControlBar, { paddingBottom: insets.bottom + 16 }]}>
-          {/* YILDIZI OLMAYAN KULLANICI İÇİN: KOZMİK RADAR BUTONU */}
-          {starDetails === null && (
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => {
-                setClaimTargetStar(null);
-                setClaimSectorId(null);
-                setIsClaimModalOpen(true);
-              }}
-              style={styles.radarLaunchBtn}
-              accessibilityLabel="Kozmik Radarla Yıldız Bul"
+          {/* YILDIZI OLMAYAN KULLANICI İÇİN: REHBER KART & KOZMİK TARAMA ALTERNATİFİ */}
+          {starDetails === null && !selectedMacroStar && (
+            <View
+              style={[
+                styles.onboardingGuideCard,
+                {
+                  backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 12, 30, 0.92)',
+                  borderColor: isLight ? 'rgba(245, 158, 11, 0.35)' : 'rgba(251, 191, 36, 0.3)',
+                },
+              ]}
             >
-              <LinearGradient
-                colors={['#0284C7', '#4F46E5']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.radarLaunchGradient}
+              <View style={styles.onboardingGuideHeader}>
+                <View style={styles.onboardingGuideIconWrap}>
+                  <Sparkles size={16} color="#FBBF24" />
+                </View>
+                <Text style={[styles.onboardingGuideTitle, { color: theme.text }]}>
+                  Aşkınızın Yıldızını Seçin
+                </Text>
+              </View>
+
+              <Text style={[styles.onboardingGuideSubtitle, { color: theme.textSecondary }]}>
+                Gökyüzündeki boş bir yıldıza dokunarak çiftinizin yıldızını seçebilir veya Kozmik Tarama ile otomatik bulabilirsiniz.
+              </Text>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => {
+                  setClaimTargetStar(null);
+                  setClaimSectorId(null);
+                  setIsClaimModalOpen(true);
+                }}
+                style={styles.onboardingRadarBtn}
+                accessibilityLabel="Kozmik Tarama ile Otomatik Bul"
               >
-                <Radio size={16} color="#FFFFFF" />
-                <Text style={styles.radarLaunchBtnText}>Kozmik Radarla Yıldız Bul ✨</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+                <LinearGradient
+                  colors={['#0284C7', '#4F46E5']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.radarLaunchGradient}
+                >
+                  <Radio size={15} color="#FFFFFF" />
+                  <Text style={styles.radarLaunchBtnText}>Kozmik Tarama ile Otomatik Bul ✨</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           )}
-  
+
           {showHomeRadar && (
             <TouchableOpacity
               activeOpacity={0.85}
@@ -1547,7 +1570,7 @@ export const OurStarScreen: React.FC = () => {
               </LinearGradient>
             </TouchableOpacity>
           )}
-  
+
           {/* YILDIZIMIZA ODAKLAN FAB — doğrudan tek tıkla fly-to ve merkezleme */}
           {viewMode === 'macro' && starDetails && (
             <TouchableOpacity
@@ -1566,47 +1589,49 @@ export const OurStarScreen: React.FC = () => {
               </LinearGradient>
             </TouchableOpacity>
           )}
-  
-          {/* SAĞ ALT FAB: MAKRO / MİKRO MOD GEÇİŞİ */}
-          <View style={styles.modeSwitchWrapper}>
-            {/* Yıldızın dışındayken (Gök Kubbe) FAB'ın ne yaptığını açıklayan etiket */}
-            {viewMode === 'macro' && starDetails !== null && !selectedMacroStar && (
+
+          {/* SAĞ ALT FAB: MAKRO / MİKRO MOD GEÇİŞİ (Yalnızca yıldızı olan kullanıcılar için) */}
+          {starDetails !== null && (
+            <View style={styles.modeSwitchWrapper}>
+              {/* Yıldızın dışındayken (Gök Kubbe) FAB'ın ne yaptığını açıklayan etiket */}
+              {viewMode === 'macro' && !selectedMacroStar && (
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={handleToggleViewMode}
+                  style={[
+                    styles.modeSwitchHint,
+                    {
+                      backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(10, 8, 24, 0.92)',
+                      borderColor: isLight ? 'rgba(245, 158, 11, 0.5)' : 'rgba(251, 191, 36, 0.45)',
+                    },
+                  ]}
+                  accessibilityLabel="Yıldızın İçine Gir"
+                >
+                  <Text style={[styles.modeSwitchHintText, { color: isLight ? '#92400E' : '#FCD34D' }]}>
+                    Yıldızın İçine Gir ✨
+                  </Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={handleToggleViewMode}
                 style={[
-                  styles.modeSwitchHint,
+                  styles.modeSwitchFab,
                   {
-                    backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(10, 8, 24, 0.92)',
-                    borderColor: isLight ? 'rgba(245, 158, 11, 0.5)' : 'rgba(251, 191, 36, 0.45)',
+                    backgroundColor: isLight ? 'rgba(255, 255, 255, 0.92)' : 'rgba(7, 5, 18, 0.8)',
+                    borderColor: isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.18)',
                   },
                 ]}
-                accessibilityLabel="Yıldızın İçine Gir"
+                accessibilityLabel={viewMode === 'micro' ? 'Gök Kubbeye Çık' : 'Yıldızın İçine Gir'}
               >
-                <Text style={[styles.modeSwitchHintText, { color: isLight ? '#92400E' : '#FCD34D' }]}>
-                  Yıldızın İçine Gir ✨
-                </Text>
+                {viewMode === 'micro' ? (
+                  <Globe size={20} color="#38BDF8" />
+                ) : (
+                  <Orbit size={20} color="#FBBF24" />
+                )}
               </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={handleToggleViewMode}
-              style={[
-                styles.modeSwitchFab,
-                {
-                  backgroundColor: isLight ? 'rgba(255, 255, 255, 0.92)' : 'rgba(7, 5, 18, 0.8)',
-                  borderColor: isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.18)',
-                },
-              ]}
-              accessibilityLabel={viewMode === 'micro' ? 'Gök Kubbeye Çık' : 'Yıldızın İçine Gir'}
-            >
-              {viewMode === 'micro' ? (
-                <Globe size={20} color="#38BDF8" />
-              ) : (
-                <Orbit size={20} color="#FBBF24" />
-              )}
-            </TouchableOpacity>
-          </View>
+            </View>
+          )}
         </View>
       )}
 
@@ -2241,6 +2266,50 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 40,
     height: 40,
+  },
+  onboardingGuideCard: {
+    flex: 1,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  onboardingGuideHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  onboardingGuideIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(251, 191, 36, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  onboardingGuideTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  onboardingGuideSubtitle: {
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '500',
+    marginBottom: 12,
+  },
+  onboardingRadarBtn: {
+    width: '100%',
+    height: 42,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   radarLaunchBtn: {
     flex: 1,

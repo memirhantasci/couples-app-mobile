@@ -1162,7 +1162,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
         )}
       </KeyboardAvoidingView>
       {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
-      <DialogHost embedded />
+      <DialogHost embedded visible={visible} />
     </Modal>
   );
 });

@@ -147,7 +147,7 @@ export function PhotoLightboxModal({
       </View>
       </SwipeDismissView>
       {/* Modal açıkken silme onay diyalog kartının modal üstünde görünmesi için */}
-      <DialogHost embedded />
+      <DialogHost embedded visible={selectedIndex !== null} />
     </Modal>
   );
 }

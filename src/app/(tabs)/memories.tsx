@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList } from "react-native";
 import { appAlert } from "@/lib/dialog";
+import { toast } from "@/lib/toast";
 import { StorageImage } from "@/components/common/StorageImage";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -187,11 +188,13 @@ export default function MemoriesScreen() {
             const { error } = await supabase.from("memories").delete().eq("id", id);
             setDeletingId(null);
             if (!error) {
-              // Kayıt silindikten sonra fotoğrafı depoda sahipsiz kalmasın
-              removeStoredFiles("memories", [imagePath]).catch(() => {});
-              queryClient.invalidateQueries({ queryKey: ["memories"] });
+              if (imagePath) {
+                removeStoredFiles("memories", [imagePath]).catch(() => {});
+              }
+              await queryClient.invalidateQueries({ queryKey: ["memories"] });
+              toast.success("Özel gün silindi 🗑️");
             } else {
-              appAlert("Hata", "Silinirken bir hata oluştu.");
+              appAlert("Hata", "Silinirken bir hata oluştu: " + (error?.message || ""));
             }
           }
         }

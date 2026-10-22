@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from "react-native";
 import { appAlert } from "@/lib/dialog";
-import { DialogHost } from "@/components/ui/DialogHost";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -267,8 +266,6 @@ export default function PaywallScreen() {
         initialDoc={selectedLegalDoc}
         accentColor={theme.accent}
       />
-      {/* Bu ekran yerel modal olarak sunulduğunda kök katman arkada kalır: diyaloglar burada çizilir */}
-      <DialogHost embedded />
     </ScreenBackground>
   );
 }

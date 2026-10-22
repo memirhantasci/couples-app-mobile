@@ -37,14 +37,40 @@ export function StarPointsToastHost() {
   useEffect(() => {
     if (isDemoMode || !userId || !coupleId) return;
 
+    let hasStar = false;
+
+    // Çiftin yıldızı var mı kontrol et
+    supabase
+      .from('couple_stars')
+      .select('id')
+      .eq('couple_id', coupleId)
+      .maybeSingle()
+      .then(({ data }) => {
+        hasStar = Boolean(data);
+      });
+
     const channel = supabase
       .channel(`star_points_${coupleId}_${userId}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'couple_activity_log', filter: `couple_id=eq.${coupleId}` },
-        (payload) => {
+        async (payload) => {
           const entry = payload.new as CoupleActivityLogRecord;
           if (entry.status !== 'awarded' || entry.points <= 0 || entry.user_id !== userId) return;
+
+          // Henüz yıldız varlığı tespit edilmediyse son durumu doğrula
+          if (!hasStar) {
+            const { data } = await supabase
+              .from('couple_stars')
+              .select('id')
+              .eq('couple_id', coupleId)
+              .maybeSingle();
+            hasStar = Boolean(data);
+          }
+
+          // Çift henüz bir yıldız sahiplenmemişse yıldız parladı bildirimi gösterme
+          if (!hasStar) return;
+
           // Kayıt ekranının kendi başarı bildiriminden sonra sıraya girer; haptik onda zaten verildi.
           toast.success(`+${entry.points} puan, yıldızınız parladı 🌟`, {
             title: ACTIVITY_LABELS[entry.activity_type],

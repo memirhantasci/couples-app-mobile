@@ -245,9 +245,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
   const slowWarningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Modal açıldığında state'i senkronize et (initialStar varsa direkt sertifika aç)
-  const [prevProps, setPrevProps] = useState({ visible, initialStar });
-  if (visible !== prevProps.visible || initialStar !== prevProps.initialStar) {
-    setPrevProps({ visible, initialStar });
+  useEffect(() => {
     if (visible) {
       if (initialStar) {
         setClaimedStar(initialStar);
@@ -261,7 +259,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
         setClaimedStar(null);
       }
     }
-  }
+  }, [visible, initialStar?.star_id]);
 
   // Unmount anında slow warning timer'ını temizle
   useEffect(() => {
@@ -389,20 +387,33 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
     <Modal
       visible={visible}
       transparent
+      statusBarTranslucent
       animationType="fade"
       onRequestClose={modalState === 'scanning' ? undefined : onClose}
     >
       <View style={[styles.modalBackdrop, { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.55)' : 'rgba(3, 2, 7, 0.88)' }]}>
-        <BlurView intensity={Platform.OS === 'ios' ? 70 : 100} tint={isLight ? 'light' : 'dark'} style={StyleSheet.absoluteFill} />
+        <BlurView
+          intensity={Platform.OS === 'ios' ? 70 : 100}
+          tint={isLight ? 'light' : 'dark'}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
 
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          enabled={Platform.OS === 'ios'}
           style={styles.keyboardContainer}
         >
           <ScrollView
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[
+              styles.scrollContent,
+              modalState === 'input' && styles.scrollContentInput,
+            ]}
             showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
+            keyboardShouldPersistTaps="always"
+            keyboardDismissMode="none"
+            removeClippedSubviews={false}
+            bounces={false}
           >
             {/* KAPATMA BUTONU (Scanning esnasında gizli) */}
             {modalState !== 'scanning' && onClose && (
@@ -525,6 +536,8 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                     maxLength={40}
                     autoCapitalize="words"
                     autoCorrect={false}
+                    blurOnSubmit={false}
+                    returnKeyType="done"
                   />
                   <Text style={[styles.charCount, { color: theme.textMuted }]}>{customName.trim().length} / 40</Text>
                 </View>
@@ -760,6 +773,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 40,
+  },
+  scrollContentInput: {
+    justifyContent: 'center',
+    paddingTop: Platform.OS === 'android' ? 24 : 40,
+    paddingBottom: Platform.OS === 'android' ? 24 : 40,
   },
   closeButton: {
     position: 'absolute',

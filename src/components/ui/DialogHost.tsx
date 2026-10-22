@@ -78,20 +78,26 @@ function fireHaptic(tone: DialogTone) {
  *  • Bir `<Modal>` açıkken kök host modalın ARKASINDA kalır; bu yüzden modalın içine
  *    `<DialogHost embedded />` koyun: modal açıkken diyaloglar onun içinde çizilir.
  */
-export function DialogHost({ embedded = false }: { embedded?: boolean }) {
+export function DialogHost({
+  embedded = false,
+  visible = true,
+}: {
+  embedded?: boolean;
+  visible?: boolean;
+}) {
   const state = useSyncExternalStore(subscribeDialogs, getDialogState, getDialogState);
-  // Kimlik lazy başlatılır: modal-içi host yalnızca açıkken mount olduğu için kayıt/silme otomatiktir
+  // Kimlik lazy başlatılır: modal-içi host yalnızca açık ve görünürken kaydedilir
   const [hostId] = useState<number | null>(() => (embedded ? allocateDialogHostId() : null));
 
   useEffect(() => {
-    if (hostId === null) return;
+    if (hostId === null || !visible) return;
     registerDialogHost(hostId);
     return () => unregisterDialogHost(hostId);
-  }, [hostId]);
+  }, [hostId, visible]);
 
   const item = state.current;
-  // Açık bir modal-içi host varsa kök host susar; yoksa kök host çizer
-  const active = embedded ? state.topHost === hostId : state.topHost === null;
+  // Açık ve görünür bir modal-içi host varsa kök host susar; yoksa kök host çizer
+  const active = embedded ? state.topHost === hostId && visible : state.topHost === null;
   if (!item || !active) return null;
 
   // key: her diyalog kendi animasyon durumuyla sıfırdan başlar

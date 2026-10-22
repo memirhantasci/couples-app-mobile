@@ -421,7 +421,7 @@ export default function DailyNotesScreen() {
           </View>
         </View>
         {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
-        <DialogHost embedded />
+        <DialogHost embedded visible={!!editingNote} />
       </Modal>
       <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
       <DemoActionModal

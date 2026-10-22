@@ -1052,7 +1052,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
         </View>
       </KeyboardAvoidingView>
       {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
-      <DialogHost embedded />
+      <DialogHost embedded visible={visible} />
     </Modal>
   );
 };

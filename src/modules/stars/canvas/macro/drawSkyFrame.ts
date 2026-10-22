@@ -144,7 +144,7 @@ function drawStar(
   // lively stars stand out even in the overview. Unclaimed stars share one
   // faint baseline glow that fades in from medium zoom; close in, the halo
   // below takes over.
-  const glow = star.luminosity * (star.claimed ? 1 : style.glow) * (1 - detail);
+  const glow = star.luminosity * (star.claimed ? 1 : style.glow * 0.6) * (1 - detail);
   fill.setColor(rgb);
 
   if (detail > 0.01 && star.claimed && !star.resonance) {
@@ -152,14 +152,17 @@ function drawStar(
     canvas.drawCircle(x, y, r + 14, fill);
   }
   if (glow > 0.01) {
-    fill.setAlphaf(0.25 * glow * opacity);
-    canvas.drawCircle(x, y, r * 2.5, fill);
-    fill.setAlphaf(0.45 * glow * opacity);
-    canvas.drawCircle(x, y, r * 1.6, fill);
+    const outerHaloR = star.claimed ? r * 2.5 : r * 1.4;
+    const innerHaloR = star.claimed ? r * 1.6 : r * 1.2;
+    fill.setAlphaf((star.claimed ? 0.25 : 0.12) * glow * opacity);
+    canvas.drawCircle(x, y, outerHaloR, fill);
+    fill.setAlphaf((star.claimed ? 0.45 : 0.25) * glow * opacity);
+    canvas.drawCircle(x, y, innerHaloR, fill);
   }
   if (detail > 0.01) {
-    fill.setAlphaf(star.alpha * 0.45 * detail * opacity);
-    canvas.drawCircle(x, y, r * 2.2, fill);
+    const detailHaloR = star.claimed ? r * 2.2 : r * 1.3;
+    fill.setAlphaf(star.alpha * (star.claimed ? 0.45 : 0.18) * detail * opacity);
+    canvas.drawCircle(x, y, detailHaloR, fill);
   }
   // Far out, resonating stars show only their rings (as before).
   const core = star.resonance ? style.glow : 1;

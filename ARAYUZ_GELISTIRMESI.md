@@ -28,6 +28,35 @@ Bu belge, uygulamadaki bildirilen hataları, arayüz aksaklıklarını ve talep 
 
 ---
 
+### Görev 1.6: Yıldız Seçilmemişken Ruh Hali / Aktivite Girişinde "+1 Puan Yıldızınız Parladı" Bildiriminin Engellenmesi
+* **Kategori:** Kolay / UX & Mantıksal Durum Yönetimi
+* **Mevcut Sorun:**
+  Kullanıcı henüz bir çift yıldızı seçmemişken (`starDetails === null` / veritabanında yıldız yokken), ana ekrandan veya takvimden ruh hali, ilaç vb. aktivite girdiğinde ekranda `+1 puan, yıldızınız parladı 🌟` şeklinde toast bildirimi çıkmaktadır. Kullanıcı henüz yıldızı olmadığını bildiği için "Daha yıldız seçmemişken yıldızım nasıl parlıyor?" kafa karışıklığı yaşamaktadır.
+* **Kullanıcı Beklentisi:**
+  Çiftin henüz tescillenmiş bir yıldızı yoksa bu toast bildiriminin doğrudan bastırılması (gösterilmemesi) veya alternatif olarak "Aktivite puanı kazandınız! Yıldızınızı seçtiğinizde bu puanla parlayacak ✨" şeklinde motive edici, tutarlı bir dille sunulması.
+* **Araştırma & Mimari Bağlam:**
+  * **İlgili Dosyalar:**
+    * [`src/modules/stars/components/StarPointsToastHost.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/modules/stars/components/StarPointsToastHost.tsx) (Satır 40-55)
+    * [`src/modules/stars/api/starService.ts`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/modules/stars/api/starService.ts)
+  * **İnceleme Notu:**
+    `StarPointsToastHost.tsx` bileşeni, `couple_activity_log` tablosundaki `INSERT` postgres_changes olaylarını dinlemektedir. Trigger aktiviteyi logladığı anda bileşen kullanıcının bir yıldıza sahip olup olmadığını (`getMyStarDetails` veya bir boolean state/cache) sorgulamaksızın doğrudan `toast.success('+${entry.points} puan, yıldızınız parladı 🌟')` çalıştırmaktadır. Kullanıcının yıldız sahipliği kontrol edilerek koşula bağlanmalıdır.
+
+---
+
+### Görev 1.7: Yıldız Seçim Ekranında Sağ Alttaki Yüzen Mod Butonunun (Orbit FAB) Gizlenmesi
+* **Kategori:** Kolay / UI Durum Yönetimi & Görsel Tutarlılık
+* **Mevcut Sorun:**
+  Kullanıcı henüz yıldızını seçmemişken gökyüzü atlası (makro sahne) ekranının sağ altında, mikro evrene geçiş yapmaya yarayan `Orbit` ikonlu yüzen FAB butonu (`styles.modeSwitchFab`) görünmeye devam etmektedir. Kullanıcının henüz bir yıldızı bulunmadığı için bu butona basıldığında tanımsız/boş bir mikro sahneye geçilmeye çalışılmaktadır.
+* **Kullanıcı Beklentisi:**
+  Yıldızı olmayan kullanıcı için sağ alttaki bu geçiş butonu tamamen gizlenmeli; kullanıcı yalnızca gökyüzünü keşfetmeye ve boş bir yıldız seçmeye odaklanmalıdır. Yalnızca yıldız başarıyla tescillendikten sonra mikro sistem FAB'ı aktif olmalıdır.
+* **Araştırma & Mimari Bağlam:**
+  * **İlgili Dosyalar:**
+    * [`src/modules/stars/components/OurStarScreen.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/modules/stars/components/OurStarScreen.tsx) (Satır 1570-1610)
+  * **İnceleme Notu:**
+    `OurStarScreen.tsx` satır 1571'de yer alan `<View style={styles.modeSwitchWrapper}>` bloğu ve içerisindeki `modeSwitchFab` butonu, `starDetails` kontrolüne tabi tutulmadan koşulsuz olarak render edilmektedir. `starDetails !== null` şartı eklenerek yıldızsız durumlarda buton gizlenmelidir.
+
+---
+
 ## 🟡 2. BÖLÜM: ORTA İŞLER (Feature Polish & Consistency)
 
 ---
@@ -55,88 +84,21 @@ Bu belge, uygulamadaki bildirilen hataları, arayüz aksaklıklarını ve talep 
 | **2.6** | Yıldızımız ekranı alt panel buton karmaşıklığının giderilmesi | `OurStarScreen.tsx`, `MicroSystemDock.tsx` | 🟡 Orta | Orta | Beklemede |
 | **4.1** | Güvenli Kasa & Şifreleme Revizyonu (Private Storage & Vault Modeli) | `crypto.ts`, `photos.tsx`, `login.tsx`, Supabase | 🔴 Zor | Kritik | Kod tamamlandı — migration + `auth-gateway` dağıtımı bekliyor |
 
+---
 
-kıvılcım kalkacak mı duracak mı karar ver 
-uygulama şifrelemesi ne kadar güvenli ona göre ilerle 
-yıldızda en alttaki karmaşıklığı gider 
-uygulamadaki tüm sesleri test et 
-yıldız mantığı çalışıyor mu test et 
-Arkadaş ekle yıldız olarak test et
-fotoğaf yüklemeye sınır konmalı mı 
+## 📌 Açık Tasarım Kararları & Test Notları
+
+* [ ] Kıvılcım sayacı kalkacak mı yoksa sevgi titreşimi/rezonansı olarak yeniden mi adlandırılacak?
+* [ ] Uygulama şifrelemesi (4.1) yeni cihaz oturum zırhı mimarisine göre test edilmeli.
+* [ ] Yıldız ekranındaki alt panel kontrolleri (Dock & FAB) sadeleştirilmeli.
+* [ ] Uygulamadaki tüm ses efektleri ve dokunsal bildirimler (haptic) test edilmeli.
+* [ ] Yıldız tescil, claim ve puanlama mantığı 0'dan temiz hesapla test edilmeli.
+* [ ] Arkadaş yıldız ekleme ve takımyıldızı bağları test edilmeli.
+* [ ] Fotoğraf yüklemeye (fotoğraf kasası / galeri) çift veya tekil sınır konmalı mı kararlaştırılmalı.
 
 ---
 
-## 🔐 4. BÖLÜM: ŞİFRELEME VE VERİ GÜVENLİĞİ REVİZYONU (Kaya Gibi Sağlam & Sıfır Veri Kaybı)
 
----
-
-### Görev 4.1: Şifreleme Altyapısının Sadeleştirilmesi, Sabit Anahtarların Tasfiyesi ve Gizli Fotoğraf Kasası (2. Yol: Sunucu Kasası & Oturum Koruması)
-* **Kategori:** Kritik Güvenlik / Kriptografi, Kimlik Yönetimi & Storage Mimarisi
-* **Ön Koşul Avantajı:** Uygulamada canlıda gerçek kullanıcı bulunmamaktadır; içerideki test çiftinin tüm verileri sıfırlanmıştır. Geriye dönük eski şifreli verileri kurtarma (migration) zahmeti yoktur; sistem doğrudan en temiz, modern ve hatasız mimariyle sıfırdan kurulacaktır.
-
-#### 1. Sorunun Kök Sebepleri ve Güvenlik Zafiyet Analizi:
-1. **Sabit Anahtar Zaafı (Hardcoded Secrets):**
-   * Mevcut `src/utils/crypto.ts` içerisinde `KEY_HEX` ve `STATIC_IV_HEX` gibi statik anahtarlar kodun içine gömülüdür. Mobil uygulama derlenip APK/IPA haline getirildiğinde, tersine mühendislik araçlarıyla (JADX, APKTool) bu anahtarlar saniyeler içinde elde edilebilmekte ve şifreleme katmanı tamamen anlamsız hale gelmektedir.
-2. **Deterministik Şifrelemenin Yan Etkileri (`det:` formatı):**
-   * Kullanıcı adları (`username`) veritabanında deterministik AES ile şifrelenmektedir. Deterministik şifreleme aynı girdiye her zaman aynı çıktıyı ürettiği için kriptografik frekans analizine açıktır.
-   * Daha da önemlisi, kullanıcı adıyla giriş yapabilmek için `get_email_by_username` adında halka açık (anon erişimli) bir RPC fonksiyonu tanımlanmıştır. Bu durum kullanıcıların e-postalarını sorgulamaya açık bir arka kapı oluşturmaktadır.
-   * Kullanıcı adı benzersiz bir kimlik tanımlayıcısıdır; şifrelenmesi hem arama, profil ve bildirim akışlarında gereksiz çözme (decrypt) yükü yaratmakta hem de hata ihtimalini artırmaktadır.
-3. **Açık Fotoğraf Deposu (Public Storage CDN):**
-   * Çiftlerin fotoğraf arşivi (`photos` bucket'ı) Supabase üzerinde `public: true` olarak barındırılmakta ve veritabanına doğrudan genel CDN URL'leri (`getPublicUrl`) kaydedilmektedir.
-   * Bu durum, URL bağlantısına sahip olan veya bağlantıyı tahmin eden herhangi bir üçüncü şahsın oturum açmadan, hiçbir yetki kontrolüne takılmadan çiftlerin en özel fotoğraflarını indirmesine olanak tanımaktadır.
-4. **Karmaşık Fallback ve Önbellek Zincirleri:**
-   * `crypto.ts` içerisinde yer alan "önce session key dene, çözülemezse static key ile çöz" şeklindeki katmanlı deneme mekanizması kod karmaşasına yol açmakta, hata ayıklamayı zorlaştırmakta ve performans kaybı oluşturmaktadır.
-
-#### 2. Seçilen Çözüm Modeli (2. Yol: Sunucu Doğrulamalı Oturum Zırhı & Özel Depolama Kasası):
-* **Neden 1. Yol (Cihaz Kilitli Asimetrik / Biyometrik Kasa) Seçilmedi?**
-  * Kullanıcı cihazını değiştirdiğinde, telefon çalındığında veya uygulama silinip yeniden yüklendiğinde, cihaz anahtarları silineceği için kullanıcının 24 kelimelik bir kurtarma şifresine (seed phrase) ihtiyacı olur. Kullanıcı bu şifreyi unuttuğunda çiftin yıllarca biriktirdiği tüm anılar, mektuplar ve fotoğraflar sonsuza dek kaybolur. Bu durum bir çift uygulaması için kabul edilemez bir kullanıcı deneyimidir.
-* **2. Yolun Mantıksal Üstünlüğü:**
-  * Güvenlik, kullanıcı oturumunun geçerliliğine (Supabase Auth JWT) ve çifte özel güvenli sunucu tuzuna (salt) dayanır.
-  * Kullanıcı yeni bir telefona geçtiğinde sadece e-posta ve şifresiyle giriş yapar; oturum açıldığı anda bellek üzerinde şifreleme anahtarı dinamik olarak türetilir ve geçmişteki tüm veriler sıfır kayıpla anında çözülür.
-
----
-
-#### 3. Mantıksal ve Mimari Uygulama Gereksinimleri:
-
-##### A. Özel Depolama Kasası ve İmzalı URL Mimarisi (Storage & Photos):
-1. **Depolama Gizliliği (Private Buckets):**
-   * `photos` ve `couple-memories` storage bucket'ları Supabase üzerinde `public = false` moduna geçirilmelidir.
-   * Storage RLS politikaları, yalnızca kimliği doğrulanmış ve ilgili çiftin üyesi olan kullanıcılara dosya okuma/yükleme izni tanıyacak şekilde kurgulanmalıdır.
-2. **Kalıcı Genel URL'lerin Tasfiyesi:**
-   * Veritabanında (`photo_archive` tablosu) artık genel CDN URL'leri (`publicUrl`) kalıcı veri olarak saklanmamalıdır. Bunun yerine, depolama içerisindeki göreli yol (`storage_path` ve thumbnail için ilgili yol) birincil doğruluk kaynağı (source of truth) olmalıdır.
-3. **Dinamik Süreli İmzalı Bağlantılar (Signed URLs):**
-   * Galeri, harita veya anı ekranlarında fotoğraflar yüklenirken Supabase Storage API'sinin imzalı URL üretme yeteneği (`createSignedUrl` veya toplu listelemeler için `createSignedUrls`) kullanılmalıdır.
-   * Üretilen imzalı bağlantılar belirlenen bir geçerlilik süresine (TTL) sahip olmalı; yetkisiz kişilerin veya oturumu sonlananların bağlantıyı kullanamaması sağlanmalıdır.
-4. **İstemci Tarafı Görsel Önbellekleme Güvencesi (Expo Image):**
-   * Uygulamada görseller `expo-image` bileşeni ile disk ve bellek önbelleğinde (`cachePolicy="memory-disk"`) tutulduğundan, imzalı URL'nin süresi dolsa bile kullanıcının yerel cihazında fotoğrafların kesintisiz ve hızlı yüklenmesi temin edilmelidir.
-
-##### B. Kriptografi Altyapısının Sadeleştirilmesi ve Bellek Güvenliği (`src/utils/crypto.ts`):
-1. **Sabit Anahtarların Koddan Temizlenmesi:**
-   * Kod içine gömülmüş olan `KEY_HEX`, `STATIC_IV_HEX` ve bunlara bağlı türevler tamamen tasfiye edilmelidir.
-2. **Çalışma Zamanı Dinamik Anahtar Türetimi (Runtime In-Memory Key):**
-   * Şifreleme ve deşifreleme işlemleri, diskte veya kodda saklanan statik bir değere değil; kullanıcının aktif oturum bilgisine ve `couples.encryption_salt` alanına bağlı olarak yalnızca çalışma zamanında (RAM belleğinde) türetilen anahtara dayanmalıdır.
-   * Oturum kapandığında (`signOut`), anahtar bellekten tamamen silinmeli ve önbellek temizlenmelidir.
-3. **Çift Öncesi ve Çift Sonrası Durum Tutarlılığı:**
-   * Kullanıcı henüz bir çifte dahil değilken (solo kullanıcı) ve bir çifte katıldıktan sonraki şifreleme durumları mantıksal bir süreklilik içinde ele alınmalıdır.
-   * Sadece gerçekten şifrelenmesi gereken özel çift verileri (mektup içerikleri, günlük notları) simetrik olarak şifrelenmeli; şifrelenmesi gerekmeyen sistem alanları gereksiz yere kriptografik yüke sokulmamalıdır.
-4. **Deterministik Şifrelemenin Tasfiyesi:**
-   * `deterministicEncrypt` ve `deterministicDecrypt` fonksiyonları ile `det:` ön eki taşıyan tüm mantık sistemden arındırılmalıdır.
-
-##### C. Kullanıcı Adı (`username`) ve Kimlik Doğrulama Akışının Modernizasyonu:
-1. **Standart Düz Metin Kullanıcı Adı:**
-   * Kullanıcı adları artık asla şifrelenmemelidir. `public.users` tablosundaki `username` sütunu standart, küçük harf (lowercase), boşluksuz, alfanümerik ve benzersiz (unique constraint & index) bir metin alanı olarak yönetilmelidir.
-2. **Kayıt ve Giriş Akışının Sadeleşmesi (`login.tsx`):**
-   * Kayıt sırasında kullanıcı adı benzersizlik kontrolü ve veritabanına yazımı düz metin üzerinden doğrudan yapılmalıdır.
-   * Giriş ekranında kullanıcı ister e-posta ister kullanıcı adı girsin; sistem arka planda güvenli, hızlı ve temiz bir akışla kimliği doğrulamalıdır.
-   * Güvensiz, brute-force saldırılarına zemin hazırlayan `get_email_by_username` RPC fonksiyonuna duyulan bağımlılık tamamen kaldırılmalı veya güvenli bir mimariyle ikame edilmelidir.
-3. **Uygulama Genelinde Kullanıcı Adı Referanslarının Temizlenmesi:**
-   * Arayüzün farklı yerlerinde (`home.tsx`, `letters.tsx`, `calendar.tsx`, `menu.tsx`, `notifications.ts`, `letterArrival.ts`, `ownerInitials.ts`) yer alan ve kullanıcı adını ekrana basmadan önce `deterministicDecrypt` çağıran tüm kod blokları sadeleştirilerek doğrudan düz metin değerini kullanacak hale getirilmelidir.
-
-##### D. Yeni Cihaz Değişiminde Sıfır Veri Kaybı Garantisi:
-1. Kullanıcı telefonunu kaybettiğinde, sildiğinde veya yeni bir cihaza geçtiğinde; kurtarma kelimesi veya özel cihaz sertifikası aranmaksızın, yalnızca e-posta ve şifresiyle oturum açarak tüm verilerine (mektuplar, notlar, fotoğraflar) eksiksiz erişebilmelidir.
-2. Oturum açıldığı anda oturum anahtarı anında RAM belleğinde yeniden üretilmeli ve mevcut şifreli metinler şeffaf bir biçimde okunabilir hale gelmelidir.
-
----
 
 #### 4. İlgili Dosyalar ve Mimari Sorumluluk Haritası:
 
@@ -160,3 +122,12 @@ fotoğaf yüklemeye sınır konmalı mı
 * **Geriye Dönük Veri Yükü Yoktur:** Veritabanındaki test çifti sıfırlandığı için eski `det:` veya `enc:` kayıtlarını dönüştürme (data migration) zorunluluğu yoktur. Temiz bir başlangıç esastır.
 * **Hermes & React Native Performansı:** Deşifreleme işlemlerinin arayüzde donma (UI jank) yaratmaması için mevcut önbellekleme (`decryptCache`) ve `expo-image` disk önbelleği prensipleri gözetilmelidir.
 * **Regresyon Engeli:** Mektup gönderme (`letters.tsx`), günlük notu kaydetme (`daily-notes.tsx`) ve fotoğraf yükleme gibi temel akışların kesintiye uğramaması garanti edilmelidir.
+
+
+kıvılcım kalkacak mı duracak mı karar ver 
+uygulama şifrelemesi ne kadar güvenli ona göre ilerle 
+yıldızda en alttaki karmaşıklığı gider 
+uygulamadaki tüm sesleri test et 
+yıldız mantığı çalışıyor mu test et 
+Arkadaş ekle yıldız olarak test et
+fotoğaf yüklemeye sınır konmalı mı 
