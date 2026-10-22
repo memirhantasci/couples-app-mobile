@@ -132,17 +132,17 @@ const MICRO_DOCK_ESTIMATED_HEIGHT = 190;
 const PLANET_HIGHLIGHT_LINGER_MS = 2600;
 
 const SOLAR_DESCRIPTIONS: Record<string, string> = {
-  'SOL-SUN': 'Güneş Sistemimizin kalbi, tüm evrenin yaşam kaynağı ☀️',
-  'SOL-MERCURY': 'Güneşe en yakın, kalbimizin en sıcak ve tutkulu köşesi ☿',
-  'SOL-VENUS': 'Aşkın ve güzelliğin simgesi, gökyüzünün en parlak Çoban Yıldızı ✨',
-  'SOL-EARTH': 'Tüm anılarımızın ve sevgimizin filizlendiği biricik mavi gezegen 🌍',
-  'SOL-MOON': 'Gecelerimizin aydınlatıcısı, sadık ve zarif uydumuz Ay 🌙',
-  'SOL-MARS': 'Aşkımızın sönmeyen ateşi ve cesareti, Kızıl Gezegen 🔴',
-  'SOL-JUPITER': 'Tüm zorluklara karşı bizi koruyan dev kalkan, sevgimizin koruyucusu 🪐',
-  'SOL-SATURN': 'Zamanın ötesindeki bağlılığımızın ve sadakatimizin sonsuz halkası 🪐',
-  'SOL-URANUS': 'Gökyüzünün dingin, masmavi ve büyüleyici buz gülü ❄️',
-  'SOL-NEPTUNE': 'Aşkımızın derinliği gibi dipsiz ve huzurlu okyanuslar diyarı 🌊',
-  'SOL-PLUTO': 'Evrenin ucunda bile olsa birbirini asla unutmayan kalplerin simgesi 💜',
+  'SOL-SUN': 'Güneş Sistemimizin kalbi, tüm evrenin yaşam kaynağı.',
+  'SOL-MERCURY': 'Güneşe en yakın, kalbimizin en sıcak ve tutkulu köşesi.',
+  'SOL-VENUS': 'Aşkın ve güzelliğin simgesi, gökyüzünün en parlak Çoban Yıldızı.',
+  'SOL-EARTH': 'Tüm anılarımızın ve sevgimizin filizlendiği biricik mavi gezegen.',
+  'SOL-MOON': 'Gecelerimizin aydınlatıcısı, sadık ve zarif uydumuz Ay.',
+  'SOL-MARS': 'Aşkımızın sönmeyen ateşi ve cesareti, Kızıl Gezegen.',
+  'SOL-JUPITER': 'Tüm zorluklara karşı bizi koruyan dev kalkan, sevgimizin koruyucusu.',
+  'SOL-SATURN': 'Zamanın ötesindeki bağlılığımızın ve sadakatimizin sonsuz halkası.',
+  'SOL-URANUS': 'Gökyüzünün dingin, masmavi ve büyüleyici buz gülü.',
+  'SOL-NEPTUNE': 'Aşkımızın derinliği gibi dipsiz ve huzurlu okyanuslar diyarı.',
+  'SOL-PLUTO': 'Evrenin ucunda bile olsa birbirini asla unutmayan kalplerin simgesi.',
 };
 
 /** Ayrıntılar gelene kadar anı penceresinde gösterilen, harita verisinden kurulan önizleme kaydı. */

@@ -542,37 +542,37 @@ export function buildSkyOverlay({
   for (const object of solarObjects) {
     switch (object.catalog_code) {
       case 'SOL-SUN':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.sunMarker, isSun: true, label: pill('Güneş ☀️', SUN_PILL, 'sun'), labelOffsetY: 18 });
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.sunMarker, isSun: true, label: pill('Güneş', SUN_PILL, 'sun'), labelOffsetY: 18 });
         break;
       case 'SOL-MERCURY':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.mercuryMarker, isSun: false, label: plain('Merkür ☿', { ...SMALL_TEXT, color: '#CBD5E1' }), labelOffsetY: -16 });
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.mercuryMarker, isSun: false, label: plain('Merkür', { ...SMALL_TEXT, color: '#CBD5E1' }), labelOffsetY: -16 });
         break;
       case 'SOL-VENUS':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.venusMarker, isSun: false, label: plain('Venüs ✨', { ...SMALL_TEXT, color: '#FDE68A' }), labelOffsetY: 18 });
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.venusMarker, isSun: false, label: plain('Venüs', { ...SMALL_TEXT, color: '#FDE68A' }), labelOffsetY: 18 });
         break;
       case 'SOL-EARTH':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.earthMarker, isSun: false, label: plain('Dünya 🌍', { ...SMALL_TEXT, color: '#93C5FD' }), labelOffsetY: 18 });
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.earthMarker, isSun: false, label: plain('Dünya', { ...SMALL_TEXT, color: '#93C5FD' }), labelOffsetY: 18 });
         break;
       case 'SOL-MOON':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.moonMarker, isSun: false, label: plain('Ay 🌙', { ...SMALL_TEXT, color: '#CBD5E1' }), labelOffsetY: -16 });
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.moonMarker, isSun: false, label: plain('Ay', { ...SMALL_TEXT, color: '#CBD5E1' }), labelOffsetY: -16 });
         break;
       case 'SOL-MARS':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.marsMarker, isSun: false, label: plain('Mars 🔴', { ...SMALL_TEXT, color: '#FCA5A5' }), labelOffsetY: 16 });
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.marsMarker, isSun: false, label: plain('Mars', { ...SMALL_TEXT, color: '#FCA5A5' }), labelOffsetY: 16 });
         break;
       case 'SOL-JUPITER':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.jupiterMarker, isSun: false, label: plain('Jüpiter 🪐', { ...SMALL_TEXT, color: '#FDE68A' }), labelOffsetY: 22 });
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.jupiterMarker, isSun: false, label: plain('Jüpiter', { ...SMALL_TEXT, color: '#FDE68A' }), labelOffsetY: 22 });
         break;
       case 'SOL-SATURN':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.saturnMarker, isSun: false, label: plain('Satürn 🪐', { ...SMALL_TEXT, color: '#FEF08A' }), labelOffsetY: 20 });
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.saturnMarker, isSun: false, label: plain('Satürn', { ...SMALL_TEXT, color: '#FEF08A' }), labelOffsetY: 20 });
         break;
       case 'SOL-URANUS':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.uranusMarker, isSun: false, label: plain('Uranüs ❄️', { ...SMALL_TEXT, color: '#A5F3FC' }), labelOffsetY: 18 });
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.uranusMarker, isSun: false, label: plain('Uranüs', { ...SMALL_TEXT, color: '#A5F3FC' }), labelOffsetY: 18 });
         break;
       case 'SOL-NEPTUNE':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.neptuneMarker, isSun: false, label: plain('Neptün 🌊', { ...SMALL_TEXT, color: '#93C5FD' }), labelOffsetY: 18 });
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.neptuneMarker, isSun: false, label: plain('Neptün', { ...SMALL_TEXT, color: '#93C5FD' }), labelOffsetY: 18 });
         break;
       case 'SOL-PLUTO':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.plutoMarker, isSun: false, label: plain('Plüton 💜', { ...SMALL_TEXT, color: '#E9D5FF' }), labelOffsetY: 14 });
+        solar.push({ ra: object.ra, dec: object.dec, picture: assets.plutoMarker, isSun: false, label: plain('Plüton', { ...SMALL_TEXT, color: '#E9D5FF' }), labelOffsetY: 14 });
         break;
       default:
         break;

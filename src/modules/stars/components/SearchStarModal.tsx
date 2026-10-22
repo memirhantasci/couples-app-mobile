@@ -36,7 +36,7 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999901',
     entity_type: 'common',
-    display_name: 'Güneş ☀️',
+    display_name: 'Güneş',
     catalog_code: 'SOL-SUN',
     ra: 260.0000,
     dec: -12.0000,
@@ -45,7 +45,7 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999905',
     entity_type: 'common',
-    display_name: 'Merkür ☿',
+    display_name: 'Merkür',
     catalog_code: 'SOL-MERCURY',
     ra: 263.0000,
     dec: -11.4000,
@@ -54,7 +54,7 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999903',
     entity_type: 'common',
-    display_name: 'Venüs ✨',
+    display_name: 'Venüs',
     catalog_code: 'SOL-VENUS',
     ra: 266.5000,
     dec: -10.7000,
@@ -63,7 +63,7 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999902',
     entity_type: 'common',
-    display_name: 'Dünya 🌍',
+    display_name: 'Dünya',
     catalog_code: 'SOL-EARTH',
     ra: 270.5000,
     dec: -9.9000,
@@ -72,7 +72,7 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999904',
     entity_type: 'common',
-    display_name: 'Ay 🌙',
+    display_name: 'Ay',
     catalog_code: 'SOL-MOON',
     ra: 271.2000,
     dec: -9.4000,
@@ -81,7 +81,7 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999906',
     entity_type: 'common',
-    display_name: 'Mars 🔴',
+    display_name: 'Mars',
     catalog_code: 'SOL-MARS',
     ra: 275.5000,
     dec: -8.9000,
@@ -90,7 +90,7 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999907',
     entity_type: 'common',
-    display_name: 'Jüpiter 🪐',
+    display_name: 'Jüpiter',
     catalog_code: 'SOL-JUPITER',
     ra: 281.5000,
     dec: -7.7000,
@@ -99,7 +99,7 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999908',
     entity_type: 'common',
-    display_name: 'Satürn 🪐',
+    display_name: 'Satürn',
     catalog_code: 'SOL-SATURN',
     ra: 288.0000,
     dec: -6.4000,
@@ -108,7 +108,7 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999909',
     entity_type: 'common',
-    display_name: 'Uranüs ❄️',
+    display_name: 'Uranüs',
     catalog_code: 'SOL-URANUS',
     ra: 294.0000,
     dec: -5.2000,
@@ -117,7 +117,7 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999910',
     entity_type: 'common',
-    display_name: 'Neptün 🌊',
+    display_name: 'Neptün',
     catalog_code: 'SOL-NEPTUNE',
     ra: 300.0000,
     dec: -4.0000,
@@ -126,7 +126,7 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999911',
     entity_type: 'common',
-    display_name: 'Plüton 💜',
+    display_name: 'Plüton',
     catalog_code: 'SOL-PLUTO',
     ra: 305.0000,
     dec: -3.0000,
