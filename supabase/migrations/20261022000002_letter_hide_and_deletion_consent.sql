@@ -9,7 +9,7 @@
 --     kaplamasın). Gizlemek partnerin görünümünü etkilemez, mektubu silmez.
 --   • Açılış anından 72 saat sonra gönderen, mektubun silinmesini İSTEYEBİLİR. İstek
 --     alıcının onayına düşer (alıcıya bildirim gider); alıcı onay vermeden mektup silinmez.
---   • Onaylanan mektup en erken açılıştan 5 gün sonra silinir: onay bu andan sonra
+--   • Onaylanan mektup en erken açılıştan 72 saat sonra silinir: onay bu andan sonra
 --     verilirse hemen, önce verilirse 5. gün dolunca saatlik iş tarafından silinir.
 --     Silinene kadar gönderen isteğini geri çekebilir, alıcı da onayından vazgeçebilir.
 --   • Reddedilen istek, alıcıyı bildirimle bunaltmamak için 72 saat sonra yeniden
@@ -66,14 +66,14 @@ AS $$
   SELECT public.letter_unlock_at(p_unlock_date) + INTERVAL '72 hours';
 $$;
 
--- Onaylı bir mektubun silinebildiği ilk an: açılıştan 5 gün sonra
+-- Onaylı bir mektubun silinebildiği ilk an: açılıştan 72 saat sonra
 CREATE OR REPLACE FUNCTION public.letter_deletable_at(p_unlock_date DATE)
 RETURNS TIMESTAMPTZ
 LANGUAGE sql
 STABLE
 SET search_path = ''
 AS $$
-  SELECT public.letter_unlock_at(p_unlock_date) + INTERVAL '5 days';
+  SELECT public.letter_unlock_at(p_unlock_date) + INTERVAL '72 hours';
 $$;
 
 

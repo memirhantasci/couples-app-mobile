@@ -4,15 +4,15 @@
 //
 //  • Gönderilen mektup açılış gününe kadar silinemez; iki taraf da yalnızca kendi listesinden gizleyebilir.
 //  • Açılıştan 72 saat sonra gönderen silme isteyebilir; alıcı onay vermeden mektup silinmez.
-//  • Onaylanan mektup en erken açılıştan 5 gün sonra silinir.
+//  • Onaylanan mektup en erken açılıştan 72 saat sonra silinir.
 //  • Reddedilen istek 72 saat sonra yeniden gönderilebilir.
 
 const HOUR_MS = 60 * 60 * 1000;
 
 /** Açılıştan sonra gönderenin silme isteyebilmesi için geçmesi gereken süre. */
 export const DELETION_REQUEST_DELAY_MS = 72 * HOUR_MS;
-/** Onaylanan bir mektubun en erken silindiği an: açılıştan bu kadar sonra. */
-export const DELETION_DELAY_MS = 5 * 24 * HOUR_MS;
+/** Onaylanan bir mektubun en erken silindiği an: açılıştan bu kadar sonra (72 saat). */
+export const DELETION_DELAY_MS = 72 * HOUR_MS;
 /** Reddedilen bir isteğin yeniden gönderilebilmesi için beklenen süre. */
 export const DELETION_RETRY_DELAY_MS = 72 * HOUR_MS;
 
