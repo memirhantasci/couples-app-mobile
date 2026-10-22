@@ -71,42 +71,92 @@ fotoğaf yüklemeye sınır konmalı mı
 ---
 
 ### Görev 4.1: Şifreleme Altyapısının Sadeleştirilmesi, Sabit Anahtarların Tasfiyesi ve Gizli Fotoğraf Kasası (2. Yol: Sunucu Kasası & Oturum Koruması)
-* **Kategori:** Kritik Güvenlik / Kriptografi & Storage Mimarisi
-* **Ön Koşul Avantajı:** Uygulamada henüz canlıda gerçek kullanıcı **bulunmamaktadır** ve içerideki test verileri sıfırlanabilir. Geriye dönük eski şifreli verileri kurtarma (migration) zahmeti yoktur; sistem doğrudan en temiz ve hatasız haliyle sıfırdan kurulacaktır.
+* **Kategori:** Kritik Güvenlik / Kriptografi, Kimlik Yönetimi & Storage Mimarisi
+* **Ön Koşul Avantajı:** Uygulamada canlıda gerçek kullanıcı bulunmamaktadır; içerideki test çiftinin tüm verileri sıfırlanmıştır. Geriye dönük eski şifreli verileri kurtarma (migration) zahmeti yoktur; sistem doğrudan en temiz, modern ve hatasız mimariyle sıfırdan kurulacaktır.
 
-#### 1. Sorunun Özeti ve Hedef:
-* **Mevcut Durum:**
-  1. `src/utils/crypto.ts` içerisinde `KEY_HEX = "3586ea..."` ve `STATIC_IV_HEX` gibi sabit anahtarlar kodun içine açıkça yazılmıştır. APK paketini açan herhangi biri bu anahtarları 1 dakikada ele geçirebilir.
-  2. Kullanıcı adları (`username`) deterministik AES (`det:`) ile şifrelendiğinden hem frekans analizine açıktır hem de giriş yaparken `get_email_by_username` gibi herkese açık güvensiz arka kapı RPC fonksiyonlarına muhtaç bırakmıştır.
-  3. Fotoğraf galerisi (`photos` bucket) `public: true` modundadır ve doğrudan `getPublicUrl` üretmektedir. URL'yi bilen yabancılar özel fotoğrafları CDN'den şifresiz indirebilmektedir.
-* **Seçilen Çözüm Modeli (2. Yol):**
-  Aşırı mühendislikten (kullanıcı telefonunu değiştirdiğinde eski anıların sonsuza dek kaybolmasına yol açacak cihaz kilitli asimetrik protokollerden) **kesinlikle uzak durulacak**; bunun yerine endüstri standardı olan **"Sunucu Zırhı & Doğrulanmış Oturum (JWT) Kasası"** benimsenecektir.
+#### 1. Sorunun Kök Sebepleri ve Güvenlik Zafiyet Analizi:
+1. **Sabit Anahtar Zaafı (Hardcoded Secrets):**
+   * Mevcut `src/utils/crypto.ts` içerisinde `KEY_HEX` ve `STATIC_IV_HEX` gibi statik anahtarlar kodun içine gömülüdür. Mobil uygulama derlenip APK/IPA haline getirildiğinde, tersine mühendislik araçlarıyla (JADX, APKTool) bu anahtarlar saniyeler içinde elde edilebilmekte ve şifreleme katmanı tamamen anlamsız hale gelmektedir.
+2. **Deterministik Şifrelemenin Yan Etkileri (`det:` formatı):**
+   * Kullanıcı adları (`username`) veritabanında deterministik AES ile şifrelenmektedir. Deterministik şifreleme aynı girdiye her zaman aynı çıktıyı ürettiği için kriptografik frekans analizine açıktır.
+   * Daha da önemlisi, kullanıcı adıyla giriş yapabilmek için `get_email_by_username` adında halka açık (anon erişimli) bir RPC fonksiyonu tanımlanmıştır. Bu durum kullanıcıların e-postalarını sorgulamaya açık bir arka kapı oluşturmaktadır.
+   * Kullanıcı adı benzersiz bir kimlik tanımlayıcısıdır; şifrelenmesi hem arama, profil ve bildirim akışlarında gereksiz çözme (decrypt) yükü yaratmakta hem de hata ihtimalini artırmaktadır.
+3. **Açık Fotoğraf Deposu (Public Storage CDN):**
+   * Çiftlerin fotoğraf arşivi (`photos` bucket'ı) Supabase üzerinde `public: true` olarak barındırılmakta ve veritabanına doğrudan genel CDN URL'leri (`getPublicUrl`) kaydedilmektedir.
+   * Bu durum, URL bağlantısına sahip olan veya bağlantıyı tahmin eden herhangi bir üçüncü şahsın oturum açmadan, hiçbir yetki kontrolüne takılmadan çiftlerin en özel fotoğraflarını indirmesine olanak tanımaktadır.
+4. **Karmaşık Fallback ve Önbellek Zincirleri:**
+   * `crypto.ts` içerisinde yer alan "önce session key dene, çözülemezse static key ile çöz" şeklindeki katmanlı deneme mekanizması kod karmaşasına yol açmakta, hata ayıklamayı zorlaştırmakta ve performans kaybı oluşturmaktadır.
 
-#### 2. Uygulanacak Mimari Adımlar:
+#### 2. Seçilen Çözüm Modeli (2. Yol: Sunucu Doğrulamalı Oturum Zırhı & Özel Depolama Kasası):
+* **Neden 1. Yol (Cihaz Kilitli Asimetrik / Biyometrik Kasa) Seçilmedi?**
+  * Kullanıcı cihazını değiştirdiğinde, telefon çalındığında veya uygulama silinip yeniden yüklendiğinde, cihaz anahtarları silineceği için kullanıcının 24 kelimelik bir kurtarma şifresine (seed phrase) ihtiyacı olur. Kullanıcı bu şifreyi unuttuğunda çiftin yıllarca biriktirdiği tüm anılar, mektuplar ve fotoğraflar sonsuza dek kaybolur. Bu durum bir çift uygulaması için kabul edilemez bir kullanıcı deneyimidir.
+* **2. Yolun Mantıksal Üstünlüğü:**
+  * Güvenlik, kullanıcı oturumunun geçerliliğine (Supabase Auth JWT) ve çifte özel güvenli sunucu tuzuna (salt) dayanır.
+  * Kullanıcı yeni bir telefona geçtiğinde sadece e-posta ve şifresiyle giriş yapar; oturum açıldığı anda bellek üzerinde şifreleme anahtarı dinamik olarak türetilir ve geçmişteki tüm veriler sıfır kayıpla anında çözülür.
 
-##### A. Fotoğraf Kasası (Private Storage Bucket + Signed URL):
-1. `photos` ve `couple-memories` storage bucket'ları Supabase üzerinde `public = false` (özel/gizli) olarak yapılandırılmalıdır.
-2. Fotoğraflar artık asla `getPublicUrl` ile çağrılmayacaktır.
-3. İstemci tarafında fotoğraf görüntülenirken veya önbelleğe alınırken Supabase'in yerel `supabase.storage.from("photos").createSignedUrl(path, 3600)` (1 saat geçerli imzalı ve geçici URL) fonksiyonu kullanılacaktır. Böylece internetten hiç kimse bağlantı tahmin ederek fotoğraflara erişemez.
+---
 
-##### B. Kod İçi Sabit Anahtarın (`KEY_HEX`) ve Fallback Zincirlerinin Temizlenmesi:
-1. `src/utils/crypto.ts` içindeki hardcoded `KEY_HEX` ve `STATIC_IV_HEX` sabitleri tamamen kaldırılacaktır.
-2. `crypto.ts` içindeki "önce session key dene, olmazsa static key ile çöz" şeklindeki karmaşık fallback zinciri silinecektir.
-3. Şifreleme anahtarı, yalnızca kullanıcının oturum açtığı anda Supabase Auth tarafından doğrulanmış oturum bilgisi (JWT / Session token) ve çiftin güvenli ortam değişkeniyle dinamik olarak çalışma zamanı (RAM) belleğinde türetilecek; diske veya koda asla düz metin anahtar yazılmayacaktır.
+#### 3. Mantıksal ve Mimari Uygulama Gereksinimleri:
 
-##### C. Kullanıcı Adı (`username`) Deterministik Şifrelemesinin Kaldırılması:
-1. Sıfır veri ile başlandığı için kullanıcı adlarını deterministik AES ile şifreleme zorunluluğu tamamen ortadan kaldırılacaktır.
-2. `public.users` tablosundaki `username` alanı doğrudan standart, küçük harf ve benzersiz (unique index) bir metin sütunu olarak tutulacaktır.
-3. Giriş ekranında (`login.tsx`) kullanıcı adı girildiğinde gereksiz şifreleme yapılmayacak; doğrudan Supabase Auth altyapısı ile temiz, hızlı ve hatasız giriş akışı sağlanacaktır. Güvensiz `get_email_by_username` RPC fonksiyonu devreden çıkarılacaktır.
+##### A. Özel Depolama Kasası ve İmzalı URL Mimarisi (Storage & Photos):
+1. **Depolama Gizliliği (Private Buckets):**
+   * `photos` ve `couple-memories` storage bucket'ları Supabase üzerinde `public = false` moduna geçirilmelidir.
+   * Storage RLS politikaları, yalnızca kimliği doğrulanmış ve ilgili çiftin üyesi olan kullanıcılara dosya okuma/yükleme izni tanıyacak şekilde kurgulanmalıdır.
+2. **Kalıcı Genel URL'lerin Tasfiyesi:**
+   * Veritabanında (`photo_archive` tablosu) artık genel CDN URL'leri (`publicUrl`) kalıcı veri olarak saklanmamalıdır. Bunun yerine, depolama içerisindeki göreli yol (`storage_path` ve thumbnail için ilgili yol) birincil doğruluk kaynağı (source of truth) olmalıdır.
+3. **Dinamik Süreli İmzalı Bağlantılar (Signed URLs):**
+   * Galeri, harita veya anı ekranlarında fotoğraflar yüklenirken Supabase Storage API'sinin imzalı URL üretme yeteneği (`createSignedUrl` veya toplu listelemeler için `createSignedUrls`) kullanılmalıdır.
+   * Üretilen imzalı bağlantılar belirlenen bir geçerlilik süresine (TTL) sahip olmalı; yetkisiz kişilerin veya oturumu sonlananların bağlantıyı kullanamaması sağlanmalıdır.
+4. **İstemci Tarafı Görsel Önbellekleme Güvencesi (Expo Image):**
+   * Uygulamada görseller `expo-image` bileşeni ile disk ve bellek önbelleğinde (`cachePolicy="memory-disk"`) tutulduğundan, imzalı URL'nin süresi dolsa bile kullanıcının yerel cihazında fotoğrafların kesintisiz ve hızlı yüklenmesi temin edilmelidir.
 
-##### D. Yeni Telefon Değişiminde Sıfır Veri Kaybı Garantisi:
-1. Kullanıcı yeni bir telefon aldığında, sadece e-posta ve şifresiyle giriş yapacaktır.
-2. Supabase Auth oturumu açtığı anda dinamik oturum anahtarı anında yeniden oluşacak ve kullanıcının geçmiş tüm mektupları, günlük notları ve fotoğrafları hiçbir kurtarma şifresine gerek kalmadan anında ekrana gelecektir.
+##### B. Kriptografi Altyapısının Sadeleştirilmesi ve Bellek Güvenliği (`src/utils/crypto.ts`):
+1. **Sabit Anahtarların Koddan Temizlenmesi:**
+   * Kod içine gömülmüş olan `KEY_HEX`, `STATIC_IV_HEX` ve bunlara bağlı türevler tamamen tasfiye edilmelidir.
+2. **Çalışma Zamanı Dinamik Anahtar Türetimi (Runtime In-Memory Key):**
+   * Şifreleme ve deşifreleme işlemleri, diskte veya kodda saklanan statik bir değere değil; kullanıcının aktif oturum bilgisine ve `couples.encryption_salt` alanına bağlı olarak yalnızca çalışma zamanında (RAM belleğinde) türetilen anahtara dayanmalıdır.
+   * Oturum kapandığında (`signOut`), anahtar bellekten tamamen silinmeli ve önbellek temizlenmelidir.
+3. **Çift Öncesi ve Çift Sonrası Durum Tutarlılığı:**
+   * Kullanıcı henüz bir çifte dahil değilken (solo kullanıcı) ve bir çifte katıldıktan sonraki şifreleme durumları mantıksal bir süreklilik içinde ele alınmalıdır.
+   * Sadece gerçekten şifrelenmesi gereken özel çift verileri (mektup içerikleri, günlük notları) simetrik olarak şifrelenmeli; şifrelenmesi gerekmeyen sistem alanları gereksiz yere kriptografik yüke sokulmamalıdır.
+4. **Deterministik Şifrelemenin Tasfiyesi:**
+   * `deterministicEncrypt` ve `deterministicDecrypt` fonksiyonları ile `det:` ön eki taşıyan tüm mantık sistemden arındırılmalıdır.
 
-* **İlgili Dosyalar:**
-  * [`src/utils/crypto.ts`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/utils/crypto.ts)
-  * [`src/app/(auth)/login.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/app/(auth)/login.tsx)
-  * [`src/app/(auth)/complete-profile.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/app/(auth)/complete-profile.tsx)
-  * [`src/app/(tabs)/add-photo.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/app/(tabs)/add-photo.tsx)
-  * [`src/app/(tabs)/photos.tsx`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/src/app/(tabs)/photos.tsx)
-  * [`supabase/migrations/`](file:///c:/Users/emirh/Desktop/çift/couples-app-mobile/supabase/migrations/)
+##### C. Kullanıcı Adı (`username`) ve Kimlik Doğrulama Akışının Modernizasyonu:
+1. **Standart Düz Metin Kullanıcı Adı:**
+   * Kullanıcı adları artık asla şifrelenmemelidir. `public.users` tablosundaki `username` sütunu standart, küçük harf (lowercase), boşluksuz, alfanümerik ve benzersiz (unique constraint & index) bir metin alanı olarak yönetilmelidir.
+2. **Kayıt ve Giriş Akışının Sadeleşmesi (`login.tsx`):**
+   * Kayıt sırasında kullanıcı adı benzersizlik kontrolü ve veritabanına yazımı düz metin üzerinden doğrudan yapılmalıdır.
+   * Giriş ekranında kullanıcı ister e-posta ister kullanıcı adı girsin; sistem arka planda güvenli, hızlı ve temiz bir akışla kimliği doğrulamalıdır.
+   * Güvensiz, brute-force saldırılarına zemin hazırlayan `get_email_by_username` RPC fonksiyonuna duyulan bağımlılık tamamen kaldırılmalı veya güvenli bir mimariyle ikame edilmelidir.
+3. **Uygulama Genelinde Kullanıcı Adı Referanslarının Temizlenmesi:**
+   * Arayüzün farklı yerlerinde (`home.tsx`, `letters.tsx`, `calendar.tsx`, `menu.tsx`, `notifications.ts`, `letterArrival.ts`, `ownerInitials.ts`) yer alan ve kullanıcı adını ekrana basmadan önce `deterministicDecrypt` çağıran tüm kod blokları sadeleştirilerek doğrudan düz metin değerini kullanacak hale getirilmelidir.
+
+##### D. Yeni Cihaz Değişiminde Sıfır Veri Kaybı Garantisi:
+1. Kullanıcı telefonunu kaybettiğinde, sildiğinde veya yeni bir cihaza geçtiğinde; kurtarma kelimesi veya özel cihaz sertifikası aranmaksızın, yalnızca e-posta ve şifresiyle oturum açarak tüm verilerine (mektuplar, notlar, fotoğraflar) eksiksiz erişebilmelidir.
+2. Oturum açıldığı anda oturum anahtarı anında RAM belleğinde yeniden üretilmeli ve mevcut şifreli metinler şeffaf bir biçimde okunabilir hale gelmelidir.
+
+---
+
+#### 4. İlgili Dosyalar ve Mimari Sorumluluk Haritası:
+
+| Modül / Dosya | Mevcut Sorumluluk & Sorun | Revizyon Sonrası Beklenen Mantık |
+| :--- | :--- | :--- |
+| `src/utils/crypto.ts` | Sabit anahtarlar, deterministik şifreleme, fallback zincirleri barındırıyor. | Hardcoded anahtarlar temizlenir; sadece oturumdan beslenen dinamik bellek anahtarı ile temiz simetrik şifreleme/çözme kalır. |
+| `src/app/(auth)/login.tsx` | Girişte ve kayıtta kullanıcı adını deterministik şifreliyor; `get_email_by_username` çağırıyor. | Düz metin kullanıcı adı ile temiz kayıt ve giriş akışı. Güvensiz RPC bağımlılığı kalkar. |
+| `src/app/(auth)/forgot-password.tsx` | Şifre sıfırlamada kullanıcı adını deterministik şifreleyerek arıyor. | Doğrudan düz metin kullanıcı adı/e-posta araması. |
+| `src/app/(auth)/complete-profile.tsx` | Statik anahtarla `encryptStatic` üzerinden isim kaydediyor. | Dinamik oturum yapısına veya doğrudan güvenli profil alanına uygun kayıt. |
+| `src/context/AuthContext.tsx` | `deterministicDecrypt` ile kullanıcı adını çözüyor, dinamik oturum anahtarını başlatıyor. | Kullanıcı adını doğrudan okur; oturum anahtarını temiz ve kesintisiz başlatır/temizler. |
+| `src/app/(tabs)/add-photo.tsx` | Fotoğrafı yükleyip doğrudan `getPublicUrl` üreterek veritabanına kaydediyor. | `storage_path` esas kaynak olarak kaydedilir; açık genel URL'lere bağımlılık kaldırılır. |
+| `src/app/(tabs)/photos.tsx` & Fotoğraf Hücreleri | `image_url` ve `thumb_url` üzerinden açık CDN bağlantılarını render ediyor. | Özel bucket'tan süreli imzalı URL (`createSignedUrl(s)`) alarak güvenli render sağlar. |
+| `src/hooks/useMapData.ts` & `useCalendarData.ts` | Fotoğraf URL'lerini açık bağlantı varsayımıyla harita/takvimde gösteriyor. | İmzalı URL veya depolama yolu desteğiyle uyumlu hale getirilir. |
+| `src/modules/stars/` ve diğer tüketici dosyalar | Kullanıcı adını göstermek için `deterministicDecrypt` kullanıyor. | Düz metin kullanıcı adı doğrudan kullanılır. |
+| `supabase/migrations/` | `photos` bucket'ı public; kullanıcı adı indeksleri ve RPC'ler eski yapıya göre. | `photos` private moda çekilir, RLS politikaları düzenlenir, `users.username` kısıtları netleştirilir. |
+
+---
+
+#### 5. Claude İçin Kritik Mimari İlkeler ve Dikkat Edilecek Riskler:
+* **Kod Dikte Edilmemiştir:** Bu mimari çerçeve, sistemin gereksinimlerini ve "neden"lerini sunar. Kod bloklarının yazımı, fonksiyon imzaları, state yönetimi ve refactor planının adım adım uygulanması tamamen Claude'un mühendislik kararına bırakılmıştır.
+* **Geriye Dönük Veri Yükü Yoktur:** Veritabanındaki test çifti sıfırlandığı için eski `det:` veya `enc:` kayıtlarını dönüştürme (data migration) zorunluluğu yoktur. Temiz bir başlangıç esastır.
+* **Hermes & React Native Performansı:** Deşifreleme işlemlerinin arayüzde donma (UI jank) yaratmaması için mevcut önbellekleme (`decryptCache`) ve `expo-image` disk önbelleği prensipleri gözetilmelidir.
+* **Regresyon Engeli:** Mektup gönderme (`letters.tsx`), günlük notu kaydetme (`daily-notes.tsx`) ve fotoğraf yükleme gibi temel akışların kesintiye uğramaması garanti edilmelidir.
