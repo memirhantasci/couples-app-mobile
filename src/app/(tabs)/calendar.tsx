@@ -440,8 +440,8 @@ export default function CalendarScreen() {
                           activeOpacity={0.92}
                           onPress={() => setSelectedPhoto(photo)}
                         >
-                          <View style={{ position: "relative" }}>
-                            <StorageImage bucket="photos" path={photo.storage_path} style={styles.photoImg} contentFit="cover" />
+                          <View style={{ position: "relative", backgroundColor: isLight ? "#E5E7EB" : "rgba(255,255,255,0.06)" }}>
+                            <StorageImage bucket="photos" path={photo.thumb_path || photo.storage_path} style={styles.photoImg} contentFit="cover" />
                             <View style={styles.photoExpandBadge}>
                               <Maximize2 size={12} color="#ffffff" />
                             </View>

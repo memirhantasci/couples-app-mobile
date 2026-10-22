@@ -9,7 +9,14 @@ type StorageImageProps = Omit<ImageProps, "source"> & {
 };
 
 /** Özel bucket'taki görseli süreli imzalı URL ile çizer (bkz. src/lib/storageImages.ts). */
-export function StorageImage({ bucket, path, ...imageProps }: StorageImageProps) {
+export function StorageImage({ bucket, path, cachePolicy = "memory-disk", transition = 150, ...imageProps }: StorageImageProps) {
   const source = useStorageImage(bucket, path);
-  return <Image {...imageProps} source={source} />;
+  return (
+    <Image
+      cachePolicy={cachePolicy}
+      transition={transition}
+      {...imageProps}
+      source={source}
+    />
+  );
 }

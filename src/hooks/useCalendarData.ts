@@ -45,6 +45,7 @@ export async function fetchCalendarData(params: CalendarFetchParams) {
         id: p.id,
         user_id: p.user_id,
         storage_path: p.storage_path,
+        thumb_path: (p as any).thumb_path || p.storage_path,
         title: p.title,
         description: p.description,
         taken_date: p.taken_date,
@@ -107,7 +108,7 @@ export async function fetchCalendarData(params: CalendarFetchParams) {
     isPremium
       ? supabase
           .from("photo_archive")
-          .select("id, user_id, storage_path, title, description, taken_date, taken_time")
+          .select("id, user_id, storage_path, thumb_path, title, description, taken_date, taken_time")
           .eq("couple_id", coupleId)
           .gte("taken_date", startDate)
           .lte("taken_date", endDate)

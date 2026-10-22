@@ -364,18 +364,21 @@ export default function MapScreen() {
   };
 
   const isLight = isLightMapTheme(mapTheme);
+  const mapBgColor = isLight ? "#F7F4EF" : "#0F131D";
   const isAddingNote = pendingCoord !== null;
   // Hiç pin yoksa (not, buluşma, fotoğraf): ipucu yerine romantik bir davet kartı gösterilir
   const isMapEmpty = photoPins.length === 0 && mapNotes.length === 0 && meetingPins.length === 0;
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: mapBgColor }]}>
       {isFocused ? <StatusBar barStyle={isLight ? "dark-content" : "light-content"} /> : null}
 
       {/* ─── HARİTA ─────────────────────────────────────────────────────── */}
       <MapView
         ref={mapRef}
-        style={StyleSheet.absoluteFill}
+        style={[StyleSheet.absoluteFill, { backgroundColor: mapBgColor }]}
+        loadingBackgroundColor={mapBgColor}
+        loadingIndicatorColor={theme.accent}
         // customMapStyle yalnızca Google Maps'te çalışır (Android). iOS'ta harita Apple Maps'tir ve
         // JSON stili yok sayar; orada renk modu yalnızca açık/koyu arayüz stiliyle değişir.
         customMapStyle={Platform.OS === "android" ? MAP_THEME_STYLES[mapTheme] : undefined}
@@ -542,7 +545,7 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#F7F4EF",
+    backgroundColor: "#0F131D",
   },
 
   // ─── BOŞ HARİTA KARTI ──────────────────────────────────────────────────

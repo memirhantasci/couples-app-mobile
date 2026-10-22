@@ -57,7 +57,7 @@ export function CalendarPhotoLightbox({ photo, theme, getAuthorName, onClose }: 
           {photo && (
             <StorageImage
               bucket="photos"
-              path={photo.storage_path}
+              path={photo.storage_path || photo.thumb_path}
               style={styles.lightboxImg}
               contentFit="contain"
             />

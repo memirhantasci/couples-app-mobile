@@ -1,8 +1,9 @@
-import React, { useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { StorageImage } from "@/components/common/StorageImage";
+import { Image } from "expo-image";
 import { Heart } from "lucide-react-native";
 import { Marker } from "react-native-maps";
+import { useStorageImage } from "@/lib/storageImages";
 
 import { markerStyles } from "./mapMarkerStyles";
 import { PinAvatar } from "./MapPinMarkers";
@@ -17,16 +18,26 @@ interface PhotoMarkerPinProps {
 
 // ─── 1. FOTOĞRAF PİNİ (Polaroid Çerçeveli) ───────────────────────────────────
 function PhotoMarkerPinBase({ photo, avatarUrl, onSelect }: PhotoMarkerPinProps) {
-  // Görseller (fotoğraf + varsa avatar) yüklenene kadar marker'ın yeniden çizilmesine izin ver, sonra dondur.
+  const photoPath = photo.thumb_path || photo.storage_path;
+  const photoSource = useStorageImage("photos", photoPath);
+
+  // Android MapView'da görsel render edildikten sonra bitmap dondurulur (tracksViewChanges=false)
+  // Ancak görsel yüklenene kadar mutlaka tracksViewChanges=true kalmalıdır.
   const [tracksViewChanges, setTracksViewChanges] = useState(true);
-  const loadedCountRef = useRef(0);
-  const expectedLoads = avatarUrl ? 2 : 1;
-  const handleLoadEnd = () => {
-    loadedCountRef.current += 1;
-    if (loadedCountRef.current >= expectedLoads) {
-      setTimeout(() => setTracksViewChanges(false), 300);
-    }
-  };
+  const [renderedUri, setRenderedUri] = useState<string | null>(null);
+
+  const photoUri = photoSource?.uri ?? null;
+  if (photoUri && renderedUri !== photoUri) {
+    setRenderedUri(photoUri);
+    setTracksViewChanges(true);
+  }
+
+  const handlePhotoLoad = useCallback(() => {
+    // Görsel ekrana basıldı, Android Google Maps'in bitmap snapshot alabilmesi için kısa bir süre bekle ve dondur
+    setTimeout(() => {
+      setTracksViewChanges(false);
+    }, 400);
+  }, []);
 
   return (
     <Marker
@@ -36,18 +47,17 @@ function PhotoMarkerPinBase({ photo, avatarUrl, onSelect }: PhotoMarkerPinProps)
     >
       <View style={styles.photoMarkerWrapper}>
         <View style={styles.photoPolaroidFrame}>
-          <StorageImage
-            bucket="photos"
-            path={photo.thumb_path || photo.storage_path}
+          <Image
+            source={photoSource}
             style={styles.photoMarkerImg}
             contentFit="cover"
             cachePolicy="memory-disk"
-            onLoadEnd={handleLoadEnd}
+            onLoad={handlePhotoLoad}
             transition={0}
           />
           {avatarUrl ? (
             <View style={styles.photoAvatarBadge}>
-              <PinAvatar uri={avatarUrl} size={19} onLoadEnd={handleLoadEnd} />
+              <PinAvatar uri={avatarUrl} size={19} />
             </View>
           ) : (
             <View style={styles.photoHeartBadge}>
@@ -80,10 +90,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 6,
     elevation: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
   photoMarkerImg: {
-    width: "100%",
-    height: "100%",
+    width: 46,
+    height: 46,
     borderRadius: 10,
     backgroundColor: "#F3F4F6",
   },

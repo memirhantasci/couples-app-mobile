@@ -18,8 +18,8 @@ export type PrivateBucket = "photos" | "memories";
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
 /** Süresi dolmak üzere olan URL yenilenir; görsel yüklenirken geçersizleşmesin. */
 const RENEW_BEFORE_MS = 5 * 60 * 1000;
-/** İmzalanamayan yol (çevrimdışı, yetki yok) bu süre dolmadan yeniden denenmez. */
-const RETRY_AFTER_MS = 30 * 1000;
+/** İmzalanamayan yol (çevrimdışı, geçici ağ hatası) 5 saniye sonra tekrar denenebilir. */
+const RETRY_AFTER_MS = 5 * 1000;
 const SIGN_BATCH_SIZE = 100;
 
 type Entry = { uri: string; expiresAt: number; local: boolean };
@@ -34,10 +34,12 @@ let flushScheduled = false;
 // Oturum değişince artar: önceki oturumun yanıtı gelirse önbelleğe yazılmaz
 let generation = 0;
 
-const cacheKeyOf = (bucket: PrivateBucket, path: string) => `${bucket}/${path}`;
+const normalizePath = (path: string) => path.trim().replace(/^\/+/, "");
+
+const cacheKeyOf = (bucket: PrivateBucket, path: string) => `${bucket}/${normalizePath(path)}`;
 
 /** Demo verisindeki uzak URL'ler ve yerel dosyalar imzalanmadan kullanılır. */
-const isDirectUri = (value: string) => /^(https?|file|data|content|ph):/i.test(value);
+const isDirectUri = (value: string) => /^(https?|file|data|content|ph):/i.test(value.trim());
 
 function notify() {
   version += 1;
@@ -59,7 +61,9 @@ function displayableEntry(key: string): Entry | undefined {
   return entry.local || entry.expiresAt > Date.now() ? entry : undefined;
 }
 
-function requestSigning(bucket: PrivateBucket, path: string) {
+function requestSigning(bucket: PrivateBucket, rawPath: string) {
+  const path = normalizePath(rawPath);
+  if (!path) return;
   const key = cacheKeyOf(bucket, path);
   if (inFlight.has(key)) return;
   const entry = entries.get(key);
@@ -103,12 +107,20 @@ async function signBatch(bucket: PrivateBucket, paths: string[]) {
     if (error) throw error;
     if (batchGeneration !== generation) return;
     const expiresAt = Date.now() + SIGNED_URL_TTL_SECONDS * 1000;
-    for (const item of data) {
-      if (!item.path || !item.signedUrl || item.error) continue;
-      const key = cacheKeyOf(bucket, item.path);
-      entries.set(key, { uri: item.signedUrl, expiresAt, local: false });
-      failedAt.delete(key);
-      signed.add(item.path);
+    if (Array.isArray(data)) {
+      for (const item of data) {
+        if (item.error) {
+          logger.warn(`[storageImages] ${bucket} imzalama hatası (${item.path}):`, item.error);
+          continue;
+        }
+        if (!item.path || !item.signedUrl) continue;
+        const normItemPath = normalizePath(item.path);
+        const key = cacheKeyOf(bucket, normItemPath);
+        entries.set(key, { uri: item.signedUrl, expiresAt, local: false });
+        failedAt.delete(key);
+        signed.add(item.path);
+        signed.add(normItemPath);
+      }
     }
   } catch (err) {
     logger.warn(`[storageImages] ${bucket} imzalanamadı:`, err);
@@ -118,7 +130,7 @@ async function signBatch(bucket: PrivateBucket, paths: string[]) {
   if (batchGeneration !== generation) return;
 
   // İmzalanamayanlar: diskte önbellekli kopyası varsa o gösterilir (ör. çevrimdışı açılış)
-  const failed = paths.filter((path) => !signed.has(path));
+  const failed = paths.filter((path) => !signed.has(path) && !signed.has(normalizePath(path)));
   await Promise.all(
     failed.map(async (path) => {
       const key = cacheKeyOf(bucket, path);

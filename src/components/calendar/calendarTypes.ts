@@ -4,6 +4,7 @@ export interface CalendarPhotoItem {
   user_id: string;
   /** "photos" bucket'ındaki yol (demo verisinde tam URL). */
   storage_path: string;
+  thumb_path?: string | null;
   title?: string | null;
   description?: string | null;
   taken_date: string;
