@@ -197,15 +197,68 @@ export default function ProfileScreen() {
         relationship_start_date: relStartDate,
       })
       .eq("id", coupleId);
-    setDatesLoading(false);
 
     if (error) {
+      setDatesLoading(false);
       appAlert("Hata", "Tarihler güncellenemedi. Lütfen tekrar deneyin.");
-    } else {
-      await refreshProfile();
-      queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
-      toast.success("İlişki tarihlerin güncellendi 💕");
+      return;
     }
+
+    // Özel Günler / Anılar tablosundaki ilgili kartları senkronize et
+    try {
+      const { data: existingMemories } = await supabase
+        .from("memories")
+        .select("id, title, date")
+        .eq("couple_id", coupleId)
+        .in("title", ["Tanışma Yıl Dönümümüz", "Sevgili Olma Yıl Dönümümüz"]);
+
+      const relMemory = existingMemories?.find((m) => m.title === "Sevgili Olma Yıl Dönümümüz");
+      if (relMemory) {
+        if (relMemory.date !== relStartDate) {
+          await supabase
+            .from("memories")
+            .update({ date: relStartDate })
+            .eq("id", relMemory.id);
+        }
+      } else {
+        await supabase.from("memories").insert({
+          couple_id: coupleId,
+          title: "Sevgili Olma Yıl Dönümümüz",
+          date: relStartDate,
+          description: "Aşkımızın resmi olarak başladığı gün...",
+          is_default: false,
+        });
+      }
+
+      if (meetDate) {
+        const meetMemory = existingMemories?.find((m) => m.title === "Tanışma Yıl Dönümümüz");
+        if (meetMemory) {
+          if (meetMemory.date !== meetDate) {
+            await supabase
+              .from("memories")
+              .update({ date: meetDate })
+              .eq("id", meetMemory.id);
+          }
+        } else {
+          await supabase.from("memories").insert({
+            couple_id: coupleId,
+            title: "Tanışma Yıl Dönümümüz",
+            date: meetDate,
+            description: "Hikayemizin başladığı o güzel gün...",
+            is_default: false,
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("Özel günler senkronizasyonunda hata:", e);
+    }
+
+    setDatesLoading(false);
+    await refreshProfile();
+    queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
+    queryClient.invalidateQueries({ queryKey: ["memories"] });
+    queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
+    toast.success("İlişki tarihlerin ve özel günlerin güncellendi 💕");
   }
 
   // Çıkış Yap

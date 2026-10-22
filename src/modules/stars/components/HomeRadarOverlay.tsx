@@ -27,7 +27,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
+import { hapticStamp, hapticTap, hapticSuccess } from '@/lib/soundEffects';
 import { Radio, Crosshair, Sparkles, Navigation, X, Orbit } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { getSectorByCoords } from '../config/skySectors.data';
@@ -72,9 +72,7 @@ export const HomeRadarOverlay: React.FC<HomeRadarOverlayProps> = ({
       return;
     }
 
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    } catch {}
+    hapticStamp();
 
     // 1. Radar Dönen Işın
     sweepAngle.value = withRepeat(
@@ -109,23 +107,17 @@ export const HomeRadarOverlay: React.FC<HomeRadarOverlayProps> = ({
     const t1 = setTimeout(() => {
       setPhaseStep(2);
       setPhaseText('Kozmik çekim alanına kilitlenildi ⚡');
-      try {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      } catch {}
+      hapticStamp();
     }, 700);
 
     const t2 = setTimeout(() => {
       setPhaseStep(3);
       setPhaseText('Gök Kubbede yıldızımıza yaklaşıldı ✨');
-      try {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      } catch {}
+      hapticTap();
     }, 1400);
 
     const tComplete = setTimeout(() => {
-      try {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } catch {}
+      hapticSuccess();
       onComplete();
     }, 2100);
 

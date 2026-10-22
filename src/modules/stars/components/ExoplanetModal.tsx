@@ -43,7 +43,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { decode } from 'base64-arraybuffer';
-import * as Haptics from 'expo-haptics';
+import { hapticStamp, hapticSuccess } from '@/lib/soundEffects';
 import { useRouter } from 'expo-router';
 import dayjs from 'dayjs';
 import 'dayjs/locale/tr';
@@ -342,9 +342,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                 await starService.deleteExoplanet(selectedPlanet.id);
               }
 
-              try {
-                await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              } catch {}
+              await hapticSuccess();
 
               onPlanetDeleted?.(selectedPlanet.id);
               onClose();
@@ -435,9 +433,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
     setFormError('');
     setIsSubmitting(true);
 
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } catch {}
+    await hapticStamp();
 
     try {
       const uploadedPaths = await uploadNewPhotos();
@@ -489,9 +485,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
         }
       }
 
-      try {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } catch {}
+      await hapticSuccess();
 
       onPlanetCreated?.(newPlanet);
       onClose();
@@ -529,9 +523,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
     setFormError('');
     setIsSubmitting(true);
 
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } catch {}
+    await hapticStamp();
 
     try {
       const newlyUploadedPaths = await uploadNewPhotos();
@@ -572,9 +564,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
         updatedPlanet = await starService.updateExoplanet(selectedPlanet.id, updatePayload);
       }
 
-      try {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } catch {}
+      await hapticSuccess();
 
       onPlanetUpdated?.(updatedPlanet);
       setIsSubmitting(false);

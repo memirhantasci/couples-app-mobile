@@ -43,7 +43,6 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import {
   Orbit,
   Globe,
@@ -61,7 +60,17 @@ import {
   VolumeX,
 } from 'lucide-react-native';
 
-import { startCosmicAmbient, stopCosmicAmbient } from '@/lib/soundEffects';
+import {
+  startCosmicAmbient,
+  stopCosmicAmbient,
+  getSoundEffectsEnabled,
+  hapticTap,
+  hapticStamp,
+  hapticSelection,
+  hapticSuccess,
+  hapticError,
+} from '@/lib/soundEffects';
+import { safeStorage as AsyncStorage } from '@/lib/safeStorage';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { DEMO_STAR_DETAILS, DEMO_STAR_EXOPLANETS } from '@/constants/demoData';
@@ -286,9 +295,21 @@ export const OurStarScreen: React.FC = () => {
   const sparkManagerRef = useRef<StarSparkManager | null>(null);
   const lastRealtimeSparkAtRef = useRef<number>(0);
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Ortam sesi kapatıldıysa ekran yeniden odaklansa da çalmaz (ref: focus effect'i yeniden kurmamak için)
+  // Ortam sesi kalıcılık anahtarı
+  const STORAGE_KEY_STAR_AMBIENT_MUTED = '@star_ambient_muted';
   const ambientMutedRef = useRef(false);
   const [isAmbientMuted, setIsAmbientMuted] = useState(false);
+
+  // Kalıcı ses kapatma tercihini ilk açılışta yükle
+  useEffect(() => {
+    AsyncStorage.getItem(STORAGE_KEY_STAR_AMBIENT_MUTED).then((val) => {
+      if (val !== null) {
+        const isMuted = val === 'true';
+        ambientMutedRef.current = isMuted;
+        setIsAmbientMuted(isMuted);
+      }
+    });
+  }, []);
 
   // ─── YILDIZIN İÇİ (MİKRO) DURUMU ───────────────────────────────────
   // Her artış mikro sahnede yıldızdan kıvılcım şok dalgası yayar (dokunma, düğme, partner).
@@ -344,7 +365,7 @@ export const OurStarScreen: React.FC = () => {
 
   // Eve Dönüş Radarı Tetikleyici
   const handleReturnHome = useCallback(() => {
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
+    hapticStamp();
     setIsHomeRadarOpen(true);
   }, []);
 
@@ -486,14 +507,27 @@ export const OurStarScreen: React.FC = () => {
     }, [loadStarData])
   );
 
-  // Kozmik Ambiyans: ekran odaktayken derin uzay esintisi çalar, odak
-  // kaybedildiğinde (sekme değişimi, geri gitme) pürüzsüzce söner.
+  // Kozmik Ambiyans: ekran odaktayken ve hem genel ayarlarda ses açık hem de bu ekranda sessize
+  // alınmamışsa çalar. Odak kaybedildiğinde (sekme değişimi, geri gitme) pürüzsüzce söner.
   useFocusEffect(
     useCallback(() => {
-      if (!ambientMutedRef.current) {
-        startCosmicAmbient().catch(() => {});
-      }
+      let active = true;
+      (async () => {
+        const [soundEnabled, savedMute] = await Promise.all([
+          getSoundEffectsEnabled(),
+          AsyncStorage.getItem(STORAGE_KEY_STAR_AMBIENT_MUTED),
+        ]);
+        const isMuted = savedMute !== null ? savedMute === 'true' : ambientMutedRef.current;
+        ambientMutedRef.current = isMuted;
+        if (active) {
+          setIsAmbientMuted(isMuted);
+        }
+        if (active && !isMuted && soundEnabled) {
+          startCosmicAmbient().catch(() => {});
+        }
+      })();
       return () => {
+        active = false;
         stopCosmicAmbient();
       };
     }, [])
@@ -542,9 +576,7 @@ export const OurStarScreen: React.FC = () => {
         // Anlık Işıma ve Haptic. Parlaklık değişmez: yıldızın ışığı çiftin aktivitesinden gelir
         // (eski sürümlerden gelen daily_spark da yalnızca sevgi titreşimi olarak karşılanır).
         triggerGlowWave();
-        try {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        } catch {}
+        hapticSuccess();
 
         const partnerTitle = spark.senderName || 'Sevgilin';
         showToast(`${partnerTitle} yıldızınıza dokunarak sevgi titreşimi gönderdi! 💫`);
@@ -577,9 +609,7 @@ export const OurStarScreen: React.FC = () => {
   const handleCenterStarTouch = async () => {
     if (!isDemoMode && (!starDetails || !sparkManagerRef.current)) return;
 
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch {}
+    await hapticTap();
     triggerGlowWave();
     sparkManagerRef.current?.queueLovePing().catch(() => {});
     showToast('Yıldıza dokundun; sevgi titreşimi eşine iletildi 💫');
@@ -615,7 +645,7 @@ export const OurStarScreen: React.FC = () => {
         }
         clearPlanetHighlightTimer();
         setHighlightPlanetId(planet.id);
-        try { Haptics.selectionAsync(); } catch {}
+        hapticSelection();
         if (isDemoMode) {
           const details = demoPlanetDetails.find((item) => item.id === planet.id);
           if (details) {
@@ -686,7 +716,7 @@ export const OurStarScreen: React.FC = () => {
   }, []);
 
   const handleFocusMyStar = useCallback(() => {
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
+    hapticStamp();
     setFlyToTarget({ centerRa: myStarRa, centerDec: myStarDec, zoom: STAR_EXTERIOR_ZOOM, nonce: Date.now() });
     // Warm the destination tiles so they arrive during the flight.
     prefetchSkyTiles(computeBounds({
@@ -725,7 +755,7 @@ export const OurStarScreen: React.FC = () => {
   // Makro (Gök Kubbe) / Mikro (yıldızın içi) geçişi
   const handleToggleViewMode = useCallback(() => {
     const nextMode = viewMode === 'micro' ? 'macro' : 'micro';
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
+    hapticStamp();
     setViewMode(nextMode);
     setSelectedMacroStar(null);
     setHighlightPlanetId(null);
@@ -735,18 +765,24 @@ export const OurStarScreen: React.FC = () => {
     }
   }, [viewMode, showToast]);
 
-  // Ortam sesini aç/kapat
-  const handleToggleAmbient = useCallback(() => {
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+  // Ortam sesini aç/kapat (Kalıcı tercih + Genel ses ayarı denetimi)
+  const handleToggleAmbient = useCallback(async () => {
+    hapticTap();
     const nextMuted = !ambientMutedRef.current;
     ambientMutedRef.current = nextMuted;
     setIsAmbientMuted(nextMuted);
+    await AsyncStorage.setItem(STORAGE_KEY_STAR_AMBIENT_MUTED, nextMuted ? 'true' : 'false');
     if (nextMuted) {
       stopCosmicAmbient();
     } else {
-      startCosmicAmbient().catch(() => {});
+      const soundEnabled = await getSoundEffectsEnabled();
+      if (soundEnabled) {
+        startCosmicAmbient().catch(() => {});
+      } else {
+        showToast('Uygulama sesleri ayarlardan kapalı (Profil > Ses & Dokunsal Efektler).');
+      }
     }
-  }, []);
+  }, [showToast]);
 
   // Kamera değiştiğinde koordinatları sadece anlamlı değişimlerde güncelle (re-render döngüsünü önler)
   const handleCameraChange = useCallback((cam: SkyCameraState) => {
@@ -841,7 +877,7 @@ export const OurStarScreen: React.FC = () => {
       }
       await starService.requestStarConnection(targetStarId);
       if (Platform.OS !== 'web') {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        hapticSuccess();
       }
       showToast(
         `"${selectedMacroStar.custom_name || selectedMacroStar.catalog_code}" yıldızına bağlantı isteği gönderildi ✨`
@@ -855,7 +891,7 @@ export const OurStarScreen: React.FC = () => {
       setPendingIncomingCount(pending.filter((p) => p.is_incoming).length);
     } catch (err: any) {
       if (Platform.OS !== 'web') {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        hapticError();
       }
       showToast(err?.message || 'Bağlantı isteği gönderilemedi.');
     } finally {
@@ -1296,7 +1332,7 @@ export const OurStarScreen: React.FC = () => {
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={() => {
-                  try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
+                  hapticStamp();
                   setViewMode('micro');
                   setSelectedMacroStar(null);
                 }}
@@ -1389,9 +1425,22 @@ export const OurStarScreen: React.FC = () => {
             </View>
           ) : selectedMacroStar.catalog_code?.startsWith('SOL-') ? (
             // Güneş Sistemi Referans Cismi
-            <View style={styles.solarObjectBanner}>
-              <Sun size={14} color="#FBBF24" />
-              <Text style={styles.solarObjectText}>
+            <View
+              style={[
+                styles.solarObjectBanner,
+                isLight && {
+                  backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                  borderColor: 'rgba(217, 119, 6, 0.35)',
+                },
+              ]}
+            >
+              <Sun size={14} color={isLight ? '#B45309' : '#FBBF24'} />
+              <Text
+                style={[
+                  styles.solarObjectText,
+                  isLight && { color: '#92400E' },
+                ]}
+              >
                 {SOLAR_DESCRIPTIONS[selectedMacroStar.catalog_code] || 'Güneş Sistemimizin kadim bir yolcusu ✨'}
               </Text>
             </View>

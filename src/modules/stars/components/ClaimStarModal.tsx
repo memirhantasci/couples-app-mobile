@@ -33,7 +33,7 @@ import Animated, {
   Easing,
   interpolate,
 } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import { hapticStamp, hapticSuccess, hapticError } from '@/lib/soundEffects';
 import {
   Sparkles,
   Award,
@@ -298,11 +298,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
     setModalState('scanning');
     setIsSlowWarning(false);
 
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } catch {
-      // Haptics desteği yoksa devam et
-    }
+    await hapticStamp();
 
     // Yavaş bağlantı uyarısı — yalnızca rastgele tescil modunda (10s)
     if (!isSpecificMode) {
@@ -374,15 +370,11 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
           ? 'Gökkubbede bu parlaklıkta uygun boşta yıldız bulunamadı. Lütfen tekrar deneyin.'
           : errorOccurred.message || 'Yıldız tescil edilirken kozmik bir parazit oluştu.'
       );
-      try {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      } catch {}
+      await hapticError();
     } else if (resultStar) {
       setClaimedStar(resultStar);
       setModalState('certificate');
-      try {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } catch {}
+      await hapticSuccess();
     }
   };
 

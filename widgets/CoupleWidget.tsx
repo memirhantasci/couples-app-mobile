@@ -288,15 +288,12 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
     </ZStack>
   );
 
-  // İki fotoğraf üst üste biner, ortalarında kalp rozeti
+  // İki fotoğraf zarifçe yan yana hafifçe örtüşür (yüzleri kapatan rozet olmadan temiz görünüm)
   const couple = (size: number, overlap: number) => (
-    <ZStack>
-      <HStack spacing={-overlap}>
-        {avatar(props.myAvatarPath, me, size)}
-        {avatar(props.partnerAvatarPath, partner, size)}
-      </HStack>
-      {heartBadge(Math.round(size * 0.42))}
-    </ZStack>
+    <HStack spacing={-overlap}>
+      {avatar(props.myAvatarPath, me, size)}
+      {avatar(props.partnerAvatarPath, partner, size)}
+    </HStack>
   );
 
   const chip = (text: string, size: number) => (

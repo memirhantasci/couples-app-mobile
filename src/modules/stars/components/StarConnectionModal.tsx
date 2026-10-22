@@ -38,7 +38,7 @@ import {
 import { appAlert } from '@/lib/dialog';
 import { DialogHost } from '@/components/ui/DialogHost';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import * as Haptics from 'expo-haptics';
+import { hapticSuccess, hapticError, hapticSelection } from '@/lib/soundEffects';
 import * as Clipboard from 'expo-clipboard';
 import {
   X,
@@ -198,7 +198,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
     try {
       await Clipboard.setStringAsync(pairingCode);
       if (Platform.OS !== 'web') {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        hapticSuccess();
       }
       setCodeCopied(true);
       setTimeout(() => setCodeCopied(false), 2200);
@@ -258,14 +258,14 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
           setSuccessMessage(`"${target.custom_name}" yıldızına bağlantı isteği gönderildi ✨`);
         }
         if (Platform.OS !== 'web') {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          hapticSuccess();
         }
         await loadData();
         onConnectionChanged?.();
         return true;
       } catch (err: any) {
         if (Platform.OS !== 'web') {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          hapticError();
         }
         setErrorMessage(err?.message || 'İstek gönderilemedi.');
         return false;
@@ -298,7 +298,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
         return;
       }
       if (Platform.OS !== 'web') {
-        Haptics.selectionAsync();
+        hapticSelection();
       }
       setFriendCode(code);
       setErrorMessage(null);
@@ -332,7 +332,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
       const { star, similar } = await starService.findStarByPairingCode(code);
       if (!star) {
         if (Platform.OS !== 'web') {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          hapticError();
         }
         if (similar.length > 0) {
           setCodeCandidates(similar);
@@ -350,7 +350,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
       }
     } catch (err: any) {
       if (Platform.OS !== 'web') {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        hapticError();
       }
       setErrorMessage(err?.message || 'Çift koduyla arama sırasında hata oluştu.');
     } finally {
@@ -375,7 +375,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
         try {
           await starService.removeStarConnection(connectionId);
           if (Platform.OS !== 'web') {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            hapticSuccess();
           }
           setSuccessMessage(
             isPending

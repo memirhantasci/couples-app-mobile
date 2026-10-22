@@ -3,7 +3,7 @@ import { BlurView } from "expo-blur";
 import * as Location from "expo-location";
 import { useIsFocused, useRouter } from "expo-router";
 import { Heart } from "lucide-react-native";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -66,8 +66,8 @@ export default function MapScreen() {
     setIsDemoModalOpen,
     modalConfig,
   } = useDemoAction();
-  // useTheme: getTheme(profile?.gender) seçili tema modunu bilmediği için erkek/koyu varsayılana düşüyordu
-  const { theme } = useTheme();
+  // useTheme: themeMode ve isLight bilgisi ile harita stilini senkronize eder
+  const { theme, isLight: isAppLight } = useTheme();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   // Pinlerde anıyı/buluşmayı ekleyenin profil fotoğrafı (Premium)
@@ -87,8 +87,24 @@ export default function MapScreen() {
     isDemoMode,
   });
 
-  // Harita Tema ve Filtreleme
-  const [mapTheme, setMapTheme] = useState<MapThemeType>("romantic");
+  // Harita Tema ve Filtreleme: Kullanıcı koyu moddaysa otomatik "midnight", açık/beyaz moddaysa sade "silver" açılır.
+  const userManualThemeRef = useRef(false);
+  const [mapTheme, setMapTheme] = useState<MapThemeType>(() =>
+    isAppLight ? "silver" : "midnight"
+  );
+
+  // Uygulama tema modu değiştiğinde (kullanıcı oturum içinde manuel tema seçmediyse) haritayı senkronize tut
+  useEffect(() => {
+    if (!userManualThemeRef.current) {
+      setMapTheme(isAppLight ? "silver" : "midnight");
+    }
+  }, [isAppLight]);
+
+  const handleMapThemeChange = useCallback((nextTheme: MapThemeType) => {
+    userManualThemeRef.current = true;
+    setMapTheme(nextTheme);
+  }, []);
+
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 
   // Etkileşim, Detay Kartı ve Modal State'leri
@@ -166,10 +182,14 @@ export default function MapScreen() {
   // ─── Not Silme ────────────────────────────────────────────────────────────
   const deleteNoteMutation = useMutation({
     mutationFn: async (noteId: number) => {
-      const { error } = await supabase
+      let query = supabase
         .from("map_notes")
         .delete()
         .eq("id", noteId);
+      if (userId) {
+        query = query.eq("user_id", userId);
+      }
+      const { error } = await query;
       if (error) throw error;
     },
     onSuccess: () => {
@@ -218,6 +238,11 @@ export default function MapScreen() {
     ) {
       return;
     }
+    // Sahiplik kontrolü
+    if (photo.user_id && userId && photo.user_id !== userId) {
+      appAlert("Yetkisiz İşlem", "Sadece kendi yüklediğiniz fotoğrafları silebilirsiniz.");
+      return;
+    }
     appAlert(
       "Fotoğrafı Sil",
       "Bu fotoğrafı haritadan ve galeriden silmek istiyor musunuz?",
@@ -227,10 +252,18 @@ export default function MapScreen() {
           text: "Sil",
           style: "destructive",
           onPress: async () => {
-            await supabase.from("photo_archive").delete().eq("id", photo.id);
-            queryClient.invalidateQueries({ queryKey: ["map_photos", coupleId] });
-            queryClient.invalidateQueries({ queryKey: ["photo_archive", coupleId] });
-            setSelectedItem(null);
+            let query = supabase.from("photo_archive").delete().eq("id", photo.id);
+            if (userId) {
+              query = query.eq("user_id", userId);
+            }
+            const { error } = await query;
+            if (error) {
+              appAlert("Hata", "Fotoğraf silinirken bir hata oluştu.");
+            } else {
+              queryClient.invalidateQueries({ queryKey: ["map_photos", coupleId] });
+              queryClient.invalidateQueries({ queryKey: ["photo_archive", coupleId] });
+              setSelectedItem(null);
+            }
           },
         },
       ],
@@ -245,6 +278,11 @@ export default function MapScreen() {
         "Haritadaki aşk notlarını yönetmek ve silmek için ücretsiz hesabınızı oluşturun.",
       )
     ) {
+      return;
+    }
+    // Sahiplik kontrolü
+    if (note.user_id && userId && note.user_id !== userId) {
+      appAlert("Yetkisiz İşlem", "Sadece kendi yazdığınız notları silebilirsiniz.");
       return;
     }
     appAlert("Notu Sil", "Bu notu haritadan silmek istiyor musunuz?", [
@@ -402,7 +440,7 @@ export default function MapScreen() {
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
         mapTheme={mapTheme}
-        onMapThemeChange={setMapTheme}
+        onMapThemeChange={handleMapThemeChange}
         isLocating={isLocating}
         onOpenTour={openTour}
         onOpenStory={() => setIsStoryVisible(true)}

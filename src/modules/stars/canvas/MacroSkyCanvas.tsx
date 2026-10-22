@@ -3,9 +3,8 @@ import { View, StyleSheet, Text } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import { useAnimatedReaction, useDerivedValue, useFrameCallback, useSharedValue } from 'react-native-reanimated';
 import { Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
-import * as Haptics from 'expo-haptics';
 import { Sparkles } from 'lucide-react-native';
-import { playCelestialChime } from '@/lib/soundEffects';
+import { playCelestialChime, hapticSuccess, hapticStamp } from '@/lib/soundEffects';
 import { Canvas, Picture, useFonts, isSkiaAvailable } from './skiaBridge';
 import type {
   ActiveStarConnection,
@@ -337,7 +336,7 @@ function MacroSkyCanvasSkia({
           const tailY = meteor.fromY + (meteor.toY - meteor.fromY) * tailProgress;
           if (distanceToSegment(x, y, tailX, tailY, headX, headY) <= METEOR_TOUCH_RADIUS_PX) {
             meteor.caught = true;
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+            hapticSuccess();
             playCelestialChime().catch(() => {});
             props.onWishGranted?.();
             return;
@@ -357,7 +356,7 @@ function MacroSkyCanvasSkia({
       const hit = hitTestSky(x, y, { ra, dec, zoom }, width, height, candidates);
       // Yıldız seçimi yalnızca dokunsal geri bildirim verir (ses yok).
       if (hit) {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+        hapticStamp();
       }
       props.onSelectStar(hit);
     },

@@ -7,6 +7,7 @@ import { useRealTopInset } from "@/hooks/useRealTopInset";
 import { dayjs } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
 import { SwipeDismissView } from "@/components/ui/SwipeDismissView";
+import { DialogHost } from "@/components/ui/DialogHost";
 import type { PhotoItem } from "./photoTypes";
 
 interface PhotoLightboxModalProps {
@@ -35,6 +36,7 @@ export function PhotoLightboxModal({
   const insets = useSafeAreaInsets();
   const topInset = useRealTopInset();
   const currentPhoto = selectedIndex !== null && photos[selectedIndex] ? photos[selectedIndex] : null;
+  const isOwner = Boolean(userId && currentPhoto?.user_id && currentPhoto.user_id === userId);
 
   return (
     <Modal
@@ -67,7 +69,7 @@ export function PhotoLightboxModal({
             </View>
           )}
 
-          {currentPhoto?.user_id === userId ? (
+          {isOwner ? (
             <TouchableOpacity
               onPress={() => currentPhoto && onDelete(currentPhoto.id)}
               style={styles.lightboxDeleteBtn}
@@ -143,6 +145,8 @@ export function PhotoLightboxModal({
         )}
       </View>
       </SwipeDismissView>
+      {/* Modal açıkken silme onay diyalog kartının modal üstünde görünmesi için */}
+      <DialogHost embedded />
     </Modal>
   );
 }

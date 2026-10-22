@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from "react";
+import { Platform } from "react-native";
+import * as SystemUI from "expo-system-ui";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -82,6 +84,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Keep global theme synchronized whenever gender or mode changes
   useEffect(() => {
     setGlobalActiveTheme(gender, activeMode);
+    if (Platform.OS !== "web") {
+      const current = getTheme(gender, activeMode);
+      SystemUI.setBackgroundColorAsync(current.bgGradient[0]).catch(() => {});
+    }
   }, [gender, activeMode]);
 
   // Instant mode setter (0ms, non-blocking)

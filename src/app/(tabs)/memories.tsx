@@ -40,56 +40,82 @@ export default function MemoriesScreen() {
 
   useEffect(() => {
     if (isDemoMode) return;
-    async function addDefaultMemories() {
+    async function syncAndAddDefaultMemories() {
       if (!coupleId) return;
-      // AsyncStorage guard: Sadece bu couple için henüz yapılmadıysa bir kez çalıştır.
-      // Bu sayede kullanıcı anıyı silse bile uygulama onu tekrar yazmaz.
-      const storageKey = `@defaults_seeded_${coupleId}`;
-      const alreadySeeded = await AsyncStorage.getItem(storageKey);
-      if (alreadySeeded) return;
 
-      // Veritabanında mevcut olanları kontrol et
+      // 1. Veritabanındaki mevcut varsayılan kartları kontrol et
       const { data: existing } = await supabase
         .from("memories")
-        .select("title")
+        .select("id, title, date")
         .eq("couple_id", coupleId)
         .in("title", ["Tanışma Yıl Dönümümüz", "Sevgili Olma Yıl Dönümümüz"]);
 
-      const existingTitles = existing?.map(e => e.title) || [];
+      const existingMap = new Map((existing || []).map((e) => [e.title, e]));
+      let hasUpdated = false;
 
-      const memoriesToInsert: any[] = [];
-      if (profile?.meetDate && !existingTitles.includes("Tanışma Yıl Dönümümüz")) {
-        memoriesToInsert.push({
-          couple_id: coupleId,
-          title: "Tanışma Yıl Dönümümüz",
-          date: profile.meetDate,
-          description: "Hikayemizin başladığı o güzel gün...",
-          is_default: false,
-        });
+      // Eğer mevcut kartlar varsa ve tarihleri profile ile uyuşmuyorsa senkronize et
+      if (profile?.relationshipStartDate && existingMap.has("Sevgili Olma Yıl Dönümümüz")) {
+        const mem = existingMap.get("Sevgili Olma Yıl Dönümümüz")!;
+        if (mem.date !== profile.relationshipStartDate) {
+          await supabase
+            .from("memories")
+            .update({ date: profile.relationshipStartDate })
+            .eq("id", mem.id);
+          hasUpdated = true;
+        }
       }
 
-      if (profile?.relationshipStartDate && !existingTitles.includes("Sevgili Olma Yıl Dönümümüz")) {
-        memoriesToInsert.push({
-          couple_id: coupleId,
-          title: "Sevgili Olma Yıl Dönümümüz",
-          date: profile.relationshipStartDate,
-          description: "Aşkımızın resmi olarak başladığı gün...",
-          is_default: false,
-        });
+      if (profile?.meetDate && existingMap.has("Tanışma Yıl Dönümümüz")) {
+        const mem = existingMap.get("Tanışma Yıl Dönümümüz")!;
+        if (mem.date !== profile.meetDate) {
+          await supabase
+            .from("memories")
+            .update({ date: profile.meetDate })
+            .eq("id", mem.id);
+          hasUpdated = true;
+        }
       }
 
-      if (memoriesToInsert.length > 0) {
-        await supabase.from("memories").insert(memoriesToInsert);
+      // 2. İlk tohumlama (seed): daha önce bu couple için yapılmadıysa ekle
+      const storageKey = `@defaults_seeded_${coupleId}`;
+      const alreadySeeded = await AsyncStorage.getItem(storageKey);
+      if (!alreadySeeded) {
+        const memoriesToInsert: any[] = [];
+        if (profile?.meetDate && !existingMap.has("Tanışma Yıl Dönümümüz")) {
+          memoriesToInsert.push({
+            couple_id: coupleId,
+            title: "Tanışma Yıl Dönümümüz",
+            date: profile.meetDate,
+            description: "Hikayemizin başladığı o güzel gün...",
+            is_default: false,
+          });
+        }
+
+        if (profile?.relationshipStartDate && !existingMap.has("Sevgili Olma Yıl Dönümümüz")) {
+          memoriesToInsert.push({
+            couple_id: coupleId,
+            title: "Sevgili Olma Yıl Dönümümüz",
+            date: profile.relationshipStartDate,
+            description: "Aşkımızın resmi olarak başladığı gün...",
+            is_default: false,
+          });
+        }
+
+        if (memoriesToInsert.length > 0) {
+          await supabase.from("memories").insert(memoriesToInsert);
+          hasUpdated = true;
+        }
+
+        await AsyncStorage.setItem(storageKey, "1");
+      }
+
+      if (hasUpdated) {
         queryClient.invalidateQueries({ queryKey: ["memories"] });
       }
-
-      // İşaret et: bir daha çalışmasını engelle
-      await AsyncStorage.setItem(storageKey, "1");
     }
 
-    addDefaultMemories();
-  // coupleId değişince (farklı hesap) yeniden çalışsın, profile değişiminde çalışmasın
-  }, [coupleId]); // eslint-disable-line react-hooks/exhaustive-deps
+    syncAndAddDefaultMemories();
+  }, [coupleId, profile?.relationshipStartDate, profile?.meetDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const {
     data,

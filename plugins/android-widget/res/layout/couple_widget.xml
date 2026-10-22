@@ -78,15 +78,6 @@
                         android:visibility="gone" />
                 </FrameLayout>
             </LinearLayout>
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_gravity="center"
-                android:background="@drawable/couple_widget_badge_bg"
-                android:contentDescription="@null"
-                android:padding="5dp"
-                android:src="@drawable/ic_couple_widget_heart" />
         </FrameLayout>
 
         <LinearLayout

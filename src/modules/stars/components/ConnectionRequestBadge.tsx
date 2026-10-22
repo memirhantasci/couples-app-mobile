@@ -20,7 +20,7 @@ import {
   StyleProp,
   ViewStyle,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { hapticSelection, hapticSuccess, hapticWarning, hapticError } from '@/lib/soundEffects';
 import { Bell, Sparkles, X, Check, CheckCircle2, AlertCircle } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/context/ThemeContext';
@@ -48,7 +48,7 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
 
   const handleOpen = () => {
     if (Platform.OS !== 'web') {
-      Haptics.selectionAsync();
+      hapticSelection();
     }
     setFeedbackMessage(null);
     setModalVisible(true);
@@ -68,9 +68,11 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
         await starService.respondToConnection(connectionId, accept);
 
         if (Platform.OS !== 'web') {
-          Haptics.notificationAsync(
-            accept ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning
-          );
+          if (accept) {
+            hapticSuccess();
+          } else {
+            hapticWarning();
+          }
         }
 
         setFeedbackMessage({
@@ -83,7 +85,7 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
         onConnectionChanged?.();
       } catch (err: any) {
         if (Platform.OS !== 'web') {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          hapticError();
         }
         setFeedbackMessage({
           type: 'error',

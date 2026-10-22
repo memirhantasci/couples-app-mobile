@@ -129,14 +129,22 @@ export default function PhotosScreen() {
       return;
     }
 
+    // Silinecek fotoğrafı bul
+    const photoToDelete = photos.find((p) => p.id === id);
+    if (!photoToDelete) return;
+
+    // Yalnızca fotoğrafı yükleyen kullanıcı silebilir
+    if (photoToDelete.user_id && userId && photoToDelete.user_id !== userId) {
+      appAlert("Yetkisiz İşlem", "Sadece kendi yüklediğiniz fotoğrafları silebilirsiniz.");
+      return;
+    }
+
     appAlert("Fotoğrafı Sil", "Bu fotoğrafı galeriden kalıcı olarak silmek istediğinize emin misiniz?", [
       { text: "Vazgeç", style: "cancel" },
       {
         text: "Sil",
         style: "destructive",
         onPress: async () => {
-          // Silinecek fotoğrafı bul (storage_path için)
-          const photoToDelete = photos.find((p) => p.id === id);
           if (currentPhoto?.id === id) {
             setSelectedIndex(null);
           }
@@ -151,8 +159,12 @@ export default function PhotosScreen() {
             }
             await supabase.storage.from("photos").remove(filesToRemove).catch(() => {});
           }
-          // 2. Sonra veritabanı kaydını sil
-          const { error } = await supabase.from("photo_archive").delete().eq("id", id);
+          // 2. Sonra veritabanı kaydını sil (hem id hem user_id doğrulaması ile)
+          let query = supabase.from("photo_archive").delete().eq("id", id);
+          if (userId) {
+            query = query.eq("user_id", userId);
+          }
+          const { error } = await query;
           if (error) {
             appAlert("Hata", "Fotoğraf silinirken bir hata oluştu.");
           } else {
@@ -163,7 +175,7 @@ export default function PhotosScreen() {
         }
       }
     ]);
-  }, [executeOrIntercept, photos, currentPhoto, queryClient, coupleId]);
+  }, [executeOrIntercept, photos, currentPhoto, queryClient, coupleId, userId]);
 
   // Tam ekranda sonraki / önceki fotoğrafa geç
   const handleNextPhoto = () => {
@@ -190,7 +202,7 @@ export default function PhotosScreen() {
     <PhotoSingleCell
       item={item}
       index={index}
-      isMine={item.user_id === userId}
+      isMine={Boolean(userId && item.user_id && item.user_id === userId)}
       theme={theme}
       isLight={isLight}
       onPress={setSelectedIndex}

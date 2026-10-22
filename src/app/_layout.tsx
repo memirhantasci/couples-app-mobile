@@ -6,7 +6,7 @@ import * as Linking from "expo-linking";
 import * as SplashScreen from "expo-splash-screen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
-import { ThemeProvider } from "@/context/ThemeContext";
+import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { TabBarProvider } from "@/context/TabBarContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { supabase } from "@/lib/supabase";
@@ -48,6 +48,7 @@ const queryClient = new QueryClient({
 
 function RootLayoutNav() {
   const { session, isLoading, isDemoMode, exitDemoMode, refreshProfile } = useAuth();
+  const { theme } = useTheme();
 
   // Enforce role-based routing
   useProtectedRoute();
@@ -161,7 +162,12 @@ function RootLayoutNav() {
   }, [session?.user?.id, isDemoMode]);
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: theme.bgGradient[0] },
+      }}
+    >
       {/* Auth group — shown when not logged in */}
       <Stack.Screen name="(auth)" />
       {/* Setup group — shown after login but before pairing/dates */}

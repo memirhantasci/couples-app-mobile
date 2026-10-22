@@ -298,7 +298,7 @@ export function MapDetailCard({
         <PhotoDetail
           photo={item.data}
           accent={accent}
-          isOwner={item.data.user_id === currentUserId}
+          isOwner={Boolean(currentUserId && item.data.user_id && item.data.user_id === currentUserId)}
           onClose={onClose}
           onZoomPhoto={onZoomPhoto}
           onDeletePhoto={onDeletePhoto}
@@ -309,7 +309,7 @@ export function MapDetailCard({
         <NoteDetail
           note={item.data}
           accent={accent}
-          isOwner={item.data.user_id === currentUserId}
+          isOwner={Boolean(currentUserId && item.data.user_id && item.data.user_id === currentUserId)}
           onClose={onClose}
           onDeleteNote={onDeleteNote}
         />

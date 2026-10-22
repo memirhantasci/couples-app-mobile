@@ -13,7 +13,7 @@
  *    yönetir; unsubscribe() ile bellek sızıntısız temiz ayrılma sağlar.
  */
 
-import * as Haptics from 'expo-haptics';
+import { hapticTap } from '@/lib/soundEffects';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { starService, SparkCooldownException } from '../api/starService';
@@ -214,12 +214,8 @@ export class StarSparkManager {
    *    veritabanı isteği sessizce es geçilir (`suppress`). DB hatası UI'a fırlatılmaz.
    */
   public async queueLovePing(customMessage?: string): Promise<void> {
-    // 1. Anında Yerel Haptic Titreşim
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch {
-      // Haptics desteği olmayan cihazlarda sessizce devam et
-    }
+    // 1. Anında Yerel Haptic Titreşim (Kullanıcı ayarlarına saygılı)
+    await hapticTap();
 
     // 2. Anında WebSocket Broadcast (Optimistik iletim)
     if (this.channel) {

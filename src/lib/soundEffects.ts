@@ -92,6 +92,9 @@ export async function getSoundEffectsEnabled(): Promise<boolean> {
  */
 export async function setSoundEffectsEnabled(enabled: boolean): Promise<void> {
   isSoundEnabledCache = enabled;
+  if (!enabled) {
+    stopCosmicAmbient();
+  }
   try {
     await AsyncStorage.setItem(STORAGE_KEY_SOUND, enabled ? 'true' : 'false');
   } catch (err) {

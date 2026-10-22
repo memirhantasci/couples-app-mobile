@@ -139,6 +139,7 @@ export default function TabsLayout() {
   useReminderSync();
 
   const { isDemoMode } = useAuth();
+  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   // Demo şeridi durum çubuğu boşluğunu kendisi üstlenir; ekranlar `insets.top` ile ikinci kez
   // boşluk bırakmasın diye şeridin altındaki içerik için üst güvenli alan sıfırlanır.
@@ -148,10 +149,10 @@ export default function TabsLayout() {
   );
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: theme.bgGradient[0] }}>
       <DemoModeBanner />
       <SafeAreaInsetsContext.Provider value={contentInsets}>
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: theme.bgGradient[0] }}>
       <Tabs
         tabBar={(props) => <CustomTabBar {...props} />}
         screenOptions={{
@@ -160,6 +161,7 @@ export default function TabsLayout() {
           // edilmez. Aksi halde gezdikçe mount kalan sekme sayısı kadar ek iş birikir ve her yeni
           // sayfa bir öncekinden yavaş açılırdı (ölçüm: 8 sekme açıkken geçiş ~3 kat daha yavaş).
           freezeOnBlur: true,
+          sceneStyle: { backgroundColor: theme.bgGradient[0] },
         }}
       >
       {/* Kullanıcının seçebileceği tüm ana sekmeler */}
