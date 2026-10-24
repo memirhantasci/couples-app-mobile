@@ -45,6 +45,8 @@ example
 # ─── Güvenlik: Hassas Dosyalar (GİT'E GÖNDERİLMEMELİ) ────────────────────────
 # Google servis hesabı (GİT'E GÖNDERİLMEMELİ)
 google-service-account.json
+# Firebase/Google istemci yapılandırması (EAS'te GOOGLE_SERVICES_JSON ortam değişkeni olarak tanımlı)
+google-services.json
 
 
 # Ortam değişkenleri (tüm .env dosyaları)
