@@ -797,6 +797,8 @@ export default function LoginScreen() {
                     value={loginUsername}
                     onChangeText={setLoginUsername}
                     placeholder="ornek@gmail.com veya kullanıcı adı"
+                    autoComplete="username"
+                    textContentType="username"
                     placeholderTextColor="rgba(255,255,255,0.25)"
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -817,6 +819,10 @@ export default function LoginScreen() {
                   <TextInput
                     value={loginPassword}
                     onChangeText={setLoginPassword}
+                    autoComplete="current-password"
+                    textContentType="password"
+                    autoCapitalize="none"
+                    autoCorrect={false}
                     placeholder="••••••••"
                     placeholderTextColor="rgba(255,255,255,0.25)"
                     secureTextEntry={!showLoginPass}
@@ -947,6 +953,9 @@ export default function LoginScreen() {
                     value={regEmail}
                     onChangeText={setRegEmail}
                     placeholder="selin@gmail.com"
+                    autoComplete="email"
+                    textContentType="emailAddress"
+                    autoCorrect={false}
                     placeholderTextColor="rgba(255,255,255,0.25)"
                     keyboardType="email-address"
                     autoCapitalize="none"
@@ -966,6 +975,10 @@ export default function LoginScreen() {
                   <TextInput
                     value={regPassword}
                     onChangeText={setRegPassword}
+                    autoComplete="new-password"
+                    textContentType="newPassword"
+                    autoCapitalize="none"
+                    autoCorrect={false}
                     placeholder="En az 6 karakter"
                     placeholderTextColor="rgba(255,255,255,0.25)"
                     secureTextEntry={!showRegPass}

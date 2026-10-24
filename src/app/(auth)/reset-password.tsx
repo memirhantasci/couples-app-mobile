@@ -162,6 +162,8 @@ export default function ResetPasswordScreen() {
             placeholder="000000"
             placeholderTextColor="rgba(255,255,255,0.3)"
             keyboardType="number-pad"
+            autoComplete="one-time-code"
+            textContentType="oneTimeCode"
             style={inputStyle}
           />
 
@@ -170,6 +172,9 @@ export default function ResetPasswordScreen() {
             value={newPassword}
             onChangeText={setNewPassword}
             placeholder="Yeni şifreniz"
+            autoComplete="new-password"
+            textContentType="newPassword"
+            autoCapitalize="none"
             placeholderTextColor="rgba(255,255,255,0.3)"
             secureTextEntry
             style={inputStyle}
@@ -180,6 +185,9 @@ export default function ResetPasswordScreen() {
             value={confirm}
             onChangeText={setConfirm}
             placeholder="Yeni şifrenizi doğrulayın"
+            autoComplete="new-password"
+            textContentType="newPassword"
+            autoCapitalize="none"
             placeholderTextColor="rgba(255,255,255,0.3)"
             secureTextEntry
             style={inputStyle}
