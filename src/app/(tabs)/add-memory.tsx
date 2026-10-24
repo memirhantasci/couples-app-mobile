@@ -19,16 +19,13 @@ import { dayjs, todayString, formatDateTR } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { sanitizeStrict, sanitize } from "@/utils/sanitize";
 import { useDemoAction } from "@/hooks/useDemoAction";
-import { DemoActionModal } from "@/components/demo/DemoActionModal";
-import { PermissionPrimingModal } from "@/components/common/PermissionPrimingModal";
 import { useNotificationPriming } from "@/hooks/useNotificationPriming";
 import { toast } from "@/lib/toast";
 import { notifyPartner } from "@/lib/notifications";
+import { LazyPremiumPaywall, LazyDemoActionModal, LazyPermissionPrimingModal, LazyDateTimePickerSheet } from "@/components/ui/lazyMount";
 
 const IMAGE_MIME_BY_EXT: Record<string, string> = {
   jpg: "image/jpeg",
@@ -303,7 +300,7 @@ export default function AddMemoryScreen() {
               </Text>
             </TouchableOpacity>
 
-            <DateTimePickerSheet
+            <LazyDateTimePickerSheet
               visible={showDatePicker}
               mode="date"
               title="Anı Tarihi"
@@ -363,7 +360,7 @@ export default function AddMemoryScreen() {
         </KeyboardAwareScrollView>
       </View>
 
-      <PremiumPaywall
+      <LazyPremiumPaywall
         visible={showPaywall}
         onClose={() => setShowPaywall(false)}
         featureName="Fotoğraflı Özel Gün"
@@ -371,14 +368,14 @@ export default function AddMemoryScreen() {
         gender={profile?.gender}
       />
 
-      <DemoActionModal
+      <LazyDemoActionModal
         visible={isDemoModalOpen}
         onClose={() => setIsDemoModalOpen(false)}
         title={modalConfig.title}
         description={modalConfig.description}
       />
 
-      <PermissionPrimingModal
+      <LazyPermissionPrimingModal
         visible={priming.isVisible}
         onAccept={async () => {
           await priming.accept();

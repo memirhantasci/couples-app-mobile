@@ -13,6 +13,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { prefetchCalendarData } from "@/hooks/useCalendarData";
+import { prefetchMainScreens } from "@/lib/screenQueries";
 import {
   dayjs,
   daysSince,
@@ -43,16 +44,16 @@ import { DailyNoteCard } from "@/components/home/DailyNoteCard";
 import { MeetingCountdown, type Meeting } from "@/components/home/MeetingCountdown";
 import { PendingLettersCard, PendingLettersBadge } from "@/components/home/PendingLettersCard";
 import { useHomeSpotlightTour } from "@/hooks/useHomeSpotlightTour";
-import { SpotlightTour, type SpotlightStep } from "@/components/tour/SpotlightTour";
+import { type SpotlightStep } from "@/components/tour/SpotlightTour";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { HOME_SPOTLIGHT_STEPS, type HomeSpotlightTargetId } from "@/constants/featureGuides";
 import { DEMO_HOME_DATA, DEMO_LOVE_SCORE } from "@/constants/demoData";
-import { CoupleWrappedModal } from "@/components/wrapped/CoupleWrappedModal";
 import { computeCoupleWrapped, CoupleWrappedData } from "@/utils/wrappedCalculator";
 import { syncCoupleWidget } from "@/utils/widgetBridge";
 import { fetchWidgetUnread } from "@/lib/widgetUnread";
 import { CoupleAvatarRing } from "@/components/home/CoupleAvatarRing";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
+import { LazySpotlightTour, LazyCoupleWrappedModal } from "@/components/ui/lazyMount";
 
 export default function HomeScreen() {
   const { session, profile, isDemoMode, exitDemoMode } = useAuth();
@@ -84,6 +85,16 @@ export default function HomeScreen() {
       });
     }
   }, [queryClient, coupleId, userId, isPremium, canSeePeriod, isDemoMode]);
+
+  // Ana sayfa çizildikten kısa süre sonra mektup / fotoğraf / anı / buluşma listelerinin ilk sayfasını arkadan indir:
+  // sekmeye geçince ağ beklenmez. Ana sayfanın kendi sorgularıyla yarışmasın diye geciktirilir.
+  useEffect(() => {
+    if (!coupleId && !isDemoMode) return;
+    const timer = setTimeout(() => {
+      prefetchMainScreens(queryClient, { coupleId, userId, isPremium, isDemoMode });
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [queryClient, coupleId, userId, isPremium, isDemoMode]);
 
   const [cachedScore, setCachedScore] = useState<LoveScoreResult | null>(null);
   const [isWrappedVisible, setIsWrappedVisible] = useState(false);
@@ -705,8 +716,8 @@ export default function HomeScreen() {
           <PendingLettersCard letters={dashboardData?.pendingLetters || []} theme={theme} />
         </KeyboardAwareScrollView>
       </View>
-      <SpotlightTour visible={isSpotlightVisible} steps={spotlightSteps} onClose={closeSpotlight} />
-      <CoupleWrappedModal
+      <LazySpotlightTour visible={isSpotlightVisible} steps={spotlightSteps} onClose={closeSpotlight} />
+      <LazyCoupleWrappedModal
         visible={isWrappedVisible}
         onClose={() => setIsWrappedVisible(false)}
         data={wrappedData}

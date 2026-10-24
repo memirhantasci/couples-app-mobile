@@ -32,11 +32,10 @@ import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { usePageTour } from "@/hooks/usePageTour";
-import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { DEMO_DAILY_NOTES } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
-import { DemoActionModal } from "@/components/demo/DemoActionModal";
+import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
 
 dayjs.locale("tr");
 
@@ -427,8 +426,8 @@ export default function DailyNotesScreen() {
         {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
         <DialogHost embedded visible={!!editingNote} />
       </Modal>
-      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
-      <DemoActionModal
+      <LazyPageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <LazyDemoActionModal
         visible={isDemoModalOpen}
         onClose={() => setIsDemoModalOpen(false)}
         title={modalConfig.title}

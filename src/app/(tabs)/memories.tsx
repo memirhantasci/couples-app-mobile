@@ -19,12 +19,12 @@ import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { usePageTour } from "@/hooks/usePageTour";
-import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { useDemoAction } from "@/hooks/useDemoAction";
-import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { DEMO_PROFILE } from "@/constants/demoData";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { fetchMemoriesPage, memoriesQueryKey, MEMORIES_PAGE_SIZE } from "@/lib/screenQueries";
+import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
 
 export default function MemoriesScreen() {
   const router = useRouter();
@@ -39,7 +39,7 @@ export default function MemoriesScreen() {
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("memories");
 
   const coupleId = profile?.coupleId || null;
-  const PAGE_SIZE = 15;
+  const PAGE_SIZE = MEMORIES_PAGE_SIZE;
 
   useEffect(() => {
     if (isDemoMode) return;
@@ -128,36 +128,10 @@ export default function MemoriesScreen() {
     isFetchingNextPage,
     refetch
   } = useInfiniteQuery({
-    queryKey: ["memories", coupleId, isDemoMode],
+    queryKey: memoriesQueryKey(coupleId, isDemoMode),
     enabled: !!coupleId || isDemoMode,
     initialPageParam: 0,
-    queryFn: async ({ pageParam = 0 }) => {
-      if (isDemoMode) {
-        return [
-          {
-            id: 1,
-            title: "Sevgili Olduğumuz İlk Gün 💖",
-            date: DEMO_PROFILE.relationshipStartDate ?? dayjs().subtract(365, "day").format("YYYY-MM-DD"),
-            description: "Birlikte el ele tutuşup geleceğe söz verdiğimiz o an...",
-          },
-          {
-            id: 2,
-            title: "İlk Tanıştığımız Gün ☕",
-            date: DEMO_PROFILE.meetDate ?? dayjs().subtract(428, "day").format("YYYY-MM-DD"),
-            description: "Gözlerinin içindeki parıltıyı ilk fark ettiğim gün.",
-          },
-        ];
-      }
-      const { data, error } = await supabase
-        .from("memories")
-        .select("id, date, title, description, image_path, is_default")
-        .eq("couple_id", coupleId)
-        .order("date", { ascending: false })
-        .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
-
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: ({ pageParam = 0 }) => fetchMemoriesPage({ coupleId, pageParam, isDemoMode }),
     getNextPageParam: (lastPage, allPages) => {
       return lastPage.length === PAGE_SIZE ? allPages.length : undefined;
     },
@@ -417,8 +391,8 @@ export default function MemoriesScreen() {
           </TouchableOpacity>
         </Animated.View>
       )}
-      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
-      <DemoActionModal
+      <LazyPageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <LazyDemoActionModal
         visible={isDemoModalOpen}
         onClose={() => setIsDemoModalOpen(false)}
         title={modalConfig.title}

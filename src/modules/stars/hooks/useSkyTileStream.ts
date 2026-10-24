@@ -1,10 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
 import { starService } from '../api/starService';
 import type { ViewportStarItem } from '../types/star.types';
-import { SKY_TILE_LEVELS } from '../utils/skyTiles';
+import { SKY_TILE_LEVELS, SkyTileStore } from '../utils/skyTiles';
 import { SkyTileStreamController, type SkyViewport } from '../utils/skyTileStream';
 
 const EMPTY_STARS: ViewportStarItem[] = [];
+
+/**
+ * Oturum boyunca yaşayan karo önbelleği: yıldız ekranı kapatılıp açılınca görünür karolar ağdan beklenmeden
+ * önbellekten çizilir (60 sn'den eskilerse arkadan tazelenir). Hesap değişince clearSharedSkyTiles ile boşaltılır:
+ * karolardaki "benim yıldızım" / bağlantı bilgisi kullanıcıya özeldir.
+ */
+let sharedStore: SkyTileStore | null = null;
+const getSharedStore = () => (sharedStore ??= new SkyTileStore(400));
+export function clearSharedSkyTiles() {
+  sharedStore = null;
+}
 
 /**
  * Star data for the macro sky map, streamed tile by tile.
@@ -31,6 +42,7 @@ export function useSkyTileStream() {
             { signal },
           ),
         onStars: setStars,
+        store: getSharedStore(),
       }),
   );
 

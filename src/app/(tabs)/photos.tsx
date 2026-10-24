@@ -24,14 +24,11 @@ import { deleteArchivedPhoto } from "@/lib/photoArchive";
 import { useAuth } from "@/context/AuthContext";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
-import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { usePageTour } from "@/hooks/usePageTour";
-import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { DEMO_PHOTOS } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
-import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { PhotoGrid3Cell } from "@/components/photos/PhotoGrid3Cell";
 import { PhotoGrid2Cell } from "@/components/photos/PhotoGrid2Cell";
 import { PhotoSingleCell } from "@/components/photos/PhotoSingleCell";
@@ -39,6 +36,8 @@ import { PhotosLockCard } from "@/components/photos/PhotosLockCard";
 import { PhotoLightboxModal } from "@/components/photos/PhotoLightboxModal";
 import type { PhotoItem, ViewMode } from "@/components/photos/photoTypes";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { fetchPhotosPage, photosQueryKey, PHOTOS_PAGE_SIZE } from "@/lib/screenQueries";
+import { LazyPremiumPaywall, LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
 
 export default function PhotosScreen() {
   const router = useRouter();
@@ -61,7 +60,7 @@ export default function PhotosScreen() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
 
-  const PAGE_SIZE = 30;
+  const PAGE_SIZE = PHOTOS_PAGE_SIZE;
 
   // Fotoğrafları sayfalama (pagination) ile çek
   const {
@@ -72,29 +71,10 @@ export default function PhotosScreen() {
     isFetchingNextPage,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ["photo_archive", coupleId, isDemoMode, sortOrder],
+    queryKey: photosQueryKey(coupleId, isDemoMode, sortOrder),
     enabled: (!!coupleId && isPremium) || isDemoMode,
     initialPageParam: 0,
-    queryFn: async ({ pageParam = 0 }) => {
-      if (isDemoMode) {
-        const sorted = [...(DEMO_PHOTOS as any[])].sort((a, b) => {
-          const diff = new Date(a.taken_date).getTime() - new Date(b.taken_date).getTime();
-          return sortOrder === "asc" ? diff : -diff;
-        });
-        return sorted as any;
-      }
-      const asc = sortOrder === "asc";
-      const { data, error } = await supabase
-        .from("photo_archive")
-        .select("id, storage_path, thumb_path, taken_date, taken_time, title, description, user_id, created_at")
-        .eq("couple_id", coupleId)
-        .order("taken_date", { ascending: asc })
-        .order("created_at", { ascending: asc })
-        .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
-
-      if (error) throw error;
-      return (data || []) as PhotoItem[];
-    },
+    queryFn: ({ pageParam = 0 }) => fetchPhotosPage({ coupleId, pageParam, sortOrder, isDemoMode }),
     getNextPageParam: (lastPage, allPages) => {
       return lastPage.length === PAGE_SIZE ? allPages.length : undefined;
     },
@@ -383,13 +363,13 @@ export default function PhotosScreen() {
       />
 
       {/* Premium Paywall */}
-      <PremiumPaywall
+      <LazyPremiumPaywall
         visible={showPaywall}
         onClose={() => setShowPaywall(false)}
         featureName="Fotoğraf Galerisi"
       />
-      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
-      <DemoActionModal
+      <LazyPageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <LazyDemoActionModal
         visible={isDemoModalOpen}
         onClose={() => setIsDemoModalOpen(false)}
         title={modalConfig.title}

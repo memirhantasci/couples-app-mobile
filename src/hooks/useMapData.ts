@@ -28,6 +28,9 @@ interface UseMapDataArgs {
   isDemoMode: boolean;
 }
 
+/** Haritada aynı anda çizilecek en fazla fotoğraf / not işaretçisi (her biri ayrı bir native görünümdür). */
+const MAX_MAP_PINS = 200;
+
 /**
  * Harita ekranının üç veri kaynağı: fotoğraf pinleri (yalnızca Premium), aşk notları ve buluşmalar.
  * Ekran her odaklandığında üçünü de yeniler.
@@ -59,7 +62,10 @@ export function useMapData({ coupleId, isPremium, isDemoMode }: UseMapDataArgs) 
         )
         .eq("couple_id", coupleId)
         .not("latitude", "is", null)
-        .not("longitude", "is", null);
+        .not("longitude", "is", null)
+        // Harita yüzlerce işaretçiyle yavaşlamasın: en yeni konumlu fotoğraflar çizilir
+        .order("taken_date", { ascending: false })
+        .limit(MAX_MAP_PINS);
       if (error) throw error;
       return ((data ?? []) as PhotoPin[]).filter((p) =>
         isValidCoordinate(p.latitude, p.longitude),
@@ -87,7 +93,8 @@ export function useMapData({ coupleId, isPremium, isDemoMode }: UseMapDataArgs) 
         .from("map_notes")
         .select("id, user_id, latitude, longitude, note, created_at")
         .eq("couple_id", coupleId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(MAX_MAP_PINS);
       if (error) throw error;
       return ((data ?? []) as MapNote[]).filter((n) =>
         isValidCoordinate(n.latitude, n.longitude),

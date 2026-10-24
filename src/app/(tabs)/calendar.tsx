@@ -21,13 +21,10 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
-import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 import { usePageTour } from "@/hooks/usePageTour";
-import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { useDemoAction } from "@/hooks/useDemoAction";
-import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { CALENDAR_COLORS } from "@/components/calendar/calendarColors";
 import type { CalendarPhotoItem } from "@/components/calendar/calendarTypes";
 import { DaySectionCard, dayItemAccent } from "@/components/calendar/DaySectionCard";
@@ -38,6 +35,7 @@ import { CalendarPhotoLightbox } from "@/components/calendar/CalendarPhotoLightb
 import { PERIOD_DURATION_DAYS, getPeriodDays, getPeriodStarts } from "@/lib/periodCycle";
 import { MOODS } from "@/components/home/MoodSelector";
 import { useCalendarData } from "@/hooks/useCalendarData";
+import { LazyPremiumPaywall, LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
 
 // Veritabanında ruh hali genelde emoji olarak saklanır; eski/demo kayıtlardaki ham anahtarlar (ör. "love") için eşleme.
 const MOOD_KEY_DISPLAY: Record<string, { emoji: string; label: string }> = {
@@ -635,13 +633,13 @@ export default function CalendarScreen() {
         onClose={() => setSelectedPhoto(null)}
       />
 
-      <PremiumPaywall
+      <LazyPremiumPaywall
         visible={showPaywall}
         onClose={() => setShowPaywall(false)}
         featureName="Takvimdeki Fotoğraflar"
       />
-      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
-      <DemoActionModal
+      <LazyPageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <LazyDemoActionModal
         visible={isDemoModalOpen}
         onClose={() => setIsDemoModalOpen(false)}
         title={modalConfig.title}

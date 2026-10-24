@@ -26,13 +26,11 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
-import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { usePageTour } from "@/hooks/usePageTour";
 import { useDeferredReady } from "@/hooks/useDeferredReady";
-import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { useDemoAction } from "@/hooks/useDemoAction";
-import { DemoActionModal } from "@/components/demo/DemoActionModal";
+import { LazyPremiumPaywall, LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
 import {
   MAX_REASONABLE_DELAY_DAYS, MAX_STARTS_PER_MONTH, MIN_DAYS_BETWEEN_STARTS,
   estimateCycleLength, getPeriodStarts, getPeriodDays,
@@ -90,7 +88,8 @@ export default function PeriodTrackerScreen() {
         query = query.neq("user_id", userId);
       }
 
-      const { data } = await query;
+      // Döngü tahmini son birkaç kayda dayanır: tüm geçmişi indirmeye gerek yok
+      const { data } = await query.limit(240);
       return data || [];
     },
     staleTime: 1000 * 60 * 5,
@@ -594,15 +593,15 @@ export default function PeriodTrackerScreen() {
       </Modal>
 
       {/* ─── PREMIUM PAYWALL MODALI ─── */}
-      <PremiumPaywall
+      <LazyPremiumPaywall
         visible={showPaywall}
         onClose={() => setShowPaywall(false)}
         featureName="Döngü & Regl Takvimi"
         featureDescription="Sevgilinizin döngüsünü birlikte takip edin, hassas dönemlerinde ona en doğru şekilde destek olun."
         gender={profile?.gender}
       />
-      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
-      <DemoActionModal
+      <LazyPageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <LazyDemoActionModal
         visible={isDemoModalOpen}
         onClose={() => setIsDemoModalOpen(false)}
         title={modalConfig.title}

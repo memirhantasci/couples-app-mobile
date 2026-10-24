@@ -30,10 +30,8 @@ import {
 import { formatDateTR } from "@/lib/date";
 import { usePageTour } from "@/hooks/usePageTour";
 import { useDeferredReady } from "@/hooks/useDeferredReady";
-import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { useDemoAction } from "@/hooks/useDemoAction";
-import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { DEMO_PROFILE } from "@/constants/demoData";
 import { EditableAvatar } from "@/components/avatar/EditableAvatar";
 import {
@@ -60,6 +58,7 @@ import { DangerZoneCard } from "@/components/profile/DangerZoneCard";
 import { profileSharedStyles } from "@/components/profile/profileSharedStyles";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
+import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
 
 dayjs.locale("tr");
 
@@ -773,8 +772,8 @@ export default function ProfileScreen() {
         initialDoc={selectedLegalDoc}
         accentColor={theme.accent}
       />
-      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
-      <DemoActionModal
+      <LazyPageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <LazyDemoActionModal
         visible={isDemoModalOpen}
         onClose={() => setIsDemoModalOpen(false)}
         title={modalConfig.title}

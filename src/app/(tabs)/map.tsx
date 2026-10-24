@@ -18,7 +18,6 @@ import MapView from "react-native-maps";
 import type { LongPressEvent } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MapAddNoteModal } from "@/components/map/MapAddNoteModal";
 import { MapControlBar } from "@/components/map/MapControlBar";
@@ -39,7 +38,6 @@ import type {
   PhotoPin,
   SelectedItem,
 } from "@/components/map/mapTypes";
-import { PageTourModal } from "@/components/tour/PageTourModal";
 import { MAP_THEME_STYLES, isLightMapTheme } from "@/constants/mapStyles";
 import { useAuth } from "@/context/AuthContext";
 import { useDemoAction } from "@/hooks/useDemoAction";
@@ -52,6 +50,7 @@ import { playStampDrop } from "@/lib/soundEffects";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/context/ThemeContext";
 import { toast } from "@/lib/toast";
+import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
 
 const DEMO_NOTE_TITLE = "Haritaya Aşk Notu Bırakmak İçin Kayıt Olun 📍";
 const DEMO_NOTE_DESC =
@@ -528,12 +527,12 @@ export default function MapScreen() {
         theme={theme}
       />
 
-      <PageTourModal
+      <LazyPageTourModal
         visible={isTourVisible}
         guide={guide}
         onClose={closeTour}
       />
-      <DemoActionModal
+      <LazyDemoActionModal
         visible={isDemoModalOpen}
         onClose={() => setIsDemoModalOpen(false)}
         title={modalConfig.title}

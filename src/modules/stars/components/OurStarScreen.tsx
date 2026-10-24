@@ -90,6 +90,7 @@ import { SectorHUD } from './SectorHUD';
 import { SectorAtlasModal } from './SectorAtlasModal';
 import { SearchStarModal } from './SearchStarModal';
 import { SKY_SECTORS } from '../config/skySectors.data';
+import { readStarCache, writeStarCache } from '../utils/starCache';
 import { MicroStarHeader } from './micro/MicroStarHeader';
 import { MicroSystemDock } from './micro/MicroSystemDock';
 import { PremiumPaywall } from '@/components/ui/PremiumPaywall';
@@ -114,6 +115,24 @@ import type {
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+/**
+ * Büyük pencereler (anı gezegeni, sertifika, bağlar, atlas, arama) görünmezken bile baştan kurulduğu için
+ * ekranın açılışını yavaşlatıyordu. İlk kez görünür olana dek hiç kurulmaz; sonra açık kalır (kapanış animasyonu için).
+ */
+function withLazyMount<P extends { visible: boolean }>(Component: React.ComponentType<P>) {
+  function LazyMounted(props: P) {
+    const [mounted, setMounted] = useState(props.visible);
+    if (props.visible && !mounted) setMounted(true);
+    return mounted ? <Component {...props} /> : null;
+  }
+  return LazyMounted;
+}
+const LazyClaimStarModal = withLazyMount(ClaimStarModal);
+const LazyExoplanetModal = withLazyMount(ExoplanetModal);
+const LazyStarConnectionModal = withLazyMount(StarConnectionModal);
+const LazySectorAtlasModal = withLazyMount(SectorAtlasModal);
+const LazySearchStarModal = withLazyMount(SearchStarModal);
+
 // Realtime güncellemeleri koruma penceresi (5 saniye)
 const REALTIME_RECONCILIATION_WINDOW_MS = 5000;
 
@@ -121,7 +140,7 @@ const REALTIME_RECONCILIATION_WINDOW_MS = 5000;
 // parıltılı dış görünümüne süzülüş. İçeri girmek kullanıcının "Yıldızın İçine Gir" seçimidir.
 const SKY_OVERVIEW_ZOOM = 1.2;
 const STAR_EXTERIOR_ZOOM = 3.0;
-const STAR_INTRO_FLIGHT_MS = 2400;
+const STAR_INTRO_FLIGHT_MS = 1600;
 
 // Yıldızın içi (mikro) yerleşimi: başlık üst çubuğun altında, cam panel en altta.
 // Ölçümler gelene kadar (onLayout) yörünge sistemi bu tahminlere göre ortalanır.
@@ -465,11 +484,31 @@ export const OurStarScreen: React.FC = () => {
         return;
       }
 
-      if (!isSilent) {
-        setIsLoading(true);
+      // Açılış hızı: son bilinen yıldız verisi varsa ağı beklemeden hemen çizilir, sunucudan sessizce tazelenir.
+      let silent = isSilent;
+      if (!silent) {
+        const cached = await readStarCache(coupleId);
+        if (cached) {
+          setStarDetails(cached.details);
+          setExoplanets(cached.planets);
+          setLuminosityOverride(cached.details.luminosity_level);
+          setIsResonanceActive(cached.details.resonance_active);
+          queueStarIntro(Number(cached.details.ra), Number(cached.details.dec));
+          setIsLoading(false);
+          silent = true;
+        } else {
+          setIsLoading(true);
+        }
       }
 
       try {
+        // Bağlantılar yıldız kimliğine bağlı değildir: yıldız ayrıntılarıyla aynı anda istenir (eskiden art arda bekleniyordu)
+        const connectionsPromise = Promise.all([
+          starService.getMyStarConnections(),
+          starService.getPendingConnections(),
+        ]);
+        connectionsPromise.catch(() => {});
+
         const details = await starService.getMyStarDetails(coupleId);
         if (!details) {
           setStarDetails(null);
@@ -500,18 +539,32 @@ export const OurStarScreen: React.FC = () => {
         queueStarIntro(Number(details.ra), Number(details.dec));
         refreshMyBrightness();
 
-        // Anı ötegezegenlerini çek
-        const planets = await starService.getStarExoplanets(details.star_id);
-        setExoplanets(planets);
+        // Gökyüzü için gereken her şey hazır: yükleme ekranı kalkar, gezegenler ve bağlantılar arkadan gelir
+        if (!silent) {
+          setIsLoading(false);
+          silent = true;
+        }
 
-        // Aktif bağlantıları ve bekleyen istekleri çek
-        const [connections, pending] = await Promise.all([
-          starService.getMyStarConnections(),
-          starService.getPendingConnections(),
+        const [planetsResult, connectionsResult] = await Promise.allSettled([
+          starService.getStarExoplanets(details.star_id),
+          connectionsPromise,
         ]);
-        setStarConnections(connections);
-        setPendingRequests(pending);
-        setPendingIncomingCount(pending.filter((p) => p.is_incoming).length);
+
+        if (planetsResult.status === 'fulfilled') {
+          setExoplanets(planetsResult.value);
+          writeStarCache(coupleId, { details, planets: planetsResult.value });
+        } else if (planetsResult.reason instanceof PremiumRequiredError) {
+          setPremiumPaywallSource('exoplanet_view');
+        } else {
+          showToast('Anı gezegenleri yüklenemedi. Lütfen tekrar deneyin.');
+        }
+
+        if (connectionsResult.status === 'fulfilled') {
+          const [connections, pending] = connectionsResult.value;
+          setStarConnections(connections);
+          setPendingRequests(pending);
+          setPendingIncomingCount(pending.filter((p) => p.is_incoming).length);
+        }
       } catch (error) {
         // Yıldız gerçekten yoksa macro kanvasa yönlendir; network/RPC errors
         // stay visible rather than being mistaken for an unclaimed star.
@@ -819,8 +872,8 @@ export const OurStarScreen: React.FC = () => {
 
   // Kamera değiştiğinde koordinatları sadece anlamlı değişimlerde güncelle (re-render döngüsünü önler)
   const handleCameraChange = useCallback((cam: SkyCameraState) => {
-    setCameraRa((prevRa) => (Math.abs(prevRa - cam.centerRa) > 0.08 ? cam.centerRa : prevRa));
-    setCameraDec((prevDec) => (Math.abs(prevDec - cam.centerDec) > 0.08 ? cam.centerDec : prevDec));
+    setCameraRa((prevRa) => (Math.abs(prevRa - cam.centerRa) > 0.4 ? cam.centerRa : prevRa));
+    setCameraDec((prevDec) => (Math.abs(prevDec - cam.centerDec) > 0.4 ? cam.centerDec : prevDec));
   }, []);
 
   // ─── TESCİL BAŞARISI (Claim Callback) ──────────────────────────────
@@ -1603,7 +1656,7 @@ export const OurStarScreen: React.FC = () => {
 
       {/* 1. YILDIZ SAHİPLENME MODALI (Yalnızca Kayıtlı Kullanıcılar İçin) */}
       {coupleId && !isDemoMode && (
-        <ClaimStarModal
+        <LazyClaimStarModal
           visible={isClaimModalOpen}
           coupleId={coupleId}
           preSelectedStar={claimTargetStar ?? undefined}
@@ -1633,7 +1686,7 @@ export const OurStarScreen: React.FC = () => {
 
       {/* 2. ANİ ÖTEGEZEGENİ MODALI (VIEW / CREATE) */}
       {starDetails && (coupleId || isDemoMode) && (
-        <ExoplanetModal
+        <LazyExoplanetModal
           visible={exoplanetModalMode !== null}
           mode={exoplanetModalMode || 'view'}
           starId={starDetails.star_id}
@@ -1651,7 +1704,7 @@ export const OurStarScreen: React.FC = () => {
 
       {/* 3. TESCİL SERTİFİKASI İNCELEME MODALI */}
       {starDetails && (
-        <ClaimStarModal
+        <LazyClaimStarModal
           visible={isCertificateModalOpen}
           coupleId={coupleId || 999999}
           initialStar={starDetails}
@@ -1662,7 +1715,7 @@ export const OurStarScreen: React.FC = () => {
 
       {/* 4. KOZMİK BAĞLAR MODALI */}
       {starDetails && coupleId && !isDemoMode && (
-        <StarConnectionModal
+        <LazyStarConnectionModal
           visible={isConnectionsModalOpen}
           coupleId={coupleId}
           onClose={() => setIsConnectionsModalOpen(false)}
@@ -1689,7 +1742,7 @@ export const OurStarScreen: React.FC = () => {
       )}
 
       {/* 5. GÖKYÜZÜ ATLASI MODALI */}
-      <SectorAtlasModal
+      <LazySectorAtlasModal
         visible={isAtlasModalOpen}
         onClose={() => setIsAtlasModalOpen(false)}
         hasOwnStar={starDetails !== null}
@@ -1713,7 +1766,7 @@ export const OurStarScreen: React.FC = () => {
       />
       {/* ─── ARAMA MODAL'I ────────────────────────────────────────────── */}
 
-      <SearchStarModal
+      <LazySearchStarModal
         visible={isSearchModalOpen}
         onClose={() => setIsSearchModalOpen(false)}
         onSelectStar={(item) => {

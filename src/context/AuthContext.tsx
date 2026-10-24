@@ -3,6 +3,8 @@ import { registerForPushNotifications, syncPushTokenIfPermitted } from "@/lib/no
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { RevenueCatService } from "@/lib/revenuecat";
+import { clearStarCache } from "@/modules/stars/utils/starCache";
+import { clearSharedSkyTiles } from "@/modules/stars/hooks/useSkyTileStream";
 import React, { createContext, useCallback, useContext, useEffect, useEffectEvent, useState, useMemo, useRef } from "react";
 import { clearEncryptionKey, hasEncryptionKey, onEncryptionKeyChange, setCoupleEncryptionKey } from "@/utils/crypto";
 import { clearStorageImages } from "@/lib/storageImages";
@@ -412,6 +414,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Oturum bitti: şifreleme anahtarı, çözülmüş içerikleri tutan sorgu önbelleği ve
         // fotoğraf önbellekleri bellekten/diskten silinir
         clearEncryptionKey();
+        clearSharedSkyTiles();
         queryClient.clear();
         clearStorageImages().catch(() => {});
         setProfile(null);
@@ -623,6 +626,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await AsyncStorage.removeItem(`@couples_letter_draft_${signedInCoupleId}`).catch(() => {});
       await AsyncStorage.removeItem(`@defaults_seeded_${signedInCoupleId}`).catch(() => {});
       await AsyncStorage.removeItem(`@period_notif_scheduled_${signedInCoupleId}`).catch(() => {});
+      clearStarCache(signedInCoupleId);
     }
     await AsyncStorage.removeItem("@pending_invite_code").catch(() => {});
     

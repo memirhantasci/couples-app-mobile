@@ -35,14 +35,9 @@ import { logger } from "@/utils/logger";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
-import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { UserAvatar } from "@/components/avatar/UserAvatar";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
-import { WatchAdModal } from "@/components/ui/WatchAdModal";
-import { OrigamiBirdAnimation } from "@/components/letters/OrigamiBirdAnimation";
 import { usePageTour } from "@/hooks/usePageTour";
-import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { DEMO_LETTERS } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
@@ -52,11 +47,11 @@ import { markLettersSeen } from "@/lib/letterArrival";
 import { markLettersVisited } from "@/lib/widgetUnread";
 import { setCoupleWidgetUnread } from "@/utils/widgetBridge";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { DemoActionModal } from "@/components/demo/DemoActionModal";
-import { PermissionPrimingModal } from "@/components/common/PermissionPrimingModal";
 import { useNotificationPriming } from "@/hooks/useNotificationPriming";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { fetchLetters, lettersQueryKey, LETTERS_PAGE_SIZE } from "@/lib/screenQueries";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
+import { LazyPremiumPaywall, LazyPageTourModal, LazyDemoActionModal, LazyWatchAdModal, LazyPermissionPrimingModal, LazyDateTimePickerSheet, LazyOrigamiBirdAnimation } from "@/components/ui/lazyMount";
 import {
   deletionRequestOpensAt,
   deletionRetryAt,
@@ -102,7 +97,7 @@ export default function LettersScreen() {
   const priming = useNotificationPriming(userId);
 
   const [activeTab, setActiveTab] = useState<"all" | "received" | "sent">("all");
-  const [pageLimit, setPageLimit] = useState(30);
+  const [pageLimit, setPageLimit] = useState(LETTERS_PAGE_SIZE);
   const [showWriteModal, setShowWriteModal] = useState(false);
   const [showOrigamiAnimation, setShowOrigamiAnimation] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
@@ -114,72 +109,12 @@ export default function LettersScreen() {
 
   // --- Mektupları Getir (Sayfalamalı ve Korumalı) ---
   const { data, isLoading, refetch: refetchLetters } = useQuery({
-    queryKey: ["letters_data", coupleId, userId, pageLimit, isDemoMode],
+    queryKey: lettersQueryKey(coupleId, userId, pageLimit, isDemoMode),
     enabled: (!!coupleId && !!userId) || isDemoMode,
-    queryFn: async () => {
-      if (isDemoMode) {
-        const all = DEMO_LETTERS;
-        const received = DEMO_LETTERS.filter(l => l._type === "received");
-        const sent = DEMO_LETTERS.filter(l => l._type === "sent");
-        return { all, received, sent };
-      }
-      const [receivedRes, sentRes, usersRes] = await Promise.all([
-        supabase
-          .from("letters")
-          .select("*")
-          .eq("couple_id", coupleId)
-          .eq("receiver_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(pageLimit),
-        supabase
-          .from("letters")
-          .select("*")
-          .eq("couple_id", coupleId)
-          .eq("sender_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(pageLimit),
-        supabase
-          .from("users")
-          .select("id, username, display_name")
-          .eq("couple_id", coupleId),
-      ]);
-
-      const userMap = (usersRes.data || []).reduce((acc: any, u: any) => {
-        acc[u.id] = u;
-        return acc;
-      }, {});
-
-      // Silinmesi onaylanıp vakti gelen mektuplar saatlik iş silene kadar gösterilmez
-      const now = Date.now();
-      const received = (receivedRes.data || []).filter((l: any) => !isAwaitingPurge(l, now)).map((l: any) => {
-        const senderObj = userMap[l.sender_id];
-        return {
-          ...l,
-          _type: "received" as const,
-          // İçerik burada çözülmez: crypto-js saf JS olduğundan 30-60 mektubu birden çözmek ekranı
-          // kilitliyordu. Çözme yalnızca ekranda görünen/açılan satır için render'da (önbellekli) yapılır.
-          content: l.content,
-          sender: senderObj ? { ...senderObj, username: senderObj.username || "Sevgilin" } : null
-        };
-      });
-
-      const sent = (sentRes.data || []).filter((l: any) => !isAwaitingPurge(l, now)).map((l: any) => {
-        const receiverObj = userMap[l.receiver_id];
-        return {
-          ...l,
-          _type: "sent" as const,
-          content: l.content,
-          receiver: receiverObj ? { ...receiverObj, username: receiverObj.username || "Sevgilin" } : null
-        };
-      });
-
-      return {
-        received,
-        sent,
-        all: [...received, ...sent].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
-      };
-    },
+    queryFn: () => fetchLetters({ coupleId, userId, pageLimit, isDemoMode }),
     staleTime: 1000 * 60 * 5, // 5 dk — invalidateQueries zaten yeni mektup yazılınca günceller
+    // pageLimit anahtarın parçası: "daha fazla" yüklenirken eski liste görünür kalsın (iskelete dönüp kaydırma konumunu kaybetmesin)
+    placeholderData: (previous) => previous,
   });
 
   // --- Alıcı Kullanıcıları Getir ---
@@ -1163,7 +1098,7 @@ export default function LettersScreen() {
                     <ChevronRight size={16} color={theme.textMuted} />
                   </TouchableOpacity>
 
-                  <DateTimePickerSheet
+                  <LazyDateTimePickerSheet
                     visible={showDatePicker}
                     mode="date"
                     title="Kilit Açılma Tarihi"
@@ -1266,7 +1201,7 @@ export default function LettersScreen() {
       </Modal>
 
       {/* Premium Paywall Modal */}
-      <PremiumPaywall
+      <LazyPremiumPaywall
         visible={showPaywall}
         onClose={() => setShowPaywall(false)}
         featureName="Mektup Yaz"
@@ -1278,13 +1213,13 @@ export default function LettersScreen() {
         }}
       />
 
-      <WatchAdModal
+      <LazyWatchAdModal
         visible={showAdModal}
         onClose={() => setShowAdModal(false)}
         onSuccess={() => setShowAdModal(false)}
       />
 
-      <OrigamiBirdAnimation
+      <LazyOrigamiBirdAnimation
         visible={showOrigamiAnimation}
         onComplete={() => {
           setShowOrigamiAnimation(false);
@@ -1296,13 +1231,13 @@ export default function LettersScreen() {
         }}
         accentColor={theme.accent}
       />
-      <PermissionPrimingModal
+      <LazyPermissionPrimingModal
         visible={priming.isVisible}
         onAccept={priming.accept}
         onDismiss={priming.dismiss}
       />
-      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
-      <DemoActionModal
+      <LazyPageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <LazyDemoActionModal
         visible={isDemoModalOpen}
         onClose={() => setIsDemoModalOpen(false)}
         title={modalConfig.title}

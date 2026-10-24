@@ -29,6 +29,8 @@ export interface SkyTileStreamOptions {
   readonly flushDelayMs?: number;
   readonly maxTiles?: number;
   readonly now?: () => number;
+  /** Tile cache to use; pass a long-lived one so reopening the screen does not refetch visible tiles. */
+  readonly store?: SkyTileStore;
 }
 
 /**
@@ -42,8 +44,8 @@ export interface SkyTileStreamOptions {
  * already on screen stay there while finer levels load.
  */
 export class SkyTileStreamController {
-  private readonly options: Required<Omit<SkyTileStreamOptions, 'fetchTile' | 'onStars'>> &
-    Pick<SkyTileStreamOptions, 'fetchTile' | 'onStars'>;
+  private readonly options: Required<Omit<SkyTileStreamOptions, 'fetchTile' | 'onStars' | 'store'>> &
+    Pick<SkyTileStreamOptions, 'fetchTile' | 'onStars' | 'store'>;
   private readonly store: SkyTileStore;
   private readonly inFlight = new Map<string, AbortController>();
   private readonly failedAt = new Map<string, number>();
@@ -66,7 +68,7 @@ export class SkyTileStreamController {
       now: () => Date.now(),
       ...options,
     };
-    this.store = new SkyTileStore(this.options.maxTiles);
+    this.store = options.store ?? new SkyTileStore(this.options.maxTiles);
   }
 
   /** The viewport changed (throttled while moving, exact when settled). */

@@ -26,7 +26,6 @@ import {
   Plus, Calendar, Clock, Navigation, Check, X, Sparkles, Heart
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
 
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
@@ -38,13 +37,13 @@ import { useTheme } from "@/context/ThemeContext";
 import { MapPickerModal } from "@/components/MapPickerModal";
 import { usePageTour } from "@/hooks/usePageTour";
 import { useDeferredReady } from "@/hooks/useDeferredReady";
-import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { DEMO_MEETINGS } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
-import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { sanitizeStrict } from "@/utils/sanitize";
 import { toast } from "@/lib/toast";
+import { fetchMeetings, meetingsQueryKey } from "@/lib/screenQueries";
+import { LazyPageTourModal, LazyDemoActionModal, LazyDateTimePickerSheet } from "@/components/ui/lazyMount";
 
 /** Güncelleme sorgusu hiçbir satırı değiştirmediğinde (buluşma başkasına ait / silinmiş) fırlatılır. */
 const MEETING_UPDATE_DENIED = "MEETING_UPDATE_DENIED";
@@ -85,22 +84,9 @@ export default function MeetingsScreen() {
   const editingMeetingId: string | number | null = editingMeeting?.id ?? null;
 
   const { data: meetings, isLoading } = useQuery({
-    queryKey: ["meetings", coupleId, isDemoMode],
+    queryKey: meetingsQueryKey(coupleId, isDemoMode),
     enabled: !!coupleId || isDemoMode,
-    queryFn: async () => {
-      if (isDemoMode) {
-        return DEMO_MEETINGS;
-      }
-      const { data, error } = await supabase
-        .from("meetings")
-        .select("*")
-        .eq("couple_id", coupleId)
-        .order("meeting_datetime", { ascending: false })
-        .limit(300);
-
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: () => fetchMeetings({ coupleId, isDemoMode }),
     staleTime: 1000 * 60 * 5,
   });
 
@@ -719,7 +705,7 @@ export default function MeetingsScreen() {
           </View>
 
           {/* TARİH & SAAT SEÇİCİ: iOS'ta başka bir Modal'ın üstünde açılabilmesi için form Modal'ının içinde render edilir */}
-          <DateTimePickerSheet
+          <LazyDateTimePickerSheet
             visible={showDatePicker}
             mode="date"
             title="Buluşma Tarihi"
@@ -728,7 +714,7 @@ export default function MeetingsScreen() {
             onCancel={() => setShowDatePicker(false)}
             onConfirm={onDateConfirm}
           />
-          <DateTimePickerSheet
+          <LazyDateTimePickerSheet
             visible={showTimePicker}
             mode="time"
             title="Buluşma Saati"
@@ -753,8 +739,8 @@ export default function MeetingsScreen() {
           if (!locationName) setLocationName(loc.locationName || "");
         }}
       />
-      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
-      <DemoActionModal
+      <LazyPageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <LazyDemoActionModal
         visible={isDemoModalOpen}
         onClose={() => setIsDemoModalOpen(false)}
         title={modalConfig.title}

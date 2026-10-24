@@ -22,16 +22,13 @@ import { cancelLocalNotification, notifyPartner } from "@/lib/notifications";
 import { scheduleMedicineReminder, medicineReminderId, syncLocalReminders } from "@/lib/reminderSync";
 import { useNotificationPriming } from "@/hooks/useNotificationPriming";
 import { useDeferredReady } from "@/hooks/useDeferredReady";
-import { PermissionPrimingModal } from "@/components/common/PermissionPrimingModal";
 import { useCustomNotification } from "@/context/NotificationContext";
 import { dayjs, todayString } from "@/lib/date";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePageTour } from "@/hooks/usePageTour";
-import { PageTourModal } from "@/components/tour/PageTourModal";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { DEMO_MEDICINES } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
-import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { sanitizeStrict } from "@/utils/sanitize";
 import { playSuccessChime } from "@/lib/soundEffects";
 import { toast } from "@/lib/toast";
@@ -39,6 +36,7 @@ import { MedicineStreakCard } from "@/components/medicine/MedicineStreakCard";
 import { MedicineDoseCard } from "@/components/medicine/MedicineDoseCard";
 import { MedicineHistoryList } from "@/components/medicine/MedicineHistoryList";
 import { MedicineManagerModal } from "@/components/medicine/MedicineManagerModal";
+import { LazyPageTourModal, LazyDemoActionModal, LazyPermissionPrimingModal } from "@/components/ui/lazyMount";
 import type {
   MedicineFormInitialData,
   MedicineFormValues,
@@ -716,7 +714,7 @@ export default function MedicineScreen() {
         onBeforeEdit={handleBeforeEditMedicine}
       />
 
-      <PermissionPrimingModal
+      <LazyPermissionPrimingModal
         visible={priming.isVisible}
         onAccept={async () => {
           const granted = await priming.accept();
@@ -726,8 +724,8 @@ export default function MedicineScreen() {
         onDismiss={priming.dismiss}
       />
 
-      <PageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
-      <DemoActionModal
+      <LazyPageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <LazyDemoActionModal
         visible={isDemoModalOpen}
         onClose={() => setIsDemoModalOpen(false)}
         title={modalConfig.title}

@@ -20,26 +20,24 @@ import {
   AlertCircle, Calendar as CalendarIcon, Clock, AlignJustify, 
   UploadCloud, RefreshCw, MapPin, Navigation, Search
 } from "lucide-react-native";
-import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { supabase } from "@/lib/supabase";
 import { removeStoredFiles, seedStorageImage } from "@/lib/storageImages";
 import { useAuth } from "@/context/AuthContext";
 import { useDemoAction } from "@/hooks/useDemoAction";
-import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { decode } from "base64-arraybuffer";
 import { notifyPartner } from "@/lib/notifications";
 import { dayjs, todayString } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { logger } from "@/utils/logger";
-import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { MapPickerModal } from "@/components/MapPickerModal";
 import { extractPhotoExif, isValidCoordinate, geocodeAddressString } from "@/utils/exifHelper";
 import { sanitize, sanitizeStrict } from "@/utils/sanitize";
 import { playCameraClick } from "@/lib/soundEffects";
 import { toast } from "@/lib/toast";
+import { LazyPremiumPaywall, LazyDemoActionModal, LazyDateTimePickerSheet } from "@/components/ui/lazyMount";
 
 interface LocationData {
   latitude: number;
@@ -596,7 +594,7 @@ export default function AddPhotoScreen() {
               </View>
             </View>
 
-            <DateTimePickerSheet
+            <LazyDateTimePickerSheet
               visible={showDatePicker}
               mode="date"
               title="Çekim Tarihi"
@@ -606,7 +604,7 @@ export default function AddPhotoScreen() {
               onConfirm={onDateConfirm}
             />
 
-            <DateTimePickerSheet
+            <LazyDateTimePickerSheet
               visible={showTimePicker}
               mode="time"
               title="Çekim Saati"
@@ -702,7 +700,7 @@ export default function AddPhotoScreen() {
         </KeyboardAwareScrollView>
         
         {/* Premium Paywall */}
-        <PremiumPaywall
+        <LazyPremiumPaywall
           visible={showPaywall}
           onClose={() => {
             setShowPaywall(false);
@@ -738,7 +736,7 @@ export default function AddPhotoScreen() {
           }}
         />
 
-        <DemoActionModal
+        <LazyDemoActionModal
           visible={isDemoModalOpen}
           onClose={() => setIsDemoModalOpen(false)}
           title={modalConfig.title}

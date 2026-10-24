@@ -22,13 +22,13 @@ import { useTheme } from "@/context/ThemeContext";
 import { encrypt, decrypt } from "@/utils/crypto";
 import { sanitize } from "@/utils/sanitize";
 import { useDemoAction } from "@/hooks/useDemoAction";
-import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { toast } from "@/lib/toast";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { LazyDemoActionModal } from "@/components/ui/lazyMount";
 
 dayjs.locale("tr");
 
@@ -241,7 +241,7 @@ export default function AddDailyNoteScreen() {
           </TouchableOpacity>
         </KeyboardAwareScrollView>
 
-        <DemoActionModal
+        <LazyDemoActionModal
           visible={isDemoModalOpen}
           onClose={() => setIsDemoModalOpen(false)}
           title={modalConfig.title}

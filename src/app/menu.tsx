@@ -27,12 +27,11 @@ import { useTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LegalModal } from "@/components/legal/LegalModal";
 import { FEATURE_GUIDES } from "@/constants/featureGuides";
-import { PageTourModal } from "@/components/tour/PageTourModal";
 import { resetAllPageTours } from "@/hooks/usePageTour";
 import { useDeferredReady } from "@/hooks/useDeferredReady";
 import { useDemoAction } from "@/hooks/useDemoAction";
-import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { EditableAvatar } from "@/components/avatar/EditableAvatar";
+import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
 
 export default function MenuScreen() {
   const router = useRouter();
@@ -542,7 +541,7 @@ export default function MenuScreen() {
 
       {/* SEÇİLEN SAYFA TURU MODALI */}
       {selectedTourPage && (
-        <PageTourModal
+        <LazyPageTourModal
           visible={!!selectedTourPage}
           guide={FEATURE_GUIDES[selectedTourPage]}
           onClose={() => setSelectedTourPage(null)}
@@ -550,7 +549,7 @@ export default function MenuScreen() {
       )}
 
       {isDemoModalOpen && (
-        <DemoActionModal
+        <LazyDemoActionModal
           visible={isDemoModalOpen}
           onClose={() => setIsDemoModalOpen(false)}
           title={modalConfig.title}
