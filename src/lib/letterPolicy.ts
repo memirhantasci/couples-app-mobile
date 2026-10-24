@@ -4,6 +4,7 @@
 //
 //  • Gönderilen mektup açılış gününe kadar silinemez; iki taraf da yalnızca kendi listesinden gizleyebilir.
 //  • Açılıştan 72 saat sonra gönderen silme isteyebilir; alıcı onay vermeden mektup silinmez.
+//    Açılış anı: mektubun alıcıya fiilen ulaştığı an (açılış günü 00:00 UTC ile yazıldığı an, hangisi sonraysa).
 //  • Onaylanan mektup en erken açılıştan 72 saat sonra silinir.
 //  • Reddedilen istek 72 saat sonra yeniden gönderilebilir.
 
@@ -18,6 +19,7 @@ export const DELETION_RETRY_DELAY_MS = 72 * HOUR_MS;
 
 export interface LetterPolicyFields {
   unlock_date: string;
+  created_at?: string | null;
   hidden_by_sender?: boolean | null;
   hidden_by_receiver?: boolean | null;
   deletion_requested_at?: string | null;
@@ -32,12 +34,22 @@ export function letterUnlockAt(letter: LetterPolicyFields): number {
   return Date.parse(`${letter.unlock_date.substring(0, 10)}T00:00:00Z`);
 }
 
+/**
+ * Mektubun alıcıya fiilen açıldığı an. Açılış gününde (ya da geçmiş bir günde) yazılan mektup
+ * yazıldığı anda açılır; yoksa 72 saatlik sayaç yazılmadan önceki bir andan başlardı.
+ */
+export function letterOpenedAt(letter: LetterPolicyFields): number {
+  const unlockAt = letterUnlockAt(letter);
+  const createdAt = letter.created_at ? Date.parse(letter.created_at) : NaN;
+  return Number.isFinite(createdAt) ? Math.max(unlockAt, createdAt) : unlockAt;
+}
+
 export function deletionRequestOpensAt(letter: LetterPolicyFields): number {
-  return letterUnlockAt(letter) + DELETION_REQUEST_DELAY_MS;
+  return letterOpenedAt(letter) + DELETION_REQUEST_DELAY_MS;
 }
 
 export function letterDeletableAt(letter: LetterPolicyFields): number {
-  return letterUnlockAt(letter) + DELETION_DELAY_MS;
+  return letterOpenedAt(letter) + DELETION_DELAY_MS;
 }
 
 export function letterDeletionState(letter: LetterPolicyFields): LetterDeletionState {

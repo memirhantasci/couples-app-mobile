@@ -67,7 +67,7 @@ export function SoundHapticsTestBox({ theme, isLight }: SoundHapticsTestBoxProps
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.settingToggleTitle, { color: theme.text }]}>Uygulama İçi Sesler</Text>
-              <Text style={[styles.settingToggleSub, { color: theme.textMuted }]}>Mektup, ruh hali ve ilaç başarı tınıları</Text>
+              <Text style={[styles.settingToggleSub, { color: theme.textMuted }]}>Mektup, ruh hali, ilaç, harita, fotoğraf ve Aşk Ölçer sesleri</Text>
             </View>
           </View>
           <Switch
@@ -154,7 +154,7 @@ export function SoundHapticsTestBox({ theme, isLight }: SoundHapticsTestBoxProps
               activeOpacity={0.7}
             >
               <Text style={styles.soundTestEmoji}>💖</Text>
-              <Text style={[styles.soundTestLabel, { color: theme.text }]}>Uyum</Text>
+              <Text style={[styles.soundTestLabel, { color: theme.text }]}>Aşk Ölçer</Text>
             </TouchableOpacity>
           </View>
         </View>

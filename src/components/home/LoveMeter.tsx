@@ -9,7 +9,7 @@ import Animated, {
   withDelay,
 } from "react-native-reanimated";
 import { AppTheme } from "@/lib/theme";
-import { triggerHaptic } from "@/lib/soundEffects";
+import { playCelebration } from "@/lib/soundEffects";
 
 interface LoveMeterProps {
   value?: number | null; // 0-100
@@ -71,7 +71,8 @@ export const LoveMeter = memo(function LoveMeter({ value, theme, subtitle, isLoa
     <TouchableOpacity
       activeOpacity={0.88}
       onPress={() => {
-        triggerHaptic("celebration");
+        // Arp glissandosu + başarı titreşimi (eskiden yalnızca titreşim veriyordu)
+        playCelebration();
       }}
       style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
     >
