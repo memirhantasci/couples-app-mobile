@@ -9,7 +9,7 @@
     "userInterfaceStyle": "dark",
     "jsEngine": "hermes",
     "runtimeVersion": {
-      "policy": "fingerprint"
+      "policy": "appVersion"
     },
     "updates": {
       "url": "https://u.expo.dev/41ae72c5-4b30-4fd6-92f5-4191dd8c0b4c",
