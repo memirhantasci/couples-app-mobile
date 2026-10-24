@@ -19,6 +19,69 @@ const ENC_PREFIX = "enc:";
 const KEY_DERIVATION_ITERATIONS = 1000;
 
 let coupleKey: any = null;
+// Anahtarın ham (hex) hâli: yerel (C++) şifreleme yolu bunu kullanır, crypto-js yolu `coupleKey` WordArray'ini
+let coupleKeyHex: string | null = null;
+
+// ─── Yerel (C++) hızlandırıcı ───────────────────────────────────────────────
+// crypto-js saf JS olduğu için Hermes'te yavaştır. react-native-quick-crypto aynı AES-256-CBC / PBKDF2-SHA256
+// işlemlerini yerel kodla yapar ve birebir aynı çıktıyı üretmelidir. Bunu varsaymak yerine, ilk kullanımda
+// bilinen bir vektörü iki motorla da hesaplayıp karşılaştırırız; modül yoksa ya da çıktı farklıysa
+// (ör. Expo Go) sessizce crypto-js'e düşülür. Böylece mevcut şifreli veriler asla çözülemez hâle gelmez.
+let nativeCrypto: any | null | undefined; // undefined: henüz denenmedi, null: kullanılamıyor
+
+function getNativeCrypto(): any | null {
+  if (nativeCrypto !== undefined) return nativeCrypto;
+  nativeCrypto = null;
+  try {
+    const mod = require('react-native-quick-crypto');
+    const qc = mod?.default ?? mod;
+    if (
+      typeof qc?.pbkdf2Sync !== 'function' ||
+      typeof qc?.createCipheriv !== 'function' ||
+      typeof qc?.createDecipheriv !== 'function' ||
+      !qc?.Buffer
+    ) {
+      return null;
+    }
+
+    // Öz-test: anahtar türetme ve AES-CBC çıktısı crypto-js ile aynı olmalı
+    const salt = 'couples-self-test-salt';
+    const sample = 'Öz-test: şifreleme ✓ 💌';
+    const ivHex = '000102030405060708090a0b0c0d0e0f';
+
+    const jsKey = CryptoJS.PBKDF2('42', salt, {
+      keySize: 256 / 32,
+      iterations: KEY_DERIVATION_ITERATIONS,
+      hasher: CryptoJS.algo.SHA256,
+    });
+    const nativeKey = qc.pbkdf2Sync('42', salt, KEY_DERIVATION_ITERATIONS, 32, 'sha256');
+    if (nativeKey.toString('hex') !== jsKey.toString(CryptoJS.enc.Hex)) return null;
+
+    const jsCipher = CryptoJS.AES.encrypt(sample, jsKey, {
+      iv: CryptoJS.enc.Hex.parse(ivHex),
+      mode: CryptoJS.mode.CBC,
+      padding: CryptoJS.pad.Pkcs7,
+    }).ciphertext.toString(CryptoJS.enc.Hex);
+
+    const iv = qc.Buffer.from(ivHex, 'hex');
+    const cipher = qc.createCipheriv('aes-256-cbc', nativeKey, iv);
+    const nativeCipher = qc.Buffer.concat([cipher.update(sample, 'utf8'), cipher.final()]).toString('hex');
+    if (nativeCipher !== jsCipher) return null;
+
+    const decipher = qc.createDecipheriv('aes-256-cbc', nativeKey, iv);
+    const roundTrip = qc.Buffer.concat([
+      decipher.update(qc.Buffer.from(jsCipher, 'hex')),
+      decipher.final(),
+    ]).toString('utf8');
+    if (roundTrip !== sample) return null;
+
+    nativeCrypto = qc;
+  } catch (err) {
+    logger.log('[Crypto] Yerel şifreleme kullanılamıyor, crypto-js kullanılacak:', err);
+    nativeCrypto = null;
+  }
+  return nativeCrypto;
+}
 // Aynı çift için profil her yenilendiğinde PBKDF2'yi ve çözme önbelleğini boşa harcamamak için
 let coupleKeyFingerprint: string | null = null;
 const keyListeners = new Set<() => void>();
@@ -62,15 +125,31 @@ export function setCoupleEncryptionKey(coupleId: number | null, salt: string | n
   if (fingerprint === coupleKeyFingerprint) return false;
 
   try {
-    coupleKey = CryptoJS.PBKDF2(String(coupleId), salt, {
-      keySize: 256 / 32,
-      iterations: KEY_DERIVATION_ITERATIONS,
-      hasher: CryptoJS.algo.SHA256,
-    });
+    const native = getNativeCrypto();
+    let derivedHex: string | null = null;
+    if (native) {
+      try {
+        derivedHex = native.pbkdf2Sync(String(coupleId), salt, KEY_DERIVATION_ITERATIONS, 32, 'sha256').toString('hex');
+      } catch (nativeErr) {
+        logger.log('[Crypto] Yerel anahtar türetme başarısız, crypto-js kullanılıyor:', nativeErr);
+      }
+    }
+    if (derivedHex) {
+      coupleKey = CryptoJS.enc.Hex.parse(derivedHex);
+      coupleKeyHex = derivedHex;
+    } else {
+      coupleKey = CryptoJS.PBKDF2(String(coupleId), salt, {
+        keySize: 256 / 32,
+        iterations: KEY_DERIVATION_ITERATIONS,
+        hasher: CryptoJS.algo.SHA256,
+      });
+      coupleKeyHex = coupleKey.toString(CryptoJS.enc.Hex);
+    }
     coupleKeyFingerprint = fingerprint;
   } catch (err) {
     logger.error("Failed to derive couple encryption key:", err);
     coupleKey = null;
+    coupleKeyHex = null;
     coupleKeyFingerprint = null;
   }
   decryptCache.clear();
@@ -82,6 +161,7 @@ export function setCoupleEncryptionKey(coupleId: number | null, salt: string | n
 export function clearEncryptionKey(): boolean {
   const hadKey = coupleKey !== null;
   coupleKey = null;
+  coupleKeyHex = null;
   coupleKeyFingerprint = null;
   decryptCache.clear();
   if (hadKey) notifyKeyChange();
@@ -127,6 +207,18 @@ export function encrypt(text: string): string {
   if (!text) return text;
   if (!coupleKey) throw new EncryptionKeyUnavailableError();
 
+  const native = coupleKeyHex ? getNativeCrypto() : null;
+  if (native && coupleKeyHex) {
+    try {
+      const ivBytes = native.Buffer.from(ExpoCrypto.getRandomBytes(16));
+      const cipher = native.createCipheriv('aes-256-cbc', native.Buffer.from(coupleKeyHex, 'hex'), ivBytes);
+      const body = native.Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
+      return `${ENC_PREFIX}${ivBytes.toString('hex')}:${body.toString('hex')}`;
+    } catch (err) {
+      logger.log('[Crypto] Yerel şifreleme başarısız, crypto-js kullanılıyor:', err);
+    }
+  }
+
   const iv = getRandomBytesWordArray(16);
   const encrypted = CryptoJS.AES.encrypt(text, coupleKey, {
     iv: iv,
@@ -147,9 +239,29 @@ export function decrypt(text: string): string {
   const cached = decryptCache.get(text);
   if (cached !== undefined) return cached;
   if (!coupleKey) return "";
-  const plain = decryptWithKey(text, coupleKey);
+  const plain = decryptNative(text) ?? decryptWithKey(text, coupleKey);
   rememberDecrypted(text, plain);
   return plain;
+}
+
+/** Yerel yolla çözer; yol kullanılamıyorsa null (crypto-js'e düşülür), çözülemeyen içerik için "" döner. */
+function decryptNative(text: string): string | null {
+  const native = coupleKeyHex ? getNativeCrypto() : null;
+  if (!native || !coupleKeyHex) return null;
+  const parts = text.split(":");
+  if (parts.length !== 3) return "";
+  try {
+    const decipher = native.createDecipheriv(
+      'aes-256-cbc',
+      native.Buffer.from(coupleKeyHex, 'hex'),
+      native.Buffer.from(parts[1], 'hex')
+    );
+    const body = native.Buffer.concat([decipher.update(native.Buffer.from(parts[2], 'hex')), decipher.final()]);
+    return body.toString('utf8');
+  } catch {
+    // Yanlış anahtar geçersiz dolgu üretir: bu bir hata değil, çözülemeyen içeriktir
+    return "";
+  }
 }
 
 function decryptWithKey(text: string, key: any): string {

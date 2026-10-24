@@ -56,6 +56,7 @@
       "expo-apple-authentication",
       "expo-sharing",
       "expo-audio",
+      "expo-secure-store",
       [
         "expo-widgets",
         {
