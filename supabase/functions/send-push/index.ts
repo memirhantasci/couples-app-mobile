@@ -27,6 +27,19 @@ async function sendToUser(supabase: any, intUserId: number | string, message: { 
 }
 
 serve(async (req) => {
+  // Bu fonksiyon tüm kullanıcılara bildirim gönderebilir (CRON işleri) ve service_role ile çalışır.
+  // Uygulamanın herkese açık anon anahtarıyla çağrılamaz: yalnızca service_role anahtarı (pg_cron / DB webhook)
+  // ya da PUSH_WEBHOOK_SECRET ile gelen istekler kabul edilir.
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const webhookSecret = Deno.env.get("PUSH_WEBHOOK_SECRET");
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const authorized =
+    (!!serviceKey && authHeader === `Bearer ${serviceKey}`) ||
+    (!!webhookSecret && req.headers.get("x-webhook-secret") === webhookSecret);
+  if (!authorized) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   try {
     const body = await req.json();
 

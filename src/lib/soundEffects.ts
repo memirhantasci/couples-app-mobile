@@ -68,10 +68,11 @@ export function warmUpSoundEffects(): void {
   }
 }
 
-// Modül yüklendiğinde arka planda hazırla
+// Açılışla yarışmasın: ilk ekran çizildikten sonra arka planda hazırla (ilk dokunuşta yine de anında çalar,
+// çünkü getOrCreatePlayer eksik oynatıcıyı o an oluşturur)
 setTimeout(() => {
   warmUpSoundEffects();
-}, 200);
+}, 3000);
 
 /**
  * Get whether sound effects are enabled (default: true).

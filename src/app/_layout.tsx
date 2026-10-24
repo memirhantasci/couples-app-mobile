@@ -4,6 +4,7 @@ import React, { useEffect, useEffectEvent } from "react";
 import { Stack, router } from "expo-router";
 import * as Linking from "expo-linking";
 import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
@@ -60,7 +61,7 @@ const queryClient = new QueryClient({
 
 function RootLayoutNav() {
   const { session, isLoading, isDemoMode, exitDemoMode, refreshProfile } = useAuth();
-  const { theme } = useTheme();
+  const { theme, isLight } = useTheme();
 
   // Enforce role-based routing
   useProtectedRoute();
@@ -179,6 +180,9 @@ function RootLayoutNav() {
   }, [session?.user?.id, isDemoMode]);
 
   return (
+    <>
+    {/* Uygulama sistemde hep koyu görünür (userInterfaceStyle: dark); açık temada simgeler zeminle kaybolmasın */}
+    <StatusBar style={isLight ? "dark" : "light"} />
     <Stack
       screenOptions={{
         headerShown: false,
@@ -202,6 +206,7 @@ function RootLayoutNav() {
       {/* <Stack.Screen name="write-letter" options={{ presentation: "modal" }} /> */}
       <Stack.Screen name="menu" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
     </Stack>
+    </>
   );
 }
 

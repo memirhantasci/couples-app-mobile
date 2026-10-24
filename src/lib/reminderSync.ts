@@ -28,6 +28,9 @@ const LETTER_PREFIX = "letter_unlock_";
 const LETTER_UNLOCK_HOUR = 9;
 /** Buluşmadan kaç saat önce hatırlatılır. */
 const MEETING_REMINDER_HOURS = 2;
+/** iOS en fazla 64 bekleyen yerel bildirim tutar: ilaç (günlük) bildirimlerine yer kalsın diye en yakınlar zamanlanır. */
+const MAX_MEETING_REMINDERS = 15;
+const MAX_LETTER_REMINDERS = 15;
 /** Arka arkaya gelen senkron isteklerini sıklaştırmamak için alt sınır. */
 const MIN_SYNC_INTERVAL_MS = 2 * 60 * 1000;
 
@@ -162,7 +165,9 @@ async function syncMeetings(coupleId: number, scheduled: ScheduledMap) {
     .select("id, title, meeting_datetime")
     .eq("couple_id", coupleId)
     .eq("is_active", true)
-    .gt("meeting_datetime", new Date().toISOString());
+    .gt("meeting_datetime", new Date().toISOString())
+    .order("meeting_datetime", { ascending: true })
+    .limit(MAX_MEETING_REMINDERS);
   if (error) throw error;
 
   const keep = new Set<string>();
@@ -195,7 +200,8 @@ async function syncLetterUnlocks(scheduled: ScheduledMap) {
   }
 
   const keep = new Set<string>();
-  for (const [date, count] of countByDate) {
+  const nearestDates = [...countByDate].sort(([a], [b]) => a.localeCompare(b)).slice(0, MAX_LETTER_REMINDERS);
+  for (const [date, count] of nearestDates) {
     const when = dayjs(`${date}T${String(LETTER_UNLOCK_HOUR).padStart(2, "0")}:00:00`).toDate();
     if (when.getTime() <= Date.now()) continue;
 
