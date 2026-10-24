@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { AppState } from "react-native";
+import { useQueryClient } from "@tanstack/react-query";
 import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 import { InAppNotificationData, NotificationType } from "@/types/notification";
@@ -21,6 +22,7 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentNotification, setCurrentNotification] = useState<InAppNotificationData | null>(null);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { session } = useAuth();
   const userId = session?.user?.id ?? null;
 
@@ -193,6 +195,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           metadata: payloadData,
         });
 
+        // Partnerin yaptığı değişiklik (mektup, anı, ruh hali…) ekranlara önbellek süresi dolmadan yansısın:
+        // etkin sorgular hemen yenilenir, diğerleri bir sonraki açılışta taze çekilir.
+        queryClient.invalidateQueries().catch(() => {});
+
         // Uygulama açıkken gelen mektup bildirimiyle kullanıcı zaten haberdar oldu;
         // sonra uygulamaya girince aynı mektup için kuş karşılaması oynamasın.
         if (deducedType === "letter" && userId) markLettersSeen(userId);
@@ -204,7 +210,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return () => {
       receivedSubscription.remove();
     };
-  }, [showNotification, userId]);
+  }, [showNotification, userId, queryClient]);
 
   // Bildirime dokunma: hook hem çalışan uygulamadaki dokunuşları hem de uygulama kapalıyken
   // bildirimle açılışı (cold start) yakalar. Aynı dokunuş iki kez yönlendirmesin diye işlenenler hatırlanır.
@@ -219,6 +225,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (handledResponseRef.current === key) return;
     handledResponseRef.current = key;
 
+    queryClient.invalidateQueries().catch(() => {});
     const responseData = lastResponse.notification.request.content.data as any;
     // Mektup bildirimine dokunan kullanıcı mektuplar ekranına gidiyor: kuş karşılaması gerekmez
     if (responseData?.type === "letter" && userId) markLettersSeen(userId);
@@ -235,16 +242,27 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     }, 400);
     return () => clearTimeout(timer);
-  }, [lastResponse, router, userId]);
+  }, [lastResponse, router, userId, queryClient]);
 
-  // Uygulama açılınca / öne gelince ikon rozetini ve bildirim merkezini temizle
+  // Uygulama açılınca / öne gelince ikon rozetini ve bildirim merkezini temizle.
+  // Arka planda bir süre kaldıysa partnerin verileri de yenilenir (anlık bağlantı yalnızca profil/yıldızda var).
   useEffect(() => {
     clearNotificationBadge();
+    let backgroundedAt: number | null = null;
     const sub = AppState.addEventListener("change", (state) => {
-      if (state === "active") clearNotificationBadge();
+      if (state === "background" || state === "inactive") {
+        if (backgroundedAt === null) backgroundedAt = Date.now();
+        return;
+      }
+      if (state !== "active") return;
+      clearNotificationBadge();
+      if (backgroundedAt !== null && Date.now() - backgroundedAt > 30 * 1000) {
+        queryClient.invalidateQueries().catch(() => {});
+      }
+      backgroundedAt = null;
     });
     return () => sub.remove();
-  }, []);
+  }, [queryClient]);
 
   // Değer sabit tutulur: bildirimi kullanan her ekran, ilgisiz bir yeniden render'da baştan çizilmesin
   const contextValue = useMemo(() => ({

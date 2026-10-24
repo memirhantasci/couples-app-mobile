@@ -8,6 +8,14 @@
     "scheme": "couplesapp",
     "userInterfaceStyle": "dark",
     "jsEngine": "hermes",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/41ae72c5-4b30-4fd6-92f5-4191dd8c0b4c",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "ios": {
       "icon": "./assets/expo.icon",
       "supportsTablet": false,

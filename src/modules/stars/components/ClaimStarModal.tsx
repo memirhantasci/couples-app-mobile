@@ -248,6 +248,8 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
   useEffect(() => {
     if (visible) {
       if (initialStar) {
+        // Modal açılışında state'i prop'lara eşitlemek bilinçli: sertifika doğrudan açılır
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setClaimedStar(initialStar);
         setModalState('certificate');
       } else {

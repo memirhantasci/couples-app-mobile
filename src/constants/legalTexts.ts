@@ -49,7 +49,7 @@ export const LEGAL_DOCS: Record<LegalDocType, LegalDocument> = {
 
       "4. KİŞİSEL VERİLERİN AKTARILDIĞI TARAFLAR",
       "Kişisel verileriniz, kanunun emrettiği istisnalar haricinde hiçbir üçüncü tarafa reklam veya ticari amaçla satılmaz. Veriler yalnızca hizmetin ifası için aşağıdaki sağlayıcılarla paylaşılır. Bu sağlayıcıların bir kısmı yurt dışında yerleşiktir; veriler bu nedenle KVKK md. 9 kapsamında yurt dışına aktarılabilir:\n" +
-      "• Supabase Inc.: Güvenli PostgreSQL veritabanı, uçtan uca şifreleme ve kimlik doğrulama altyapısı,\n" +
+      "• Supabase Inc.: Güvenli PostgreSQL veritabanı, şifreli depolama ve kimlik doğrulama altyapısı,\n" +
       "• RevenueCat Inc.: Uygulama içi satın alma, abonelik doğrulama ve iade altyapısı,\n" +
       "• Google Cloud / Firebase & Expo Notifications: Push bildirimlerinin cihazınıza güvenle ulaştırılması,\n" +
       "• Google LLC (AdMob ve Google Haritalar): reklam gösterimi ve harita hizmetleri,\n" +

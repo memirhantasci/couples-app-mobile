@@ -24,6 +24,7 @@ import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { DEMO_PROFILE } from "@/constants/demoData";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
 export default function MemoriesScreen() {
   const router = useRouter();
@@ -162,6 +163,8 @@ export default function MemoriesScreen() {
     },
     staleTime: 1000 * 60 * 5,
   });
+
+  const { refreshing, onRefresh } = usePullToRefresh(refetch);
 
   const memories = data ? data.pages.flat() : [];
 
@@ -383,6 +386,8 @@ export default function MemoriesScreen() {
             data={memories}
             keyExtractor={item => item.id.toString()}
             renderItem={renderMemory}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
             initialNumToRender={6}
             maxToRenderPerBatch={8}
             windowSize={7}

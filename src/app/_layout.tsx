@@ -17,6 +17,10 @@ import { navigateAfterAuth } from "@/lib/navigate";
 import { toast } from "@/lib/toast";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 import { ToastHost } from "@/components/ui/ToastHost";
+import { OfflineBanner } from "@/components/ui/OfflineBanner";
+import { AppErrorScreen } from "@/components/ui/AppErrorScreen";
+import { installGlobalErrorReporting } from "@/lib/errorReporting";
+import { bindQueryOnlineManager } from "@/hooks/useIsOffline";
 import { DialogHost } from "@/components/ui/DialogHost";
 import { LetterArrivalHost } from "@/components/letters/LetterArrivalHost";
 import { StarPointsToastHost } from "@/modules/stars/components/StarPointsToastHost";
@@ -32,14 +36,19 @@ import {
 
 SplashScreen.preventAutoHideAsync();
 
+// Yakalanmamış JS hataları sunucuya raporlanır (üretimde çökme nedenlerini görebilmek için)
+installGlobalErrorReporting();
+
 // Configure Android notification channel on startup
 configureAndroidNotificationChannel();
+
+bindQueryOnlineManager();
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       // Realtime subscriptions handle live updates — no need for aggressive refetching
-      staleTime: 1000 * 60 * 10, // 10 minutes
+      staleTime: 1000 * 60 * 2, // 2 dk — bildirim gelince ve uygulama öne gelince ayrıca yenilenir (NotificationContext)
       retry: 1,
       // Don't refetch on window focus (causes unnecessary flicker on tab switch)
       refetchOnWindowFocus: false,
@@ -72,12 +81,12 @@ function RootLayoutNav() {
     }
   }, [isLoading]);
 
-  // Safety fallback: ensure splash screen never stays stuck under any network condition
-  // Reduced from 1200ms → 500ms since auth now resolves much faster
+  // Safety fallback: yalnızca oturum çözümü takılırsa (ör. çok yavaş ağ) splash'ı zorla kapat.
+  // Kısa tutulursa oturum henüz çözülmeden yanlış (demo/giriş) ekran bir an görünür.
   useEffect(() => {
     const timer = setTimeout(() => {
       SplashScreen.hideAsync().catch(() => {});
-    }, 500);
+    }, 4000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -196,6 +205,11 @@ function RootLayoutNav() {
   );
 }
 
+// Expo Router: herhangi bir ekranda oluşan render hatası beyaz ekran yerine bu ekranı gösterir
+export function ErrorBoundary({ error, retry }: { error: Error; retry: () => Promise<void> }) {
+  return <AppErrorScreen error={error} retry={retry} />;
+}
+
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -211,6 +225,8 @@ export default function RootLayout() {
                 <StarPointsToastHost />
                 {/* Alert yerine süzülen hap bildirimleri; ağacın en üstünde çizilir */}
                 <ToastHost />
+                {/* İnternet kopunca üstte süzülen uyarı */}
+                <OfflineBanner />
                 {/* Alert.alert yerine cam efektli, pastel tonlu diyalog kartları (onay / uzun uyarılar) */}
                 <DialogHost />
               </NotificationProvider>

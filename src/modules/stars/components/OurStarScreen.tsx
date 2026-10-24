@@ -262,6 +262,13 @@ export const OurStarScreen: React.FC = () => {
     info: StarBrightnessInfo;
   } | null>(null);
 
+  // ─── YILDIZIN İÇİ (MİKRO) DURUMU ───────────────────────────────────
+  // Her artış mikro sahnede yıldızdan kıvılcım şok dalgası yayar (dokunma, düğme, partner).
+  const [sparkSignal, setSparkSignal] = useState(0);
+  const [highlightPlanetId, setHighlightPlanetId] = useState<string | null>(null);
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [microHeroBottom, setMicroHeroBottom] = useState<number | null>(null);
+
   // Güvenli Geri Dönüş Fonksiyonu: Yıldızın içindeyse gök kubbeye döner; gök kubbedeyse ana ekrana döner
   const handleBack = useCallback(() => {
     if (viewMode === 'micro') {
@@ -352,12 +359,6 @@ export const OurStarScreen: React.FC = () => {
     });
   }, []);
 
-  // ─── YILDIZIN İÇİ (MİKRO) DURUMU ───────────────────────────────────
-  // Her artış mikro sahnede yıldızdan kıvılcım şok dalgası yayar (dokunma, düğme, partner).
-  const [sparkSignal, setSparkSignal] = useState(0);
-  const [highlightPlanetId, setHighlightPlanetId] = useState<string | null>(null);
-  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [microHeroBottom, setMicroHeroBottom] = useState<number | null>(null);
   const [microDockTop, setMicroDockTop] = useState<number | null>(null);
   // Anı penceresi anında açılır; ayrıntılar (fotoğraf, hikâye) gelene kadar yükleniyor durumundadır.
   const [isPlanetLoading, setIsPlanetLoading] = useState(false);
@@ -1549,7 +1550,7 @@ export const OurStarScreen: React.FC = () => {
               </View>
 
               <Text style={[styles.onboardingGuideSubtitle, { color: theme.textSecondary, marginBottom: 0 }]}>
-                Gökyüzünde özgürce gezinin; aşkınıza layık boşta parıldayan bir yıldıza dokunup "Bu Yıldızı Seç" ile çiftinize tescil edin.
+                Gökyüzünde özgürce gezinin; aşkınıza layık boşta parıldayan bir yıldıza dokunup &quot;Bu Yıldızı Seç&quot; ile çiftinize tescil edin.
               </Text>
             </View>
           )}

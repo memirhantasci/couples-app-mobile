@@ -19,7 +19,7 @@ export class RevenueCatService {
         return;
       }
 
-      Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+      Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.WARN);
 
       if (Platform.OS === 'ios') {
         Purchases.configure({ apiKey: API_KEYS.apple });

@@ -386,6 +386,8 @@ export default function AddPhotoScreen() {
         {/* HEADER - Diğer tüm sayfalarla tam uyumlu ve simetrik */}
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity 
+            accessibilityRole="button"
+            accessibilityLabel="Geri"
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();
@@ -405,6 +407,8 @@ export default function AddPhotoScreen() {
           </View>
 
           <TouchableOpacity 
+            accessibilityRole="button"
+            accessibilityLabel="Menüyü aç"
             onPress={() => router.push("/menu")} 
             style={styles.headerBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

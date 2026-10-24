@@ -55,7 +55,7 @@ import { CoupleAvatarRing } from "@/components/home/CoupleAvatarRing";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 
 export default function HomeScreen() {
-  const { session, profile, isDemoMode } = useAuth();
+  const { session, profile, isDemoMode, exitDemoMode } = useAuth();
   const { theme, isLight } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -228,7 +228,8 @@ export default function HomeScreen() {
         })),
       };
     },
-    staleTime: 1000 * 60 * 5,
+    // Partnerin ruh hali ve notu ana ekranda; kısa tutulur
+    staleTime: 1000 * 60,
   });
 
   // ─── Dinamik Aşk Puanı (Çift için %100 simetrik ve adil) ─────────────────────
@@ -488,6 +489,8 @@ export default function HomeScreen() {
             >
               <TourGuideButton onPress={startSpotlight} />
               <TouchableOpacity 
+                accessibilityRole="button"
+                accessibilityLabel="Menüyü aç"
                 onPress={() => router.push("/menu")} 
                 style={[
                   styles.menuBtn, 
@@ -503,6 +506,26 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           </View>
+
+          {/* Misafir (demo) oturumu: gördüğü verilerin örnek olduğunu ve nasıl gerçek hesaba geçeceğini her zaman göster */}
+          {isDemoMode ? (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => {
+                exitDemoMode();
+                router.replace({ pathname: "/(auth)/login", params: { initialMode: "register" } });
+              }}
+              style={[styles.demoRibbon, { backgroundColor: theme.pillAccentBg, borderColor: theme.cardBorder }]}
+              accessibilityRole="button"
+              accessibilityLabel="Demo moddasın. Ücretsiz kayıt olmak veya giriş yapmak için dokun"
+            >
+              <Sparkles size={14} color={theme.accent} />
+              <Text style={[styles.demoRibbonText, { color: theme.text }]} numberOfLines={2}>
+                Örnek verilerle geziyorsun. Kendi hesabını açmak için dokun
+              </Text>
+              <ChevronRight size={14} color={theme.textMuted} />
+            </TouchableOpacity>
+          ) : null}
 
           {/* ─── 1.1 BEKLEYEN MEKTUP BİLDİRİMİ (varsa) ─── */}
           <PendingLettersBadge letters={dashboardData?.pendingLetters} theme={theme} />
@@ -926,5 +949,20 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     color: "rgba(255,255,255,0.9)",
     fontStyle: "italic",
+  },
+  demoRibbon: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  demoRibbonText: {
+    flex: 1,
+    fontSize: 12.5,
+    fontFamily: "Inter_600SemiBold",
   },
 });

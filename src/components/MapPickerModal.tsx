@@ -12,6 +12,7 @@ import {
   TextInput,
 } from "react-native";
 import { appAlert } from "@/lib/dialog";
+import { showPermissionDeniedDialog } from "@/lib/permissions";
 import { DialogHost } from "@/components/ui/DialogHost";
 import MapView, { Marker, Region, UserLocationChangeEvent } from "react-native-maps";
 import { BlurView } from "expo-blur";
@@ -216,7 +217,7 @@ export function MapPickerModal({
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         if (!silent) {
-          appAlert("Konum İzni Gerekli", "Mevcut konumunuzu görebilmek için konum erişimine izin verin.");
+          showPermissionDeniedDialog("Konum İzni Gerekli", "Mevcut konumunuzu görebilmek için ayarlardan konum erişimine izin vermelisiniz.");
         }
         return;
       }

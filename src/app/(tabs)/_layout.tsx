@@ -88,6 +88,9 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
               onPress={onPress}
               activeOpacity={0.75}
               style={styles.tabItemBtn}
+              accessibilityRole="tab"
+              accessibilityLabel={label}
+              accessibilityState={{ selected: isFocused }}
             >
               <View 
                 style={[

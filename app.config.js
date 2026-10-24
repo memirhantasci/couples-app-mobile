@@ -21,7 +21,6 @@ export default ({ config }) => {
     },
     extra: {
       ...config.extra,
-      encryptionKey: process.env.EXPO_PUBLIC_ENCRYPTION_KEY,
     }
   };
 };

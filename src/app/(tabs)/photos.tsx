@@ -38,6 +38,7 @@ import { PhotoSingleCell } from "@/components/photos/PhotoSingleCell";
 import { PhotosLockCard } from "@/components/photos/PhotosLockCard";
 import { PhotoLightboxModal } from "@/components/photos/PhotoLightboxModal";
 import type { PhotoItem, ViewMode } from "@/components/photos/photoTypes";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
 export default function PhotosScreen() {
   const router = useRouter();
@@ -69,6 +70,7 @@ export default function PhotosScreen() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    refetch,
   } = useInfiniteQuery({
     queryKey: ["photo_archive", coupleId, isDemoMode, sortOrder],
     enabled: (!!coupleId && isPremium) || isDemoMode,
@@ -199,6 +201,7 @@ export default function PhotosScreen() {
 
   const keyExtractor = useCallback((item: PhotoItem) => item.id.toString(), []);
 
+  const { refreshing, onRefresh } = usePullToRefresh(refetch);
   const numColumns = viewMode === "grid3" ? 3 : viewMode === "grid2" ? 2 : 1;
 
   return (
@@ -207,6 +210,8 @@ export default function PhotosScreen() {
         {/* HEADER */}
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Geri"
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();
@@ -238,6 +243,8 @@ export default function PhotosScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Menüyü aç"
               onPress={() => router.push("/menu")}
               style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -320,6 +327,8 @@ export default function PhotosScreen() {
             initialNumToRender={6}
             maxToRenderPerBatch={8}
             windowSize={5}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
             removeClippedSubviews={Platform.OS === 'android'}
             contentContainerStyle={[
               styles.listContent,

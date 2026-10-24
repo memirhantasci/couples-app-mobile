@@ -55,6 +55,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { PermissionPrimingModal } from "@/components/common/PermissionPrimingModal";
 import { useNotificationPriming } from "@/hooks/useNotificationPriming";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import {
   deletionRequestOpensAt,
@@ -63,6 +64,7 @@ import {
   isHiddenBy,
   letterDeletableAt,
   letterDeletionState,
+  letterUnlockAt,
 } from "@/lib/letterPolicy";
 
 const DEMO_MANAGE_TITLE = "Mektuplarını Yönetmek İçin Kayıt Olun 💌";
@@ -111,7 +113,7 @@ export default function LettersScreen() {
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("letters");
 
   // --- Mektupları Getir (Sayfalamalı ve Korumalı) ---
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch: refetchLetters } = useQuery({
     queryKey: ["letters_data", coupleId, userId, pageLimit, isDemoMode],
     enabled: (!!coupleId && !!userId) || isDemoMode,
     queryFn: async () => {
@@ -181,6 +183,8 @@ export default function LettersScreen() {
   });
 
   // --- Alıcı Kullanıcıları Getir ---
+  const { refreshing: lettersRefreshing, onRefresh: onRefreshLetters } = usePullToRefresh(refetchLetters);
+
   const { data: users } = useQuery({
     queryKey: ["users_for_letter", coupleId],
     enabled: !!coupleId,
@@ -565,11 +569,11 @@ export default function LettersScreen() {
   };
 
   const renderLetterItem = useCallback(({ item: letter }: { item: any }) => {
-    const now = new Date();
-    const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const unlockDateStr = letter.unlock_date.substring(0, 10);
-    const isLockedDate = unlockDateStr > localToday;
-    const unlockDateObj = dayjs(unlockDateStr);
+    // Sunucu mektubu açılış gününün 00:00 UTC'sinde açar (Türkiye'de 03:00). Kilit durumu ve gösterilen saat
+    // bu gerçek ana göre hesaplanır; yerel gün karşılaştırması 00:00–03:00 arasında yanlış sonuç verirdi.
+    const unlockMoment = dayjs(letterUnlockAt(letter));
+    const isLockedDate = unlockMoment.valueOf() > Date.now();
     const itemType = letter._type || (letter.sender_id === userId ? "sent" : "received");
     const canOpen = itemType === "sent" || !isLockedDate;
     const isOpen = openLetterId === letter.id;
@@ -657,7 +661,7 @@ export default function LettersScreen() {
                 <View style={styles.lockedBadge}>
                   <LockKeyhole size={13} color={isLight ? "#B45309" : "#f59e0b"} />
                   <Text style={styles.lockedBadgeText}>
-                    Kilitli • {unlockDateObj.locale("tr").format("DD MMM YYYY")}
+                    Kilitli • {unlockMoment.locale("tr").format("DD MMM YYYY HH:mm")}
                   </Text>
                 </View>
               ) : (
@@ -666,7 +670,7 @@ export default function LettersScreen() {
                   <Text style={styles.unlockedBadgeText}>
                     {itemType === "sent"
                       ? isLockedDate
-                        ? `Mühürlü • ${unlockDateObj.locale("tr").format("DD MMM")}`
+                        ? `Mühürlü • ${unlockMoment.locale("tr").format("DD MMM HH:mm")}`
                         : "Gönderildi"
                       : "Açıldı"}
                   </Text>
@@ -735,7 +739,7 @@ export default function LettersScreen() {
               <Text style={[styles.letterContentText, { color: theme.text }]}>{letterContent}</Text>
               {unlockDateStr ? (
                 <Text style={[styles.letterFooterNote, { color: theme.textMuted }]}>
-                  {`Açılış Zamanı: ${dayjs(unlockDateStr).locale("tr").format("DD MMMM YYYY")}`}
+                  {`Açılış Zamanı: ${unlockMoment.locale("tr").format("DD MMMM YYYY HH:mm")}`}
                 </Text>
               ) : null}
             </View>
@@ -828,6 +832,8 @@ export default function LettersScreen() {
         {/* HEADER - Diğer tüm sayfalarla simetrik ve tam uyumlu */}
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity 
+            accessibilityRole="button"
+            accessibilityLabel="Geri"
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();
@@ -857,6 +863,8 @@ export default function LettersScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity 
+              accessibilityRole="button"
+              accessibilityLabel="Menüyü aç"
               onPress={() => router.push("/menu")} 
               style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -980,6 +988,8 @@ export default function LettersScreen() {
             data={currentList}
             keyExtractor={keyExtractor}
             renderItem={renderLetterItem}
+            refreshing={lettersRefreshing}
+            onRefresh={onRefreshLetters}
             initialNumToRender={8}
             maxToRenderPerBatch={10}
             windowSize={5}
@@ -1146,6 +1156,8 @@ export default function LettersScreen() {
                       <CalendarIcon size={18} color={theme.accent} />
                       <Text style={[styles.dateSelectorText, { color: theme.text }]}>
                         {dayjs(unlockDate).locale("tr").format("DD MMMM YYYY, dddd")}
+                        {" · "}
+                        {dayjs(Date.parse(`${unlockDate}T00:00:00Z`)).format("HH:mm")}
                       </Text>
                     </View>
                     <ChevronRight size={16} color={theme.textMuted} />

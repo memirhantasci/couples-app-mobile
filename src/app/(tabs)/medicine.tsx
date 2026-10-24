@@ -555,6 +555,8 @@ export default function MedicineScreen() {
         {/* HEADER */}
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Geri"
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();
@@ -576,6 +578,8 @@ export default function MedicineScreen() {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <TourGuideButton onPress={openTour} />
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Menüyü aç"
               onPress={() => router.push("/menu")}
               style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { appAlert } from "@/lib/dialog";
+import { showPermissionDeniedDialog } from "@/lib/permissions";
 import MapView from "react-native-maps";
 import type { LongPressEvent } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -302,9 +303,9 @@ export default function MapScreen() {
       setIsLocating(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        appAlert(
+        showPermissionDeniedDialog(
           "Konum İzni",
-          "Konumunuza gidebilmek için lütfen konum izni verin.",
+          "Konumunuza gidebilmek için ayarlardan konum iznini açmalısınız.",
         );
         return null;
       }

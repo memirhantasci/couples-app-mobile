@@ -155,7 +155,7 @@ export const FEATURE_GUIDES: Record<string, PageTourGuide> = {
         title: "Zaman Kilitli Mektup Yazma",
         icon: "Lock",
         badge: "Sürpriz",
-        description: "Partnerine kalbinden geçenleri yaz ve gelecekte açılacağı tarih ve saati belirle! Mektup bulutta şifrelenir ve zamanı gelene kadar içeriği kimse tarafından okunamaz.",
+        description: "Partnerine kalbinden geçenleri yaz ve gelecekte açılacağı tarih ve saati belirle! Mektup şifrelenerek saklanır ve zamanı gelene kadar partnerin tarafından görüntülenemez.",
         tip: "Yıl dönümleri, doğum günleri veya zorlu bir sınav/iş günü öncesi için motive edici mektuplar mühürleyebilirsiniz.",
       },
       {
@@ -379,14 +379,14 @@ export const FEATURE_GUIDES: Record<string, PageTourGuide> = {
     title: "Kişisel Günlük",
     tagline: "Kalbinden Geçen Gizli Cümleler",
     icon: "BookOpen",
-    summary: "Sadece senin gözlerinin görebileceği, cihazında ve bulutta uçtan uca şifrelenen özel günlük defterin.",
+    summary: "Sadece senin görebildiğin, şifrelenerek saklanan özel günlük defterin.",
     features: [
       {
         id: "encrypted-vault",
-        title: "Uçtan Uca Şifreli Notlar",
+        title: "Şifreli Notlar",
         icon: "ShieldCheck",
-        badge: "%100 Gizlilik",
-        description: "Bu günlüğe yazdığın hisler ve notlar sadece senin tarafında şifrelenir. Partnerin dahil hiç kimse okuyamaz.",
+        badge: "Gizli Günlük",
+        description: "Bu günlüğe yazdığın hisler ve notlar şifrelenerek saklanır ve uygulamada yalnızca sen görürsün.",
         tip: "Kendine zaman ayırıp içini dökmek ruhuna çok iyi gelecektir.",
       },
       {

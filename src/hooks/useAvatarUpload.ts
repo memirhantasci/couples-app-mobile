@@ -13,7 +13,7 @@ import {
   uploadAvatar as uploadAvatarRequest,
   type AvatarSource,
 } from "@/lib/avatar";
-import { appAlert } from "@/lib/dialog";
+import { showPermissionDeniedDialog } from "@/lib/permissions";
 import { toast } from "@/lib/toast";
 import { logger } from "@/utils/logger";
 
@@ -74,7 +74,7 @@ export function useAvatarUpload() {
       toast.success("Profil fotoğrafın güncellendi 💖");
     } catch (error) {
       if (error instanceof AvatarPermissionError) {
-        appAlert(
+        showPermissionDeniedDialog(
           "İzin Gerekli",
           error.source === "camera"
             ? "Fotoğraf çekebilmek için ayarlardan kamera iznini açmalısın."

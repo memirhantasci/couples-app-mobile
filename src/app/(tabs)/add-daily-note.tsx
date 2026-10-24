@@ -51,7 +51,7 @@ export default function AddDailyNoteScreen() {
     if (executeOrIntercept(
       () => {},
       "Günlük Tutmak İçin Kayıt Olun 📖",
-      "Sadece sizin okuyabileceğiniz uçtan uca şifreli kişisel günlüğünüzü oluşturmak için ücretsiz hesabınızı başlatın."
+      "Şifrelenerek saklanan ve yalnızca sizin görebileceğiniz kişisel günlüğünüzü oluşturmak için ücretsiz hesabınızı başlatın."
     )) {
       return;
     }
@@ -132,6 +132,8 @@ export default function AddDailyNoteScreen() {
         {/* HEADER */}
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity 
+            accessibilityRole="button"
+            accessibilityLabel="Geri"
             onPress={() => router.replace("/(tabs)/daily-notes")} 
             style={[
               styles.headerBtn,
