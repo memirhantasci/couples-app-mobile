@@ -328,8 +328,8 @@ export default function AddPhotoScreen() {
           : `${senderName} galeriye yeni bir fotoğraf ekledi.`;
         notifyPartner(coupleId, userId, "Yeni Bir Anı 📸", notificationBody, {
           type: "photo",
-          route: "/(tabs)/memories",
-          actionLabel: "Anıyı Gör 📸",
+          route: "/(tabs)/photos",
+          actionLabel: "Fotoğrafı Gör 📸",
         });
       }
 

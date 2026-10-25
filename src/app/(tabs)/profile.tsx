@@ -454,7 +454,7 @@ export default function ProfileScreen() {
         session.user.id,
         "İlişki Tarihlerimiz Güncellendi 💕",
         `${displayName || "Partnerin"} ilişki tarihlerimizi güncelledi.`,
-        { type: "milestone" }
+        { type: "milestone", route: "/(tabs)/home" }
       ).catch(() => {});
     }
 

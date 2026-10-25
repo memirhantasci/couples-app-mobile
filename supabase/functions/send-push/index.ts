@@ -15,14 +15,33 @@ async function getTokensByUserId(supabase: any, intUserId: number | string): Pro
   return tokens?.map((t: any) => t.token) ?? [];
 }
 
-async function sendToUser(supabase: any, intUserId: number | string, message: { title: string; body: string }, data: any = {}): Promise<any[]> {
+// Bildirime dokununca uygulamanın hangi ekranı açacağı (route), uygulama içi kartın türü ve
+// Android bildirim kanalı da mesajla birlikte gider; istemci bunları data üzerinden okur.
+interface PushMessage {
+  title: string;
+  body: string;
+  type?: string;
+  route?: string;
+  actionLabel?: string;
+  channelId?: string;
+  extra?: Record<string, unknown>;
+}
+
+async function sendToUser(supabase: any, intUserId: number | string, message: PushMessage, data: any = {}): Promise<any[]> {
   const tokens = await getTokensByUserId(supabase, intUserId);
   return tokens.map((token) => ({
     to: token,
     sound: "default",
     title: message.title,
     body: message.body,
-    data,
+    channelId: message.channelId ?? "partner_messages",
+    data: {
+      ...data,
+      ...(message.extra ?? {}),
+      ...(message.type ? { type: message.type } : {}),
+      ...(message.route ? { route: message.route } : {}),
+      ...(message.actionLabel ? { actionLabel: message.actionLabel } : {}),
+    },
   }));
 }
 
@@ -69,7 +88,7 @@ serve(async (req) => {
               sound: "default",
               title: "💊 İlaç Vakti!",
               body: `${r.medicine_name} ilacını içme vaktin geldi. Lütfen içtiğini işaretle.`,
-              data: { type: "medicine_reminder", medicineId: r.medicine_id }
+              data: { type: "medicine_reminder", medicineId: r.medicine_id, route: "/(tabs)/medicine" }
             });
           }
         }
@@ -88,7 +107,7 @@ serve(async (req) => {
                 sound: "default",
                 title: "🩸 Regl Hatırlatıcısı",
                 body: "Tahmini regl tarihine 2 gün kaldı.",
-                data: { type: "period_reminder" }
+                data: { type: "period_reminder", route: "/(tabs)/period-tracker" }
               });
             }
             if (r.partner_push_token) {
@@ -97,7 +116,7 @@ serve(async (req) => {
                 sound: "default",
                 title: "🩸 Regl Hatırlatıcısı",
                 body: `${r.display_name}'in tahmini regl tarihine 2 gün kaldı. Ona destek olmaya hazırlan 💕`,
-                data: { type: "period_reminder" }
+                data: { type: "period_reminder", route: "/(tabs)/period-tracker" }
               });
             }
           }
@@ -112,7 +131,7 @@ serve(async (req) => {
               sound: "default",
               title: "💌 Mektubun Kilidi Açıldı!",
               body: `${r.sender_display_name}'in sana yazdığı "${r.letter_title}" mektubunun kilidi bugün açıldı! Hemen oku.`,
-              data: { type: "letter_unlock", letterId: r.letter_id }
+              data: { type: "letter_unlock", letterId: r.letter_id, route: "/(tabs)/letters" }
             });
           }
         }
@@ -130,7 +149,7 @@ serve(async (req) => {
               sound: "default",
               title: "⏳ Yaklaşan Buluşma",
               body: `"${r.meeting_title || "Buluşma"}" etkinliğine çok az kaldı! Hazırlanmaya başla.`,
-              data: { type: "meeting_reminder", meetingId: r.meeting_id }
+              data: { type: "meeting_reminder", meetingId: r.meeting_id, route: "/(tabs)/meetings" }
             });
           }
         }
@@ -151,7 +170,7 @@ serve(async (req) => {
               sound: "default",
               title: "🎉 Mutlu Yıllar!",
               body: `Bugün ${r.years}. ${r.anniversary_type}nüz! Birlikte nice mutlu yıllara...`,
-              data: { type: "anniversary_reminder" }
+              data: { type: "anniversary_reminder", route: "/(tabs)/home" }
             });
           }
         }
@@ -168,7 +187,7 @@ serve(async (req) => {
               sound: "default",
               title: "🥺 Seni Özledik",
               body: "Uygulamaya girmeyeli biraz zaman oldu, bugün partnerine küçük bir not bırakmak ister misin?",
-              data: { type: "inactivity_reminder" }
+              data: { type: "inactivity_reminder", route: "/(tabs)/home" }
             });
           }
         }
@@ -204,7 +223,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    let message: { title: string; body: string } | null = null;
+    let message: PushMessage | null = null;
     let partnerIntId: number | string | null = null;
     let senderIntId: number | string | null = null;
     const oldRecord = body.old_record || {};
@@ -214,7 +233,7 @@ serve(async (req) => {
       const { data: medicine } = await supabase.from("medicines").select("name").eq("id", record.medicine_id).single();
       const { data: sender } = await supabase.from("users").select("display_name, couple_id").eq("id", senderIntId).single();
       if (sender && medicine) {
-        message = { title: "💊 İlaç Takibi", body: `${sender.display_name} ${medicine.name} ilacını içti ✅` };
+        message = { title: "💊 İlaç Takibi", body: `${sender.display_name} ${medicine.name} ilacını içti ✅`, type: "medicine", route: "/(tabs)/medicine", actionLabel: "İlaç Takibine Git 💊", channelId: "medicine_channel" };
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;
       }
@@ -223,7 +242,7 @@ serve(async (req) => {
       senderIntId = record.user_id;
       const { data: sender } = await supabase.from("users").select("display_name, couple_id").eq("id", senderIntId).single();
       if (sender) {
-        message = { title: "📝 Günlük", body: `${sender.display_name} günlüğüne yeni bir not ekledi` };
+        message = { title: "📝 Günlük", body: `${sender.display_name} günlüğüne yeni bir not ekledi`, route: "/(tabs)/daily-notes", actionLabel: "Günlüğe Git 📝" };
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;
       }
@@ -242,6 +261,10 @@ serve(async (req) => {
           body: unlockDate && !isToday
             ? `${sender.display_name} sana geleceğe bir mektup yazdı! (${unlockDate} tarihinde açılacak)`
             : `${sender.display_name} sana bir mektup yazdı!`,
+          type: "letter",
+          route: "/(tabs)/letters",
+          actionLabel: "Mektuplara Git 💌",
+          channelId: "letters_channel",
         };
       }
     }
@@ -249,7 +272,7 @@ serve(async (req) => {
       senderIntId = record.user_id;
       const { data: sender } = await supabase.from("users").select("display_name, couple_id").eq("id", senderIntId).single();
       if (sender) {
-        message = { title: "🩸 Regl Takvimi", body: `${sender.display_name}'in regl dönemi başladı. Ona destek olmayı unutma 💕` };
+        message = { title: "🩸 Regl Takvimi", body: `${sender.display_name}'in regl dönemi başladı. Ona destek olmayı unutma 💕`, type: "period", route: "/(tabs)/period-tracker", actionLabel: "Döngü Takibine Git 🌸" };
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;
       }
@@ -258,7 +281,7 @@ serve(async (req) => {
       senderIntId = record.user_id;
       const { data: sender } = await supabase.from("users").select("display_name, couple_id").eq("id", senderIntId).single();
       if (sender) {
-        message = { title: "💭 Mod Güncellemesi", body: `${sender.display_name} bugün kendini ${record.mood_type} hissediyor` };
+        message = { title: "💭 Mod Güncellemesi", body: `${sender.display_name} bugün kendini ${record.mood_type} hissediyor`, type: "mood", route: "/(tabs)/home", actionLabel: "Sarılarak Yanıtla 🫂", extra: { moodEmoji: record.mood_type } };
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;
       }
@@ -275,6 +298,9 @@ serve(async (req) => {
           body: meetingDate
             ? `${sender.display_name} ${meetingDate} için bir buluşma planladı!`
             : `${sender.display_name} yeni bir buluşma planladı!`,
+          type: "meeting",
+          route: "/(tabs)/meetings",
+          actionLabel: "Planı Gör 🗓️",
         };
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;
@@ -284,7 +310,7 @@ serve(async (req) => {
       senderIntId = record.user_id;
       const { data: sender } = await supabase.from("users").select("display_name, couple_id").eq("id", senderIntId).single();
       if (sender) {
-        message = { title: "🖼️ Yeni Anı", body: `${sender.display_name} ortak albüme yeni bir anı ekledi!` };
+        message = { title: "🖼️ Yeni Anı", body: `${sender.display_name} ortak albüme yeni bir anı ekledi!`, type: "photo", route: "/(tabs)/memories", actionLabel: "Anıyı Gör ✨" };
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;
       }
@@ -293,7 +319,7 @@ serve(async (req) => {
       senderIntId = record.user_id;
       const { data: sender } = await supabase.from("users").select("display_name, couple_id").eq("id", senderIntId).single();
       if (sender) {
-        message = { title: "📅 Takvim Notu", body: `${sender.display_name} takvime yeni bir not bıraktı.` };
+        message = { title: "📅 Takvim Notu", body: `${sender.display_name} takvime yeni bir not bıraktı.`, route: "/(tabs)/calendar", actionLabel: "Takvime Git 📅" };
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;
       }
@@ -304,7 +330,7 @@ serve(async (req) => {
         const allMsgs: any[] = [];
         for (const u of coupleUsers) {
           const msgs = await sendToUser(supabase, u.id,
-            { title: "💍 Eşleşme Başarılı!", body: "Harika! Partnerinle başarıyla eşleştiniz, uygulamayı birlikte kullanmaya başlayabilirsiniz." },
+            { title: "💍 Eşleşme Başarılı!", body: "Harika! Partnerinle başarıyla eşleştiniz, uygulamayı birlikte kullanmaya başlayabilirsiniz.", route: "/(tabs)/home" },
             { type: "pairing_success" }
           );
           allMsgs.push(...msgs);
