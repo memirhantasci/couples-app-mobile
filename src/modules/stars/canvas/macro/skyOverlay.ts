@@ -337,29 +337,9 @@ export function createStaticOverlayAssets(width: number, height: number): Static
     constellations.push(line.from.ra, line.from.dec, line.to.ra, line.to.dec);
   }
 
-  const heroMarker = record((canvas) => {
-    // 1. Yumuşak, romantik atmosfer aurası (merkez tamamen saydam, yıldızın gerçek ışığı parlar)
-    canvas.drawCircle(0, 0, 32, glowPaint('#F59E0B', 32, [0, 0.25, 0.65, 1], [0, 0.14, 0.05, 0]));
-
-    // 2. Dış göksel çift takip halkası (altın sarısı)
-    canvas.drawCircle(0, 0, 16, strokePaint('rgba(251, 191, 36, 0.55)', 1.2));
-
-    // 3. İç romantizm halkası (zarif gül kurusu / rose)
-    canvas.drawCircle(0, 0, 10, strokePaint('rgba(244, 114, 182, 0.45)', 0.9));
-
-    // 4. Dış halka üzerinde teleskop kardinal çentikleri (Kuzey, Güney, Doğu, Batı)
-    const tickPaint = strokePaint('rgba(251, 191, 36, 0.75)', 1.2);
-    canvas.drawLine(0, -19, 0, -14, tickPaint);
-    canvas.drawLine(0, 14, 0, 19, tickPaint);
-    canvas.drawLine(-19, 0, -14, 0, tickPaint);
-    canvas.drawLine(14, 0, 19, 0, tickPaint);
-
-    // 5. Yörünge üzerinde çifti simgeleyen ikiz göksel pırlanta noktaları
-    // Aşığı simgeleyen altın pırlanta (sağ-üst, 45°)
-    canvas.drawCircle(16 * 0.7071, -16 * 0.7071, 1.6, fillPaint('#FDE68A'));
-    // Sevgiliyi simgeleyen gül pırlanta (sol-alt, 225°)
-    canvas.drawCircle(-16 * 0.7071, 16 * 0.7071, 1.6, fillPaint('#F472B6'));
-  }, 40);
+  // Kendi yıldızımızın etrafında artık altın halka / çentik / aura çizilmez: yıldız kendi ışığıyla durur,
+  // yalnızca adını gösteren etiket kalır. Resim boş bırakılır (drawHero'nun akışı değişmesin diye).
+  const heroMarker = record(() => {}, 40);
 
   // Unit radius: the frame scales it by the zoom-dependent sun radius.
   const sunMarker = record((canvas) => {
