@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import { usePathname, useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
-import { fetchArrivedLetters, markLettersSeen, type ArrivedLetters } from "@/lib/letterArrival";
+import { fetchArrivedLetters, markLettersSeen, onLetterArrivalCheckRequested, type ArrivedLetters } from "@/lib/letterArrival";
 import { IncomingLetterBird } from "./IncomingLetterBird";
 
 // Uygulama kabuğu (yazı tipleri, ilk ekran) otursun diye açılıştan sonra kısa bir bekleme
@@ -10,6 +10,9 @@ const FIRST_CHECK_DELAY_MS = 1500;
 const RESUME_CHECK_DELAY_MS = 900;
 // Uygulamalar arası hızlı geçişlerde (öne/arkaya) her seferinde sorgu atmamak için alt sınır
 const MIN_CHECK_INTERVAL_MS = 20_000;
+// Bildirim, mektup kaydı sorguda görünmeden hemen önce gelebilir: kısa bekleyip bir kez daha dener
+const PUSH_CHECK_DELAY_MS = 700;
+const PUSH_RETRY_DELAY_MS = 2500;
 
 /**
  * Kökte bir kez bağlanır. Kullanıcı uygulamaya girdiğinde (ya da arka plandan öne geldiğinde)
@@ -34,22 +37,24 @@ export function LetterArrivalHost() {
   const checkingRef = useRef(false);
   const lastCheckAtRef = useRef(0);
 
-  const check = useCallback(async () => {
-    if (!userId || !coupleId || checkingRef.current) return;
+  // force: partnerden mektup bildirimi geldi → sıklık sınırı uygulanmaz. Dönüş: karşılama bulundu mu
+  const check = useCallback(async (force = false): Promise<boolean> => {
+    if (!userId || !coupleId || checkingRef.current) return false;
     const now = Date.now();
-    if (now - lastCheckAtRef.current < MIN_CHECK_INTERVAL_MS) return;
+    if (!force && now - lastCheckAtRef.current < MIN_CHECK_INTERVAL_MS) return false;
     lastCheckAtRef.current = now;
 
     checkingRef.current = true;
     try {
       const result = await fetchArrivedLetters(userId, coupleId);
-      if (!result) return;
+      if (!result) return false;
 
       // Kullanıcı zaten mektuplar ekranındaysa listeyi görüyordur: sessizce görüldü say
       await markLettersSeen(userId, result.newestCreatedAt);
-      if (pathnameRef.current.includes("/letters")) return;
+      if (pathnameRef.current.includes("/letters")) return true;
 
       setArrival(result);
+      return true;
     } finally {
       checkingRef.current = false;
     }
@@ -68,9 +73,24 @@ export function LetterArrivalHost() {
       resume = setTimeout(check, RESUME_CHECK_DELAY_MS);
     });
 
+    // Uygulama açıkken partnerin mektup bildirimi gelince kuş hemen uçsun
+    let pushRetry: ReturnType<typeof setTimeout> | null = null;
+    let pushCheck: ReturnType<typeof setTimeout> | null = null;
+    const unsubscribePush = onLetterArrivalCheckRequested(() => {
+      if (pushCheck) clearTimeout(pushCheck);
+      if (pushRetry) clearTimeout(pushRetry);
+      pushCheck = setTimeout(async () => {
+        const found = await check(true);
+        if (!found) pushRetry = setTimeout(() => check(true), PUSH_RETRY_DELAY_MS);
+      }, PUSH_CHECK_DELAY_MS);
+    });
+
     return () => {
       clearTimeout(first);
       if (resume) clearTimeout(resume);
+      if (pushCheck) clearTimeout(pushCheck);
+      if (pushRetry) clearTimeout(pushRetry);
+      unsubscribePush();
       subscription.remove();
     };
   }, [enabled, check]);

@@ -6,7 +6,7 @@ import { useRouter } from "expo-router";
 import { InAppNotificationData, NotificationType } from "@/types/notification";
 import { logger } from "@/utils/logger";
 import { clearNotificationBadge } from "@/lib/notifications";
-import { markLettersSeen } from "@/lib/letterArrival";
+import { markLettersSeen, requestLetterArrivalCheck } from "@/lib/letterArrival";
 import { useAuth } from "@/context/AuthContext";
 import { InAppNotificationBanner } from "@/components/notifications/InAppNotificationBanner";
 
@@ -199,9 +199,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         // etkin sorgular hemen yenilenir, diğerleri bir sonraki açılışta taze çekilir.
         queryClient.invalidateQueries().catch(() => {});
 
-        // Uygulama açıkken gelen mektup bildirimiyle kullanıcı zaten haberdar oldu;
-        // sonra uygulamaya girince aynı mektup için kuş karşılaması oynamasın.
-        if (deducedType === "letter" && userId) markLettersSeen(userId);
+        // Uygulama açıkken mektup bildirimi gelirse kuş karşılaması hemen oynar (LetterArrivalHost);
+        // mektuplar ekranındaysa o sessizce "görüldü" sayar.
+        if (deducedType === "letter") requestLetterArrivalCheck();
       } catch (err) {
         logger.error("[InAppNotification] Error processing incoming notification:", err);
       }

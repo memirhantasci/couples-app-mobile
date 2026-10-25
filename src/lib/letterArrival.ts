@@ -8,6 +8,21 @@ import { logger } from "@/utils/logger";
 // SUNUCUNUN verdiği created_at değeri olarak saklanır: cihaz saati sapsa da aynı mektup
 // iki kez "yeni" sayılmaz.
 
+// Uygulama açıkken partnerden mektup bildirimi gelince karşılamayı hemen tetiklemek için
+// (LetterArrivalHost dinler; normalde yalnızca açılışta / öne gelince kontrol eder).
+const arrivalCheckListeners = new Set<() => void>();
+
+export function requestLetterArrivalCheck(): void {
+  arrivalCheckListeners.forEach((listener) => listener());
+}
+
+export function onLetterArrivalCheckRequested(listener: () => void): () => void {
+  arrivalCheckListeners.add(listener);
+  return () => {
+    arrivalCheckListeners.delete(listener);
+  };
+}
+
 const SEEN_KEY_PREFIX = "@letters_seen_at_";
 const EPOCH_ISO = "1970-01-01T00:00:00.000Z";
 const MAX_ARRIVALS = 10;
