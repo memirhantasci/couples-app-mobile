@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Platform,
 } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
@@ -309,7 +308,6 @@ export default function PhotosScreen() {
             windowSize={5}
             refreshing={refreshing}
             onRefresh={onRefresh}
-            removeClippedSubviews={Platform.OS === 'android'}
             contentContainerStyle={[
               styles.listContent,
               { paddingBottom: insets.bottom + 140 },

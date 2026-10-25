@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   TextInput,
   KeyboardAvoidingView,
-  Platform,
   Modal,
   ScrollView,
 } from "react-native";
@@ -928,7 +927,6 @@ export default function LettersScreen() {
             initialNumToRender={8}
             maxToRenderPerBatch={10}
             windowSize={5}
-            removeClippedSubviews={Platform.OS === 'android'}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={

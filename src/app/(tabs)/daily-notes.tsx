@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  Platform,
   Modal,
   TextInput,
   StyleSheet,
@@ -321,7 +320,6 @@ export default function DailyNotesScreen() {
             initialNumToRender={8}
             maxToRenderPerBatch={10}
             windowSize={5}
-            removeClippedSubviews={Platform.OS === 'android'}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             refreshControl={
