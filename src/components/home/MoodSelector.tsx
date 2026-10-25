@@ -12,7 +12,6 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { todayString } from "@/lib/date";
 import { useQueryClient } from "@tanstack/react-query";
-import { notifyPartner } from "@/lib/notifications";
 import { logger } from "@/utils/logger";
 import { AppTheme } from "@/lib/theme";
 import { useDemoAction } from "@/hooks/useDemoAction";
@@ -191,23 +190,7 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, theme }: M
 
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
-
-      if (coupleId && userId) {
-        const moodLabel = MOODS.find((m) => m.emoji === emoji)?.label || "güncelledi";
-        const myName = profile?.displayName || "Partnerin";
-        notifyPartner(
-          coupleId,
-          userId,
-          "Mod Güncellemesi 💭",
-          `${myName} bugün kendini ${moodLabel} ${emoji} hissediyor.`,
-          {
-            type: "mood",
-            moodEmoji: emoji,
-            route: "/(tabs)/home",
-            actionLabel: "Sarılarak Yanıtla 🫂",
-          }
-        );
-      }
+      // Partner bildirimi sunucudaki moods tetikleyicisinden (send-push) gider; burada ayrıca göndermek çift bildirim yapıyordu.
     } else {
       logger.error("Mood error:", JSON.stringify(error, null, 2));
       toast.error(error?.message || "Bilinmeyen hata", { title: "Ruh hali kaydedilemedi" });
