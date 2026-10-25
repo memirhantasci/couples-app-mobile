@@ -260,7 +260,9 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
   const [renameLockedUntil, setRenameLockedUntil] = useState<string | null>(null);
 
   const nameLockedUntil = renameLockedUntil ?? claimedStar?.name_change_available_at ?? null;
-  const isNameLocked = !!nameLockedUntil && Date.parse(nameLockedUntil) > Date.now();
+  // Render sırasında Date.now() çağrılmaz: "şimdi" modal her açıldığında tazelenir
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const isNameLocked = !!nameLockedUntil && Date.parse(nameLockedUntil) > nowMs;
 
   const startRename = () => {
     setRenameValue(claimedStar?.custom_name ?? '');
@@ -308,12 +310,12 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
   // Modal açıldığında state'i senkronize et (initialStar varsa direkt sertifika aç)
   useEffect(() => {
     if (visible) {
+      // Modal açılışında state'i prop'lara eşitlemek bilinçli: sertifika doğrudan açılır
       // eslint-disable-next-line react-hooks/set-state-in-effect
+      setNowMs(Date.now());
       setIsRenaming(false);
       setRenameError('');
       if (initialStar) {
-        // Modal açılışında state'i prop'lara eşitlemek bilinçli: sertifika doğrudan açılır
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setClaimedStar(initialStar);
         setModalState('certificate');
       } else {
