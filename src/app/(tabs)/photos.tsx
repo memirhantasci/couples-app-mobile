@@ -205,8 +205,8 @@ export default function PhotosScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Ortak Galeri</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>
+            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Ortak Galeri</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>
               {photos.length > 0 ? `${photos.length} Ortak Hatıra 📸` : "Aşk Arşivimiz 📸"}
             </Text>
           </View>

@@ -569,8 +569,8 @@ export default function ProfileScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Ayarlar</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>Profil & Hesap Tercihleri ⚙️</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Ayarlar</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>Profil & Hesap Tercihleri ⚙️</Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>

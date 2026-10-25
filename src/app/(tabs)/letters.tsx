@@ -769,8 +769,8 @@ export default function LettersScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Mektuplar</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>Geleceğe Zaman Kapsülü 💌</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Mektuplar</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>Geleceğe Zaman Kapsülü 💌</Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>

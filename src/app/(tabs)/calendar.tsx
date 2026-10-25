@@ -350,8 +350,8 @@ export default function CalendarScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Takvim</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>Özel Günler & Hatıralar 📅</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Takvim</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>Özel Günler & Hatıralar 📅</Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>

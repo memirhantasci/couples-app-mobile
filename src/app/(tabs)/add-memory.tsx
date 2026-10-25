@@ -246,7 +246,7 @@ export default function AddMemoryScreen() {
           <TouchableOpacity onPress={() => router.replace("/(tabs)/memories")} style={{ padding: 8, marginLeft: -8 }}>
             <ChevronLeft color={theme.text} size={28} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>{isEditing ? "Anıyı Düzenle" : "Yeni Anı Ekle"}</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{isEditing ? "Anıyı Düzenle" : "Yeni Anı Ekle"}</Text>
           <View style={{ width: 28 }} />
         </View>
 

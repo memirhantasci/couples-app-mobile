@@ -299,15 +299,25 @@ export default function MemoriesScreen() {
     <ScreenBackground>
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
-          <View style={{ flex: 1 }}>
+          {/* minWidth: 0 + tek satır: dar ekranda / büyük yazıda başlık alt alta kırılmaz, gerekirse küçülür */}
+          <View style={{ flex: 1, minWidth: 0, marginRight: 10 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <Text style={[styles.title, { color: theme.text }]}>Özel Günler</Text>
-              <Text style={{ fontSize: 24 }}>❤️</Text>
+              <Text
+                style={[styles.title, { color: theme.text, flexShrink: 1 }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+              >
+                Özel Günler
+              </Text>
+              <Text style={{ fontSize: 22 }}>❤️</Text>
             </View>
-            <Text style={[styles.subtitle, { color: theme.textMuted, marginTop: 4 }]}>En tatlı anılarımızın milatları</Text>
+            <Text style={[styles.subtitle, { color: theme.textMuted, marginTop: 4 }]} numberOfLines={1}>
+              En tatlı anılarımızın milatları
+            </Text>
           </View>
 
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 0 }}>
             <TourGuideButton onPress={openTour} />
             <TouchableOpacity 
               style={[styles.editBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}
@@ -423,7 +433,7 @@ const createStyles = (theme: AppTheme) => {
     },
     editBtn: {
       paddingVertical: 8,
-      paddingHorizontal: 16,
+      paddingHorizontal: 12,
       borderRadius: 20,
     },
     editBtnText: {

@@ -311,8 +311,8 @@ export default function PeriodTrackerScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Döngü & Regl Takvimi</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>
+            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Döngü & Regl Takvimi</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>
               {isFemale ? "Kişisel Döngü & Sağlık Takibi 🌸" : "Sevgilinin Döngüsü & Destek Rehberi 💕"}
             </Text>
           </View>

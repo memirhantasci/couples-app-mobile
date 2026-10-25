@@ -243,8 +243,8 @@ export default function DailyNotesScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Günlüğüm</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>Sadece senin görebildiğin notların 📓</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Günlüğüm</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>Sadece senin görebildiğin notların 📓</Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>

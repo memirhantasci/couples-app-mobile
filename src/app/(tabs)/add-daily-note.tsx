@@ -148,8 +148,8 @@ export default function AddDailyNoteScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Yeni Günlük Sayfası</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>Sadece senin görebildiğin özel notun 🔒</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Yeni Günlük Sayfası</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>Sadece senin görebildiğin özel notun 🔒</Text>
           </View>
 
           <TouchableOpacity 

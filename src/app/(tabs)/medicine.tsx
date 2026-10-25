@@ -556,8 +556,8 @@ export default function MedicineScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>İlaç Takibi</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>Günlük Sağlık Hatırlatıcısı 💊</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>İlaç Takibi</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>Günlük Sağlık Hatırlatıcısı 💊</Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>

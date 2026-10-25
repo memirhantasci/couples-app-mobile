@@ -400,8 +400,8 @@ export default function AddPhotoScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={styles.headerTitle}>Fotoğraf Yükle</Text>
-            <Text style={styles.headerSubtitle}>Ortak Galeri Anısı 📸</Text>
+            <Text style={styles.headerTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Fotoğraf Yükle</Text>
+            <Text style={styles.headerSubtitle} numberOfLines={1}>Ortak Galeri Anısı 📸</Text>
           </View>
 
           <TouchableOpacity 

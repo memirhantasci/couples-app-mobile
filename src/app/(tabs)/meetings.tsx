@@ -321,8 +321,8 @@ export default function MeetingsScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Buluşmalar</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>Randevular & Özel Anlar 📍</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Buluşmalar</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>Randevular & Özel Anlar 📍</Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
