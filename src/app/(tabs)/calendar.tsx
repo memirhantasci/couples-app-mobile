@@ -14,7 +14,7 @@ import { dayjs, todayString } from "@/lib/date";
 import { sanitize } from "@/utils/sanitize";
 import {
   ChevronLeft, AlignJustify,
-  Lock, Plus, Calendar as CalendarIcon, Clock, Maximize2,
+  Plus, Calendar as CalendarIcon, Clock, Maximize2,
   MapPin, Droplet
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -35,7 +35,7 @@ import { CalendarPhotoLightbox } from "@/components/calendar/CalendarPhotoLightb
 import { PERIOD_DURATION_DAYS, getPeriodDays, getPeriodStarts } from "@/lib/periodCycle";
 import { MOODS } from "@/components/home/MoodSelector";
 import { useCalendarData } from "@/hooks/useCalendarData";
-import { LazyPremiumPaywall, LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
+import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
 
 // Veritabanında ruh hali genelde emoji olarak saklanır; eski/demo kayıtlardaki ham anahtarlar (ör. "love") için eşleme.
 const MOOD_KEY_DISPLAY: Record<string, { emoji: string; label: string }> = {
@@ -95,7 +95,6 @@ export default function CalendarScreen() {
   const isFemale = profile?.gender === "female";
   // Erkek kullanıcılar takvimde döngüyü (regl) sadece Premium ise görebilir. Kadın kullanıcılar ise her zaman kendi döngülerini görür.
   const canSeePeriod = isFemale || isPremium;
-  const [showPaywall, setShowPaywall] = useState(false);
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("calendar");
 
   // 🚀 Optimize Edilmiş Veri Çekme Hook'u (3 ay aralığı, cache optimizasyonu, 0ms geçiş)
@@ -416,22 +415,10 @@ export default function CalendarScreen() {
           ) : (
             <View style={{ gap: 14 }}>
               {/* Fotoğraflar */}
-              {(!isPremium || selectedDayPhotos.length > 0) && (
+              {/* Ücretsiz hesapta fotoğraf bölümü hiç gösterilmez (kilit kartı yok) */}
+              {isPremium && selectedDayPhotos.length > 0 && (
                 <DaySectionCard variant="photo" isLight={isLight}>
-                  {!isPremium ? (
-                    <TouchableOpacity
-                      onPress={() => setShowPaywall(true)}
-                      activeOpacity={0.8}
-                      style={[styles.photoCard, dayItemAccent("photo"), { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, height: 160, justifyContent: "center", alignItems: "center" }]}
-                    >
-                      <View style={[styles.lockIconCircle, { backgroundColor: theme.pillAccentBg }]}>
-                        <Lock color={theme.accent} size={22} />
-                      </View>
-                      <Text style={[styles.lockTitle, { color: theme.text }]}>Fotoğraflar Gizli</Text>
-                      <Text style={[styles.lockSub, { color: theme.textMuted }]}>Takvimdeki fotoğrafları görmek için Premium&apos;a geçin.</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    selectedDayPhotos.map((photo: any) => {
+                  {selectedDayPhotos.map((photo: any) => {
                       const uploaderName = getAuthorName(photo.user_id);
                       const avatarUrl = getAuthorAvatar(photo.user_id);
 
@@ -469,8 +456,7 @@ export default function CalendarScreen() {
                           </View>
                         </TouchableOpacity>
                       );
-                    })
-                  )}
+                    })}
                 </DaySectionCard>
               )}
 
@@ -633,11 +619,6 @@ export default function CalendarScreen() {
         onClose={() => setSelectedPhoto(null)}
       />
 
-      <LazyPremiumPaywall
-        visible={showPaywall}
-        onClose={() => setShowPaywall(false)}
-        featureName="Takvimdeki Fotoğraflar"
-      />
       <LazyPageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
       <LazyDemoActionModal
         visible={isDemoModalOpen}
@@ -795,27 +776,6 @@ const createStyles = (theme: AppTheme) => {
       alignItems: "center",
       justifyContent: "center",
     },
-    lockIconCircle: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      alignItems: "center",
-      justifyContent: "center",
-      marginBottom: 8,
-    },
-    lockTitle: {
-      fontSize: 15,
-      fontFamily: "Inter_700Bold",
-      color: theme.text,
-      marginBottom: 4,
-    },
-    lockSub: {
-      fontSize: 12,
-      fontFamily: "Inter_400Regular",
-      color: isLight ? theme.textMuted : "rgba(255,255,255,0.5)",
-      textAlign: "center",
-    },
-
     /* RUH HALLERİ */
     moodsGrid: {
       flexDirection: "row",
