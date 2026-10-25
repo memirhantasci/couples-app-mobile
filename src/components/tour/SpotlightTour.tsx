@@ -5,7 +5,6 @@ import {
   Modal,
   StyleSheet,
   TouchableOpacity,
-  Platform,
   type LayoutChangeEvent,
 } from "react-native";
 import Animated, {
@@ -21,6 +20,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronLeft, ChevronRight, Heart, HelpCircle, Mail, Sparkles } from "lucide-react-native";
 import { useTheme } from "@/context/ThemeContext";
+import { TAB_BAR_HEIGHT, getTabBarBottomOffset } from "@/constants/tabBar";
 import {
   computeTooltipLayout,
   getTooltipWidth,
@@ -48,7 +48,6 @@ const MEASURE_TIMEOUT_MS = 400;
 const MOVE_DURATION_MS = 380;
 const ARROW_SIZE = 14;
 // CustomTabBar ((tabs)/_layout.tsx): 64px yükseklik + alt boşluk; spotlight bu alanın altına inmez
-const TAB_BAR_HEIGHT = 64;
 
 export interface SpotlightStep {
   id: string;
@@ -115,7 +114,7 @@ function SpotlightTourContent({ steps, onClose }: Omit<SpotlightTourProps, "visi
 
   const area = useMemo<VisibleArea | null>(() => {
     if (!overlaySize) return null;
-    const tabBarBottom = Platform.OS === "ios" ? Math.max(insets.bottom - 4, 12) : 14;
+    const tabBarBottom = getTabBarBottomOffset(insets.bottom);
     return {
       top: insets.top,
       bottom: overlaySize.height - tabBarBottom - TAB_BAR_HEIGHT - 8,

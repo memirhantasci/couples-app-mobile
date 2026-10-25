@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { SafeAreaInsetsContext, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/context/ThemeContext";
 import { useTabBar } from "@/context/TabBarContext";
+import { getTabBarBottomOffset } from "@/constants/tabBar";
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const { theme, isLight } = useTheme();
@@ -41,10 +42,8 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
     return null;
   }
 
-  // Alt boşluk: iPhone Home Bar ile dengeli ve estetik duracak şekilde
-  const bottomOffset = Platform.OS === "ios" 
-    ? Math.max(insets.bottom - 4, 12) 
-    : 14;
+  // Alt boşluk: iPhone Home Bar ve Android sistem çubuğunun (3 buton / jest çizgisi) üstünde süzülür
+  const bottomOffset = getTabBarBottomOffset(insets.bottom);
 
   return (
     <View 

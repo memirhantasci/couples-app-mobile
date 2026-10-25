@@ -12,7 +12,7 @@ import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ChevronLeft, Plus, AlignJustify, Camera,
+  ChevronLeft, AlignJustify, Camera,
   Grid3X3, Grid2X2, Square, ArrowUpDown,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -236,16 +236,7 @@ export default function PhotosScreen() {
         {/* ─── KONTROL ÇUBUĞU (GÖRÜNÜM SEÇİCİ & YENİ YÜKLE) ─── */}
         {isPremium && (
           <View style={[styles.controlBar, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
-            {/* Hızlı Yükle Butonu */}
-            <TouchableOpacity
-              style={[styles.uploadQuickBtn, { backgroundColor: theme.accent }]}
-              onPress={goToUpload}
-              activeOpacity={0.85}
-            >
-              <Plus size={16} color="#ffffff" />
-              <Text style={styles.uploadQuickBtnText}>Fotoğraf Ekle</Text>
-            </TouchableOpacity>
-
+            {/* Yükleme, başlıktaki kamera butonundadır; araç çubuğu dar telefonlarda taşmasın diye burada tekrarlanmaz */}
             {/* Tarih Sıralama Toggleu */}
             <TouchableOpacity
               style={[styles.sortBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)" }]}
@@ -253,7 +244,7 @@ export default function PhotosScreen() {
               hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
             >
               <ArrowUpDown size={14} color={theme.accent} />
-              <Text style={[styles.sortBtnText, { color: theme.textSecondary }]}>
+              <Text style={[styles.sortBtnText, { color: theme.textSecondary }]} numberOfLines={1}>
                 {sortOrder === "desc" ? "Yeniden Eskiye" : "Eskiden Yeniye"}
               </Text>
             </TouchableOpacity>
@@ -428,20 +419,8 @@ const createStyles = (theme: AppTheme) => {
       borderRadius: 18,
       borderWidth: 1,
     },
-    uploadQuickBtn: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      paddingHorizontal: 14,
-      paddingVertical: 8,
-      borderRadius: 14,
-    },
-    uploadQuickBtnText: {
-      color: "#ffffff",
-      fontSize: 13,
-      fontFamily: "Inter_700Bold",
-    },
     sortBtn: {
+      flexShrink: 1,
       flexDirection: "row",
       alignItems: "center",
       gap: 5,
@@ -450,6 +429,7 @@ const createStyles = (theme: AppTheme) => {
       borderRadius: 12,
     },
     sortBtnText: {
+      flexShrink: 1,
       fontSize: 11,
       fontFamily: "Inter_600SemiBold",
     },
