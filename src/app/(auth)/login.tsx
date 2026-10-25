@@ -1141,7 +1141,10 @@ export default function LoginScreen() {
           </View>
 
           {/* ─── Sosyal Giriş Butonları ─── */}
-          <View style={[styles.socialGroup, isLoading && { opacity: 0.6 }]} pointerEvents={isLoading ? "none" : "auto"}>
+          {/* collapsable={false}: bu sarmalayıcı yükleme sırasında opacity/pointerEvents alıp düzleştirilmiş
+              halden gerçek native view'a döner; çocukları aynı karede başka ebeveyne taşınınca Android Fabric
+              "addViewAt: child already has a parent" ile çöküyordu. Hep native view kalsın. */}
+          <View collapsable={false} style={[styles.socialGroup, isLoading && { opacity: 0.6 }]} pointerEvents={isLoading ? "none" : "auto"}>
             {/* Apple: Apple'ın onaylı native butonu (HIG / App Store uyumlu) */}
             {Platform.OS === "ios" && isAppleAvailable && (
               <AppleAuthentication.AppleAuthenticationButton
