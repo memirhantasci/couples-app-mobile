@@ -211,11 +211,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isDemoModeRef.current = isDemoMode;
   }, [isDemoMode]);
 
+  // isDeviceAuthorized hangi hesap için hesaplandı (demo / oturumsuz: null)
+  const deviceAuthUserRef = useRef<string | null>(null);
+
   const enterDemoMode = useCallback(() => {
     isDemoModeRef.current = true;
     setIsDemoMode(true);
     setSession(DEMO_SESSION);
     setProfile(DEMO_PROFILE);
+    deviceAuthUserRef.current = null;
     setIsDeviceAuthorized(true);
     setIsLoading(false);
     // Demo verisi şifresizdir; önceki bir oturumun anahtarı demoda kalmasın
@@ -227,6 +231,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsDemoMode(false);
     setSession(null);
     setProfile(null);
+    deviceAuthUserRef.current = null;
     setIsDeviceAuthorized(null);
     setIsLoading(false);
     clearEncryptionKey();
@@ -268,6 +273,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const isExpired = Date.now() - cached.timestamp > DEVICE_AUTH_CACHE_TTL_MS;
         if (!isExpired && cached.userId === userId && cached.deviceId === deviceId) {
           const isAuth = !!cached.isAuthorized;
+          deviceAuthUserRef.current = userId;
           setIsDeviceAuthorized(isAuth);
           return isAuth;
         }
@@ -314,9 +320,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         timestamp: Date.now(),
       })).catch(() => {});
 
+      deviceAuthUserRef.current = userId;
       setIsDeviceAuthorized(isAuth);
       return isAuth;
     } catch {
+      deviceAuthUserRef.current = userId;
       setIsDeviceAuthorized(false);
       return false;
     }
@@ -407,6 +415,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!newSession) return;
         isDemoModeRef.current = false;
         setIsDemoMode(false);
+        // Demo profili ve demonun "yetkili cihaz" durumu gerçek hesabın yönlendirmesine karışmasın:
+        // aksi halde yeni cihazdan giren kullanıcı doğrulama ekranından önce ana sayfaya atılıyor,
+        // iki yönlendirme çakışıp ekran boş kalıyordu
+        setProfile(null);
+        hasProfileRef.current = false;
+        profileFetchedForUser.current = null;
+      }
+
+      // Başka bir hesap için hesaplanmış cihaz durumu, yenisi kontrol edilene kadar kullanılmaz
+      if (event === 'SIGNED_IN' && newSession && deviceAuthUserRef.current !== newSession.user.id) {
+        deviceAuthUserRef.current = null;
+        setIsDeviceAuthorized(null);
       }
 
       setSession(newSession);
@@ -418,6 +438,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         queryClient.clear();
         clearStorageImages().catch(() => {});
         setProfile(null);
+        deviceAuthUserRef.current = null;
         setIsDeviceAuthorized(null);
         profileFetchedForUser.current = null;
         AsyncStorage.removeItem(CACHED_PROFILE_KEY).catch(() => {});

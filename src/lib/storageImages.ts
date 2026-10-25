@@ -18,14 +18,18 @@ export type PrivateBucket = "photos" | "memories";
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
 /** Süresi dolmak üzere olan URL yenilenir; görsel yüklenirken geçersizleşmesin. */
 const RENEW_BEFORE_MS = 5 * 60 * 1000;
-/** İmzalanamayan yol (çevrimdışı, geçici ağ hatası) 5 saniye sonra tekrar denenebilir. */
+/** İmzalanamayan yol (çevrimdışı, geçici ağ hatası) önce 5 sn sonra, sonra artan aralıklarla yeniden denenir. */
 const RETRY_AFTER_MS = 5 * 1000;
+const MAX_RETRY_AFTER_MS = 2 * 60 * 1000;
 const SIGN_BATCH_SIZE = 100;
 
 type Entry = { uri: string; expiresAt: number; local: boolean };
+type Failure = { at: number; count: number };
 
 const entries = new Map<string, Entry>();
-const failedAt = new Map<string, number>();
+const failures = new Map<string, Failure>();
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+let retryAt = 0;
 const queued = new Map<PrivateBucket, Set<string>>();
 const inFlight = new Set<string>();
 const listeners = new Set<() => void>();
@@ -55,6 +59,21 @@ function subscribe(listener: () => void) {
 
 const getVersion = () => version;
 
+const retryDelayOf = (failure: Failure) =>
+  Math.min(RETRY_AFTER_MS * 2 ** (failure.count - 1), MAX_RETRY_AFTER_MS);
+
+/** Ekrandaki görseller yeniden imza istesin diye bekleme bitince abonelere haber verilir. */
+function scheduleRetry(delayMs: number) {
+  const at = Date.now() + delayMs;
+  if (retryTimer && retryAt <= at) return;
+  if (retryTimer) clearTimeout(retryTimer);
+  retryAt = at;
+  retryTimer = setTimeout(() => {
+    retryTimer = null;
+    notify();
+  }, delayMs);
+}
+
 function displayableEntry(key: string): Entry | undefined {
   const entry = entries.get(key);
   if (!entry) return undefined;
@@ -68,8 +87,8 @@ function requestSigning(bucket: PrivateBucket, rawPath: string) {
   if (inFlight.has(key)) return;
   const entry = entries.get(key);
   if (entry && !entry.local && entry.expiresAt - Date.now() > RENEW_BEFORE_MS) return;
-  const lastFailure = failedAt.get(key);
-  if (lastFailure !== undefined && Date.now() - lastFailure < RETRY_AFTER_MS) return;
+  const failure = failures.get(key);
+  if (failure && Date.now() - failure.at < retryDelayOf(failure)) return;
 
   let paths = queued.get(bucket);
   if (!paths) {
@@ -117,7 +136,7 @@ async function signBatch(bucket: PrivateBucket, paths: string[]) {
         const normItemPath = normalizePath(item.path);
         const key = cacheKeyOf(bucket, normItemPath);
         entries.set(key, { uri: item.signedUrl, expiresAt, local: false });
-        failedAt.delete(key);
+        failures.delete(key);
         signed.add(item.path);
         signed.add(normItemPath);
       }
@@ -131,10 +150,17 @@ async function signBatch(bucket: PrivateBucket, paths: string[]) {
 
   // İmzalanamayanlar: diskte önbellekli kopyası varsa o gösterilir (ör. çevrimdışı açılış)
   const failed = paths.filter((path) => !signed.has(path) && !signed.has(normalizePath(path)));
+  let nextRetryMs = Number.POSITIVE_INFINITY;
+  for (const path of failed) {
+    const key = cacheKeyOf(bucket, path);
+    const failure = { at: Date.now(), count: (failures.get(key)?.count ?? 0) + 1 };
+    failures.set(key, failure);
+    nextRetryMs = Math.min(nextRetryMs, retryDelayOf(failure));
+  }
+  if (failed.length > 0) scheduleRetry(nextRetryMs);
   await Promise.all(
     failed.map(async (path) => {
       const key = cacheKeyOf(bucket, path);
-      failedAt.set(key, Date.now());
       if (displayableEntry(key)) return;
       const cachedPath = await Image.getCachePathAsync(key).catch(() => null);
       if (cachedPath && batchGeneration === generation) {
@@ -160,7 +186,10 @@ export function useStorageImage(bucket: PrivateBucket, pathOrUri: string | null 
     if (key && value) requestSigning(bucket, value);
   }, [bucket, key, value, storeVersion]);
 
-  const uri = direct ? value : key ? displayableEntry(key)?.uri : undefined;
+  // URL anlık görüntüden okunmalı: render içinde Map'ten okunursa React Compiler sonucu yalnızca
+  // key'e göre önbelleğe alıyor, imza gelince görsel ekran yeniden açılana kadar boş kalıyordu
+  const signedUri = useSyncExternalStore(subscribe, () => (key ? displayableEntry(key)?.uri : undefined));
+  const uri = direct ? value : signedUri;
   return useMemo(() => {
     if (!uri) return null;
     return key ? { uri, cacheKey: key } : { uri };
@@ -190,7 +219,9 @@ export async function removeStoredFiles(bucket: PrivateBucket, paths: (string | 
 export async function clearStorageImages() {
   generation += 1;
   entries.clear();
-  failedAt.clear();
+  failures.clear();
+  if (retryTimer) clearTimeout(retryTimer);
+  retryTimer = null;
   queued.clear();
   inFlight.clear();
   notify();
