@@ -238,15 +238,8 @@ serve(async (req) => {
         partnerIntId = partner?.id ?? null;
       }
     }
-    else if (table === "daily_notes" && type === "INSERT") {
-      senderIntId = record.user_id;
-      const { data: sender } = await supabase.from("users").select("display_name, couple_id").eq("id", senderIntId).single();
-      if (sender) {
-        message = { title: "📝 Günlük", body: `${sender.display_name} günlüğüne yeni bir not ekledi`, route: "/(tabs)/daily-notes", actionLabel: "Günlüğe Git 📝" };
-        const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
-        partnerIntId = partner?.id ?? null;
-      }
-    }
+    // daily_notes (özel günlük) için bilerek bildirim yok: günlük "sadece sen okuyabilirsin" vaadiyle tutulur,
+    // yazıldığının partnere haber verilmesi bu gizliliğe ters düşer.
     else if (table === "letters" && type === "INSERT") {
       senderIntId = record.sender_id;
       partnerIntId = record.receiver_id;
