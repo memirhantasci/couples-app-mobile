@@ -10,12 +10,13 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { showPermissionDeniedDialog } from "@/lib/permissions";
 import MapView from "react-native-maps";
-import type { LongPressEvent } from "react-native-maps";
+import type { LongPressEvent, MapPressEvent } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -113,6 +114,8 @@ export default function MapScreen() {
   // Doluysa "not ekle" modalı açıktır ve bu konumda bekleyen pin gösterilir.
   const [pendingCoord, setPendingCoord] = useState<MapCoordinate | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  // "İlk notu bırak": konum izni istemeden, haritada dokunulan yere not bırakma modu
+  const [isPickingSpot, setIsPickingSpot] = useState(false);
   const [fullScreenPhoto, setFullScreenPhoto] = useState<PhotoPin | null>(null);
   const [isStoryVisible, setIsStoryVisible] = useState(false);
 
@@ -123,9 +126,16 @@ export default function MapScreen() {
   }, []);
 
   // Haritaya tıklama (Marker tıklandıysa kartı kapatma)
-  const handleMapPress = () => {
+  const handleMapPress = (e: MapPressEvent) => {
     if (Date.now() - lastMarkerPressRef.current < 450) return;
     setSelectedItem(null);
+    if (isPickingSpot) {
+      const coord = e.nativeEvent?.coordinate;
+      if (coord && coord.latitude && coord.longitude) {
+        setIsPickingSpot(false);
+        setPendingCoord({ latitude: coord.latitude, longitude: coord.longitude });
+      }
+    }
   };
 
   // ─── Not Kaydetme ─────────────────────────────────────────────────────────
@@ -332,14 +342,12 @@ export default function MapScreen() {
     }
   };
 
-  // Boş harita kartındaki eylem: konuma git ve ilk aşk notunu tam oraya bırak
-  const handleDropFirstNote = async () => {
+  // Boş harita kartındaki eylem: konum izni istemeden yer seçme moduna geç; kullanıcı haritada
+  // istediği yere dokunur, not o noktaya bırakılır (konuma gitmek isteyen sağdaki konum butonunu kullanır)
+  const handleDropFirstNote = () => {
     if (executeOrIntercept(() => {}, DEMO_NOTE_TITLE, DEMO_NOTE_DESC)) return;
-    const coord = await goToUserLocation();
-    if (coord) {
-      setSelectedItem(null);
-      setPendingCoord(coord);
-    }
+    setSelectedItem(null);
+    setIsPickingSpot(true);
   };
 
   // ─── Tüm Pinleri Ekrana Sığdır ─────────────────────────────────────────────
@@ -459,19 +467,40 @@ export default function MapScreen() {
       )}
 
       {/* ─── BOŞ HARİTA DAVETİ ─────────────────────────────────────────── */}
-      {!isLoading && isMapEmpty && !selectedItem && !isAddingNote && (
+      {!isLoading && isMapEmpty && !selectedItem && !isAddingNote && !isPickingSpot && (
         <View style={[styles.emptyWrap, { bottom: insets.bottom + 100 }]} pointerEvents="box-none">
           <EmptyState
             compact
             emoji="📍"
             title="Haritanız henüz bembeyaz"
-            description="Birlikte gittiğiniz ilk yere bir aşk notu bırakın; anılarınız harita üzerinde yaşasın."
+            description="Birlikte gittiğiniz ilk yere bir aşk notu bırakın: haritada istediğiniz yere dokunmanız yeter, konum izni gerekmez."
             ctaLabel="İlk Notu Bırak 📍"
             onPressCta={handleDropFirstNote}
             theme={theme}
             style={styles.emptyCard}
           />
         </View>
+      )}
+
+      {/* ─── YER SEÇME REHBERİ (ilk not) ───────────────────────────────── */}
+      {isPickingSpot && !isAddingNote && (
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => setIsPickingSpot(false)}
+          style={[styles.hintPill, { bottom: insets.bottom + 90 }]}
+          accessibilityRole="button"
+          accessibilityLabel="Yer seçmeyi iptal et"
+        >
+          <BlurView
+            tint={isLight ? "light" : "dark"}
+            intensity={85}
+            style={StyleSheet.absoluteFill}
+          />
+          <Heart size={14} color={theme.accent} fill={theme.accent} />
+          <Text style={[styles.hintPillText, { color: isLight ? "#222" : "#fff" }]}>
+            Notu bırakmak istediğin yere dokun · İptal
+          </Text>
+        </TouchableOpacity>
       )}
 
       {/* ─── HIZLI NOT EKLEME REHBERİ (Floating Pill) ──────────────────── */}
