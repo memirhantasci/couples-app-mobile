@@ -31,16 +31,23 @@ const GOLD_LIGHT = "224, 161, 0";
 /**
  * Aşk sayacı kartını sararak yıldönümüne yaklaşırken (ve 14 Şubat'ta) etrafında hafif,
  * "nefes alan" bir altın ışıltı, kartın üzerinde ara ara süzülen bir parıltı ve köşelerde
- * göz kırpan yıldızlar gösterir. Sarmalayıcı her zaman render edilir: `active` değişse de
+ * göz kırpan yıldızlar gösterir. Sarmalayıcı ve katman yuvaları her zaman render edilir: `active` değişse de
  * çocuk (kart) yeniden mount olmaz, böylece ölçüm ref'leri (spotlight turu) bozulmaz.
  */
 export function AnniversaryGlow({ active, radius, isLight, children }: AnniversaryGlowProps) {
   const gold = isLight ? GOLD_LIGHT : GOLD_DARK;
   return (
-    <View>
-      {active ? <GlowHalo radius={radius} gold={gold} isLight={isLight} /> : null}
+    // collapsable={false}: sarmalayıcı ve iki yuva her zaman gerçek native view olur. Düzleştirilirse
+    // `active` değişince (profil yüklenince) halka/parıltı katmanları ana sayfa içeriğine karışıp zIndex/elevation
+    // sıralamasıyla birlikte yeniden eklenir ve Android'de "addViewAt: child already has a parent" çökmesi verir.
+    <View collapsable={false}>
+      <View collapsable={false} pointerEvents="none" style={styles.layer}>
+        {active ? <GlowHalo radius={radius} gold={gold} isLight={isLight} /> : null}
+      </View>
       {children}
-      {active ? <GlowSheen radius={radius} gold={gold} isLight={isLight} /> : null}
+      <View collapsable={false} pointerEvents="none" style={[styles.layer, styles.front]}>
+        {active ? <GlowSheen radius={radius} gold={gold} isLight={isLight} /> : null}
+      </View>
     </View>
   );
 }
