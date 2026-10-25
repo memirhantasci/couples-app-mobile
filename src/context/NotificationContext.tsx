@@ -185,15 +185,19 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           deducedType = "period";
         }
 
-        showNotification({
-          type: deducedType,
-          title: title || "Bildirim",
-          body: body || "",
-          senderName: payloadData.senderName,
-          route: payloadData.route,
-          actionLabel: payloadData.actionLabel,
-          metadata: payloadData,
-        });
+        // Mektupta üstten inen uygulama içi kart gösterilmez: uçan güvercin (LetterArrivalHost) bildirimin
+        // yerini tutar, kart onu kapatıp/örtüp güvercini engelliyordu. Telefonun bildirim çubuğuna yine düşer.
+        if (deducedType !== "letter") {
+          showNotification({
+            type: deducedType,
+            title: title || "Bildirim",
+            body: body || "",
+            senderName: payloadData.senderName,
+            route: payloadData.route,
+            actionLabel: payloadData.actionLabel,
+            metadata: payloadData,
+          });
+        }
 
         // Partnerin yaptığı değişiklik (mektup, anı, ruh hali…) ekranlara önbellek süresi dolmadan yansısın:
         // etkin sorgular hemen yenilenir, diğerleri bir sonraki açılışta taze çekilir.
