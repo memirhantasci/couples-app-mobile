@@ -595,7 +595,7 @@ export default function LettersScreen() {
                 <View style={styles.lockedBadge}>
                   <LockKeyhole size={13} color={isLight ? "#B45309" : "#f59e0b"} />
                   <Text style={styles.lockedBadgeText}>
-                    Kilitli • {unlockMoment.locale("tr").format("DD MMM YYYY HH:mm")}
+                    Kilitli • {dayjs(unlockDateStr).locale("tr").format("DD MMM YYYY")}
                   </Text>
                 </View>
               ) : (
@@ -604,7 +604,7 @@ export default function LettersScreen() {
                   <Text style={styles.unlockedBadgeText}>
                     {itemType === "sent"
                       ? isLockedDate
-                        ? `Mühürlü • ${unlockMoment.locale("tr").format("DD MMM HH:mm")}`
+                        ? `Mühürlü • ${dayjs(unlockDateStr).locale("tr").format("DD MMM YYYY")}`
                         : "Gönderildi"
                       : "Açıldı"}
                   </Text>
@@ -673,7 +673,7 @@ export default function LettersScreen() {
               <Text style={[styles.letterContentText, { color: theme.text }]}>{letterContent}</Text>
               {unlockDateStr ? (
                 <Text style={[styles.letterFooterNote, { color: theme.textMuted }]}>
-                  {`Açılış Zamanı: ${unlockMoment.locale("tr").format("DD MMMM YYYY HH:mm")}`}
+                  {`Açılış Tarihi: ${dayjs(unlockDateStr).locale("tr").format("DD MMMM YYYY")}`}
                 </Text>
               ) : null}
             </View>
@@ -1089,8 +1089,6 @@ export default function LettersScreen() {
                       <CalendarIcon size={18} color={theme.accent} />
                       <Text style={[styles.dateSelectorText, { color: theme.text }]}>
                         {dayjs(unlockDate).locale("tr").format("DD MMMM YYYY, dddd")}
-                        {" · "}
-                        {dayjs(Date.parse(`${unlockDate}T00:00:00Z`)).format("HH:mm")}
                       </Text>
                     </View>
                     <ChevronRight size={16} color={theme.textMuted} />
