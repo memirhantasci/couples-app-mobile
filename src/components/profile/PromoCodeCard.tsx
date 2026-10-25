@@ -15,6 +15,7 @@ import { RevenueCatService } from "@/lib/revenuecat";
 import type { AppTheme } from "@/lib/theme";
 import type { useDemoAction } from "@/hooks/useDemoAction";
 import { toast } from "@/lib/toast";
+import { suppressPremiumCelebration } from "@/lib/premiumCelebration";
 import { ModernSection } from "./ModernSection";
 
 interface PromoCodeCardProps {
@@ -49,6 +50,7 @@ export function PromoCodeCard({
 
     if (code === "FREEMIRHAN") {
       setPromoLoading(true);
+      suppressPremiumCelebration();
       try {
         const { error: rpcError } = await supabase.rpc("set_premium_status", {
           p_is_premium: true,
@@ -104,6 +106,7 @@ export function PromoCodeCard({
     }
 
     setPromoLoading(true);
+    suppressPremiumCelebration();
     try {
       const { data, error } = await supabase.rpc("redeem_promo_code", {
         p_code: code,

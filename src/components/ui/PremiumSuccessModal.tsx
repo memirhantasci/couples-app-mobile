@@ -7,9 +7,11 @@ import { useTheme } from "@/context/ThemeContext";
 interface PremiumSuccessModalProps {
   visible: boolean;
   onClose: () => void;
+  /** Varsayılan metin yerine gösterilecek açıklama (ör. partner satın aldığında) */
+  subtitle?: string;
 }
 
-export function PremiumSuccessModal({ visible, onClose }: PremiumSuccessModalProps) {
+export function PremiumSuccessModal({ visible, onClose, subtitle }: PremiumSuccessModalProps) {
   // useTheme: seçili açık/koyu modu da yakalar (getTheme(profile?.gender) açık temada koyu stilde kalıyordu)
   const { theme, isLight } = useTheme();
 
@@ -29,7 +31,7 @@ export function PremiumSuccessModal({ visible, onClose }: PremiumSuccessModalPro
           
           <Text style={[styles.title, { color: theme.text }]}>Tebrikler!</Text>
           <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-            Artık Premium üyesiniz. Bütün sınırlar kalktı, aşkınızın tadını sınırsızca çıkarabilirsiniz.
+            {subtitle ?? "Artık Premium üyesiniz. Bütün sınırlar kalktı, aşkınızın tadını sınırsızca çıkarabilirsiniz."}
           </Text>
 
           <View style={styles.featuresContainer}>

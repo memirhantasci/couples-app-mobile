@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LegalModal } from "@/components/legal/LegalModal";
 import { LegalDocType } from "@/constants/legalTexts";
 import { toast } from "@/lib/toast";
+import { suppressPremiumCelebration } from "@/lib/premiumCelebration";
 
 export default function PaywallScreen() {
   const router = useRouter();
@@ -55,7 +56,9 @@ export default function PaywallScreen() {
   const handlePurchase = async () => {
     if (!selectedPackage) return;
     setPurchasing(true);
-    
+    // Satın alan cihazda ayrıca partner kutlaması çıkmasın (burada kendi "Tebrikler" bildirimi var)
+    suppressPremiumCelebration();
+
     try {
       const customerInfo = await RevenueCatService.purchasePackage(selectedPackage);
       if (customerInfo && typeof customerInfo.entitlements.active['Premium'] !== "undefined") {
@@ -73,6 +76,7 @@ export default function PaywallScreen() {
   const handleRestore = async () => {
     setPurchasing(true);
     try {
+      suppressPremiumCelebration();
       const customerInfo = await RevenueCatService.restorePurchases();
       if (customerInfo && typeof customerInfo.entitlements.active['Premium'] !== "undefined") {
         await refreshProfile();
