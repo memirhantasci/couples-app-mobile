@@ -24,6 +24,7 @@ import { installGlobalErrorReporting } from "@/lib/errorReporting";
 import { bindQueryOnlineManager } from "@/hooks/useIsOffline";
 import { DialogHost } from "@/components/ui/DialogHost";
 import { LetterArrivalHost } from "@/components/letters/LetterArrivalHost";
+import { NotificationPermissionHost } from "@/components/common/NotificationPermissionHost";
 import { StarPointsToastHost } from "@/modules/stars/components/StarPointsToastHost";
 
 import {
@@ -223,6 +224,8 @@ export default function RootLayout() {
                 <RootLayoutNav />
                 {/* Partnerinden mektup gelmişse uygulamaya girince sol üstten uçup konan kuş */}
                 <LetterArrivalHost />
+                {/* Bildirim izni verilmediyse arada bir (bezdirmeden) nazik ön-onay kartı */}
+                <NotificationPermissionHost />
                 {/* Yıldızı parlatan aktivitelerde "+N puan 🌟" bildirimi */}
                 <StarPointsToastHost />
                 {/* Alert yerine süzülen hap bildirimleri; ağacın en üstünde çizilir */}
