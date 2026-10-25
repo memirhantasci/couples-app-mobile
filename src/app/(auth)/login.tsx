@@ -14,7 +14,7 @@ import { Image } from "expo-image";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { router, useLocalSearchParams } from "expo-router";
 import { supabase } from "@/lib/supabase";
-import { navigateAfterAuth } from "@/lib/navigate";
+import { navigateAfterAuth, setAuthFlowActive, releaseAuthFlow } from "@/lib/navigate";
 import { registerForPushNotifications } from "@/lib/notifications";
 import { useAuth, DEVICE_AUTH_CACHE_KEY } from "@/context/AuthContext";
 import { signInWithUsername } from "@/lib/authGateway";
@@ -270,6 +270,7 @@ export default function LoginScreen() {
     }
 
     setIsLoading(true);
+    setAuthFlowActive(true);
     try {
       const identifier = loginUsername.trim();
       const password = loginPassword.trim();
@@ -387,6 +388,7 @@ export default function LoginScreen() {
     } catch (e: any) {
       setErrorMsg("Beklenmedik bir hata oluştu.");
     } finally {
+      releaseAuthFlow();
       setIsLoading(false);
     }
   }

@@ -17,7 +17,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth, DEVICE_AUTH_CACHE_KEY } from "@/context/AuthContext";
 import { ArrowLeft, ShieldAlert, RefreshCw } from "lucide-react-native";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
-import { navigateAfterAuth } from "@/lib/navigate";
+import { navigateAfterAuth, setAuthFlowActive, releaseAuthFlow } from "@/lib/navigate";
 import { toast } from "@/lib/toast";
 
 const OTP_LENGTH = 6;
@@ -89,7 +89,8 @@ export default function VerifyDeviceScreen() {
 
     setIsLoading(true);
     setErrorMsg("");
-    
+    setAuthFlowActive(true);
+
     try {
       if (!targetEmail) {
         setErrorMsg("E-posta adresi bulunamadı.");
@@ -148,6 +149,8 @@ export default function VerifyDeviceScreen() {
     } catch (e: any) {
       setErrorMsg("Beklenmedik bir hata oluştu.");
       setIsLoading(false);
+    } finally {
+      releaseAuthFlow();
     }
   };
 

@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useRouter, useSegments, useRootNavigationState } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { getOrCreateDeviceId } from "@/utils/device";
+import { isAuthFlowActive } from "@/lib/navigate";
 
 export function useProtectedRoute() {
   const { session, isLoading, profile, isDeviceAuthorized, isDemoMode, enterDemoMode } = useAuth();
@@ -23,6 +24,9 @@ export function useProtectedRoute() {
     const isVerifying = currentRoute.includes("verify-device") || currentRoute.includes("verify");
 
     const timer = setTimeout(() => {
+      // Giriş / doğrulama ekranı kendi yönlendirmesini yapıyor; çift yönlendirme çökmeye yol açar
+      if (isAuthFlowActive()) return;
+
       // 0. Demo Mode: Guests exploring the app
       if (isDemoMode) {
         if (inSetupGroup || isVerifying || isAtRoot) {
