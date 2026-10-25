@@ -228,23 +228,7 @@ export default function MeetingsScreen() {
           savedMeetingId = insertedData.id;
         }
 
-        if (coupleId && userId) {
-          const senderName = profile?.displayName || "Sevgilin";
-          const meetingTitle = title.trim() || "Buluşma";
-          notifyPartner(
-            coupleId, 
-            userId, 
-            "Buluşma Planlandı! 📅", 
-            `${senderName} yeni bir buluşma planladı: ${meetingTitle}`,
-            {
-              type: "meeting",
-              meetingId: insertedData?.id,
-              meetingTitle: cleanTitle,
-              route: "/(tabs)/meetings",
-              actionLabel: "Planı Gör 🗓️",
-            }
-          );
-        }
+        // Yeni buluşma bildirimi sunucudaki tetikleyiciden (send-push) gelir; burada ayrıca göndermek çift bildirim yapıyordu.
 
         successMessage = "Buluşma planlandı 🎉";
       }

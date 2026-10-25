@@ -4,7 +4,6 @@ import * as Application from "expo-application";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { supabase } from "@/lib/supabase";
-import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { logger } from "@/utils/logger";
 import { decrypt } from "@/utils/crypto";
 import dayjs from "dayjs";
@@ -683,31 +682,4 @@ export async function notifyPartner(coupleId: number, currentUserId: string, tit
   } catch (error) {
     logger.error("[Push] Failed to notify partner:", error);
   }
-}
-
-/**
- * Eşleşme tamamlandığında, bekleme ekranındaki partnere ("Partnerin katıldı!") bildirim gönderir.
- * Eşleşmeyi tamamlayan (davet kodunu giren) tarafın cihazından çağrılır.
- *
- * Aynı eşleşme için yalnızca bir kez gönderilir: otomatik eşleşme yolları (bekleyen davet kodu,
- * ekran açılışı, manuel giriş) yarışabildiği için çift bildirim önlenir.
- */
-export async function notifyPairingComplete(coupleId: number | null | undefined, userId: string | null | undefined) {
-  if (!coupleId || !userId || userId === "demo-guest-user-id") return;
-
-  const dedupeKey = `@pairing_notified_${coupleId}`;
-  try {
-    if (await AsyncStorage.getItem(dedupeKey)) return;
-    await AsyncStorage.setItem(dedupeKey, "1");
-  } catch {
-    // depolama okunamazsa yine de göndermeyi dene
-  }
-
-  await notifyPartner(
-    coupleId,
-    userId,
-    "Couples ❤️",
-    "Partnerin katıldı! Birlikte harika anılar biriktirmeye hazırsınız ✨",
-    { type: "pairing", route: "/(tabs)/home", actionLabel: "Birlikte Başlayalım ✨" }
-  );
 }

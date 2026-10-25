@@ -278,20 +278,7 @@ export default function LettersScreen() {
       }
       setShowWriteModal(false);
 
-      // Mektup Premium'la veya 100 token'la gönderilebildiği için bildirim de her iki durumda gider
-      if (coupleId && userId) {
-        const senderName = profile?.displayName || "Sevgilin";
-        const letterHeader = cleanTitle.trim();
-        const notificationBody = letterHeader 
-          ? `${senderName} sana mühürlü bir mektup gönderdi: "${letterHeader}"`
-          : `${senderName} sana mühürlü bir mektup gönderdi.`;
-        notifyPartner(coupleId, userId, "Gelecekten Bir Mektup 💌", notificationBody, {
-          type: "letter",
-          letterTitle: letterHeader,
-          route: "/(tabs)/letters",
-          actionLabel: "Mektubu Aç 📜",
-        });
-      }
+      // Alıcıya giden bildirim sunucudaki tetikleyiciden (send-push) gelir; burada ayrıca göndermek çift bildirim yapıyordu.
 
       // Origami turna kuşu uçuş animasyonunu ve ses efektini başlat! 🕊️✨
       playLetterSend();

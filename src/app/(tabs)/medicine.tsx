@@ -190,21 +190,8 @@ export default function MedicineScreen() {
         const medName = med?.name || "İlaç";
         const senderName = profile?.displayName || "Sevgilin";
 
-        if (!isDemoMode && coupleId && userId) {
-          notifyPartner(
-            coupleId,
-            userId,
-            "İlacını İçti! 💊✨",
-            `${senderName}, ${medName} ilacını içti. İçin rahat olsun! 🌿`,
-            {
-              type: "medicine",
-              medicineName: medName,
-              status: "DRANK",
-              route: "/(tabs)/medicine",
-              actionLabel: "İlaç Takibine Git 💊",
-            }
-          );
-        } else {
+        // Gerçek hesapta partner bildirimi sunucudaki tetikleyiciden (send-push) gelir; çift bildirim olmasın diye yalnızca demo gösterilir.
+        if (isDemoMode || !coupleId || !userId) {
           showNotification({
             type: "medicine",
             title: "İlacını İçti! 💊✨",

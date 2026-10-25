@@ -16,7 +16,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { toast } from "@/lib/toast";
 import { navigateAfterAuth } from "@/lib/navigate";
-import { notifyPairingComplete, registerForPushNotifications } from "@/lib/notifications";
+import { registerForPushNotifications } from "@/lib/notifications";
 import { ArrowLeft, Mail } from "lucide-react-native";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { getOrCreateDeviceId } from "@/utils/device";
@@ -188,14 +188,12 @@ export default function VerifyScreen() {
     const pendingCode = normalizePairingCode(params.inviteCode || (await AsyncStorage.getItem("@pending_invite_code")));
     if (pendingCode.length >= 4) {
       try {
-        const { data, error: joinError } = await supabase.rpc("join_couple_by_code_uuid", {
+        const { error: joinError } = await supabase.rpc("join_couple_by_code_uuid", {
           p_code: pendingCode,
         });
         if (!joinError) {
           await AsyncStorage.removeItem("@pending_invite_code");
-          const joined = Array.isArray(data) ? data[0] : data;
-          // Bekleme ekranındaki partnere haber ver
-          if (joined?.result_is_paired) notifyPairingComplete(joined.result_couple_id, userId);
+          // Bekleme ekranındaki partnere "eşleşme başarılı" bildirimini sunucu (couples tetikleyicisi) gönderir
         }
       } catch {
         // Hata durumunda standart akışa devam et

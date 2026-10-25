@@ -24,7 +24,6 @@ import { sanitizeStrict, sanitize } from "@/utils/sanitize";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { useNotificationPriming } from "@/hooks/useNotificationPriming";
 import { toast } from "@/lib/toast";
-import { notifyPartner } from "@/lib/notifications";
 import { LazyPremiumPaywall, LazyDemoActionModal, LazyPermissionPrimingModal, LazyDateTimePickerSheet } from "@/components/ui/lazyMount";
 
 const IMAGE_MIME_BY_EXT: Record<string, string> = {
@@ -203,22 +202,7 @@ export default function AddMemoryScreen() {
 
       queryClient.invalidateQueries({ queryKey: ["memories"] });
 
-      // Yeni anı eklendiğinde partnere haber ver (düzenlemelerde bildirim gitmez)
-      if (!isEditing && coupleId && session?.user?.id) {
-        const senderName = profile?.displayName || "Sevgilin";
-        notifyPartner(
-          coupleId,
-          session.user.id,
-          "Yeni Bir Anı ✨",
-          `${senderName} yeni bir anı ekledi: "${cleanTitle}"`,
-          {
-            type: "photo",
-            memoryTitle: cleanTitle,
-            route: "/(tabs)/memories",
-            actionLabel: "Anıyı Gör ✨",
-          }
-        );
-      }
+      // Yeni anıda partnere giden bildirim sunucudaki tetikleyiciden (send-push) gelir; burada ayrıca göndermek çift bildirim yapıyordu.
 
       // Yeni anı kaydedildiyse, uygunsa bildirim ön-onay kartını göster; yönlendirme kart kapanınca yapılır
       if (!isEditing && (await priming.maybePrompt())) return;

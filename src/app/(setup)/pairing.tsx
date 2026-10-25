@@ -18,7 +18,6 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Link, Share2, LogOut, Sparkles, Check, Copy } from "lucide-react-native";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
-import { notifyPairingComplete } from "@/lib/notifications";
 import { navigateAfterAuth } from "@/lib/navigate";
 import { isDefinitivePairingError, normalizePairingCode, translatePairingError } from "@/lib/pairingCode";
 import { useNotificationPriming } from "@/hooks/useNotificationPriming";
@@ -123,8 +122,7 @@ export default function PairingScreen() {
 
     const result = Array.isArray(data) ? data[0] : data;
     if (result?.result_is_paired) {
-      // Partner A'nın telefonuna "Partnerin katıldı!" bildirimi (beklemeyi gerektirmez)
-      notifyPairingComplete(result.result_couple_id, userId);
+      // Partner A'nın telefonuna "Eşleşme başarılı" bildirimini sunucu (couples tetikleyicisi) gönderir
       await finishPairing();
     } else {
       queryClient.invalidateQueries({ queryKey: ["pairing-status", userId] });

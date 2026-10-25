@@ -12,7 +12,7 @@ import { TabBarProvider } from "@/context/TabBarContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { supabase } from "@/lib/supabase";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
-import { configureAndroidNotificationChannel, notifyPairingComplete } from "@/lib/notifications";
+import { configureAndroidNotificationChannel } from "@/lib/notifications";
 import { normalizePairingCode, translatePairingError } from "@/lib/pairingCode";
 import { navigateAfterAuth } from "@/lib/navigate";
 import { toast } from "@/lib/toast";
@@ -116,11 +116,9 @@ function RootLayoutNav() {
       // If user is already authenticated with an active session:
       if (session?.user?.id) {
         try {
-          const { data, error } = await supabase.rpc("join_couple_by_code_uuid", { p_code: code });
+          const { error } = await supabase.rpc("join_couple_by_code_uuid", { p_code: code });
           if (!error) {
-            // Davet bağlantısıyla eşleşme tamamlandı: bekleme ekranındaki partnere haber ver
-            const joined = Array.isArray(data) ? data[0] : data;
-            if (joined?.result_is_paired) notifyPairingComplete(joined.result_couple_id, session.user.id);
+            // Bekleme ekranındaki partnere "eşleşme başarılı" bildirimini sunucu (couples tetikleyicisi) gönderir
             await AsyncStorage.removeItem("@pending_invite_code");
             navigateAfterAuth(await refreshProfile());
             return;
