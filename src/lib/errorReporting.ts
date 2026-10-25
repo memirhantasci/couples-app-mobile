@@ -36,12 +36,28 @@ export async function reportError(error: unknown, context?: string): Promise<voi
   }
 }
 
+/**
+ * Uygulama koduyla ilgisiz, zararsız hatalar: raporlanmaz ve kırmızı ekran / çökme göstermez.
+ *
+ * - "Unsupported top level event type \"topUserLocationChange\"": react-native-maps'in yerel tarafı konum
+ *   olayı yollarken JS tarafında harita bileşeninin görünüm yapılandırması henüz yok (ör. geliştirmede
+ *   yeniden yükleme sırasında eski harita görünümü hâlâ konum alıyor, ya da harita kapanırken son olay
+ *   geliyor). Olay yalnızca yutulur; harita çalışmaya devam eder.
+ */
+const IGNORED_ERROR_PATTERNS: readonly RegExp[] = [/Unsupported top level event type "topUserLocationChange"/];
+
+function isIgnoredError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return IGNORED_ERROR_PATTERNS.some((pattern) => pattern.test(message));
+}
+
 /** Yakalanmamış JS hatalarını raporlar; varsayılan işleyici (kırmızı ekran / çökme) korunur. */
 export function installGlobalErrorReporting(): void {
   const errorUtils = (globalThis as any).ErrorUtils;
   if (!errorUtils?.getGlobalHandler || !errorUtils?.setGlobalHandler) return;
   const previous = errorUtils.getGlobalHandler();
   errorUtils.setGlobalHandler((error: unknown, isFatal?: boolean) => {
+    if (isIgnoredError(error)) return;
     reportError(error, isFatal ? "fatal" : "uncaught");
     previous?.(error, isFatal);
   });
