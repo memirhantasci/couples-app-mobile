@@ -1,5 +1,7 @@
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "../global.css";
+// Çok büyük sistem yazı boyutunda ekranlar bozulmasın: tüm metinlere büyüme sınırı koyar
+import "@/lib/fontScaleCap";
 import React, { useEffect, useEffectEvent } from "react";
 import { Stack, router } from "expo-router";
 import * as Linking from "expo-linking";
