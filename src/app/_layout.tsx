@@ -3,6 +3,7 @@ import "../global.css";
 // Çok büyük sistem yazı boyutunda ekranlar bozulmasın: tüm metinlere büyüme sınırı koyar
 import "@/lib/fontScaleCap";
 import React, { useEffect, useEffectEvent } from "react";
+import { LogBox } from "react-native";
 import { Stack, router } from "expo-router";
 import * as Linking from "expo-linking";
 import * as SplashScreen from "expo-splash-screen";
@@ -40,6 +41,11 @@ import {
 } from '@expo-google-fonts/inter';
 
 SplashScreen.preventAutoHideAsync();
+
+// expo-router (useLinking.native), uygulama bir bağlantıyla açıldığında (geliştirme istemcisi her zaman
+// bir URL ile açar) kapsayıcı henüz bağlanmadan "işlenmemiş bağlantı" durumunu yazıyor ve React bunu
+// yalnızca geliştirme modunda uyarı olarak gösteriyor. Uygulama koduyla ilgisiz, üretimde görünmez ve zararsız.
+LogBox.ignoreLogs(["Can't perform a React state update on a component that hasn't mounted yet"]);
 
 // Yakalanmamış JS hataları sunucuya raporlanır (üretimde çökme nedenlerini görebilmek için)
 installGlobalErrorReporting();

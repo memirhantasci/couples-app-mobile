@@ -11,7 +11,7 @@ import { SKY_SECTORS_LIST } from '../../config/skySectors.data';
 import { Skia } from '../skiaBridge';
 import { colorOf } from './starField';
 import { ORRERY_ORBITS } from './solarSystem';
-import { starLight, UNCLAIMED_STAR_BRIGHTNESS } from './starStyle';
+import { starActivity, starLight, UNCLAIMED_STAR_BRIGHTNESS } from './starStyle';
 
 /**
  * Everything drawn around the stars, prepared once on the JS thread.
@@ -461,13 +461,39 @@ export interface SkyOverlayInput {
   /** Label fonts; labels are skipped until it has loaded. */
   readonly fontProvider: SkTypefaceFontProvider | null;
   readonly labels: LabelPictureCache;
-  readonly myStar: { readonly ra: number; readonly dec: number; readonly name?: string } | null;
+  readonly myStar: {
+    readonly ra: number;
+    readonly dec: number;
+    readonly name?: string;
+    /** Yıldızın parlaklığı (0.2…1): etrafındaki yumuşak ışıma buna göre büyür */
+    readonly luminosity?: number;
+    readonly color?: string;
+  } | null;
   readonly connections: readonly ActiveStarConnection[];
   readonly stars: readonly ViewportStarItem[];
   readonly solarObjects: readonly ViewportStarItem[];
 }
 
 const SMALL_TEXT = { size: 10, weight: 'regular' } as const;
+
+/**
+ * Kendi yıldızımızın etrafındaki ince, yumuşak ışıma: halka / çentik yok. Yıldızın parlaklığıyla büyür ve
+ * koyulaşır, böylece diğer yıldızların yanında kendi yıldızın hem bulunur hem de parlaklığının
+ * (etkinlikle yükselen ışığın) farkına varılır. Parlaklık 0.05'lik kovalara yuvarlanır → resim önbelleğe alınır.
+ */
+function recordHeroGlow(labels: LabelPictureCache, luminosity: number | undefined, color: string | undefined) {
+  const light = starLight(true, luminosity ?? UNCLAIMED_STAR_BRIGHTNESS);
+  const bucket = Math.round(light * 20) / 20;
+  const tint = color && /^#[0-9a-f]{6}$/i.test(color) ? color : '#FBBF24';
+  return labels.get(`hero-glow|${bucket}|${tint}`, () =>
+    record((canvas) => {
+      const activity = starActivity(bucket);
+      const radius = 15 + 27 * activity;
+      const alpha = 0.1 + 0.26 * activity;
+      canvas.drawCircle(0, 0, radius, glowPaint(tint, radius, [0, 0.4, 1], [alpha, alpha * 0.4, 0]));
+    }, 48)
+  );
+}
 
 export function buildSkyOverlay({
   assets,
@@ -499,7 +525,7 @@ export function buildSkyOverlay({
     ? {
         ra: myStar.ra,
         dec: myStar.dec,
-        picture: assets.heroMarker,
+        picture: recordHeroGlow(labels, myStar.luminosity, myStar.color) ?? assets.heroMarker,
         label: pill(`⭐ ${myStar.name || 'Bizim Yıldızımız ✨'}`, HERO_PILL, 'hero'),
       }
     : null;

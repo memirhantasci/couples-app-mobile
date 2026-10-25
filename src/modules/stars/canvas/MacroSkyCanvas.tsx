@@ -193,6 +193,8 @@ function MacroSkyCanvasSkia({
   const myStarRa = myStarCoords?.ra;
   const myStarDec = myStarCoords?.dec;
   const myStarName = myStarCoords?.name;
+  const myStarLuminosity = myStarCoords?.luminosity;
+  const myStarColor = myStarCoords?.base_color;
 
   // Güneş sisteminin içinde gezegenlerden başka yıldız bulunmaz (kullanıcının kendi yıldızı hariç).
   // Çizim, dokunma ve etiketler aynı süzülmüş listeyi kullanır.
@@ -447,14 +449,20 @@ function MacroSkyCanvasSkia({
         labels: labelCache,
         myStar:
           myStarRa !== undefined && myStarDec !== undefined
-            ? { ra: myStarRa, dec: myStarDec, name: myStarName }
+            ? {
+                ra: myStarRa,
+                dec: myStarDec,
+                name: myStarName,
+                luminosity: myStarLuminosity,
+                color: myStarColor,
+              }
             : null,
         connections,
         stars,
         solarObjects: SOLAR_SYSTEM_OBJECTS,
       }),
     );
-  }, [overlay, staticAssets, labelCache, fontProvider, myStarRa, myStarDec, myStarName, connections, stars]);
+  }, [overlay, staticAssets, labelCache, fontProvider, myStarRa, myStarDec, myStarName, myStarLuminosity, myStarColor, connections, stars]);
 
   // First viewport report, so the parent loads stars for the initial view.
   useEffect(() => {

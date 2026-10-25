@@ -411,7 +411,8 @@ function drawHero(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, animSe
   if (!isOnScreen(view, x, y, 60)) return;
 
   // Çift yörünge halkalarının nefes alan canlı hissi vermesi için çok hafif harmonik nabız
-  const pulse = 1 + 0.025 * Math.sin(animSeconds * 1.5);
+  // Işıma, yıldızın kendisiyle aynı oranda yakınlaştıkça büyür
+  const pulse = (1 + 0.025 * Math.sin(animSeconds * 1.5)) * (0.7 + 0.3 * starZoomBonus(view.camera.zoom));
   canvas.save();
   canvas.translate(x, y);
   if (pulse !== 1) canvas.scale(pulse, pulse);
