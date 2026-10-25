@@ -358,6 +358,36 @@ export async function getMyStarDetails(coupleId: number): Promise<CoupleStarDeta
   });
 }
 
+/** İsim değiştirme hakkı beklemede (P0012): hak `availableAt` anında yenilenir. */
+export class StarRenameCooldownError extends Error {
+  readonly availableAt: string | null;
+  constructor(message: string, availableAt: string | null) {
+    super(message);
+    this.name = 'StarRenameCooldownError';
+    this.availableAt = availableAt;
+  }
+}
+
+/**
+ * Yıldızın ismini değiştirir (çift başına 30 günde bir). Hak kullanılmışsa
+ * `StarRenameCooldownError` fırlatır; başarıda güncel yıldız detayını döndürür.
+ */
+export async function renameMyStar(newName: string): Promise<CoupleStarDetails> {
+  const { data, error } = await supabase.rpc('rename_my_star', { p_new_name: newName.trim() });
+
+  if (error) {
+    if (error.code === 'P0012') {
+      throw new StarRenameCooldownError(
+        'İsim değiştirme hakkınız henüz yenilenmedi.',
+        typeof error.hint === 'string' && error.hint ? error.hint : null,
+      );
+    }
+    handleSupabaseError(error);
+  }
+
+  return data as CoupleStarDetails;
+}
+
 /**
  * Mikro sistem için yalnızca güvenli harita verisini getirir. Kilitli
  * gezegenlerde başlık, açıklama, medya ve mektup referansları dönmez.
@@ -874,6 +904,7 @@ export const starService = {
   claimRandomStar,
   claimSpecificStar,
   getMyStarDetails,
+  renameMyStar,
   getStarExoplanets,
   getExoplanetDetails,
   createExoplanet,

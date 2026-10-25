@@ -34,15 +34,17 @@ import Animated, {
   interpolate,
 } from 'react-native-reanimated';
 import { hapticStamp, hapticSuccess, hapticError } from '@/lib/soundEffects';
+import { dayjs } from '@/lib/date';
 import {
   Sparkles,
   Award,
   AlertCircle,
   Radio,
   CheckCircle2,
+  Pencil,
 } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
-import { starService } from '../api/starService';
+import { starService, StarRenameCooldownError } from '../api/starService';
 import { moderateStarName } from '../utils/nameModeration';
 import { computeOwnCoupleInitials } from '../utils/ownerInitials';
 import type { CoupleStarDetails, ViewportStarItem } from '../types/star.types';
@@ -78,6 +80,10 @@ export interface ClaimStarModalProps {
   readonly onPremiumRequired?: () => void;
   readonly onClose?: () => void;
   readonly onSuccess?: (star: CoupleStarDetails) => void;
+  /** Sertifika görünümünde "İsmi düzenle" gösterilsin mi (demo hesapta kapalı). */
+  readonly canRename?: boolean;
+  /** İsim değiştirildi: güncel yıldız detayı (ekran durumunu ve önbelleği tazelemek için). */
+  readonly onRenamed?: (star: CoupleStarDetails) => void;
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -222,6 +228,8 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
   onPremiumRequired,
   onClose,
   onSuccess,
+  canRename = false,
+  onRenamed,
 }) => {
   const { theme, isLight } = useTheme();
   const [modalState, setModalState] = useState<ClaimModalState>(
@@ -244,9 +252,65 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
 
   const slowWarningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ─── İsim değiştirme (sertifika görünümü; çift başına 30 günde bir) ───
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const [renameError, setRenameError] = useState('');
+  const [renameBusy, setRenameBusy] = useState(false);
+  const [renameLockedUntil, setRenameLockedUntil] = useState<string | null>(null);
+
+  const nameLockedUntil = renameLockedUntil ?? claimedStar?.name_change_available_at ?? null;
+  const isNameLocked = !!nameLockedUntil && Date.parse(nameLockedUntil) > Date.now();
+
+  const startRename = () => {
+    setRenameValue(claimedStar?.custom_name ?? '');
+    setRenameError('');
+    setIsRenaming(true);
+  };
+
+  const cancelRename = () => {
+    if (renameBusy) return;
+    setIsRenaming(false);
+    setRenameError('');
+  };
+
+  const submitRename = async () => {
+    if (renameBusy || !claimedStar) return;
+    const trimmed = renameValue.trim();
+    if (trimmed.length < 2) return setRenameError('Yıldızınızın ismi en az 2 karakter olmalıdır.');
+    if (trimmed.length > 40) return setRenameError('Yıldızınızın ismi en fazla 40 karakter olabilir.');
+    if (trimmed === claimedStar.custom_name) return setRenameError('Yeni isim mevcut isimle aynı; hakkınız korunuyor.');
+    const modResult = moderateStarName(trimmed);
+    if (!modResult.isValid) return setRenameError(modResult.message || 'Yıldız ismi topluluk kurallarına aykırı kelimeler içeremez.');
+
+    setRenameBusy(true);
+    setRenameError('');
+    try {
+      const updated = await starService.renameMyStar(trimmed);
+      setClaimedStar(updated);
+      setRenameLockedUntil(updated.name_change_available_at ?? null);
+      setIsRenaming(false);
+      onRenamed?.(updated);
+      await hapticSuccess();
+    } catch (err: any) {
+      if (err instanceof StarRenameCooldownError) {
+        setRenameLockedUntil(err.availableAt);
+        setIsRenaming(false);
+      } else {
+        setRenameError(err?.message || 'İsim değiştirilemedi. Lütfen tekrar deneyin.');
+      }
+      await hapticError();
+    } finally {
+      setRenameBusy(false);
+    }
+  };
+
   // Modal açıldığında state'i senkronize et (initialStar varsa direkt sertifika aç)
   useEffect(() => {
     if (visible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsRenaming(false);
+      setRenameError('');
       if (initialStar) {
         // Modal açılışında state'i prop'lara eşitlemek bilinçli: sertifika doğrudan açılır
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -689,6 +753,65 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                 </View>
 
                 <Text style={[styles.certStarName, { color: theme.text }]}>{claimedStar.custom_name}</Text>
+                {/* İsim düzenleme: yalnızca mevcut sertifikayı görüntülerken; çift başına 30 günde bir hak */}
+                {canRename && initialStar ? (
+                  isRenaming ? (
+                    <View style={styles.renameBox}>
+                      <TextInput
+                        value={renameValue}
+                        onChangeText={(v) => {
+                          setRenameValue(v);
+                          if (renameError) setRenameError('');
+                        }}
+                        maxLength={40}
+                        autoFocus
+                        editable={!renameBusy}
+                        placeholder="Yıldızınızın yeni ismi"
+                        placeholderTextColor={theme.textMuted}
+                        selectionColor="#F59E0B"
+                        returnKeyType="done"
+                        onSubmitEditing={submitRename}
+                        style={[
+                          styles.renameInput,
+                          {
+                            color: theme.text,
+                            borderColor: renameError ? '#F87171' : isLight ? 'rgba(217, 119, 6, 0.45)' : 'rgba(251, 191, 36, 0.45)',
+                            backgroundColor: isLight ? theme.unitBg : 'rgba(255, 255, 255, 0.05)',
+                          },
+                        ]}
+                      />
+                      <Text style={[styles.renameHint, { color: renameError ? '#F87171' : theme.textMuted }]}>
+                        {renameError || 'İsmi ayda yalnızca bir kez değiştirebilirsiniz; hak kullanılınca 30 gün beklemeniz gerekir. Hak iki partner için ortaktır.'}
+                      </Text>
+                      <View style={styles.renameActions}>
+                        <TouchableOpacity onPress={cancelRename} disabled={renameBusy} style={styles.renameCancelBtn} activeOpacity={0.8}>
+                          <Text style={[styles.renameCancelText, { color: theme.textSecondary }]}>Vazgeç</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={submitRename} disabled={renameBusy} style={[styles.renameSaveBtn, renameBusy && { opacity: 0.6 }]} activeOpacity={0.85}>
+                          <Text style={styles.renameSaveText}>{renameBusy ? 'Kaydediliyor…' : 'Kaydet'}</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : isNameLocked ? (
+                    <Text style={[styles.renameLockedText, { color: theme.textMuted }]}>
+                      İsim değiştirme hakkı {dayjs(nameLockedUntil as string).locale('tr').format('D MMMM')} tarihinde yenilenir
+                    </Text>
+                  ) : (
+                    <TouchableOpacity
+                      onPress={startRename}
+                      activeOpacity={0.8}
+                      style={[
+                        styles.renameLink,
+                        { borderColor: isLight ? 'rgba(217, 119, 6, 0.35)' : 'rgba(251, 191, 36, 0.35)' },
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel="Yıldızın ismini düzenle"
+                    >
+                      <Pencil size={12} color={isLight ? '#B45309' : '#FBBF24'} />
+                      <Text style={[styles.renameLinkText, { color: isLight ? '#B45309' : '#FBBF24' }]}>İsmi düzenle</Text>
+                    </TouchableOpacity>
+                  )
+                ) : null}
                 {/* Gerçek astronomi adı — yalnızca doluysa göster */}
                 {claimedStar.common_name ? (
                   <Text style={[styles.certCommonName, { color: theme.textSecondary }]}>({claimedStar.common_name})</Text>
@@ -1066,6 +1189,71 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: -0.5,
     marginBottom: 4,
+  },
+  renameLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    gap: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  renameLinkText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  renameLockedText: {
+    fontSize: 11.5,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  renameBox: {
+    width: '100%',
+    marginBottom: 10,
+  },
+  renameInput: {
+    height: 46,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    paddingHorizontal: 14,
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  renameHint: {
+    marginTop: 8,
+    fontSize: 11.5,
+    lineHeight: 16,
+    textAlign: 'center',
+  },
+  renameActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+    marginTop: 10,
+  },
+  renameCancelBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 14,
+  },
+  renameCancelText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  renameSaveBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    borderRadius: 14,
+    backgroundColor: '#D97706',
+  },
+  renameSaveText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
   },
   certSubText: {
     color: 'rgba(255, 255, 255, 0.65)',

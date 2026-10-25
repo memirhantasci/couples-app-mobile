@@ -238,6 +238,11 @@ export interface CoupleStarDetails {
   readonly cooldown_remaining_seconds: number;
   readonly exoplanet_count: number;
   readonly total_sparks_count: number;
+  /**
+   * İsim değiştirme hakkının yenileneceği an (ISO). NULL/yok: hak hazır.
+   * Hak çift bazlıdır: ilk isimde hazırdır, kullanılınca 30 gün beklenir.
+   */
+  readonly name_change_available_at?: string | null;
 }
 
 /**

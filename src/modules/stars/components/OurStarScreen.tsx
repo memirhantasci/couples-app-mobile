@@ -876,6 +876,23 @@ export const OurStarScreen: React.FC = () => {
     setCameraDec((prevDec) => (Math.abs(prevDec - cam.centerDec) > 0.4 ? cam.centerDec : prevDec));
   }, []);
 
+  // ─── İSİM DEĞİŞTİRİLDİ: ekranı ve önbelleği tazele ─────────────────
+  const handleStarRenamed = useCallback((updated: CoupleStarDetails) => {
+    setStarDetails((prev) =>
+      prev
+        ? { ...prev, ...updated, luminosity_level: prev.luminosity_level, resonance_active: prev.resonance_active }
+        : updated,
+    );
+    if (coupleId) {
+      readStarCache(coupleId)
+        .then((cached) => writeStarCache(coupleId, { details: updated, planets: cached?.planets ?? [] }))
+        .catch(() => {});
+    }
+    // Gök kubbedeki kendi yıldız adı etiketi yeni isimle gelsin
+    refreshSkyTiles();
+    showToast('Yıldızınızın yeni ismi gökyüzüne işlendi ✨');
+  }, [coupleId, refreshSkyTiles, showToast]);
+
   // ─── TESCİL BAŞARISI (Claim Callback) ──────────────────────────────
   const handleClaimSuccess = (claimed: CoupleStarDetails) => {
     setStarDetails(claimed);
@@ -1708,6 +1725,8 @@ export const OurStarScreen: React.FC = () => {
           visible={isCertificateModalOpen}
           coupleId={coupleId || 999999}
           initialStar={starDetails}
+          canRename={!isDemoMode}
+          onRenamed={handleStarRenamed}
           onClose={() => setIsCertificateModalOpen(false)}
           onSuccess={() => setIsCertificateModalOpen(false)}
         />

@@ -2,7 +2,7 @@
  * Development-only performance HUD for the macro sky map.
  *
  * Shows UI/JS thread frame rates and canvas metrics while the sky is open.
- * Set this to `false` to hide the HUD in development builds; it never renders
- * in production bundles because `__DEV__` is false there.
+ * Kapalı: geliştirme build'lerinde de kullanıcıya/test edene sayılar görünmesin. Performans
+ * ölçerken geçici olarak `__DEV__` yap; üretim paketinde `__DEV__` zaten false olduğu için hiç çizilmez.
  */
-export const SKY_DEBUG_HUD_ENABLED = __DEV__;
+export const SKY_DEBUG_HUD_ENABLED = false;
