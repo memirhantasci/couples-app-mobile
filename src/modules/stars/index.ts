@@ -25,6 +25,8 @@ export {
   sendSpark,
   getMyStarBrightness,
   getStarBrightness,
+  getMyWishStatus,
+  makeWish,
   getSectorsOverview,
   claimStarInSector,
   invalidateSectorsCache,

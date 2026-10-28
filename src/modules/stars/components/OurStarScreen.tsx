@@ -89,6 +89,7 @@ import { ConnectionRequestBadge } from './ConnectionRequestBadge';
 import { SectorHUD } from './SectorHUD';
 import { SectorAtlasModal } from './SectorAtlasModal';
 import { SearchStarModal } from './SearchStarModal';
+import { WishModal, type WishOutcome } from './WishModal';
 import { SKY_SECTORS } from '../config/skySectors.data';
 import { readStarCache, writeStarCache } from '../utils/starCache';
 import { MicroStarHeader } from './micro/MicroStarHeader';
@@ -97,6 +98,7 @@ import { PremiumPaywall } from '@/components/ui/PremiumPaywall';
 import type { PremiumFeatureSource } from '@/components/ui/PremiumPaywall.types';
 import { useCoupleAvatars } from '@/hooks/useCoupleAvatars';
 import { useSkyTileStream } from '../hooks/useSkyTileStream';
+import { useDailyWish } from '../hooks/useDailyWish';
 
 import type {
   ActiveStarConnection,
@@ -149,6 +151,8 @@ const MICRO_HEADER_ESTIMATED_HEIGHT = 130;
 const MICRO_DOCK_ESTIMATED_HEIGHT = 190;
 /** Kapatılan anı gezegeninin hedef halkası bu kadar süre daha görünür kalır. */
 const PLANET_HIGHLIGHT_LINGER_MS = 2600;
+/** Yakalanan kayan yıldızın parıltısı görünsün diye dilek ekranı bu kadar sonra açılır. */
+const WISH_OPEN_DELAY_MS = 450;
 
 const SOLAR_DESCRIPTIONS: Record<string, string> = {
   'SOL-SUN': 'Güneş Sistemimizin kalbi, tüm evrenin yaşam kaynağı.',
@@ -876,6 +880,43 @@ export const OurStarScreen: React.FC = () => {
     setCameraDec((prevDec) => (Math.abs(prevDec - cam.centerDec) > 0.4 ? cam.centerDec : prevDec));
   }, []);
 
+  // ─── KAYAN YILDIZ DİLEĞİ ───────────────────────────────────────────
+  // Yakalanan meteor dilek ekranını açar; hak kişi başı günde birdir. Hak bugün kullanıldıysa
+  // ekran açılmaz, yalnızca sıcak bir not gösterilir. Dilek metni hiçbir yere gönderilmez.
+  const dailyWish = useDailyWish(isDemoMode || !session ? 'local' : 'server');
+  const [isWishOpen, setIsWishOpen] = useState(false);
+  const wishOpenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearWishOpenTimer = useCallback(() => {
+    if (wishOpenTimerRef.current) {
+      clearTimeout(wishOpenTimerRef.current);
+      wishOpenTimerRef.current = null;
+    }
+  }, []);
+  useEffect(() => clearWishOpenTimer, [clearWishOpenTimer]);
+
+  const handleMeteorCaught = () => {
+    if (isWishOpen || wishOpenTimerRef.current) return;
+    if (dailyWish.isUsedToday()) {
+      showToast('Bugünkü dileğini tuttun. Yarın yeni bir yıldız bekle ✨');
+      return;
+    }
+    // Partnerin bugünkü dileği kartta görünsün diye durum tazelenir
+    dailyWish.refresh();
+    setSelectedMacroStar(null);
+    wishOpenTimerRef.current = setTimeout(() => {
+      wishOpenTimerRef.current = null;
+      setIsWishOpen(true);
+    }, WISH_OPEN_DELAY_MS);
+  };
+
+  const handleWishClosed = (outcome: WishOutcome) => {
+    setIsWishOpen(false);
+    if (!outcome.released) return;
+    // Dilek yıldıza ışık kattıysa güncel parlaklık okunur ve yıldız bir kez hafifçe ışır
+    refreshMyBrightness();
+    if (outcome.points > 0 && starDetails) triggerGlowWave();
+  };
+
   // ─── İSİM DEĞİŞTİRİLDİ: ekranı ve önbelleği tazele ─────────────────
   const handleStarRenamed = useCallback((updated: CoupleStarDetails) => {
     setStarDetails((prev) =>
@@ -1258,7 +1299,7 @@ export const OurStarScreen: React.FC = () => {
             onTargetCameraConsumed={() => setFlyToTarget(undefined)}
             onBoundsChange={skyTiles.onBoundsChange}
             onCameraChange={handleCameraChange}
-            onWishGranted={() => showToast('Dileğin gökyüzüne yazıldı 🌠')}
+            onMeteorCaught={handleMeteorCaught}
             onSelectStar={(star) => {
               if (!star) {
                 setSelectedMacroStar(null);
@@ -1836,6 +1877,16 @@ export const OurStarScreen: React.FC = () => {
         featureSource={premiumPaywallSource ?? undefined}
         gender={profile?.gender}
       />
+
+      {/* ─── KAYAN YILDIZ DİLEĞİ (yalnızca açıkken bağlanır; her açılış temiz başlar) ─── */}
+      {isWishOpen && (
+        <WishModal
+          partnerWishedToday={dailyWish.partnerWishedToday}
+          hasStar={starDetails !== null}
+          onRelease={dailyWish.makeWish}
+          onClose={handleWishClosed}
+        />
+      )}
     </View>
   );
 };

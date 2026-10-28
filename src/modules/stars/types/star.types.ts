@@ -640,7 +640,8 @@ export type StarActivityType =
   | 'diary'
   | 'profile_pic'
   | 'meeting'
-  | 'memory';
+  | 'memory'
+  | 'wish';
 
 /** `get_my_star_brightness` RPC dönüşü. */
 export interface MyStarBrightness {
@@ -663,6 +664,25 @@ export interface StarBrightnessInfo {
   readonly brightness: number;
   readonly cumulative_score?: number;
   readonly last_activity_date?: string | null;
+}
+
+/** `get_my_wish_status` RPC dönüşü: kayan yıldız dileği, kişi başı günde 1. */
+export interface WishStatus {
+  readonly available: boolean;
+  readonly used_today: boolean;
+  readonly partner_used_today: boolean;
+  /** Hakkın yenileneceği an (ISO; Türkiye saatiyle gece yarısı). */
+  readonly resets_at: string;
+}
+
+/** `make_wish` RPC dönüşü. Dilek metni sunucuya hiç gönderilmez. */
+export interface MakeWishResult {
+  readonly ok: boolean;
+  /** `ok: false` iken: bugünkü hak zaten kullanılmış (ör. başka bir cihazdan). */
+  readonly reason?: 'already_used';
+  /** Yıldıza verilen ışık puanı; çifti olmayan kullanıcıda 0. */
+  readonly points: number;
+  readonly resets_at: string;
 }
 
 /** `couple_activity_log` satırı (realtime "+N puan" bildirimi için). */

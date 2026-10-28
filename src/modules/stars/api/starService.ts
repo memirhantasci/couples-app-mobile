@@ -21,6 +21,7 @@ import type {
   CreateExoplanetDto,
   CreateExoplanetFromMediaParams,
   GetStarsViewportParams,
+  MakeWishResult,
   MyStarBrightness,
   PendingConnectionDetail,
   SectorDynamicOverview,
@@ -33,6 +34,7 @@ import type {
   StarSearchResult,
   CelestialSearchResult,
   ViewportStarItem,
+  WishStatus,
 } from '../types/star.types';
 
 // ============================================================================
@@ -837,6 +839,39 @@ export async function getStarBrightness(catalogId: number): Promise<StarBrightne
 }
 
 // ============================================================================
+// 7C. KAYAN YILDIZ DİLEĞİ (KİŞİ BAŞI GÜNDE 1)
+// ============================================================================
+// Dilek metni hiçbir zaman gönderilmez; sunucu yalnızca bugünkü hakkın kullanıldığını kaydeder.
+// Işık puanını (kişi başı günde 1) veritabanı trigger'ı verir.
+
+/** Bugünkü dilek hakkı ve partnerin bugün dilek tutup tutmadığı. */
+export async function getMyWishStatus(): Promise<WishStatus> {
+  return withSmartRetry(async () => {
+    const { data, error } = await supabase.rpc('get_my_wish_status');
+    if (error) handleSupabaseError(error);
+    return data as WishStatus;
+  });
+}
+
+/**
+ * Bugünkü dilek hakkını kullanır. Ağ hatasında yeniden denenir; ilk deneme sunucuya ulaşıp
+ * yanıtı kaybolduysa sonraki deneme "already_used" döner; bu durumda dilek tutulmuş sayılır.
+ */
+export async function makeWish(): Promise<MakeWishResult> {
+  let attempts = 0;
+  const result = await withSmartRetry(async () => {
+    attempts += 1;
+    const { data, error } = await supabase.rpc('make_wish');
+    if (error) handleSupabaseError(error);
+    return data as MakeWishResult;
+  });
+  if (!result.ok && result.reason === 'already_used' && attempts > 1) {
+    return { ok: true, points: 0, resets_at: result.resets_at };
+  }
+  return result;
+}
+
+// ============================================================================
 // 8. GÖKYÜZÜ SEKTÖRLERİ API (STAGE 6)
 // ============================================================================
 
@@ -927,6 +962,8 @@ export const starService = {
   getStarIdByCatalogId,
   getMyStarBrightness,
   getStarBrightness,
+  getMyWishStatus,
+  makeWish,
   getSectorsOverview,
   claimStarInSector,
   invalidateSectorsCache,

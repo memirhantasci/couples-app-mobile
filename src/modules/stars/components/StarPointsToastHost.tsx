@@ -27,7 +27,11 @@ const ACTIVITY_LABELS: Record<StarActivityType, string> = {
   profile_pic: 'Profil fotoğrafı',
   meeting: 'Buluşma',
   memory: 'Anı',
+  wish: 'Dilek',
 };
+
+/** Bu aktivitelerin ekranı ışık katkısını zaten kendisi gösterir (ör. dilek ekranı); bildirim tekrarlanmaz. */
+const SILENT_ACTIVITIES: ReadonlySet<StarActivityType> = new Set<StarActivityType>(['wish']);
 
 export function StarPointsToastHost() {
   const { session, profile, isDemoMode } = useAuth();
@@ -57,6 +61,7 @@ export function StarPointsToastHost() {
         async (payload) => {
           const entry = payload.new as CoupleActivityLogRecord;
           if (entry.status !== 'awarded' || entry.points <= 0 || entry.user_id !== userId) return;
+          if (SILENT_ACTIVITIES.has(entry.activity_type)) return;
 
           // Henüz yıldız varlığı tespit edilmediyse son durumu doğrula
           if (!hasStar) {

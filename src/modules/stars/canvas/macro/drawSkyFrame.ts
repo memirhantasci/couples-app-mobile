@@ -1,5 +1,13 @@
 import type { SkCanvas, SkPaint, SkPicture } from '@shopify/react-native-skia';
 import { Skia } from '../skiaBridge';
+import {
+  activeMeteorsInView,
+  meteorHead,
+  meteorSegment,
+  type CaughtMeteor,
+  type MeteorEvent,
+  type MeteorSegment,
+} from './meteorSchedule';
 import type { SkyOverlay } from './skyOverlay';
 import { pxPerDegree, shortestRaDelta, type SkyCamera } from './skyProjection';
 import { colorOf, STAR_FADE_MS, type StarField, type StarRender } from './starField';
@@ -14,15 +22,11 @@ import {
   visibleMagnitudeLimit,
 } from './starStyle';
 
-/** A shooting star currently crossing the screen, in screen-space pixels. */
-export interface ActiveMeteor {
-  readonly fromX: number;
-  readonly fromY: number;
-  readonly toX: number;
-  readonly toY: number;
-  readonly durationMs: number;
-  /** `animSeconds` value when the meteor was launched (same clock as the frame's). */
-  readonly startClock: number;
+/** Shooting-star input of a frame: the wall clock and the last caught meteor. */
+export interface MeteorFrame {
+  /** Wall-clock (epoch) time of the frame, in milliseconds. */
+  readonly nowMs: number;
+  readonly caught: CaughtMeteor | null;
 }
 
 /**
@@ -42,13 +46,21 @@ const DETAIL_BLEND = [3.6, 4.4] as const;
 /** Furthest a star's glow or halo reaches past its radius, in pixels. */
 const STAR_REACH_PX = 24;
 
-/** Paints reused for every star, every frame (UI thread only). */
+/** Paints reused for every star and meteor, every frame (UI thread only). */
 export interface StarPaints {
   readonly fill: SkPaint;
   readonly stroke: SkPaint;
   readonly white: Float32Array;
   readonly gold: Float32Array;
   readonly purple: Float32Array;
+  /** Soft, blurred halo along a meteor's streak. */
+  readonly meteorGlow: SkPaint;
+  /** Thin bright core of a meteor's streak. */
+  readonly meteorCore: SkPaint;
+  /** Head glow and the catch burst (fill), blurred. */
+  readonly meteorHalo: SkPaint;
+  /** Expanding rings of the catch burst. */
+  readonly meteorRing: SkPaint;
 }
 
 export function createStarPaints(): StarPaints {
@@ -58,12 +70,33 @@ export function createStarPaints(): StarPaints {
   stroke.setAntiAlias(true);
   stroke.setStyle(1);
   stroke.setStrokeWidth(1.25);
+
+  const meteorGlow = Skia.Paint();
+  meteorGlow.setAntiAlias(true);
+  meteorGlow.setStyle(1);
+  meteorGlow.setStrokeCap(1); // round
+  meteorGlow.setMaskFilter(Skia.MaskFilter.MakeBlur(0, 3.5, false));
+  const meteorCore = Skia.Paint();
+  meteorCore.setAntiAlias(true);
+  meteorCore.setStyle(1);
+  meteorCore.setStrokeCap(1);
+  const meteorHalo = Skia.Paint();
+  meteorHalo.setAntiAlias(true);
+  meteorHalo.setMaskFilter(Skia.MaskFilter.MakeBlur(0, 4, false));
+  const meteorRing = Skia.Paint();
+  meteorRing.setAntiAlias(true);
+  meteorRing.setStyle(1);
+
   return {
     fill,
     stroke,
     white: colorOf('#FFFFFF', 1),
     gold: colorOf('#F59E0B', 1),
     purple: colorOf('#A855F7', 1),
+    meteorGlow,
+    meteorCore,
+    meteorHalo,
+    meteorRing,
   };
 }
 
@@ -334,42 +367,118 @@ function drawConnectionLines(canvas: SkCanvas, view: FrameView, overlay: SkyOver
   }
 }
 
-/** A streaking meteor with a fading tail; screen-space and camera-independent. */
-function drawMeteor(canvas: SkCanvas, meteor: ActiveMeteor | null, animSeconds: number) {
+// ─── Shooting stars ────────────────────────────────────────────────────────
+
+/** Length of the burst drawn where a meteor was caught. */
+const METEOR_CATCH_BURST_MS = 900;
+
+/** Stroke width of a meteor's core at a zoom: thin far out, a little bolder up close. */
+function meteorWidth(event: MeteorEvent, zoom: number): number {
   'worklet';
-  if (!meteor) return;
-  const progress = (animSeconds - meteor.startClock) / (meteor.durationMs / 1000);
-  if (progress < 0 || progress > 1) return;
-  const alpha = smoothstep(0, 0.08, progress) * (1 - smoothstep(0.82, 1, progress));
+  return Math.min(1.7, Math.max(0.9, 0.85 + 0.12 * zoom)) * (event.fireball ? 1.5 : 1);
+}
+
+/** A meteor's streak: blurred tinted halo, bright tapering core and a glowing head. */
+function drawMeteorStreak(
+  canvas: SkCanvas,
+  paints: StarPaints,
+  segment: MeteorSegment,
+  event: MeteorEvent,
+  zoom: number,
+  alphaScale: number,
+) {
+  'worklet';
+  const alpha = segment.alpha * alphaScale;
   if (alpha <= 0.01) return;
+  const { headX, headY, tailX, tailY } = segment;
+  const width = meteorWidth(event, zoom);
+  const tint = event.fireball ? '#FFE2B3' : '#CFE6FF';
 
-  const headX = meteor.fromX + (meteor.toX - meteor.fromX) * progress;
-  const headY = meteor.fromY + (meteor.toY - meteor.fromY) * progress;
-  const tailProgress = Math.max(0, progress - 0.16);
-  const tailX = meteor.fromX + (meteor.toX - meteor.fromX) * tailProgress;
-  const tailY = meteor.fromY + (meteor.toY - meteor.fromY) * tailProgress;
+  // A zero-length gradient is undefined; right after launch only the head shows.
+  if (Math.hypot(headX - tailX, headY - tailY) > 0.5) {
+    const from = Skia.Point(tailX, tailY);
+    const to = Skia.Point(headX, headY);
+    const glow = Skia.Shader.MakeLinearGradient(from, to, [colorOf(tint, 0), colorOf(tint, alpha * 0.55)], [0, 1], 0);
+    const core = Skia.Shader.MakeLinearGradient(
+      from,
+      to,
+      [colorOf('#FFFFFF', 0), colorOf('#FFFFFF', alpha * 0.55), colorOf('#FFFFFF', alpha)],
+      [0, 0.7, 1],
+      0,
+    );
+    if (glow && core) {
+      paints.meteorGlow.setShader(glow);
+      paints.meteorGlow.setStrokeWidth(width * 4);
+      canvas.drawLine(tailX, tailY, headX, headY, paints.meteorGlow);
+      paints.meteorCore.setShader(core);
+      paints.meteorCore.setStrokeWidth(width * 1.4);
+      canvas.drawLine(tailX, tailY, headX, headY, paints.meteorCore);
+    }
+  }
 
-  const streak = Skia.Paint();
-  streak.setAntiAlias(true);
-  streak.setStyle(1);
-  streak.setStrokeWidth(2.2);
-  streak.setStrokeCap(1); // round
-  const shader = Skia.Shader.MakeLinearGradient(
-    Skia.Point(tailX, tailY),
-    Skia.Point(headX, headY),
-    [colorOf('#FFFFFF', 0), colorOf('#FFFFFF', alpha)],
-    [0, 1],
-    0,
-  );
-  if (shader) streak.setShader(shader);
-  canvas.drawLine(tailX, tailY, headX, headY, streak);
+  paints.meteorHalo.setColor(colorOf(tint, alpha * (event.fireball ? 0.6 : 0.45)));
+  canvas.drawCircle(headX, headY, width * (event.fireball ? 6.5 : 4), paints.meteorHalo);
+  paints.fill.setColor(paints.white);
+  paints.fill.setAlphaf(alpha);
+  canvas.drawCircle(headX, headY, width * 1.25, paints.fill);
+}
 
-  const head = Skia.Paint();
-  head.setAntiAlias(true);
-  head.setColor(colorOf('#FFFFFF', alpha));
-  canvas.drawCircle(headX, headY, 3.2, head);
-  head.setColor(colorOf('#FFFFFF', alpha * 0.4));
-  canvas.drawCircle(headX, headY, 7, head);
+/**
+ * Meteors in flight now, each placed among the stars (world space), plus the
+ * burst of a just-caught one: its streak freezes and fades while a glint and
+ * two rings open where its head was.
+ */
+function drawMeteors(canvas: SkCanvas, view: FrameView, paints: StarPaints, meteors: MeteorFrame) {
+  'worklet';
+  const { camera, width, height } = view;
+  const { nowMs, caught } = meteors;
+  if (nowMs <= 0) return;
+
+  for (const event of activeMeteorsInView(nowMs, camera, width, height)) {
+    if (caught && caught.event.id === event.id) continue;
+    const segment = meteorSegment(event, nowMs, camera, width, height);
+    if (segment) drawMeteorStreak(canvas, paints, segment, event, camera.zoom, 1);
+  }
+
+  if (!caught) return;
+  const elapsed = nowMs - caught.atMs;
+  if (elapsed < 0 || elapsed > METEOR_CATCH_BURST_MS) return;
+  const t = elapsed / METEOR_CATCH_BURST_MS;
+
+  const frozen = meteorSegment(caught.event, caught.atMs, camera, width, height);
+  if (frozen) drawMeteorStreak(canvas, paints, frozen, caught.event, camera.zoom, 1 - smoothstep(0, 0.3, t));
+
+  const head = meteorHead(caught.event, caught.atMs);
+  const x = screenX(view, head.ra);
+  const y = screenY(view, head.dec);
+  if (!isOnScreen(view, x, y, 80)) return;
+  const fade = 1 - t;
+  const open = 1 - fade * fade * fade;
+
+  paints.meteorHalo.setColor(colorOf('#FDE68A', 0.55 * fade));
+  canvas.drawCircle(x, y, 10 + open * 26, paints.meteorHalo);
+
+  // Four-point glint
+  const glint = 6 + 16 * (1 - Math.abs(1 - 2 * Math.min(1, t * 2)));
+  paints.meteorCore.setShader(null);
+  paints.meteorCore.setColor(colorOf('#FFFFFF', 0.9 * fade));
+  paints.meteorCore.setStrokeWidth(1.4);
+  canvas.drawLine(x - glint, y, x + glint, y, paints.meteorCore);
+  canvas.drawLine(x, y - glint, x, y + glint, paints.meteorCore);
+
+  paints.meteorRing.setColor(colorOf('#FDE68A', 0.85 * fade));
+  paints.meteorRing.setStrokeWidth(1.6);
+  canvas.drawCircle(x, y, 6 + open * 46, paints.meteorRing);
+  const late = Math.max(0, Math.min(1, (t - 0.15) / 0.85));
+  if (late > 0) {
+    paints.meteorRing.setColor(colorOf('#FFFFFF', 0.6 * (1 - late)));
+    paints.meteorRing.setStrokeWidth(1.2);
+    canvas.drawCircle(x, y, 4 + (1 - (1 - late) * (1 - late)) * 28, paints.meteorRing);
+  }
+
+  paints.fill.setColor(paints.white);
+  paints.fill.setAlphaf(fade);
+  canvas.drawCircle(x, y, 2 + 6 * fade, paints.fill);
 }
 
 function sunRadius(zoom: number): number {
@@ -473,7 +582,7 @@ export function drawSkyFrame(
   overlay: SkyOverlay | null,
   clock: number,
   animSeconds: number,
-  activeMeteor: ActiveMeteor | null,
+  meteors: MeteorFrame,
   paints: StarPaints,
   width: number,
   height: number,
@@ -495,7 +604,7 @@ export function drawSkyFrame(
     drawHero(canvas, view, overlay, animSeconds);
     drawLabels(canvas, view, overlay);
   }
-  drawMeteor(canvas, activeMeteor, animSeconds);
+  drawMeteors(canvas, view, paints, meteors);
 }
 
 /** Records a frame into a picture; call from a UI-thread derived value. */
@@ -505,7 +614,7 @@ export function recordSkyFrame(
   overlay: SkyOverlay | null,
   clock: number,
   animSeconds: number,
-  activeMeteor: ActiveMeteor | null,
+  meteors: MeteorFrame,
   paints: StarPaints,
   width: number,
   height: number,
@@ -513,6 +622,6 @@ export function recordSkyFrame(
   'worklet';
   const recorder = Skia.PictureRecorder();
   const canvas = recorder.beginRecording(Skia.XYWHRect(0, 0, width, height));
-  drawSkyFrame(canvas, camera, field, overlay, clock, animSeconds, activeMeteor, paints, width, height);
+  drawSkyFrame(canvas, camera, field, overlay, clock, animSeconds, meteors, paints, width, height);
   return recorder.finishRecordingAsPicture();
 }

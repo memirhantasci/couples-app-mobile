@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
-import { useAnimatedReaction, useDerivedValue, useFrameCallback, useSharedValue } from 'react-native-reanimated';
+import { useDerivedValue, useFrameCallback, useSharedValue } from 'react-native-reanimated';
 import { Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { Sparkles } from 'lucide-react-native';
 import { playCelestialChime, hapticSuccess, hapticStamp } from '@/lib/soundEffects';
@@ -13,8 +13,9 @@ import type {
 } from '@/modules/stars/types/star.types';
 import { SkyDebugHud } from './macro/debug/SkyDebugHud';
 import { SKY_DEBUG_HUD_ENABLED } from './macro/debug/skyDebugConfig';
-import { createStarPaints, recordSkyFrame, type ActiveMeteor } from './macro/drawSkyFrame';
+import { createStarPaints, recordSkyFrame } from './macro/drawSkyFrame';
 import { hitTestSky } from './macro/hitTest';
+import { hitTestMeteor, type CaughtMeteor } from './macro/meteorSchedule';
 import {
   buildSkyOverlay,
   createStaticOverlayAssets,
@@ -62,8 +63,8 @@ export interface MacroSkyCanvasProps {
   readonly onSelectStar?: (star: ViewportStarItem | null) => void;
   readonly onBoundsChange?: (bounds: MacroSkyBounds) => void;
   readonly onCameraChange?: (camera: SkyCameraState) => void;
-  /** A shooting star was tapped mid-flight; the caller may show a "wish made" toast. */
-  readonly onWishGranted?: () => void;
+  /** A shooting star was tapped mid-flight (each meteor can be caught once); the caller opens the wish flow. */
+  readonly onMeteorCaught?: () => void;
   readonly connections?: ActiveStarConnection[];
   readonly myStarCoords?: {
     readonly ra: number;
@@ -80,32 +81,8 @@ export interface MacroSkyCanvasProps {
   readonly height?: number;
 }
 
-/** A launch request for a shooting star; `id` changes on every new launch. */
-interface MeteorRequest {
-  readonly id: number;
-  readonly fromX: number;
-  readonly fromY: number;
-  readonly toX: number;
-  readonly toY: number;
-  readonly durationMs: number;
-}
-
-/** Random pause between shooting stars, in milliseconds (20–40s per the design). */
-const METEOR_MIN_DELAY_MS = 20_000;
-const METEOR_MAX_DELAY_MS = 40_000;
-const METEOR_MIN_DURATION_MS = 1100;
-const METEOR_MAX_DURATION_MS = 1700;
 /** Generous touch target along the meteor's path, in pixels. */
 const METEOR_TOUCH_RADIUS_PX = 55;
-
-/** Shortest distance from `point` to the segment `a`–`b`. */
-function distanceToSegment(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
-  const dx = bx - ax;
-  const dy = by - ay;
-  const lengthSq = dx * dx + dy * dy;
-  const t = lengthSq > 0 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lengthSq)) : 0;
-  return Math.hypot(px - (ax + dx * t), py - (ay + dy * t));
-}
 
 /** Star-query bounds for a camera, padded 1.5x vertically. RA wraps when minRa > maxRa. */
 export function computeBounds(camera: Partial<SkyCameraState> & { centerRa: number; centerDec: number; zoom: number }): MacroSkyBounds {
@@ -183,7 +160,7 @@ function MacroSkyCanvasSkia({
   onSelectStar,
   onBoundsChange,
   onCameraChange,
-  onWishGranted,
+  onMeteorCaught,
   connections = EMPTY_CONNECTIONS,
   myStarCoords,
   width = 390,
@@ -253,77 +230,22 @@ function MacroSkyCanvasSkia({
   const [staticAssets] = useState(() => createStaticOverlayAssets(width, height));
   const [labelCache] = useState(() => new LabelPictureCache());
 
-  // Continuously-ticking UI-thread clock, in seconds; drives star twinkle,
-  // the flowing connection lines and the shooting star (see useFrameCallback
-  // below). Everything reading it stays on the UI thread.
+  // Continuously-ticking UI-thread clocks, read only on the UI thread:
+  // `animClock` (seconds, monotonic) drives star twinkle and the flowing
+  // connection lines; `skyNowMs` is the wall clock that places shooting stars.
+  // Meteors are derived from the wall clock alone (see meteorSchedule), so
+  // every device shows the same meteor in the same part of the sky.
   const animClock = useSharedValue(0);
+  const skyNowMs = useSharedValue(0);
   useFrameCallback((frameInfo) => {
     animClock.set(frameInfo.timestamp / 1000);
+    skyNowMs.set(Date.now());
   });
 
-  // Shooting stars: JS schedules a launch (screen-space corner-to-corner
-  // path); the UI thread times it against its own clock so it never drifts
-  // against the JS-thread Date.now() used for tap hit-testing below.
-  const meteorRequest = useSharedValue<MeteorRequest | null>(null);
-  const activeMeteor = useSharedValue<ActiveMeteor | null>(null);
-  useAnimatedReaction(
-    () => meteorRequest.get(),
-    (request, previous) => {
-      'worklet';
-      if (!request || request.id === previous?.id) return;
-      activeMeteor.set({
-        fromX: request.fromX,
-        fromY: request.fromY,
-        toX: request.toX,
-        toY: request.toY,
-        durationMs: request.durationMs,
-        startClock: animClock.get(),
-      });
-    },
-  );
-  const meteorIdRef = useRef(0);
-  const activeMeteorJsRef = useRef<{
-    fromX: number;
-    fromY: number;
-    toX: number;
-    toY: number;
-    durationMs: number;
-    launchedAt: number;
-    caught: boolean;
-  } | null>(null);
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-    const launch = () => {
-      // Diagonal corner pairs (TL↔BR, TR↔BL), nudged so it isn't always exact.
-      const margin = 40;
-      const corners = [
-        { x: -margin, y: -margin },
-        { x: width + margin, y: -margin },
-        { x: -margin, y: height + margin },
-        { x: width + margin, y: height + margin },
-      ];
-      const fromIdx = Math.floor(Math.random() * 4);
-      const toIdx = 3 - fromIdx;
-      const jitter = () => (Math.random() - 0.5) * height * 0.3;
-      const fromX = corners[fromIdx].x;
-      const fromY = corners[fromIdx].y + jitter();
-      const toX = corners[toIdx].x;
-      const toY = corners[toIdx].y + jitter();
-      const durationMs = METEOR_MIN_DURATION_MS + Math.random() * (METEOR_MAX_DURATION_MS - METEOR_MIN_DURATION_MS);
-      meteorIdRef.current += 1;
-      activeMeteorJsRef.current = { fromX, fromY, toX, toY, durationMs, launchedAt: Date.now(), caught: false };
-      meteorRequest.set({ id: meteorIdRef.current, fromX, fromY, toX, toY, durationMs });
-    };
-    const scheduleNext = () => {
-      const delay = METEOR_MIN_DELAY_MS + Math.random() * (METEOR_MAX_DELAY_MS - METEOR_MIN_DELAY_MS);
-      timer = setTimeout(() => {
-        launch();
-        scheduleNext();
-      }, delay);
-    };
-    scheduleNext();
-    return () => clearTimeout(timer);
-  }, [width, height, meteorRequest]);
+  // The last caught meteor (for its burst) and every caught id, so one
+  // meteor grants a single catch.
+  const caughtMeteor = useSharedValue<CaughtMeteor | null>(null);
+  const caughtMeteorIdsRef = useRef(new Set<number>());
 
   // Latest props for callbacks fired from UI-thread notifications.
   const propsRef = useRef({
@@ -332,7 +254,7 @@ function MacroSkyCanvasSkia({
     onCameraChange,
     onSelectStar,
     onTargetCameraConsumed,
-    onWishGranted,
+    onMeteorCaught,
     myStarRa,
     myStarDec,
     myStarName,
@@ -345,7 +267,7 @@ function MacroSkyCanvasSkia({
       onCameraChange,
       onSelectStar,
       onTargetCameraConsumed,
-      onWishGranted,
+      onMeteorCaught,
       myStarRa,
       myStarDec,
       myStarName,
@@ -383,26 +305,27 @@ function MacroSkyCanvasSkia({
     (x: number, y: number, ra: number, dec: number, zoom: number) => {
       const props = propsRef.current;
 
-      // A shooting star in flight takes priority over star selection: tapping
-      // it grants a wish instead of opening a star card.
-      const meteor = activeMeteorJsRef.current;
-      if (meteor && !meteor.caught) {
-        const elapsed = Date.now() - meteor.launchedAt;
-        const progress = elapsed / meteor.durationMs;
-        if (progress >= 0 && progress <= 1) {
-          const headX = meteor.fromX + (meteor.toX - meteor.fromX) * progress;
-          const headY = meteor.fromY + (meteor.toY - meteor.fromY) * progress;
-          const tailProgress = Math.max(0, progress - 0.16);
-          const tailX = meteor.fromX + (meteor.toX - meteor.fromX) * tailProgress;
-          const tailY = meteor.fromY + (meteor.toY - meteor.fromY) * tailProgress;
-          if (distanceToSegment(x, y, tailX, tailY, headX, headY) <= METEOR_TOUCH_RADIUS_PX) {
-            meteor.caught = true;
-            hapticSuccess();
-            playCelestialChime().catch(() => {});
-            props.onWishGranted?.();
-            return;
-          }
-        }
+      // A shooting star in flight takes priority over star selection: catching
+      // it opens the wish flow instead of a star card. The camera is the one
+      // the tap landed on, so the meteor is found where the user saw it.
+      const now = Date.now();
+      const meteor = hitTestMeteor(
+        x,
+        y,
+        now,
+        { ra, dec, zoom },
+        width,
+        height,
+        METEOR_TOUCH_RADIUS_PX,
+        caughtMeteorIdsRef.current,
+      );
+      if (meteor) {
+        caughtMeteorIdsRef.current.add(meteor.id);
+        caughtMeteor.set({ event: meteor, atMs: now });
+        hapticSuccess();
+        playCelestialChime().catch(() => {});
+        props.onMeteorCaught?.();
+        return;
       }
 
       if (!props.onSelectStar) return;
@@ -425,7 +348,7 @@ function MacroSkyCanvasSkia({
       }
       props.onSelectStar(hit);
     },
-    [width, height],
+    [width, height, caughtMeteor],
   );
 
   const { camera, gesture, flightRequest } = useSkyCamera({
@@ -497,7 +420,7 @@ function MacroSkyCanvasSkia({
       overlay.get(),
       fadeClock.get(),
       animClock.get(),
-      activeMeteor.get(),
+      { nowMs: skyNowMs.get(), caught: caughtMeteor.get() },
       starPaints,
       width,
       height,
