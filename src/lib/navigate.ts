@@ -30,9 +30,15 @@ export function isAuthFlowActive() {
 
 /**
  * Shared routing logic used after login AND after OTP verification.
- * Determines where to send the user based on their pairing + dates status.
+ * Determines where to send the user based on their pairing + dates status,
+ * in the same order as useProtectedRoute.
  */
 export function navigateAfterAuth(profile: Partial<CoupleProfile> | null) {
+  // Sosyal girişle gelip cinsiyetini / ismini seçmemiş kullanıcı önce profilini tamamlar
+  if (profile?.needsProfileSetup) {
+    router.replace("/(auth)/complete-profile");
+    return;
+  }
   if (!profile || !profile.isPaired) {
     router.replace("/(setup)/pairing");
     return;

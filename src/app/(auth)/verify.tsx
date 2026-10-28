@@ -15,7 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, router } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { toast } from "@/lib/toast";
-import { navigateAfterAuth } from "@/lib/navigate";
+import { navigateAfterAuth, setAuthFlowActive, releaseAuthFlow } from "@/lib/navigate";
 import { registerForPushNotifications } from "@/lib/notifications";
 import { ArrowLeft, Mail } from "lucide-react-native";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
@@ -53,45 +53,50 @@ export default function VerifyScreen() {
   async function handleDeepLinkVerify(token_hash: string, type: string) {
     setIsLoading(true);
     setErrorMsg("");
+    // Doğrulama oturumu açar ve kendi yönlendirmesini yapar (routeUser); koruyucu araya girmesin
+    setAuthFlowActive(true);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash,
+        type: type as any,
+      });
 
-    const { data, error } = await supabase.auth.verifyOtp({
-      token_hash,
-      type: type as any,
-    });
+      setIsLoading(false);
 
-    setIsLoading(false);
-
-    if (error) {
-      setErrorMsg(
-        "Bağlantı geçersiz veya süresi dolmuş. Lütfen tekrar e-posta iste."
-      );
-      return;
-    }
-
-    if (data.user) {
-      try {
-        const deviceId = await getOrCreateDeviceId();
-        await AsyncStorage.setItem("last_user_id", data.user.id);
-        await AsyncStorage.setItem(DEVICE_AUTH_CACHE_KEY, JSON.stringify({
-          userId: data.user.id,
-          deviceId,
-          isAuthorized: true,
-          timestamp: Date.now(),
-        }));
-        setIsDeviceAuthorized(true);
-
-        await supabase.from("device_authorizations").upsert({
-          user_id: data.user.id,
-          device_id: deviceId,
-          device_name: Platform.OS,
-          is_authorized: true,
-        });
-      } catch (devErr) {
-        console.warn("[verify] device auth error:", devErr);
+      if (error) {
+        setErrorMsg(
+          "Bağlantı geçersiz veya süresi dolmuş. Lütfen tekrar e-posta iste."
+        );
+        return;
       }
 
-      await registerForPushNotifications(data.user.id).catch(() => {});
-      await routeUser(data.user.id);
+      if (data.user) {
+        try {
+          const deviceId = await getOrCreateDeviceId();
+          await AsyncStorage.setItem("last_user_id", data.user.id);
+          await AsyncStorage.setItem(DEVICE_AUTH_CACHE_KEY, JSON.stringify({
+            userId: data.user.id,
+            deviceId,
+            isAuthorized: true,
+            timestamp: Date.now(),
+          }));
+          setIsDeviceAuthorized(true);
+
+          await supabase.from("device_authorizations").upsert({
+            user_id: data.user.id,
+            device_id: deviceId,
+            device_name: Platform.OS,
+            is_authorized: true,
+          });
+        } catch (devErr) {
+          console.warn("[verify] device auth error:", devErr);
+        }
+
+        await registerForPushNotifications(data.user.id).catch(() => {});
+        await routeUser(data.user.id);
+      }
+    } finally {
+      releaseAuthFlow();
     }
   }
 
@@ -138,47 +143,51 @@ export default function VerifyScreen() {
 
     setIsLoading(true);
     setErrorMsg("");
+    setAuthFlowActive(true);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: params.email,
+        token: otp,
+        type: "email",
+      });
 
-    const { data, error } = await supabase.auth.verifyOtp({
-      email: params.email,
-      token: otp,
-      type: "email",
-    });
+      setIsLoading(false);
 
-    setIsLoading(false);
-
-    if (error) {
-      setErrorMsg("Kod hatalı veya süresi dolmuş. Lütfen tekrar dene.");
-      setDigits(Array(OTP_LENGTH).fill(""));
-      inputRefs.current[0]?.focus();
-      setFocusedIndex(0);
-      return;
-    }
-
-    if (data.user) {
-      try {
-        const deviceId = await getOrCreateDeviceId();
-        await AsyncStorage.setItem("last_user_id", data.user.id);
-        await AsyncStorage.setItem(DEVICE_AUTH_CACHE_KEY, JSON.stringify({
-          userId: data.user.id,
-          deviceId,
-          isAuthorized: true,
-          timestamp: Date.now(),
-        }));
-        setIsDeviceAuthorized(true);
-
-        await supabase.from("device_authorizations").upsert({
-          user_id: data.user.id,
-          device_id: deviceId,
-          device_name: Platform.OS,
-          is_authorized: true,
-        });
-      } catch (devErr) {
-        console.warn("[verify] device auth error:", devErr);
+      if (error) {
+        setErrorMsg("Kod hatalı veya süresi dolmuş. Lütfen tekrar dene.");
+        setDigits(Array(OTP_LENGTH).fill(""));
+        inputRefs.current[0]?.focus();
+        setFocusedIndex(0);
+        return;
       }
 
-      await registerForPushNotifications(data.user.id).catch(() => {});
-      await routeUser(data.user.id);
+      if (data.user) {
+        try {
+          const deviceId = await getOrCreateDeviceId();
+          await AsyncStorage.setItem("last_user_id", data.user.id);
+          await AsyncStorage.setItem(DEVICE_AUTH_CACHE_KEY, JSON.stringify({
+            userId: data.user.id,
+            deviceId,
+            isAuthorized: true,
+            timestamp: Date.now(),
+          }));
+          setIsDeviceAuthorized(true);
+
+          await supabase.from("device_authorizations").upsert({
+            user_id: data.user.id,
+            device_id: deviceId,
+            device_name: Platform.OS,
+            is_authorized: true,
+          });
+        } catch (devErr) {
+          console.warn("[verify] device auth error:", devErr);
+        }
+
+        await registerForPushNotifications(data.user.id).catch(() => {});
+        await routeUser(data.user.id);
+      }
+    } finally {
+      releaseAuthFlow();
     }
   }
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useEffectEvent } from "react";
 import {
   View,
   Text,
@@ -23,10 +23,12 @@ import { toast } from "@/lib/toast";
 const OTP_LENGTH = 6;
 
 export default function VerifyDeviceScreen() {
-  const { userId, deviceId, email } = useLocalSearchParams<{
+  const { userId, deviceId, email, codeSent } = useLocalSearchParams<{
     userId: string;
     deviceId: string;
     email?: string;
+    /** "1": giriş ekranı kodu az önce gönderdi. Yoksa (ör. uygulama yeniden açıldı) kod burada istenir. */
+    codeSent?: string;
   }>();
 
   const { refreshProfile, setIsDeviceAuthorized, session } = useAuth();
@@ -36,7 +38,8 @@ export default function VerifyDeviceScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [focusedIndex, setFocusedIndex] = useState<number>(0);
-  const [resendCooldown, setResendCooldown] = useState(60);
+  // Bekleme süresi yalnızca bir kod gerçekten gönderildiyse işler; aksi halde kullanıcı kodsuz 60 sn kilitleniyordu
+  const [resendCooldown, setResendCooldown] = useState(codeSent === "1" ? 60 : 0);
   const [isResending, setIsResending] = useState(false);
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
@@ -179,6 +182,17 @@ export default function VerifyDeviceScreen() {
       setIsResending(false);
     }
   };
+
+  // Yetkisiz cihazla yeniden açılan uygulama (useProtectedRoute) buraya kod göndermeden gelir: kod hemen istenir
+  const autoSendStartedRef = useRef(false);
+  const sendInitialCode = useEffectEvent(() => {
+    handleResend();
+  });
+  useEffect(() => {
+    if (codeSent === "1" || autoSendStartedRef.current) return;
+    autoSendStartedRef.current = true;
+    sendInitialCode();
+  }, [codeSent]);
 
   const handleBack = async () => {
     await supabase.auth.signOut();

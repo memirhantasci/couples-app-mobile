@@ -364,7 +364,7 @@ export default function LoginScreen() {
         // Direct, single transition to verify-device with full params
         router.replace({
           pathname: "/(auth)/verify-device",
-          params: { userId, deviceId, email: emailToUse },
+          params: { userId, deviceId, email: emailToUse, codeSent: "1" },
         });
         return;
       }
@@ -425,6 +425,9 @@ export default function LoginScreen() {
     }
 
     setIsLoading(true);
+    // Kayıt oturumu açtığı anda AuthContext cihaz kontrolünü ayrıca yapar; koruyucu bu sırada
+    // yönlendirirse kullanıcı yanlışlıkla cihaz doğrulama ekranına düşebiliyordu
+    setAuthFlowActive(true);
     try {
       // Kayıt öncesi oturum yok; users tablosu RLS ile kapalı olduğundan uygunluk sunucuda sorulur
       const { data: isAvailable, error: availabilityError } = await supabase.rpc("is_username_available", {
@@ -498,17 +501,9 @@ export default function LoginScreen() {
         return;
       }
 
+      // signUp oturumu zaten açtı; ikinci bir girişe gerek yok (ikinci bir SIGNED_IN olayı cihaz
+      // kontrolünü yeniden başlatıyor, başarısız olursa kullanıcı açık oturumla burada kalıyordu)
       setSuccessMsg("Kayıt başarılı! Giriş yapılıyor...");
-
-      const { error: loginError } = await supabase.auth.signInWithPassword({
-        email: regEmail.trim().toLowerCase(),
-        password: regPassword.trim(),
-      });
-
-      if (loginError) {
-        setIsLoading(false);
-        return;
-      }
 
       const deviceId = await getOrCreateDeviceId();
 
@@ -527,17 +522,21 @@ export default function LoginScreen() {
         timestamp: Date.now(),
       }));
       setIsDeviceAuthorized(true);
+      // Koruyucu kilitliyken yönlendirmeyi akışın kendisi yapar (eşleşme ekranı bekleyen kodu kullanır)
+      navigateAfterAuth(await refreshProfile());
     } catch (e: any) {
       setErrorMsg("Beklenmedik bir hata oluştu.");
     } finally {
+      releaseAuthFlow();
       setIsLoading(false);
     }
   }
 
   // ─── Social Auth (Google / Apple) ─────────────────────────────────────────
 
-  // Sosyal giriş sonrası cihazı yetkilendirir; profil ve yönlendirme AuthContext + useProtectedRoute'a bırakılır
-  // (handleRegister ile aynı yaklaşım).
+  // Sosyal giriş sonrası cihazı yetkilendirir ve yönlendirir. Çağıran akış koruyucuyu kilitli tutar
+  // (setAuthFlowActive): oturum açıldığı an AuthContext cihaz kontrolünü ayrıca yaptığından koruyucu
+  // kullanıcıyı kod göndermeden cihaz doğrulama ekranına atıp bu akışla çakışıyordu.
   async function handleSocialSuccess(user: SupabaseUser) {
     const cleanPairingCode = normalizePairingCode(regPairingCode || activeInviteCode);
     if (cleanPairingCode) {
@@ -562,7 +561,7 @@ export default function LoginScreen() {
       setIsDeviceAuthorized(false);
       router.replace({
         pathname: "/(auth)/verify-device",
-        params: { userId: user.id, deviceId, email: user.email },
+        params: { userId: user.id, deviceId, email: user.email, codeSent: "1" },
       });
       return;
     }
@@ -576,16 +575,9 @@ export default function LoginScreen() {
     }));
     setIsDeviceAuthorized(true);
 
-    // Cinsiyeti olmayan (ilk kez sosyal girişle gelen) kullanıcı önce profilini tamamlar.
-    // Dolu ise yönlendirmeyi useProtectedRoute (pairing / dates / home) yapar.
-    const { data: profileRow } = await supabase
-      .from("users")
-      .select("gender")
-      .eq("id", user.id)
-      .maybeSingle();
-    if (profileRow && !profileRow.gender) {
-      router.replace("/(auth)/complete-profile");
-    }
+    // Cinsiyeti olmayan (ilk kez sosyal girişle gelen) kullanıcı önce profilini tamamlar; sonra eşleşme /
+    // tarihler / ana sayfa (navigateAfterAuth, useProtectedRoute ile aynı sıra)
+    navigateAfterAuth(await refreshProfile());
   }
 
   async function handleGoogleAuth() {
@@ -593,6 +585,7 @@ export default function LoginScreen() {
     setErrorMsg("");
     setSuccessMsg("");
     setIsLoading(true);
+    setAuthFlowActive(true);
     try {
       const redirectUrl = Linking.createURL("auth/callback");
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -611,6 +604,7 @@ export default function LoginScreen() {
     } catch (err: any) {
       setErrorMsg(err?.message || "Google ile giriş yapılırken bir sorun oluştu.");
     } finally {
+      releaseAuthFlow();
       setIsLoading(false);
     }
   }
@@ -620,6 +614,7 @@ export default function LoginScreen() {
     setErrorMsg("");
     setSuccessMsg("");
     setIsLoading(true);
+    setAuthFlowActive(true);
     try {
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
@@ -657,6 +652,7 @@ export default function LoginScreen() {
         setErrorMsg(err?.message || "Apple ile giriş yapılırken bir sorun oluştu.");
       }
     } finally {
+      releaseAuthFlow();
       setIsLoading(false);
     }
   }
