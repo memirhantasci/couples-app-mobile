@@ -5,7 +5,7 @@ import { getOrCreateDeviceId } from "@/utils/device";
 import { isAuthFlowActive } from "@/lib/navigate";
 
 export function useProtectedRoute() {
-  const { session, isLoading, profile, isDeviceAuthorized, isDemoMode, enterDemoMode } = useAuth();
+  const { session, isLoading, profile, isDeviceAuthorized, isDemoMode } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const navigationState = useRootNavigationState();
@@ -37,11 +37,10 @@ export function useProtectedRoute() {
       }
 
       if (!session) {
-        // 1. Unauthenticated users (Guests)
-        // If not explicitly on (auth) screen (login/register), enter demo mode so guests can freely explore
+        // 1. Unauthenticated users: karşılama ekranı (giriş / kayıt / demo seçimi). Demo kendiliğinden
+        // açılmaz; kullanıcı "Uygulamayı Keşfet" derse enterDemoMode çalışır (bkz. welcome.tsx).
         if (!inAuthGroup) {
-          enterDemoMode();
-          router.replace("/(tabs)/home");
+          router.replace("/(auth)/welcome");
         }
       } else {
         // 2. Authenticated Users
@@ -115,5 +114,5 @@ export function useProtectedRoute() {
     }, 0);
 
     return () => clearTimeout(timer);
-  }, [session, isLoading, profile, isDeviceAuthorized, isDemoMode, enterDemoMode, segments, navigationState?.key]);
+  }, [session, isLoading, profile, isDeviceAuthorized, isDemoMode, segments, navigationState?.key]);
 }

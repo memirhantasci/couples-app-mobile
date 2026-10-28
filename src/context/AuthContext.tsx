@@ -372,8 +372,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(initialSession);
 
       if (!initialSession) {
+        // Oturum yok: yeni indiren kullanıcı örnek bir çiftin profiline atılmaz. Karşılama ekranı
+        // (useProtectedRoute) giriş / kayıt / demo seçeneklerini sunar; demo yalnızca kullanıcı isterse açılır.
         setIsDeviceAuthorized(null);
-        enterDemoMode();
+        setIsLoading(false);
       } else {
         const userId = initialSession.user.id;
         profileFetchedForUser.current = userId;
