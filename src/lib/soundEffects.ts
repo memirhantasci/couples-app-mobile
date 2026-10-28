@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { createAudioPlayer, setAudioModeAsync, AudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import { safeStorage as AsyncStorage } from '@/lib/safeStorage';
@@ -305,6 +305,46 @@ export const playCelebration = () => playSoundEffect('celebration');
 
 let ambientPlayer: AudioPlayer | null = null;
 let ambientFadeHandle: ReturnType<typeof setInterval> | null = null;
+/**
+ * Her start / stop çağrısında artar. startCosmicAmbient oynatıcıyı kurmadan önce iki kez bekler
+ * (ses ayarı, ses modu); bu sırada ekrandan çıkılıp stop çağrılırsa oynatıcı henüz yoktur ve stop
+ * hiçbir şey yapamazdı: başlatma sonra devam edip sesi sonsuza kadar çalardı. Bekleme dönüşünde
+ * numarası değişmiş bir başlatma vazgeçer.
+ */
+let ambientRequest = 0;
+/** Ekran ortam sesini istiyor (start çağrıldı, stop çağrılmadı): arka plandan dönünce sürer. */
+let ambientWanted = false;
+
+function pauseAmbientNow(): void {
+  if (ambientFadeHandle) {
+    clearInterval(ambientFadeHandle);
+    ambientFadeHandle = null;
+  }
+  try {
+    ambientPlayer?.pause();
+  } catch {}
+}
+
+// Arka plana geçince ses hemen susar (kısma zamanlayıcıları arka planda çalışmaz); öne dönünce,
+// ekran hâlâ istiyorsa yeniden süzülerek gelir.
+if (Platform.OS !== 'web') {
+  AppState.addEventListener('change', (state) => {
+    if (state !== 'active') {
+      pauseAmbientNow();
+    } else if (ambientWanted) {
+      if (!ambientPlayer) {
+        // Başlatma arka plandayken geldi ve oynatıcıyı kurmadan döndü
+        startCosmicAmbient().catch(() => {});
+        return;
+      }
+      try {
+        ambientPlayer.volume = 0;
+        ambientPlayer.play();
+        fadeAmbient(0.32, 1400);
+      } catch {}
+    }
+  });
+}
 
 function fadeAmbient(target: number, durationMs: number, onDone?: () => void): void {
   if (ambientFadeHandle) {
@@ -339,10 +379,19 @@ function fadeAmbient(target: number, durationMs: number, onDone?: () => void): v
  */
 export async function startCosmicAmbient(): Promise<void> {
   if (Platform.OS === 'web') return;
+  const request = ++ambientRequest;
+  ambientWanted = true;
   const enabled = await getSoundEffectsEnabled();
-  if (!enabled) return;
+  if (request !== ambientRequest) return;
+  if (!enabled) {
+    ambientWanted = false;
+    return;
+  }
   try {
     await ensureAudioMode();
+    // Bu arada durdurulduysa ya da yeniden başlatıldıysa çalma (sonraki çağrı kendi işini yapar)
+    if (request !== ambientRequest) return;
+    if (AppState.currentState !== 'active') return; // öne dönünce AppState dinleyicisi başlatır
     if (!ambientPlayer) {
       ambientPlayer = createAudioPlayer(COSMIC_AMBIENT_ASSET);
       ambientPlayer.loop = true;
@@ -363,7 +412,15 @@ export async function startCosmicAmbient(): Promise<void> {
  * loses focus or unmounts.
  */
 export function stopCosmicAmbient(): void {
+  // Oynatıcı henüz kurulmamış olsa bile bekleyen bir başlatma iptal edilir
+  ambientRequest += 1;
+  ambientWanted = false;
   if (!ambientPlayer) return;
+  // Arka planda kısma zamanlayıcısı çalışmaz: doğrudan durdur
+  if (AppState.currentState !== 'active') {
+    pauseAmbientNow();
+    return;
+  }
   fadeAmbient(0, 900, () => {
     try {
       ambientPlayer?.pause();
