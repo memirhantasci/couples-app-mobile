@@ -55,9 +55,9 @@ export async function fetchCalendarData(params: CalendarFetchParams) {
         {
           id: 1,
           title: "Romantik Akşam Yemeği 🍷",
-          location: "Boğaz Manzaralı Restoran",
+          location_name: "Boğaz Manzaralı Restoran",
           meeting_datetime: `${today}T19:30:00`,
-          status: "approved",
+          is_active: true,
           created_by: userId,
         },
       ],
@@ -116,10 +116,11 @@ export async function fetchCalendarData(params: CalendarFetchParams) {
       : Promise.resolve({ data: [] }),
     supabase
       .from("meetings")
-      .select("id, title, location, meeting_datetime, status, created_by")
+      .select("id, title, location_name, meeting_datetime, is_active, created_by")
       .eq("couple_id", coupleId)
-      .gte("meeting_datetime", `${startDate}T00:00:00`)
-      .lte("meeting_datetime", `${endDate}T23:59:59`),
+      // Buluşmalar UTC olarak saklanır; aralık yerel gün sınırlarıyla (UTC'ye çevrilerek) sorgulanır
+      .gte("meeting_datetime", dayjs(startDate).startOf("day").toISOString())
+      .lte("meeting_datetime", dayjs(endDate).endOf("day").toISOString()),
     canSeePeriod
       ? supabase
           .from("period_logs")

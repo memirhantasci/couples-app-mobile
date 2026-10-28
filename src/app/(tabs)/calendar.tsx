@@ -515,31 +515,31 @@ export default function CalendarScreen() {
                 <DaySectionCard variant="meeting" isLight={isLight}>
                   {selectedDayMeetings.map((meeting: any) => {
                     const timeStr = dayjs(meeting.meeting_datetime).format("HH:mm");
-                    const isApproved = meeting.status === "approved";
-                    const isPending = meeting.status === "pending";
+                    // Buluşmanın onay akışı yok: planlıdır ya da iptal edilmiştir (is_active)
+                    const isActive = meeting.is_active !== false;
 
                     return (
                       <View key={meeting.id} style={[styles.meetingCard, dayItemAccent("meeting"), { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
                         <View style={styles.meetingHeader}>
                           <Text style={[styles.meetingTitle, { color: theme.text }]}>{meeting.title}</Text>
                           <View style={[styles.statusBadge, {
-                            backgroundColor: isApproved ? "rgba(16,185,129,0.15)" : isPending ? "rgba(245,158,11,0.15)" : "rgba(239,68,68,0.15)"
+                            backgroundColor: isActive ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)"
                           }]}>
                             <Text style={[styles.statusBadgeText, {
-                              color: isApproved ? "#10B981" : isPending ? "#F59E0B" : "#EF4444"
+                              color: isActive ? "#10B981" : "#EF4444"
                             }]}>
-                              {isApproved ? "Onaylandı" : isPending ? "Bekliyor" : "İptal Edildi"}
+                              {isActive ? "Planlandı" : "İptal Edildi"}
                             </Text>
                           </View>
                         </View>
                         <View style={styles.meetingRow}>
                           <Clock size={13} color={theme.textMuted} />
                           <Text style={[styles.meetingSubText, { color: theme.textSecondary }]}>{timeStr}</Text>
-                          {meeting.location ? (
+                          {meeting.location_name ? (
                             <>
                               <Text style={{ color: theme.textMuted }}>•</Text>
                               <MapPin size={13} color={theme.textMuted} />
-                              <Text style={[styles.meetingSubText, { color: theme.textSecondary }]} numberOfLines={1}>{meeting.location}</Text>
+                              <Text style={[styles.meetingSubText, { color: theme.textSecondary }]} numberOfLines={1}>{meeting.location_name}</Text>
                             </>
                           ) : null}
                         </View>
