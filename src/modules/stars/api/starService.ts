@@ -12,6 +12,7 @@
  */
 
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/utils/logger';
 import type {
   ActiveStarConnection,
   ClaimRandomStarParams,
@@ -507,14 +508,38 @@ export async function updateExoplanet(
 }
 
 /**
- * Gezegeni siler. Orijinal medya ve mektup kayıtları korunur; yalnızca
- * gezegen bağlantısı kaldırılır. This remains available after expiration.
+ * Gezegenin fotoğraflarını depodan siler. Gezegen medyası yalnızca `<çift>/exoplanets/` altında tutulur
+ * (append_media_to_exoplanet başka yol kabul etmez) ve başka hiçbir kayıtla paylaşılmaz; gezegenden
+ * ayrılan dosya sahipsiz kalıp depoda birikir ve silinen anının fotoğrafları sunucuda kalırdı.
+ * Hata kaydın silinmesini geri almaz: yalnızca loglanır (ör. Premium bitmişse depo silmeyi reddeder).
  */
-export async function deleteExoplanet(planetId: string): Promise<void> {
-  return withSmartRetry(async () => {
+async function removeExoplanetFiles(mediaReferences: readonly string[]): Promise<void> {
+  const paths = [...new Set(mediaReferences.map(storagePathFromMediaReference))].filter(
+    (path) => path && !/^https?:\/\//i.test(path),
+  );
+  if (paths.length === 0) return;
+  try {
+    const { error } = await supabase.storage.from('couple-memories').remove(paths);
+    if (error) logger.warn('[starService] gezegen fotoğrafları silinemedi:', error.message);
+  } catch (err) {
+    logger.warn('[starService] gezegen fotoğrafları silinemedi:', err);
+  }
+}
+
+/**
+ * Gezegeni ve fotoğraflarını siler. Mektup kayıtları korunur; yalnızca gezegen bağlantısı kaldırılır.
+ * Gezegen silme Premium bitince de kullanılabilir. `mediaReferences`: gezegenin fotoğraf yolları
+ * (ya da imzalı adresleri); kayıt silindikten sonra dosyalar da depodan kaldırılır.
+ */
+export async function deleteExoplanet(
+  planetId: string,
+  mediaReferences: readonly string[] = [],
+): Promise<void> {
+  await withSmartRetry(async () => {
     const { error } = await supabase.rpc('delete_exoplanet', { p_exoplanet_id: planetId });
     if (error) handleSupabaseError(error);
   });
+  await removeExoplanetFiles(mediaReferences);
 }
 
 export async function appendMediaToExoplanet(planetId: string, mediaPath: string): Promise<void> {
@@ -527,14 +552,16 @@ export async function appendMediaToExoplanet(planetId: string, mediaPath: string
   });
 }
 
+/** Fotoğrafı gezegenden çıkarır ve dosyayı depodan siler (başka kayıt kullanmaz). */
 export async function removeMediaFromExoplanet(planetId: string, mediaPath: string): Promise<void> {
-  return withSmartRetry(async () => {
+  await withSmartRetry(async () => {
     const { error } = await supabase.rpc('remove_media_from_exoplanet', {
       p_planet_id: planetId,
       p_media_url: storagePathFromMediaReference(mediaPath),
     });
     if (error) handleSupabaseError(error);
   });
+  await removeExoplanetFiles([mediaPath]);
 }
 
 /**

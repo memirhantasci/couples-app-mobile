@@ -339,7 +339,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
               if (coupleId === 999999 || starId.startsWith('demo-')) {
                 // Demo modunda simülasyon
               } else {
-                await starService.deleteExoplanet(selectedPlanet.id);
+                await starService.deleteExoplanet(selectedPlanet.id, selectedPlanet.media_urls ?? []);
               }
 
               await hapticSuccess();
