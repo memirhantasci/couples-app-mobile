@@ -706,23 +706,25 @@ export default function MeetingsScreen() {
             onCancel={() => setShowTimePicker(false)}
             onConfirm={onTimeConfirm}
           />
+
+          {/* HARİTA SEÇİCİ: iOS aynı anda yalnızca bir modal sunar; form Modal'ı açıkken kardeş olarak
+              render edilirse hiç açılmaz. Tarih/saat seçicileri gibi form Modal'ının içinde render edilir. */}
+          <MapPickerModal
+            visible={showMapModal}
+            onClose={() => setShowMapModal(false)}
+            title="Buluşma Noktası"
+            initialLocation={latitude && longitude ? { latitude, longitude } : undefined}
+            onSelectLocation={(loc) => {
+              setLatitude(loc.latitude);
+              setLongitude(loc.longitude);
+              if (!locationName) setLocationName(loc.locationName || "");
+            }}
+          />
         </View>
         {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
         <DialogHost embedded visible={showFormModal} />
       </Modal>
 
-      {/* HARİTA SEÇİCİ MODALI */}
-      <MapPickerModal 
-        visible={showMapModal} 
-        onClose={() => setShowMapModal(false)}
-        title="Buluşma Noktası"
-        initialLocation={latitude && longitude ? { latitude, longitude } : undefined}
-        onSelectLocation={(loc) => {
-          setLatitude(loc.latitude);
-          setLongitude(loc.longitude);
-          if (!locationName) setLocationName(loc.locationName || "");
-        }}
-      />
       <LazyPageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
       <LazyDemoActionModal
         visible={isDemoModalOpen}
