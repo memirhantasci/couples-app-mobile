@@ -1,9 +1,10 @@
-import React, { useEffect, useState, memo } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useEffect, memo } from "react";
+import { View, Text, TextInput, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  useAnimatedProps,
   withTiming,
   Easing,
   withDelay,
@@ -18,10 +19,14 @@ interface LoveMeterProps {
   isLoading?: boolean;
 }
 
+// Yüzde yazısı UI thread'inde güncellenir (TextInput'a animatedProps ile "text" yazılır): sayaç eskiden
+// requestAnimationFrame ile her karede React state'i güncelleyip bileşeni saniyede 60 kez yeniden çiziyordu.
+const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
+
 export const LoveMeter = memo(function LoveMeter({ value, theme, subtitle, isLoading }: LoveMeterProps) {
   const hasValue = value !== undefined && value !== null;
+  // Çubuğun genişliği ve yüzde sayacı aynı değerden okunur: ikisi hep birlikte hareket eder
   const widthVal = useSharedValue(hasValue ? (value as number) : 0);
-  const [displayCount, setDisplayCount] = useState(hasValue ? (value as number) : 0);
 
   useEffect(() => {
     if (hasValue) {
@@ -29,37 +34,15 @@ export const LoveMeter = memo(function LoveMeter({ value, theme, subtitle, isLoa
         150,
         withTiming(value as number, { duration: 1000, easing: Easing.out(Easing.cubic) })
       );
-
-      const target = value as number;
-      const startVal = displayCount;
-      const startTime = Date.now();
-      const duration = 1000;
-      let animId: number;
-
-      const updateCounter = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(1, elapsed / duration);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        const current = Math.round(startVal + (target - startVal) * eased);
-        setDisplayCount(current);
-
-        if (progress < 1) {
-          animId = requestAnimationFrame(updateCounter);
-        }
-      };
-
-      const delayTimeout = setTimeout(() => {
-        animId = requestAnimationFrame(updateCounter);
-      }, 150);
-
-      return () => {
-        clearTimeout(delayTimeout);
-        if (animId) cancelAnimationFrame(animId);
-      };
     } else {
-      setDisplayCount(0);
+      widthVal.value = 0;
     }
-  }, [value, hasValue]);
+  }, [value, hasValue, widthVal]);
+
+  const percentProps = useAnimatedProps(() => {
+    const text = `${Math.round(widthVal.value)}%`;
+    return { text, defaultValue: text } as any;
+  });
 
   const animatedWidthStyle = useAnimatedStyle(() => ({
     width: `${widthVal.value}%` as any,
@@ -82,7 +65,14 @@ export const LoveMeter = memo(function LoveMeter({ value, theme, subtitle, isLoa
         {isLoading && !hasValue ? (
           <Text style={[styles.percentLabel, { color: theme.accent, opacity: 0.5 }]}>--%</Text>
         ) : (
-          <Text style={[styles.percentLabel, { color: theme.accent }]}>{hasValue ? displayCount : 0}%</Text>
+          <AnimatedTextInput
+            editable={false}
+            pointerEvents="none"
+            underlineColorAndroid="transparent"
+            animatedProps={percentProps}
+            defaultValue={`${hasValue ? Math.round(value as number) : 0}%`}
+            style={[styles.percentLabel, styles.percentInput, { color: theme.accent }]}
+          />
         )}
       </View>
 
@@ -126,6 +116,13 @@ const styles = StyleSheet.create({
   percentLabel: {
     fontSize: 32,
     fontFamily: "Inter_700Bold",
+  },
+  percentInput: {
+    padding: 0,
+    margin: 0,
+    textAlign: "right",
+    minWidth: 90,
+    includeFontPadding: false,
   },
   track: {
     height: 8,

@@ -2,7 +2,6 @@ import React, { useState, useEffect, memo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Linking } from "react-native";
 import { getCountdown, dayjs } from "@/lib/date";
 import { MapPin, X, Navigation } from "lucide-react-native";
-import Animated, { FadeInUp } from "react-native-reanimated";
 import { AppTheme } from "@/lib/theme";
 import { UserAvatar } from "@/components/avatar/UserAvatar";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
@@ -111,15 +110,12 @@ export const MeetingCountdown = memo(function MeetingCountdown({ meeting, theme 
 
       {/* Geri Sayım Kutuları */}
       <View style={styles.grid}>
-        {units.map((unit, i) => (
+        {units.map((unit) => (
           <View key={unit.label} style={[styles.unitBox, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder }]}>
-            <Animated.Text
-              key={`${unit.value}-${i}`}
-              entering={FadeInUp.duration(200)}
-              style={[styles.unitValue, { color: theme.text }]}
-            >
+            {/* Sabit düğüm: değer her saniye değişir; anahtar değere bağlı olsaydı her saniye yeni bir giriş animasyonu kurulurdu */}
+            <Text style={[styles.unitValue, { color: theme.text }]}>
               {String(unit.value).padStart(2, "0")}
-            </Animated.Text>
+            </Text>
             <Text style={[styles.unitLabel, { color: theme.textMuted }]}>{unit.label}</Text>
           </View>
         ))}

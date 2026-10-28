@@ -26,6 +26,15 @@ import {
   ChevronRight,
   ChevronLeft,
 } from "lucide-react-native";
+import Animated, {
+  Easing,
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  type SharedValue,
+} from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 import { CoupleWrappedData } from "@/utils/wrappedCalculator";
@@ -44,6 +53,13 @@ interface CoupleWrappedModalProps {
 const TOTAL_SLIDES = 4;
 const SLIDE_DURATION = 5500; // ms
 
+function ProgressFill({ state, progress }: { state: "done" | "active" | "idle"; progress: SharedValue<number> }) {
+  const style = useAnimatedStyle(() => ({
+    width: state === "done" ? "100%" : state === "active" ? `${progress.value}%` : "0%",
+  }));
+  return <Animated.View style={[styles.progressBarFill, style]} />;
+}
+
 export function CoupleWrappedModal({
   visible,
   onClose,
@@ -52,10 +68,11 @@ export function CoupleWrappedModal({
   theme,
 }: CoupleWrappedModalProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [progress, setProgress] = useState(0);
+  // Aktif slaytın ilerleme çubuğu (0-100): UI thread'inde animasyonla ilerler. Eskiden 50 ms'de bir React state
+  // güncelleniyor, tüm modal (4 slayt, görseller) saniyede 20 kez yeniden çiziliyordu.
+  const progress = useSharedValue(0);
   const [isSharing, setIsSharing] = useState(false);
   const shareCardRef = useRef<View>(null);
-  const progressTimerRef = useRef<any>(null);
 
   // Her slayt (ve her açılış) ilerleme çubuğu sıfırdan başlar
   const [progressFor, setProgressFor] = useState({ visible, currentSlide, data });
@@ -63,45 +80,33 @@ export function CoupleWrappedModal({
     // Her açılış ilk slayttan başlar (modal kapanınca bileşen bellekte kalır)
     if (visible && !progressFor.visible) setCurrentSlide(0);
     setProgressFor({ visible, currentSlide, data });
-    if (visible && data) setProgress(0);
   }
 
-  // Otomatik slayt ilerleme
+  const advanceSlide = useCallback(() => {
+    setCurrentSlide((s) => Math.min(s + 1, TOTAL_SLIDES - 1));
+  }, []);
+
+  // Otomatik slayt ilerleme: her slayt (ve her açılış) çubuğu sıfırdan doldurur; dolunca sonraki slayta geçilir
   useEffect(() => {
+    cancelAnimation(progress);
+    progress.value = 0;
     if (!visible || !data) return;
-
-    const interval = 50;
-    const step = (interval / SLIDE_DURATION) * 100;
-
-    progressTimerRef.current = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(progressTimerRef.current);
-          if (currentSlide < TOTAL_SLIDES - 1) {
-            setCurrentSlide((s) => s + 1);
-          }
-          return 100;
-        }
-        return prev + step;
-      });
-    }, interval);
-
-    return () => {
-      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-    };
-  }, [visible, currentSlide, data]);
+    progress.value = withTiming(100, { duration: SLIDE_DURATION, easing: Easing.linear }, (finished) => {
+      'worklet';
+      if (finished && currentSlide < TOTAL_SLIDES - 1) scheduleOnRN(advanceSlide);
+    });
+    return () => cancelAnimation(progress);
+  }, [visible, currentSlide, data, progress, advanceSlide]);
 
   const handleNext = () => {
     if (currentSlide < TOTAL_SLIDES - 1) {
       setCurrentSlide((s) => s + 1);
-      setProgress(0);
     }
   };
 
   const handlePrev = () => {
     if (currentSlide > 0) {
       setCurrentSlide((s) => s - 1);
-      setProgress(0);
     }
   };
 
@@ -152,19 +157,7 @@ export function CoupleWrappedModal({
             <View style={styles.progressContainer}>
               {Array.from({ length: TOTAL_SLIDES }).map((_, idx) => (
                 <View key={idx} style={styles.progressBarTrack}>
-                  <View
-                    style={[
-                      styles.progressBarFill,
-                      {
-                        width:
-                          idx < currentSlide
-                            ? "100%"
-                            : idx === currentSlide
-                            ? `${progress}%`
-                            : "0%",
-                      },
-                    ]}
-                  />
+                  <ProgressFill state={idx < currentSlide ? "done" : idx === currentSlide ? "active" : "idle"} progress={progress} />
                 </View>
               ))}
             </View>
