@@ -48,7 +48,10 @@ export interface CoupleProfile {
 }
 
 interface AuthContextValue {
+  /** Demo modunda da dolu (sabit demo oturumu); gerçek hesap için `isSignedIn`'e bakın. */
   session: Session | null;
+  /** Gerçek bir Supabase oturumu var mı. Demo (misafir) oturumu sayılmaz. */
+  isSignedIn: boolean;
   isLoading: boolean;
   profile: CoupleProfile | null;
   isDeviceAuthorized: boolean | null;
@@ -64,6 +67,7 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue>({
   session: null,
+  isSignedIn: false,
   isLoading: true,
   profile: null,
   isDeviceAuthorized: null,
@@ -713,10 +717,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // iç state'e yanlışlıkla yazılan herhangi bir değer arayüzü (kilitler, sayaçlar) bozamaz.
   const exposedSession = isDemoMode ? DEMO_SESSION : session;
   const exposedProfile = isDemoMode ? DEMO_PROFILE : profile;
+  const isSignedIn = !isDemoMode && !!session;
 
   const value = useMemo<AuthContextValue>(
     () => ({
       session: exposedSession,
+      isSignedIn,
       isLoading,
       profile: exposedProfile,
       isDeviceAuthorized,
@@ -730,6 +736,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       exposedSession,
+      isSignedIn,
       isLoading,
       exposedProfile,
       isDeviceAuthorized,

@@ -20,14 +20,15 @@ export function useProtectedRoute() {
     const currentRoute = segments.join("/");
     const isAtRoot = !currentRoute || currentRoute === "index";
 
-    // Verification screens (email confirmation or device OTP verification)
-    const isVerifying = currentRoute.includes("verify-device") || currentRoute.includes("verify");
+    // Verification screens: email confirmation (verify) or device OTP verification (verify-device)
+    const isVerifying = currentRoute.includes("verify");
 
     const timer = setTimeout(() => {
       // Giriş / doğrulama ekranı kendi yönlendirmesini yapıyor; çift yönlendirme çökmeye yol açar
       if (isAuthFlowActive()) return;
 
-      // 0. Demo Mode: Guests exploring the app
+      // 0. Demo Mode: Guests exploring the app. Doğrulama / davet bağlantıları demodan önce çıkar
+      // (bkz. _layout handleDeepLink), bu yüzden burada doğrulama ekranındaki misafir yalnızca geri gönderilir.
       if (isDemoMode) {
         if (inSetupGroup || isVerifying || isAtRoot) {
           router.replace("/(tabs)/home");
@@ -57,7 +58,8 @@ export function useProtectedRoute() {
 
         // If the device is not authorized for this user, force them to verify-device screen
         if (isDeviceAuthorized === false) {
-          if (!currentRoute.includes("verify-device") && !currentRoute.includes("verify") && !currentRoute.includes("login")) {
+          // Doğrulama ekranları yukarıda bırakıldı; giriş ekranı cihaz doğrulamasına kendisi geçer
+          if (!currentRoute.includes("login")) {
             // verify-device.tsx cihazı yetkilendirmek için deviceId parametresine ihtiyaç duyar
             // (upsert'in "user_id, device_id" conflict hedefi). Eskiden burada eksikti: kullanıcı
             // yetkisiz bir cihazla (ör. yeniden kurulumda Keychain'deki oturum hayatta kalırken

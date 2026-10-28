@@ -2,7 +2,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "../global.css";
 // Çok büyük sistem yazı boyutunda ekranlar bozulmasın: tüm metinlere büyüme sınırı koyar
 import "@/lib/fontScaleCap";
-import React, { useEffect, useEffectEvent } from "react";
+import React, { useEffect, useEffectEvent, useRef } from "react";
 import { LogBox } from "react-native";
 import { Stack, router } from "expo-router";
 import * as Linking from "expo-linking";
@@ -17,7 +17,8 @@ import { supabase } from "@/lib/supabase";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { configureAndroidNotificationChannel } from "@/lib/notifications";
 import { normalizePairingCode, translatePairingError } from "@/lib/pairingCode";
-import { navigateAfterAuth } from "@/lib/navigate";
+import { navigateAfterAuth, releaseAuthFlow, setAuthFlowActive } from "@/lib/navigate";
+import { parseAppLink } from "@/lib/deepLinks";
 import { toast } from "@/lib/toast";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 import { ToastHost } from "@/components/ui/ToastHost";
@@ -70,7 +71,7 @@ const queryClient = new QueryClient({
 // ─── Inner layout: has access to AuthContext ──────────────────────────────────
 
 function RootLayoutNav() {
-  const { session, isLoading, isDemoMode, exitDemoMode, refreshProfile } = useAuth();
+  const { isSignedIn, isLoading, isDemoMode, exitDemoMode, refreshProfile } = useAuth();
   const { theme, isLight } = useTheme();
 
   // Enforce role-based routing
@@ -103,89 +104,94 @@ function RootLayoutNav() {
 
   // Always sees the latest session / demo state without re-subscribing the URL listener.
   const handleDeepLink = useEffectEvent(async (url: string) => {
-    const parsed = Linking.parse(url);
-    const { hostname, queryParams } = parsed;
+    const link = parseAppLink(url);
+    if (!link) return;
 
-    // couplesapp://verify?token_hash=...&type=...
-    if (hostname === "verify" && queryParams?.token_hash) {
+    // Bu bağlantıların hepsi gerçek bir hesap akışı başlatır. Misafir (demo) oturumu önce kapatılır:
+    // açık kalırsa useProtectedRoute doğrulama ve eşleşme ekranlarını demo ana sayfasına geri atıyordu.
+    // Demo oturumu da bir `session` taşıdığı için hesap kararı `isSignedIn` ile verilir.
+    const leaveDemo = () => {
+      if (isDemoMode) exitDemoMode();
+    };
+
+    if (link.kind === "verify") {
+      leaveDemo();
       router.push({
         pathname: "/(auth)/verify",
-        params: {
-          token_hash: queryParams.token_hash as string,
-          type: (queryParams.type as string) ?? "email",
-        },
+        params: { token_hash: link.tokenHash, type: link.type },
       });
       return;
     }
 
-    // couplesapp://invite?code=... OR couplesapp://pair?code=...
-    if ((hostname === "invite" || hostname === "pair") && queryParams?.code) {
-      const code = normalizePairingCode(queryParams.code as string);
-      await AsyncStorage.setItem("@pending_invite_code", code);
-
-      // If user is already authenticated with an active session:
-      if (session?.user?.id) {
-        try {
-          const { error } = await supabase.rpc("join_couple_by_code_uuid", { p_code: code });
-          if (!error) {
-            // Bekleme ekranındaki partnere "eşleşme başarılı" bildirimini sunucu (couples tetikleyicisi) gönderir
-            await AsyncStorage.removeItem("@pending_invite_code");
-            navigateAfterAuth(await refreshProfile());
-            return;
-          }
-          if (error.message.includes("ALREADY_PAIRED")) {
-            // Kurulmuş çift başka bir davetle bozulmaz; kullanıcı olduğu yerde kalır
-            await AsyncStorage.removeItem("@pending_invite_code");
-            toast.info(translatePairingError(error.message));
-            return;
-          }
-        } catch {
-          // fallback
-        }
-        router.push({
-          pathname: "/(setup)/pairing",
-          params: { code },
-        });
-        return;
-      }
-
-      // If user is in demo mode, exit demo mode
-      if (isDemoMode) {
-        exitDemoMode();
-      }
-
-      // Navigate directly to registration screen with the invite code
-      router.push({
-        pathname: "/(auth)/login",
-        params: { initialMode: "register", inviteCode: code },
-      });
-      return;
-    }
-
-    // couplesapp://reset-password?token_hash=...
-    if (hostname === "reset-password" && queryParams?.token_hash) {
+    if (link.kind === "reset-password") {
+      leaveDemo();
       router.push({
         pathname: "/(auth)/reset-password",
-        params: { token_hash: queryParams.token_hash as string },
+        params: { token_hash: link.tokenHash },
       });
+      return;
     }
+
+    // Davet: kod hafızada tutulur; hesabı olmayan kullanıcıda doğrulama / eşleşme ekranı onu kullanır
+    const code = normalizePairingCode(link.code);
+    await AsyncStorage.setItem("@pending_invite_code", code);
+
+    if (isSignedIn) {
+      // Katılım kendi yönlendirmesini yapar; koruyucu aynı anda ikinci bir yönlendirme yapmasın
+      setAuthFlowActive(true);
+      try {
+        const { error } = await supabase.rpc("join_couple_by_code_uuid", { p_code: code });
+        if (!error) {
+          // Bekleme ekranındaki partnere "eşleşme başarılı" bildirimini sunucu (couples tetikleyicisi) gönderir
+          await AsyncStorage.removeItem("@pending_invite_code");
+          navigateAfterAuth(await refreshProfile());
+          return;
+        }
+        if (error.message.includes("ALREADY_PAIRED")) {
+          // Kurulmuş çift başka bir davetle bozulmaz; kullanıcı olduğu yerde kalır
+          await AsyncStorage.removeItem("@pending_invite_code");
+          toast.info(translatePairingError(error.message));
+          return;
+        }
+      } catch {
+        // Eşleşme ekranı aynı kodu yeniden dener ve hatayı orada gösterir
+      } finally {
+        releaseAuthFlow();
+      }
+      router.push({
+        pathname: "/(setup)/pairing",
+        params: { code },
+      });
+      return;
+    }
+
+    leaveDemo();
+    router.push({
+      pathname: "/(auth)/login",
+      params: { initialMode: "register", inviteCode: code },
+    });
   });
 
-  // ── Deep link listener (Foreground and cold-start deep links) ─────────────
-  // Re-runs on sign-in / demo changes so a cold-start invite link is handled for the new session.
+  // ── Deep links ──────────────────────────────────────────────────────────────
+  // Soğuk açılış bağlantısı, oturum çözülünce (demo mu gerçek hesap mı belli olunca) bir kez işlenir.
+  // Eskiden her oturum / demo değişiminde yeniden okunuyordu: aynı bağlantı tekrar tekrar işlenip
+  // demodan çıkınca giriş ekranı ikinci kez açılıyor, demo oturumuyla da eşleşme deneniyordu.
+  const initialUrlHandledRef = useRef(false);
   useEffect(() => {
-    // 1. Cold-start URL
+    if (isLoading || initialUrlHandledRef.current) return;
+    initialUrlHandledRef.current = true;
     Linking.getInitialURL().then((url) => {
       if (url) handleDeepLink(url);
     });
+  }, [isLoading]);
 
-    // 2. Foreground / background URL listener
+  // Uygulama açıkken (veya arka plandan) gelen bağlantılar
+  useEffect(() => {
     const subscription = Linking.addEventListener("url", ({ url }) => {
       handleDeepLink(url);
     });
-
     return () => subscription.remove();
-  }, [session?.user?.id, isDemoMode]);
+  }, []);
 
   return (
     <>
