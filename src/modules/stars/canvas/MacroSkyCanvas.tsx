@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { View, StyleSheet, Text } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import { useDerivedValue, useFrameCallback, useSharedValue } from 'react-native-reanimated';
+import { useFocusEffect } from 'expo-router';
 import { Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { Sparkles } from 'lucide-react-native';
 import { playCelestialChime, hapticSuccess, hapticStamp } from '@/lib/soundEffects';
@@ -13,7 +14,7 @@ import type {
 } from '@/modules/stars/types/star.types';
 import { SkyDebugHud } from './macro/debug/SkyDebugHud';
 import { SKY_DEBUG_HUD_ENABLED } from './macro/debug/skyDebugConfig';
-import { createStarPaints, recordSkyFrame } from './macro/drawSkyFrame';
+import { createStarPaints, METEOR_CATCH_BURST_MS, recordSkyFrame } from './macro/drawSkyFrame';
 import { hitTestSky } from './macro/hitTest';
 import { hitTestMeteor, type CaughtMeteor } from './macro/meteorSchedule';
 import {
@@ -79,6 +80,12 @@ export interface MacroSkyCanvasProps {
   };
   readonly width?: number;
   readonly height?: number;
+  /**
+   * The sky stands still while something covers it (a window, the wish
+   * screen) and is redrawn only when the camera or its data changes. It also
+   * stands still while its screen is out of focus.
+   */
+  readonly paused?: boolean;
 }
 
 /** Generous touch target along the meteor's path, in pixels. */
@@ -165,6 +172,7 @@ function MacroSkyCanvasSkia({
   myStarCoords,
   width = 390,
   height = 844,
+  paused = false,
 }: MacroSkyCanvasProps) {
   // Parents construct this prop inline; depend on its primitives only.
   const myStarRa = myStarCoords?.ra;
@@ -237,7 +245,7 @@ function MacroSkyCanvasSkia({
   // every device shows the same meteor in the same part of the sky.
   const animClock = useSharedValue(0);
   const skyNowMs = useSharedValue(0);
-  useFrameCallback((frameInfo) => {
+  const skyClock = useFrameCallback((frameInfo) => {
     animClock.set(frameInfo.timestamp / 1000);
     skyNowMs.set(Date.now());
   });
@@ -246,6 +254,34 @@ function MacroSkyCanvasSkia({
   // meteor grants a single catch.
   const caughtMeteor = useSharedValue<CaughtMeteor | null>(null);
   const caughtMeteorIdsRef = useRef(new Set<number>());
+  const lastCatchAtRef = useRef(0);
+
+  // The clocks redraw the sky every frame, so they stop while nobody can see
+  // it: while something covers it (`paused`) or its screen is out of focus.
+  // A catch burst still plays out first, so it never freezes half-open behind
+  // the wish screen. Both clocks read the time itself, so on resume the sky
+  // is exactly where it would have been.
+  const [isFocused, setIsFocused] = useState(true);
+  useFocusEffect(
+    useCallback(() => {
+      setIsFocused(true);
+      return () => setIsFocused(false);
+    }, []),
+  );
+  const isRunning = isFocused && !paused;
+  useEffect(() => {
+    if (isRunning) {
+      skyClock.setActive(true);
+      return;
+    }
+    const burstLeftMs = lastCatchAtRef.current + METEOR_CATCH_BURST_MS - Date.now();
+    if (burstLeftMs <= 0) {
+      skyClock.setActive(false);
+      return;
+    }
+    const timer = setTimeout(() => skyClock.setActive(false), burstLeftMs);
+    return () => clearTimeout(timer);
+  }, [isRunning, skyClock]);
 
   // Latest props for callbacks fired from UI-thread notifications.
   const propsRef = useRef({
@@ -322,6 +358,7 @@ function MacroSkyCanvasSkia({
       if (meteor) {
         caughtMeteorIdsRef.current.add(meteor.id);
         caughtMeteor.set({ event: meteor, atMs: now });
+        lastCatchAtRef.current = now;
         hapticSuccess();
         playCelestialChime().catch(() => {});
         props.onMeteorCaught?.();

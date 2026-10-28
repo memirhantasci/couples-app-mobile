@@ -1,4 +1,12 @@
-import type { SkCanvas, SkPaint, SkPicture } from '@shopify/react-native-skia';
+import type {
+  SkCanvas,
+  SkHostRect,
+  SkPaint,
+  SkPathEffect,
+  SkPicture,
+  SkPictureRecorder,
+  SkShader,
+} from '@shopify/react-native-skia';
 import { Skia } from '../skiaBridge';
 import {
   activeMeteorsInView,
@@ -45,14 +53,39 @@ const GLOW_BLEND = [1.3, 1.7] as const;
 const DETAIL_BLEND = [3.6, 4.4] as const;
 /** Furthest a star's glow or halo reaches past its radius, in pixels. */
 const STAR_REACH_PX = 24;
+/** Connection lines: 4 px dashes with 6 px gaps, flowing away from our star. */
+const CONNECTION_DASH = [4, 6];
+const CONNECTION_DASH_PERIOD_PX = 10;
+const CONNECTION_FLOW_PX_PER_SEC = 24;
+/** Meteor streak tints: icy for ordinary meteors, warm for fireballs. */
+const METEOR_TINT = '#CFE6FF';
+const FIREBALL_TINT = '#FFE2B3';
 
-/** Paints reused for every star and meteor, every frame (UI thread only). */
+/**
+ * Every Skia object a frame draws with, made once per canvas and reused every
+ * frame (UI thread only), so recording a frame creates nothing native but its
+ * canvas and picture. Frames are recorded 60-120 times a second, and native
+ * objects weigh on the garbage collector beyond their size: a shader or a
+ * picture recorder reports 1 MB to it.
+ */
 export interface StarPaints {
   readonly fill: SkPaint;
   readonly stroke: SkPaint;
   readonly white: Float32Array;
   readonly gold: Float32Array;
   readonly purple: Float32Array;
+  readonly paleGold: Float32Array;
+  /** Opacity of a fading group of labels (see beginAlphaLayer). */
+  readonly layer: SkPaint;
+  /** Dashed line from our star to each connected star. */
+  readonly connectionLine: SkPaint;
+  /**
+   * The dash pattern at every offset the flow can take: react-native-skia
+   * hands Skia the offset as a whole number of pixels.
+   */
+  readonly connectionDashes: readonly SkPathEffect[];
+  /** Bright particle travelling along each connection line. */
+  readonly connectionParticle: SkPaint;
   /** Soft, blurred halo along a meteor's streak. */
   readonly meteorGlow: SkPaint;
   /** Thin bright core of a meteor's streak. */
@@ -61,6 +94,32 @@ export interface StarPaints {
   readonly meteorHalo: SkPaint;
   /** Expanding rings of the catch burst. */
   readonly meteorRing: SkPaint;
+  /** Streak gradients along the unit x axis (see streakShader). */
+  readonly meteorGlowShader: SkShader;
+  readonly fireballGlowShader: SkShader;
+  readonly meteorCoreShader: SkShader;
+  readonly meteorTint: Float32Array;
+  readonly fireballTint: Float32Array;
+  /** Rewritten for each orbit ring drawn. */
+  readonly orbitRect: SkHostRect;
+  /** Every frame is recorded with this recorder, within these bounds. */
+  readonly recorder: SkPictureRecorder;
+  readonly frameBounds: SkHostRect;
+}
+
+/**
+ * A meteor streak's gradient, laid along the unit x axis from the tail (0, 0)
+ * to the head (1, 0); drawMeteorStreak maps that segment onto each streak and
+ * scales the gradient's alpha with the paint's.
+ */
+function streakShader(hex: string, alphas: readonly number[], positions: readonly number[]) {
+  return Skia.Shader.MakeLinearGradient(
+    Skia.Point(0, 0),
+    Skia.Point(1, 0),
+    alphas.map((alpha) => colorOf(hex, alpha)),
+    [...positions],
+    0,
+  );
 }
 
 export function createStarPaints(): StarPaints {
@@ -70,6 +129,20 @@ export function createStarPaints(): StarPaints {
   stroke.setAntiAlias(true);
   stroke.setStyle(1);
   stroke.setStrokeWidth(1.25);
+  const paleGold = colorOf('#FDE68A', 1);
+
+  const connectionLine = Skia.Paint();
+  connectionLine.setAntiAlias(true);
+  connectionLine.setStyle(1);
+  connectionLine.setStrokeWidth(1.6);
+  connectionLine.setColor(colorOf('#FBBF24', 0.55));
+  const connectionDashes: SkPathEffect[] = [];
+  for (let offset = 0; offset < CONNECTION_DASH_PERIOD_PX; offset++) {
+    connectionDashes.push(Skia.PathEffect.MakeDash(CONNECTION_DASH, -offset));
+  }
+  const connectionParticle = Skia.Paint();
+  connectionParticle.setAntiAlias(true);
+  connectionParticle.setColor(paleGold);
 
   const meteorGlow = Skia.Paint();
   meteorGlow.setAntiAlias(true);
@@ -93,10 +166,23 @@ export function createStarPaints(): StarPaints {
     white: colorOf('#FFFFFF', 1),
     gold: colorOf('#F59E0B', 1),
     purple: colorOf('#A855F7', 1),
+    paleGold,
+    layer: Skia.Paint(),
+    connectionLine,
+    connectionDashes,
+    connectionParticle,
     meteorGlow,
     meteorCore,
     meteorHalo,
     meteorRing,
+    meteorGlowShader: streakShader(METEOR_TINT, [0, 0.55], [0, 1]),
+    fireballGlowShader: streakShader(FIREBALL_TINT, [0, 0.55], [0, 1]),
+    meteorCoreShader: streakShader('#FFFFFF', [0, 0.55, 1], [0, 0.7, 1]),
+    meteorTint: colorOf(METEOR_TINT, 1),
+    fireballTint: colorOf(FIREBALL_TINT, 1),
+    orbitRect: Skia.XYWHRect(0, 0, 0, 0),
+    recorder: Skia.PictureRecorder(),
+    frameBounds: Skia.XYWHRect(0, 0, 0, 0),
   };
 }
 
@@ -131,11 +217,11 @@ function drawAt(canvas: SkCanvas, picture: SkPicture, x: number, y: number, scal
   canvas.restore();
 }
 
-function beginAlphaLayer(canvas: SkCanvas, alpha: number) {
+function beginAlphaLayer(canvas: SkCanvas, paints: StarPaints, alpha: number) {
   'worklet';
-  const paint = Skia.Paint();
-  paint.setAlphaf(alpha);
-  canvas.saveLayer(paint);
+  // The recording canvas copies the paint, so the next layer can reuse it.
+  paints.layer.setAlphaf(alpha);
+  canvas.saveLayer(paints.layer);
 }
 
 // ─── Stars ─────────────────────────────────────────────────────────────────
@@ -292,11 +378,11 @@ function drawNebulae(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay) {
   }
 }
 
-function drawSectorLabels(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay) {
+function drawSectorLabels(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, paints: StarPaints) {
   'worklet';
   const alpha = 1 - smoothstep(SECTOR_LABEL_FADE[0], SECTOR_LABEL_FADE[1], view.camera.zoom);
   if (alpha <= 0.002 || overlay.sectorLabels.length === 0) return;
-  if (alpha < 0.998) beginAlphaLayer(canvas, alpha);
+  if (alpha < 0.998) beginAlphaLayer(canvas, paints, alpha);
   for (const label of overlay.sectorLabels) {
     const x = screenX(view, label.ra);
     const y = screenY(view, label.dec);
@@ -329,7 +415,13 @@ function connectionPhase(ra: number, dec: number): number {
 }
 
 /** Flowing dashed stroke plus a travelling bright particle, for a "living" bond. */
-function drawConnectionLines(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, animSeconds: number) {
+function drawConnectionLines(
+  canvas: SkCanvas,
+  view: FrameView,
+  overlay: SkyOverlay,
+  paints: StarPaints,
+  animSeconds: number,
+) {
   'worklet';
   const hero = overlay.hero;
   if (!hero || overlay.connections.length === 0) return;
@@ -337,17 +429,9 @@ function drawConnectionLines(canvas: SkCanvas, view: FrameView, overlay: SkyOver
   const x1 = screenX(view, hero.ra);
   const y1 = screenY(view, hero.dec);
 
-  const flowPaint = Skia.Paint();
-  flowPaint.setAntiAlias(true);
-  flowPaint.setStyle(1);
-  flowPaint.setStrokeWidth(1.6);
-  flowPaint.setColor(colorOf('#FBBF24', 0.55));
-  const dash = Skia.PathEffect.MakeDash([4, 6], -((animSeconds * 24) % 10));
-  if (dash) flowPaint.setPathEffect(dash);
-
-  const particle = Skia.Paint();
-  particle.setAntiAlias(true);
-  particle.setColor(colorOf('#FDE68A', 1));
+  const { connectionLine: flowPaint, connectionParticle: particle } = paints;
+  const dashOffset = Math.floor((animSeconds * CONNECTION_FLOW_PX_PER_SEC) % CONNECTION_DASH_PERIOD_PX);
+  flowPaint.setPathEffect(paints.connectionDashes[dashOffset]);
 
   for (const connection of overlay.connections) {
     const x2 = x1 + shortestRaDelta(hero.ra, connection.ra) * scale;
@@ -370,7 +454,7 @@ function drawConnectionLines(canvas: SkCanvas, view: FrameView, overlay: SkyOver
 // ─── Shooting stars ────────────────────────────────────────────────────────
 
 /** Length of the burst drawn where a meteor was caught. */
-const METEOR_CATCH_BURST_MS = 900;
+export const METEOR_CATCH_BURST_MS = 900;
 
 /** Stroke width of a meteor's core at a zoom: thin far out, a little bolder up close. */
 function meteorWidth(event: MeteorEvent, zoom: number): number {
@@ -392,31 +476,30 @@ function drawMeteorStreak(
   if (alpha <= 0.01) return;
   const { headX, headY, tailX, tailY } = segment;
   const width = meteorWidth(event, zoom);
-  const tint = event.fireball ? '#FFE2B3' : '#CFE6FF';
 
-  // A zero-length gradient is undefined; right after launch only the head shows.
-  if (Math.hypot(headX - tailX, headY - tailY) > 0.5) {
-    const from = Skia.Point(tailX, tailY);
-    const to = Skia.Point(headX, headY);
-    const glow = Skia.Shader.MakeLinearGradient(from, to, [colorOf(tint, 0), colorOf(tint, alpha * 0.55)], [0, 1], 0);
-    const core = Skia.Shader.MakeLinearGradient(
-      from,
-      to,
-      [colorOf('#FFFFFF', 0), colorOf('#FFFFFF', alpha * 0.55), colorOf('#FFFFFF', alpha)],
-      [0, 0.7, 1],
-      0,
-    );
-    if (glow && core) {
-      paints.meteorGlow.setShader(glow);
-      paints.meteorGlow.setStrokeWidth(width * 4);
-      canvas.drawLine(tailX, tailY, headX, headY, paints.meteorGlow);
-      paints.meteorCore.setShader(core);
-      paints.meteorCore.setStrokeWidth(width * 1.4);
-      canvas.drawLine(tailX, tailY, headX, headY, paints.meteorCore);
-    }
+  // Right after launch the streak has no length yet; only the head shows.
+  const length = Math.hypot(headX - tailX, headY - tailY);
+  if (length > 0.5) {
+    // The canvas lays the gradients' unit segment over tail → head. Its scale
+    // is uniform, so the round caps stay round; widths are divided by it to
+    // stay in pixels, and the blur ignores the canvas matrix.
+    canvas.save();
+    canvas.translate(tailX, tailY);
+    canvas.rotate((Math.atan2(headY - tailY, headX - tailX) * 180) / Math.PI, 0, 0);
+    canvas.scale(length, length);
+    paints.meteorGlow.setShader(event.fireball ? paints.fireballGlowShader : paints.meteorGlowShader);
+    paints.meteorGlow.setAlphaf(alpha);
+    paints.meteorGlow.setStrokeWidth((width * 4) / length);
+    canvas.drawLine(0, 0, 1, 0, paints.meteorGlow);
+    paints.meteorCore.setShader(paints.meteorCoreShader);
+    paints.meteorCore.setAlphaf(alpha);
+    paints.meteorCore.setStrokeWidth((width * 1.4) / length);
+    canvas.drawLine(0, 0, 1, 0, paints.meteorCore);
+    canvas.restore();
   }
 
-  paints.meteorHalo.setColor(colorOf(tint, alpha * (event.fireball ? 0.6 : 0.45)));
+  paints.meteorHalo.setColor(event.fireball ? paints.fireballTint : paints.meteorTint);
+  paints.meteorHalo.setAlphaf(alpha * (event.fireball ? 0.6 : 0.45));
   canvas.drawCircle(headX, headY, width * (event.fireball ? 6.5 : 4), paints.meteorHalo);
   paints.fill.setColor(paints.white);
   paints.fill.setAlphaf(alpha);
@@ -455,23 +538,27 @@ function drawMeteors(canvas: SkCanvas, view: FrameView, paints: StarPaints, mete
   const fade = 1 - t;
   const open = 1 - fade * fade * fade;
 
-  paints.meteorHalo.setColor(colorOf('#FDE68A', 0.55 * fade));
+  paints.meteorHalo.setColor(paints.paleGold);
+  paints.meteorHalo.setAlphaf(0.55 * fade);
   canvas.drawCircle(x, y, 10 + open * 26, paints.meteorHalo);
 
   // Four-point glint
   const glint = 6 + 16 * (1 - Math.abs(1 - 2 * Math.min(1, t * 2)));
   paints.meteorCore.setShader(null);
-  paints.meteorCore.setColor(colorOf('#FFFFFF', 0.9 * fade));
+  paints.meteorCore.setColor(paints.white);
+  paints.meteorCore.setAlphaf(0.9 * fade);
   paints.meteorCore.setStrokeWidth(1.4);
   canvas.drawLine(x - glint, y, x + glint, y, paints.meteorCore);
   canvas.drawLine(x, y - glint, x, y + glint, paints.meteorCore);
 
-  paints.meteorRing.setColor(colorOf('#FDE68A', 0.85 * fade));
+  paints.meteorRing.setColor(paints.paleGold);
+  paints.meteorRing.setAlphaf(0.85 * fade);
   paints.meteorRing.setStrokeWidth(1.6);
   canvas.drawCircle(x, y, 6 + open * 46, paints.meteorRing);
   const late = Math.max(0, Math.min(1, (t - 0.15) / 0.85));
   if (late > 0) {
-    paints.meteorRing.setColor(colorOf('#FFFFFF', 0.6 * (1 - late)));
+    paints.meteorRing.setColor(paints.white);
+    paints.meteorRing.setAlphaf(0.6 * (1 - late));
     paints.meteorRing.setStrokeWidth(1.2);
     canvas.drawCircle(x, y, 4 + (1 - (1 - late) * (1 - late)) * 28, paints.meteorRing);
   }
@@ -498,16 +585,19 @@ function drawSolarSystem(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay)
 }
 
 /** Her gezegenin yörüngesi: Güneş merkezli silik elips. Tamamen ekran dışındakiler atlanır. */
-function drawOrbits(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay) {
+function drawOrbits(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, paints: StarPaints) {
   'worklet';
   const { orbits, orbitPaint } = overlay;
+  const { orbitRect } = paints;
   const cx = screenX(view, orbits.ra);
   const cy = screenY(view, orbits.dec);
   for (const ring of orbits.rings) {
     const rx = ring.rx * view.scale;
     const ry = ring.ry * view.scale;
     if (cx + rx < 0 || cx - rx > view.width || cy + ry < 0 || cy - ry > view.height) continue;
-    canvas.drawOval(Skia.XYWHRect(cx - rx, cy - ry, rx * 2, ry * 2), orbitPaint);
+    // The recording canvas copies the rect, so the next ring can reuse it.
+    orbitRect.setXYWH(cx - rx, cy - ry, rx * 2, ry * 2);
+    canvas.drawOval(orbitRect, orbitPaint);
   }
 }
 
@@ -529,14 +619,14 @@ function drawHero(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, animSe
   canvas.restore();
 }
 
-function drawLabels(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay) {
+function drawLabels(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, paints: StarPaints) {
   'worklet';
   const zoom = view.camera.zoom;
   const { scale } = view;
 
   const claimedAlpha = smoothstep(CLAIMED_LABEL_FADE[0], CLAIMED_LABEL_FADE[1], zoom);
   if (claimedAlpha > 0.002 && overlay.claimedLabels.length > 0) {
-    if (claimedAlpha < 0.998) beginAlphaLayer(canvas, claimedAlpha);
+    if (claimedAlpha < 0.998) beginAlphaLayer(canvas, paints, claimedAlpha);
     for (const item of overlay.claimedLabels) {
       const x = screenX(view, item.ra);
       const y = screenY(view, item.dec);
@@ -593,21 +683,24 @@ export function drawSkyFrame(
     canvas.drawPicture(overlay.background);
     drawMilkyWay(canvas, view, overlay);
     drawNebulae(canvas, view, overlay);
-    drawSectorLabels(canvas, view, overlay);
+    drawSectorLabels(canvas, view, overlay, paints);
     drawConstellations(canvas, view, overlay);
-    drawConnectionLines(canvas, view, overlay, animSeconds);
-    drawOrbits(canvas, view, overlay);
+    drawConnectionLines(canvas, view, overlay, paints, animSeconds);
+    drawOrbits(canvas, view, overlay, paints);
   }
   drawStars(canvas, view, field, clock, animSeconds, paints);
   if (overlay) {
     drawSolarSystem(canvas, view, overlay);
     drawHero(canvas, view, overlay, animSeconds);
-    drawLabels(canvas, view, overlay);
+    drawLabels(canvas, view, overlay, paints);
   }
   drawMeteors(canvas, view, paints, meteors);
 }
 
-/** Records a frame into a picture; call from a UI-thread derived value. */
+/**
+ * Records a frame into a picture; call from a UI-thread derived value. The
+ * recorder is reused: each picture keeps its own copy of what was drawn.
+ */
 export function recordSkyFrame(
   camera: SkyCamera,
   field: StarField,
@@ -620,8 +713,9 @@ export function recordSkyFrame(
   height: number,
 ) {
   'worklet';
-  const recorder = Skia.PictureRecorder();
-  const canvas = recorder.beginRecording(Skia.XYWHRect(0, 0, width, height));
+  const { recorder, frameBounds } = paints;
+  frameBounds.setXYWH(0, 0, width, height);
+  const canvas = recorder.beginRecording(frameBounds);
   drawSkyFrame(canvas, camera, field, overlay, clock, animSeconds, meteors, paints, width, height);
   return recorder.finishRecordingAsPicture();
 }

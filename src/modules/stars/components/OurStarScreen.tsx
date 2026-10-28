@@ -1274,6 +1274,16 @@ export const OurStarScreen: React.FC = () => {
             stars={skyTiles.stars}
             width={SCREEN_WIDTH}
             height={SCREEN_HEIGHT}
+            paused={
+              isClaimModalOpen ||
+              isDemoAuthModalOpen ||
+              isCertificateModalOpen ||
+              isConnectionsModalOpen ||
+              isAtlasModalOpen ||
+              isSearchModalOpen ||
+              premiumPaywallSource !== null ||
+              isWishOpen
+            }
             connections={starConnections}
             myStarCoords={
               starDetails
