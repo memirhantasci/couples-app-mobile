@@ -371,9 +371,25 @@ function parseBinaryExif(buffer: ArrayBuffer): BinaryExifData {
   return result;
 }
 
+/** expo-image-picker EXIF sözlüğündeki GPS (iOS ve Android farklı yapılar kullanır); yoksa null. */
+function nativeGpsOf(nativeExif: any): { latitude: number; longitude: number } | null {
+  const iosGps = nativeExif?.["{GPS}"] || nativeExif?.["GPS"] || {};
+  const latitude = parseCoordinate(
+    iosGps.Latitude ?? nativeExif?.GPSLatitude,
+    iosGps.LatitudeRef ?? nativeExif?.GPSLatitudeRef
+  );
+  const longitude = parseCoordinate(
+    iosGps.Longitude ?? nativeExif?.GPSLongitude,
+    iosGps.LongitudeRef ?? nativeExif?.GPSLongitudeRef
+  );
+  return isValidCoordinate(latitude, longitude) ? { latitude: latitude!, longitude: longitude! } : null;
+}
+
 /**
  * Hem dosya binary'sini hem de expo-image-picker EXIF sözlüğünü kullanarak
  * fotoğrafın gerçek çekim tarihi, saati ve GPS konumunu çıkarır.
+ * Seçicinin EXIF'i tarih ve konumu zaten veriyorsa dosya hiç okunmaz: 25 MB'lık bir fotoğraf
+ * yalnızca üstbilgisi için bütünüyle belleğe alınıyordu.
  */
 export async function extractPhotoExif(
   uri: string,
@@ -384,10 +400,15 @@ export async function extractPhotoExif(
   let finalLat: number | null = null;
   let finalLng: number | null = null;
 
-  // 1. ADIM: Ham dosya binary taraması (Saf JS DataView, sıfır harici bağımlılık)
+  const nativeComplete =
+    !!nativeExif &&
+    !!(nativeExif.DateTimeOriginal || nativeExif.DateTimeDigitized || nativeExif.DateTime) &&
+    nativeGpsOf(nativeExif) !== null;
+
+  // 1. ADIM: Ham dosya binary taraması (Saf JS DataView, sıfır harici bağımlılık); seçici EXIF'i yeterliyse atlanır
   try {
-    const response = await fetch(uri);
-    const arrayBuffer = await response.arrayBuffer();
+    const response = nativeComplete ? null : await fetch(uri);
+    const arrayBuffer = response ? await response.arrayBuffer() : null;
 
     if (arrayBuffer && arrayBuffer.byteLength > 0) {
       const binaryData = parseBinaryExif(arrayBuffer);

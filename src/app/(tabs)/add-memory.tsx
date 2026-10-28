@@ -7,6 +7,7 @@ import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { formEntryOf } from "@/lib/formEntry";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { removeStoredFiles, seedStorageImage } from "@/lib/storageImages";
@@ -26,14 +27,8 @@ import { useNotificationPriming } from "@/hooks/useNotificationPriming";
 import { toast } from "@/lib/toast";
 import { LazyPremiumPaywall, LazyDemoActionModal, LazyPermissionPrimingModal, LazyDateTimePickerSheet } from "@/components/ui/lazyMount";
 
-const IMAGE_MIME_BY_EXT: Record<string, string> = {
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-  webp: "image/webp",
-  heic: "image/heic",
-  gif: "image/gif",
-};
+/** Yüklenen anı fotoğrafının en geniş kenarı (px); galeri yüklemesindeki tam boy ile aynı. */
+const MEMORY_IMAGE_MAX_WIDTH = 1600;
 
 export default function AddMemoryScreen() {
   const router = useRouter();
@@ -95,7 +90,8 @@ export default function AddMemoryScreen() {
       mediaTypes: ['images'],
       allowsEditing: true,
       quality: 0.6,
-      base64: true, // We need base64 to upload easily to Supabase from React Native
+      // base64 burada okunmaz: tam çözünürlüklü görüntüyü bellekte base64'e çevirmek yerine kayıt sırasında
+      // küçültülmüş kopya yüklenir (bkz. handleSave)
     });
 
     if (!result.canceled && result.assets[0]) {
@@ -131,25 +127,29 @@ export default function AddMemoryScreen() {
       let finalImagePath = imagePath || null;
 
       // Upload image if a new one was selected
-      if (localImage && localImage.base64) {
+      if (localImage) {
         if (localImage.fileSize && localImage.fileSize > 5 * 1024 * 1024) {
            appAlert("Dosya Çok Büyük", "Lütfen 5 MB'dan daha küçük bir fotoğraf seçin.");
            setLoading(false);
            return;
         }
 
-        // Supabase Storage yalnızca standart MIME türlerini kabul eder ("image/jpg" geçersiz, "image/jpeg" geçerli).
-        // Önce picker'ın bildirdiği mimeType'a, yoksa uzantıya, o da yoksa JPEG'e bakılır.
-        const uriExt = localImage.uri.split('?')[0].split('.').pop()?.toLowerCase() ?? '';
-        const contentType = (localImage.mimeType?.toLowerCase() ?? IMAGE_MIME_BY_EXT[uriExt] ?? 'image/jpeg')
-          .replace('image/jpg', 'image/jpeg');
-        const fileExt = contentType === 'image/jpeg' ? 'jpg' : contentType.split('/')[1];
+        // Fotoğraf yüklenmeden önce en çok MEMORY_IMAGE_MAX_WIDTH genişliğe küçültülür ve JPEG'e çevrilir
+        // (galeri yüklemesiyle aynı yaklaşım); daha küçük görüntü büyütülmez.
+        const compressed = await ImageManipulator.manipulateAsync(
+          localImage.uri,
+          localImage.width > MEMORY_IMAGE_MAX_WIDTH ? [{ resize: { width: MEMORY_IMAGE_MAX_WIDTH } }] : [],
+          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+        );
+        if (!compressed.base64) throw new Error("Fotoğraf hazırlanamadı.");
+        const contentType = 'image/jpeg';
+        const fileExt = 'jpg';
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `${coupleId}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from("memories")
-          .upload(filePath, decode(localImage.base64), {
+          .upload(filePath, decode(compressed.base64), {
             contentType,
           });
 
