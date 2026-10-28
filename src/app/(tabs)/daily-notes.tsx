@@ -27,6 +27,7 @@ import {
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { openForm } from "@/lib/formEntry";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
@@ -252,13 +253,13 @@ export default function DailyNotesScreen() {
             <TouchableOpacity 
               onPress={() => {
                 if (executeOrIntercept(
-                  () => router.push("/(tabs)/add-daily-note"),
+                  () => router.push(openForm("/(tabs)/add-daily-note")),
                   "Günlük Not Yazmak İçin Kayıt Olun 📖",
                   "Günün hislerini ve sevgi notlarını şifreli olarak kaydetmek için ücretsiz hesabınızı oluşturun."
                 )) {
                   return;
                 }
-                router.push("/(tabs)/add-daily-note");
+                router.push(openForm("/(tabs)/add-daily-note"));
               }} 
               style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : theme.cardBg, borderColor: theme.cardBorder }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -284,13 +285,13 @@ export default function DailyNotesScreen() {
             style={[styles.writeNoteActionBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
             onPress={() => {
               if (executeOrIntercept(
-                () => router.push("/(tabs)/add-daily-note"),
+                () => router.push(openForm("/(tabs)/add-daily-note")),
                 "Günlük Not Yazmak İçin Kayıt Olun 📖",
                 "Günün hislerini ve sevgi notlarını şifreli olarak kaydetmek için ücretsiz hesabınızı oluşturun."
               )) {
                 return;
               }
-              router.push("/(tabs)/add-daily-note");
+              router.push(openForm("/(tabs)/add-daily-note"));
             }}
             activeOpacity={0.88}
           >
@@ -335,7 +336,7 @@ export default function DailyNotesScreen() {
                 title="Günlüğünün ilk sayfası seni bekliyor"
                 description="Bugün hissettiklerini, sevgilinle yaşadığın güzel bir anı ya da sadece aklından geçenleri yaz; sadece sen okuyabilirsin."
                 ctaLabel="İlk Sayfayı Yaz ✍️"
-                onPressCta={() => router.push("/(tabs)/add-daily-note")}
+                onPressCta={() => router.push(openForm("/(tabs)/add-daily-note"))}
                 theme={theme}
               />
             }

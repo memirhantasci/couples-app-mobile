@@ -4,9 +4,9 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator 
 import { appAlert } from "@/lib/dialog";
 import { Image } from "expo-image";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
-import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { formEntryOf } from "@/lib/formEntry";
 import * as ImagePicker from "expo-image-picker";
-import { useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { removeStoredFiles, seedStorageImage } from "@/lib/storageImages";
@@ -60,20 +60,21 @@ export default function AddMemoryScreen() {
   const [showPaywall, setShowPaywall] = useState(false);
   // Demo modunda premium kilitleri yoktur: tüm özellikler açık
   const isPremium = (profile?.isPremium ?? false) || isDemoMode;
-  useFocusEffect(
-    useCallback(() => {
-      // Ekran her odaklandığında formu temizle (eğer yeni ekleme modundaysa)
-      if (!isEditing) {
-        setTitle("");
-        setDate(todayString());
-        setDescription("");
-        setImagePath("");
-        setLocalImage(null);
-        setErrors({ title: false, date: false });
-        setLoading(false);
-      }
-    }, [isEditing])
-  );
+
+  // Ekran sekme olarak bellekte kalır: yeni bir açılışta (formEntry) form, parametrelerdeki kayıttan ya da
+  // boş olarak baştan kurulur. Menüye girip dönmek açılış sayılmaz; taslak yerinde kalır.
+  const entry = formEntryOf(params);
+  const [seenEntry, setSeenEntry] = useState(entry);
+  if (seenEntry !== entry) {
+    setSeenEntry(entry);
+    setTitle((params.title as string) || "");
+    setDate((params.date as string) || todayString());
+    setDescription((params.description as string) || "");
+    setImagePath((params.image_path as string) || "");
+    setLocalImage(null);
+    setErrors({ title: false, date: false });
+    setLoading(false);
+  }
 
   const coupleId = profile?.coupleId || null;
 

@@ -12,7 +12,8 @@ import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { formEntryOf } from "@/lib/formEntry";
 import { 
   ChevronLeft, Check, Calendar as CalendarIcon, 
   Clock, BookOpen 
@@ -46,6 +47,16 @@ export default function AddDailyNoteScreen() {
 
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Ekran sekme olarak bellekte kalır: yeni bir açılışta (formEntry) yazı alanı boş başlar. Menüye girip
+  // dönmek açılış sayılmaz; yazılan metin yerinde kalır.
+  const entry = formEntryOf(useLocalSearchParams());
+  const [seenEntry, setSeenEntry] = useState(entry);
+  if (seenEntry !== entry) {
+    setSeenEntry(entry);
+    setContent("");
+    setIsSubmitting(false);
+  }
 
   const handleSave = async () => {
     if (executeOrIntercept(
@@ -114,6 +125,8 @@ export default function AddDailyNoteScreen() {
       queryClient.invalidateQueries({ queryKey: ["daily_notes_history", session.user.id] });
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
       toast.success("Günlüğün kaydedildi ✨");
+      // Kaydedilen not yazı alanında kalmasın (ekran bellekte duruyor)
+      setContent("");
       router.replace("/(tabs)/daily-notes");
     } catch (error) {
       console.error(error);

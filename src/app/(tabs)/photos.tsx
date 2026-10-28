@@ -16,6 +16,7 @@ import {
   Grid3X3, Grid2X2, Square, ArrowUpDown,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import { openForm } from "@/lib/formEntry";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { supabase } from "@/lib/supabase";
@@ -88,7 +89,7 @@ export default function PhotosScreen() {
 
   const goToUpload = () => {
     if (executeOrIntercept(
-      () => router.push("/(tabs)/add-photo"),
+      () => router.push(openForm("/(tabs)/add-photo")),
       "Ortak Fotoğraf Eklemek İçin Kayıt Olun 📸",
       "Sevgilinizle ortak anı albümü oluşturmak ve fotoğraflarınızın çekildiği yerleri haritada görmek için ücretsiz hesabınızı oluşturun."
     )) {
@@ -98,7 +99,7 @@ export default function PhotosScreen() {
       setShowPaywall(true);
       return;
     }
-    router.push("/(tabs)/add-photo");
+    router.push(openForm("/(tabs)/add-photo"));
   };
 
   // Fotoğraf Sil

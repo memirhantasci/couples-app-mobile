@@ -13,7 +13,8 @@ import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { formEntryOf } from "@/lib/formEntry";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
   ChevronLeft, ImagePlus, CheckCircle2, 
@@ -359,17 +360,28 @@ export default function AddPhotoScreen() {
     setTakenTime(dayjs(selectedTime).format("HH:mm"));
   };
 
+  // Ekran sekme olarak bellekte kalır: yeni bir açılışta (formEntry) form baştan kurulur. Menüye girip
+  // dönmek açılış sayılmaz; yazılan metin ve seçilen fotoğraf yerinde kalır.
+  const entry = formEntryOf(useLocalSearchParams());
+  const [seenEntry, setSeenEntry] = useState(entry);
+  if (seenEntry !== entry) {
+    setSeenEntry(entry);
+    setLocalImage(null);
+    setTitle("");
+    setDescription("");
+    setExifStatus("idle");
+    setTakenDate(todayString());
+    setTakenTime(dayjs().format("HH:mm"));
+    setErrors({ photo: false, description: false });
+    setUploading(false);
+    setPhotoLocation(null);
+    setExifGpsFound(false);
+    setManualAddressInput("");
+  }
+
+  // Premium olmayan her odaklanmada ödeme duvarı gösterilir
   useFocusEffect(
     useCallback(() => {
-      setLocalImage(null);
-      setTitle("");
-      setDescription("");
-      setExifStatus("idle");
-      setTakenDate(todayString());
-      setTakenTime(dayjs().format("HH:mm"));
-      setErrors({ photo: false, description: false });
-      setUploading(false);
-      setPhotoLocation(null);
       if (!isPremium && !isDemoMode) {
         setShowPaywall(true);
       }

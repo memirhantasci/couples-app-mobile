@@ -13,6 +13,7 @@ import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-quer
 import { dayjs } from "@/lib/date";
 import { Plus, Trash2, Pencil, Menu, ChevronLeft, PlusCircle, AlignJustify } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import { openForm } from "@/lib/formEntry";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { AppTheme } from "@/lib/theme";
@@ -182,13 +183,13 @@ export default function MemoriesScreen() {
   // Hem alt "Yeni Özel Gün Ekle" butonu hem de boş durum eylemi kullanır
   const goToAddMemory = () => {
     if (executeOrIntercept(
-      () => router.push("/(tabs)/add-memory"),
+      () => router.push(openForm("/(tabs)/add-memory")),
       "Özel Gün ve Anı Eklemek İçin Kayıt Olun 💖",
       "İlişkinizin dönüm noktalarını kaydetmek ve yıldönümü bildirimleri almak için ücretsiz hesabınızı oluşturun."
     )) {
       return;
     }
-    router.push("/(tabs)/add-memory");
+    router.push(openForm("/(tabs)/add-memory"));
   };
 
   const handleEdit = (memory: any) => {
@@ -200,16 +201,13 @@ export default function MemoriesScreen() {
       return;
     }
 
-    router.push({
-      pathname: "/(tabs)/add-memory",
-      params: { 
-        id: memory.id, 
-        title: memory.title, 
-        date: memory.date, 
-        description: memory.description || "", 
-        image_path: memory.image_path || ""
-      }
-    });
+    router.push(openForm("/(tabs)/add-memory", {
+      id: String(memory.id),
+      title: memory.title,
+      date: memory.date,
+      description: memory.description || "",
+      image_path: memory.image_path || "",
+    }));
   };
 
   if (!session && !isDemoMode) return <View style={{ flex: 1, backgroundColor: "#080811" }} />;
