@@ -133,14 +133,9 @@ export async function computeLoveScore(
         .eq("couple_id", coupleId)
         .eq("is_active", true),
 
-      // Regl Döngüsü (Son 60 gün)
-      userIds.length > 0
-        ? supabase
-            .from("period_logs")
-            .select("id, date")
-            .in("user_id", userIds)
-            .gte("date", sixtyDaysAgo)
-        : Promise.resolve({ data: [] as any[], error: null }),
+      // Regl Döngüsü (Son 60 gün): yalnızca "kullanılıyor mu / bu ay kayıt var mı" bayrakları, sunucuda
+      // hesaplanır. Satırlar okunsaydı ücretsiz erkek partner (RLS) bileşeni görmez, iki partner farklı skor görürdü.
+      supabase.rpc("get_couple_period_activity", { p_since: sixtyDaysAgo, p_month_start: thisMonthStart }),
 
       // Günlük Notlar (Bugün)
       userIds.length > 0
@@ -289,8 +284,8 @@ export async function computeLoveScore(
         .eq("date", today)
         .in("medicine_id", medicineIds);
 
-      const takenCount = (todayLogs ?? []).filter((l) => l.status === "taken").length;
-      const skippedCount = (todayLogs ?? []).filter((l) => l.status === "skipped").length;
+      const takenCount = (todayLogs ?? []).filter((l) => l.status === "DRANK").length;
+      const skippedCount = (todayLogs ?? []).filter((l) => l.status === "MISSED").length;
 
       if (takenCount > 0 && skippedCount === 0) {
         earnedPoints += 15;
@@ -308,11 +303,10 @@ export async function computeLoveScore(
     }
 
     // ── 8. Regl Takibi (Sadece bu özelliği kullanan çiftlerde paydaya eklenir) ─── Maks: 10
-    const periodLogs = periodLogsRes.data ?? [];
-    if (periodLogs.length > 0) {
+    const periodActivity = Array.isArray(periodLogsRes.data) ? periodLogsRes.data[0] : periodLogsRes.data;
+    if (periodActivity?.has_recent) {
       maxEarnablePoints += 10;
-      const thisMonthLogs = periodLogs.filter((p) => p.date >= thisMonthStart);
-      if (thisMonthLogs.length > 0) {
+      if (periodActivity.has_this_month) {
         earnedPoints += 10;
         breakdown["period"] = 10;
       } else {
