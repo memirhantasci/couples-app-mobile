@@ -1,6 +1,7 @@
 import React, { memo, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
+import { letterUnlockAt } from "@/lib/letterPolicy";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   cancelAnimation,
@@ -25,11 +26,11 @@ export interface PendingLetter {
   sender?: { display_name?: string | null; username?: string | null };
 }
 
-/** Henüz açılmamış (kilit tarihi bugün veya ileride olan) mektuplar. */
+/** Henüz açılmamış mektuplar: açılış anı (unlock_date günü 00:00 UTC, bkz. letterUnlockAt) gelmemiş olanlar. */
 export function getUpcomingLetters(letters: PendingLetter[] | null | undefined): PendingLetter[] {
   if (!letters || letters.length === 0) return [];
-  const today = dayjs().startOf("day");
-  return letters.filter((letter) => !dayjs(letter.unlock_date).isBefore(today, "day"));
+  const now = Date.now();
+  return letters.filter((letter) => letterUnlockAt(letter) > now);
 }
 
 function senderLabel(letter: PendingLetter): string {

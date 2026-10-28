@@ -195,7 +195,9 @@ export default function HomeScreen() {
             .select("id, unlock_date, sender_id")
             .eq("couple_id", coupleId)
             .eq("receiver_id", userId)
-            .gt("unlock_date", today)
+            // Sunucu mektubu unlock_date gününün 00:00 UTC'sinde açar (bkz. letterUnlockAt); "bugün" UTC gününe göre
+            // alınır. Yerel gün kullanılsaydı 00:00–03:00 (TR) arasında mektup burada kaybolur, Mektuplar'da hâlâ kilitli kalırdı.
+            .gt("unlock_date", new Date().toISOString().substring(0, 10))
             .order("unlock_date", { ascending: true })
           : Promise.resolve({ data: [] }),
         coupleId
