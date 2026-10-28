@@ -28,6 +28,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { openForm } from "@/lib/formEntry";
+import { DAILY_NOTE_MAX_CHARS } from "@/lib/dailyNote";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
@@ -382,7 +383,7 @@ export default function DailyNotesScreen() {
                   editError && styles.modalInputError
                 ]}
                 multiline
-                maxLength={4000}
+                maxLength={DAILY_NOTE_MAX_CHARS}
                 value={editContent}
                 onChangeText={(text) => {
                   setEditContent(text);
@@ -393,7 +394,7 @@ export default function DailyNotesScreen() {
               />
 
               <Text style={{ alignSelf: "flex-end", fontSize: 11.5, fontFamily: "Inter_400Regular", color: theme.textMuted, marginRight: 4 }}>
-                {editContent.length} / 4000 harf
+                {editContent.length} / {DAILY_NOTE_MAX_CHARS} harf
               </Text>
 
               <View style={styles.modalActionsRow}>

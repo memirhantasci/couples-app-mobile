@@ -20,6 +20,7 @@ import { AppTheme } from "@/lib/theme";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { toast } from "@/lib/toast";
+import { DAILY_NOTE_MAX_CHARS } from "@/lib/dailyNote";
 
 interface DailyNoteCardProps {
   existingNote?: string | null;
@@ -35,6 +36,15 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
   const [content, setContent] = useState(existingNote || "");
   const [saved, setSaved] = useState(!!existingNote);
   const [submitting, setSubmitting] = useState(false);
+
+  // Bugünkü not başka yerde değişirse (Günlüklerim'de düzenlendi, silindi ya da yeniden yüklendi) kart
+  // eski metni göstermeye devam etmesin
+  const [syncedNote, setSyncedNote] = useState(existingNote ?? null);
+  if ((existingNote ?? null) !== syncedNote) {
+    setSyncedNote(existingNote ?? null);
+    setContent(existingNote || "");
+    setSaved(!!existingNote);
+  }
 
   async function handleSave() {
     if (executeOrIntercept(
@@ -74,6 +84,8 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
     if (!error) {
       setSaved(true);
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
+      // Günlüklerim ekranı da yeni notu görsün
+      queryClient.invalidateQueries({ queryKey: ["daily_notes_history"] });
       toast.success("Günlük notun kaydedildi ✨");
     } else {
       logger.error("Note save error:", JSON.stringify(error, null, 2));
@@ -106,7 +118,7 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
             placeholderTextColor={theme.textMuted}
             multiline
             numberOfLines={4}
-            maxLength={4500}
+            maxLength={DAILY_NOTE_MAX_CHARS}
             style={[
               styles.input, 
               { 

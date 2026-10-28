@@ -24,6 +24,7 @@ import { encrypt, decrypt } from "@/utils/crypto";
 import { sanitize } from "@/utils/sanitize";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { toast } from "@/lib/toast";
+import { DAILY_NOTE_MAX_CHARS } from "@/lib/dailyNote";
 import dayjs from "dayjs";
 import "dayjs/locale/tr";
 import { useQueryClient } from "@tanstack/react-query";
@@ -33,8 +34,6 @@ import { LazyDemoActionModal } from "@/components/ui/lazyMount";
 
 dayjs.locale("tr");
 
-// Bir günün sayfasındaki toplam sınır; Günlüklerim ekranındaki düzenleme alanıyla (4000) aynı.
-const DAILY_NOTE_MAX_CHARS = 4000;
 
 export default function AddDailyNoteScreen() {
   const { session, profile } = useAuth();
@@ -214,7 +213,7 @@ export default function AddDailyNoteScreen() {
             <View style={styles.editorLabelRow}>
               <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>GÜNLÜK NOTUN</Text>
               <Text style={[styles.charCountText, { color: theme.textMuted }, charCount >= 1800 && { color: "#f59e0b" }]}>
-                {charCount} / 2000 harf ({wordCount} kelime)
+                {charCount} / {DAILY_NOTE_MAX_CHARS} harf ({wordCount} kelime)
               </Text>
             </View>
 
@@ -226,7 +225,7 @@ export default function AddDailyNoteScreen() {
                 placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
                 value={content}
                 onChangeText={setContent}
-                maxLength={2000}
+                maxLength={DAILY_NOTE_MAX_CHARS}
                 textAlignVertical="top"
               />
             </View>
