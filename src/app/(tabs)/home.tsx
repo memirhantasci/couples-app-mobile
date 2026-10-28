@@ -144,7 +144,10 @@ export default function HomeScreen() {
           coupleId,
           profile?.relationshipStartDate || profile?.meetDate,
           isDemoMode
-        ).then((data) => setWrappedData(data));
+        )
+          .then((data) => setWrappedData(data))
+          // Hesaplanamadıysa uydurma sayılar gösterilmez: kart bu ay gizlenir
+          .catch(() => setShowWrappedBanner(false));
       } else {
         setShowWrappedBanner(false);
       }

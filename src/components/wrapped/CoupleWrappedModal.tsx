@@ -60,6 +60,8 @@ export function CoupleWrappedModal({
   // Her slayt (ve her açılış) ilerleme çubuğu sıfırdan başlar
   const [progressFor, setProgressFor] = useState({ visible, currentSlide, data });
   if (progressFor.visible !== visible || progressFor.currentSlide !== currentSlide || progressFor.data !== data) {
+    // Her açılış ilk slayttan başlar (modal kapanınca bileşen bellekte kalır)
+    if (visible && !progressFor.visible) setCurrentSlide(0);
     setProgressFor({ visible, currentSlide, data });
     if (visible && data) setProgress(0);
   }
