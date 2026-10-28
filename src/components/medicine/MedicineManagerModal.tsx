@@ -43,8 +43,9 @@ export function medicineToFormData(med: MedicineItem, currentUserId: string | nu
   return {
     id: med.id,
     name: med.name,
-    startDate: new Date(med.start_date),
-    endDate: new Date(med.end_date),
+    // "YYYY-MM-DD" yerel gün olarak çözülür (new Date(string) UTC varsayıp günü kaydırabilir)
+    startDate: dayjs(med.start_date).toDate(),
+    endDate: dayjs(med.end_date).toDate(),
     isPartnerAdd: med.user_id !== currentUserId,
     times,
   };

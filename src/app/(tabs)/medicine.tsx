@@ -142,6 +142,9 @@ export default function MedicineScreen() {
     staleTime: 1000 * 60 * 5,
   });
 
+  // Sorgunun tam anahtarı: setQueryData / getQueryData anahtarı birebir eşleşmeden çalışmaz
+  const medicineQueryKey = ["medicine_data", coupleId, isDemoMode] as const;
+
   const updateLogMutation = useMutation({
     mutationFn: async ({ medicineId, status, timeSlot }: { medicineId: number; status: string; timeSlot: string }) => {
       const safeTimeSlot = (timeSlot && timeSlot.trim() !== "") ? timeSlot.trim() : "08:00";
@@ -159,10 +162,10 @@ export default function MedicineScreen() {
     },
     onMutate: async ({ medicineId, status, timeSlot }) => {
       setLoadingSlot(`${medicineId}_${timeSlot}`);
-      await queryClient.cancelQueries({ queryKey: ["medicine_data", coupleId] });
-      const previousData = queryClient.getQueryData(["medicine_data", coupleId]);
+      await queryClient.cancelQueries({ queryKey: medicineQueryKey });
+      const previousData = queryClient.getQueryData(medicineQueryKey);
 
-      queryClient.setQueryData(["medicine_data", coupleId], (old: any) => {
+      queryClient.setQueryData(medicineQueryKey, (old: any) => {
         if (!old) return old;
         const newLogs = [...old.todayLogs];
         const idx = newLogs.findIndex((l: any) => l.medicine_id === medicineId && l.time === timeSlot && l.user_id === userId);
@@ -208,13 +211,13 @@ export default function MedicineScreen() {
     },
     onError: (err, variables, context) => {
       if (context?.previousData) {
-        queryClient.setQueryData(["medicine_data", coupleId], context.previousData);
+        queryClient.setQueryData(medicineQueryKey, context.previousData);
       }
       appAlert("Hata", "Durum güncellenirken bir sorun oluştu.");
     },
     onSettled: () => {
       setLoadingSlot(null);
-      queryClient.invalidateQueries({ queryKey: ["medicine_data", coupleId] });
+      queryClient.invalidateQueries({ queryKey: medicineQueryKey });
     },
   });
 
@@ -499,10 +502,13 @@ export default function MedicineScreen() {
           days.push({ dateStr, dayLabel, dayNumber, isToday, status: "pending" });
         }
       } else {
+        // O günün TÜM aktif ilaçları sayılır; hiç kaydı olmayan ilaç da eksik doz demektir
+        // (yalnızca kaydı olanlar sayılırsa, içilmeyen ilaçlar seriyi bozmadan "tamam" görünürdü)
         const histDay = historyGrouped[dateStr] || [];
-        histDay.forEach((entry) => {
-          totalSlots += entry.totalSlots;
-          drankSlots += entry.drankSlots;
+        medsOnDay.forEach((m) => {
+          const times = Array.isArray(m.times) && m.times.length > 0 ? m.times : [m.time || "08:00"];
+          totalSlots += times.length;
+          drankSlots += histDay.find((entry) => entry.medicine_id === m.id)?.drankSlots ?? 0;
         });
         if (totalSlots > 0 && drankSlots >= totalSlots) {
           days.push({ dateStr, dayLabel, dayNumber, isToday, status: "complete" });
