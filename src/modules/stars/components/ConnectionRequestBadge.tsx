@@ -7,7 +7,7 @@
  * Tüm tema modlarıyla (Beyaz, Mavi, Pembe, Gece) tam uyumludur.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useEffectEvent } from 'react';
 import {
   View,
   Text,
@@ -30,12 +30,15 @@ import type { PendingConnectionDetail } from '../types/star.types';
 export interface ConnectionRequestBadgeProps {
   readonly pendingRequests: PendingConnectionDetail[];
   readonly onConnectionChanged?: () => void;
+  /** Yanıtlama penceresi açılıp kapandığında haber verir (arkadaki gök kubbe bu sürede durdurulur). */
+  readonly onModalVisibilityChange?: (visible: boolean) => void;
   readonly style?: StyleProp<ViewStyle>;
 }
 
 export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
   pendingRequests,
   onConnectionChanged,
+  onModalVisibilityChange,
   style,
 }) => {
   const { theme, isLight } = useTheme();
@@ -52,12 +55,18 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
     }
     setFeedbackMessage(null);
     setModalVisible(true);
+    onModalVisibilityChange?.(true);
   };
 
   const handleClose = () => {
     setModalVisible(false);
     setFeedbackMessage(null);
+    onModalVisibilityChange?.(false);
   };
+
+  // Son istek yanıtlanınca rozet pencere kapanmadan kaldırılır: "açık" bilgisi takılı kalmasın
+  const notifyVisibility = useEffectEvent((visible: boolean) => onModalVisibilityChange?.(visible));
+  useEffect(() => () => notifyVisibility(false), []);
 
   const handleRespond = useCallback(
     async (connectionId: string, accept: boolean, starName: string) => {

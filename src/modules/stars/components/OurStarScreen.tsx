@@ -272,6 +272,7 @@ export const OurStarScreen: React.FC = () => {
   const [exoplanets, setExoplanets] = useState<StarSystemMapPlanet[]>([]);
   const [demoPlanetDetails, setDemoPlanetDetails] = useState<StarExoplanetRecord[]>([]);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isConnectionRequestsOpen, setIsConnectionRequestsOpen] = useState(false);
   // Other couples' stars stream in by sky tile while the camera moves. Only
   // the user's own star keeps a realtime subscription.
   const skyTiles = useSkyTileStream();
@@ -1166,6 +1167,7 @@ export const OurStarScreen: React.FC = () => {
           {!isMicroScene && starDetails && !isDemoMode && (
             <ConnectionRequestBadge
               pendingRequests={pendingRequests}
+              onModalVisibilityChange={setIsConnectionRequestsOpen}
               onConnectionChanged={() => {
                 // Yeni bağlanan yıldızın gerçek ışığı için gök kubbe karolarını tazele
                 refreshSkyTiles();
@@ -1283,6 +1285,7 @@ export const OurStarScreen: React.FC = () => {
               isConnectionsModalOpen ||
               isAtlasModalOpen ||
               isSearchModalOpen ||
+              isConnectionRequestsOpen ||
               premiumPaywallSource !== null ||
               isWishOpen
             }
