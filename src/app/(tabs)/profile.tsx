@@ -414,7 +414,7 @@ export default function ProfileScreen() {
           title: "Sevgili Olma Yıl Dönümümüz",
           date: relStartDate,
           description: "Aşkımızın resmi olarak başladığı gün...",
-          is_default: false,
+          is_default: true,
         });
       }
 
@@ -433,7 +433,7 @@ export default function ProfileScreen() {
             title: "Tanışma Yıl Dönümümüz",
             date: meetDate,
             description: "Hikayemizin başladığı o güzel gün...",
-            is_default: false,
+            is_default: true,
           });
         }
       }

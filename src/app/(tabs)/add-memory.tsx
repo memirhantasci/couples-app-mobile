@@ -232,7 +232,7 @@ export default function AddMemoryScreen() {
             alignItems: "center", 
             justifyContent: "center", 
             position: "absolute", 
-            top: 40, 
+            top: insets.top + 16, 
             right: 20, 
             zIndex: 50,
             borderWidth: 1,

@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRealTopInset } from "@/hooks/useRealTopInset";
 import {
   X,
   ShieldCheck,
@@ -45,6 +46,8 @@ export function LegalModal({
   accentColor = "#FF4D6D",
 }: LegalModalProps) {
   const insets = useSafeAreaInsets();
+  // Demo modunda insets.top 0'a çekilir; tam ekran pencere ekranın tepesinden başladığı için gerçek değer alınır
+  const topInset = useRealTopInset();
   const [activeTab, setActiveTab] = useState<LegalDocType>(initialDoc);
 
   // Her açılışta istenen belgeden başlanır
@@ -64,7 +67,7 @@ export function LegalModal({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={[styles.container, { paddingTop: insets.top + (Platform.OS === "android" ? 16 : 8) }]}>
+      <View style={[styles.container, { paddingTop: topInset + (Platform.OS === "android" ? 16 : 8) }]}>
         {/* Ambient Top Glow */}
         <View
           style={[styles.glowEffect, { backgroundColor: `${accentColor}18` }]}

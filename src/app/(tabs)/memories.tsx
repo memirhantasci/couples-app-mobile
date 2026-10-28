@@ -91,7 +91,7 @@ export default function MemoriesScreen() {
             title: "Tanışma Yıl Dönümümüz",
             date: profile.meetDate,
             description: "Hikayemizin başladığı o güzel gün...",
-            is_default: false,
+            is_default: true,
           });
         }
 
@@ -101,7 +101,7 @@ export default function MemoriesScreen() {
             title: "Sevgili Olma Yıl Dönümümüz",
             date: profile.relationshipStartDate,
             description: "Aşkımızın resmi olarak başladığı gün...",
-            is_default: false,
+            is_default: true,
           });
         }
 
@@ -386,19 +386,17 @@ export default function MemoriesScreen() {
         </View>
       )}
 
-      {/* Add Button is only visible in Edit Mode */}
-      {isEditMode && (
-        <Animated.View entering={FadeInUp.duration(250)} style={styles.addBtnContainer}>
-          <TouchableOpacity 
-            style={[styles.addBtn, { backgroundColor: theme.accent }]}
-            onPress={goToAddMemory}
-            activeOpacity={0.8}
-          >
-            <PlusCircle size={20} color="#fff" />
-            <Text style={styles.addBtnText}>Yeni Özel Gün Ekle</Text>
-          </TouchableOpacity>
-        </Animated.View>
-      )}
+      {/* Yeni özel gün ekleme her zaman görünür; "Düzenle"ye basmayı gerektirmez */}
+      <Animated.View entering={FadeInUp.duration(250)} style={styles.addBtnContainer}>
+        <TouchableOpacity 
+          style={[styles.addBtn, { backgroundColor: theme.accent }]}
+          onPress={goToAddMemory}
+          activeOpacity={0.8}
+        >
+          <PlusCircle size={20} color="#fff" />
+          <Text style={styles.addBtnText}>Yeni Özel Gün Ekle</Text>
+        </TouchableOpacity>
+      </Animated.View>
       <LazyPageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
       <LazyDemoActionModal
         visible={isDemoModalOpen}
