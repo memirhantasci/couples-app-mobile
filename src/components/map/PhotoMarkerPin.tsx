@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
 import { Heart } from "lucide-react-native";
@@ -16,6 +16,9 @@ interface PhotoMarkerPinProps {
   onSelect: (item: SelectedItem) => void;
 }
 
+/** Görsel bu sürede yüklenmezse marker dondurulur (yükleme bitmişse 400 ms). */
+const TRACKING_GIVE_UP_MS = 5000;
+
 // ─── 1. FOTOĞRAF PİNİ (Polaroid Çerçeveli) ───────────────────────────────────
 function PhotoMarkerPinBase({ photo, avatarUrl, onSelect }: PhotoMarkerPinProps) {
   const photoPath = photo.thumb_path || photo.storage_path;
@@ -25,19 +28,27 @@ function PhotoMarkerPinBase({ photo, avatarUrl, onSelect }: PhotoMarkerPinProps)
   // Ancak görsel yüklenene kadar mutlaka tracksViewChanges=true kalmalıdır.
   const [tracksViewChanges, setTracksViewChanges] = useState(true);
   const [renderedUri, setRenderedUri] = useState<string | null>(null);
+  // Görselin yüklendiği an (0: henüz yüklenmedi)
+  const [loadedAt, setLoadedAt] = useState(0);
 
   const photoUri = photoSource?.uri ?? null;
   if (photoUri && renderedUri !== photoUri) {
     setRenderedUri(photoUri);
+    setLoadedAt(0);
     setTracksViewChanges(true);
   }
 
-  const handlePhotoLoad = useCallback(() => {
-    // Görsel ekrana basıldı, Android Google Maps'in bitmap snapshot alabilmesi için kısa bir süre bekle ve dondur
-    setTimeout(() => {
-      setTracksViewChanges(false);
-    }, 400);
-  }, []);
+  // Görsel ekrana basıldı: Android Google Maps'in bitmap snapshot alabilmesi için kısa bir süre bekle ve dondur
+  const handlePhotoLoad = useCallback(() => setLoadedAt(Date.now()), []);
+
+  // tracksViewChanges açıkken marker her karede yeniden çizilir. Görsel yüklenemezse (imza gelmedi,
+  // çevrimdışı, bozuk dosya) onLoad hiç çalışmaz ve harita sonsuza dek kasılırdı: bu yüzden yükleme
+  // bitince kısa, bitmezse uzun bir süre sonra kesin olarak dondurulur.
+  useEffect(() => {
+    if (!tracksViewChanges) return;
+    const timer = setTimeout(() => setTracksViewChanges(false), loadedAt ? 400 : TRACKING_GIVE_UP_MS);
+    return () => clearTimeout(timer);
+  }, [tracksViewChanges, loadedAt, renderedUri]);
 
   return (
     <Marker
@@ -53,6 +64,7 @@ function PhotoMarkerPinBase({ photo, avatarUrl, onSelect }: PhotoMarkerPinProps)
             contentFit="cover"
             cachePolicy="memory-disk"
             onLoad={handlePhotoLoad}
+            onError={() => setLoadedAt(Date.now())}
             transition={0}
           />
           {avatarUrl ? (

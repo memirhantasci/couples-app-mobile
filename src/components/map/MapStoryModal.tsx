@@ -47,32 +47,63 @@ function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: num
   return Math.round(R * c);
 }
 
+/** Pinler arasındaki en uzun mesafe (km). Az pinde tüm çiftler; çok pinde yalnızca uç noktalar (O(N²) olmasın). */
+function maxDistanceKm(pins: readonly { latitude: number; longitude: number }[]): number {
+  let candidates = pins;
+  if (pins.length > EXACT_PAIRWISE_LIMIT) {
+    // Çap, dört yönün (enlem, boylam ve iki çapraz) uç noktaları arasında oluşur
+    const keys = [
+      (p: { latitude: number; longitude: number }) => p.latitude,
+      (p: { latitude: number; longitude: number }) => p.longitude,
+      (p: { latitude: number; longitude: number }) => p.latitude + p.longitude,
+      (p: { latitude: number; longitude: number }) => p.latitude - p.longitude,
+    ];
+    const picked = new Set<{ latitude: number; longitude: number }>();
+    for (const key of keys) {
+      let lo = pins[0];
+      let hi = pins[0];
+      for (const p of pins) {
+        if (key(p) < key(lo)) lo = p;
+        if (key(p) > key(hi)) hi = p;
+      }
+      picked.add(lo);
+      picked.add(hi);
+    }
+    candidates = [...picked];
+  }
+  let max = 0;
+  for (let i = 0; i < candidates.length; i++) {
+    for (let j = i + 1; j < candidates.length; j++) {
+      const d = calculateDistanceKm(
+        candidates[i].latitude,
+        candidates[i].longitude,
+        candidates[j].latitude,
+        candidates[j].longitude
+      );
+      if (d > max) max = d;
+    }
+  }
+  return max;
+}
+
+const EXACT_PAIRWISE_LIMIT = 150;
+
 export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalProps) {
   const [isSharing, setIsSharing] = useState(false);
   const shareCardRef = useRef<View>(null);
 
   // Harita analiz hesaplamaları
   const stats = useMemo(() => {
-    // Pin yoksa uydurma rakam göstermek yerine boş durum çizilir.
-    if (!pins || pins.length === 0) return null;
+    // Pin yoksa uydurma rakam göstermek yerine boş durum çizilir. Modal kapalıyken hiçbir şey hesaplanmaz
+    // (pinler değiştikçe tüm çiftler arası mesafe döngüsü arka planda boşuna çalışıyordu).
+    if (!visible || !pins || pins.length === 0) return null;
 
     const totalPins = pins.length;
     const locationNames = Array.from(
       new Set(pins.map((p) => p.location_name).filter(Boolean))
     ) as string[];
 
-    let maxDist = 0;
-    for (let i = 0; i < pins.length; i++) {
-      for (let j = i + 1; j < pins.length; j++) {
-        const d = calculateDistanceKm(
-          pins[i].latitude,
-          pins[i].longitude,
-          pins[j].latitude,
-          pins[j].longitude
-        );
-        if (d > maxDist) maxDist = d;
-      }
-    }
+    const maxDist = maxDistanceKm(pins);
 
     const firstPlace = pins[pins.length - 1]?.location_name || "İlk Durağımız";
     const latestPlace = pins[0]?.location_name || "Son Rotamız";
@@ -89,7 +120,7 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
           ? `Aşkımız ${cityCount} şehirde ve ${maxDist} kilometrede büyüdü.`
           : `Birlikte ${totalPins} unutulmaz noktada anı bıraktık.`,
     };
-  }, [pins]);
+  }, [pins, visible]);
 
   const handleShare = async () => {
     if (!shareCardRef.current || !stats) return;
