@@ -277,6 +277,8 @@ export const OurStarScreen: React.FC = () => {
   const skyTiles = useSkyTileStream();
   const { prefetch: prefetchSkyTiles, refresh: refreshSkyTiles } = skyTiles;
   const [selectedMacroStar, setSelectedMacroStar] = useState<ViewportStarItem | null>(null);
+  // Evren aramasında son seçilen sonucun sırası: geç gelen eski bir sonucun kaydı kartı ezmesin
+  const searchSelectionRef = useRef(0);
   // Aktivite puanından gelen yıldız ışığı (yalnızca kendi çiftimizin gerçek puanı).
   const [myBrightness, setMyBrightness] = useState<MyStarBrightness | null>(null);
   // Gök kubbede seçilen bağlı (arkadaş) yıldızın gerçek ışığı ve puanı.
@@ -1848,29 +1850,34 @@ export const OurStarScreen: React.FC = () => {
             (s) => s.catalog_code === item.catalog_code
           );
           // 2. Check if already loaded in the streamed sky tiles
-          const existing = skyTiles.stars.find(
+          const existing = solarObj ?? skyTiles.stars.find(
             (s) => s.catalog_code === item.catalog_code
           );
+          const requestId = ++searchSelectionRef.current;
+          setSelectedMacroStar(existing ?? null);
 
-          const starItem: ViewportStarItem =
-            solarObj ||
-            existing || {
-              catalog_id: Number(item.entity_id) || 0,
-              catalog_code: item.catalog_code,
-              common_name: item.display_name,
-              ra: Number(item.ra),
-              dec: Number(item.dec),
-              magnitude: 2.0,
-              spectral_type: 'G' as const,
-              base_color: '#FDE68A',
-              is_claimed: true,
-              is_mine: item.is_own_star,
-              custom_name: item.display_name,
-              luminosity_level: 1.0,
-              resonance_active: false,
+          // 3. Yoksa yıldızın gerçek kaydı sunucudan okunur; kart o gelince açılır. Arama sonucunun
+          // entity_id'si türe göre katalog kimliği ya da çift yıldızının / ötegezegenin UUID'sidir:
+          // ondan kurulan tahmini kayıt (catalog_id 0, hep "tescilli") bağlantı isteğini bozuyor ve
+          // boştaki yıldızları tescilli gösteriyordu.
+          if (!existing) {
+            const showMissing = () => {
+              if (searchSelectionRef.current !== requestId) return;
+              showToast('Yıldızın bilgileri alınamadı; gökyüzünde yıldıza dokunarak açabilirsin.');
             };
-
-          setSelectedMacroStar(starItem);
+            starService
+              .getStarForSearchResult(item)
+              .then((star) => {
+                if (searchSelectionRef.current !== requestId) return;
+                if (!star) {
+                  showMissing();
+                  return;
+                }
+                // Bu arada gökyüzünde başka bir yıldız seçildiyse ona dokunulmaz
+                setSelectedMacroStar((current) => current ?? star);
+              })
+              .catch(showMissing);
+          }
 
           setFlyToTarget({
             centerRa: Number(item.ra),

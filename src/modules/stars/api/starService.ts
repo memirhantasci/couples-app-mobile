@@ -701,6 +701,36 @@ export async function searchCelestialUniverse(query: string): Promise<CelestialS
   });
 }
 
+/** Arama sonucunun çevresinde okunan pencerenin yarı genişliği (derece). */
+const SEARCH_RESULT_WINDOW_DEG = 0.05;
+/** Bu yakınlıkta get_stars_in_viewport parlaklık sınırı uygulamaz (bkz. v_mag_limit). */
+const SEARCH_RESULT_ZOOM = 10;
+
+/**
+ * Evren aramasında seçilen yıldızın gök kubbedeki kaydı: haritanın kullandığı verinin aynısı
+ * (gerçek catalog_id, sahiplik, maskeli isim, ışık). Arama sonucunun `entity_id`'si türe göre
+ * katalog kimliği (common / catalog) ya da çift yıldızının / ötegezegenin UUID'sidir; sayıya
+ * çevrilemez. Yıldız bu yüzden konumundaki dar bir pencereden, katalog koduyla okunur.
+ * Bulunamazsa `null`.
+ */
+export async function getStarForSearchResult(
+  result: CelestialSearchResult,
+): Promise<ViewportStarItem | null> {
+  const ra = Number(result.ra);
+  const dec = Number(result.dec);
+  if (!Number.isFinite(ra) || !Number.isFinite(dec)) return null;
+  const wrapRa = (value: number) => ((value % 360) + 360) % 360;
+  // RA 0°'ı kesen pencerede minRa > maxRa olur; sunucu bunu sarmalı aralık olarak okur
+  const stars = await fetchStarsInViewport({
+    minRa: wrapRa(ra - SEARCH_RESULT_WINDOW_DEG),
+    maxRa: wrapRa(ra + SEARCH_RESULT_WINDOW_DEG),
+    minDec: Math.max(-90, dec - SEARCH_RESULT_WINDOW_DEG),
+    maxDec: Math.min(90, dec + SEARCH_RESULT_WINDOW_DEG),
+    zoomLevel: SEARCH_RESULT_ZOOM,
+  });
+  return stars.find((star) => star.catalog_code === result.catalog_code) ?? null;
+}
+
 /**
  * Hedef yıldıza bağlantı isteği gönderir (Atomik RPC, simetrik lock & 3 limit).
  */
@@ -953,6 +983,7 @@ export const starService = {
   searchStarByName,
   findStarByPairingCode,
   searchCelestialUniverse,
+  getStarForSearchResult,
   requestStarConnection,
   respondToConnection,
   removeStarConnection,
