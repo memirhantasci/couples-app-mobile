@@ -13,10 +13,12 @@ import { LegalModal } from "@/components/legal/LegalModal";
 import { LegalDocType } from "@/constants/legalTexts";
 import { toast } from "@/lib/toast";
 import { suppressPremiumCelebration } from "@/lib/premiumCelebration";
+import { purchaseButtonLabel } from "@/lib/trialLabel";
+import { LazyDemoActionModal } from "@/components/ui/lazyMount";
 
 export default function PaywallScreen() {
   const router = useRouter();
-  const { refreshProfile } = useAuth();
+  const { refreshProfile, isDemoMode } = useAuth();
   const { theme, isLight } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -25,6 +27,7 @@ export default function PaywallScreen() {
   const [purchasing, setPurchasing] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null);
 
+  const [demoPromptVisible, setDemoPromptVisible] = useState(false);
   const [legalModalVisible, setLegalModalVisible] = useState(false);
   const [selectedLegalDoc, setSelectedLegalDoc] = useState<LegalDocType>("subscription");
 
@@ -55,6 +58,12 @@ export default function PaywallScreen() {
 
   const handlePurchase = async () => {
     if (!selectedPackage) return;
+    // Demo (misafir) oturumunun sunucuda hesabı yoktur: satın alma ücretlendirilir ama abonelik hiçbir
+    // hesaba tanımlanamaz. Önce hesap açtırılır.
+    if (isDemoMode) {
+      setDemoPromptVisible(true);
+      return;
+    }
     setPurchasing(true);
     // Satın alan cihazda ayrıca partner kutlaması çıkmasın (burada kendi "Tebrikler" bildirimi var)
     suppressPremiumCelebration();
@@ -74,6 +83,10 @@ export default function PaywallScreen() {
   };
 
   const handleRestore = async () => {
+    if (isDemoMode) {
+      setDemoPromptVisible(true);
+      return;
+    }
     setPurchasing(true);
     try {
       suppressPremiumCelebration();
@@ -224,7 +237,7 @@ export default function PaywallScreen() {
                   {purchasing ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text style={styles.ctaBtnText}>14 Gün Ücretsiz Dene</Text>
+                    <Text style={styles.ctaBtnText}>{purchaseButtonLabel(selectedPackage)}</Text>
                   )}
                 </TouchableOpacity>
 
@@ -264,6 +277,12 @@ export default function PaywallScreen() {
         )}
       </ScrollView>
 
+      <LazyDemoActionModal
+        visible={demoPromptVisible}
+        onClose={() => setDemoPromptVisible(false)}
+        title="Premium İçin Hesap Gerekli 👑"
+        description="Abonelik hesabınıza tanımlanır. Satın almadan önce ücretsiz hesabınızı oluşturun veya giriş yapın."
+      />
       <LegalModal
         visible={legalModalVisible}
         onClose={() => setLegalModalVisible(false)}

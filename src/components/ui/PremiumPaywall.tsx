@@ -148,7 +148,7 @@ export function PremiumPaywall({
           </TouchableOpacity>
 
           <Text style={[styles.trialText, { color: theme.textMuted }]}>
-            14 gün ücretsiz dene • İstediğin zaman iptal et
+            İstediğin zaman iptal et
           </Text>
           <TouchableOpacity 
             onPress={() => {
