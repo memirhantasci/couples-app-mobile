@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { invalidateForNotification, invalidateOnResume } from "@/lib/notificationQueries";
 import { AppState } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Notifications from "expo-notifications";
@@ -200,8 +201,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
 
         // Partnerin yaptığı değişiklik (mektup, anı, ruh hali…) ekranlara önbellek süresi dolmadan yansısın:
-        // etkin sorgular hemen yenilenir, diğerleri bir sonraki açılışta taze çekilir.
-        queryClient.invalidateQueries().catch(() => {});
+        // yalnızca bu bildirim türünün verisi yenilenir (bkz. notificationQueries).
+        invalidateForNotification(queryClient, deducedType);
 
         // Uygulama açıkken mektup bildirimi gelirse kuş karşılaması hemen oynar (LetterArrivalHost);
         // mektuplar ekranındaysa o sessizce "görüldü" sayar.
@@ -229,8 +230,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (handledResponseRef.current === key) return;
     handledResponseRef.current = key;
 
-    queryClient.invalidateQueries().catch(() => {});
     const responseData = lastResponse.notification.request.content.data as any;
+    invalidateForNotification(queryClient, responseData?.type);
     // Mektup bildirimine dokunan kullanıcı mektuplar ekranına gidiyor: kuş karşılaması gerekmez
     if (responseData?.type === "letter" && userId) markLettersSeen(userId);
 
@@ -261,7 +262,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (state !== "active") return;
       clearNotificationBadge();
       if (backgroundedAt !== null && Date.now() - backgroundedAt > 30 * 1000) {
-        queryClient.invalidateQueries().catch(() => {});
+        invalidateOnResume(queryClient);
       }
       backgroundedAt = null;
     });
