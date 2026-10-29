@@ -861,14 +861,13 @@ export async function checkConnectionLimit(coupleId: number): Promise<boolean> {
  */
 export async function getStarIdByCatalogId(catalogId: number): Promise<string | null> {
   return withSmartRetry(async () => {
-    const { data, error } = await supabase
-      .from('couple_stars')
-      .select('id')
-      .eq('catalog_id', catalogId)
-      .maybeSingle();
+    // couple_stars yalnızca kendi çiftine okunabilir; başka çiftin yıldızının kimliği dar bir RPC ile alınır
+    const { data, error } = await supabase.rpc('get_star_id_by_catalog_id', {
+      p_catalog_id: catalogId,
+    });
 
     if (error || !data) return null;
-    return (data as { id: string }).id;
+    return data as string;
   });
 }
 

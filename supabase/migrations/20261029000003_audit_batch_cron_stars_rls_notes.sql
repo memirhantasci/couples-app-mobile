@@ -16,7 +16,7 @@
 --      burada güvence için yinelenir. Haritadan seçilen yıldızın kimliği için dar bir RPC eklenir.
 --
 -- 6.7  008'deki "Insert own data" / "Update own data" yalnızca user_id'yi doğruluyordu; başka
---      çiftin couple_id'si ile kayıt eklenebiliyordu. Her iki koşul da zorunlu kılınır.
+--      çiftin couple_id'si ile kayıt eklenebiliyordu. couple_id artık NULL ya da kendi çifti olmalı.
 -- ============================================================================
 
 BEGIN;
@@ -154,17 +154,17 @@ BEGIN
       SELECT 1 FROM information_schema.columns
        WHERE table_schema = 'public' AND table_name = t AND column_name = 'couple_id'
     ) THEN
+      -- couple_id NULL kalabilir: günlük notlar couple_id'siz eklenir, mod eşleşmeden önce de
+      -- seçilebilir. NULL satırı hiçbir çift okuyamaz; engellenen yalnızca başka çiftin kimliğidir.
       EXECUTE format('DROP POLICY IF EXISTS "Insert own data" ON public.%I', t);
-      -- 018 daily_notes için couple_id'siz kayda izin veren ayrı bir politika koymuştu; o da kapanır
-      EXECUTE format('DROP POLICY IF EXISTS "Insert own couple daily notes" ON public.%I', t);
       EXECUTE format(
-        'CREATE POLICY "Insert own data" ON public.%I FOR INSERT TO authenticated WITH CHECK (user_id = (SELECT auth.uid()) AND couple_id = (SELECT public.get_my_couple_id()))',
+        'CREATE POLICY "Insert own data" ON public.%I FOR INSERT TO authenticated WITH CHECK (user_id = (SELECT auth.uid()) AND (couple_id IS NULL OR couple_id = (SELECT public.get_my_couple_id())))',
         t
       );
 
       EXECUTE format('DROP POLICY IF EXISTS "Update own data" ON public.%I', t);
       EXECUTE format(
-        'CREATE POLICY "Update own data" ON public.%I FOR UPDATE TO authenticated USING (user_id = (SELECT auth.uid()) AND couple_id = (SELECT public.get_my_couple_id())) WITH CHECK (user_id = (SELECT auth.uid()) AND couple_id = (SELECT public.get_my_couple_id()))',
+        'CREATE POLICY "Update own data" ON public.%I FOR UPDATE TO authenticated USING (user_id = (SELECT auth.uid())) WITH CHECK (user_id = (SELECT auth.uid()) AND (couple_id IS NULL OR couple_id = (SELECT public.get_my_couple_id())))',
         t
       );
     END IF;

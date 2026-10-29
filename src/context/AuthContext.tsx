@@ -182,8 +182,15 @@ function showPendingDeletionPrompt(scheduledFor: string, signOut: () => Promise<
       {
         text: "Silmeyi İptal Et",
         onPress: async () => {
-          const { error } = await supabase.rpc("cancel_account_deletion");
-          if (error) {
+          let failed = false;
+          try {
+            const { error } = await supabase.rpc("cancel_account_deletion");
+            failed = !!error;
+          } catch {
+            // Ağ katmanı hatası (fırlatılan) da aynı şekilde ele alınır; yakalanmamış Promise reddi oluşmasın
+            failed = true;
+          }
+          if (failed) {
             toast.error("Silme iptal edilemedi. Bağlantını kontrol edip tekrar dene.");
             showPendingDeletionPrompt(scheduledFor, signOut);
             return;
@@ -459,7 +466,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Oturum bitti (çıkış, hesap silme, geçersiz token): widget'taki önceki hesap verisi silinsin
         clearCoupleWidget().catch(() => {});
         setIsLoading(false);
-        RevenueCatService.logOut();
+        RevenueCatService.logOut().catch(() => {});
       } else {
         // Yeni bir hesap için profil henüz çekilmediyse (ve önbellekte yoksa) yönlendirme profili beklesin
         if (profileFetchedForUser.current !== newSession.user.id && !hasProfileRef.current) {
@@ -581,7 +588,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     channel.on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'users', filter: `id=eq.${session.user.id}` },
-      () => refreshProfile()
+      () => { refreshProfile().catch(() => {}); }
     );
 
     // Listen to changes on the couple's row
@@ -589,7 +596,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       channel.on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'couples', filter: `id=eq.${profile.coupleId}` },
-        () => refreshProfile()
+        () => {
+          refreshProfile().catch(() => {});
+          // Partner ilişki tarihlerini değiştirdiğinde ya da premium aldığında bu telefondaki gün sayacı,
+          // yıl dönümleri, premium'a bağlı içerikler ve aşk skoru da güncellensin
+          for (const key of ["home_dashboard", "calendar_data", "memories", "photo_archive", "love_score", "couple_avatars"]) {
+            queryClient.invalidateQueries({ queryKey: [key] });
+          }
+        }
       );
 
       // Partnerin profil fotoğrafı değişince her iki telefonda da avatarlar anında yenilensin

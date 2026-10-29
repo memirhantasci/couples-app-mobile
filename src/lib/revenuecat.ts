@@ -11,8 +11,24 @@ const API_KEYS = {
 
 export class RevenueCatService {
   static isInitialized = false;
+  private static initPromise: Promise<void> | null = null;
 
-  static async initialize() {
+  /**
+   * Tek seferlik başlatma. AuthContext açılışta JS iş parçacığını yormamak için 2 sn gecikmeyle
+   * çağırıyor; bu sürede açılan paywall ya da girişte çağrılan logIn sessizce boş dönmesin diye her
+   * genel metot önce bunu bekler. configure iki kez çalışmaz.
+   */
+  static initialize(): Promise<void> {
+    if (!this.initPromise) {
+      this.initPromise = this.configure().then(() => {
+        // Başarısız başlatma kalıcı sayılmaz; sonraki çağrı yeniden dener
+        if (!this.isInitialized) this.initPromise = null;
+      });
+    }
+    return this.initPromise;
+  }
+
+  private static async configure() {
     try {
       if (API_KEYS.apple.includes("xxxx") || API_KEYS.google.includes("xxxx")) {
         logger.warn("RevenueCat API keys are not configured. Skipping initialization.");
@@ -33,6 +49,7 @@ export class RevenueCatService {
   }
 
   static async logIn(userId: string) {
+    await this.initialize();
     if (!this.isInitialized) return null;
     try {
       const { customerInfo } = await Purchases.logIn(userId);
@@ -54,6 +71,7 @@ export class RevenueCatService {
   }
 
   static async presentCodeRedemptionSheet() {
+    await this.initialize();
     if (!this.isInitialized) return;
     if (Platform.OS === 'ios') {
       try {
@@ -65,6 +83,7 @@ export class RevenueCatService {
   }
 
   static async getOfferings() {
+    await this.initialize();
     if (!this.isInitialized) return [];
     try {
       const offerings = await Purchases.getOfferings();
@@ -79,6 +98,7 @@ export class RevenueCatService {
   }
 
   static async purchasePackage(rcPackage: PurchasesPackage) {
+    await this.initialize();
     if (!this.isInitialized) return null;
     try {
       const { customerInfo } = await Purchases.purchasePackage(rcPackage);
@@ -94,6 +114,7 @@ export class RevenueCatService {
   }
 
   static async restorePurchases() {
+    await this.initialize();
     if (!this.isInitialized) return null;
     try {
       const customerInfo = await Purchases.restorePurchases();
@@ -106,6 +127,7 @@ export class RevenueCatService {
   }
 
   static async getCustomerInfo() {
+    await this.initialize();
     if (!this.isInitialized) return null;
     try {
       const customerInfo = await Purchases.getCustomerInfo();

@@ -52,6 +52,10 @@ export async function fetchLetters(params: {
     supabase.from("users").select("id, username, display_name").eq("couple_id", coupleId),
   ]);
 
+  // Ağ hatasında boş mektup kutusu başarılı veri olarak önbelleğe alınmasın
+  const firstError = receivedRes.error || sentRes.error || usersRes.error;
+  if (firstError) throw firstError;
+
   const userMap = (usersRes.data || []).reduce((acc: any, u: any) => {
     acc[u.id] = u;
     return acc;

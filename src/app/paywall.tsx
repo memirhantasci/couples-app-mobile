@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { useRouter } from "expo-router";
@@ -36,17 +36,27 @@ export default function PaywallScreen() {
     setLegalModalVisible(true);
   };
 
-  useEffect(() => {
-    const fetchOfferings = async () => {
-      const pkgs = await RevenueCatService.getOfferings();
-      setPackages(pkgs);
-      if (pkgs.length > 0) {
-        setSelectedPackage(pkgs[0]); // default to first package (often annual)
-      }
-      setLoading(false);
-    };
-    fetchOfferings();
+  const fetchOfferings = useCallback(async () => {
+    const pkgs = await RevenueCatService.getOfferings();
+    setPackages(pkgs);
+    if (pkgs.length > 0) {
+      setSelectedPackage(pkgs[0]); // default to first package (often annual)
+    }
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    const load = async () => {
+      await fetchOfferings();
+    };
+    load();
+  }, [fetchOfferings]);
+
+  // Mağazaya bağlanılamadığında paketler yeniden istenir
+  const retryOfferings = () => {
+    setLoading(true);
+    fetchOfferings();
+  };
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -184,9 +194,14 @@ export default function PaywallScreen() {
                 <Text style={{ color: theme.textSecondary, textAlign: "center", marginBottom: 12, fontSize: 13.5 }}>
                   Şu anda mağazaya bağlanılamıyor veya paketler yüklenemedi. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.
                 </Text>
-                <TouchableOpacity onPress={handleBack} style={{ paddingVertical: 8, paddingHorizontal: 16, backgroundColor: theme.accent, borderRadius: 8 }}>
-                  <Text style={{ color: "#fff", fontWeight: "bold" }}>Geri Dön</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <TouchableOpacity onPress={retryOfferings} style={{ paddingVertical: 8, paddingHorizontal: 16, backgroundColor: theme.accent, borderRadius: 8 }}>
+                    <Text style={{ color: "#fff", fontWeight: "bold" }}>Tekrar Dene</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleBack} style={{ paddingVertical: 8, paddingHorizontal: 16, borderWidth: 1, borderColor: theme.cardBorder, borderRadius: 8 }}>
+                    <Text style={{ color: theme.textSecondary, fontWeight: "bold" }}>Geri Dön</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             ) : (
               packages.map((pkg) => {
@@ -233,26 +248,25 @@ export default function PaywallScreen() {
             )}
 
             {packages.length > 0 && (
-              <>
-                <TouchableOpacity 
-                  style={[styles.ctaBtn, { backgroundColor: theme.accent }, purchasing && { opacity: 0.7 }]}
-                  onPress={handlePurchase}
-                  disabled={purchasing || !selectedPackage}
-                  activeOpacity={0.85}
-                >
-                  {purchasing ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={styles.ctaBtnText}>{purchaseButtonLabel(selectedPackage)}</Text>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.restoreBtn} onPress={handleRestore} disabled={purchasing}>
-                  <ShieldCheck color={theme.textMuted} size={16} />
-                  <Text style={[styles.restoreText, { color: theme.textMuted }]}>Satın Alımları Geri Yükle</Text>
-                </TouchableOpacity>
-              </>
+              <TouchableOpacity
+                style={[styles.ctaBtn, { backgroundColor: theme.accent }, purchasing && { opacity: 0.7 }]}
+                onPress={handlePurchase}
+                disabled={purchasing || !selectedPackage}
+                activeOpacity={0.85}
+              >
+                {purchasing ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.ctaBtnText}>{purchaseButtonLabel(selectedPackage)}</Text>
+                )}
+              </TouchableOpacity>
             )}
+
+            {/* Paketler yüklenemese de her zaman görünür (Apple 3.1.1: geri yükleme her zaman erişilebilir olmalı) */}
+            <TouchableOpacity style={styles.restoreBtn} onPress={handleRestore} disabled={purchasing}>
+              <ShieldCheck color={theme.textMuted} size={16} />
+              <Text style={[styles.restoreText, { color: theme.textMuted }]}>Satın Alımları Geri Yükle</Text>
+            </TouchableOpacity>
 
             {/* Yasal Abonelik ve İade Bilgilendirmesi */}
             <View

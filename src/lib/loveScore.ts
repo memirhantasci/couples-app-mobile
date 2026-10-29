@@ -81,10 +81,11 @@ export async function computeLoveScore(
     if (userId && partnerId) {
       userIds = [userId, partnerId];
     } else {
-      const { data: coupleUsers } = await supabase
+      const { data: coupleUsers, error: coupleUsersError } = await supabase
         .from("users")
         .select("id")
         .eq("couple_id", coupleId);
+      if (coupleUsersError) throw coupleUsersError;
       userIds = (coupleUsers ?? []).map((u) => u.id);
       if (userId && !userIds.includes(userId)) userIds.push(userId);
       if (partnerId && !userIds.includes(partnerId)) userIds.push(partnerId);
@@ -97,8 +98,7 @@ export async function computeLoveScore(
       lettersRes,
       medicinesRes,
       periodLogsRes,
-      todayNotesRes,
-      calNotesRes,
+      noteActivityRes,
       moodLogsRes,
       recentPhotosRes,
     ] = await Promise.all([
@@ -137,23 +137,10 @@ export async function computeLoveScore(
       // hesaplanır. Satırlar okunsaydı ücretsiz erkek partner (RLS) bileşeni görmez, iki partner farklı skor görürdü.
       supabase.rpc("get_couple_period_activity", { p_since: sixtyDaysAgo, p_month_start: thisMonthStart }),
 
-      // Günlük Notlar (Bugün)
-      userIds.length > 0
-        ? supabase
-            .from("daily_notes")
-            .select("id, user_id")
-            .in("user_id", userIds)
-            .eq("date", today)
-        : Promise.resolve({ data: [] as any[], error: null }),
-
-      // Takvim Notları (Son 7 gün)
-      userIds.length > 0
-        ? supabase
-            .from("calendar_notes")
-            .select("id, user_id")
-            .in("user_id", userIds)
-            .gte("date", sevenDaysAgo)
-        : Promise.resolve({ data: [] as any[], error: null }),
+      // Günlük Notlar (bugün) ve Takvim Notları (son 7 gün): yalnızca kaç partnerin yazdığı, sunucuda
+      // sayılır. Günlükler kişisel olduğundan satırlar okunsaydı her partner yalnızca kendi notunu görür,
+      // iki taraf farklı skor görür ve "ikisi de yazdı" puanı hiç verilemezdi.
+      supabase.rpc("get_couple_note_activity", { p_today: today, p_since: sevenDaysAgo }),
 
       // Mood seçimi (Bugün)
       userIds.length > 0
@@ -173,6 +160,19 @@ export async function computeLoveScore(
         .order("created_at", { ascending: false })
         .limit(10),
     ]);
+
+    // Ağ hatasında Supabase fırlatmaz, { data: null, error } döner. Bu boş veriyle hesaplanan düşük
+    // skor diskteki gerçek skorun üzerine yazılmasın: hata catch'e iletilir, önbellekteki skor kullanılır.
+    const queryError =
+      coupleRes.error ||
+      meetingsRes.error ||
+      lettersRes.error ||
+      medicinesRes.error ||
+      periodLogsRes.error ||
+      noteActivityRes.error ||
+      moodLogsRes.error ||
+      recentPhotosRes.error;
+    if (queryError) throw queryError;
 
     // Premium durumunu çift seviyesinde belirle
     const coupleData = coupleRes?.data;
@@ -202,12 +202,12 @@ export async function computeLoveScore(
 
     // ── 2. Günlük Notlar (Bugün) ─── Maks: 20
     maxEarnablePoints += 20;
-    const todayNotes = todayNotesRes.data ?? [];
-    const noteUsers = new Set(todayNotes.map((n) => n.user_id));
-    if (noteUsers.size >= 2) {
+    const noteActivity = Array.isArray(noteActivityRes.data) ? noteActivityRes.data[0] : noteActivityRes.data;
+    const dailyAuthors = Number(noteActivity?.daily_authors_today ?? 0);
+    if (dailyAuthors >= 2) {
       earnedPoints += 20;
       breakdown["daily_notes"] = 20;
-    } else if (noteUsers.size === 1) {
+    } else if (dailyAuthors === 1) {
       earnedPoints += 10;
       breakdown["daily_notes"] = 10;
     } else {
@@ -216,12 +216,11 @@ export async function computeLoveScore(
 
     // ── 3. Takvim Notları (Son 7 gün) ─── Maks: 15
     maxEarnablePoints += 15;
-    const calNotes = calNotesRes.data ?? [];
-    const calUsers = new Set(calNotes.map((c) => c.user_id));
-    if (calUsers.size >= 2) {
+    const calendarAuthors = Number(noteActivity?.calendar_authors_recent ?? 0);
+    if (calendarAuthors >= 2) {
       earnedPoints += 15;
       breakdown["calendar_notes"] = 15;
-    } else if (calUsers.size === 1) {
+    } else if (calendarAuthors === 1) {
       earnedPoints += 8;
       breakdown["calendar_notes"] = 8;
     } else {
@@ -277,12 +276,13 @@ export async function computeLoveScore(
     if (coupleMedicines.length > 0) {
       maxEarnablePoints += 15;
       const medicineIds = coupleMedicines.map((m) => m.id);
-      const { data: todayLogs } = await supabase
+      const { data: todayLogs, error: medicineLogsError } = await supabase
         .from("medicine_logs")
         .select("medicine_id, status")
         .eq("couple_id", coupleId)
         .eq("date", today)
         .in("medicine_id", medicineIds);
+      if (medicineLogsError) throw medicineLogsError;
 
       const takenCount = (todayLogs ?? []).filter((l) => l.status === "DRANK").length;
       const skippedCount = (todayLogs ?? []).filter((l) => l.status === "MISSED").length;
@@ -342,7 +342,9 @@ export async function computeLoveScore(
 
     return result;
   } catch {
-    // Hata durumunda güvenli taban puan
+    // Hata (ör. çevrimdışı): bilinen son skor gösterilir; o da yoksa güvenli taban puan
+    const cached = await getCachedLoveScore(coupleId);
+    if (cached) return cached;
     return {
       score: 50,
       subtitle: getSubtitle(50),

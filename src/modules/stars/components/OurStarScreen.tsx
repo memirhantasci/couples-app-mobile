@@ -580,8 +580,13 @@ export const OurStarScreen: React.FC = () => {
           return;
         }
         showToast('Yıldız verileri yüklenemedi. Lütfen bağlantınızı kontrol edip tekrar deneyin.');
-        setStarDetails(null);
-        setViewMode('macro');
+        // Önbellekten çizilmiş ya da zaten ekranda olan yıldız (silent) geçici bir ağ hatası yüzünden
+        // silinip kullanıcı yıldızı yokmuş gibi genel gökyüzüne atılmaz; yalnızca gösterilecek hiçbir
+        // veri yoksa macro görünüme geçilir
+        if (!silent) {
+          setStarDetails(null);
+          setViewMode('macro');
+        }
       } finally {
         if (!isSilent) {
           setIsLoading(false);

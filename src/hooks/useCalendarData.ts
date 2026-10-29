@@ -113,7 +113,7 @@ export async function fetchCalendarData(params: CalendarFetchParams) {
           .gte("taken_date", startDate)
           .lte("taken_date", endDate)
           .order("taken_time", { ascending: false })
-      : Promise.resolve({ data: [] }),
+      : Promise.resolve({ data: [], error: null }),
     supabase
       .from("meetings")
       .select("id, title, location_name, meeting_datetime, is_active, created_by")
@@ -128,13 +128,19 @@ export async function fetchCalendarData(params: CalendarFetchParams) {
           .eq("couple_id", coupleId)
           .gte("date", dayjs(startDate).subtract(PERIOD_DURATION_DAYS - 1, "day").format("YYYY-MM-DD"))
           .lte("date", endDate)
-      : Promise.resolve({ data: [] }),
+      : Promise.resolve({ data: [], error: null }),
     // '*' yerine sadece gerekli hafif sütunlar
     supabase
       .from("users")
       .select("id, display_name, username, avatar_url")
       .eq("couple_id", coupleId),
   ]);
+
+  // Ağ hatasında boş takvim "başarılı veri" olarak 5 dakika önbelleğe alınmasın: hata sorguya iletilir,
+  // ekranda önceki veri (placeholderData) kalır ve TanStack Query yeniden dener
+  const firstError =
+    notesRes.error || moodsRes.error || photosRes.error || meetingsRes.error || periodsRes.error || usersRes.error;
+  if (firstError) throw firstError;
 
   const userMap = (usersRes.data || []).reduce((acc: any, u: any) => {
     acc[u.id] = u;
@@ -184,11 +190,11 @@ export function prefetchCalendarData(queryClient: QueryClient, params: CalendarF
 }
 
 export function useCalendarData(params: CalendarFetchParams) {
-  const { coupleId, userId, isPremium, canSeePeriod, isDemoMode, anchorMonth } = params;
+  const { coupleId, isPremium, canSeePeriod, isDemoMode, anchorMonth } = params;
 
   return useQuery({
     queryKey: getCalendarQueryKey(coupleId, isPremium, canSeePeriod, isDemoMode, anchorMonth),
-    enabled: !!coupleId || !!userId || isDemoMode,
+    enabled: !!coupleId || isDemoMode,
     queryFn: () => fetchCalendarData(params),
     staleTime: 1000 * 60 * 5, // 5 dakika taze kalır
     gcTime: 1000 * 60 * 30, // 30 dakika hafızada tutulur
