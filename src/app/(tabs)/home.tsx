@@ -43,7 +43,7 @@ import { LoveMeter } from "@/components/home/LoveMeter";
 import { MoodSelector, MOODS } from "@/components/home/MoodSelector";
 import { DailyNoteCard } from "@/components/home/DailyNoteCard";
 import { MeetingCountdown, type Meeting } from "@/components/home/MeetingCountdown";
-import { PendingLettersCard, PendingLettersBadge } from "@/components/home/PendingLettersCard";
+import { PendingLettersBadge } from "@/components/home/PendingLettersCard";
 import { useHomeSpotlightTour } from "@/hooks/useHomeSpotlightTour";
 import { type SpotlightStep } from "@/components/tour/SpotlightTour";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
@@ -683,19 +683,25 @@ export default function HomeScreen() {
           {/* ─── COUPLE WRAPPED BANNER (Ayda 1 Kez Dönemsel) ─── */}
           {showWrappedBanner && isWrappedPeriod && (
             <TouchableOpacity
-              style={[styles.wrappedBanner, { borderColor: "rgba(255, 77, 109, 0.35)" }]}
+              style={[
+                styles.wrappedBanner,
+                {
+                  borderColor: theme.gender === "male" ? "rgba(77, 156, 255, 0.35)" : "rgba(255, 77, 109, 0.35)",
+                  shadowColor: theme.accent,
+                },
+              ]}
               onPress={() => setIsWrappedVisible(true)}
               activeOpacity={0.88}
             >
               <LinearGradient
-                colors={["#2A0E1F", "#170B18"]}
+                colors={theme.gender === "male" ? ["#0D1B2A", "#0B1320"] : ["#2A0E1F", "#170B18"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.wrappedGradient}
               >
                 <View style={styles.wrappedLeft}>
-                  <View style={styles.wrappedIconBadge}>
-                    <Sparkles size={16} color="#FF4D6D" />
+                  <View style={[styles.wrappedIconBadge, { backgroundColor: theme.pillAccentBg }]}>
+                    <Sparkles size={16} color={theme.accent} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.wrappedTitle}>{t("home.wrapped.title")}</Text>
@@ -703,8 +709,8 @@ export default function HomeScreen() {
                   </View>
                 </View>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <View style={styles.wrappedArrowCircle}>
-                    <ChevronRight size={18} color="#FF8FA3" />
+                  <View style={[styles.wrappedArrowCircle, { backgroundColor: theme.pillAccentBg }]}>
+                    <ChevronRight size={18} color={theme.accentLight} />
                   </View>
                   <TouchableOpacity
                     onPress={dismissWrappedBanner}
@@ -730,9 +736,6 @@ export default function HomeScreen() {
 
           {/* ─── 8. GÜNLÜK NOT ─── */}
           <DailyNoteCard existingNote={dashboardData?.currentNote} theme={theme} />
-
-          {/* ─── 9. BEKLEYEN MEKTUPLAR ─── */}
-          <PendingLettersCard letters={dashboardData?.pendingLetters || []} theme={theme} />
         </KeyboardAwareScrollView>
       </View>
       <LazySpotlightTour visible={isSpotlightVisible} steps={spotlightSteps} onClose={closeSpotlight} />

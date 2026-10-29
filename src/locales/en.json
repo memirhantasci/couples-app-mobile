@@ -1185,7 +1185,8 @@
       "items_other": "{{count}} Items",
       "meetupPlace": "Meetup City / Place"
     },
-    "shareInstagram": "Share on Instagram Story"
+    "shareInstagram": "Share on Instagram Story",
+    "shareError": "An error occurred while sharing the story image. Please try again."
   },
   "map": {
     "customLocation": "Custom Location",

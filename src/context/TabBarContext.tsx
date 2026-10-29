@@ -9,7 +9,7 @@ import { toast } from "@/lib/toast";
 import type { ParseKeys } from "i18next";
 import { useTranslation } from "react-i18next";
 
-export const TAB_STORAGE_KEY = "@couples_app_bottom_bar_tabs_v1";
+export const TAB_STORAGE_KEY = "@couples_app_bottom_bar_tabs_v2";
 
 export type TabKey =
   | "home"
@@ -106,11 +106,9 @@ export const ALL_TAB_DEFINITIONS: TabItemDefinition[] = [
 
 export const DEFAULT_TABS: TabKey[] = [
   "home",
-  "medicine",
   "calendar",
   "map",
   "letters",
-  "profile",
 ];
 
 interface TabBarContextValue {

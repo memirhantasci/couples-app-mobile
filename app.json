@@ -25,7 +25,11 @@
         "NSCameraUsageDescription": "Anılarına fotoğraf ekleyebilmek için kameraya erişmemiz gerekiyor.",
         "NSPhotoLibraryUsageDescription": "Anılarına fotoğraf ekleyebilmek için fotoğraf kütüphanesine erişmemiz gerekiyor.",
         "NSLocationWhenInUseUsageDescription": "Buluşma noktası seçerken mevcut konumunuzu haritada gösterebilmek için konum erişimi gereklidir.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": [
+          "instagram",
+          "instagram-stories"
+        ]
       }
     },
     "android": {

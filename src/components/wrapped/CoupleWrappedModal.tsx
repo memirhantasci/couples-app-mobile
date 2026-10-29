@@ -39,6 +39,7 @@ import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 import { CoupleWrappedData } from "@/utils/wrappedCalculator";
 import { AppTheme } from "@/lib/theme";
+import { appAlert } from "@/lib/dialog";
 import { useTranslation } from "react-i18next";
 
 const { width: SW, height: SH } = Dimensions.get("window");
@@ -69,6 +70,16 @@ export function CoupleWrappedModal({
   theme,
 }: CoupleWrappedModalProps) {
   const { t } = useTranslation();
+  const isMale = theme?.gender === "male";
+  const modalGradientColors = isMale
+    ? (["#0A0E17", "#0D182A", "#13233D", "#0A0E17"] as const)
+    : (["#0A0A0C", "#1F0C18", "#2E0A1F", "#0A0A0C"] as const);
+  const cardGradientColors = isMale
+    ? (["#0D1726", "#142238", "#0B111A"] as const)
+    : (["#1C1622", "#2B1425", "#160D1A"] as const);
+  const shareBtnColors = isMale
+    ? ([theme.accent, "#1D4ED8"] as const)
+    : (["#FF4D6D", "#E8002D"] as const);
   const [currentSlide, setCurrentSlide] = useState(0);
   // Aktif slaytın ilerleme çubuğu (0-100): UI thread'inde animasyonla ilerler. Eskiden 50 ms'de bir React state
   // güncelleniyor, tüm modal (4 slayt, görseller) saniyede 20 kez yeniden çiziliyordu.
@@ -123,20 +134,30 @@ export function CoupleWrappedModal({
         result: "tmpfile",
       });
 
+      if (!uri) throw new Error("Görüntü oluşturulamadı");
+      const fileUri = uri.startsWith("file://") ? uri : `file://${uri}`;
+
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, {
+        await Sharing.shareAsync(fileUri, {
           mimeType: "image/png",
           dialogTitle: t("wrapped.shareTitle"),
           UTI: "public.png",
+          anchor: {
+            x: SW / 2,
+            y: SH / 2,
+            width: 1,
+            height: 1,
+          },
         });
       } else {
         await Share.share({
-          url: uri,
+          url: fileUri,
           message: `${data?.romanticStatement} · Made with Couples App`,
         });
       }
     } catch (error) {
       console.warn("Share error:", error);
+      appAlert(t("common.error"), t("wrapped.shareError"));
     } finally {
       setIsSharing(false);
     }
@@ -149,7 +170,7 @@ export function CoupleWrappedModal({
       <View style={styles.backdrop}>
         {/* Arka Plan Gradient */}
         <LinearGradient
-          colors={["#0A0A0C", "#1F0C18", "#2E0A1F", "#0A0A0C"]}
+          colors={modalGradientColors}
           style={StyleSheet.absoluteFill}
         />
 
@@ -166,7 +187,7 @@ export function CoupleWrappedModal({
 
             <View style={styles.headerRow}>
               <View style={styles.periodBadge}>
-                <Sparkles size={13} color="#FF6B8B" />
+                <Sparkles size={13} color={theme.accent} />
                 <Text style={styles.periodText}>{data.periodTitle}</Text>
               </View>
               <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} style={styles.closeBtn}>
@@ -187,7 +208,7 @@ export function CoupleWrappedModal({
             {currentSlide === 0 && (
               <View style={styles.slideContent}>
                 <View style={styles.iconCircle}>
-                  <Heart size={38} color="#FF4D6D" fill="#FF4D6D" />
+                  <Heart size={38} color={theme.accent} fill={theme.accent} />
                 </View>
                 <Text style={styles.subHeading}>{t("wrapped.slides.storyTitle")}</Text>
                 <Text style={styles.bigStatNumber}>{data.daysTogether}</Text>
@@ -226,7 +247,7 @@ export function CoupleWrappedModal({
             {currentSlide === 2 && (
               <View style={styles.slideContent}>
                 <View style={styles.iconCircle}>
-                  <Mail size={36} color="#FF8FA3" />
+                  <Mail size={36} color={theme.accentLight} />
                 </View>
                 <Text style={styles.subHeading}>{t("wrapped.slides.wordsTitle")}</Text>
                 <View style={styles.twoColumnGrid}>
@@ -249,18 +270,18 @@ export function CoupleWrappedModal({
             {currentSlide === 3 && (
               <View style={styles.finalSlideWrapper}>
                 {/* Paylaşılacak Kart (Capture Target) */}
-                <View ref={shareCardRef} collapsable={false} style={styles.shareableCard}>
+                <View ref={shareCardRef} collapsable={false} style={[styles.shareableCard, { shadowColor: theme.accent, borderColor: isMale ? "rgba(77, 156, 255, 0.25)" : "rgba(255, 255, 255, 0.12)" }]}>
                   <LinearGradient
-                    colors={["#1C1622", "#2B1425", "#160D1A"]}
+                    colors={cardGradientColors}
                     style={StyleSheet.absoluteFill}
                   />
 
                   {/* Kart Üst Başlık */}
                   <View style={styles.cardHeader}>
                     <View style={styles.cardHeartIcon}>
-                      <Heart size={16} color="#FF4D6D" fill="#FF4D6D" />
+                      <Heart size={16} color={theme.accent} fill={theme.accent} />
                     </View>
-                    <Text style={styles.cardHeaderTitle}>COUPLE WRAPPED</Text>
+                    <Text style={[styles.cardHeaderTitle, { color: theme.accentLight }]}>COUPLE WRAPPED</Text>
                     <Text style={styles.cardPeriodBadge}>{data.periodTitle}</Text>
                   </View>
 
@@ -307,7 +328,7 @@ export function CoupleWrappedModal({
                   style={styles.shareActionBtn}
                 >
                   <LinearGradient
-                    colors={["#FF4D6D", "#E8002D"]}
+                    colors={shareBtnColors}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.shareBtnGradient}

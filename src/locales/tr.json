@@ -1185,7 +1185,8 @@
       "items_other": "{{count}} Adet",
       "meetupPlace": "Buluşulan Şehir / Yer"
     },
-    "shareInstagram": "Instagram Story’de Paylaş"
+    "shareInstagram": "Instagram Story’de Paylaş",
+    "shareError": "Hikaye görseli paylaşılırken bir sorun oluştu. Lütfen tekrar deneyin."
   },
   "map": {
     "customLocation": "Özel Konum",
