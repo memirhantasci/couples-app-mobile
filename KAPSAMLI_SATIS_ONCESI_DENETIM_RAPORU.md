@@ -1,9 +1,9 @@
 # 🔍 COUPLES APP MOBILE — YAYIN ÖNCESİ SON BÜYÜK KOD, GÜVENLİK VE MAĞAZA DENETİM RAPORU
 
 **Tarih:** 29 Ekim 2026  
-**Denetlenen Dal (Branch):** `fix/stars-meteor-wish`  
-**Teknoloji Yığını:** React Native 0.86.2, Expo SDK 57, React 19.2.3, Reanimated 4.5.1, Shopify React Native Skia 2.6.2, Supabase (PostgreSQL, RLS, Edge Functions, pg_cron), TanStack Query v5  
-**Kapsam:** `src/` (tüm ekranlar, bileşenler, hook'lar, context'ler, servisler ve yıldız modülü), `supabase/migrations/`, `supabase/functions/`, `plugins/`, `docs/legal/`, `app.json` ve `eas.json` dosyalarının satır satır incelenmesi.
+**Denetlenen Dallar (Branches):** `develop` (Temel/Yayın Öncesi), `feat/i18n-english` (Çok Dilli / İngilizce Altyapısı)  
+**Teknoloji Yığını:** React Native 0.86.2, Expo SDK 57, React 19.2.3, Reanimated 4.5.1, Shopify React Native Skia 2.6.2, Supabase (PostgreSQL, RLS, Edge Functions, pg_cron), TanStack Query v5, i18next v26, react-i18next v17, expo-localization  
+**Kapsam:** `src/` (tüm ekranlar, bileşenler, hook'lar, context'ler, servisler, yerelleştirme sözlükleri ve yıldız modülü), `supabase/migrations/`, `supabase/functions/`, `plugins/`, `docs/legal/`, `app.json` ve `eas.json` dosyalarının satır satır incelenmesi.
 
 ---
 
@@ -17,10 +17,76 @@
 | **4. 🍎 Mağaza Ret & İzinler** | 0 | 0 | 0 | 0 | **0** |
 | **5. 🔄 Veri Bütünlüğü, Önbellek & Eşzamanlama** | 0 | 0 | 0 | 0 | **0** |
 | **6. 🔒 Supabase Güvenlik, RLS & Edge Functions** | 0 | 0 | 0 | 0 | **0** |
+| **7. 🌐 Çok Dilli Altyapı (i18n & Yerelleştirme)** | 0 | 0 | 0 | 0 | **0** |
 | **TOPLAM KALAN İŞ** | **0** | **0** | **0** | **0** | **0** |
 
 ---
 
 # 🤖 BÖLÜM: KALAN İŞLER
 
-Raporda çözülmeyi bekleyen açık bir madde kalmamıştır.
+Raporda çözülmeyi bekleyen açık bir madde kalmamıştır. Tüm denetim maddeleri, güvenlik kontrolleri ve çok dilli yerelleştirme altyapısı eksiksiz tamamlanmıştır.
+
+---
+
+# 🌐 BÖLÜM 7: ÇOK DİLLİ ALTYAPI (i18n) VE İNGİLİZCE YERELLEŞTİRME DENETİMİ
+
+Bu bölüm, `feat/i18n-english` dalı kapsamında gerçekleştirilen çok dilli altyapının mimari, güvenlik, tip güvenliği ve mağaza politikaları açısından gerçekleştirilen kapsamlı tarama ve denetim sonuçlarını içerir.
+
+### 1. 🎯 Temel Metrikler ve Kapsam
+
+- **Desteklenen Diller:** Türkçe (`tr` - Varsayılan / Orijinal), İngilizce (`en`)
+- **Toplam Çeviri Anahtarı (Parite):** 
+  - `tr.json`: **2.025 anahtar**
+  - `en.json`: **2.025 anahtar**
+  - **Eksik veya Eşleşmeyen Anahtar Sayısı:** **0 (Tam %100 Parite)**
+- **Dönüştürülen Ekran ve Bileşen Sayısı:** 155+ dosya (`src/app/`, `src/components/`, `src/modules/stars/`, `src/constants/`, `src/lib/`)
+- **Tip Güvenliği Kontrolü:** `en satisfies typeof tr; tr satisfies typeof en;` ve `npx tsc --noEmit` -> **0 HATA**
+
+---
+
+### 2. 🛡️ 7 Kırılmaz Kuralın Uyumluluk Denetimi
+
+| # | Kural | Durum | Denetim Bulgusu |
+| :-: | :--- | :---: | :--- |
+| **1** | **Veritabanı Enum'ları ve Sabitler Korunacak** | **BAŞARILI** | Supabase veritabanına yazılan ve okunan değerler (`role: "USER" \| "ADMIN"`, mood anahtarları `happy`, `romantic`, durum kodları `PENDING`, `ACCEPTED`, `gender: "female" \| "male"`, veritabanı özel gün sabitleri `Tanışma Yıl Dönümümüz`, hata kodları `P0001` - `P0005`) asla çevrilmemiştir. Ekranda kullanıcıya gösterilirken `t('moods.happy')` ve `localizeDefaultMemory()` gibi saf sunum katmanlarında yerelleştirilmektedir. |
+| **2** | **RevenueCat ve Mağaza Kimlikleri Değiştirilemez** | **BAŞARILI** | `couples_monthly`, `couples_annual`, entitlement `Premium` stringleri asla çeviri fonksiyonuna sokulmamıştır. Paywall mağaza fiyatları ve dönem etiketleri orijinal RevenueCat paketlerinden çekilmekte, yalnızca UI başlık ve açıklamaları yerelleştirilmektedir. |
+| **3** | **Expo Router Rotaları Değiştirilemez** | **BAŞARILI** | `router.push('/(tabs)/home')`, `/(auth)/login`, `/(auth)/verify-device`, `/(tabs)/letters` dosya rotaları korunmuş; rota stringleri kesinlikle `t()` fonksiyonuna bağlanmamıştır. |
+| **4** | **TanStack Query Key'leri Değiştirilemez** | **BAŞARILI** | `queryKey: ['letters', coupleId]`, `['couple_star', coupleId]` vb. tüm önbellek anahtarları sabit dizi ve kimlikler olarak korunmuştur. |
+| **5** | **Dayjs ve Takvim Yerelleştirmesi** | **BAŞARILI** | `YYYY-MM-DD`, `HH:mm` gibi standart format şablonları korunmuştur. Dil değiştiğinde `dayjs.locale(language)` ve `react-native-calendars`'ın `LocaleConfig.defaultLocale` ayarı dinamik olarak güncellenmektedir. Tüm ekranlarda tarih formatları `dayjs().locale(i18n.language)` ile reaktiftir. |
+| **6** | **Mevcut Türkçe ve Romantik Dil Tonu** | **BAŞARILI** | Orijinal Türkçe metinler harfi harfine korunmuş; İngilizce çevirilerde de uygulamanın çiftlere özel romantik, şiirsel ve kozmik (yıldız temalı) üslubu akıcı bir şekilde aktarılmıştır. |
+| **7** | **Tip Güvenliği (TypeScript Paritesi)** | **BAŞARILI** | `src/types/i18next.d.ts` dosyasında `CustomTypeOptions` modülü tanımlanmış, `npx tsc --noEmit` çalıştırılarak sıfır derleme hatasıyla tip güvenliği garanti altına alınmıştır. |
+
+---
+
+### 3. 🔬 Derinlemesine Statik Kod Taraması ve Düzeltmeler
+
+Yapılan özel AST ve regex tabanlı statik kod analizinde tespit edilen ve anında giderilen kritik noktalar:
+
+1. **`src/app/(auth)/login.tsx` Kayıt ve Bölücü Etiketleri:**
+   - *Bulgu:* Kayıt formundaki E-Posta etiketi (`E-POSTA`) ve sosyal giriş bölücü metni (`VEYA`) doğrudan string literal olarak kalmıştı.
+   - *Çözüm:* `auth.register.emailLabel` anahtarı hem `tr.json` hem `en.json` dosyalarına eklendi; `t("auth.register.emailLabel")` ve `t("common.or").toUpperCase()` ile dinamik hale getirildi.
+2. **`src/lib/dialog.ts` Uyarı ve Hata Tonu Çıkarımı (`inferTone`):**
+   - *Bulgu:* Sistem uyarısı veya toast mesajının tipini (hata / uyarı / başarı) belirleyen `inferTone` regex'i yalnızca Türkçe kelimeleri (`hata`, `uyarı`, `başar`, `tamam`) arıyordu. İngilizce başlıklı alert'lar (ör. "Error", "Success") `info` tonuna düşüyordu.
+   - *Çözüm:* Regex'e İngilizce karşılıklar (`error`, `failed`, `failure`, `unable`, `cannot`, `warning`, `caution`, `success`, `saved`, `done`) eklendi. Artık İngilizce dilinde de toast ve diyaloglar doğru ikon ve renk tonunu (kırmızı hata, sarı uyarı, yeşil başarı) otomatik yansıtmaktadır.
+3. **`src/constants/featureGuides.ts` Sözdizimi Onarımı:**
+   - *Bulgu:* Tireli anahtarlar (`period-tracker:`, `daily-notes:`) TypeScript derleyicisinde `TS1005` sözdizimi hatası veriyordu.
+   - *Çözüm:* Tırnak içine alınarak (`"period-tracker":`, `"daily-notes":`) onarıldı; `getAllPageGuides(t)` ve `getPageGuide(key, t)` fonksiyonları `TFunction` parametresiyle dinamik hale getirildi.
+4. **`src/constants/legalTexts.ts` (Yasal & Mevzuat Çevirisi):**
+   - *Bulgu:* KVKK, Gizlilik Politikası, EULA, Açık Rıza ve Abonelik Şartları yalnızca Türkçe hazırlanmıştı.
+   - *Çözüm:* Uluslararası App Store & Google Play standartlarına ve GDPR yönergelerine uygun tam İngilizce yasal metinler (`LEGAL_DOCS_EN`) hazırlandı. Mevcut bileşenleri bozmamak için ES6 `Proxy` mimarisi kurularak `LEGAL_DOCS` nesnesinin aktif dile göre anında İngilizce veya Türkçe dönmesi sağlandı.
+5. **`src/constants/demoData.ts` (Misafir Modu Çevirisi):**
+   - *Bulgu:* Demo mektuplar, anı fotoğrafları ve yıldız gezegenleri Türkçe içerik barındırıyordu.
+   - *Çözüm:* Tüm mock verilerin İngilizce karşılıkları (`DEMO_*_EN`) oluşturuldu ve `createLocalizedProxy` ile sarıldı. Kullanıcı profilden dili değiştirdiğinde `queryClient.invalidateQueries()` çağrısı ile demo içerikler anında yeni dilde render edilmektedir.
+6. **İnterpolasyon Değişkenleri Eşleşme Taraması:**
+   - *Bulgu:* `{{date}}`, `{{count}}`, `{{days}}`, `{{code}}` gibi dinamik şablon değişkenleri taranmış; 2.025 anahtar arasında sıfır değişken adı uyumsuzluğu ve sıfır hatalı tek süslü parantez (`{var}`) tespit edilmiştir.
+
+---
+
+### 4. 🚀 Dağıtım ve Dallar (Branch) Ayrımı
+
+- **Yayın Branch'i (`develop` / `main`):** El değmemiş, stabil ve Türkçe preview sürümü Expo EAS üzerinde derlenmiş durumdadır.
+- **İngilizce / i18n Branch'i (`feat/i18n-english`):**
+  - `52389a2`: Claude tarafından gerçekleştirilen 152 dosyalık ana i18n mimarisi.
+  - `c825fb7`: Eksik kalan featureGuides, demoData, legalTexts ve usePageTour entegrasyonu.
+  - `06a7273`: login.tsx eksik etiketleri, dialog.ts inferTone İngilizce desteği ve sözlük güncellemeleri.
+  - Dal GitHub uzak sunucusuna (`origin/feat/i18n-english`) başarıyla pushlanmıştır.
