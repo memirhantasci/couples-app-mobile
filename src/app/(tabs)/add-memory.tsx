@@ -22,6 +22,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { sanitizeStrict, sanitize } from "@/utils/sanitize";
+import { showPermissionDeniedDialog } from "@/lib/permissions";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { useNotificationPriming } from "@/hooks/useNotificationPriming";
 import { toast } from "@/lib/toast";

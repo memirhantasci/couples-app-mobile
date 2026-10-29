@@ -44,6 +44,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { decode } from 'base64-arraybuffer';
 import { hapticStamp, hapticSuccess } from '@/lib/soundEffects';
+import { showPermissionDeniedDialog } from '@/lib/permissions';
 import { useRouter } from 'expo-router';
 import dayjs from 'dayjs';
 import 'dayjs/locale/tr';
@@ -293,6 +294,14 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
     }
 
     try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        showPermissionDeniedDialog(
+          "Galeri İzni Gerekli",
+          "Fotoğraf seçebilmek için ayarlardan galeri erişimine izin vermelisiniz."
+        );
+        return;
+      }
       const remainingSlots = 5 - totalPhotosCount;
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],

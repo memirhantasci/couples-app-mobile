@@ -16,6 +16,28 @@ import { suppressPremiumCelebration } from "@/lib/premiumCelebration";
 import { purchaseButtonLabel } from "@/lib/trialLabel";
 import { LazyDemoActionModal } from "@/components/ui/lazyMount";
 
+
+function getPackagePeriodLabel(packageType?: string): string {
+  switch (packageType) {
+    case "ANNUAL":
+      return " / Yıl";
+    case "MONTHLY":
+      return " / Ay";
+    case "WEEKLY":
+      return " / Hafta";
+    case "SIX_MONTH":
+      return " / 6 Ay";
+    case "THREE_MONTH":
+      return " / 3 Ay";
+    case "TWO_MONTH":
+      return " / 2 Ay";
+    case "LIFETIME":
+      return " (Ömür Boyu)";
+    default:
+      return "";
+  }
+}
+
 export default function PaywallScreen() {
   const router = useRouter();
   const { refreshProfile, isDemoMode } = useAuth();
@@ -224,8 +246,8 @@ export default function PaywallScreen() {
                       <Text style={[styles.packageTitle, { color: theme.text }]}>
                         {pkg.product.title.replace("(Couples App)", "")}
                       </Text>
-                      <Text style={[styles.packagePrice, { color: theme.textSecondary }]}>
-                        {pkg.product.priceString}
+                      <Text style={[styles.packagePrice, { color: isSelected ? theme.accent : theme.textSecondary }]}>
+                        {pkg.product.priceString}{getPackagePeriodLabel(pkg.packageType)}
                       </Text>
                     </View>
                     <View

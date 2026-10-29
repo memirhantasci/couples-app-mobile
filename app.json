@@ -44,6 +44,9 @@
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_MEDIA_LOCATION"
       ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
       "package": "com.memirhantasci.couplesapp",
       "googleServicesFile": "./google-services.json"
     },
@@ -55,7 +58,12 @@
       "expo-router",
       "expo-apple-authentication",
       "expo-sharing",
-      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false
+        }
+      ],
       "expo-secure-store",
       [
         "expo-widgets",

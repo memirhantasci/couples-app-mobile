@@ -35,6 +35,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { logger } from "@/utils/logger";
 import { MapPickerModal } from "@/components/MapPickerModal";
 import { extractPhotoExif, isValidCoordinate, geocodeAddressString } from "@/utils/exifHelper";
+import { showPermissionDeniedDialog } from "@/lib/permissions";
 import { sanitize, sanitizeStrict } from "@/utils/sanitize";
 import { playCameraClick } from "@/lib/soundEffects";
 import { toast } from "@/lib/toast";

@@ -177,7 +177,7 @@ export const LEGAL_DOCS: Record<LegalDocType, LegalDocument> = {
     title: "Abonelik ve İade Koşulları",
     badge: "App Store & Play Store",
     lastUpdated: "Ekim 2026",
-    summary: "Premium abonelik, 14 günlük ücretsiz deneme, otomatik yenileme, iptal prosedürü ve iade şartları.",
+    summary: "Premium abonelik, ücretsiz deneme (tanımlıysa), otomatik yenileme, iptal prosedürü ve iade şartları.",
     content: [
       "1. COUPLES PREMIUM ABONELİĞİ VE KAPSAMI",
       "Couples App Premium, çiftlerden birinin abone olması halinde her iki partner için de geçerli olan ortak bir abonelik modelidir. Premium avantajları:\n" +
@@ -187,8 +187,8 @@ export const LEGAL_DOCS: Record<LegalDocType, LegalDocument> = {
       "• Tüm banner ve geçiş reklamlarından tamamen arındırılmış deneyim,\n" +
       "• Fotoğraflı geçmiş takvim günleri ve özel gün sayaçları.",
 
-      "2. ÜCRETSİZ DENEME SÜRESİ (14 GÜN)",
-      "İlk kez Premium pakete geçen kullanıcılara 14 günlük ücretsiz deneme hakkı tanınabilir. 14 günlük deneme süresi boyunca kullanıcıdan herhangi bir ücret tahsil edilmez. Deneme süresi sona ermeden en az 24 saat önce iptal edilmediği takdirde, seçilen paket ücreti üzerinden otomatik olarak ücretli aboneliğe geçiş yapılır.",
+      "2. ÜCRETSİZ DENEME SÜRESİ",
+      "İlk kez Premium pakete geçen kullanıcılara mağazada ve uygulama içinde belirtilen süre boyunca ücretsiz deneme hakkı tanınabilir. Deneme süresi boyunca kullanıcıdan herhangi bir ücret tahsil edilmez. Deneme süresi sona ermeden en az 24 saat önce iptal edilmediği takdirde, seçilen paket ücreti üzerinden otomatik olarak ücretli aboneliğe geçiş yapılır.",
 
       "3. OTOMATİK YENİLEME VE ÜCRETLENDİRME (APPLE & GOOGLE EULA)",
       "• Satın alma onayıyla birlikte ödeme Apple Kimliği / Google Play hesabınızdan tahsil edilir.\n" +

@@ -22,12 +22,14 @@ import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { getOrCreateDeviceId } from "@/utils/device";
 import { normalizePairingCode } from "@/lib/pairingCode";
 import { useAuth, DEVICE_AUTH_CACHE_KEY } from "@/context/AuthContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { applyOtpInput } from "@/lib/otp";
 
 const OTP_LENGTH = 6;
 
 export default function VerifyScreen() {
+  const insets = useSafeAreaInsets();
   const { setIsDeviceAuthorized, refreshProfile } = useAuth();
   const params = useLocalSearchParams<{
     email?: string;
@@ -242,7 +244,7 @@ export default function VerifyScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 60, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 40 }} keyboardShouldPersistTaps="handled">
           
           <TouchableOpacity
             onPress={() => {
@@ -343,7 +345,8 @@ export default function VerifyScreen() {
                 textContentType="oneTimeCode"
                 autoComplete="sms-otp"
                 style={{
-                  width: 48,
+                  flex: 1,
+                  maxWidth: 48,
                   height: 56,
                   borderRadius: 12,
                   backgroundColor: "rgba(255,255,255,0.04)",

@@ -1516,10 +1516,16 @@ export const OurStarScreen: React.FC = () => {
                 onPress={() => {
                   setIsCertificateModalOpen(true);
                 }}
-                style={styles.viewCertBtn}
+                style={[
+                  styles.viewCertBtn,
+                  isLight && {
+                    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                    borderColor: 'rgba(217, 119, 6, 0.35)',
+                  },
+                ]}
               >
-                <Award size={15} color="#FBBF24" />
-                <Text style={styles.viewCertBtnText}>Sertifika 📜</Text>
+                <Award size={15} color={isLight ? '#B45309' : '#FBBF24'} />
+                <Text style={[styles.viewCertBtnText, isLight && { color: '#B45309' }]}>Sertifika 📜</Text>
               </TouchableOpacity>
             </View>
           ) : !selectedMacroStar.is_claimed && isDemoMode ? (
@@ -1551,22 +1557,38 @@ export const OurStarScreen: React.FC = () => {
             </TouchableOpacity>
           ) : !selectedMacroStar.is_claimed && starDetails !== null ? (
             // Kullanıcının zaten yıldızı var ama boş yıldıza tıklandı: yıldız bilgisi + nazik bilgilendirme
-            <View style={styles.alreadyOwnedBanner}>
-              <Sparkles size={13} color="#FBBF24" />
-              <Text style={styles.alreadyOwnedText}>
+            <View
+              style={[
+                styles.alreadyOwnedBanner,
+                isLight && {
+                  backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                  borderColor: 'rgba(217, 119, 6, 0.35)',
+                },
+              ]}
+            >
+              <Sparkles size={13} color={isLight ? '#B45309' : '#FBBF24'} />
+              <Text style={[styles.alreadyOwnedText, isLight && { color: '#92400E' }]}>
                 Zaten bir yıldızınız var — her çift yalnızca bir yıldıza sahip olabilir ✨
               </Text>
             </View>
           ) : isDemoMode ? (
             // Başkasının tescilli yıldızı (Demo modu)
-            <Text style={styles.claimedInfoText}>
+            <Text style={[styles.claimedInfoText, isLight && { color: theme.textSecondary }]}>
               🔒 Bu yıldız başka bir çift tarafından gökyüzüne tescillenmiştir.
             </Text>
           ) : starDetails === null ? (
             // Başkasının tescilli yıldızı ama kullanıcının kendi yıldızı henüz yok
-            <View style={styles.alreadyOwnedBanner}>
-              <Sparkles size={13} color="#FBBF24" />
-              <Text style={styles.alreadyOwnedText}>
+            <View
+              style={[
+                styles.alreadyOwnedBanner,
+                isLight && {
+                  backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                  borderColor: 'rgba(217, 119, 6, 0.35)',
+                },
+              ]}
+            >
+              <Sparkles size={13} color={isLight ? '#B45309' : '#FBBF24'} />
+              <Text style={[styles.alreadyOwnedText, isLight && { color: '#92400E' }]}>
                 Bağlantı kurabilmek için önce aşkınıza ait bir yıldız tescil etmelisiniz ✨
               </Text>
             </View>
@@ -1587,9 +1609,17 @@ export const OurStarScreen: React.FC = () => {
               (p) => p.other_star_name === selectedMacroStar.custom_name
             ) ? (
             // Onay bekleyen istek
-            <View style={styles.alreadyConnectedBanner}>
-              <Clock size={13} color="#FBBF24" />
-              <Text style={styles.alreadyConnectedText}>
+            <View
+              style={[
+                styles.alreadyConnectedBanner,
+                isLight && {
+                  backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                  borderColor: 'rgba(217, 119, 6, 0.35)',
+                },
+              ]}
+            >
+              <Clock size={13} color={isLight ? '#B45309' : '#FBBF24'} />
+              <Text style={[styles.alreadyConnectedText, isLight && { color: '#92400E' }]}>
                 ⏳ Bu yıldıza bağlantı isteği gönderildi; onay bekleniyor.
               </Text>
             </View>
@@ -1616,9 +1646,17 @@ export const OurStarScreen: React.FC = () => {
             </View>
           ) : starConnections.length >= 3 ? (
             // Limit dolu (3/3)
-            <View style={styles.limitReachedBanner}>
-              <AlertCircle size={13} color="#FBBF24" />
-              <Text style={styles.limitReachedText}>
+            <View
+              style={[
+                styles.limitReachedBanner,
+                isLight && {
+                  backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                  borderColor: 'rgba(217, 119, 6, 0.35)',
+                },
+              ]}
+            >
+              <AlertCircle size={13} color={isLight ? '#B45309' : '#FBBF24'} />
+              <Text style={[styles.limitReachedText, isLight && { color: '#92400E' }]}>
                 Maksimum 3 bağlantı limitine ulaştınız (3/3).
               </Text>
             </View>

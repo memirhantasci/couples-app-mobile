@@ -374,7 +374,7 @@ export default function MemoriesScreen() {
             initialNumToRender={6}
             maxToRenderPerBatch={8}
             windowSize={7}
-            contentContainerStyle={{ paddingBottom: 150 }}
+            contentContainerStyle={{ paddingBottom: insets.bottom + 160 }}
             showsVerticalScrollIndicator={false}
             onEndReached={() => {
               if (hasNextPage && !isFetchingNextPage) {
@@ -388,7 +388,7 @@ export default function MemoriesScreen() {
       )}
 
       {/* Yeni özel gün ekleme her zaman görünür; "Düzenle"ye basmayı gerektirmez */}
-      <Animated.View entering={FadeInUp.duration(250)} style={styles.addBtnContainer}>
+      <Animated.View entering={FadeInUp.duration(250)} style={[styles.addBtnContainer, { bottom: insets.bottom + 96 }]} pointerEvents="box-none">
         <TouchableOpacity 
           style={[styles.addBtn, { backgroundColor: theme.accent }]}
           onPress={goToAddMemory}

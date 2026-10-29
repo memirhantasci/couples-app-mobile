@@ -15,6 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, router } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useAuth, DEVICE_AUTH_CACHE_KEY } from "@/context/AuthContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArrowLeft, ShieldAlert, RefreshCw } from "lucide-react-native";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { navigateAfterAuth, setAuthFlowActive, releaseAuthFlow } from "@/lib/navigate";
@@ -25,6 +26,7 @@ import { applyOtpInput } from "@/lib/otp";
 const OTP_LENGTH = 6;
 
 export default function VerifyDeviceScreen() {
+  const insets = useSafeAreaInsets();
   const { userId, deviceId, email, codeSent } = useLocalSearchParams<{
     userId: string;
     deviceId: string;
@@ -203,7 +205,7 @@ export default function VerifyDeviceScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"} 
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 60, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 40 }} keyboardShouldPersistTaps="handled">
           
           <TouchableOpacity
             onPress={handleBack}
@@ -298,7 +300,8 @@ export default function VerifyDeviceScreen() {
                 textContentType="oneTimeCode"
                 autoComplete="sms-otp"
                 style={{
-                  width: 48,
+                  flex: 1,
+                  maxWidth: 48,
                   height: 56,
                   borderRadius: 12,
                   backgroundColor: "rgba(255,255,255,0.04)",
