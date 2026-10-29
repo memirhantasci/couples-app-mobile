@@ -66,9 +66,11 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   sectionHeaderLeft: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    marginRight: 8,
   },
   sectionIconCircle: {
     width: 36,
@@ -78,6 +80,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   sectionTitleText: {
+    flex: 1,
     fontSize: 15,
     fontFamily: "Inter_700Bold",
     color: "#ffffff",

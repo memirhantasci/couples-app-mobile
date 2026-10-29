@@ -14,9 +14,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { requestPasswordReset } from "@/lib/authGateway";
 import { normalizeUsername } from "@/lib/username";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArrowLeft, Lock } from "lucide-react-native";
 
 export default function ForgotPasswordScreen() {
+  const insets = useSafeAreaInsets();
   const [identifier, setIdentifier] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -64,7 +66,8 @@ export default function ForgotPasswordScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 60, paddingBottom: 60 }}
+          contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 40 }}
+          showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           {/* Back Button */}

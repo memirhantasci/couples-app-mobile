@@ -438,8 +438,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   badgeTextWrapper: {
+    flex: 1,
     marginLeft: 10,
+    marginRight: 8,
     justifyContent: "center",
+    gap: 2,
   },
   badgeHeaderRow: {
     flexDirection: "row",

@@ -592,7 +592,7 @@ export default function ProfileScreen() {
         {/* KAYDIRILABİLİR İÇERİK */}
         <KeyboardAwareScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: 280 }]}
+          contentContainerStyle={StyleSheet.flatten([styles.scrollContent, { paddingBottom: insets.bottom + 280 }])}
           showsVerticalScrollIndicator={false}
           enableOnAndroid={true}
           extraScrollHeight={130}

@@ -141,7 +141,7 @@ export function PageTourModal({ visible, guide, onClose }: PageTourModalProps) {
           ]}
         >
           {/* Header */}
-          <View style={styles.header}>
+          <View style={[styles.header, { borderBottomColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]}>
             <View style={styles.headerLeft}>
               <View
                 style={[

@@ -35,10 +35,10 @@ export function CalendarNoteModal({
   onDelete,
 }: CalendarNoteModalProps) {
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
         <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
-          <View style={styles.modalHeader}>
+          <View style={[styles.modalHeader, { borderBottomColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <FileText size={18} color={theme.accent} />
               <Text style={[styles.modalTitle, { color: theme.text }]}>

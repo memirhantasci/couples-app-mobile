@@ -696,11 +696,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await AsyncStorage.removeItem(`@period_notif_scheduled_${signedInCoupleId}`).catch(() => {});
       clearStarCache(signedInCoupleId);
     }
-    await AsyncStorage.removeItem("@pending_invite_code").catch(() => {});
-    
-    // Clear device auth cache on sign-out so next user gets a fresh check
-    await AsyncStorage.removeItem(DEVICE_AUTH_CACHE_KEY).catch(() => {});
-    await AsyncStorage.removeItem(CACHED_PROFILE_KEY).catch(() => {});
+    const currentUserId = session?.user?.id;
+    const keysToRemove = [
+      DEVICE_AUTH_CACHE_KEY,
+      CACHED_PROFILE_KEY,
+      "last_user_id",
+      "@pending_invite_code",
+      "@notification_priming_dismissed_at",
+      ...(currentUserId
+        ? [
+            `couples_app_profile_cache_${currentUserId}`,
+            `@dates_skipped_${currentUserId}`,
+          ]
+        : []),
+    ];
+    await Promise.all(keysToRemove.map((k) => AsyncStorage.removeItem(k).catch(() => {})));
     await clearCoupleWidget().catch(() => {});
 
     // Bu cihaz artık bu hesaba ait değil: zamanlanmış yerel hatırlatıcıları (ilaç, buluşma, mektup...)

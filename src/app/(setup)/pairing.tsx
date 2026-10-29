@@ -16,6 +16,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Link, Share2, LogOut, Sparkles, Check, Copy } from "lucide-react-native";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { navigateAfterAuth } from "@/lib/navigate";
@@ -53,6 +54,7 @@ async function fetchPairingStatus(): Promise<PairingStatus> {
 // ─── Pairing Screen ──────────────────────────────────────────────────────────
 
 export default function PairingScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { session, profile, refreshProfile, signOut, enterDemoMode } = useAuth();
@@ -235,7 +237,8 @@ export default function PairingScreen() {
     <ScreenBackground colors={["#0A0A10", "#0D0D14", "#0A0A10"]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 60, paddingBottom: 60 }}
+          contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 40 }}
+          showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           {/* Header */}

@@ -16,7 +16,7 @@ export function PremiumSuccessModal({ visible, onClose, subtitle }: PremiumSucce
   const { theme, isLight } = useTheme();
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <BlurView intensity={80} tint="dark" style={styles.overlay}>
         <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
           
@@ -39,7 +39,7 @@ export function PremiumSuccessModal({ visible, onClose, subtitle }: PremiumSucce
               <View style={[styles.featureIconBg, { backgroundColor: isLight ? theme.unitBg : "rgba(255,255,255,0.05)" }]}>
                 <Infinity color={theme.accent} size={20} />
               </View>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={[styles.featureTitle, { color: theme.text }]}>Sınırsız Kullanım</Text>
                 <Text style={[styles.featureDesc, { color: theme.textMuted }]}>Token derdi olmadan dilediğinizi yapın.</Text>
               </View>
@@ -49,7 +49,7 @@ export function PremiumSuccessModal({ visible, onClose, subtitle }: PremiumSucce
               <View style={[styles.featureIconBg, { backgroundColor: isLight ? theme.unitBg : "rgba(255,255,255,0.05)" }]}>
                 <ImageIcon color={theme.accent} size={20} />
               </View>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={[styles.featureTitle, { color: theme.text }]}>Sınırsız Fotoğraf</Text>
                 <Text style={[styles.featureDesc, { color: theme.textMuted }]}>Ortak galeriye dilediğiniz kadar anı ekleyin.</Text>
               </View>
@@ -59,7 +59,7 @@ export function PremiumSuccessModal({ visible, onClose, subtitle }: PremiumSucce
               <View style={[styles.featureIconBg, { backgroundColor: isLight ? theme.unitBg : "rgba(255,255,255,0.05)" }]}>
                 <Mail color={theme.accent} size={20} />
               </View>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={[styles.featureTitle, { color: theme.text }]}>Sınırsız Mektup</Text>
                 <Text style={[styles.featureDesc, { color: theme.textMuted }]}>Geleceğe dilediğiniz kadar mektup gönderin.</Text>
               </View>

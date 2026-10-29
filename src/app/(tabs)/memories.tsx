@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { toast } from "@/lib/toast";
@@ -214,7 +214,7 @@ export default function MemoriesScreen() {
 
 
 
-  const renderMemory = ({ item: memory, index }: { item: any, index: number }) => {
+  const renderMemory = useCallback(({ item: memory, index }: { item: any, index: number }) => {
     const d = dayjs(memory.date);
     const today = dayjs().startOf("day");
     const memDay = d.startOf("day");
@@ -291,7 +291,7 @@ export default function MemoriesScreen() {
         </View>
       </Animated.View>
     );
-  };
+  }, [theme, isLight, styles, isEditMode, executeOrIntercept, handleEdit, handleDelete, deletingId]);
 
   return (
     <ScreenBackground>
@@ -367,6 +367,7 @@ export default function MemoriesScreen() {
           <FlatList
             data={memories}
             keyExtractor={item => item.id.toString()}
+            extraData={{ theme, isLight, isEditMode }}
             renderItem={renderMemory}
             refreshing={refreshing}
             onRefresh={onRefresh}

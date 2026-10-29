@@ -150,7 +150,7 @@ function MeetingModal({
     .format("DD MMMM YYYY, dddd - HH:mm");
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={[styles.modalContent, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
           <View style={styles.modalHeader}>

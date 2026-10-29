@@ -381,6 +381,10 @@ export async function startCosmicAmbient(): Promise<void> {
   if (Platform.OS === 'web') return;
   const request = ++ambientRequest;
   ambientWanted = true;
+  if (ambientFadeHandle) {
+    clearInterval(ambientFadeHandle);
+    ambientFadeHandle = null;
+  }
   const enabled = await getSoundEffectsEnabled();
   if (request !== ambientRequest) return;
   if (!enabled) {

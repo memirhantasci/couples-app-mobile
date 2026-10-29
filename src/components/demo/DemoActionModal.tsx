@@ -240,6 +240,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   perkText: {
+    flex: 1,
     fontSize: 12.5,
     fontFamily: "Inter_500Medium",
   },

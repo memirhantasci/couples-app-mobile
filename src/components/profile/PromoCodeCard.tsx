@@ -178,7 +178,7 @@ export function PromoCodeCard({
       {Platform.OS === "ios" && (
         <TouchableOpacity
           onPress={() => RevenueCatService.presentCodeRedemptionSheet()}
-          style={[styles.iosCodeBtn, { backgroundColor: theme.unitBg }]}
+          style={[styles.iosCodeBtn, { backgroundColor: theme.unitBg, borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}
           activeOpacity={0.8}
         >
           <Text style={[styles.iosCodeBtnText, { color: theme.textSecondary }]}>App Store Teklif Kodu Kullan 🍎</Text>

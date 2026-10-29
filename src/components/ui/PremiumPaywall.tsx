@@ -83,7 +83,7 @@ export function PremiumPaywall({
   ];
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={[styles.overlay, { backgroundColor: isLight ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0.8)" }]}>
         <View
           style={[

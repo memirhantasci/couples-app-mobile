@@ -20,8 +20,17 @@ export function useDailyWish(mode: 'server' | 'local') {
   const [status, setStatus] = useState<WishStatus | null>(null);
   // Callbacks read the latest status without re-subscribing.
   const statusRef = useRef<WishStatus | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const applyStatus = useCallback((next: WishStatus) => {
+    if (!isMountedRef.current) return;
     statusRef.current = next;
     setStatus(next);
   }, []);

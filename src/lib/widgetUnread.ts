@@ -1,6 +1,7 @@
 import { safeStorage } from "@/lib/safeStorage";
 import { supabase } from "@/lib/supabase";
 import { letterUnlockAt } from "@/lib/letterPolicy";
+import { dayjs } from "@/lib/date";
 import { logger } from "@/utils/logger";
 
 // ─── Widget okunmamış rozeti ─────────────────────────────────────────────────
@@ -49,7 +50,7 @@ export async function fetchWidgetUnread(userId: string, coupleId: number): Promi
     const now = Date.now();
     // Açılış günü oluşturulma gününden önce olamaz: ziyaretten sonra gelen ya da açılan her mektup
     // ziyaret günü veya sonrasında açılır
-    const visitedDay = new Date(visitedAt).toISOString().substring(0, 10);
+    const visitedDay = dayjs(visitedAt).format("YYYY-MM-DD");
 
     const [recentRes, pendingRes, unlocksRes] = await Promise.all([
       supabase
@@ -58,6 +59,7 @@ export async function fetchWidgetUnread(userId: string, coupleId: number): Promi
         .eq("couple_id", coupleId)
         .eq("receiver_id", userId)
         .gte("unlock_date", visitedDay)
+        .order("created_at", { ascending: false })
         .limit(MAX_RECENT_LETTERS),
       supabase
         .from("letters")

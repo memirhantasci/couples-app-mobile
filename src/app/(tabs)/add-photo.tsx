@@ -168,10 +168,12 @@ export default function AddPhotoScreen() {
         setExifGpsFound(false);
       }
 
-      // Tam boy görsel: maks 1600px, JPEG %80 kalite, base64: true
+      // Tam boy görsel: maks 1600px, JPEG %80 kalite, base64: true (küçük fotoğraflar büyütülmez)
+      const actions: ImageManipulator.Action[] =
+        asset.width && asset.width > 1600 ? [{ resize: { width: 1600 } }] : [];
       const compressed = await ImageManipulator.manipulateAsync(
         asset.uri,
-        [{ resize: { width: 1600 } }],
+        actions,
         { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true }
       );
 
@@ -428,7 +430,8 @@ export default function AddPhotoScreen() {
         </View>
 
         <KeyboardAwareScrollView 
-          contentContainerStyle={styles.container} 
+          style={{ flex: 1 }}
+          contentContainerStyle={StyleSheet.flatten([styles.container, { paddingBottom: insets.bottom + 130 }])} 
           showsVerticalScrollIndicator={false} 
           keyboardShouldPersistTaps="handled"
           enableOnAndroid={true}

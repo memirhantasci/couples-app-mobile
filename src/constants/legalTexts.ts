@@ -23,7 +23,7 @@ export const LEGAL_DOCS: Record<LegalDocType, LegalDocument> = {
     summary: "Kişisel verilerinizin işlenme amaçları, toplanma yöntemleri, hukuki sebepleri ve 6698 Sayılı KVKK 11. madde kapsamındaki haklarınız hakkında bilgilendirme.",
     content: [
       "1. VERİ SORUMLUSU",
-      "Veri sorumlusu unvanı: [ŞİRKET ÜNVANI] · Adres: [ADRES] · MERSİS/VKN: [NUMARA]. Couples App (\"Uygulama\" veya \"Veri Sorumlusu\") olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu (\"KVKK\") ve ilgili mevzuat uyarınca, kullanıcılarımızın kişisel verilerinin güvenliğine ve gizliliğine azami hassasiyet göstermekteyiz. İşbu Aydınlatma Metni, mobil uygulamamız üzerinden toplanan kişisel verilerinizin hangi amaçlarla işlendiğini ve haklarınızı açıklamaktadır.",
+      "Veri sorumlusu: Couples App · İletişim: legal@couplesapp.net · Destek: destek@couplesapp.net. Couples App (\"Uygulama\" veya \"Veri Sorumlusu\") olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu (\"KVKK\") ve ilgili mevzuat uyarınca, kullanıcılarımızın kişisel verilerinin güvenliğine ve gizliliğine azami hassasiyet göstermekteyiz. İşbu Aydınlatma Metni, mobil uygulamamız üzerinden toplanan kişisel verilerinizin hangi amaçlarla işlendiğini ve haklarınızı açıklamaktadır.",
 
       "2. İŞLENEN KİŞİSEL VERİ KATEGORİLERİ VE VERİ TÜRLERİ",
       "Uygulamamızın sunduğu çift anı defteri, zaman kilitli mektuplar, konum tabanlı buluşma planları ve sağlık/döngü takip fonksiyonları kapsamında aşağıdaki kişisel verileriniz işlenmektedir:\n" +
@@ -66,7 +66,7 @@ export const LEGAL_DOCS: Record<LegalDocType, LegalDocument> = {
       "Couples App, kullanıcıların özel hayatının gizliliğini korumak adına gelişmiş kriptografik yöntemler kullanır. Günlük notlarınız, mektuplarınız ve hassas kullanıcı bilgileriniz veritabanında simetrik ve deterministik şifreleme (AES standartları) ile korunmaktadır. Şifreleme anahtarı uygulamanın içinde bulunur; bu nedenle şifreleme, veritabanına erişimi olan birine karşı tek başına tam bir koruma sağlamaz. Veritabanı erişimi, oturum açmış ve ilgili çifte ait kullanıcılarla sınırlandırılmıştır.",
 
       "7. VERİ SAKLAMA VE SİLME (UNUTULMA HAKKI)",
-      "Profil > Hesap Yönetimi & Tehlike Bölgesi bölümünden hesabınızı silme talebinde bulunabilirsiniz. Talep 7 gün beklemeye alınır; bu süre içinde aynı hesapla giriş yaparak talebi iptal edebilirsiniz. 7 gün sonunda hesabınıza ait profil bilgileri, dosyalar, günlükler ve mektuplar sunuculardan geri döndürülemez biçimde silinir. Partneriniz kendi hesabıyla kullanmaya devam eder; ortak anılar ise her iki taraftan da silinir ve partneriniz çiftten ayrılmış olur. Yedek kopyalar [YEDEK SÜRESİ] gün içinde otomatik olarak imha edilir.",
+      "Profil > Hesap Yönetimi & Tehlike Bölgesi bölümünden hesabınızı silme talebinde bulunabilirsiniz. Talep 7 gün beklemeye alınır; bu süre içinde aynı hesapla giriş yaparak talebi iptal edebilirsiniz. 7 gün sonunda hesabınıza ait profil bilgileri, dosyalar, günlükler ve mektuplar sunuculardan geri döndürülemez biçimde silinir. Partneriniz kendi hesabıyla kullanmaya devam eder; ortak anılar ise her iki taraftan da silinir ve partneriniz çiftten ayrılmış olur. Yedek kopyalar en geç 30 gün içinde otomatik olarak imha edilir.",
 
       "8. KVKK'NIN 11. MADDESİ KAPSAMINDAKİ HAKLARINIZ",
       "KVKK 11. maddesi uyarınca dilediğiniz zaman Veri Sorumlumuza başvurarak:\n" +

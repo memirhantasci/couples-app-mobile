@@ -116,7 +116,13 @@ export default function PaywallScreen() {
 
   return (
     <ScreenBackground>
-      <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 20 }]}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.container,
+          { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 40 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
         
         <TouchableOpacity style={styles.closeBtn} onPress={handleBack} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <View

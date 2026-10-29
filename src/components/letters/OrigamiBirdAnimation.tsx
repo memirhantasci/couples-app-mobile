@@ -178,6 +178,17 @@ function FlightScene({
         withTiming(1, { duration: T.flightDuration, easing: Easing.in(Easing.quad) })
       )
     );
+    return () => {
+      cancelAnimation(scrim);
+      cancelAnimation(paperIn);
+      cancelAnimation(seal);
+      cancelAnimation(shock);
+      cancelAnimation(stamp);
+      cancelAnimation(fold);
+      cancelAnimation(birdIn);
+      cancelAnimation(flapPhase);
+      cancelAnimation(flight);
+    };
   }, [reduceMotion, scrim, paperIn, seal, shock, stamp, fold, birdIn, flapPhase, flight, finish]);
 
   // Dokununca hemen sona sar: arka plan hızla solar, ardından onComplete

@@ -32,6 +32,7 @@ import Animated, {
   withTiming,
   Easing,
   interpolate,
+  cancelAnimation,
 } from 'react-native-reanimated';
 import { hapticStamp, hapticSuccess, hapticError } from '@/lib/soundEffects';
 import { dayjs } from '@/lib/date';
@@ -139,11 +140,17 @@ const CosmicRadarSweep: React.FC<{ isSlowWarning: boolean; isConfirming?: boolea
       return () => {
         clearInterval(interval);
         clearTimeout(timeout);
+        cancelAnimation(rotation);
+        cancelAnimation(pulse1);
+        cancelAnimation(pulse2);
       };
     }
 
     return () => {
       clearTimeout(timeout);
+      cancelAnimation(rotation);
+      cancelAnimation(pulse1);
+      cancelAnimation(pulse2);
     };
   }, [isConfirming]);
 
@@ -468,8 +475,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
         />
 
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          enabled={Platform.OS === 'ios'}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardContainer}
         >
           <ScrollView

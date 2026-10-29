@@ -556,7 +556,7 @@ export default function MeetingsScreen() {
       </View>
 
       {/* ─── YENİ BULUŞMA EKLEME / DÜZENLEME MODALI ─── */}
-      <Modal visible={showFormModal} animationType="slide" transparent>
+      <Modal visible={showFormModal} animationType="slide" transparent onRequestClose={handleCancelEdit}>
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
             {/* Header */}

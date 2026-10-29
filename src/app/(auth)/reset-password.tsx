@@ -12,9 +12,11 @@ import {
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useLocalSearchParams, router } from "expo-router";
 import { resetPasswordWithCode } from "@/lib/authGateway";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArrowLeft } from "lucide-react-native";
 
 export default function ResetPasswordScreen() {
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ identifier?: string }>();
   const [otpCode, setOtpCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -134,7 +136,16 @@ export default function ResetPasswordScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 60 }}>
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            padding: 24,
+            paddingTop: insets.top + 24,
+            paddingBottom: insets.bottom + 40,
+          }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <TouchableOpacity
             onPress={() => {
               if (router.canGoBack()) {

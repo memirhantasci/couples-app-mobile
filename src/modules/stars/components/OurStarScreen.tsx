@@ -2159,6 +2159,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   macroStarTitleRow: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -2169,6 +2172,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   macroStarTitle: {
+    flexShrink: 1,
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',

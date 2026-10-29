@@ -41,6 +41,7 @@ export function StarPointsToastHost() {
   useEffect(() => {
     if (isDemoMode || !userId || !coupleId) return;
 
+    let cancelled = false;
     let hasStar = false;
 
     // Çiftin yıldızı var mı kontrol et
@@ -49,9 +50,14 @@ export function StarPointsToastHost() {
       .select('id')
       .eq('couple_id', coupleId)
       .maybeSingle()
-      .then(({ data }) => {
-        hasStar = Boolean(data);
-      });
+      .then(
+        ({ data }) => {
+          if (!cancelled) {
+            hasStar = Boolean(data);
+          }
+        },
+        () => {},
+      );
 
     const channel = supabase
       .channel(`star_points_${coupleId}_${userId}`)
@@ -73,8 +79,8 @@ export function StarPointsToastHost() {
             hasStar = Boolean(data);
           }
 
-          // Çift henüz bir yıldız sahiplenmemişse yıldız parladı bildirimi gösterme
-          if (!hasStar) return;
+          // Çift henüz bir yıldız sahiplenmemişse veya bileşen unmount olduysa gösterme
+          if (!hasStar || cancelled) return;
 
           // Kayıt ekranının kendi başarı bildiriminden sonra sıraya girer; haptik onda zaten verildi.
           toast.success(`+${entry.points} puan, yıldızınız parladı 🌟`, {
@@ -86,6 +92,7 @@ export function StarPointsToastHost() {
       .subscribe();
 
     return () => {
+      cancelled = true;
       supabase.removeChannel(channel);
     };
   }, [isDemoMode, userId, coupleId]);

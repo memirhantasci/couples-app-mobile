@@ -219,7 +219,7 @@ export default function DailyNotesScreen() {
         <Text style={[styles.noteBodyText, { color: theme.textSecondary }]}>{displayContent}</Text>
       </View>
     );
-  }, [theme, handleDelete]);
+  }, [theme, styles, executeOrIntercept, handleDelete]);
 
   const keyExtractor = useCallback((item: DailyNote) => item.id.toString(), []);
 
@@ -319,10 +319,11 @@ export default function DailyNotesScreen() {
             data={notes}
             keyExtractor={keyExtractor}
             renderItem={renderNoteCard}
+            extraData={theme}
             initialNumToRender={8}
             maxToRenderPerBatch={10}
             windowSize={5}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 130 }]}
             showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl
@@ -355,7 +356,7 @@ export default function DailyNotesScreen() {
       </View>
 
       {/* DÜZENLEME MODALI (Modern ve Klavye Korumalı) */}
-      <Modal visible={!!editingNote} animationType="slide" transparent>
+      <Modal visible={!!editingNote} animationType="slide" transparent onRequestClose={() => setEditingNote(null)}>
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
             {/* Modal Header */}

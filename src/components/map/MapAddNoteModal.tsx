@@ -38,7 +38,7 @@ function MapAddNoteForm({ accent, isSaving, onSave, onClose }: NoteFormProps) {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.modalBackdrop}
     >
       <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose}>

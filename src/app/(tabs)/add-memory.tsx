@@ -253,7 +253,8 @@ export default function AddMemoryScreen() {
 
         {/* Klavye açılınca odaktaki alan (Açıklama) ve Kaydet butonu klavyenin üstüne kayar (iOS + Android) */}
         <KeyboardAwareScrollView
-          contentContainerStyle={styles.content}
+          style={{ flex: 1 }}
+          contentContainerStyle={StyleSheet.flatten([styles.content, { paddingBottom: insets.bottom + 100 }])}
           showsVerticalScrollIndicator={false}
           enableOnAndroid
           extraScrollHeight={24}

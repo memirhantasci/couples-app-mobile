@@ -17,6 +17,7 @@ import { setDatesSkipped } from "@/lib/datesSkip";
 import { translateDatesError } from "@/lib/relationshipDates";
 import { formatDateTR } from "@/lib/date";
 import { toast } from "@/lib/toast";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Calendar, Check, ChevronRight, Heart, Sparkles } from "lucide-react-native";
 
 // İlk kaydeden kazanır: partner tarihleri bizden önce kaydettiyse sayaçlar onun tarihinden başlar
@@ -79,6 +80,7 @@ function WebDateInput({
 }
 
 export default function DatesScreen() {
+  const insets = useSafeAreaInsets();
   const { session, profile, refreshProfile } = useAuth();
   const userId = session?.user?.id;
   // Kendi kaydımız sürerken gelen tarih değişikliği "partner kaydetti" diye duyurulmasın
@@ -240,7 +242,7 @@ export default function DatesScreen() {
 
   return (
     <ScreenBackground colors={["#0A0A10", "#0D0D14", "#0A0A10"]}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 80, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 40 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
         {/* Header */}
         <View style={{ alignItems: "center", marginBottom: 40 }}>

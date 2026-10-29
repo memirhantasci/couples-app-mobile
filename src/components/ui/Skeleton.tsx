@@ -6,7 +6,8 @@ import Animated, {
   withRepeat, 
   withTiming, 
   withSequence,
-  Easing 
+  Easing,
+  cancelAnimation 
 } from 'react-native-reanimated';
 import { useTheme } from '@/context/ThemeContext';
 
@@ -30,7 +31,8 @@ export function Skeleton({ width = '100%', height = 20, borderRadius = 8, style 
       -1,
       true
     );
-  }, []);
+    return () => cancelAnimation(opacity);
+  }, [opacity]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,

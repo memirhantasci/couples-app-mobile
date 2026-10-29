@@ -914,7 +914,7 @@ export default function LettersScreen() {
             initialNumToRender={8}
             maxToRenderPerBatch={10}
             windowSize={5}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 130 }]}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               isHiddenView ? (
@@ -973,7 +973,7 @@ export default function LettersScreen() {
         onRequestClose={() => setShowWriteModal(false)}
       >
         <View style={styles.modalBackdrop}>
-          <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
+          <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow, paddingBottom: insets.bottom + 20 }]}>
             {/* Modal Başlık Çubuğu */}
             <View style={[styles.modalHeader, { borderBottomColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>

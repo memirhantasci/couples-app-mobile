@@ -115,7 +115,7 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderWidth: 1, borderColor: theme.cardBorder }]}>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>

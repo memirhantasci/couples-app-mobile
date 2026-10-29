@@ -17,6 +17,13 @@ async function getTokensByUserId(supabase: any, intUserId: number | string): Pro
 
 // Bildirime dokununca uygulamanın hangi ekranı açacağı (route), uygulama içi kartın türü ve
 // Android bildirim kanalı da mesajla birlikte gider; istemci bunları data üzerinden okur.
+function safePlaintextLabel(value: string | null | undefined, fallback: string): string {
+  if (!value || typeof value !== "string") return fallback;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.startsWith("enc:")) return fallback;
+  return trimmed;
+}
+
 interface PushMessage {
   title: string;
   body: string;
@@ -87,7 +94,7 @@ serve(async (req) => {
               to: r.push_token,
               sound: "default",
               title: "💊 İlaç Vakti!",
-              body: `${r.medicine_name} ilacını içme vaktin geldi. Lütfen içtiğini işaretle.`,
+              body: `${safePlaintextLabel(r.medicine_name, "Hatırlatıcı")} ilacını içme vaktin geldi. Lütfen içtiğini işaretle.`,
               data: { type: "medicine_reminder", medicineId: r.medicine_id, route: "/(tabs)/medicine" }
             });
           }
@@ -130,7 +137,7 @@ serve(async (req) => {
               to: r.push_token,
               sound: "default",
               title: "💌 Mektubun Kilidi Açıldı!",
-              body: `${r.sender_display_name}'in sana yazdığı "${r.letter_title}" mektubunun kilidi bugün açıldı! Hemen oku.`,
+              body: safePlaintextLabel(r.letter_title, "") ? `${r.sender_display_name}'in sana yazdığı "${safePlaintextLabel(r.letter_title, "")}" mektubunun kilidi bugün açıldı! Hemen oku.` : `${r.sender_display_name}'in sana yazdığı sürpriz mektubun kilidi bugün açıldı! Hemen oku.`,
               data: { type: "letter_unlock", letterId: r.letter_id, route: "/(tabs)/letters" }
             });
           }
@@ -148,7 +155,7 @@ serve(async (req) => {
               to: r.push_token,
               sound: "default",
               title: "⏳ Yaklaşan Buluşma",
-              body: `"${r.meeting_title || "Buluşma"}" etkinliğine çok az kaldı! Hazırlanmaya başla.`,
+              body: `"${safePlaintextLabel(r.meeting_title, "Buluşma")}" etkinliğine çok az kaldı! Hazırlanmaya başla.`,
               data: { type: "meeting_reminder", meetingId: r.meeting_id, route: "/(tabs)/meetings" }
             });
           }
@@ -233,7 +240,7 @@ serve(async (req) => {
       const { data: medicine } = await supabase.from("medicines").select("name").eq("id", record.medicine_id).single();
       const { data: sender } = await supabase.from("users").select("display_name, couple_id").eq("id", senderIntId).single();
       if (sender && medicine) {
-        message = { title: "💊 İlaç Takibi", body: `${sender.display_name} ${medicine.name} ilacını içti ✅`, type: "medicine", route: "/(tabs)/medicine", actionLabel: "İlaç Takibine Git 💊", channelId: "medicine_channel" };
+        message = { title: "💊 İlaç Takibi", body: `${sender.display_name} ${safePlaintextLabel(medicine.name, "günlük")} ilacını içti ✅`, type: "medicine", route: "/(tabs)/medicine", actionLabel: "İlaç Takibine Git 💊", channelId: "medicine_channel" };
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;
       }

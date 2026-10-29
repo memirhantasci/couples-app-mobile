@@ -44,7 +44,9 @@ export async function computeCoupleWrapped(
   const periodStart = period === "month" 
     ? now.startOf("month").toISOString() 
     : now.startOf("year").toISOString();
-  const periodEnd = now.endOf("month").toISOString();
+  const periodEnd = period === "month"
+    ? now.endOf("month").toISOString()
+    : now.endOf("year").toISOString();
   
   const periodTitle = period === "month" 
     ? now.locale("tr").format("MMMM YYYY") + " Özeti"
@@ -155,10 +157,10 @@ export async function computeCoupleWrapped(
     topMood: {
       emoji: topMoodObj.emoji,
       label: topMoodObj.label,
-      count: maxMoodCount || 1,
+      count: maxMoodCount,
     },
     topLocation,
-    totalLocationsCount: Math.max(1, totalLocationsCount),
+    totalLocationsCount,
     romanticStatement: `Biz bu dönemde ${daysCountInPeriod} kez birbirimizi seçtik.`,
     highlightStat: `${lettersCount + photosCount} tatlı anıyı birlikte biriktirdik.`,
   };

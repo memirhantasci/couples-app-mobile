@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AlignJustify, ChevronLeft } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -16,6 +17,7 @@ export function PageHeader({ title = "", showBack = true, showMenu = true }: Pag
   const router = useRouter();
   const { profile } = useAuth();
   const { theme, isLight } = useTheme();
+  const insets = useSafeAreaInsets();
 
   // Greeting name — display name or default
   const name = profile?.displayName || "Tatlım";
@@ -27,7 +29,7 @@ export function PageHeader({ title = "", showBack = true, showMenu = true }: Pag
 
   if (isHome) {
     return (
-      <View style={styles.homeHeader}>
+      <View style={[styles.homeHeader, { paddingTop: insets.top + 10 }]}>
         <View style={styles.greetingBlock}>
           <View style={styles.greetingRow}>
             <Text style={[styles.greetingText, { color: theme.text }]}>
@@ -53,7 +55,7 @@ export function PageHeader({ title = "", showBack = true, showMenu = true }: Pag
   }
 
   return (
-    <View style={styles.headerContainer}>
+    <View style={[styles.headerContainer, { paddingTop: insets.top + 12 }]}>
       <View style={styles.side}>
         {showBack && (
           <TouchableOpacity

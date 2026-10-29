@@ -18,7 +18,7 @@ export const DELETION_DELAY_MS = 72 * HOUR_MS;
 export const DELETION_RETRY_DELAY_MS = 72 * HOUR_MS;
 
 export interface LetterPolicyFields {
-  unlock_date: string;
+  unlock_date: string | null | undefined;
   created_at?: string | null;
   hidden_by_sender?: boolean | null;
   hidden_by_receiver?: boolean | null;
@@ -31,7 +31,11 @@ export type LetterDeletionState = "none" | "pending" | "approved" | "rejected";
 
 /** Açılış anı: unlock_date günü 00:00 UTC, alıcının mektubu görmeye başladığı an. */
 export function letterUnlockAt(letter: LetterPolicyFields): number {
-  return Date.parse(`${letter.unlock_date.substring(0, 10)}T00:00:00Z`);
+  if (!letter || typeof letter.unlock_date !== "string" || letter.unlock_date.length < 10) {
+    return Number.POSITIVE_INFINITY;
+  }
+  const parsed = Date.parse(`${letter.unlock_date.substring(0, 10)}T00:00:00Z`);
+  return Number.isNaN(parsed) ? Number.POSITIVE_INFINITY : parsed;
 }
 
 /**

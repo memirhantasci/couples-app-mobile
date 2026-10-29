@@ -538,7 +538,7 @@ export default function PeriodTrackerScreen() {
       </View>
 
       {/* ─── TARİH KAYIT / SİLME MODALI ─── */}
-      <Modal visible={!!selectedDate} transparent animationType="fade">
+      <Modal visible={!!selectedDate} transparent animationType="fade" onRequestClose={() => setSelectedDate(null)}>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
             <View style={[styles.modalIconCircle, { backgroundColor: "rgba(255, 77, 106, 0.15)" }]}>
