@@ -114,10 +114,15 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
       couples!users_couple_id_fkey(meet_date, relationship_start_date, member_count, is_premium, premium_expires_at, encryption_salt)
     `)
     .eq("id", userId)
-    .single();
+    .maybeSingle();
 
-  // Okuma başarısızsa mevcut anahtara dokunulmaz: geçici bir ağ hatası içerikleri çözülemez bırakmasın
-  if (error || !user) {
+  // Okuma hatası (ör. anlık ağ kopması, tünel, arka plandan dönüş) "eşleşmemiş kullanıcı" sayılmaz:
+  // hata yukarı iletilir, mevcut profil, önbellek ve şifreleme anahtarı korunur. Eskiden burada boş
+  // profil dönülüyor, önbellek bununla eziliyor ve eşleşmiş kullanıcı eşleşme ekranına atılıyordu.
+  if (error) throw error;
+
+  // Satır gerçekten yok (ör. kayıt henüz tamamlanmadı)
+  if (!user) {
     return {
       coupleId: null,
       meetDate: null,
@@ -248,8 +253,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const profileFetchedForUser = useRef<string | null>(null);
   // Oturum olayı geri çağrısı güncel profil durumunu closure'a takılmadan okuyabilsin diye
   const hasProfileRef = useRef(false);
+  // Yenileme başarısız olduğunda çağırana dönülen, bilinen son profil
+  const latestProfileRef = useRef<CoupleProfile | null>(null);
   useEffect(() => {
     hasProfileRef.current = !!profile;
+    latestProfileRef.current = profile;
   }, [profile]);
 
   // Aynı anda süren profil okumalarından yalnızca en son başlayanı state'e yazılır. Aksi halde
@@ -526,8 +534,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await AsyncStorage.removeItem(CACHED_PROFILE_KEY).catch(() => {});
       return null;
     }
-    return loadProfile(userId);
+    try {
+      return await loadProfile(userId);
+    } catch (err) {
+      // Geçici okuma hatası: state ve önbellek olduğu gibi kalır, çağırana bilinen son profil döner
+      console.warn("[AuthProvider] refreshProfile failed, keeping last known profile:", err);
+      return latestProfileRef.current;
+    }
   }, [loadProfile]);
+
+  // Açılışta profil okunamadıysa ve önbellekte de yoksa yönlendirme profili bekler (bkz.
+  // useProtectedRoute); bağlantı gelene kadar artan aralıklarla yeniden denenir
+  useEffect(() => {
+    if (isDemoMode || isLoading || profile) return;
+    const userId = session?.user?.id;
+    if (!userId) return;
+
+    let cancelled = false;
+    let attempt = 0;
+    let timer: ReturnType<typeof setTimeout>;
+    const scheduleRetry = () => {
+      timer = setTimeout(() => {
+        loadProfile(userId).catch(() => {
+          if (cancelled) return;
+          attempt += 1;
+          scheduleRetry();
+        });
+      }, Math.min(2000 * 2 ** attempt, 30000));
+    };
+    scheduleRetry();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [isDemoMode, isLoading, profile, session?.user?.id, loadProfile]);
 
   // Realtime listener for database changes (e.g. premium status, token balance)
   useEffect(() => {

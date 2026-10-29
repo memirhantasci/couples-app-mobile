@@ -23,6 +23,7 @@ export function useProtectedRoute() {
     // Verification screens: email confirmation (verify) or device OTP verification (verify-device)
     const isVerifying = currentRoute.includes("verify");
 
+    let cancelled = false;
     const timer = setTimeout(() => {
       // Giriş / doğrulama ekranı kendi yönlendirmesini yapıyor; çift yönlendirme çökmeye yol açar
       if (isAuthFlowActive()) return;
@@ -64,23 +65,37 @@ export function useProtectedRoute() {
             // yetkisiz bir cihazla (ör. yeniden kurulumda Keychain'deki oturum hayatta kalırken
             // cihaz kimliği sıfırlanmış) uygulamayı her açtığında deviceId'siz bu ekrana düşüyor,
             // doğrulama kodu girince cihaz hiç kaydolmuyor ya da hata fırlatıyordu.
-            getOrCreateDeviceId().then((deviceId) => {
-              router.replace({
-                pathname: "/(auth)/verify-device",
-                params: {
-                  userId: session.user.id,
-                  deviceId,
-                  email: session.user.email || "",
-                },
+            getOrCreateDeviceId()
+              .then((deviceId) => {
+                // Bu arada oturum / ekran değiştiyse eski karara göre yönlendirme yapılmaz
+                if (cancelled) return;
+                router.replace({
+                  pathname: "/(auth)/verify-device",
+                  params: {
+                    userId: session.user.id,
+                    deviceId,
+                    email: session.user.email || "",
+                  },
+                });
+              })
+              .catch((err) => {
+                // deviceId'siz doğrulama ekranı cihazı kaydedemez; bir sonraki tetiklemede yeniden denenir
+                console.warn("[useProtectedRoute] device id unavailable:", err);
               });
-            });
           }
+          return;
+        }
+
+        // Profil henüz yüklenemediyse (yavaş bağlantıda AUTH_INIT_TIMEOUT_MS doldu, okuma başarısız)
+        // eşleşme durumu bilinmiyor: eşleşmiş kullanıcı yanlışlıkla eşleşme ekranına atılmasın.
+        // AuthContext profili yeniden dener; geldiğinde bu etki tekrar çalışır.
+        if (!profile) {
           return;
         }
 
         // Sosyal girişle gelip cinsiyeti/ismi henüz belirlememiş kullanıcı önce profilini tamamlamalı
         // (uygulama bu adımda kapanıp açılsa bile buradan devam eder)
-        if (profile?.needsProfileSetup) {
+        if (profile.needsProfileSetup) {
           if (!currentRoute.includes("complete-profile")) {
             router.replace("/(auth)/complete-profile");
           }
@@ -90,13 +105,13 @@ export function useProtectedRoute() {
         // Prevent authorized users from going back to login/auth pages
         const isTryingToAccessAuth = inAuthGroup;
 
-        if (!profile?.isPaired) {
+        if (!profile.isPaired) {
           // Role: Paired yet? NO
           // They must complete the pairing step.
           if (!currentRoute.includes("pairing")) {
             router.replace("/(setup)/pairing");
           }
-        } else if (!profile?.hasDates) {
+        } else if (!profile.hasDates) {
           // Role: Paired, but dates configured? NO
           // They must complete the dates step.
           if (!currentRoute.includes("dates")) {
@@ -113,6 +128,9 @@ export function useProtectedRoute() {
       }
     }, 0);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [session, isLoading, profile, isDeviceAuthorized, isDemoMode, segments, navigationState?.key]);
 }
