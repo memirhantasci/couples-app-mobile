@@ -38,7 +38,6 @@ const styles = StyleSheet.create({
   grid3Box: {
     borderRadius: 14,
     overflow: "hidden",
-    margin: 3,
     backgroundColor: "rgba(128,128,128,0.16)", // yüklenirken görünen nötr yer tutucu: açık ve koyu zeminde okunur
   },
   grid3Img: {

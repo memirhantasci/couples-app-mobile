@@ -67,8 +67,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     overflow: "hidden",
-    marginBottom: 10,
-    marginRight: 10,
   },
   grid2ImgContainer: {
     width: "100%",
