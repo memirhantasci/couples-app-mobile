@@ -14,7 +14,7 @@ import { dayjs } from "@/lib/date";
 import { Plus, Trash2, Pencil, Menu, ChevronLeft, PlusCircle, AlignJustify } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { openForm } from "@/lib/formEntry";
-import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInUp, FadeOutDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
@@ -401,17 +401,24 @@ export default function MemoriesScreen() {
         </View>
       )}
 
-      {/* Yeni özel gün ekleme her zaman görünür; "Düzenle"ye basmayı gerektirmez */}
-      <Animated.View entering={FadeInUp.duration(250)} style={[styles.addBtnContainer, { bottom: insets.bottom + 96 }]} pointerEvents="box-none">
-        <TouchableOpacity 
-          style={[styles.addBtn, { backgroundColor: theme.accent }]}
-          onPress={goToAddMemory}
-          activeOpacity={0.8}
+      {/* Yeni özel gün ekleme: "Düzenle" butonuna dokunulduğunda zarifçe açılır */}
+      {isEditMode && (
+        <Animated.View 
+          entering={FadeInUp.duration(250)} 
+          exiting={FadeOutDown.duration(200)} 
+          style={[styles.addBtnContainer, { bottom: insets.bottom + 96 }]} 
+          pointerEvents="box-none"
         >
-          <PlusCircle size={20} color="#fff" />
-          <Text style={styles.addBtnText}>{t("memories.addNew")}</Text>
-        </TouchableOpacity>
-      </Animated.View>
+          <TouchableOpacity 
+            style={[styles.addBtn, { backgroundColor: theme.accent }]}
+            onPress={goToAddMemory}
+            activeOpacity={0.8}
+          >
+            <PlusCircle size={20} color="#fff" />
+            <Text style={styles.addBtnText}>{t("memories.addNew")}</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
       <LazyPageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
       <LazyDemoActionModal
         visible={isDemoModalOpen}

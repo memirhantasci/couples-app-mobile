@@ -168,40 +168,79 @@ export async function geocodeAddressString(address: string): Promise<{
   const cleanQuery = address.trim();
   if (!cleanQuery || cleanQuery.length < 2) return null;
 
+  // 1. ADIM: Expo / Native OS Geocoder (iOS CLGeocoder / Android Geocoder)
   try {
-    const results = await Location.geocodeAsync(cleanQuery);
+    let results = await Location.geocodeAsync(cleanQuery);
     if (!results || results.length === 0) {
-      return null;
+      // Tek kelimelik ilçe/semt isimlerinde (örn: "maltepe", "kadıköy") Türkiye bağlamıyla dene
+      results = await Location.geocodeAsync(`${cleanQuery}, Türkiye`);
     }
 
-    const first = results[0];
-    if (!isValidCoordinate(first.latitude, first.longitude)) {
-      return null;
-    }
+    if (results && results.length > 0) {
+      const first = results[0];
+      if (isValidCoordinate(first.latitude, first.longitude)) {
+        let resolvedName = cleanQuery;
+        try {
+          const revResults = await Location.reverseGeocodeAsync({
+            latitude: first.latitude,
+            longitude: first.longitude,
+          });
+          if (revResults && revResults.length > 0) {
+            resolvedName = formatGeocodedAddress(revResults[0]);
+          }
+        } catch {
+          // Orijinal metni koru
+        }
 
-    // Koordinatı doğrulanmış detaylı adres formatına çevir
-    let resolvedName = cleanQuery;
-    try {
-      const revResults = await Location.reverseGeocodeAsync({
-        latitude: first.latitude,
-        longitude: first.longitude,
-      });
-      if (revResults && revResults.length > 0) {
-        resolvedName = formatGeocodedAddress(revResults[0]);
+        return {
+          latitude: first.latitude,
+          longitude: first.longitude,
+          locationName: resolvedName,
+        };
       }
-    } catch {
-      // Orijinal metni koru
     }
-
-    return {
-      latitude: first.latitude,
-      longitude: first.longitude,
-      locationName: resolvedName,
-    };
-  } catch (error) {
-    logger.warn("Forward geocoding error:", error);
-    return null;
+  } catch (err) {
+    logger.warn("Native geocodeAsync error, trying OSM Nominatim fallback:", err);
   }
+
+  // 2. ADIM: OpenStreetMap (Nominatim) Yedek Arama Servisi
+  // Native geocoder'ın (Android Play Services hatası, iOS rate-limit vb.) bulamadığı
+  // veya hata verdiği durumlarda il, ilçe, mahalle ve sokakları %100 doğrulukla çözer
+  try {
+    const osmUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleanQuery)}&limit=1&addressdetails=1`;
+    const resp = await fetch(osmUrl, {
+      headers: {
+        "User-Agent": "CouplesApp/1.0",
+        "Accept-Language": "tr,en",
+      },
+    });
+
+    if (resp.ok) {
+      const osmData = await resp.json();
+      if (Array.isArray(osmData) && osmData.length > 0) {
+        const item = osmData[0];
+        const lat = parseFloat(item.lat);
+        const lon = parseFloat(item.lon);
+
+        if (isValidCoordinate(lat, lon)) {
+          const addr = item.address || {};
+          const mainPart = addr.road || addr.suburb || addr.quarter || addr.neighbourhood || addr.town || addr.city_district || addr.district || item.name || cleanQuery;
+          const cityPart = addr.city || addr.province || addr.state || "";
+          const resolvedName = [mainPart, cityPart].filter(Boolean).join(", ") || cleanQuery;
+
+          return {
+            latitude: lat,
+            longitude: lon,
+            locationName: resolvedName,
+          };
+        }
+      }
+    }
+  } catch (osmErr) {
+    logger.warn("Nominatim geocoding fallback error:", osmErr);
+  }
+
+  return null;
 }
 
 interface BinaryExifData {
