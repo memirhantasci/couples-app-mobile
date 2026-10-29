@@ -8,6 +8,7 @@ import {
   DEMO_PARTNER_ID,
   DEMO_PHOTOS,
 } from "@/constants/demoData";
+import i18n from "@/lib/i18n";
 
 export interface CalendarFetchParams {
   coupleId: number | null | undefined;
@@ -54,8 +55,8 @@ export async function fetchCalendarData(params: CalendarFetchParams) {
       meetings: [
         {
           id: 1,
-          title: "Romantik Akşam Yemeği 🍷",
-          location_name: "Boğaz Manzaralı Restoran",
+          title: i18n.t("demo.calendar.dinnerTitle"),
+          location_name: i18n.t("demo.calendar.dinnerLocation"),
           meeting_datetime: `${today}T19:30:00`,
           is_active: true,
           created_by: userId,

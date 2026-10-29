@@ -14,6 +14,7 @@ import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 import { Compass } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { getSectorByCoords } from '../config/skySectors.data';
+import { useTranslation } from 'react-i18next';
 
 interface SectorHUDProps {
   /** Kameranın anlık merkez RA koordinatı */
@@ -35,6 +36,7 @@ export const SectorHUD: React.FC<SectorHUDProps> = ({
   topInset = 0,
   embedded = false,
 }) => {
+  const { t } = useTranslation();
   const { theme, isLight } = useTheme();
 
   const sector = useMemo(
@@ -61,15 +63,15 @@ export const SectorHUD: React.FC<SectorHUDProps> = ({
             borderColor: sector.themeColor + (isLight ? '90' : '60'),
           },
         ]}
-        accessibilityLabel={`${sector.name} sektörü, Atlas'ı aç`}
+        accessibilityLabel={t('stars.hud.openAtlasA11y', { name: t(sector.nameKey) })}
       >
         <Compass size={13} color={sector.themeColor} strokeWidth={2.2} />
         <Text style={styles.sectorSymbol}>{sector.symbol}</Text>
         <Text style={[styles.sectorName, { color: sector.themeColor }]} numberOfLines={1}>
-          {sector.name}
+          {t(sector.nameKey)}
         </Text>
         <View style={[styles.coordSeparator, { backgroundColor: separatorBg }]} />
-        <Text style={[styles.atlasBadgeText, { color: theme.textSecondary }]}>Atlas</Text>
+        <Text style={[styles.atlasBadgeText, { color: theme.textSecondary }]}>{t('stars.hud.atlas')}</Text>
       </TouchableOpacity>
     );
   }
@@ -79,7 +81,7 @@ export const SectorHUD: React.FC<SectorHUDProps> = ({
       onPress={onPress}
       activeOpacity={0.7}
       style={[styles.container, { top: topInset + 8 }]}
-      accessibilityLabel={`${sector.name} sektörü, Atlas'ı aç`}
+      accessibilityLabel={t('stars.hud.openAtlasA11y', { name: t(sector.nameKey) })}
     >
       <View
         style={[
@@ -93,7 +95,7 @@ export const SectorHUD: React.FC<SectorHUDProps> = ({
         <Compass size={13} color={sector.themeColor} strokeWidth={2.2} />
         <Text style={styles.sectorSymbol}>{sector.symbol}</Text>
         <Text style={[styles.sectorName, { color: sector.themeColor }]}>
-          {sector.name}
+          {t(sector.nameKey)}
         </Text>
         <View style={[styles.coordSeparator, { backgroundColor: separatorBg }]} />
         <Text style={[styles.coords, { color: theme.textSecondary }]}>

@@ -3,6 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import { PremiumSuccessModal } from "@/components/ui/PremiumSuccessModal";
 import { isPremiumCelebrationSuppressed, premiumSeenKey } from "@/lib/premiumCelebration";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
+import { useTranslation } from "react-i18next";
 
 /**
  * Kökte bir kez bağlanır. Çiftin Premium'u, bu cihazın son gördüğü duruma göre "yok"tan "var"a geçtiyse
@@ -11,6 +12,7 @@ import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
  * (kendi akışı kutlamayı gösterir) ve ilk kurulumda (zaten Premium bir çift) çıkmaz.
  */
 export function PremiumCelebrationHost() {
+  const { t } = useTranslation();
   const { session, profile, isDemoMode } = useAuth();
   const [visible, setVisible] = useState(false);
 
@@ -45,7 +47,7 @@ export function PremiumCelebrationHost() {
   return (
     <PremiumSuccessModal
       visible
-      subtitle="Partnerin Premium'a geçti! Artık ikiniz de Premium üyesiniz; bütün sınırlar kalktı, aşkınızın tadını sınırsızca çıkarabilirsiniz."
+      subtitle={t("paywall.celebration")}
       onClose={() => setVisible(false)}
     />
   );

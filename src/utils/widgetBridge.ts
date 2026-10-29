@@ -2,6 +2,7 @@ import { NativeModules, Platform } from "react-native";
 import { Directory, File, Paths } from "expo-file-system";
 import { dayjs } from "@/lib/date";
 import { logger } from "@/utils/logger";
+import i18n from "@/lib/i18n";
 
 /**
  * Ana ekran widget'ı köprüsü (iOS: expo-widgets / WidgetKit, Android: yerel AppWidget).
@@ -232,7 +233,7 @@ export function syncCoupleWidget(input: CoupleWidgetInput): Promise<boolean> {
     const payload: CoupleWidgetPayload = {
       state: "ready",
       myName: input.myName?.trim() || "",
-      partnerName: input.partnerName?.trim() || "Sevgilin",
+      partnerName: input.partnerName?.trim() || i18n.t("common.partnerFallback"),
       startDate: input.startDate ? input.startDate.substring(0, 10) : null,
       premiumUntilMs: Number.isFinite(premiumUntilMs) ? premiumUntilMs : null,
       partnerMoodEmoji: hasMood ? input.partnerMoodEmoji! : null,

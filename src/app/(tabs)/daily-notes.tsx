@@ -20,7 +20,6 @@ import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { encrypt, decrypt } from "@/utils/crypto";
 import dayjs from "dayjs";
-import "dayjs/locale/tr";
 import { 
   ChevronLeft, Edit3, Trash2, AlignJustify, 
   PenLine, BookOpen, Calendar, Clock, X, Check, Sparkles 
@@ -37,8 +36,7 @@ import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { DEMO_DAILY_NOTES } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
-
-dayjs.locale("tr");
+import { useTranslation } from "react-i18next";
 
 interface DailyNote {
   id: number;
@@ -57,6 +55,7 @@ const cleanContentText = (stored: string) => {
 };
 
 export default function DailyNotesScreen() {
+  const { t, i18n } = useTranslation();
   const { session, profile, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
@@ -103,21 +102,21 @@ export default function DailyNotesScreen() {
   const handleDelete = useCallback(async (id: number) => {
     if (executeOrIntercept(
       () => {},
-      "Günlüğü Silmek İçin Kayıt Olun 🗑️",
-      "Günlük notlarınızı yönetmek ve silmek için ücretsiz hesabınızı oluşturun."
+      t("dailyNotes.demo.deleteTitle"),
+      t("dailyNotes.demo.deleteDescription")
     )) {
       return;
     }
 
-    appAlert("Günlüğü Sil", "Bu günlük kaydını kalıcı olarak silmek istediğinize emin misiniz?", [
-      { text: "Vazgeç", style: "cancel" },
+    appAlert(t("dailyNotes.delete.title"), t("dailyNotes.delete.message"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Sil",
+        text: t("common.delete"),
         style: "destructive",
         onPress: async () => {
           const { error } = await supabase.from("daily_notes").delete().eq("id", id);
           if (error) {
-            appAlert("Hata", "Günlük silinirken hata oluştu.");
+            appAlert(t("common.error"), t("dailyNotes.errors.deleteFailed"));
           } else {
             queryClient.invalidateQueries({ queryKey: ["daily_notes_history", userId] });
             queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
@@ -130,8 +129,8 @@ export default function DailyNotesScreen() {
   const handleUpdate = async () => {
     if (executeOrIntercept(
       () => {},
-      "Günlüğü Düzenlemek İçin Kayıt Olun ✏️",
-      "Günlük notlarınızı güncellemek için ücretsiz hesabınızı oluşturun."
+      t("dailyNotes.demo.editTitle"),
+      t("dailyNotes.demo.editDescription")
     )) {
       setEditingNote(null);
       return;
@@ -158,7 +157,7 @@ export default function DailyNotesScreen() {
       setEditContent("");
       setEditError(false);
     } catch (e: any) {
-      appAlert("Hata", "Günlük güncellenemedi.");
+      appAlert(t("common.error"), t("dailyNotes.errors.updateFailed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -167,9 +166,9 @@ export default function DailyNotesScreen() {
   const renderNoteCard = useCallback(({ item: note }: { item: DailyNote }) => {
     const dateObj = dayjs(note.date);
     const day = dateObj.format("D");
-    const month = dateObj.format("MMMM");
+    const month = dateObj.locale(i18n.language).format("MMMM");
     const year = dateObj.format("YYYY");
-    const weekday = dateObj.format("dddd");
+    const weekday = dateObj.locale(i18n.language).format("dddd");
 
     const displayContent = cleanContentText(note.content);
 
@@ -191,8 +190,8 @@ export default function DailyNotesScreen() {
               onPress={() => {
                 if (executeOrIntercept(
                   () => {},
-                  "Günlüğü Düzenlemek İçin Kayıt Olun ✏️",
-                  "Günlük notlarınızı güncellemek için ücretsiz hesabınızı oluşturun."
+                  t("dailyNotes.demo.editTitle"),
+                  t("dailyNotes.demo.editDescription")
                 )) {
                   return;
                 }
@@ -219,7 +218,7 @@ export default function DailyNotesScreen() {
         <Text style={[styles.noteBodyText, { color: theme.textSecondary }]}>{displayContent}</Text>
       </View>
     );
-  }, [theme, styles, executeOrIntercept, handleDelete]);
+  }, [theme, styles, executeOrIntercept, handleDelete, i18n.language]);
 
   const keyExtractor = useCallback((item: DailyNote) => item.id.toString(), []);
 
@@ -230,7 +229,7 @@ export default function DailyNotesScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity 
             accessibilityRole="button"
-            accessibilityLabel="Geri"
+            accessibilityLabel={t("common.back")}
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();
@@ -245,8 +244,8 @@ export default function DailyNotesScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Günlüğüm</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>Sadece senin görebildiğin notların 📓</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{t("menu.journal.title")}</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>{t("dailyNotes.subtitle")}</Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -255,8 +254,8 @@ export default function DailyNotesScreen() {
               onPress={() => {
                 if (executeOrIntercept(
                   () => router.push(openForm("/(tabs)/add-daily-note")),
-                  "Günlük Not Yazmak İçin Kayıt Olun 📖",
-                  "Günün hislerini ve sevgi notlarını şifreli olarak kaydetmek için ücretsiz hesabınızı oluşturun."
+                  t("dailyNotes.demo.writeTitle"),
+                  t("dailyNotes.demo.writeDescription")
                 )) {
                   return;
                 }
@@ -270,7 +269,7 @@ export default function DailyNotesScreen() {
 
             <TouchableOpacity 
               accessibilityRole="button"
-              accessibilityLabel="Menüyü aç"
+              accessibilityLabel={t("common.openMenu")}
               onPress={() => router.push("/menu")} 
               style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -287,8 +286,8 @@ export default function DailyNotesScreen() {
             onPress={() => {
               if (executeOrIntercept(
                 () => router.push(openForm("/(tabs)/add-daily-note")),
-                "Günlük Not Yazmak İçin Kayıt Olun 📖",
-                "Günün hislerini ve sevgi notlarını şifreli olarak kaydetmek için ücretsiz hesabınızı oluşturun."
+                t("dailyNotes.demo.writeTitle"),
+                t("dailyNotes.demo.writeDescription")
               )) {
                 return;
               }
@@ -300,8 +299,8 @@ export default function DailyNotesScreen() {
               <BookOpen size={20} color={theme.accent} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.writeActionTitle, { color: theme.text }]}>Günün Günlüğünü Yaz</Text>
-              <Text style={[styles.writeActionSub, { color: theme.textMuted }]}>İçinden geçenleri defterine emanet et ✨</Text>
+              <Text style={[styles.writeActionTitle, { color: theme.text }]}>{t("dailyNotes.writeToday")}</Text>
+              <Text style={[styles.writeActionSub, { color: theme.textMuted }]}>{t("dailyNotes.writeTodaySub")}</Text>
             </View>
             <PenLine size={18} color={theme.textMuted} />
           </TouchableOpacity>
@@ -335,14 +334,14 @@ export default function DailyNotesScreen() {
             ListEmptyComponent={
               <EmptyState
                 emoji="📓"
-                title="Günlüğünün ilk sayfası seni bekliyor"
-                description="Bugün hissettiklerini, sevgilinle yaşadığın güzel bir anı ya da sadece aklından geçenleri yaz; sadece sen okuyabilirsin."
-                ctaLabel="İlk Sayfayı Yaz ✍️"
+                title={t("dailyNotes.empty.title")}
+                description={t("dailyNotes.empty.description")}
+                ctaLabel={t("dailyNotes.empty.cta")}
                 onPressCta={() => {
                   if (executeOrIntercept(
                     () => router.push(openForm("/(tabs)/add-daily-note")),
-                    "Günlük Not Yazmak İçin Kayıt Olun 📖",
-                    "Günün hislerini ve sevgi notlarını şifreli olarak kaydetmek için ücretsiz hesabınızı oluşturun."
+                    t("dailyNotes.demo.writeTitle"),
+                    t("dailyNotes.demo.writeDescription")
                   )) {
                     return;
                   }
@@ -363,7 +362,7 @@ export default function DailyNotesScreen() {
             <View style={[styles.modalHeader, { borderBottomColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Edit3 size={18} color={theme.accent} />
-                <Text style={[styles.modalTitle, { color: theme.text }]}>Günlüğü Düzenle</Text>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>{t("dailyNotes.edit.title")}</Text>
               </View>
 
               <TouchableOpacity 
@@ -399,12 +398,12 @@ export default function DailyNotesScreen() {
                   setEditContent(text);
                   setEditError(false);
                 }}
-                placeholder="Günlüğünüz..."
+                placeholder={t("dailyNotes.edit.placeholder")}
                 placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
               />
 
               <Text style={{ alignSelf: "flex-end", fontSize: 11.5, fontFamily: "Inter_400Regular", color: theme.textMuted, marginRight: 4 }}>
-                {editContent.length} / {DAILY_NOTE_MAX_CHARS} harf
+                {t("dailyNotes.edit.counter", { chars: editContent.length, max: DAILY_NOTE_MAX_CHARS })}
               </Text>
 
               <View style={styles.modalActionsRow}>
@@ -412,7 +411,7 @@ export default function DailyNotesScreen() {
                   onPress={() => setEditingNote(null)}
                   style={[styles.modalCancelBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)" }]}
                 >
-                  <Text style={[styles.modalCancelBtnText, { color: theme.textSecondary }]}>İptal</Text>
+                  <Text style={[styles.modalCancelBtnText, { color: theme.textSecondary }]}>{t("common.cancelAction")}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity 
@@ -425,7 +424,7 @@ export default function DailyNotesScreen() {
                   ) : (
                     <>
                       <Check size={17} color="#ffffff" />
-                      <Text style={styles.modalSaveBtnText}>Güncelle</Text>
+                      <Text style={styles.modalSaveBtnText}>{t("common.update")}</Text>
                     </>
                   )}
                 </TouchableOpacity>

@@ -26,16 +26,15 @@ import { useDemoAction } from "@/hooks/useDemoAction";
 import { toast } from "@/lib/toast";
 import { DAILY_NOTE_MAX_CHARS } from "@/lib/dailyNote";
 import dayjs from "dayjs";
-import "dayjs/locale/tr";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { LazyDemoActionModal } from "@/components/ui/lazyMount";
-
-dayjs.locale("tr");
+import { useTranslation } from "react-i18next";
 
 
 export default function AddDailyNoteScreen() {
+  const { t, i18n } = useTranslation();
   const { session, profile } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
@@ -60,14 +59,14 @@ export default function AddDailyNoteScreen() {
   const handleSave = async () => {
     if (executeOrIntercept(
       () => {},
-      "Günlük Tutmak İçin Kayıt Olun 📖",
-      "Şifrelenerek saklanan ve yalnızca sizin görebileceğiniz kişisel günlüğünüzü oluşturmak için ücretsiz hesabınızı başlatın."
+      t("dailyNotes.demo.createTitle"),
+      t("dailyNotes.demo.createDescription")
     )) {
       return;
     }
 
     if (!content.trim()) {
-      toast.warning("Lütfen günlüğünüze bir şeyler yazın.", { title: "Eksik bilgi" });
+      toast.warning(t("dailyNotes.add.writeSomething"), { title: t("common.missingInformation") });
       return;
     }
 
@@ -77,7 +76,7 @@ export default function AddDailyNoteScreen() {
     try {
       const cleanContent = sanitize(content.trim());
       if (!cleanContent) {
-        appAlert("Hata", "Geçersiz içerik. Lütfen notu tekrar yazın.");
+        appAlert(t("common.error"), t("dailyNotes.add.invalidContent"));
         setIsSubmitting(false);
         return;
       }
@@ -99,12 +98,12 @@ export default function AddDailyNoteScreen() {
         const previous = decrypt(existing.content);
         if (!previous) {
           // Çözülemeyen notu ezmemek için işlemi durdur
-          appAlert("Hata", "Bugünün mevcut günlüğü okunamadı, üzerine yazılmadı.");
+          appAlert(t("common.error"), t("dailyNotes.add.readFailed"));
           return;
         }
         const merged = `${previous}\n\n${cleanContent}`;
         if (merged.length > DAILY_NOTE_MAX_CHARS) {
-          appAlert("Sayfa Dolu", "Bugünün günlük sayfası doldu. Günlüklerim ekranından mevcut notu düzenleyebilirsin.");
+          appAlert(t("dailyNotes.add.pageFullTitle"), t("dailyNotes.add.pageFullMessage"));
           return;
         }
         ({ error } = await supabase
@@ -123,13 +122,13 @@ export default function AddDailyNoteScreen() {
 
       queryClient.invalidateQueries({ queryKey: ["daily_notes_history", session.user.id] });
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
-      toast.success("Günlüğün kaydedildi ✨");
+      toast.success(t("dailyNotes.add.saved"));
       // Kaydedilen not yazı alanında kalmasın (ekran bellekte duruyor)
       setContent("");
       router.replace("/(tabs)/daily-notes");
     } catch (error) {
       console.error(error);
-      appAlert("Hata", "Günlük kaydedilirken bir hata oluştu.");
+      appAlert(t("common.error"), t("dailyNotes.add.saveFailed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -145,7 +144,7 @@ export default function AddDailyNoteScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity 
             accessibilityRole="button"
-            accessibilityLabel="Geri"
+            accessibilityLabel={t("common.back")}
             onPress={() => router.replace("/(tabs)/daily-notes")} 
             style={[
               styles.headerBtn,
@@ -160,8 +159,8 @@ export default function AddDailyNoteScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Yeni Günlük Sayfası</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>Sadece senin görebildiğin özel notun 🔒</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{t("dailyNotes.add.title")}</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>{t("dailyNotes.add.subtitle")}</Text>
           </View>
 
           <TouchableOpacity 
@@ -198,7 +197,7 @@ export default function AddDailyNoteScreen() {
                 <CalendarIcon size={16} color={theme.accent} />
               </View>
               <Text style={[styles.dateCardText, { color: theme.text }]}>
-                {dayjs().format("D MMMM YYYY, dddd")}
+                {dayjs().locale(i18n.language).format("D MMMM YYYY, dddd")}
               </Text>
             </View>
 
@@ -211,9 +210,9 @@ export default function AddDailyNoteScreen() {
           {/* GÜNLÜK METİN EDİTÖRÜ */}
           <View style={styles.sectionBlock}>
             <View style={styles.editorLabelRow}>
-              <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>GÜNLÜK NOTUN</Text>
+              <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>{t("dailyNotes.add.label")}</Text>
               <Text style={[styles.charCountText, { color: theme.textMuted }, charCount >= 1800 && { color: "#f59e0b" }]}>
-                {charCount} / {DAILY_NOTE_MAX_CHARS} harf ({wordCount} kelime)
+                {t("dailyNotes.add.counter", { chars: charCount, max: DAILY_NOTE_MAX_CHARS, count: wordCount })}
               </Text>
             </View>
 
@@ -221,7 +220,7 @@ export default function AddDailyNoteScreen() {
               <TextInput
                 style={[styles.editorInput, { color: theme.text }]}
                 multiline
-                placeholder="Sevgili günlük, bugün içimden geçenler..."
+                placeholder={t("dailyNotes.add.placeholder")}
                 placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
                 value={content}
                 onChangeText={setContent}
@@ -247,7 +246,7 @@ export default function AddDailyNoteScreen() {
             ) : (
               <>
                 <BookOpen size={19} color="#ffffff" />
-                <Text style={styles.bottomSaveBtnText}>Günlüğü Deftere Kaydet 📖</Text>
+                <Text style={styles.bottomSaveBtnText}>{t("dailyNotes.add.submit")}</Text>
               </>
             )}
           </TouchableOpacity>

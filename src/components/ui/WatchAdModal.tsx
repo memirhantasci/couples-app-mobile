@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/context/ThemeContext";
 import { logger } from "@/utils/logger";
 import { toast } from "@/lib/toast";
+import { useTranslation } from "react-i18next";
 
 const isExpoGo = Constants.appOwnership === 'expo';
 const hasAdsModule = typeof TurboModuleRegistry?.get === 'function' && !!TurboModuleRegistry.get('RNGoogleMobileAdsModule');
@@ -49,6 +50,7 @@ interface WatchAdModalProps {
 }
 
 export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps) {
+  const { t } = useTranslation();
   const { refreshProfile } = useAuth();
   // useTheme: seçili açık/koyu modu da yakalar
   const { theme, isLight } = useTheme();
@@ -67,7 +69,7 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
   useEffect(() => {
     if (error) {
       logger.error("Ad error:", error);
-      appAlert("Hata", "Reklam yüklenirken bir hata oluştu.");
+      appAlert(t("common.error"), t("ads.loadFailed"));
     }
   }, [error]);
 
@@ -85,12 +87,12 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
 
         await refreshProfile();
         // Reklam modalı onSuccess ile kapanır → pil kapanışı bekleyip modalın önünde görünsün
-        toast.success("25 Token kazandın!", { title: "Tebrikler!", emoji: "🪙", delay: 350 });
+        toast.success(t("ads.earned"), { title: t("common.congratulations"), emoji: "🪙", delay: 350 });
         onSuccess();
       })
       .catch((error: any) => {
         logger.error("Earn token error:", error);
-        appAlert("Hata", "Token eklenirken bir hata oluştu.");
+        appAlert(t("common.error"), t("ads.addFailed"));
       })
       .finally(() => {
         setRewarding(false);
@@ -126,9 +128,9 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
             <Coins color={isLight ? "#B7791F" : "#FFD700"} size={32} />
           </View>
           
-          <Text style={[styles.title, { color: theme.text }]}>Token Kazan</Text>
+          <Text style={[styles.title, { color: theme.text }]}>{t("ads.title")}</Text>
           <Text style={[styles.desc, { color: theme.textSecondary }]}>
-            Kısa bir reklam izleyerek 25 Token kazanabilirsin.
+            {t("ads.description")}
           </Text>
 
           <TouchableOpacity 
@@ -145,12 +147,12 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
             ) : !isLoaded ? (
               <>
                 <ActivityIndicator color="#fff" size="small" />
-                <Text style={styles.actionBtnText}>Yükleniyor...</Text>
+                <Text style={styles.actionBtnText}>{t("common.loading")}</Text>
               </>
             ) : (
               <>
                 <PlayCircle color="#fff" size={20} />
-                <Text style={styles.actionBtnText}>Reklamı İzle (+25)</Text>
+                <Text style={styles.actionBtnText}>{t("ads.watch")}</Text>
               </>
             )}
           </TouchableOpacity>

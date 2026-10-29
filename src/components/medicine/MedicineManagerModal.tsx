@@ -22,6 +22,7 @@ import type {
   MedicineItem,
   MedicineSubmitResult,
 } from "./medicineTypes";
+import { useTranslation } from "react-i18next";
 
 /** Prefill for editing an existing medicine in the manager modal. */
 export function medicineToFormData(med: MedicineItem, currentUserId: string | null): MedicineFormInitialData {
@@ -106,6 +107,7 @@ function MedicineManagerForm({
   onDelete,
   onBeforeEdit,
 }: FormProps) {
+  const { t } = useTranslation();
   const [medName, setMedName] = useState(initialData?.name ?? "");
   const [medError, setMedError] = useState(false);
   const [medStartDate, setMedStartDate] = useState(initialData?.startDate ?? new Date());
@@ -177,7 +179,7 @@ function MedicineManagerForm({
         (t, i) => i !== activeTimeIndex && dayjs(t).format("HH:mm") === newTimeStr
       );
       if (isDuplicate) {
-        appAlert("Uyarı", "Bu ilaç için bu saati zaten seçtiniz. Lütfen farklı bir saat belirleyin.");
+        appAlert(t("common.warning"), t("medicine.manager.duplicateTime"));
         return false;
       }
       const updated = [...medTimes];
@@ -232,7 +234,7 @@ function MedicineManagerForm({
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Settings size={18} color={theme.accent} />
             <Text style={[styles.modalTitle, { color: theme.text }]}>
-              {editingMedicineId ? "İlacı Düzenle" : "İlaç Yönetimi & Ekle"}
+              {editingMedicineId ? t("medicine.manager.editTitle") : t("medicine.manager.title")}
             </Text>
           </View>
 
@@ -255,13 +257,16 @@ function MedicineManagerForm({
           {/* Mevcut İlaçlar Listesi */}
           {!editingMedicineId && medicines.length > 0 && (
             <View style={{ gap: 8 }}>
-              <Text style={[styles.modalSectionSub, { color: theme.textMuted }]}>KAYITLI İLAÇLAR</Text>
+              <Text style={[styles.modalSectionSub, { color: theme.textMuted }]}>{t("medicine.manager.saved")}</Text>
               {medicines.map((m) => (
                 <View key={m.id} style={[styles.registeredMedCard, { backgroundColor: theme.unitBg, borderColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)", borderWidth: 1 }]}>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.registeredMedName, { color: theme.text }]}>{m.name}</Text>
                     <Text style={[styles.registeredMedSub, { color: theme.textMuted }]}>
-                      {m.user_id === userId ? "Benim" : "Sevgilimin"} • Günde {Array.isArray(m.times) ? m.times.length : 1} kez
+                      {t("medicine.manager.registeredSub", {
+                        owner: m.user_id === userId ? t("medicine.manager.owner.mine") : t("medicine.manager.owner.partner"),
+                        count: Array.isArray(m.times) ? m.times.length : 1,
+                      })}
                     </Text>
                   </View>
                   <View style={{ flexDirection: "row", gap: 10 }}>
@@ -284,7 +289,7 @@ function MedicineManagerForm({
           {/* Form Alanı */}
           <View style={{ gap: 12, marginTop: 4 }}>
             <Text style={[styles.modalSectionSub, { color: theme.textMuted }]}>
-              {editingMedicineId ? "İLAÇ DETAYLARI" : "YENİ İLAÇ FORMU"}
+              {editingMedicineId ? t("medicine.manager.detailsTitle") : t("medicine.manager.newFormTitle")}
             </Text>
 
             {/* Kimin İçin? */}
@@ -293,19 +298,19 @@ function MedicineManagerForm({
                 style={[styles.segmentedBtn, !isPartnerAdd && { backgroundColor: theme.cardBg }]}
                 onPress={() => setIsPartnerAdd(false)}
               >
-                <Text style={[styles.segmentedText, { color: !isPartnerAdd ? theme.accent : theme.textSecondary }, !isPartnerAdd && { fontFamily: "Inter_700Bold" }]}>Ben</Text>
+                <Text style={[styles.segmentedText, { color: !isPartnerAdd ? theme.accent : theme.textSecondary }, !isPartnerAdd && { fontFamily: "Inter_700Bold" }]}>{t("medicine.manager.forMe")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.segmentedBtn, isPartnerAdd && { backgroundColor: theme.cardBg }]}
                 onPress={() => setIsPartnerAdd(true)}
               >
-                <Text style={[styles.segmentedText, { color: isPartnerAdd ? theme.accent : theme.textSecondary }, isPartnerAdd && { fontFamily: "Inter_700Bold" }]}>Sevgilim</Text>
+                <Text style={[styles.segmentedText, { color: isPartnerAdd ? theme.accent : theme.textSecondary }, isPartnerAdd && { fontFamily: "Inter_700Bold" }]}>{t("greetings.myLoveFallback")}</Text>
               </TouchableOpacity>
             </View>
 
             {/* İlaç Adı */}
             <View style={{ gap: 6 }}>
-              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>İLAÇ ADI</Text>
+              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{t("medicine.manager.nameLabel")}</Text>
               <TextInput
                 style={[
                   styles.textInput,
@@ -316,7 +321,7 @@ function MedicineManagerForm({
                   },
                   medError && styles.inputError,
                 ]}
-                placeholder="Örn: Aspirin, B12 Vitamini..."
+                placeholder={t("medicine.manager.namePlaceholder")}
                 placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
                 value={medName}
                 onChangeText={(text) => {
@@ -329,7 +334,7 @@ function MedicineManagerForm({
 
             {/* Günlük Doz Sıklığı (1, 2, 3) */}
             <View style={{ gap: 6 }}>
-              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>GÜNLÜK DOZ SIKLIĞI</Text>
+              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{t("medicine.manager.frequencyLabel")}</Text>
               <View style={{ flexDirection: "row", gap: 10 }}>
                 {([1, 2, 3] as const).map((freq) => {
                   const isSelected = medFrequency === freq;
@@ -347,7 +352,7 @@ function MedicineManagerForm({
                       ]}
                     >
                       <Text style={[styles.freqBtnText, { color: isSelected ? theme.accent : theme.textSecondary }, isSelected && { fontFamily: "Inter_700Bold" }]}>
-                        {freq} Kez
+                        {t("medicine.manager.times", { count: freq })}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -357,7 +362,7 @@ function MedicineManagerForm({
 
             {/* Saat Seçicileri */}
             <View style={{ gap: 6 }}>
-              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>DOZ SAATLERİ</Text>
+              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{t("medicine.manager.doseTimesLabel")}</Text>
               <View style={{ flexDirection: "row", gap: 10 }}>
                 {medTimes.map((time, idx) => (
                   <TouchableOpacity
@@ -381,7 +386,7 @@ function MedicineManagerForm({
             {/* Başlangıç & Bitiş Tarihleri */}
             <View style={{ flexDirection: "row", gap: 10 }}>
               <View style={{ flex: 1, gap: 6 }}>
-                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>BAŞLANGIÇ</Text>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{t("medicine.manager.startLabel")}</Text>
                 <TouchableOpacity
                   onPress={() => openPicker("start")}
                   style={[
@@ -398,7 +403,7 @@ function MedicineManagerForm({
               </View>
 
               <View style={{ flex: 1, gap: 6 }}>
-                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>BİTİŞ</Text>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{t("medicine.manager.endLabel")}</Text>
                 <TouchableOpacity
                   onPress={() => openPicker("end")}
                   style={[
@@ -428,7 +433,7 @@ function MedicineManagerForm({
                 <>
                   <Check size={17} color="#ffffff" />
                   <Text style={styles.saveMedBtnText}>
-                    {editingMedicineId ? "Güncellemeyi Kaydet" : "İlacı Listeye Ekle"}
+                    {editingMedicineId ? t("medicine.manager.saveUpdate") : t("medicine.manager.addToList")}
                   </Text>
                 </>
               )}
@@ -442,7 +447,7 @@ function MedicineManagerForm({
         visible={showPicker !== null}
         mode={showPicker === "time" ? "time" : "date"}
         value={pickerValue}
-        title={showPicker === "time" ? "Doz Saati" : showPicker === "start" ? "Başlangıç Tarihi" : "Bitiş Tarihi"}
+        title={showPicker === "time" ? t("medicine.manager.doseTimePickerTitle") : showPicker === "start" ? t("medicine.manager.startPickerTitle") : t("medicine.manager.endPickerTitle")}
         onCancel={closePicker}
         onConfirm={(date) => {
           if (showPicker && commitPicker(showPicker, date)) {

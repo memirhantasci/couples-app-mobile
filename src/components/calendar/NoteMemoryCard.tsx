@@ -5,6 +5,7 @@ import { Image } from "expo-image";
 import { Heart } from "lucide-react-native";
 import type { AppTheme } from "@/lib/theme";
 import { CALENDAR_COLORS } from "./calendarColors";
+import { useTranslation } from "react-i18next";
 
 interface NoteMemoryCardProps {
   text: string;
@@ -34,6 +35,7 @@ export const NoteMemoryCard = memo(function NoteMemoryCard({
   theme,
   isLight,
 }: NoteMemoryCardProps) {
+  const { t } = useTranslation();
   const rose = CALENDAR_COLORS.note;
   const tint = isMe ? ["#F59E0B", "#F472B6"] : ["#F472B6", "#A78BFA"];
   const initial = (authorName.trim().charAt(0) || "♥").toUpperCase();
@@ -103,7 +105,7 @@ export const NoteMemoryCard = memo(function NoteMemoryCard({
               {authorName}
             </Text>
             <Text style={[styles.byline, { color: theme.textMuted }]} numberOfLines={1}>
-              {isMe ? "Senin notun" : "Sevgilinin sana bıraktığı not"}
+              {isMe ? t("calendar.note.yours") : t("calendar.note.fromPartner")}
             </Text>
           </View>
 

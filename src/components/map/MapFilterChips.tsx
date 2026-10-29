@@ -4,6 +4,7 @@ import { Calendar, Camera, Sparkles, StickyNote } from "lucide-react-native";
 import type { LucideIcon } from "lucide-react-native";
 
 import type { FilterType } from "./mapTypes";
+import { useTranslation } from "react-i18next";
 
 interface MapFilterChipsProps {
   accent: string;
@@ -33,21 +34,22 @@ export function MapFilterChips({
   activeFilter,
   onChange,
 }: MapFilterChipsProps) {
+  const { t } = useTranslation();
   const options = useMemo<FilterOption[]>(
     () => [
       {
         id: "all",
-        label: `Tümü (${(isPremium ? photoCount : 0) + noteCount + meetingCount})`,
+        label: t("letters.filters.all", { total: (isPremium ? photoCount : 0) + noteCount + meetingCount }),
         icon: Sparkles,
       },
       // Fotoğraf pinleri yalnızca Premium kullanıcılara açık
       ...(isPremium
-        ? [{ id: "photos" as const, label: `Fotoğraflar (${photoCount})`, icon: Camera }]
+        ? [{ id: "photos" as const, label: t("map.filters.photos", { total: photoCount }), icon: Camera }]
         : []),
-      { id: "notes", label: `Aşk Notları (${noteCount})`, icon: StickyNote },
-      { id: "meetings", label: `Buluşmalar (${meetingCount})`, icon: Calendar },
+      { id: "notes", label: t("map.filters.notes", { total: noteCount }), icon: StickyNote },
+      { id: "meetings", label: t("map.filters.meetups", { total: meetingCount }), icon: Calendar },
     ],
-    [isPremium, photoCount, noteCount, meetingCount],
+    [isPremium, photoCount, noteCount, meetingCount, t],
   );
 
   return (

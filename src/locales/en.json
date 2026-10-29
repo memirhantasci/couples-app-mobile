@@ -1,0 +1,2931 @@
+{
+  "auth": {
+    "welcome": {
+      "subtitle": "The most romantic way to capture your love and watch it grow. Your memories, your letters and your star belong to the two of you alone.",
+      "exploreA11y": "Explore the app with sample data",
+      "explore": "Explore the App (Demo)",
+      "exploreHint": "The demo shows you around with sample data; it is not your account or your data."
+    },
+    "createAccount": "Create Account",
+    "signIn": "Sign In",
+    "deletion": {
+      "pendingTitle": "Your Account Is About to Be Deleted",
+      "pendingMessage": "There's a deletion request for this account: your account and all data belonging to your relationship will be permanently deleted on {{deletionDay}}.\n\nIf you'd like to keep using your account, cancel the deletion.",
+      "cancel": "Cancel Deletion",
+      "cancelFailed": "The deletion couldn't be canceled. Check your connection and try again.",
+      "canceled": "Deletion canceled. Welcome back 💕"
+    },
+    "signOut": "Sign Out",
+    "login": {
+      "legalNotice": "By signing in, you agree to the <terms>Terms of Use</terms>, the <privacy>Privacy Policy</privacy> and the <kvkk>KVKK Notice</kvkk>.",
+      "tagline": "The most romantic way to capture your love and watch it grow.",
+      "taglineSub": "Take the first step toward collecting unforgettable memories together.",
+      "identifierLabel": "EMAIL OR USERNAME",
+      "identifierPlaceholder": "example@gmail.com or username",
+      "forgotPassword": "Forgot Password?",
+      "googleSignIn": "Sign In with Google",
+      "googleContinue": "Continue with Google"
+    },
+    "register": {
+      "legalNotice": "By tapping Create Account or continuing with Apple / Google, you agree to the <terms>Terms of Use</terms>, the <privacy>Privacy Policy</privacy> and the <kvkk>KVKK Disclosure Notice</kvkk>.",
+      "successCode": "You're registered! Your verification code has been sent.",
+      "successSigningIn": "You're registered! Signing you in...",
+      "inviteTitle": "You're Joining with Your Love's Invitation 💕",
+      "inviteSub": "Your pairing code ({{code}}) was set automatically. Once you finish signing up, you'll be paired with your love right away, no need to enter a code!",
+      "nameLabel": "FULL NAME",
+      "namePlaceholder": "e.g. Emma Carter",
+      "usernameLabel": "USERNAME",
+      "passwordPlaceholder": "At least 6 characters",
+      "genderLabel": "YOUR GENDER",
+      "genderFemale": "Female ♀",
+      "genderMale": "Male ♂",
+      "pairingCodeLabel": "PAIRING CODE (OPTIONAL)",
+      "pairingCodePlaceholder": "e.g. X7Y9Z2"
+    },
+    "codeSentTo": "We sent a code to <email>{{email}}</email>",
+    "errors": {
+      "deviceCodeFailed": "The device verification code couldn't be sent: {{message}}",
+      "sessionMissing": "We couldn't retrieve your session. Please try again.",
+      "signInFailed": "We couldn't sign you in. Please try again.",
+      "lockout_one": "Too many failed attempts. Wait {{count}} second.",
+      "lockout_other": "Too many failed attempts. Wait {{count}} seconds.",
+      "emailNotVerified": "Your email address hasn't been verified yet.",
+      "identifierRequired": "Username or email is required.",
+      "passwordRequired": "Password is required.",
+      "wrongEmailOrPassword": "Incorrect email or password.",
+      "tooManyAttempts": "Too many attempts. Please wait a few minutes and try again.",
+      "signInUnavailable": "Sign-in isn't available right now. Check your connection and try again.",
+      "wrongUsernameOrPassword": "Incorrect username or password.",
+      "displayNameRequired": "Display name is required.",
+      "displayNameTooLong": "Display name can be at most {{max}} characters.",
+      "usernameTooShort": "Username must be at least 3 characters.",
+      "usernameInvalidChars": "Username can only contain letters a–z, numbers and _.",
+      "emailInvalid": "Enter a valid email address.",
+      "passwordTooShort": "Password must be at least 6 characters.",
+      "usernameCheckFailed": "We couldn't check the username. Please try again.",
+      "usernameTaken": "This username is already taken.",
+      "emailTaken": "This email is already registered.",
+      "usernameJustTaken": "This username was just taken. Please try a different one.",
+      "registerFailed": "Registration failed.",
+      "noEmailForVerification": "No email address was found on your account for verification.",
+      "signInLinkFailed": "The sign-in link couldn't be created.",
+      "googleFailed": "Something went wrong while signing in with Google.",
+      "appleNotCompleted": "Apple authentication couldn't be completed.",
+      "appleFailed": "Something went wrong while signing in with Apple.",
+      "emailNotFound": "Email address not found.",
+      "tooManyAttemptsPolite": "Too many attempts. Please wait a few minutes and try again.",
+      "noSession": "No session found. Please sign in again."
+    },
+    "verifyDevice": {
+      "sendFailedWithMessage": "The code couldn't be sent: {{message}}",
+      "codeIncomplete": "Please enter the full 6-digit code.",
+      "codeInvalid": "Invalid or expired code.",
+      "resent": "A new verification code has been sent to your email.",
+      "resentTitle": "Code sent",
+      "resendError": "Something went wrong while sending the code.",
+      "title": "New Device Verification",
+      "submit": "Confirm Device & Sign In",
+      "sending": "Sending...",
+      "resendCountdown": "Resend code ({{seconds}}s)",
+      "resend": "Resend code"
+    },
+    "completeProfile": {
+      "saveFailed": "Your profile couldn't be saved: {{message}}",
+      "nameRequired": "Please write the name your partner will see.",
+      "genderRequired": "Please select your gender.",
+      "recordNotFound": "Profile record not found.",
+      "title": "How Should We Get to Know You? ✨",
+      "subtitle": "Let's set the name your partner will see and the app's theme.",
+      "nameLabel": "NAME YOUR PARTNER WILL SEE",
+      "namePlaceholder": "e.g. Emma",
+      "hintSuggested": "We took this from your account. Feel free to change it however you like.",
+      "hintChangeLater": "You can change it anytime from your profile.",
+      "genderLabel": "YOUR GENDER",
+      "useAnotherAccount": "Continue with a different account"
+    },
+    "signUp": "Sign Up",
+    "passwordLabel": "PASSWORD",
+    "exploreDemoMode": "Explore the App (Demo Mode)",
+    "verify": {
+      "linkInvalid": "This link is invalid or has expired. Please request a new email.",
+      "codeIncomplete": "Please enter the full 6-digit code.",
+      "emailMissing": "Email information is missing. Please try again.",
+      "codeInvalid": "The code is incorrect or has expired. Please try again.",
+      "resendFailed": "The code couldn't be sent. Please try again.",
+      "resent": "A new verification code has been sent to your email.",
+      "resentTitle": "Sent!",
+      "verifying": "Verifying...",
+      "title": "Verify Your Email",
+      "submit": "Verify",
+      "noCode": "Didn't get the code?",
+      "resend": "Resend"
+    },
+    "codeSentGeneric": "We sent a code to your email address",
+    "forgot": {
+      "identifierRequired": "Please enter your username or email address.",
+      "sendFailed": "The code couldn't be sent. Check your connection and try again.",
+      "title": "Forgot Your Password?",
+      "subtitle": "Don't worry, we've got you. Start by entering your username or email address.",
+      "identifierLabel": "Username or Email",
+      "identifierPlaceholder": "username or example@mail.com",
+      "submit": "Send Code"
+    },
+    "reset": {
+      "codeRequired": "Please enter the verification code.",
+      "passwordTooShort": "Your password must be at least 6 characters.",
+      "mismatch": "Passwords don't match.",
+      "restart": "Please start the password reset again.",
+      "codeInvalid": "The code is invalid or has expired.",
+      "updateFailed": "Something went wrong while updating your password.",
+      "successTitle": "Your Password Is Updated!",
+      "successMessage": "You can now sign in with your new password.",
+      "backToSignIn": "Back to Sign In",
+      "title": "Set a New Password",
+      "subtitle": "If an account exists with these details, we've sent a verification code to its email. Enter the code and your new password.",
+      "codeLabel": "Verification Code",
+      "newPassword": "New Password",
+      "newPasswordPlaceholder": "Your new password",
+      "confirmPassword": "Confirm Password",
+      "confirmPlaceholder": "Confirm your new password",
+      "submit": "Update Password"
+    }
+  },
+  "notifications": {
+    "push": {
+      "letterDeleteResponse": {
+        "approvedWithTitle": "Agreed to delete the letter \"{{letterTitle}}\".",
+        "approved": "Agreed to delete the letter.",
+        "keepWithTitle": "Asked to keep the letter \"{{letterTitle}}\" 💛",
+        "keep": "Asked to keep the letter 💛",
+        "subtitle": "Letter Deletion Request"
+      },
+      "medicine": {
+        "drankWithName": "Took their {{medicineName}}. You can rest easy! 🌿",
+        "drank": "Took their medicine. You can rest easy! 🌿",
+        "dueWithName": "Time to take your {{medicineName}}! ⏰",
+        "due": "Time to take your medicine! ⏰"
+      },
+      "letter": {
+        "subtitle": "New Letter",
+        "bodyWithTitle": "Left you a sealed letter: \"{{letterTitle}}\" 📜",
+        "body": "Left you a sealed letter 📜"
+      },
+      "letterDeleteRequest": {
+        "subtitle": "Letter Deletion Approval",
+        "bodyWithTitle": "Asking your approval to delete the letter \"{{letterTitle}}\". It won't be deleted without your say.",
+        "body": "Asking your approval to delete a letter. It won't be deleted without your say."
+      },
+      "memory": {
+        "subtitle": "New Memory",
+        "bodyWithTitle": "Added a new memory: \"{{memoryTitle}}\" 💕"
+      },
+      "gallery": {
+        "subtitle": "Shared Gallery",
+        "bodyWithText": "Added a new memory: {{text}}",
+        "body": "Added a new memory photo to the shared gallery ✨"
+      },
+      "mood": {
+        "subtitle": "Mood",
+        "body": "Feeling {{emoji}} today."
+      },
+      "map": {
+        "subtitle": "Love Map",
+        "body": "Left a new memory note for you on the map 🗺️"
+      },
+      "meeting": {
+        "updatedSubtitle": "Meetup Updated",
+        "planSubtitle": "Meetup Plan",
+        "updatedAction": "Updated the meetup plan",
+        "plannedAction": "Planned a new meetup"
+      },
+      "period": {
+        "subtitle": "Special Day",
+        "body": "Her period has started. Time to show her a little extra care! 💕"
+      },
+      "pairing": {
+        "subtitle": "Pairing Complete",
+        "body": "Your partner has joined! You're ready to start collecting wonderful memories together ✨"
+      },
+      "accountDeletion": {
+        "subtitle": "Account Deletion",
+        "body": "Requested to delete their account."
+      }
+    },
+    "labels": {
+      "medicineTracking": "Medicine Tracking",
+      "cycleTracking": "Cycle Tracking"
+    },
+    "actions": {
+      "goToMedicine": "Go to Medicine Tracking 💊",
+      "viewPlan": "View Plan 🗓️",
+      "openLetter": "Open Letter 📜",
+      "goToLetters": "Go to Letters 💌",
+      "goToMemories": "Go to Memories 📸",
+      "goToMap": "Go to Map 🗺️",
+      "goToCycle": "Go to Cycle Tracking 🌸",
+      "goToHome": "Go to Home ✨",
+      "goToMeetings": "Go to Meetups 🗓️",
+      "letsStart": "Let's Begin Together ✨",
+      "view": "View ❤️"
+    },
+    "local": {
+      "meetingSoon": "Meetup Coming Up",
+      "letterUnlocked": "Unlocked",
+      "medicineBody": "Time to take your {{name}}. Take good care of yourself 💙",
+      "meetingBody": "{{hours}} hours until your meetup \"{{title}}\". Are you all set? 💕",
+      "letterUnlockMany": "{{count}} of your letters unlocked today! Tap to open 📜",
+      "letterUnlockOne": "A letter of yours unlocked today! Tap to open 📜",
+      "medicineTitle": "Medicine Time 💧",
+      "meetingTitle": "Meetup Coming Up! ⏳",
+      "letterTitle": "Sealed Letter 💌"
+    },
+    "channels": {
+      "general": "General Notifications ❤️",
+      "partnerMessages": "Messages & Memories from Your Love ❤️",
+      "medicine": "Medicine & Health 💊"
+    },
+    "types": {
+      "letter": {
+        "badge": "Sealed Letter"
+      },
+      "medicine": {
+        "badge": "Medicine Taken!"
+      },
+      "medicineReminder": {
+        "badge": "Time for Medicine"
+      },
+      "photo": {
+        "badge": "A New Memory"
+      },
+      "map": {
+        "badge": "Love Note on the Map"
+      },
+      "period": {
+        "badge": "Time for Tenderness & Care"
+      },
+      "mood": {
+        "badge": "Mood Update"
+      },
+      "meeting": {
+        "badge": "Meetup Plan"
+      },
+      "pairing": {
+        "badge": "Pairing Complete"
+      },
+      "general": {
+        "badge": "Couple Notification"
+      }
+    },
+    "demo": {
+      "letter": {
+        "title": "A Letter from the Future 💌",
+        "body": "Your love sealed a heartfelt letter just for you. Tap to open it!",
+        "letterTitle": "For the Days We'll Grow Old Together..."
+      },
+      "medicine": {
+        "title": "Medicine Taken! 💊✨",
+        "body": "Your love took their morning vitamins. You can rest easy, they're taking care of their health! 🌿",
+        "medicineName": "B12 & Omega Vitamin"
+      },
+      "medicineReminder": {
+        "body": "It's time for today's health dose. Don't forget to take it with a glass of water!",
+        "medicineName": "Daily Vitamin"
+      },
+      "photo": {
+        "title": "A New Memory 📸",
+        "body": "Your love added a new photo to your album. Take a look at the details of the memory!"
+      },
+      "map": {
+        "title": "A New Love Note on the Map 💌",
+        "body": "Your love left a secret love note at Kadıköy Shore: 'The place I first saw you...'"
+      },
+      "period": {
+        "title": "Period Has Started 🌸",
+        "body": "Your love's cycle has started. Time to show her a little extra care!"
+      },
+      "mood": {
+        "title": "Mood Updated 🥰",
+        "body": "Your love picked the 'I Miss You So Much' mood! Share the moment of the day together."
+      },
+      "meeting": {
+        "title": "A New Meetup Plan 🗓️",
+        "body": "A romantic dinner plan has been created for the weekend!"
+      },
+      "general": {
+        "title": "I Love You So Much ❤️",
+        "body": "You're on my mind every moment of the day!"
+      }
+    },
+    "fallbackTitle": "Notification",
+    "banner": {
+      "doseTaken": "{{medicineName}} dose taken"
+    },
+    "priming": {
+      "benefit1": "Get notified instantly when a letter arrives from your love",
+      "benefit2": "Be the first to see the new memories they share",
+      "benefit3": "Never miss special days and reminders",
+      "title": "Never Miss a Moment ✨",
+      "description": "Let us whisper to you right away when your love leaves you something. You can turn notifications off in settings anytime.",
+      "enable": "Turn On Notifications ❤️"
+    },
+    "showcase": {
+      "letter": {
+        "title": "Sealed Love Letter 💌",
+        "subtitle": "When a Letter from the Future Arrives",
+        "description": "A romantic design with a gold-leaf seal badge, parchment glow and a direct 'Go to Letters' button."
+      },
+      "medicine": {
+        "subtitle": "When Your Partner Takes Their Medicine",
+        "description": "A health design in emerald green & mint, with a water-drop badge and a direct 'Go to Medicine Tracking' button."
+      },
+      "reminder": {
+        "title": "Time for Medicine 💧",
+        "subtitle": "When a Daily Reminder Is Set",
+        "description": "A reminder card in sky-blue tones with a clock and water alert that goes straight to the medicine page."
+      },
+      "photo": {
+        "title": "A New Memory & Photo 📸",
+        "subtitle": "When a Photo Is Added to the Shared Album",
+        "description": "A sparkling photo notification in sunset tones with a Polaroid-frame feel."
+      },
+      "map": {
+        "title": "Love Note on the Map 📍",
+        "subtitle": "When a Secret Note Is Left at a Location",
+        "description": "An enchanting lavender-midnight blue map discovery card with a location pin."
+      },
+      "period": {
+        "title": "Period & Tenderness Support 🌸",
+        "subtitle": "When a Cycle Start Is Shared",
+        "description": "A special care notification in soft pink with a lotus flower and a direct 'Go to Cycle Tracking' button."
+      },
+      "mood": {
+        "title": "Mood Update ✨",
+        "subtitle": "When Your Partner Picks Their Mood of the Day",
+        "description": "A mood card with a sunny-yellow glow and a 'Go to Home' button."
+      },
+      "heading": "SPECIAL NOTIFICATION DESIGNS",
+      "title": "Notification Showcase ✨",
+      "subtitle": "Tap the designs below to try the live notification cards.",
+      "tryLive": "Show This Notification Live"
+    }
+  },
+  "setup": {
+    "errors": {
+      "datesSaveFailedWithMessage": "Something went wrong while saving your dates: {{message}}",
+      "generic": "Something went wrong, please try again.",
+      "invalidCode": "We couldn't find a waiting partner with this code. Check the code letter by letter on your partner's screen.",
+      "codeUnavailable": "This code can no longer be used; its owner has already paired with someone else.",
+      "selfCode": "That's your own code. Enter the code shown on your partner's screen.",
+      "alreadyPaired": "You're already paired with your partner.",
+      "pairingFailed": "Pairing couldn't be completed, please try again.",
+      "datesSaveFailed": "Your dates couldn't be saved. Please try again.",
+      "pairingInfoMissing": "We couldn't retrieve your pairing info. Please try again.",
+      "futureDate": "You can't pick a date in the future.",
+      "meetAfterRelationship": "The day you met can't come after the day you became a couple.",
+      "relationshipDateRequired": "Please set the date your relationship began.",
+      "datesChangeLimit": "You've used all your date changes for this period."
+    },
+    "dates": {
+      "partnerSavedToast": "Your partner saved your relationship date as {{date}}; your counter started from that day. If it's wrong, you can fix it under Profile › Relationship Dates.",
+      "partnerSavedTitle": "Your date is set 💕",
+      "meetFuture": "The day you met can't be in the future.",
+      "title": "Your Relationship Dates",
+      "subtitle": "Let's count these special days together and never forget them.",
+      "relationshipLabel": "The Day We Became a Couple / Anniversary 💕",
+      "relationshipHint": "The day your togetherness began",
+      "meetLabel": "The Day We Met (Optional) ✨",
+      "meetHint": "That one-of-a-kind moment you first met",
+      "meetDay": "Day we met",
+      "meetOptionalNote": "If you don't remember the exact day yet, you can leave this blank.",
+      "submit": "Start & Save",
+      "later": "Set It Later",
+      "meetPickerTitle": "Date We Met",
+      "relationshipPickerTitle": "Date We Became a Couple"
+    },
+    "pairing": {
+      "share": {
+        "greeting": "My love, I've built a little universe just for the two of us! 💌✨",
+        "codeLabel": "Our Pairing Code:",
+        "howTitle": "How do we connect?",
+        "step1": "1. Open Couples App",
+        "step2": "2. Paste the code above into the 'Pairing Code' field",
+        "step3": "3. Or tap this link directly:",
+        "closing": "I love you so much ❤️",
+        "title": "Couples App Invitation 💕"
+      },
+      "invalidCode": "Enter a valid pairing code.",
+      "title": "Pair with Your Love 💕",
+      "subtitle": "To connect with your partner, share your 6-digit code below or enter your partner's code.",
+      "yourCode": "YOUR PAIRING CODE",
+      "active": "Active",
+      "fetchingCode": "GETTING CODE",
+      "tapToCopy": "(Tap to copy)",
+      "copyCode": "Copy Code",
+      "copyLink": "Copy Link",
+      "invite": "Invite Your Love (Share) 💕",
+      "waiting": "Waiting for your partner (detected automatically when they open the link)...",
+      "enterTitle": "Enter Your Partner's Code",
+      "enterHint": "Type the 6-digit code shown on their screen here.",
+      "submit": "Pair",
+      "unlocksTitle": "What Unlocks When Your Partner Joins? ✨",
+      "unlock1": "⏳ Your shared love counter and special anniversary reminders",
+      "unlock2": "💌 Sealed letters just for each other, with an origami animation",
+      "unlock3": "📸 A map of the places you've been together and your shared memory album",
+      "exploreDemo": "Explore the App in Demo Mode ✨",
+      "exploreDemoHint": "(While you wait for your partner, you can safely explore all the app's features with the demo couple)."
+    }
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "partnerFallback": "Your Love",
+    "error": "Error",
+    "close": "Close",
+    "tryAgain": "Try Again",
+    "continue": "Continue",
+    "offlineBanner": "No connection · Showing saved data",
+    "gender": {
+      "female": "Female",
+      "male": "Male"
+    },
+    "copied": "Copied ✨",
+    "userFallback": "User",
+    "you": "You",
+    "openMenu": "Open menu",
+    "save": "Save",
+    "getDirections": "Get Directions",
+    "seeAll": "See All",
+    "today": "Today",
+    "cancelAction": "Cancel",
+    "back": "Back",
+    "missingInfo": "Missing Information",
+    "discoverPremium": "Discover Premium",
+    "missingInformation": "Missing information",
+    "unauthorizedTitle": "Not Allowed",
+    "delete": "Delete",
+    "edit": "Edit",
+    "update": "Update",
+    "title": "Title",
+    "date": "Date",
+    "reset": "Reset",
+    "required": "Required",
+    "congratulations": "Congratulations!",
+    "loading": "Loading...",
+    "or": "or",
+    "gotIt": "Got it",
+    "confirmAndSave": "Confirm & Save",
+    "yourPartner": "Your partner",
+    "warning": "Warning",
+    "info": "Info",
+    "yesterday": "Yesterday",
+    "next": "Next",
+    "forward": "Next",
+    "partner": "Partner"
+  },
+  "permissions": {
+    "notNow": "Not Now",
+    "openSettings": "Open Settings",
+    "requiredTitle": "Permission Needed",
+    "cameraDenied": "To take photos, please turn on camera access in your settings.",
+    "galleryDenied": "To pick photos, please turn on photo library access in your settings.",
+    "notForNow": "Not for Now"
+  },
+  "profile": {
+    "avatar": {
+      "processFailed": "The photo couldn't be processed.",
+      "updated": "Your profile photo has been updated 💖",
+      "uploadFailed": "Your profile photo couldn't be uploaded. Please try again.",
+      "removed": "Your profile photo has been removed.",
+      "removeFailed": "Your profile photo couldn't be removed.",
+      "sheetTitle": "Profile Photo",
+      "sheetSubtitle": "Your love will see you with this photo 💕",
+      "takePhoto": "Take Photo",
+      "removeCurrent": "Remove Current Photo",
+      "changeA11y": "Change profile photo"
+    },
+    "tabBar": {
+      "title": "Customize Bottom Bar",
+      "selected": "SELECTED TABS ({{count}}/{{max}})",
+      "description": "Choose the pages you want quick access to in the bottom bar. You can remove tabs you don't use (e.g. Medicine, if you don't track medication) and add Gallery, Notes or Meetup instead.",
+      "preview": "Active Bottom Bar Preview"
+    },
+    "theme": {
+      "title": "Interface & Theme Mode",
+      "femaleModes": "WOMEN'S INTERFACE MODES 🌸",
+      "maleModes": "MEN'S INTERFACE MODES ⚡"
+    },
+    "cooldown": {
+      "daysLeft_one": "{{count}} day left",
+      "daysLeft_other": "{{count}} days left",
+      "nameLocked_one": "Your name can be changed once every 30 days. You need to wait {{count}} more day for the next change.",
+      "nameLocked_other": "Your name can be changed once every 30 days. You need to wait {{count}} more days for the next change.",
+      "genderLocked_one": "Your gender preference can be changed once every 90 days. Time remaining: {{count}} day.",
+      "genderLocked_other": "Your gender preference can be changed once every 90 days. Time remaining: {{count}} days."
+    },
+    "alerts": {
+      "nameRestricted_one": "You can change your display name once every 30 days. You need to wait {{count}} more day for the next change.",
+      "nameRestricted_other": "You can change your display name once every 30 days. You need to wait {{count}} more days for the next change.",
+      "genderRestricted_one": "You can change your gender preference once every 90 days. You need to wait {{count}} more day for the next change.",
+      "genderRestricted_other": "You can change your gender preference once every 90 days. You need to wait {{count}} more days for the next change.",
+      "nameRestrictedTitle": "Name Change Restricted 🔒",
+      "genderRestrictedTitle": "Gender Change Restricted 🔒",
+      "confirmBothTitle": "Confirm Profile Change 👤",
+      "confirmBothMessage": "You're about to change your name and gender preference.\n\n• After updating your name, you can't change it again for 30 days.\n• After updating your gender preference, your theme palette and special modules will update right away, and you can't change it again for 90 days.\n\nDo you confirm?",
+      "confirmNameTitle": "Confirm Name Change 👤",
+      "confirmNameMessage": "You're about to change your name. After this you can't change your name again for 30 days.\n\nDo you confirm?",
+      "confirmGenderTitle": "Confirm Gender Change 🌸",
+      "confirmGenderMessage": "You're about to change your gender preference. This will immediately update your theme palette and gender-specific modules.\n\nYou can't change your gender again for the next 90 days. Do you confirm?"
+    },
+    "dates": {
+      "lockWithDate_one": "This period's change allowances were used by you or your partner. Your new allowance will open in <b>{{count}} day</b> ({{periodEndText}}).",
+      "lockWithDate_other": "This period's change allowances were used by you or your partner. Your new allowance will open in <b>{{count}} days</b> ({{periodEndText}}).",
+      "lockNoDate_one": "This period's change allowances were used by you or your partner. Your new allowance will open in <b>{{count}} day</b>.",
+      "lockNoDate_other": "This period's change allowances were used by you or your partner. Your new allowance will open in <b>{{count}} days</b>.",
+      "rightsWithRenewal_one": "Your couple has {{count}} change allowance this period (renews on {{periodEndText}}). You get 2 in the first 30 days, then 1 every 30 days.",
+      "rightsWithRenewal_other": "Your couple has {{count}} change allowances this period (renews on {{periodEndText}}). You get 2 in the first 30 days, then 1 every 30 days.",
+      "rightsNoRenewal_one": "Your couple has {{count}} change allowance this period. You get 2 in the first 30 days, then 1 every 30 days.",
+      "rightsNoRenewal_other": "Your couple has {{count}} change allowances this period. You get 2 in the first 30 days, then 1 every 30 days.",
+      "lockedWhenDate": "on {{date}} (in {{days}} days)",
+      "firstSaveNote": "You're saving your relationship dates for the first time; this doesn't use up a change allowance.",
+      "allowanceNote": "⚠️ This uses one of your couple's change allowances ({{remaining}} left this period). Allowances are shared by the couple; a change your partner makes counts against the same allowance.",
+      "updateTitle": "Update Relationship Dates 💕",
+      "updateMessage": "You're about to update your relationship dates. This will update your home counters and your Special Days archive.\n\n{{rightNote}}\n\nDo you confirm?",
+      "confirmUpdate": "Confirm & Update",
+      "lockedWhenNext": "next period",
+      "lockedTitle": "Relationship Dates Locked 🔒",
+      "lockedMessage": "This period's change allowances were used by you or your partner. Your new allowance will open {{when}}.",
+      "title": "Relationship Dates",
+      "lockedCardTitle": "Dates Locked (Couple-Wide Restriction)",
+      "firstSaveHint": "Your first save doesn't use up a change allowance. After that you get 2 changes in the first 30 days, then 1 every 30 days.",
+      "hint": "Relationship dates are shared by the couple and can be updated 2 times in the first 30 days, then once every 30 days.",
+      "meetLabel": "THE DAY WE MET (OPTIONAL)",
+      "selectDate": "Select a Date",
+      "relationshipLabel": "DATE WE BECAME A COUPLE",
+      "update": "Update Dates 💕"
+    },
+    "push": {
+      "datesUpdatedBody": "{{name}} updated our relationship dates.",
+      "datesUpdatedTitle": "Our Relationship Dates Were Updated 💕",
+      "deleteTitle": "Account deletion request",
+      "deleteBody": "Your partner requested to delete their account. Your shared memories will be permanently deleted on {{deletionDay}}."
+    },
+    "guestName": "Guest (Demo)",
+    "demo": {
+      "updateTitle": "Sign Up to Update Your Profile 👤",
+      "updateDescription": "Create your free account to save your personal profile and preferences.",
+      "datesTitle": "Sign Up to Set Your Relationship Dates 💕",
+      "datesDescription": "Create your free account to save the day you met and the day you became a couple, and start your counters.",
+      "accountTitle": "Sign In for Account Actions 👤",
+      "accountDescription": "You need a valid account to manage or delete your account."
+    },
+    "toasts": {
+      "noChanges": "You haven't made any changes to your profile.",
+      "updated": "Your profile has been updated ✨",
+      "noDateChanges": "You haven't made any changes to your relationship dates.",
+      "datesUpdated": "Your relationship dates and special days were updated 💕"
+    },
+    "errors": {
+      "nameTooShort": "Please enter a name with at least 2 characters.",
+      "updateFailed": "Your profile couldn't be updated. Please try again.",
+      "missingDate": "Missing date"
+    },
+    "signOut": {
+      "message": "Are you sure you want to sign out of your account?"
+    },
+    "delete": {
+      "title": "⚠️ Delete Your Account",
+      "message": "Your account and all photos, letters, journals and memories belonging to your relationship will be permanently deleted after 7 days. Your partner's account remains, but the shared data will be deleted for them too.\n\nYou can cancel the deletion by signing in with the same account within these 7 days.\n\nIf you have an active subscription, you must also cancel it separately through the App Store or Google Play.",
+      "confirm": "Yes, Delete My Account",
+      "requestFailed": "The deletion request couldn't be created. Check your connection and try again.",
+      "scheduledMessage": "Your account and all your data will be permanently deleted on {{deletionDay}}. If you change your mind, you can sign in until then and cancel the deletion."
+    },
+    "subtitle": "Profile & Account Preferences ⚙️",
+    "membership": {
+      "premium": "Premium Member",
+      "standard": "Standard Member",
+      "paired": "Paired"
+    },
+    "wallet": {
+      "title": "Wallet & Balance",
+      "current": "Your Current Tokens"
+    },
+    "session": {
+      "title": "Session & Security",
+      "description": "Sign out of your device securely. Your notification tokens will be cleared."
+    },
+    "personal": {
+      "title": "Personal Info",
+      "nameLabel": "DISPLAY NAME",
+      "namePlaceholder": "Your name...",
+      "nameFreeChange": "1 free change is ready (a 30-day cooldown starts after the change).",
+      "nameRule": "Your name can be changed once every 30 days.",
+      "genderLabel": "GENDER PREFERENCE",
+      "genderFreeChange": "1 free correction is ready (a 90-day cooldown starts after the change).",
+      "genderRule": "Your gender preference can be changed once every 90 days.",
+      "save": "Save Changes"
+    },
+    "danger": {
+      "title": "Account Management & Danger Zone",
+      "noticeTitle": "⚠️ Data Destruction under KVKK Art. 11",
+      "noticeText": "Under your right to be forgotten, when you delete your account, your account, profile photo and all shared photos, encrypted letters, journals and data belonging to your relationship are permanently destroyed from our servers at the end of the 7-day cooling-off period. You can change your mind by signing in with the same account during this period.",
+      "delete": "Delete My Account and All Data"
+    },
+    "legal": {
+      "title": "Legal & Privacy Agreements",
+      "description": "You can review all the legal texts about the security of your data, your privacy and your statutory rights anytime."
+    },
+    "promo": {
+      "demoTitle": "Sign Up to Use a Promo Code 🎁",
+      "demoDescription": "Create a free account to add the tokens and perks you'll earn to your account.",
+      "activateFailed": "Premium couldn't be activated.",
+      "actionFailed": "The action failed.",
+      "ended": "Premium was ended successfully.",
+      "cancelFailed": "Premium couldn't be canceled.",
+      "tokensAdded": "{{amount}} Tokens added to your account!",
+      "redeemFailed": "The promo code couldn't be used.",
+      "title": "Promo & Gift Code",
+      "description": "If you have a special discount or gift code, you can enter it here to add it to your account.",
+      "placeholder": "GIFT CODE",
+      "redeem": "Redeem",
+      "appStoreOffer": "Redeem App Store Offer Code 🍎"
+    },
+    "sound": {
+      "title": "Sound & Haptic Effects",
+      "description": "Manage the special micro sounds and haptic vibrations for actions in the app (sending a letter, choosing a mood, medicine tracking). Sounds don't play when your phone is in silent mode.",
+      "inApp": "In-App Sounds",
+      "inAppSub": "Sounds for letters, moods, medicine, the map, photos and the Love Meter",
+      "haptics": "Haptic Vibration (Haptics)",
+      "hapticsSub": "Soft, premium feedback on taps",
+      "tryTitle": "TRY THE MICRO SOUNDS 🎧",
+      "letter": "Letter",
+      "medicine": "Medicine",
+      "loveMeter": "Love Meter"
+    },
+    "tours": {
+      "title": "Tours & Feature Guides",
+      "description": "You can review what every page and feature in the app is for, from the beginning, anytime.",
+      "openGuide": "Open This Page's Guide 💡",
+      "reset": "Reset"
+    }
+  },
+  "photos": {
+    "errors": {
+      "deleteFailed": "The photo couldn't be deleted.",
+      "uploadFailedWithMessage": "The photo couldn't be uploaded: {{message}}",
+      "saveFailedWithMessage": "Something went wrong while saving: {{message}}",
+      "ownOnly": "You can only delete photos you uploaded yourself.",
+      "deleteFailedGeneric": "Something went wrong while deleting the photo."
+    },
+    "add": {
+      "addressNotFoundTitle": "Address Not Found",
+      "addressNotFoundMessage": "We couldn't find the city, district, neighborhood or street you entered. Please check the spelling or try picking it on the map.",
+      "addressSearchFailed": "Something went wrong while searching for the address.",
+      "pickFailed": "Something went wrong while selecting the photo.",
+      "selectPhoto": "Please select a photo.",
+      "enterDate": "Please enter a date the photo was taken.",
+      "enterStory": "Please add a description or story for the photo.",
+      "invalidContent": "Invalid content detected. Please rewrite the description.",
+      "processFailed": "The photo couldn't be processed. Please select it again.",
+      "notifyBodyWithTitle": "{{senderName}} added a new photo to the gallery: \"{{photoTitle}}\"",
+      "notifyBody": "{{senderName}} added a new photo to the gallery.",
+      "viewPhoto": "View Photo 📸",
+      "added": "Photo added to the shared archive! 🎉",
+      "subtitle": "Shared Gallery Memory 📸",
+      "image": "Image",
+      "change": "Change",
+      "select": "Select Photo",
+      "selectHint": "Choose the photo from your library you'd like to add to the shared archive",
+      "scanning": "Scanning the date the photo was taken...",
+      "captureDetected": "Capture time detected: {{date}}, {{time}}",
+      "captureMissing": "No capture time was found in the photo; the current time was added.",
+      "locationInfo": "Location Info",
+      "locationAuto": "Detected Automatically from the Photo",
+      "locationSet": "Selected Location",
+      "remove": "Remove",
+      "addressPlaceholder": "Type a city, district, neighborhood or street...",
+      "find": "Find",
+      "pickOnMap": "Pick a Point on the Map",
+      "pickOnMapHint": "Tap the map to mark the exact location",
+      "timeInfo": "Time Info",
+      "dateTaken": "Date Taken *",
+      "time": "Time",
+      "pick": "Select",
+      "dateTakenTitle": "Date Taken",
+      "timeTakenTitle": "Time Taken",
+      "details": "Memory Details",
+      "titleLabel": "Photo Title (Optional)",
+      "titlePlaceholder": "e.g. Cappadocia Sunset ✨",
+      "storyLabel": "The Story of the Memory *",
+      "required": "Required field",
+      "storyPlaceholder": "A special feeling, place or moment you want to remember about this photo...",
+      "premiumFeature": "Premium Feature 🔒",
+      "submit": "Add to Shared Archive",
+      "featureDescription": "Upload as many photos as you like to the shared gallery.",
+      "locationTitle": "Photo Location"
+    },
+    "delete": {
+      "title": "Delete Photo",
+      "message": "Are you sure you want to permanently delete this photo from the gallery?"
+    },
+    "count_one": "{{count}} Shared Memory 📸",
+    "count_other": "{{count}} Shared Memories 📸",
+    "archiveTitle": "Our Love Archive 📸",
+    "sort": {
+      "newest": "Newest First",
+      "oldest": "Oldest First"
+    },
+    "empty": {
+      "title": "Your shared memory wall is still blank",
+      "description": "Start by adding your favorite photo of the two of you.",
+      "cta": "Choose Your First Photo 📸"
+    },
+    "premium": {
+      "featureName": "Photo Gallery"
+    },
+    "specialKeepsake": "Special Keepsake ✨",
+    "lock": {
+      "perk1": "Unlimited high-quality shared photo uploads",
+      "perk2": "3 different grid views and a full-screen lightbox",
+      "perk3": "Photo keepsakes for your days in the love calendar",
+      "title": "Shared Gallery & Memory Archive",
+      "description": "Keep the photos you take together in a shared cloud without limits, and immortalize them with their dates."
+    }
+  },
+  "demo": {
+    "memories": {
+      "relationshipStart": {
+        "title": "The First Day We Became a Couple 💖",
+        "description": "The moment we held hands and promised each other the future..."
+      },
+      "firstMeeting": {
+        "title": "The Day We First Met ☕",
+        "description": "The day I first noticed the sparkle in your eyes."
+      }
+    },
+    "prompts": {
+      "avatar": {
+        "title": "Sign Up Free to Personalize Your Profile 📸",
+        "description": "Create your free account to see each other's sweetest photos on your profiles."
+      },
+      "generic": {
+        "title": "Sign Up to Use This Feature 💖",
+        "description": "In demo mode, create your free account to save your data permanently, seal love letters and pair with your partner."
+      },
+      "addPhoto": {
+        "title": "Sign Up to Add a Shared Photo 📸",
+        "description": "Create your free account to build a shared memory album with your love and see where your photos were taken on the map."
+      },
+      "writeLetter": {
+        "title": "Sign Up to Write and Seal Letters 💌",
+        "description": "Create a free account to send time-locked letters to your partner and have them open on the date you choose."
+      },
+      "deletePhoto": {
+        "title": "Sign Up to Delete a Photo 🗑️",
+        "description": "Create your free account to manage and delete your photo archive."
+      },
+      "calendarNote": {
+        "title": "Sign Up to Add a Calendar Note 📅",
+        "description": "Create your free account to save your special days, memories and plans in your shared calendar."
+      },
+      "cycle": {
+        "title": "Sign Up to Start Cycle Tracking 🌸",
+        "description": "Create your free account to record your personal cycle, get science-based predictions and share it with your partner."
+      },
+      "planMeetup": {
+        "title": "Sign Up to Plan a New Meetup 🍷",
+        "description": "Create your free account to plan special meetups with your partner, see the place on the map and start a live countdown."
+      },
+      "addMedicine": {
+        "title": "Sign Up to Add Medicine 💊",
+        "description": "Create your free account to track your medicine and vitamins regularly and get reminders."
+      },
+      "mapNote": {
+        "title": "Sign Up to Leave a Love Note on the Map 📍",
+        "description": "Create your free account to leave memory notes at the special places you visit with your partner."
+      }
+    },
+    "calendar": {
+      "dinnerTitle": "Romantic Dinner 🍷",
+      "dinnerLocation": "Restaurant with a Bosphorus View"
+    },
+    "default": {
+      "title": "Start Your Shared Space with Your Love 💖",
+      "description": "Create your free account to use this feature, safely save your own memories and invite your partner."
+    },
+    "modal": {
+      "album": "Shared Love Album & Map",
+      "letters": "Time-Locked Surprise Letters",
+      "create": "Create a Free Account",
+      "haveAccount": "I already have an account (Sign In)",
+      "keepExploring": "Keep Exploring"
+    },
+    "banner": {
+      "a11y": "Demo version. Tap to sign up",
+      "title": "Demo Version",
+      "subtitle": "· You're exploring without signing up",
+      "promptTitle": "Start Your Own Couple Space ✨",
+      "promptDescription": "Create a free account to leave demo mode and collect shared memories with your partner, seal love letters and count your special days."
+    }
+  },
+  "greetings": {
+    "nicknames": [
+      "My Love",
+      "Darling",
+      "Baby",
+      "My One and Only",
+      "Honey",
+      "Sweetheart",
+      "Dear",
+      "My Life",
+      "My Everything",
+      "Apple of My Eye",
+      "My Moonlight",
+      "My Favorite",
+      "My Sweetest Coincidence",
+      "My Heart",
+      "My Paradise"
+    ],
+    "myLoveFallback": "My Love",
+    "sweetieFallback": "Sweetie"
+  },
+  "home": {
+    "greeting": {
+      "morning": "Good Morning",
+      "afternoon": "Good Afternoon",
+      "evening": "Good Evening",
+      "night": "Sweet Dreams"
+    },
+    "moodCaption": {
+      "love": "A day full of love! Share it with your love 💕",
+      "happy": "Your smile is shining everywhere today ✨",
+      "calm": "A calm day... Add a little color with a message 🌿",
+      "sad": "It might be a tough day, but your love is by your side 🤍",
+      "angry": "Take a deep breath, you'll get through it together 🌬️",
+      "sleepy": "Rest a little, be gentle with yourself 🌙"
+    },
+    "caption": {
+      "anniversaryToday": "Today is your {{years}}-year anniversary, congratulations! 🥂",
+      "valentines": "Happy Valentine's Day 💘",
+      "anniversaryTomorrow": "Your {{years}}-year anniversary is tomorrow! 💛",
+      "anniversaryDaysLeft": "{{daysLeft}} days until your {{years}}-year anniversary 💛"
+    },
+    "loveMeter": {
+      "subtitle": {
+        "excellent": "A flawless bond! Your love is at its peak 🔥",
+        "great": "Wonderful harmony! You never neglect each other 💖",
+        "good": "A lovely day! Why not leave each other a little note? 💌",
+        "low": "Time for a little attention today! How about sharing a memory? 🌸"
+      },
+      "demoSubtitle": "Perfect Harmony! 💖",
+      "defaultSubtitle": "Measured for today 💝 · Wonderful harmony!",
+      "title": "Love Meter ✨",
+      "loading": "Calculating your love score..."
+    },
+    "couple": {
+      "a11yLabel": "{{me}} and {{partner}}"
+    },
+    "pending": {
+      "sealedOne": "A sealed letter is waiting for you 💌",
+      "sealedMany": "{{count}} sealed letters are waiting for you 💌",
+      "a11y_one": "{{count}} pending letter. Go to Letters",
+      "a11y_other": "{{count}} pending letters. Go to Letters",
+      "daysUnit_one": "day",
+      "daysUnit_other": "days",
+      "opensToday": "Opens today",
+      "opensTomorrow": "Opens tomorrow",
+      "opensInDays": "In {{daysLeft}} days",
+      "title": "Pending Letters",
+      "letterFrom": "Letter from {{name}}",
+      "closeEyes": "Close your eyes and wait for the time… 🔒",
+      "opensOn": "Opens on {{date}}"
+    },
+    "periodAlert": {
+      "title": "A Special Day Is Approaching 🌸",
+      "body": "Your partner's period may start within 2 days. Time to show her a little extra tenderness! 💕"
+    },
+    "demoRibbon": {
+      "a11y": "You're in demo mode. Tap to sign up free or sign in",
+      "text": "You're browsing with sample data. Tap to create your own account"
+    },
+    "journeyTitle": "OUR LOVE JOURNEY",
+    "counters": {
+      "together": "Days Together",
+      "inMyLife": "Days in My Life"
+    },
+    "quote": {
+      "title": "TODAY'S INSPIRATION"
+    },
+    "wrapped": {
+      "title": "Your Monthly Wrapped Is Ready! ✨",
+      "subtitle": "Discover your love recap and your memories"
+    },
+    "header": {
+      "goodMorning": "Good morning, {{name}}"
+    },
+    "dailyNote": {
+      "demoTitle": "Sign Up to Save Today's Note 📖",
+      "demoDescription": "Create your free account to safely keep your day, your feelings and your private personal journal.",
+      "saveFailed": "Couldn't save your note",
+      "saved": "Your daily note has been saved ✨",
+      "title": "My Daily Note",
+      "writeTomorrow": "You can write a new note tomorrow 🌙",
+      "seePast": "See My Past Notes",
+      "placeholder": "How was today? What are you feeling?..."
+    },
+    "meeting": {
+      "happened": "The meetup took place!",
+      "days": "DAYS",
+      "hours": "HOURS",
+      "minutes": "MINUTES",
+      "seconds": "SECONDS",
+      "next": "Next Meetup",
+      "details": "Meetup Details",
+      "titleLabel": "Title",
+      "dateTime": "Date & Time",
+      "location": "Location"
+    },
+    "mood": {
+      "cooldownToast_one": "You can update your mood again in {{count}} second.",
+      "cooldownToast_other": "You can update your mood again in {{count}} seconds.",
+      "cooldownTitle": "Please wait a moment",
+      "dailyLimitToast": "You can update your mood up to 5 times a day. Try again tomorrow!",
+      "dailyLimitTitle": "Daily limit reached",
+      "demoTitle": "Sign Up to Share Your Mood 😊",
+      "demoDescription": "Create your free account to share how you feel today with your love and strengthen your emotional bond.",
+      "saveFailed": "Couldn't save your mood",
+      "question": "How are you today?",
+      "updatedCooldown": "Mood updated ✨ (you can change it again in {{cooldown}}s)",
+      "limitReached": "You've reached today's mood update limit (5/5) 🌸",
+      "canUpdateAnytime": "You can update your mood anytime during the day ✨",
+      "pickPrompt": "Pick how you feel today 💭"
+    }
+  },
+  "paywall": {
+    "freeTrialButton_one": "Try Free for {{count}} Day",
+    "freeTrialButton_other": "Try Free for {{count}} Days",
+    "upgradeButton": "Go Premium",
+    "vipBadge": "VIP COUPLE PERK",
+    "discoverPerks": "Discover the Perks ✨",
+    "periods": {
+      "year": "/ Year",
+      "month": "/ Month",
+      "week": "/ Week",
+      "sixMonths": "/ 6 Months",
+      "threeMonths": "/ 3 Months",
+      "twoMonths": "/ 2 Months",
+      "lifetime": "(Lifetime)"
+    },
+    "featureGate": "<feature>{{feature}}</feature> is exclusive to Premium subscribers.",
+    "tokenBalance": "(You have {{currentBalance}} tokens)",
+    "activated": "Your Premium subscription was activated successfully.",
+    "purchaseFailedTitle": "Purchase Failed",
+    "restored": "Your purchases have been restored.",
+    "noActiveSubscription": "No active subscription was found.",
+    "restoreFailed": "Restore failed.",
+    "features": {
+      "shared": "Shared Premium that applies to your partner too",
+      "photos": "Unlimited photo uploads and gallery",
+      "periodMen": "Period calendar view for men",
+      "pastPhotos": "Photos of past days in the calendar",
+      "letters": "Write unlimited letters to the future",
+      "noAds": "An ad-free experience"
+    },
+    "subtitle": "One subscription for both of you",
+    "storeUnavailable": "We can't connect to the store right now, or the plans couldn't be loaded. Please check your internet connection and try again.",
+    "goBack": "Go Back",
+    "restore": "Restore Purchases",
+    "legalNotice": "Payment is charged to your store account when your subscription is confirmed. Your subscription renews automatically unless it is canceled at least 24 hours before the end of the current period. After purchase, you can cancel anytime from your account settings.",
+    "links": {
+      "terms": "Terms of Use (EULA)",
+      "privacy": "Privacy Policy",
+      "subscription": "Subscription Terms"
+    },
+    "accountRequiredTitle": "An Account Is Required for Premium 👑",
+    "accountRequiredDescription": "Your subscription is tied to your account. Create your free account or sign in before purchasing.",
+    "copy": {
+      "general": {
+        "name": "This feature",
+        "description": "Unlock every special memory space with Premium."
+      },
+      "starClaim": {
+        "name": "Claiming a Star",
+        "description": "Claim your star and make it shine in the sky together.",
+        "cta": "Unlock Our Star"
+      },
+      "exoplanetCreate": {
+        "name": "Creating Memory Planets",
+        "description": "Premium is required to place your memories in your star's orbit.",
+        "cta": "Unlock Memory Planets"
+      },
+      "exoplanetView": {
+        "name": "Memory Planet Content",
+        "description": "Your photos, letters and memory details are protected with Premium.",
+        "cta": "Unlock My Memories"
+      },
+      "exoplanetAuto": {
+        "name": "Automatic Memory Planets",
+        "description": "Premium is required to continue the 45-day memory cycle.",
+        "cta": "Unlock Automatic Memories"
+      },
+      "avatar": {
+        "name": "Custom Profile Photo",
+        "description": "👑 Go Premium to see each other's sweetest photos on your profiles.",
+        "cta": "Unlock Profile Photo"
+      }
+    },
+    "perks": {
+      "letters": "💌 Write Unlimited Letters",
+      "photos": "📸 Photo Gallery & Uploads",
+      "period": "🩸 Period Calendar (Men's View)",
+      "specialDays": "📅 Special Days with Photos",
+      "avatar": "👑 Custom Profile Photo",
+      "noAds": "🚫 Ad-Free Experience"
+    },
+    "required": "Premium Required",
+    "cancelAnytime": "Cancel anytime",
+    "eulaLink": "Subscription & Terms of Use (EULA)",
+    "useTokens": "Use with {{cost}} Tokens",
+    "watchAd": "🎬 Watch an Ad to Earn +25 Tokens",
+    "success": {
+      "message": "You're now a Premium member. All limits are lifted. Enjoy your love without limits.",
+      "unlimitedUse": "Unlimited Use",
+      "unlimitedUseSub": "Do whatever you like without worrying about Tokens.",
+      "unlimitedPhotos": "Unlimited Photos",
+      "unlimitedPhotosSub": "Add as many memories as you like to the shared gallery.",
+      "unlimitedLetters": "Unlimited Letters",
+      "unlimitedLettersSub": "Send as many letters to the future as you like.",
+      "cta": "Wonderful! Let's Begin"
+    },
+    "celebration": "Your partner went Premium! You're both Premium members now; all limits are lifted, so you can enjoy your love without limits."
+  },
+  "tabs": {
+    "home": {
+      "label": "Home",
+      "description": "Love counter, counters, love score and your day at a glance"
+    },
+    "calendar": {
+      "label": "Calendar",
+      "description": "Shared events, your love calendar and special days"
+    },
+    "letters": {
+      "label": "Letters",
+      "description": "Time-locked love letters and surprises"
+    },
+    "photos": {
+      "label": "Gallery",
+      "description": "Your shared photo archive, keepsakes and albums"
+    },
+    "map": {
+      "label": "Map",
+      "description": "Memory pins with photos and your love map"
+    },
+    "medicine": {
+      "label": "Medicine",
+      "description": "Medicine reminders, dose tracking and health history"
+    },
+    "dailyNotes": {
+      "label": "Journal",
+      "description": "Your private, encrypted personal notebook"
+    },
+    "meetings": {
+      "label": "Meetup",
+      "description": "Meetup countdown and date planning"
+    },
+    "memories": {
+      "label": "Special Day",
+      "description": "The milestones of when you met and became a couple, plus your anniversaries"
+    },
+    "periodTracker": {
+      "label": "Cycle",
+      "description": "Menstrual cycle and symptom tracking calendar"
+    },
+    "profile": {
+      "label": "Settings",
+      "description": "Profile, theme and app configuration"
+    },
+    "toasts": {
+      "homeRequired": "Home is required in the tab bar and can't be removed.",
+      "homeRequiredTitle": "Pinned tab",
+      "minTabs": "The tab bar must have at least {{min}} tabs.",
+      "limitTitle": "Limit",
+      "maxTabs": "The tab bar can hold at most {{max}} tabs. Please remove another tab first.",
+      "maxTabsTitle": "Maximum tabs reached"
+    }
+  },
+  "themes": {
+    "femaleCurrent": {
+      "name": "Rose & Burgundy",
+      "description": "Romantic burgundy and rose tones (Default)"
+    },
+    "femaleDark": {
+      "name": "Night Mode",
+      "description": "Elegant, easy-on-the-eyes deep night black"
+    },
+    "femaleLight": {
+      "name": "Light Mode",
+      "description": "Bright, airy and vibrant pink tones"
+    },
+    "maleCurrent": {
+      "name": "Blue Mode",
+      "description": "The classic deep midnight blue (Default)"
+    },
+    "maleDark": {
+      "name": "Night Mode",
+      "description": "Charismatic, jet-black obsidian dark mode"
+    },
+    "maleLight": {
+      "name": "White Mode",
+      "description": "Bright, minimalist snow white and cobalt"
+    }
+  },
+  "wrapped": {
+    "periodTitleMonth": "{{period}} Recap",
+    "periodTitleYear": "{{year}} Year in Review",
+    "moods": {
+      "loveStruck": "Full of Love & Overjoyed",
+      "happy": "Happy",
+      "calm": "Calm",
+      "seekingTenderness": "Seeking Tenderness",
+      "passionate": "Passionate & Impatient",
+      "tiredTogether": "Tired but Together",
+      "demoTop": "Full of Love & Happy",
+      "fallback": "Full of Affection"
+    },
+    "demoTopLocation": "Kadıköy Shore",
+    "demoStatement": "We chose each other 31 times this month.",
+    "demoHighlight": "Together we grew 4 new little memories.",
+    "anywhereTogether": "Anywhere, Together",
+    "statement_one": "We chose each other {{count}} time during this period.",
+    "statement_other": "We chose each other {{count}} times during this period.",
+    "highlight_one": "We collected {{count}} sweet memory together.",
+    "highlight_other": "We collected {{count}} sweet memories together.",
+    "shareTitle": "Share Our Couple Wrapped",
+    "slides": {
+      "storyTitle": "OUR STORY",
+      "daysTogether": "days of choosing each other under the same sky",
+      "quote": "“Love is making every day spent together feel like a gift.”",
+      "moodTitle": "THIS PERIOD'S SHARED FEELING",
+      "moodDescription_one": "You reflected this feeling to each other most for {{count}} full day.",
+      "moodDescription_other": "You reflected this feeling to each other most for {{count}} full days.",
+      "pillLove": "🥰 Moments Full of Love",
+      "pillHarmony": "✨ High Harmony",
+      "wordsTitle": "THE POWER OF YOUR WORDS AND THOUGHTS",
+      "loveLetters": "Love Letters",
+      "journalNotes": "Journal Notes"
+    },
+    "card": {
+      "together": "Together",
+      "days_one": "{{count}} Day",
+      "days_other": "{{count}} Days",
+      "mostFelt": "Most Felt",
+      "sharedNotes": "Shared Notes & Letters",
+      "items_one": "{{count}} Item",
+      "items_other": "{{count}} Items",
+      "meetupPlace": "Meetup City / Place"
+    },
+    "shareInstagram": "Share on Instagram Story"
+  },
+  "map": {
+    "customLocation": "Custom Location",
+    "errors": {
+      "saveFailedWithMessage": "The note couldn't be saved: {{message}}",
+      "deleteFailedWithMessage": "The note couldn't be deleted: {{message}}",
+      "ownNotesOnly": "You can only delete notes you wrote yourself."
+    },
+    "picker": {
+      "defaultTitle": "Choose a Location",
+      "selected": "Selected Location",
+      "addressNotFound": "We couldn't find the city, district, neighborhood or street you entered. Please check the spelling or tap a point on the map.",
+      "searchFailed": "An error occurred while searching for the address.",
+      "permissionTitle": "Location Permission Needed",
+      "permissionMessage": "To see your current location, you need to allow location access in your settings.",
+      "noneTitle": "No Location Selected",
+      "noneMessage": "Please choose a location by tapping a point on the map.",
+      "resolving": "Resolving address...",
+      "tapToChange": "Tap to change the point",
+      "pickPoint": "Pick a point on the map",
+      "searchPlaceholder": "Search for a city, district, neighborhood or street...",
+      "tapToSet": "Tap the map to set a location",
+      "markedPoint": "Point Marked on the Map",
+      "confirm": "Confirm This Location",
+      "webNote": "The map picker is exclusive to the mobile app. On the web you can use the default location.",
+      "webDefault": "Choose the Default Location (Istanbul)"
+    },
+    "summary": {
+      "photos_one": "{{count}} Memory",
+      "photos_other": "{{count}} Memories",
+      "notes_one": "{{count}} Note",
+      "notes_other": "{{count}} Notes",
+      "meetups_one": "{{count}} Meetup",
+      "meetups_other": "{{count}} Meetups"
+    },
+    "meetingCountdown": {
+      "done": "Completed",
+      "today": "🎉 Meetup Day Is Today!",
+      "tomorrow": "⏳ Tomorrow!",
+      "days_one": "⏳ {{count}} day to go",
+      "days_other": "⏳ {{count}} days to go"
+    },
+    "theme": {
+      "title": "Map Theme",
+      "romantic": "🌸 Romantic",
+      "romanticDesc": "Warm & Cream",
+      "midnight": "🌙 Night",
+      "midnightDesc": "Velvet Dark",
+      "silver": "✨ Minimal",
+      "silverDesc": "Silver Minimal"
+    },
+    "story": {
+      "headlineMany_one": "Our love grew in {{count}} city and across {{maxDist}} kilometers.",
+      "headlineMany_other": "Our love grew in {{count}} cities and across {{maxDist}} kilometers.",
+      "headlinePins_one": "Together we left memories at {{count}} unforgettable spot.",
+      "headlinePins_other": "Together we left memories at {{count}} unforgettable spots.",
+      "firstStop": "Our First Stop",
+      "latestRoute": "Our Latest Route",
+      "shareTitle": "Share Our Love Map",
+      "title": "OUR LOVE MAP STORY",
+      "emptyTitle": "You don't have a map trail yet",
+      "emptyDescription": "As you add memories or photos, your travel story will take shape here ✨",
+      "firstStopLabel": "First Stop",
+      "latestRouteLabel": "Latest Route",
+      "trail": "Map Trail",
+      "kilometers": "Kilometers",
+      "explored": "Places Explored",
+      "shareInstagram": "Share on Instagram Story"
+    },
+    "toasts": {
+      "noteLeft": "Your love note was left on the map 📍"
+    },
+    "notify": {
+      "memoryNote": "{{senderName}} left a memory note on the map: \"{{notePreview}}\"",
+      "loveNote": "{{senderName}} left you a love note on the map.",
+      "explore": "Explore on the Map 🗺️"
+    },
+    "demo": {
+      "deletePhotoDescription": "Create your free account to manage and delete the photos on the map.",
+      "deleteNoteDescription": "Create your free account to manage and delete the love notes on the map."
+    },
+    "delete": {
+      "photoMessage": "Do you want to delete this photo from the map and the gallery?",
+      "noteTitle": "Delete Note",
+      "noteMessage": "Do you want to delete this note from the map?"
+    },
+    "permission": {
+      "title": "Location Permission",
+      "message": "To go to your location, you need to turn on location permission in your settings."
+    },
+    "empty": {
+      "title": "Your map is still blank",
+      "description": "Leave a love note at the first place you went together: just tap anywhere on the map, no location permission needed.",
+      "cta": "Leave the First Note 📍"
+    },
+    "pick": {
+      "cancelA11y": "Cancel place selection",
+      "hint": "Tap where you want to leave the note · Cancel"
+    },
+    "longPressHint": "Long-press the map to leave a note",
+    "web": {
+      "description": "The interactive memory map is exclusive to mobile devices (iOS / Android). On the web you can experience “Our Star”, Photos and the other modules."
+    },
+    "addNote": {
+      "title": "Leave a Love Note Here 💌",
+      "subtitle": "When your love opens the map, they'll see your note here.",
+      "placeholder": "Write a special memory or loving words about this place...",
+      "submit": "Seal & Leave the Note"
+    },
+    "controls": {
+      "storyA11y": "Our Story - Map Summary",
+      "showAllA11y": "Show All Pins",
+      "myLocationA11y": "Go to My Location"
+    },
+    "detail": {
+      "photoMemory": "Photo Memory",
+      "enlarge": "Enlarge",
+      "noteBadge": "Map Love Note",
+      "directionsToLocation": "Directions to Location",
+      "seeMeetups": "See Meetups"
+    },
+    "filters": {
+      "photos": "Photos ({{total}})",
+      "notes": "Love Notes ({{total}})",
+      "meetups": "Meetups ({{total}})"
+    },
+    "lightbox": {
+      "directions": "Get Directions to This Location"
+    }
+  },
+  "errors": {
+    "encryptionKeyNotReady": "The encryption key isn't ready yet. Please try again in a few seconds.",
+    "unexpected": "An unexpected error occurred.",
+    "tryAgain": "Please try again.",
+    "screen": {
+      "title": "Something went wrong",
+      "message": "An unexpected error occurred. Your data is safe. Try again, or close and reopen the app.",
+      "retryA11y": "Try again"
+    },
+    "unexpectedWithMessage": "An unexpected error occurred: {{message}}",
+    "genericWithMessage": "Something went wrong: {{message}}",
+    "unknown": "Unknown error",
+    "generic": "Something went wrong.",
+    "actionFailed": "An error occurred during the action."
+  },
+  "menu": {
+    "daysTogether_one": "{{count}} Day",
+    "daysTogether_other": "{{count}} Days",
+    "title": "App Menu",
+    "demo": {
+      "title": "You're in Demo Mode ✨",
+      "description": "You're exploring the app without signing up. Sign up to start your shared space with your love and save your memories.",
+      "signUp": "Sign Up Free 💖"
+    },
+    "sections": {
+      "love": "LOVE & SHARED MEMORIES",
+      "health": "HEALTH & TRACKING",
+      "account": "ACCOUNT & SETTINGS"
+    },
+    "ourStar": {
+      "title": "Our Star ✨",
+      "subtitle": "Your infinite digital monument in the sky"
+    },
+    "home": {
+      "subtitle": "Your day at a glance and the love meter"
+    },
+    "gallery": {
+      "subtitle": "The photos you've collected together"
+    },
+    "upload": {
+      "title": "Upload Photo",
+      "subtitle": "Share a new memory and photo"
+    },
+    "journal": {
+      "title": "My Journal",
+      "subtitle": "Your private, encrypted notebook"
+    },
+    "letters": {
+      "subtitle": "Time-locked love letters"
+    },
+    "specialDays": {
+      "title": "Special Days & Anniversaries",
+      "subtitle": "Countdowns to unforgettable dates"
+    },
+    "calendar": {
+      "title": "Love Calendar",
+      "subtitle": "Moods, notes and photos"
+    },
+    "map": {
+      "subtitle": "Photo memories and sealed love notes"
+    },
+    "meetups": {
+      "title": "Meetups",
+      "subtitle": "Countdowns and meetup plans"
+    },
+    "medicine": {
+      "subtitle": "Your and your love's daily doses"
+    },
+    "cycle": {
+      "title": "Cycle & Period Calendar",
+      "subtitle": "Sensitive phases and reminders"
+    },
+    "guide": {
+      "title": "How It Works (Feature Guide)",
+      "subtitle": "A detailed tour of every page and feature"
+    },
+    "settings": {
+      "title": "Settings & Profile",
+      "subtitle": "Sounds, themes, dates and security"
+    },
+    "legal": {
+      "title": "Legal & Privacy",
+      "subtitle": "KVKK, privacy and terms of use"
+    },
+    "signOut": {
+      "subtitle": "Securely sign out of your session"
+    },
+    "guides": {
+      "title": "Feature Guides",
+      "subtitle": "Choose the page you'd like to explore",
+      "resetTitle": "Reset 🎉",
+      "resetMessage": "The short intro tour will be shown again when you return to Home. You can reach other pages' guides with the ? button at the top right.",
+      "restartTour": "Restart the Home Tour 🔄"
+    }
+  },
+  "moods": {
+    "veryHappy": "Very Happy",
+    "happy": "Happy",
+    "okay": "Okay",
+    "sad": "Sad",
+    "angry": "Angry",
+    "tired": "Tired",
+    "inLove": "In Love / Full of Love",
+    "loving": "Full of Love",
+    "peaceful": "Peaceful",
+    "excited": "Excited"
+  },
+  "letters": {
+    "deleteRequest": {
+      "confirmOnDate": "If your partner approves, the letter will be permanently deleted for both of you on {{date}}. If they don't, the letter stays where it is.",
+      "confirmNow": "If your partner approves, the letter will be permanently deleted for both of you right away. If they don't, the letter stays where it is."
+    },
+    "errors": {
+      "sealFailedWithMessage": "Something went wrong while sealing the letter: {{message}}",
+      "missingFields": "Please fill in who it's for, the title and the letter content.",
+      "invalidContent": "Invalid content detected.",
+      "actionFailedTitle": "Action Failed",
+      "tryAgainLater": "Please try again in a little while."
+    },
+    "insufficient": {
+      "title": "Insufficient Balance",
+      "message": "Sealing a letter requires 100 Tokens or an active Premium membership."
+    },
+    "tokenUse": {
+      "title": "Token Usage",
+      "message": "100 tokens will be used to seal this letter. Do you confirm?",
+      "confirm": "Confirm & Seal"
+    },
+    "toasts": {
+      "hidden": "Letter hidden from your list; you can bring it back from Hidden",
+      "unhidden": "The letter is back in your list ✨",
+      "requestSent": "Your deletion request was sent; waiting for your partner's approval 🕊️",
+      "requestWithdrawn": "Your deletion request was withdrawn; the letter stays right where it is 💌",
+      "keptLetter": "The letter will be kept 💛",
+      "deletedBoth": "The letter was deleted for both of you",
+      "approvalSaved": "Your approval was saved; the letter will be deleted on {{date}}",
+      "sealed": "Your letter has been sealed and entrusted to the future ✨"
+    },
+    "push": {
+      "deleteRequestBody": "Asking for your approval to delete a letter.",
+      "viewRequest": "View Request 💌",
+      "keepAsked": "Asked to keep the letter."
+    },
+    "allowDelete": {
+      "title": "Allow It to Be Deleted? 🗑️",
+      "messageOnDate": "The letter will be permanently deleted for both of you on {{date}}. You can change your mind until then.",
+      "messageNow": "The letter will be permanently deleted for both of you right away. This can't be undone.",
+      "confirm": "Allow"
+    },
+    "cantDelete": {
+      "title": "Can't Be Deleted Until Its Opening Day 🔒",
+      "message": "A sealed letter can't be deleted before it reaches your partner. If you'd rather it not take up space, you can simply hide it from your own list and bring it back whenever you like."
+    },
+    "hideFromList": "Hide from My List",
+    "tooEarly": {
+      "title": "A Little Early ⏳",
+      "message": "So your partner has time to read the letter, a deletion request can be sent 72 hours after it opens: as of {{date}}."
+    },
+    "partnerKept": {
+      "title": "Your Partner Wants to Keep This Letter 💛",
+      "message": "You can send a new deletion request as of {{date}}."
+    },
+    "sendRequest": {
+      "title": "Send Deletion Request? 🗑️",
+      "confirm": "Send Request"
+    },
+    "demo": {
+      "manageTitle": "Sign Up to Manage Your Letters 💌",
+      "manageDescription": "Create a free account to hide letters from your list and send deletion requests."
+    },
+    "options": {
+      "unhide": "Bring Back to My List",
+      "withdraw": "Withdraw Deletion Request",
+      "requestDeletion": "Request Deletion",
+      "title": "Letter Options ✉️",
+      "messageReceived": "Hiding doesn't delete the letter, it only affects your list. Deleting is only possible after it opens, with your partner's approval.",
+      "messageSent": "Hiding doesn't delete the letter, it only affects your list; you can bring it back anytime."
+    },
+    "myLoveHeart": "My Love ❤️",
+    "note": {
+      "pending": "Your deletion request is waiting for your partner's approval",
+      "withdraw": "Withdraw",
+      "partnerApproved": "Your partner approved · will be deleted on {{deletionDay}}",
+      "youApproved": "You allowed deletion · will be deleted on {{deletionDay}}",
+      "keep": "Keep It",
+      "partnerKept": "Your partner wants to keep this letter 💛"
+    },
+    "badge": {
+      "received": "📥 Received",
+      "sent": "📤 Sent"
+    },
+    "card": {
+      "locked": "Locked • {{date}}",
+      "sealed": "Sealed • {{date}}",
+      "sentStatus": "Sent",
+      "opened": "Opened",
+      "optionsA11y": "Letter options",
+      "lockedTitle": "🔒 A Letter Locked in the Future",
+      "from": "From: {{personName}}",
+      "to": "To: {{personName}}",
+      "lockedNote": "This letter is locked with a special seal until the date chosen by your beloved...",
+      "content": "Letter Content",
+      "openingDate": "Opening Date: {{date}}",
+      "deletionAsk": "Your partner wants this letter deleted. It won't be deleted without your approval.",
+      "keepIt": "Keep It 💛",
+      "allowDeletion": "Allow Deletion",
+      "hiddenOnlyForYou": "Hidden only in your list",
+      "bringBack": "Bring back"
+    },
+    "subtitle": "A Time Capsule for the Future 💌",
+    "write": {
+      "cta": "Write a New Letter",
+      "ctaSub": "Leave your beloved a message to be opened in the future ✨"
+    },
+    "filters": {
+      "all": "All ({{total}})",
+      "received": "Received ({{total}})",
+      "sent": "Sent ({{total}})"
+    },
+    "approvalBanner": {
+      "one": "Your partner is waiting for your approval to delete a letter",
+      "many": "Your partner is waiting for your approval to delete {{total}} letters"
+    },
+    "hiddenNote": "Letters you hide are only removed from your own list; your partner still sees them.",
+    "backToMine": "Back to My Letters",
+    "hiddenTab": "Hidden ({{total}})",
+    "empty": {
+      "hiddenTitle": "No hidden letters in this tab",
+      "hiddenDescription": "Letters you hide from your list stay here; you can bring them back anytime.",
+      "noneYetTitle": "Your First Letter Hasn't Arrived Yet",
+      "firstMarkTitle": "Leave the First Mark on the Future!",
+      "noneYetDescription": "It will appear here when your partner writes you a sealed letter. You can also take the first step and leave them a surprise.",
+      "firstMarkDescription": "Write your partner's first sealed letter right now, to be opened on your first anniversary or their birthday.",
+      "cta": "Seal Your First Letter 💌"
+    },
+    "loadMore": "Load More Letters ({{shown}} Showing) 📜",
+    "compose": {
+      "title": "Seal a Letter",
+      "toLabel": "WHO IS IT FOR *",
+      "partnerNotPaired": "Your partner hasn't paired yet",
+      "unlockDateLabel": "UNLOCK DATE *",
+      "timeLock": "Time Lock",
+      "unlockDateTitle": "Unlock Date",
+      "titleLabel": "LETTER TITLE *",
+      "titlePlaceholder": "e.g. A Special Note to Open on Our 1st Anniversary...",
+      "contentLabel": "LETTER CONTENT *",
+      "contentPlaceholder": "Pour out what's in your heart... The most special lines you want your beloved to read in the future...",
+      "submit": "Seal the Letter 💌",
+      "tokenNote": "* For non-Premium members, sealing costs 100 Tokens. (Your current balance: {{balance}} Tokens)"
+    },
+    "premium": {
+      "featureName": "Write a Letter",
+      "featureDescription": "Write letters that travel through time to your beloved."
+    },
+    "bird": {
+      "wroteToYou": "{{name}} wrote to you",
+      "manyNew": "You have {{total}}{{plus}} new letters 💌",
+      "oneNew": "You have a new letter 💌",
+      "opensOn": "🔒 Opens on {{date}}",
+      "ready": "📜 Ready to read, tap to open it",
+      "a11y": "{{senderTag}}. {{title}}. {{subtitle}}. Tap to go to your letters."
+    },
+    "origami": {
+      "title": "For My Love...",
+      "sealing": "Sealing... 💌",
+      "sealed": "Sealed ✨",
+      "caption": "Entrusting it to the future... ✨",
+      "skip": "Skip animation"
+    }
+  },
+  "memories": {
+    "defaults": {
+      "meet": {
+        "title": "Our Meeting Anniversary",
+        "description": "The wonderful day our story began..."
+      },
+      "relationship": {
+        "title": "Our Relationship Anniversary",
+        "description": "The day our love officially began..."
+      }
+    },
+    "badge": {
+      "todayWithYear": "🎉 Today is our {{year}}-year anniversary!",
+      "today": "🎉 Today is our anniversary!",
+      "daysLeftWithYear_one": "⏳ {{count}} day until our {{year}}-year anniversary",
+      "daysLeftWithYear_other": "⏳ {{count}} days until our {{year}}-year anniversary",
+      "daysLeft_one": "⏳ {{count}} day to go",
+      "daysLeft_other": "⏳ {{count}} days to go",
+      "dayNumber": "✨ Day {{totalDays}}"
+    },
+    "errors": {
+      "deleteFailedWithMessage": "Something went wrong while deleting: {{message}}"
+    },
+    "demo": {
+      "deleteTitle": "Sign Up to Delete a Special Day 🗑️",
+      "deleteDescription": "Create your free account to manage the special days and memories you've saved.",
+      "addTitle": "Sign Up to Add Special Days and Memories 💖",
+      "addDescription": "Create your free account to record the milestones of your relationship and get anniversary reminders.",
+      "editTitle": "Sign Up to Edit a Special Day ✏️",
+      "editDescription": "Create your free account to edit your memories and special days.",
+      "addPhotoTitle": "Sign Up to Add Photos to Special Days 📸",
+      "addPhotoDescription": "Create your free account to add memory photos to your special days and anniversaries.",
+      "saveTitle": "Sign Up to Save a Special Day 💖",
+      "saveDescription": "Create your free account to save your anniversaries and special days and start countdowns."
+    },
+    "delete": {
+      "title": "Delete Memory",
+      "message": "Are you sure you want to delete this special day?"
+    },
+    "toasts": {
+      "deleted": "Special day deleted 🗑️",
+      "updated": "Special day updated ✨",
+      "saved": "Special day saved ✨"
+    },
+    "title": "Special Days",
+    "subtitle": "The milestones of our sweetest memories",
+    "done": "Done",
+    "empty": {
+      "title": "Your memory book is still blank",
+      "description": "Add the day you met, your first date, everything that's special to you; years from now, the first page will make you smile.",
+      "cta": "Add Your First Special Day ✨"
+    },
+    "addNew": "Add a New Special Day",
+    "add": {
+      "titleAndDateRequired": "Please enter a title and a date.",
+      "fileTooLargeTitle": "File Too Large",
+      "fileTooLargeMessage": "Please choose a photo smaller than 5 MB.",
+      "photoPrepFailed": "The photo couldn't be prepared.",
+      "saveFailed": "Something went wrong while saving the memory.",
+      "editTitle": "Edit Memory",
+      "newTitle": "Add a New Memory",
+      "titlePlaceholder": "e.g. Our First Date",
+      "selectDate": "Select a Date",
+      "dateTitle": "Memory Date",
+      "descriptionLabel": "Description (Optional)",
+      "descriptionPlaceholder": "What you want to remember about that day...",
+      "photoLabel": "Photo (Optional)",
+      "chooseFromGallery": "Choose from Gallery"
+    },
+    "premium": {
+      "featureName": "Special Day with Photo",
+      "featureDescription": "You need to go Premium to add photos to your special days."
+    }
+  },
+  "dailyNotes": {
+    "demo": {
+      "deleteTitle": "Sign Up to Delete a Journal Entry 🗑️",
+      "deleteDescription": "Create your free account to manage and delete your journal notes.",
+      "editTitle": "Sign Up to Edit Your Journal ✏️",
+      "editDescription": "Create your free account to update your journal notes.",
+      "writeTitle": "Sign Up to Write a Journal Note 📖",
+      "writeDescription": "Create your free account to save the day's feelings and love notes, encrypted.",
+      "createTitle": "Sign Up to Keep a Journal 📖",
+      "createDescription": "Start your free account to create a personal journal that's stored encrypted and visible only to you."
+    },
+    "delete": {
+      "title": "Delete Journal Entry",
+      "message": "Are you sure you want to permanently delete this journal entry?"
+    },
+    "errors": {
+      "deleteFailed": "An error occurred while deleting the journal entry.",
+      "updateFailed": "The journal entry couldn't be updated."
+    },
+    "subtitle": "Notes only you can see 📓",
+    "writeToday": "Write Today's Journal",
+    "writeTodaySub": "Entrust what's in your heart to your notebook ✨",
+    "empty": {
+      "title": "The first page of your journal is waiting for you",
+      "description": "Write what you feel today, a lovely moment with your love, or simply what's on your mind; only you can read it.",
+      "cta": "Write the First Page ✍️"
+    },
+    "edit": {
+      "title": "Edit Journal Entry",
+      "placeholder": "Your journal...",
+      "counter": "{{chars}} / {{max}} characters"
+    },
+    "add": {
+      "writeSomething": "Please write something in your journal.",
+      "invalidContent": "Invalid content. Please rewrite the note.",
+      "readFailed": "Today's existing journal entry couldn't be read, so it wasn't overwritten.",
+      "pageFullTitle": "Page Full",
+      "pageFullMessage": "Today's journal page is full. You can edit the existing note from the My Journal screen.",
+      "saved": "Your journal entry has been saved ✨",
+      "saveFailed": "Something went wrong while saving your journal.",
+      "title": "New Journal Page",
+      "subtitle": "Your private note, visible only to you 🔒",
+      "label": "YOUR JOURNAL NOTE",
+      "counter_one": "{{chars}} / {{max}} characters ({{count}} word)",
+      "counter_other": "{{chars}} / {{max}} characters ({{count}} words)",
+      "placeholder": "Dear journal, what's on my mind today...",
+      "submit": "Save to My Notebook 📖"
+    }
+  },
+  "calendar": {
+    "demo": {
+      "deleteTitle": "Sign Up to Delete a Note 🗑️",
+      "deleteDescription": "Create your free account to manage and delete the notes in your calendar."
+    },
+    "unnamed": "Unnamed",
+    "subtitle": "Special Days & Memories 📅",
+    "dayRecords": "The Day's Records & Memories",
+    "editNote": "Edit Note",
+    "addNote": "Add Note",
+    "status": {
+      "planned": "Planned",
+      "canceled": "Canceled"
+    },
+    "period": {
+      "start": "Period Start",
+      "dayOfCycle": "Day {{day}} of the Period Cycle",
+      "summary": "{{authorName}} · {{days}}-day period",
+      "logged": "Cycle log"
+    },
+    "empty": {
+      "title": "No Entries Yet",
+      "description": "There's no note, mood, meetup or photo for this day yet.",
+      "cta": "Add the First Note ✍️"
+    },
+    "legend": {
+      "note": "Note",
+      "myMood": "My Mood",
+      "partner": "My Partner",
+      "photo": "Photo"
+    },
+    "noteModal": {
+      "editTitle": "Edit the Day's Note",
+      "addTitle": "Add a Note to the Day",
+      "placeholder": "Leave a little memory or note about today...",
+      "counter": "{{chars}} / 1000 characters"
+    },
+    "sections": {
+      "photos": "PHOTO ARCHIVE",
+      "notes": "NOTES OF THE DAY",
+      "moods": "MOODS FELT",
+      "meetings": "MEETUPS OF THE DAY",
+      "period": "CYCLE & HEALTH TRACKING"
+    },
+    "note": {
+      "yours": "Your note",
+      "fromPartner": "The note your love left you"
+    }
+  },
+  "ads": {
+    "loadFailed": "Something went wrong while loading the ad.",
+    "earned": "You earned 25 Tokens!",
+    "addFailed": "Something went wrong while adding Tokens.",
+    "title": "Earn Tokens",
+    "description": "Watch a short ad to earn 25 Tokens.",
+    "watch": "Watch Ad (+25)",
+    "webSimulation": "Web Simulation",
+    "webDescription": "Mobile ads aren't supported on the web. For testing, you can claim the reward directly.",
+    "claim": "Claim Reward ✨"
+  },
+  "legal": {
+    "docs": {
+      "kvkk": {
+        "title": "KVKK Disclosure Notice",
+        "sub": "Information under Law No. 6698"
+      },
+      "privacy": {
+        "sub": "Data Protection, Encryption and Security Principles"
+      },
+      "terms": {
+        "sub": "User Agreement and General Rules"
+      },
+      "consent": {
+        "title": "Explicit Consent Notice",
+        "sub": "Processing of Health and Location Data"
+      },
+      "subscription": {
+        "title": "Subscription & Refund Terms",
+        "sub": "Distance Sales, Cancellation and Renewal"
+      }
+    },
+    "tabs": {
+      "kvkk": "KVKK",
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "consent": "Consent",
+      "subscription": "Subscription"
+    },
+    "modal": {
+      "title": "Legal & Privacy",
+      "subtitle": "Regulations and User Agreements",
+      "lastUpdated": "Last Updated: {{date}}",
+      "accept": "I've Read and Understood"
+    }
+  },
+  "language": {
+    "title": "Language",
+    "description": "Choose the app's language. The change applies instantly."
+  },
+  "period": {
+    "countdown": {
+      "next_one": "Next Cycle: {{count}} day to go ({{date}}) 🌸",
+      "next_other": "Next Cycle: {{count}} days to go ({{date}}) 🌸",
+      "today": "A new cycle is expected today 🌸",
+      "late_one": "{{count}} day late ⏳",
+      "late_other": "{{count}} days late ⏳",
+      "waiting": "Waiting for a new cycle entry 🌸"
+    },
+    "errors": {
+      "invalidDateTitle": "Invalid Date",
+      "futureStart": "You can't mark a future day as a period start.",
+      "limitTitle": "Limit 🌸",
+      "limitMessage": "Biologically, you can record at most 2 separate period starts within a month.",
+      "intervalTitle": "Biological Interval 🌸",
+      "intervalMessage": "There must be at least 16 days between two period starts."
+    },
+    "info": {
+      "title": "Info 🌸",
+      "femaleOnly": "Only the female partner can update the period calendar."
+    },
+    "subtitle": {
+      "female": "Personal Cycle & Health Tracking 🌸",
+      "male": "Your Love's Cycle & Support Guide 💕"
+    },
+    "lock": {
+      "title": "Track Your Love's Cycle Together 💕",
+      "description": "By knowing about your partner's sensitive days, you can approach them with understanding and tenderness at just the right time.",
+      "bullet1": "Support your love tenderly on their sensitive days",
+      "bullet2": "Organize special days and holiday plans with ease",
+      "bullet3": "Notice mood changes in advance and show understanding"
+    },
+    "status": {
+      "activeFemale": "Cycle Tracking Active 🌸",
+      "activeMale": "Your Love's Cycle Is Being Tracked 💕",
+      "lastStart": "Last start: {{date}}",
+      "none": "No period start has been recorded yet."
+    },
+    "today": {
+      "logged": "Logged Today",
+      "start": "My Period Started Today 🌸"
+    },
+    "tips": {
+      "title": "Tips to Support Your Love",
+      "tip1": "You can surprise them with their favorite chocolate or dessert.",
+      "tip2": "Make a warm herbal tea to help them relax.",
+      "tip3": "Be extra understanding and hold them tight."
+    },
+    "selfCare": {
+      "title": "Today's Self-Care Note",
+      "text": "You don't need to mark every day; just pick the day your period started or tap the button above. We'll work out the 5-day period and your next cycle. Don't forget to drink plenty of water and rest, sweetheart 🌸"
+    },
+    "history": {
+      "title": "PAST ENTRIES",
+      "empty": "There are no logged cycle days yet."
+    },
+    "modal": {
+      "addQuestion": "Do you want to mark this day as a period start?",
+      "removeQuestion": "Do you want to remove the period entry on this date?",
+      "mark": "Mark",
+      "delete": "Delete Entry"
+    },
+    "premium": {
+      "featureDescription": "Track your love's cycle together and support them in the best way during their sensitive days."
+    }
+  },
+  "meetings": {
+    "push": {
+      "updatedBody": "{{name}} updated the meetup plan: {{title}}",
+      "updatedTitle": "Meetup Updated 📅"
+    },
+    "demo": {
+      "editTitle": "Sign Up to Edit a Meetup 📍",
+      "editDescription": "Create your free account to update the meetup details and location.",
+      "saveTitle": "Sign Up to Save a Meetup 📅",
+      "saveDescription": "Create your free account to save your meetups and share them with your partner.",
+      "deleteTitle": "Sign Up to Delete a Meetup 🗑️",
+      "deleteDescription": "Create your free account to manage and delete planned meetups."
+    },
+    "errors": {
+      "past": "You can't plan a meetup in the past!",
+      "titleRequired": "Please enter a title for the meetup.",
+      "onlyPlanner": "Only the person who planned this meetup can update it.",
+      "actionFailed": "The action couldn't be completed. Please try again later.",
+      "deleteFailed": "The meetup couldn't be deleted."
+    },
+    "toasts": {
+      "updated": "Meetup updated 🎉",
+      "planned": "Meetup planned 🎉"
+    },
+    "delete": {
+      "title": "Delete Meetup",
+      "message": "Are you sure you want to delete this meetup?"
+    },
+    "subtitle": "Plans & Special Moments 📍",
+    "plan": {
+      "cta": "Plan a New Meetup",
+      "ctaSub": "Choose a date, time and location on the map ✨"
+    },
+    "upcoming": "UPCOMING MEETUPS",
+    "count_one": "{{count}} Meetup",
+    "count_other": "{{count}} Meetups",
+    "card": {
+      "editA11y": "Edit meetup",
+      "deleteA11y": "Delete meetup",
+      "plannedByYou": "You planned this meetup ✨",
+      "plannedByPartner": "Your love planned this meetup ✨",
+      "directions": "Get Directions on the Map 🗺️"
+    },
+    "empty": {
+      "noneTitle": "No upcoming meetup yet",
+      "firstTitle": "Plan your first meetup",
+      "noneDescription": "How about planning a new dinner, a coffee break or a little getaway?",
+      "firstDescription": "Plan a romantic dinner or a coffee break; the countdown will be waiting for you on your home screen.",
+      "noneCta": "Plan a New Meetup 🥂",
+      "firstCta": "Plan the First Meetup 🥂"
+    },
+    "past": "PAST MEETUPS",
+    "showOlder": "Show older meetups ({{remaining}})",
+    "form": {
+      "editTitle": "Edit Meetup",
+      "newTitle": "Plan a New Meetup",
+      "titleLabel": "MEETUP TITLE",
+      "titlePlaceholder": "e.g. Anniversary Dinner, Coffee Date...",
+      "dateLabel": "DATE",
+      "timeLabel": "TIME",
+      "locationLabel": "MEETUP PLACE / LOCATION",
+      "locationPlaceholder": "The place or address to meet...",
+      "update": "Update Meetup",
+      "save": "Save the Meetup ✨",
+      "datePickerTitle": "Meetup Date",
+      "timePickerTitle": "Meetup Time",
+      "locationPickerTitle": "Meetup Spot"
+    }
+  },
+  "medicine": {
+    "manager": {
+      "owner": {
+        "mine": "Mine",
+        "partner": "My love's"
+      },
+      "registeredSub_one": "{{owner}} • {{count}} time a day",
+      "registeredSub_other": "{{owner}} • {{count}} times a day",
+      "duplicateTime": "You've already selected this time for this medicine. Please choose a different time.",
+      "editTitle": "Edit Medicine",
+      "title": "Manage & Add Medicine",
+      "saved": "SAVED MEDICINES",
+      "detailsTitle": "MEDICINE DETAILS",
+      "newFormTitle": "NEW MEDICINE FORM",
+      "forMe": "Me",
+      "nameLabel": "MEDICINE NAME",
+      "namePlaceholder": "e.g. Aspirin, Vitamin B12...",
+      "frequencyLabel": "DAILY DOSE FREQUENCY",
+      "times_one": "{{count}} Time",
+      "times_other": "{{count}} Times",
+      "doseTimesLabel": "DOSE TIMES",
+      "startLabel": "START",
+      "endLabel": "END",
+      "saveUpdate": "Save Update",
+      "addToList": "Add Medicine to List",
+      "doseTimePickerTitle": "Dose Time",
+      "startPickerTitle": "Start Date",
+      "endPickerTitle": "End Date"
+    },
+    "notify": {
+      "drankBody": "{{senderName}} took their {{medName}}. You can rest easy! 🌿"
+    },
+    "errors": {
+      "statusUpdateFailed": "Something went wrong while updating the status.",
+      "duplicateTimes": "You can't select the same time more than once for the same medicine. Please choose different dose times.",
+      "partnerNotPaired": "Your partner hasn't paired yet.",
+      "unexpected": "An unexpected error occurred.",
+      "deleteFailed": "An error occurred while deleting."
+    },
+    "demo": {
+      "useTitle": "Sign Up to Use Medicine Tracking 💊",
+      "useDescription": "Create your free account to log your daily medicine and vitamins and pair with your partner.",
+      "editTitle": "Sign Up to Edit Medicine 💊",
+      "editDescription": "Create your free account to update your medicine details and times.",
+      "deleteTitle": "Sign Up to Delete Medicine 🗑️",
+      "deleteDescription": "Create your free account to manage your medicine schedule.",
+      "manageTitle": "Sign Up to Add New Medicine and Reminders 💊",
+      "manageDescription": "Create your free account to plan your daily medicine and keep track of each other with your partner."
+    },
+    "toasts": {
+      "updated": "Medicine info updated 🎉",
+      "saved": "New medicine saved 🎉"
+    },
+    "push": {
+      "newTitle": "New Medicine Added 💊",
+      "newForYou": "Your love added a new medicine for you: {{name}}",
+      "new": "Your love added a new medicine: {{name}}"
+    },
+    "delete": {
+      "title": "Delete Medicine",
+      "message": "Are you sure you want to delete this medicine?"
+    },
+    "subtitle": "Daily Health Reminder 💊",
+    "manage": {
+      "cta": "Add or Manage Medicine",
+      "ctaSub": "Plan your daily doses and times ✨"
+    },
+    "tabs": {
+      "mine": "My Medicine",
+      "partner": "My Love's Medicine 💕"
+    },
+    "today": {
+      "title": "TODAY'S DOSES",
+      "emptyTitle": "No Medicine for Today",
+      "emptyPartner": "Your love has no medicine to take today.",
+      "emptyMine": "You have no medicine scheduled to take today."
+    },
+    "add": "Add Medicine",
+    "dose": {
+      "perDay_one": "{{count}} dose a day ({{times}})",
+      "perDay_other": "{{count}} doses a day ({{times}})",
+      "taken": "Taken ({{time}}) ✔️",
+      "skipped": "Skipped ({{time}})",
+      "pending": "Pending ({{time}})",
+      "notTaken": "Not Taken Yet ({{time}})",
+      "skip": "Skip ({{time}})",
+      "took": "I Took It ({{time}})"
+    },
+    "history": {
+      "title": "PAST DAILY TRACKING (LAST 14 DAYS)",
+      "empty": "There are no past medicine records.",
+      "entry": "{{name}} • {{taken}}/{{total}} Taken ({{times}})"
+    },
+    "streak": {
+      "title": "{{count}}-Day Streak! 🔥",
+      "habit": "Habit Streak 💧",
+      "great": "Wonderful discipline, you're keeping it up without missing a day!",
+      "startMine": "Start a streak by taking your medicine regularly!",
+      "partner": "Your love's medicine tracking streak"
+    }
+  },
+  "tour": {
+    "guideTitle": "{{title}} Guide",
+    "featureCounter": "Feature {{current}} / {{total}}",
+    "loveTip": "Love Tip",
+    "gotIt": "Got it, let's start! 🎉",
+    "skipA11y": "Skip tour",
+    "skip": "Skip Tour",
+    "letsBegin": "Let's Begin 🎉",
+    "pageGuideA11y": "Page Guide"
+  },
+  "picker": {
+    "selectDate": "Select Date",
+    "selectTime": "Select Time"
+  },
+  "stars": {
+    "solar": {
+      "sun": "Sun",
+      "mercury": "Mercury",
+      "venus": "Venus",
+      "earth": "Earth",
+      "moon": "Moon",
+      "mars": "Mars",
+      "jupiter": "Jupiter",
+      "saturn": "Saturn",
+      "uranus": "Uranus",
+      "neptune": "Neptune",
+      "pluto": "Pluto"
+    },
+    "errors": {
+      "cooldownActive_one": "Your daily spark hasn't renewed yet. Time remaining: {{count}} second.",
+      "cooldownActive_other": "Your daily spark hasn't renewed yet. Time remaining: {{count}} seconds.",
+      "spamCooldown_one": "Please wait {{count}} second before sending another pulse.",
+      "spamCooldown_other": "Please wait {{count}} seconds before sending another pulse.",
+      "starTaken": "Another couple just claimed this star, please choose a different one.",
+      "alreadyHasStar": "You already have a star — each couple can only have one star.",
+      "nameModeration": "A star name can't contain words that violate our community guidelines.",
+      "premiumRequired": "This action requires an active Premium membership.",
+      "needStar": "You need to claim a star before you can connect.",
+      "maxConnections": "You've reached the maximum limit of 3 star connections.",
+      "connectionExists": "There's already an active or pending connection with this star.",
+      "requestAnswered": "This connection request has already been answered.",
+      "renameCooldown": "Your name change allowance hasn't renewed yet.",
+      "mediaLinkFailed": "The media access link couldn't be created.",
+      "nameEmpty": "The name can't be empty.",
+      "nameBlocked": "The name you entered contains words that violate our community guidelines. Please choose a different name."
+    },
+    "defaultName": "Our Star",
+    "defaultNameSparkle": "Our Star ✨",
+    "debug": {
+      "hudA11y": "Sky performance panel"
+    },
+    "activity": {
+      "mood": "Mood",
+      "medicine": "Medicine tracking",
+      "calendar_note": "Calendar note",
+      "pinned_note": "Map note",
+      "period_tracking": "Cycle tracking",
+      "letter": "Letter",
+      "planet": "Memory planet",
+      "photo": "Photo",
+      "diary": "Journal",
+      "profile_pic": "Profile photo",
+      "meeting": "Meetup",
+      "memory": "Memory",
+      "wish": "Wish"
+    },
+    "pointsToast_one": "+{{count}} point, your star glowed brighter 🌟",
+    "pointsToast_other": "+{{count}} points, your star glowed brighter 🌟",
+    "micro": {
+      "certificateA11y": "{{name}}, view the registry certificate",
+      "showAllA11y": "Show the whole system",
+      "showAll": "See all",
+      "sendLightA11y": "Send light to the star",
+      "lockedPlanetA11y": "Locked memory planet",
+      "fallbackNote": "Live orbit animations run in the device build",
+      "lockedLabel": "🔒 Locked memory",
+      "hintStar": "Tap the star to send your love a pulse",
+      "hintDrag": "Drag to spin the system · Tap a planet to open its memory",
+      "emptyTitle": "Your orbit is waiting for you",
+      "emptySubtitle": "Turn your first memory into a planet below ✨",
+      "spectralClass": "Class {{spectral_type}}",
+      "resonanceBanner": "RESONANCE · YOU'RE BOTH HERE",
+      "heartOfStar": "THE HEART OF OUR STAR",
+      "statLight": "LIGHT",
+      "statMemories": "MEMORIES",
+      "statSparks": "SPARKS",
+      "openPlanetA11y": "Open the {{display_title}} memory planet",
+      "lockedMemory": "Locked memory",
+      "unlockPremium": "Unlock with Premium 👑",
+      "planetSub": "{{typeLabel}} · Orbit {{orbit_distance}}",
+      "createA11y": "Create a new memory planet",
+      "createFirst": "Create your first memory planet",
+      "createFirstSub": "Let your photos and your story circle in orbit",
+      "planetsEyebrow": "MEMORY PLANETS",
+      "planetCount_one": "{{count}} memory in orbit",
+      "planetCount_other": "{{count}} memories in orbit",
+      "orbitEmpty": "Orbit is empty",
+      "backToSky": "Back to the Sky Dome"
+    },
+    "macro": {
+      "fallbackTitle": "Macro Sky Map",
+      "fallbackDescription": "The hardware-accelerated Skia C++ engine is used to draw 10,000+ stars and nebulae at a smooth 60 FPS.",
+      "noticeTitle": "Development Build Required",
+      "noticeText": "Because of the custom native modules in your project (RevenueCat, Ads, QuickCrypto, etc.), build the app from the terminal to view this map at full performance:",
+      "loadedStars": "Loaded stars: {{starCount}}"
+    },
+    "connectionBadge": {
+      "accepted": "Your star bond with \"{{starName}}\" is formed! It's sparkling in the sky 💫",
+      "declined": "Connection request declined.",
+      "pendingA11y_one": "{{count}} pending star connection request",
+      "pendingA11y_other": "{{count}} pending star connection requests",
+      "title": "Connection Requests",
+      "allAnswered": "All pending requests have been answered ✨",
+      "wantsToConnect": "wants to connect with your star",
+      "accept": "Accept ✨",
+      "decline": "Decline"
+    },
+    "radar": {
+      "scanning": "Scanning cosmic coordinates...",
+      "locked": "Locked onto the cosmic gravity field ⚡",
+      "approaching": "Approaching our star in the Sky Dome ✨",
+      "active": "HOMEWARD RADAR ACTIVE",
+      "targetLocked": "TARGET LOCKED",
+      "ra": "RIGHT ASCENSION (RA)",
+      "dec": "DECLINATION (DEC)"
+    },
+    "sectors": {
+      "centerFallback": "Central Sector",
+      "orion": {
+        "name": "Hunter Sector",
+        "description": "The most majestic hunter in the sky. Home to supergiants like Rigel and Betelgeuse.",
+        "mythology": "In mythology, regarded as the guardian warrior of the heavens."
+      },
+      "ursa_major": {
+        "name": "Great Bear Sector",
+        "description": "With the Big Dipper, formed by seven bright stars, it is the guide of the northern sky.",
+        "mythology": "The eternal pointer that helps you find the North Star."
+      },
+      "cassiopeia": {
+        "name": "Queen Sector",
+        "description": "The queen constellation that shines in the sky with its distinctive W shape.",
+        "mythology": "The legendary Queen of Ethiopia who boasted of her beauty."
+      },
+      "cygnus": {
+        "name": "Swan Sector",
+        "description": "The graceful Swan beating its wings along the Milky Way.",
+        "mythology": "A symbol of fidelity, also known as the Northern Cross."
+      },
+      "taurus": {
+        "name": "Bull Sector",
+        "description": "The ancient Bull constellation, ablaze with the red fire of Aldebaran.",
+        "mythology": "The sky's reflection of the white bull Zeus became when he carried off Europa."
+      },
+      "gemini": {
+        "name": "Twins Sector",
+        "description": "A symbol of brotherhood in the sky, with the twin stars Castor and Pollux.",
+        "mythology": "Inseparable twins — one mortal, one divine."
+      },
+      "aries": {
+        "name": "Ram Sector",
+        "description": "The ancient gate of the spring equinox and keeper of the Golden Fleece.",
+        "mythology": "The ram who bore the legendary Golden Fleece sought by Jason and the Argonauts."
+      },
+      "cancer": {
+        "name": "Crab Sector",
+        "description": "The simplest yet most mysterious corner of the sky, it hosts the Beehive Cluster.",
+        "mythology": "The small but brave crab who battled Hercules."
+      },
+      "leo": {
+        "name": "Lion Sector",
+        "description": "The king of the sky, crowned by the blue light of Regulus.",
+        "mythology": "The Nemean Lion — Hercules' first and hardest labor."
+      },
+      "virgo": {
+        "name": "Maiden Sector",
+        "description": "The goddess of fertility, shining with the star Spica, and home to galaxy clusters.",
+        "mythology": "Herald of the harvest season, goddess of abundance and justice."
+      },
+      "libra": {
+        "name": "Scales Sector",
+        "description": "The symbol of justice and balance in the sky.",
+        "mythology": "The scales of justice Astraea left behind when she abandoned the world."
+      },
+      "scorpius": {
+        "name": "Scorpion Sector",
+        "description": "The sky's most dangerous hunter, beating with the red heart of Antares.",
+        "mythology": "The legendary scorpion that killed Orion — the two are never visible in the sky at the same time."
+      },
+      "sagittarius": {
+        "name": "Archer Sector",
+        "description": "The archer who shoots an arrow at the center of the Milky Way. The gateway to the galactic core.",
+        "mythology": "The sky's reflection of the wise centaur Chiron."
+      },
+      "capricornus": {
+        "name": "Sea-Goat Sector",
+        "description": "The gate of the winter solstice, an ancient mermaid-goat hybrid.",
+        "mythology": "The memory of Pan's escape from Typhon by turning into a fish tail."
+      },
+      "aquarius": {
+        "name": "Water Bearer Sector",
+        "description": "The water bearer who pours water from the sky onto the earth.",
+        "mythology": "The place in the sky of Ganymede, the gods' water bearer."
+      },
+      "pisces": {
+        "name": "Fish Sector",
+        "description": "The modern gate of the spring equinox, the cosmic dance of two fish.",
+        "mythology": "The moment Aphrodite and Eros escaped by turning into fish in the river."
+      },
+      "pegasus": {
+        "name": "Winged Horse Sector",
+        "description": "The most distinctive sign of the autumn sky, with the Great Square.",
+        "mythology": "The legendary winged horse born from Medusa's blood."
+      },
+      "andromeda": {
+        "name": "Chained Princess Sector",
+        "description": "Home to our nearest large galaxy (M31).",
+        "mythology": "The princess who was chained to the rocks and rescued from the sea monster."
+      },
+      "lyra": {
+        "name": "Lyre Sector",
+        "description": "The brightest corner of the Summer Triangle, shining with Vega.",
+        "mythology": "The echo in the sky of Orpheus' enchanting lyre music."
+      },
+      "aquila": {
+        "name": "Eagle Sector",
+        "description": "The southern point of the Summer Triangle, shining with Altair.",
+        "mythology": "Zeus' thunderbolt-bearing eagle."
+      },
+      "canis_major": {
+        "name": "Great Dog Sector",
+        "description": "Home of Sirius, the brightest star in the sky.",
+        "mythology": "The faithful hunting dog of Orion the Hunter."
+      },
+      "centaurus": {
+        "name": "Centaur Sector",
+        "description": "The brightest pair of the southern sky, with Alpha Centauri and Hadar.",
+        "mythology": "The wise centaur Chiron, the healer and teacher who rose among the stars."
+      },
+      "crux": {
+        "name": "Southern Cross Sector",
+        "description": "The smallest yet most recognizable constellation in the sky.",
+        "mythology": "The sacred cross that points the way south."
+      },
+      "phoenix": {
+        "name": "Phoenix Sector",
+        "description": "The sky home of the legendary bird born from fire.",
+        "mythology": "The immortal phoenix reborn from its ashes."
+      }
+    },
+    "atlas": {
+      "title": "🌌 Sky Atlas",
+      "subtitle": "24 Astronomical Sectors",
+      "scanning": "Scanning sectors...",
+      "friend": "Friend",
+      "fill": "{{claimed}} / {{total}} stars • {{fillPercent}}%",
+      "flyTo": "Fly There",
+      "chooseStar": "Choose a Star"
+    },
+    "hud": {
+      "openAtlasA11y": "{{name}} sector, open the Atlas",
+      "atlas": "Atlas"
+    },
+    "demoAuth": {
+      "light": "Light {{percent}}%",
+      "title": "You need to sign up to claim this star ✨",
+      "description": "Create your free account to seal your love into the sky, name your star and start your shared space with your partner."
+    },
+    "info": {
+      "a11y": "View star details and certificate",
+      "resonance": "Resonance"
+    },
+    "search": {
+      "sirius": "Sirius (Dog Star)",
+      "polaris": "Polaris (North Star)",
+      "title": "Search the Universe",
+      "placeholder": "Sun, Earth, Venus, Sirius, star name...",
+      "noResults": "No results found.",
+      "type": {
+        "common": "Celestial Bodies",
+        "custom": "Registered Star",
+        "exoplanet": "Memory Planet",
+        "catalog": "Catalog Star"
+      },
+      "ownStar": "(Your Star)"
+    },
+    "connect": {
+      "step1": "Switch to <b>Sky Dome (Macro View)</b> mode with the button below.",
+      "step2": "Tap <b>a registered star</b> that belongs to another couple.",
+      "step3": "Tap the <b>“Connect Our Star ✨”</b> button on the star card that opens.",
+      "tabs": {
+        "code": "Pairing Code",
+        "search": "Star Name",
+        "sky": "Sky"
+      },
+      "errors": {
+        "loadFailed": "An error occurred while loading connection details.",
+        "copyFailed": "The code couldn't be copied.",
+        "minChars": "Please enter at least 2 characters.",
+        "searchFailed": "An error occurred during the search.",
+        "limitReached": "You've reached the maximum limit of 3 connections.",
+        "alreadyConnected": "You're already connected with the star \"{{custom_name}}\" ✨",
+        "alreadyRequested": "You've already sent a request to the star \"{{custom_name}}\"; awaiting approval.",
+        "requestFailed": "The request couldn't be sent.",
+        "noCodeOnClipboard": "No pairing code was found on the clipboard.",
+        "clipboardFailed": "The clipboard couldn't be read.",
+        "codeLength": "The pairing code must be {{length}} characters long.",
+        "ownCode": "That's your own pairing code. Enter the code of the couple you'd like to bond with.",
+        "noCoupleForCode": "No couple matches this code. Stars with similar names are listed below.",
+        "noStarForCode": "No star was found for this code. Check the code; the other couple must also have registered a star.",
+        "codeSearchFailed": "An error occurred while searching by pairing code.",
+        "actionFailed": "The action couldn't be completed."
+      },
+      "success": {
+        "bondFormed": "A cosmic bond with \"{{custom_name}}\" has been formed ✨",
+        "requestSent": "A connection request was sent to the star \"{{custom_name}}\" ✨",
+        "requestCancelled": "The connection request was cancelled.",
+        "bondEnded": "The cosmic bond with \"{{starName}}\" has ended."
+      },
+      "confirm": {
+        "cancelRequest": "Are you sure you want to cancel this connection request?",
+        "breakBond": "Do you want to break the star bond between you and \"{{starName}}\"?",
+        "cancelTitle": "Cancel Request",
+        "breakTitle": "Break Connection",
+        "nevermind": "Never Mind",
+        "cancelAction": "Cancel Request",
+        "breakAction": "Break"
+      },
+      "connected": "Connected ✨",
+      "requestSentBadge": "Request Sent",
+      "limitFull": "Limit Full (3/3)",
+      "approveBond": "Approve Bond ✨",
+      "proposeBond": "Propose Connection ✨",
+      "title": "Cosmic Bonds",
+      "subtitle": "Constellation friendships • ({{activeConnectionCount}}/3 active bonds)",
+      "limitNotice": "You've reached the maximum limit of 3 connections. To form a new bond, you can end one of your existing bonds.",
+      "loading": "Loading star bonds...",
+      "ourCodeA11y": "Our pairing code is {{pairingCode}}, tap to copy",
+      "ourCodeLabel": "Our Pairing Code • give it to your friend",
+      "friendCodeTitle": "Your Friend's Pairing Code",
+      "friendCodeHint": "Enter the {{length}}-character code of the couple you'd like to bond with; let your stars join in the sky with a constellation line.",
+      "friendCodeA11y": "Your friend's pairing code",
+      "pasteA11y": "Paste the code from the clipboard",
+      "paste": "Paste",
+      "connectA11y": "Connect",
+      "connectBtn": "Connect ✨",
+      "connectNote": "When the other couple approves your request, your stars become connected.",
+      "searchPlaceholder": "Enter a star name...",
+      "search": "Search",
+      "noResults": "No other couple's registered star named “{{searchQuery}}” was found.",
+      "skyGuideTitle": "Choose from the Sky Dome",
+      "skyGuideDesc": "You can discover the registered stars of other couples shining across the universe on the sky map and send a connection request straight from the star card.",
+      "goToSky": "Go to the Sky 🌌",
+      "currentBonds": "Our Current Connections ({{activeConnectionCount}}/3)",
+      "noBonds": "You don't have a constellation bond with another couple's star yet.",
+      "pendingTitle": "Our Requests Awaiting Approval ({{outgoingPendingCount}})",
+      "awaiting": "Waiting for the other couple's approval…",
+      "cancelRequestA11y": "Cancel request"
+    },
+    "wish": {
+      "announceOpen": "A shooting star. Make a wish.",
+      "announceReleased": "Your wish is on its way.",
+      "errors": {
+        "unreachable": "We couldn't reach the sky just now. Could you check your connection and try again?"
+      },
+      "alreadyTitle": "You've already made today's wish",
+      "alreadyBody": "You have one wish a day. Tomorrow the sky will send a new shooting star your way ✨",
+      "eyebrow": "A SHOOTING STAR",
+      "title": "Make a wish",
+      "intro": "Close your eyes and write what's on your mind. Your wish goes only to the sky; no one reads it, and it isn't saved anywhere.",
+      "partnerWished": "💫 Your partner made a wish today too",
+      "placeholder": "My wish…",
+      "inputA11y": "Your wish",
+      "inputHint": "Your wish isn't saved anywhere",
+      "release": "Release my wish to the sky",
+      "sending": "Sending to the sky…",
+      "sentTitle": "Your wish is on its way",
+      "sentBodyStar": "Your star glowed a little brighter ✨",
+      "sentBodyHeard": "The sky heard it ✨"
+    },
+    "claim": {
+      "preSelectedCoords": "RA {{ra}}° / DEC {{dec}}° • Light {{light}}%",
+      "findInSector": "Find a Star in {{sector}} ✨",
+      "renameLocked": "Name change allowance renews on {{date}}",
+      "radar": {
+        "engraving": "Your star is being etched into the universe...",
+        "scanning": "Scanning for a cosmic signal, searching deep-space catalogs...",
+        "catalogScan": "Scanning the Gaia DR3 and Hipparcos catalogs for unclaimed stars..."
+      },
+      "errors": {
+        "nameTooShort": "Your star's name must be at least 2 characters.",
+        "nameTooLong": "Your star's name can be at most 40 characters.",
+        "nameSame": "The new name is the same as the current one; your rename allowance is kept.",
+        "renameFailed": "The name couldn't be changed. Please try again.",
+        "noFreeStar": "We couldn't find an available star of this brightness in the Sky Dome. Please try again.",
+        "cosmicGlitch": "Cosmic interference occurred while registering your star."
+      },
+      "intro": "Register a unique star with real coordinates in the sky, from a real astronomical catalog (Gaia & Hipparcos), in the name of your love.",
+      "nameLabel": "YOUR STAR'S NAME",
+      "namePlaceholder": "e.g. Our Eternal Love, Vega & Sirius...",
+      "registerThis": "Register This Star ✨",
+      "sectorFallback": "Sector",
+      "scanSky": "Scan the Sky & Find Our Star ✨",
+      "footnote": "* The registered star belongs only to your couple in the world and never dies.",
+      "registering": "Registering",
+      "scanningDome": "Scanning the Sky Dome",
+      "errorTitle": "Cosmic Connection Interrupted",
+      "chooseAnother": "Choose Another Star",
+      "certTitle": "CELESTIAL REGISTRY CERTIFICATE",
+      "renamePlaceholder": "Your star's new name",
+      "renameNote": "You can change the name only once a month; after using your allowance you'll need to wait 30 days. The allowance is shared between both partners.",
+      "saving": "Saving…",
+      "editNameA11y": "Edit the star's name",
+      "editName": "Edit name",
+      "certSubtitle": "The Light of Your Love Has Been Registered to Shine in the Universe Forever",
+      "catalogCode": "CATALOG CODE",
+      "spectralClass": "SPECTRAL CLASS",
+      "certBody": "Your star is in the sky! Every moment you share together will make it shine even brighter.",
+      "closeCert": "Close Certificate ✨",
+      "enterMicro": "Step into Our Micro Universe 🚀"
+    },
+    "exoplanet": {
+      "zoneHelp": "{{periodDesc}} · each memory circles in its own ring",
+      "types": {
+        "terrestrial": "Terrestrial",
+        "ocean_world": "Ocean",
+        "crystal": "Crystal",
+        "ice_world": "Ice World",
+        "gas_giant": "Gas Giant",
+        "volcanic": "Volcanic",
+        "desert": "Desert",
+        "ringed_giant": "Ringed Giant"
+      },
+      "zones": {
+        "z1": {
+          "label": "Orbit 1",
+          "period": "Closest orbit to the star"
+        },
+        "z2": {
+          "label": "Orbit 2",
+          "period": "Inner orbit"
+        },
+        "z3": {
+          "label": "Orbit 3",
+          "period": "Middle orbit"
+        },
+        "z4": {
+          "label": "Orbit 4",
+          "period": "Outer orbit"
+        },
+        "z5": {
+          "label": "Orbit 5",
+          "period": "Farthest orbit from the star"
+        }
+      },
+      "photoLimit": "You can add at most 5 photos to a memory planet.",
+      "galleryPermTitle": "Gallery Permission Required",
+      "galleryPermBody": "To choose photos, you need to allow gallery access in settings.",
+      "pickFailed": "Something went wrong while selecting the photo.",
+      "deleteTitle": "Are you sure you want to permanently delete this memory?",
+      "deleteBody": "This action can't be undone, and the memory's photos will also be removed from the system.",
+      "deleteConfirm": "Yes, Delete",
+      "deleteFailed": "Something went wrong while deleting the planet.",
+      "uploading": "Uploading photos ({{current}}/{{total}})...",
+      "photoProcessFailed": "The photo data couldn't be processed.",
+      "errors": {
+        "verifyingLimit": "Verifying the planet limit, please wait...",
+        "limitReached": "You've reached the maximum limit of 10 memory planets.",
+        "titleLength": "The title must be between 2 and 60 characters.",
+        "invalidDate": "Please enter a valid date (YYYY-MM-DD).",
+        "futureDate": "The memory date can't be in the future. Please choose today or a past day.",
+        "createFailed": "An error occurred while creating the planet.",
+        "updateFailed": "An error occurred while updating the planet."
+      },
+      "placing": "Placing your memory planet into orbit...",
+      "push": {
+        "title": "A New Memory Planet ✨",
+        "body": "Your love placed a new memory planet into orbit: \"{{trimmedTitle}}\"",
+        "action": "View Planet 🪐"
+      },
+      "updating": "Updating your memory planet...",
+      "eyebrowAuto": "AUTOMATIC MEMORY PLANET",
+      "eyebrowView": "MEMORY PLANET",
+      "eyebrowEdit": "EDIT MEMORY PLANET",
+      "eyebrowNew": "NEW MEMORY PLANET",
+      "selectDate": "Select a date",
+      "lockedBody": "Photos, letters and details unlock when your Premium membership is active again.",
+      "unlockPremium": "Unlock with Premium",
+      "deletePlanet": "Delete Planet",
+      "orbitLine": "Orbit {{orbit_distance}} · {{type}}",
+      "auto": "Automatic",
+      "loadingStory": "Loading photos and story…",
+      "photoCount_one": "MEMORIES · {{count}} PHOTO",
+      "photoCount_other": "MEMORIES · {{count}} PHOTOS",
+      "photoOpenA11y": "Photo {{number}}, open full screen",
+      "noPhotos": "No photos have been added to this planet yet.",
+      "ourStory": "OUR STORY",
+      "linkedLetters": "LINKED LETTERS · {{linkedLetterIdCount}}",
+      "letterNumber": "Letter #{{number}}",
+      "viewLetter": "View letter",
+      "deletePlanetA11y": "Delete planet",
+      "newPlanet": "New memory planet",
+      "previewLine": "Orbit {{orbitZone}} · {{type}} · {{formDateLabel}}",
+      "limitFullTitle": "Planet Limit Reached (10/10)",
+      "limitFullBody": "You can create at most 10 memory planets. To add a new memory, please delete one of your existing planets.",
+      "titleLabel": "MEMORY TITLE",
+      "titlePlaceholder": "e.g. Our First Vacation, Cappadocia Balloons...",
+      "dateLabel": "MEMORY DATE",
+      "zoneLabel": "ORBIT RING",
+      "typeLabel": "PLANET TYPE",
+      "storyLabel": "MEMORY STORY · OPTIONAL",
+      "storyPlaceholder": "Write the lines that immortalize this memory for your love...",
+      "photosLabel": "PHOTOS · {{totalPhotosCount}}/5",
+      "addPhoto": "Add Photo",
+      "removePhotoA11y": "Remove photo",
+      "pickHint": "Choose up to 5 photos from your gallery",
+      "saving": "Saving...",
+      "checkingLimit": "Checking limit...",
+      "placingShort": "Placing into orbit...",
+      "placeBtn": "Place Memory Planet into Orbit 🪐"
+    },
+    "solarDescriptions": {
+      "sun": "The heart of our Solar System, the source of life for the whole universe.",
+      "mercury": "Closest to the Sun, the warmest and most passionate corner of our heart.",
+      "venus": "The symbol of love and beauty, the sky's brightest Evening Star.",
+      "earth": "The one and only blue planet where all our memories and our love blossomed.",
+      "moon": "The light of our nights, our faithful and graceful companion, the Moon.",
+      "mars": "The unquenchable fire and courage of our love, the Red Planet.",
+      "jupiter": "The giant shield that protects us against every hardship, the guardian of our love.",
+      "saturn": "The endless ring of our devotion and loyalty that lasts beyond time.",
+      "uranus": "The calm, deep-blue and enchanting ice rose of the sky.",
+      "neptune": "A land of bottomless, peaceful oceans, deep as our love.",
+      "pluto": "The symbol of hearts that never forget each other, even at the edge of the universe.",
+      "fallback": "An ancient traveler of our Solar System ✨"
+    },
+    "card": {
+      "mysterious": "Mysterious ✨",
+      "activityPoints_one": "{{count}} activity point",
+      "activityPoints_other": "{{count}} activity points",
+      "pointsToday": "+{{points}} today",
+      "lightFading": "the light is fading, share a memory today",
+      "lightWarning": "the light starts to dim if there's no activity today",
+      "unclaimedHint": "All unclaimed stars shine with the same dim light · once registered, they start to glow with your love",
+      "connectToSee": "Connect your stars to see its true light",
+      "ourStar": "Our Star 💫",
+      "registered": "🔒 Registered",
+      "available": "Available",
+      "spectrum": "Spectrum:",
+      "brightness": "Brightness:",
+      "enterStar": "Enter the Star 🪐",
+      "certificate": "Certificate 📜",
+      "chooseStar": "Choose This Star 💫",
+      "alreadyHasStar": "You already have a star — each couple can only have one star ✨",
+      "takenByOther": "🔒 This star has been registered in the sky by another couple.",
+      "needStarFirst": "To connect, you first need to register a star for your love ✨",
+      "alreadyBonded": "✨ You already have a sparkling constellation bond with this star.",
+      "requestPending": "⏳ A connection request was sent to this star; awaiting approval.",
+      "connectStar": "Connect Our Star ✨",
+      "pickTitle": "Choose the Star of Your Love ✨",
+      "pickBody": "Roam the sky freely; tap an available, sparkling star worthy of your love and register it to your couple with \"Choose This Star\".",
+      "backToStarA11y": "Return to Our Star",
+      "backToStar": "Return to Our Star ✨",
+      "ascendA11y": "Ascend to the Sky Dome",
+      "enterStarA11y": "Enter the Star"
+    },
+    "screen": {
+      "toasts": {
+        "loadPlanetsFailed": "Memory planets couldn't be loaded. Please try again.",
+        "loadStarFailed": "Star data couldn't be loaded. Please check your connection and try again.",
+        "refreshLockedFailed": "Locked planets couldn't be refreshed. Please try again.",
+        "partnerPulse": "{{partnerTitle}} touched your star and sent a pulse of love! 💫",
+        "resonanceStarted": "Simultaneous resonance has begun! Your star is shining with a double corona 🌌",
+        "pulseSent": "You touched the star; a pulse of love was sent to your partner 💫",
+        "planetDetailFailed": "Planet details couldn't be loaded.",
+        "glidingHome": "We're gliding toward our star ✨",
+        "ascendedDome": "You've ascended to the Sky Dome; you can explore the whole universe 🌌",
+        "soundsOff": "App sounds are turned off in settings (Profile > Sound & Haptic Effects).",
+        "wishDone": "You've made today's wish. Look out for a new shooting star tomorrow ✨",
+        "renamed": "Your star's new name has been written into the sky ✨",
+        "registered": "Your star has been registered in the sky! Welcome ✨",
+        "planetAdded": "The memory planet \"{{title}}\" has begun to orbit! 🪐",
+        "planetUpdated": "The planet \"{{title}}\" has been updated! ✨",
+        "planetRemoved": "The memory planet was removed from orbit.",
+        "limitReached": "You've reached the maximum limit of 3 connections (3/3).",
+        "targetInfoFailed": "The target star's info couldn't be retrieved.",
+        "requestFailed": "The connection request couldn't be sent.",
+        "tapToConnect": "You can form a bond by tapping a registered star in the Sky Dome 🌌",
+        "sectorRedirect": "You've been taken to {{name}}. Tap an available star to choose it ✨",
+        "starInfoFailed": "The star's info couldn't be retrieved; you can open it by tapping the star in the sky."
+      },
+      "loading": "Loading Cosmic Map...",
+      "soundOnA11y": "Turn Sound On",
+      "soundOffA11y": "Turn Sound Off",
+      "searchA11y": "Search Stars"
+    }
+  },
+  "quotes": {
+    "daily": [
+      "With you, I love you a little more every day.",
+      "Your eyes are the most beautiful light to me.",
+      "I can't even imagine a single day without you.",
+      "Every moment I spend with you is worth more than treasure.",
+      "When your heart beats, mine beats with you.",
+      "Loving you is as natural as breathing.",
+      "Every morning when I open my eyes, you're my first thought.",
+      "Hearing your voice is the sweetest melody to me.",
+      "Being with you means being home.",
+      "Your smile lights up even my darkest day.",
+      "You are my greatest luck and my most beautiful destiny.",
+      "I love you — yesterday, today, always.",
+      "The world looks more beautiful when you're beside me.",
+      "With every glance, I fall in love with you all over again.",
+      "You are everything to me — my past, my present, my future.",
+      "Every moment I live with you will live on in my heart forever.",
+      "Thinking of you has become my favorite hobby.",
+      "When I hold your hand, all my worries fly away.",
+      "You are the most secret page of my heart.",
+      "In the moments we laugh together, life is more meaningful.",
+      "Loving you is the best decision of my life.",
+      "Your eyes are a poem I can't find the words to describe.",
+      "With you, every day is Valentine's Day.",
+      "When my heart speaks to you, words aren't enough.",
+      "Your every whisper reaches deep into my soul.",
+      "Every memory I share with you is my heart's most precious treasure.",
+      "A smile appears on my face whenever I think of you.",
+      "When I'm beside you, I don't know where the time goes.",
+      "You are one of a kind to me; no one could ever take your place.",
+      "Falling asleep with you is the most peaceful moment.",
+      "Your smile carries away all sorrow.",
+      "The more I love you, the more joy grows within me.",
+      "When I hold your hands, everything falls into place.",
+      "You are my sunshine — you bring light and warmth into my life.",
+      "Every little moment I live with you carries great happiness.",
+      "My heart calls out to you with every beat.",
+      "Being with you is my greatest adventure.",
+      "Your gaze says a thousand things without a single word.",
+      "Loving you is the easiest and most beautiful thing.",
+      "Every day with you adds life to my life.",
+      "Without you, this life would be incomplete.",
+      "With you, everything is more meaningful and everywhere is more beautiful.",
+      "The love in your heart is my greatest wealth.",
+      "Thinking of you takes my tiredness away in an instant.",
+      "With you, every day is a new beginning.",
+      "I feel you even when my eyes are closed.",
+      "You are my most beautiful dream.",
+      "Talking with you does my soul good.",
+      "Every morning I wake up happier with you.",
+      "Loving you is the most beautiful rhythm of my heart.",
+      "With you here, there's nothing to fear.",
+      "Safe with you, at peace with you, whole with you.",
+      "I love you — now, here, and always.",
+      "Every minute I spend with you is priceless.",
+      "You are perfect to me, just the way you are.",
+      "Our story together is my favorite story.",
+      "Thinking of you warms my heart.",
+      "Your smile saves my day.",
+      "Being with you is the greatest blessing of my life.",
+      "The more I love you, the more I love you.",
+      "My heart belongs to you — now and forever.",
+      "Every season is beautiful with you.",
+      "Loving you is my greatest achievement.",
+      "You are the most beautiful gift in the world to me.",
+      "I savor every moment with you.",
+      "I want to get lost in your eyes.",
+      "Thinking of you makes something beautiful bloom inside me.",
+      "Being with you is the best choice I've ever made.",
+      "Every day I grow more with you.",
+      "You are the voice of my heart, the echo of my soul.",
+      "With you, everything is possible.",
+      "I love you, even if words aren't enough.",
+      "The time I spend with you is my most precious time.",
+      "Your eyes tell me everything.",
+      "Being with you is like breathing.",
+      "Loving you echoes through my heart.",
+      "Being happy with you is my greatest wish.",
+      "You are the center of my world.",
+      "Every night I spend with you, I smile until the morning.",
+      "I love you with my whole being.",
+      "My heart is with you, every moment, everywhere.",
+      "You are my one and only.",
+      "Life with you is like a work of art.",
+      "The more I think of you, the brighter I feel inside.",
+      "Being with you is my most beautiful way of being.",
+      "Loving you is the most meaningful act of my life.",
+      "Your smile anchors me to life.",
+      "With you, every hardship is easier.",
+      "You are the meaning of forever to me.",
+      "Every moment with you leaves a mark on my heart.",
+      "I love you — so simple, so deep.",
+      "Every day with you is like a poem.",
+      "Your eyes are my most beautiful view.",
+      "Being with you is my greatest luck.",
+      "Loving you blooms inside me like a flower.",
+      "You are the beginning and the end of everything to me.",
+      "I want to live every moment with you.",
+      "My heart calls out to you, without stopping.",
+      "I love you — for yesterday, for today, and for tomorrow.",
+      "Being with you is the most beautiful feeling.",
+      "You are indispensable to me.",
+      "Every day with you is the beginning of a new love.",
+      "My heart grows lighter whenever I think of you.",
+      "Being with you is my greatest peace.",
+      "Your smile is the most beautiful music.",
+      "Loving you makes everything more beautiful.",
+      "You are a miracle to me.",
+      "Every day I spend with you is a gift.",
+      "My heart is yours, my soul is yours.",
+      "I love you — endlessly and unconditionally.",
+      "In every glance we share, a whole world is built.",
+      "You are life itself to me.",
+      "With you, everything is more colorful.",
+      "Thinking of you makes my heart smile.",
+      "Being with you is my greatest reward.",
+      "Loving you nourishes my soul.",
+      "Your eyes are the most precious treasure to me.",
+      "Every moment with you is the most beautiful page of my life.",
+      "You are a one-of-a-kind treasure to me.",
+      "Every night I spend with you, I smile until dawn.",
+      "My heart beats stronger with you.",
+      "I love you — words can't begin to describe this love.",
+      "Being with you is my greatest luxury.",
+      "When I think of you, it feels as if the world has stopped.",
+      "Everywhere is beautiful with you.",
+      "You are the meaning of everything to me.",
+      "Loving you echoes within me.",
+      "Being with you is the greatest blessing of my life.",
+      "Your smile warms my heart.",
+      "I love you — more with every passing day.",
+      "You are the most beautiful dream to me.",
+      "Every minute with you adds worth to my life.",
+      "My heart is whole with you.",
+      "Thinking of you fills me with joy.",
+      "Being with you is my greatest happiness.",
+      "Loving you is the most beautiful part of my life.",
+      "Your eyes are the most beautiful thing that has ever touched my heart.",
+      "Every day with you is a new love tale.",
+      "You are the most special person to me.",
+      "Every moment I spend with you carries eternity.",
+      "My heart is devoted to you, completely.",
+      "I love you — now and always.",
+      "Being with you is my most beautiful reality.",
+      "Thinking of you is the most delightful time.",
+      "With you, everything is possible, everything is beautiful.",
+      "Your smile is my greatest reward.",
+      "Loving you is my most natural act.",
+      "You are the poem of my life.",
+      "Every day with you leaves a mark on my heart.",
+      "My heart is happier with you.",
+      "I love you — this feeling will never change.",
+      "Being with you is my greatest wealth.",
+      "Whenever I think of you, smiling is inevitable.",
+      "Everywhere is more meaningful with you.",
+      "Your eyes always give me hope.",
+      "Loving you shines inside me like a light.",
+      "You are the most beautiful being to me.",
+      "Every moment I spend with you is special.",
+      "My heart sings with you.",
+      "I love you — and I never want to change that truth.",
+      "Being with you is the most beautiful way to exist.",
+      "Thinking of you brings me peace.",
+      "Every road is beautiful with you.",
+      "Your smile is my greatest motivation.",
+      "Loving you gives my life meaning.",
+      "To me, you are unique and incomparable.",
+      "Every night with you, I'm at peace until morning.",
+      "My heart loves you more with each passing day.",
+      "I love you — in the past, in the present and in the future.",
+      "Being with you is the greatest gift.",
+      "The more I think of you, the more beautiful the world becomes.",
+      "Every moment with you is meaningful.",
+      "Your eyes open doors for me.",
+      "Loving you enriches my soul.",
+      "You are the guide of my life.",
+      "Every day I spend with you is the most precious of my life.",
+      "My heart is at peace with you.",
+      "I love you — even these words are too few.",
+      "Being with you is my greatest privilege.",
+      "Thinking of you lights me up from within.",
+      "With you, everything is more meaningful and more valuable.",
+      "Your smile is the most beautiful gift.",
+      "Loving you is the greatest honor of my life.",
+      "You are worth more to me than anything else.",
+      "Every moment with you is worth an eternity.",
+      "My heart is whole and at peace with you.",
+      "I love you — this feeling doesn't end, and never will.",
+      "Being with you is the greatest sense of safety.",
+      "My heart expands whenever I think of you.",
+      "Every day with you, I grow stronger.",
+      "Your eyes recite the most beautiful poem.",
+      "Loving you — my greatest wish has come true.",
+      "You are the most beautiful chapter of my life.",
+      "Every moment I spend with you is like gold.",
+      "My heart dances with you.",
+      "I love you — as much as the mountains, as much as the seas.",
+      "Being with you makes everything possible.",
+      "Thinking of you is the loveliest escape.",
+      "With you, everywhere turns into paradise.",
+      "Your smile is my greatest source of energy.",
+      "Loving you is the most beautiful devotion.",
+      "You are the meaning of this life to me.",
+      "Every day with you is a miracle.",
+      "My heart opens up more with you every moment.",
+      "I love you — this feeling has soaked into my soul.",
+      "Being with you is my greatest delight.",
+      "Thinking of you makes my heart soar.",
+      "Every step is lighter with you.",
+      "Your eyes show me the way.",
+      "Loving you is one of my most natural feelings.",
+      "You are the beginning of everything to me.",
+      "Every day I spend with you leaves its mark on my heart.",
+      "My heart is strong with you.",
+      "I love you — this feeling completes me.",
+      "Being with you is my greatest joy.",
+      "Thinking of you binds me to life.",
+      "Everywhere feels lighter and airier with you.",
+      "Your smile always makes me smile.",
+      "Loving you is the essence of my life.",
+      "You are the most precious person to me.",
+      "Every moment with you is a source of gratitude.",
+      "My heart is free with you.",
+      "I love you — and I have to make do with these words.",
+      "Being with you is my most beautiful habit.",
+      "Thinking of you makes my heart overflow.",
+      "Every road is shorter with you.",
+      "Your eyes are the deepest sea to me.",
+      "Loving you makes me a better person.",
+      "You are the hero of my life.",
+      "Every day with you is a stroke of luck.",
+      "My heart is full of you.",
+      "I love you — this feeling stretches into forever.",
+      "Being with you is my greatest fortune.",
+      "Thinking of you is the sweetest comfort.",
+      "With you, everything is more alive.",
+      "Your smile lifts my spirits like nothing else.",
+      "Loving you rests my soul.",
+      "You are the sun of my life.",
+      "Every moment with you holds a little beauty.",
+      "My heart is full of joy with you.",
+      "I love you — this truth will never change.",
+      "Being with you is my greatest refuge.",
+      "My heart grows warm whenever I think of you.",
+      "Every hardship is easier to overcome with you.",
+      "Your eyes give me hope.",
+      "Loving you is the greatest joy of my life.",
+      "You are the loveliest thing of all to me.",
+      "Every moment I spend with you is special and unique.",
+      "My heart grows bigger with you every day.",
+      "I love you — this love keeps growing and flourishing.",
+      "Being with you is my most beautiful choice.",
+      "Thinking of you is the sweetest occupation.",
+      "Every day with you is a new adventure.",
+      "Your laugh is the most beautiful sound.",
+      "Loving you adds color to my life.",
+      "You are the poem of my life.",
+      "Every day with you is a blessing.",
+      "My heart is always young with you.",
+      "I love you — this feeling is endless and inexhaustible.",
+      "Being with you is what I'm most thankful for.",
+      "The world grows more beautiful whenever I think of you.",
+      "Every moment with you is precious.",
+      "Your eyes always enchant me.",
+      "Loving you lights a fire inside me.",
+      "You are beyond everything to me.",
+      "Every night I spend with you is full of peace.",
+      "My heart keeps singing with you.",
+      "I love you with my entire being.",
+      "Being with you is my greatest purpose for existing.",
+      "Thinking of you makes me feel at peace.",
+      "With you, everything is perfect.",
+      "Your smile heals everything.",
+      "Loving you is the most beautiful meaning of my life.",
+      "You are the most precious gift to me.",
+      "Every moment with you is worth all of eternity.",
+      "My heart is always full of love with you.",
+      "I love you — this feeling lives in the deepest place of my heart.",
+      "Being with you is my greatest happiness and peace.",
+      "Whenever I think of you, my heart overflows with gratitude.",
+      "Every day with you is a present.",
+      "Your eyes are eternity to me.",
+      "Loving you is the most natural part of my life.",
+      "You are the essence of everything to me.",
+      "Every moment I spend with you is worth more than gold.",
+      "My heart is with you, forever.",
+      "I love you — even if these words fall short, the feeling is infinite."
+    ]
+  }
+}

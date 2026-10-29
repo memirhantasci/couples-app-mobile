@@ -50,6 +50,7 @@ import { AlertCircle, Sparkles } from 'lucide-react-native';
 import { hapticTap, playLetterSend } from '@/lib/soundEffects';
 import { smoothstep } from '../canvas/macro/starStyle';
 import type { MakeWishResult } from '../types/star.types';
+import { useTranslation } from 'react-i18next';
 
 const MAX_WISH_LENGTH = 160;
 const LEAVE_MS = 260;
@@ -166,6 +167,7 @@ function buildReleaseScene(wish: string, frame: Frame): ReleaseScene {
 }
 
 export function WishModal({ partnerWishedToday, hasStar, onRelease, onClose }: WishModalProps) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
@@ -235,10 +237,10 @@ export function WishModal({ partnerWishedToday, hasStar, onRelease, onClose }: W
     appear.set(
       reduceMotion ? withTiming(1, { duration: 160 }) : withSpring(1, { damping: 18, stiffness: 170, mass: 0.9 }),
     );
-    AccessibilityInfo.announceForAccessibility('Bir yıldız kaydı. Bir dilek tut.');
+    AccessibilityInfo.announceForAccessibility(t('stars.wish.announceOpen'));
     // Klavye kart yerine oturduktan sonra açılır
     later(() => inputRef.current?.focus(), reduceMotion ? 120 : 420);
-  }, [appear, reduceMotion, later]);
+  }, [appear, reduceMotion, later, t]);
 
   // ─── Klavye: kart klavyenin üstünde kalır ──────────────────────────
   // Kartın kendi yerleşimi (dönüşümsüz) ve klavyenin üst kenarı karşılaştırılır. Pencere klavyeyle
@@ -294,9 +296,9 @@ export function WishModal({ partnerWishedToday, hasStar, onRelease, onClose }: W
     if (closingRef.current) return;
     changePhase('done');
     hapticTap();
-    AccessibilityInfo.announceForAccessibility('Dileğin yola çıktı.');
+    AccessibilityInfo.announceForAccessibility(t('stars.wish.announceReleased'));
     later(close, DONE_HOLD_MS);
-  }, [changePhase, later, close]);
+  }, [changePhase, later, close, t]);
 
   const startRelease = useCallback(
     (wish: string) => {
@@ -332,7 +334,7 @@ export function WishModal({ partnerWishedToday, hasStar, onRelease, onClose }: W
       result = await onRelease();
     } catch {
       changePhase('compose');
-      setError('Şu an gökyüzüne ulaşamadık. Bağlantını kontrol edip tekrar dener misin?');
+      setError(t('stars.wish.errors.unreachable'));
       return;
     }
     if (closingRef.current) return;
@@ -346,7 +348,7 @@ export function WishModal({ partnerWishedToday, hasStar, onRelease, onClose }: W
     outcomeRef.current = { released: true, points: result.points };
     setPoints(result.points);
     startRelease(wish);
-  }, [text, changePhase, onRelease, startRelease]);
+  }, [text, changePhase, onRelease, startRelease, t]);
 
   // Android geri tuşu: yazarken vazgeçer; gönderilirken beklenir; bırakıştan sonra hemen kapanır
   const handleRequestClose = useCallback(() => {
@@ -409,7 +411,7 @@ export function WishModal({ partnerWishedToday, hasStar, onRelease, onClose }: W
             style={StyleSheet.absoluteFill}
             onPress={phase === 'done' ? close : Keyboard.dismiss}
             accessible={phase === 'done'}
-            accessibilityLabel={phase === 'done' ? 'Kapat' : undefined}
+            accessibilityLabel={phase === 'done' ? t('common.close') : undefined}
           />
         </Animated.View>
 
@@ -427,16 +429,16 @@ export function WishModal({ partnerWishedToday, hasStar, onRelease, onClose }: W
             {phase === 'alreadyUsed' ? (
               <>
                 <MeteorEmblem still />
-                <Text style={styles.title}>Bugünkü dileğini zaten tuttun</Text>
+                <Text style={styles.title}>{t('stars.wish.alreadyTitle')}</Text>
                 <Text style={styles.body}>
-                  Her gün bir dilek hakkın var. Yarın gökyüzü sana yeni bir yıldız kaydıracak ✨
+                  {t('stars.wish.alreadyBody')}
                 </Text>
                 <TouchableOpacity
                   onPress={close}
                   activeOpacity={0.88}
                   style={styles.primaryButton}
                   accessibilityRole="button"
-                  accessibilityLabel="Tamam"
+                  accessibilityLabel={t('common.ok')}
                 >
                   <LinearGradient
                     colors={['#FDE68A', '#F59E0B', '#E8890B']}
@@ -444,24 +446,23 @@ export function WishModal({ partnerWishedToday, hasStar, onRelease, onClose }: W
                     end={{ x: 1, y: 1 }}
                     style={styles.primaryGradient}
                   >
-                    <Text style={styles.primaryText}>Tamam</Text>
+                    <Text style={styles.primaryText}>{t('common.ok')}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </>
             ) : (
               <>
                 {!isCompact && <MeteorEmblem still={reduceMotion} />}
-                <Text style={styles.eyebrow}>BİR YILDIZ KAYDI</Text>
-                <Text style={styles.title}>Bir dilek tut</Text>
+                <Text style={styles.eyebrow}>{t('stars.wish.eyebrow')}</Text>
+                <Text style={styles.title}>{t('stars.wish.title')}</Text>
                 {!isCompact && (
                   <Text style={styles.body}>
-                    Gözlerini kapat, aklından geçeni yaz. Dileğin yalnızca gökyüzüne gider; kimse okumaz, hiçbir
-                    yere kaydedilmez.
+                    {t('stars.wish.intro')}
                   </Text>
                 )}
                 {partnerWishedToday && (
                   <View style={styles.partnerChip}>
-                    <Text style={styles.partnerChipText}>💫 Partnerin de bugün bir dilek tuttu</Text>
+                    <Text style={styles.partnerChipText}>{t('stars.wish.partnerWished')}</Text>
                   </View>
                 )}
 
@@ -484,15 +485,15 @@ export function WishModal({ partnerWishedToday, hasStar, onRelease, onClose }: W
                     editable={isComposing}
                     multiline
                     maxLength={MAX_WISH_LENGTH}
-                    placeholder="Dileğim…"
+                    placeholder={t('stars.wish.placeholder')}
                     placeholderTextColor="rgba(253, 230, 138, 0.38)"
                     selectionColor="#FCD34D"
                     cursorColor="#FCD34D"
                     style={styles.input}
                     textAlignVertical="top"
                     autoCorrect={false}
-                    accessibilityLabel="Dileğin"
-                    accessibilityHint="Dileğin hiçbir yere kaydedilmez"
+                    accessibilityLabel={t('stars.wish.inputA11y')}
+                    accessibilityHint={t('stars.wish.inputHint')}
                   />
                   <Text style={styles.counter}>
                     {text.length} / {MAX_WISH_LENGTH}
@@ -512,7 +513,7 @@ export function WishModal({ partnerWishedToday, hasStar, onRelease, onClose }: W
                   activeOpacity={0.88}
                   style={[styles.primaryButton, !trimmed && styles.primaryButtonDisabled]}
                   accessibilityRole="button"
-                  accessibilityLabel="Dileğimi gökyüzüne bırak"
+                  accessibilityLabel={t('stars.wish.release')}
                   accessibilityState={{ disabled: !trimmed || phase !== 'compose', busy: isSending }}
                 >
                   <LinearGradient
@@ -524,12 +525,12 @@ export function WishModal({ partnerWishedToday, hasStar, onRelease, onClose }: W
                     {isSending ? (
                       <>
                         <ActivityIndicator size="small" color="#1C1206" />
-                        <Text style={styles.primaryText}>Gökyüzüne yollanıyor…</Text>
+                        <Text style={styles.primaryText}>{t('stars.wish.sending')}</Text>
                       </>
                     ) : (
                       <>
                         <Sparkles size={17} color="#1C1206" />
-                        <Text style={styles.primaryText}>Dileğimi gökyüzüne bırak</Text>
+                        <Text style={styles.primaryText}>{t('stars.wish.release')}</Text>
                       </>
                     )}
                   </LinearGradient>
@@ -541,9 +542,9 @@ export function WishModal({ partnerWishedToday, hasStar, onRelease, onClose }: W
                   style={styles.secondaryButton}
                   hitSlop={{ top: 6, bottom: 6, left: 12, right: 12 }}
                   accessibilityRole="button"
-                  accessibilityLabel="Vazgeç"
+                  accessibilityLabel={t('common.cancel')}
                 >
-                  <Text style={[styles.secondaryText, isSending && { opacity: 0.4 }]}>Vazgeç</Text>
+                  <Text style={[styles.secondaryText, isSending && { opacity: 0.4 }]}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -574,9 +575,9 @@ export function WishModal({ partnerWishedToday, hasStar, onRelease, onClose }: W
             <View style={styles.captionIcon}>
               <Sparkles size={26} color="#FDE68A" />
             </View>
-            <Text style={styles.captionTitle}>Dileğin yola çıktı</Text>
+            <Text style={styles.captionTitle}>{t('stars.wish.sentTitle')}</Text>
             <Text style={styles.captionBody}>
-              {points > 0 && hasStar ? 'Yıldızınız biraz daha parladı ✨' : 'Gökyüzü onu duydu ✨'}
+              {points > 0 && hasStar ? t('stars.wish.sentBodyStar') : t('stars.wish.sentBodyHeard')}
             </Text>
           </Animated.View>
         )}

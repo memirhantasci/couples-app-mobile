@@ -23,6 +23,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import type { ViewportStarItem } from '../types/star.types';
 import { UNCLAIMED_STAR_BRIGHTNESS } from '../canvas/macro/starStyle';
+import { useTranslation } from 'react-i18next';
 
 export interface StarDemoAuthModalProps {
   readonly visible: boolean;
@@ -37,6 +38,7 @@ export const StarDemoAuthModal: React.FC<StarDemoAuthModalProps> = ({
   targetStar,
   onClose,
 }) => {
+  const { t } = useTranslation();
   const router = useRouter();
   const { exitDemoMode } = useAuth();
   const { theme, isLight } = useTheme();
@@ -88,7 +90,7 @@ export const StarDemoAuthModal: React.FC<StarDemoAuthModalProps> = ({
             onPress={onClose}
             style={[styles.closeBtn, isLight && { backgroundColor: 'rgba(0,0,0,0.05)' }]}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityLabel="Kapat"
+            accessibilityLabel={t('common.close')}
           >
             <X size={18} color={theme.text} />
           </TouchableOpacity>
@@ -120,19 +122,19 @@ export const StarDemoAuthModal: React.FC<StarDemoAuthModalProps> = ({
                   : targetStar.catalog_code}
               </Text>
               <Text style={[styles.starBadgeMag, { color: theme.textMuted }]}>
-                Işık %{Math.round(UNCLAIMED_STAR_BRIGHTNESS * 100)}
+                {t('stars.demoAuth.light', { percent: Math.round(UNCLAIMED_STAR_BRIGHTNESS * 100) })}
               </Text>
             </View>
           )}
 
           {/* Başlık / Mesaj */}
           <Text style={[styles.title, { color: theme.text }]}>
-            Bu yıldızı sahiplenmek için kayıt olmanız gerekiyor ✨
+            {t('stars.demoAuth.title')}
           </Text>
 
           {/* Açıklama */}
           <Text style={[styles.description, { color: theme.textSecondary }]}>
-            Aşkınızı gökyüzüne mühürlemek, yıldızınızı adlandırmak ve partnerinizle ortak alanınızı başlatmak için ücretsiz hesabınızı oluşturun.
+            {t('stars.demoAuth.description')}
           </Text>
 
           {/* Aksiyon Butonları (3 Buton: Kayıt Ol, Giriş Yap, Kapat) */}
@@ -150,7 +152,7 @@ export const StarDemoAuthModal: React.FC<StarDemoAuthModalProps> = ({
                 style={styles.registerGradient}
               >
                 <UserPlus size={18} color="#030207" style={{ marginRight: 8 }} />
-                <Text style={styles.registerBtnText}>Kayıt Ol</Text>
+                <Text style={styles.registerBtnText}>{t('auth.signUp')}</Text>
               </LinearGradient>
             </TouchableOpacity>
 
@@ -164,7 +166,7 @@ export const StarDemoAuthModal: React.FC<StarDemoAuthModalProps> = ({
               ]}
             >
               <LogIn size={16} color={isLight ? theme.accent : '#38BDF8'} style={{ marginRight: 6 }} />
-              <Text style={[styles.loginBtnText, { color: isLight ? theme.accent : '#38BDF8' }]}>Giriş Yap</Text>
+              <Text style={[styles.loginBtnText, { color: isLight ? theme.accent : '#38BDF8' }]}>{t('auth.signIn')}</Text>
             </TouchableOpacity>
 
             {/* 3. Buton: Kapat */}
@@ -173,7 +175,7 @@ export const StarDemoAuthModal: React.FC<StarDemoAuthModalProps> = ({
               activeOpacity={0.65}
               style={styles.dismissBtn}
             >
-              <Text style={[styles.dismissBtnText, { color: theme.textMuted }]}>Kapat</Text>
+              <Text style={[styles.dismissBtnText, { color: theme.textMuted }]}>{t('common.close')}</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -3,13 +3,11 @@ import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from "rea
 import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
 import { CalendarHeart, Calendar, Heart, ChevronRight, Lock, Clock, Sparkles } from "lucide-react-native";
 import dayjs from "dayjs";
-import "dayjs/locale/tr";
 import type { AppTheme } from "@/lib/theme";
 import { type DatesChangeStatus, daysUntilPeriodEnd } from "@/lib/relationshipDates";
 import { ModernSection } from "./ModernSection";
 import { profileSharedStyles } from "./profileSharedStyles";
-
-dayjs.locale("tr");
+import { Trans, useTranslation } from "react-i18next";
 
 interface RelationshipDatesCardProps {
   theme: AppTheme;
@@ -37,11 +35,12 @@ export function RelationshipDatesCard({
   onChangeRelStartDate,
   onSave,
 }: RelationshipDatesCardProps) {
+  const { t, i18n } = useTranslation();
   const [showMeetDatePicker, setShowMeetDatePicker] = useState(false);
   const [showRelDatePicker, setShowRelDatePicker] = useState(false);
 
   const isLocked = !!datesStatus?.hasDates && datesStatus.remaining <= 0;
-  const periodEndText = datesStatus?.periodEndsAt ? dayjs(datesStatus.periodEndsAt).format("D MMMM YYYY") : null;
+  const periodEndText = datesStatus?.periodEndsAt ? dayjs(datesStatus.periodEndsAt).locale(i18n.language).format("D MMMM YYYY") : null;
 
   const pickerBtnStyle = [
     styles.datePickerBtn,
@@ -54,7 +53,7 @@ export function RelationshipDatesCard({
 
   return (
     <ModernSection
-      title="İlişki Tarihleri"
+      title={t("profile.dates.title")}
       icon={<CalendarHeart size={18} color={theme.accent} />}
       theme={theme}
       defaultOpen={false}
@@ -65,12 +64,15 @@ export function RelationshipDatesCard({
           <Lock size={16} color="#FFB300" style={{ marginTop: 2 }} />
           <View style={{ flex: 1 }}>
             <Text style={[styles.lockCardTitle, { color: "#FFB300" }]}>
-              Tarihler Kilitli (Çift Bazlı Kısıtlama)
+              {t("profile.dates.lockedCardTitle")}
             </Text>
             <Text style={[styles.lockCardText, { color: isLight ? "#555555" : "rgba(255,255,255,0.7)" }]}>
-              Bu dönemki değişiklik hakları siz veya partneriniz tarafından kullanıldı. Yeni hakkınız{" "}
-              <Text style={{ fontFamily: "Inter_700Bold" }}>{daysUntilPeriodEnd(datesStatus?.periodEndsAt ?? null)} gün</Text>
-              {periodEndText ? ` sonra (${periodEndText})` : " sonra"} açılacak.
+              <Trans
+                i18nKey={periodEndText ? "profile.dates.lockWithDate" : "profile.dates.lockNoDate"}
+                count={daysUntilPeriodEnd(datesStatus?.periodEndsAt ?? null)}
+                values={{ periodEndText }}
+                components={{ b: <Text style={{ fontFamily: "Inter_700Bold" }} /> }}
+              />
             </Text>
           </View>
         </View>
@@ -79,15 +81,17 @@ export function RelationshipDatesCard({
           <Sparkles size={15} color={theme.accent} style={{ marginTop: 1 }} />
           <Text style={[styles.freeRightText, { color: theme.accent }]}>
             {datesStatus.hasDates
-              ? `Çiftinizin bu dönem ${datesStatus.remaining} değişiklik hakkı var${periodEndText ? ` (dönem ${periodEndText} tarihinde yenilenir)` : ""}. İlk 30 günde 2, sonrasında her 30 günde 1 hak tanınır.`
-              : "İlk kayıt değişiklik hakkı harcamaz. Sonrasında ilk 30 günde 2, ardından her 30 günde 1 değişiklik hakkınız olur."}
+              ? periodEndText
+                ? t("profile.dates.rightsWithRenewal", { count: datesStatus.remaining, periodEndText })
+                : t("profile.dates.rightsNoRenewal", { count: datesStatus.remaining })
+              : t("profile.dates.firstSaveHint")}
           </Text>
         </View>
       ) : (
         <View style={styles.normalHintRow}>
           <Clock size={12} color={theme.textMuted} />
           <Text style={[styles.normalHintText, { color: theme.textMuted }]}>
-            İlişki tarihleri çift bazlı olarak ilk 30 günde 2, sonrasında her 30 günde 1 kez güncellenebilir.
+            {t("profile.dates.hint")}
           </Text>
         </View>
       )}
@@ -95,7 +99,7 @@ export function RelationshipDatesCard({
       {/* Tanışma Tarihi */}
       <View style={profileSharedStyles.inputGroup}>
         <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>
-          TANIŞMA TARİHİ (İSTEĞE BAĞLI)
+          {t("profile.dates.meetLabel")}
         </Text>
         <TouchableOpacity
           onPress={() => !isLocked && setShowMeetDatePicker(true)}
@@ -106,7 +110,7 @@ export function RelationshipDatesCard({
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <Calendar size={18} color={theme.accent} />
             <Text style={[styles.datePickerBtnText, { color: isLocked ? theme.textMuted : theme.text }]}>
-              {meetDate ? dayjs(meetDate).format("DD MMMM YYYY") : "Tarih Seçiniz"}
+              {meetDate ? dayjs(meetDate).format("DD MMMM YYYY") : t("profile.dates.selectDate")}
             </Text>
           </View>
           {!isLocked && <ChevronRight size={16} color={theme.textMuted} />}
@@ -115,7 +119,7 @@ export function RelationshipDatesCard({
         <DateTimePickerSheet
           visible={showMeetDatePicker}
           mode="date"
-          title="Tanışma Tarihi"
+          title={t("setup.dates.meetPickerTitle")}
           value={meetDate ? dayjs(meetDate).toDate() : new Date()}
           maximumDate={relStartDate && dayjs(relStartDate).isBefore(dayjs(), "day") ? dayjs(relStartDate).toDate() : new Date()}
           onCancel={() => setShowMeetDatePicker(false)}
@@ -129,7 +133,7 @@ export function RelationshipDatesCard({
       {/* Sevgili Olma Tarihi */}
       <View style={profileSharedStyles.inputGroup}>
         <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>
-          SEVGİLİ OLMA TARİHİ
+          {t("profile.dates.relationshipLabel")}
         </Text>
         <TouchableOpacity
           onPress={() => !isLocked && setShowRelDatePicker(true)}
@@ -140,7 +144,7 @@ export function RelationshipDatesCard({
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <Heart size={18} color={theme.accent} />
             <Text style={[styles.datePickerBtnText, { color: isLocked ? theme.textMuted : theme.text }]}>
-              {relStartDate ? dayjs(relStartDate).format("DD MMMM YYYY") : "Tarih Seçiniz"}
+              {relStartDate ? dayjs(relStartDate).format("DD MMMM YYYY") : t("profile.dates.selectDate")}
             </Text>
           </View>
           {!isLocked && <ChevronRight size={16} color={theme.textMuted} />}
@@ -149,7 +153,7 @@ export function RelationshipDatesCard({
         <DateTimePickerSheet
           visible={showRelDatePicker}
           mode="date"
-          title="Sevgili Olma Tarihi"
+          title={t("setup.dates.relationshipPickerTitle")}
           value={relStartDate ? dayjs(relStartDate).toDate() : new Date()}
           maximumDate={new Date()}
           onCancel={() => setShowRelDatePicker(false)}
@@ -174,7 +178,7 @@ export function RelationshipDatesCard({
         {loading ? (
           <ActivityIndicator color="#ffffff" size="small" />
         ) : (
-          <Text style={profileSharedStyles.actionSaveBtnText}>Tarihleri Güncelle 💕</Text>
+          <Text style={profileSharedStyles.actionSaveBtnText}>{t("profile.dates.update")}</Text>
         )}
       </TouchableOpacity>
     </ModernSection>

@@ -4,6 +4,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { FileText, X, Check, Trash2 } from "lucide-react-native";
 import { dayjs } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
+import { useTranslation } from "react-i18next";
 
 interface CalendarNoteModalProps {
   visible: boolean;
@@ -34,6 +35,7 @@ export function CalendarNoteModal({
   onSave,
   onDelete,
 }: CalendarNoteModalProps) {
+  const { t, i18n } = useTranslation();
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
@@ -42,7 +44,7 @@ export function CalendarNoteModal({
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <FileText size={18} color={theme.accent} />
               <Text style={[styles.modalTitle, { color: theme.text }]}>
-                {hasExistingNote ? "Günün Notunu Düzenle" : "Güne Not Ekle"}
+                {hasExistingNote ? t("calendar.noteModal.editTitle") : t("calendar.noteModal.addTitle")}
               </Text>
             </View>
 
@@ -63,7 +65,7 @@ export function CalendarNoteModal({
             keyboardShouldPersistTaps="handled"
           >
             <Text style={[styles.modalDateText, { color: theme.textMuted }]}>
-              {dayjs(selectedDate).format("D MMMM YYYY, dddd")}
+              {dayjs(selectedDate).locale(i18n.language).format("D MMMM YYYY, dddd")}
             </Text>
 
             <TextInput
@@ -79,12 +81,12 @@ export function CalendarNoteModal({
               maxLength={1000}
               value={noteText}
               onChangeText={onChangeNoteText}
-              placeholder="Bugünle ilgili küçük bir hatıra veya not bırak..."
+              placeholder={t("calendar.noteModal.placeholder")}
               placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
             />
 
             <Text style={[styles.modalCharCount, { color: theme.textMuted }]}>
-              {noteText.length} / 1000 karakter
+              {t("calendar.noteModal.counter", { chars: noteText.length })}
             </Text>
 
             <View style={styles.modalActionsRow}>
@@ -104,7 +106,7 @@ export function CalendarNoteModal({
                 onPress={onClose}
                 style={[styles.modalCancelBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}
               >
-                <Text style={[styles.modalCancelBtnText, { color: theme.textSecondary }]}>Vazgeç</Text>
+                <Text style={[styles.modalCancelBtnText, { color: theme.textSecondary }]}>{t("common.cancel")}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -117,7 +119,7 @@ export function CalendarNoteModal({
                 ) : (
                   <>
                     <Check size={16} color="#ffffff" />
-                    <Text style={styles.modalSaveBtnText}>Kaydet</Text>
+                    <Text style={styles.modalSaveBtnText}>{t("common.save")}</Text>
                   </>
                 )}
               </TouchableOpacity>

@@ -17,6 +17,7 @@ import { dayjs } from "@/lib/date";
 import { SwipeDismissView } from "@/components/ui/SwipeDismissView";
 import { openDirections } from "./openDirections";
 import type { PhotoPin } from "./mapTypes";
+import { useTranslation } from "react-i18next";
 
 const { width: SW, height: SH } = Dimensions.get("window");
 
@@ -29,6 +30,7 @@ interface MapPhotoLightboxProps {
 
 // ─── TAM EKRAN FOTOĞRAF LIGHTBOX MODAL ────────────────────────────────────────
 export function MapPhotoLightbox({ photo, accent, onClose }: MapPhotoLightboxProps) {
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const topInset = useRealTopInset();
 
@@ -47,7 +49,7 @@ export function MapPhotoLightbox({ photo, accent, onClose }: MapPhotoLightboxPro
               <X size={22} color="#fff" />
             </TouchableOpacity>
             <Text style={styles.lightboxTitle} numberOfLines={1}>
-              {photo.title || "Fotoğraf Anısı"}
+              {photo.title || t("map.detail.photoMemory")}
             </Text>
             <View style={{ width: 40 }} />
           </View>
@@ -58,7 +60,7 @@ export function MapPhotoLightbox({ photo, accent, onClose }: MapPhotoLightboxPro
 
           <View style={[styles.lightboxFooter, { paddingBottom: insets.bottom + 16 }]}>
             <Text style={styles.lightboxDate}>
-              📅 {dayjs(photo.taken_date).locale("tr").format("D MMMM YYYY")}
+              📅 {dayjs(photo.taken_date).locale(i18n.language).format("D MMMM YYYY")}
               {photo.location_name ? ` · 📍 ${photo.location_name}` : ""}
             </Text>
             {photo.description ? <Text style={styles.lightboxDesc}>{photo.description}</Text> : null}
@@ -68,7 +70,7 @@ export function MapPhotoLightbox({ photo, accent, onClose }: MapPhotoLightboxPro
               onPress={() => openDirections(photo.latitude, photo.longitude)}
             >
               <Navigation size={15} color="#fff" />
-              <Text style={styles.lightboxDirectionsText}>Bu Konuma Yol Tarifi Al</Text>
+              <Text style={styles.lightboxDirectionsText}>{t("map.lightbox.directions")}</Text>
             </TouchableOpacity>
           </View>
         </View>

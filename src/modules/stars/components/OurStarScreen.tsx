@@ -114,6 +114,8 @@ import type {
   ResonanceEvent,
   SkyCameraState,
 } from '../types/star.types';
+import { useTranslation } from 'react-i18next';
+import type { ParseKeys, TFunction } from 'i18next';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -154,18 +156,18 @@ const PLANET_HIGHLIGHT_LINGER_MS = 2600;
 /** Yakalanan kayan yıldızın parıltısı görünsün diye dilek ekranı bu kadar sonra açılır. */
 const WISH_OPEN_DELAY_MS = 450;
 
-const SOLAR_DESCRIPTIONS: Record<string, string> = {
-  'SOL-SUN': 'Güneş Sistemimizin kalbi, tüm evrenin yaşam kaynağı.',
-  'SOL-MERCURY': 'Güneşe en yakın, kalbimizin en sıcak ve tutkulu köşesi.',
-  'SOL-VENUS': 'Aşkın ve güzelliğin simgesi, gökyüzünün en parlak Çoban Yıldızı.',
-  'SOL-EARTH': 'Tüm anılarımızın ve sevgimizin filizlendiği biricik mavi gezegen.',
-  'SOL-MOON': 'Gecelerimizin aydınlatıcısı, sadık ve zarif uydumuz Ay.',
-  'SOL-MARS': 'Aşkımızın sönmeyen ateşi ve cesareti, Kızıl Gezegen.',
-  'SOL-JUPITER': 'Tüm zorluklara karşı bizi koruyan dev kalkan, sevgimizin koruyucusu.',
-  'SOL-SATURN': 'Zamanın ötesindeki bağlılığımızın ve sadakatimizin sonsuz halkası.',
-  'SOL-URANUS': 'Gökyüzünün dingin, masmavi ve büyüleyici buz gülü.',
-  'SOL-NEPTUNE': 'Aşkımızın derinliği gibi dipsiz ve huzurlu okyanuslar diyarı.',
-  'SOL-PLUTO': 'Evrenin ucunda bile olsa birbirini asla unutmayan kalplerin simgesi.',
+const SOLAR_DESCRIPTION_KEYS: Record<string, ParseKeys> = {
+  'SOL-SUN': 'stars.solarDescriptions.sun',
+  'SOL-MERCURY': 'stars.solarDescriptions.mercury',
+  'SOL-VENUS': 'stars.solarDescriptions.venus',
+  'SOL-EARTH': 'stars.solarDescriptions.earth',
+  'SOL-MOON': 'stars.solarDescriptions.moon',
+  'SOL-MARS': 'stars.solarDescriptions.mars',
+  'SOL-JUPITER': 'stars.solarDescriptions.jupiter',
+  'SOL-SATURN': 'stars.solarDescriptions.saturn',
+  'SOL-URANUS': 'stars.solarDescriptions.uranus',
+  'SOL-NEPTUNE': 'stars.solarDescriptions.neptune',
+  'SOL-PLUTO': 'stars.solarDescriptions.pluto',
 };
 
 /** Ayrıntılar gelene kadar anı penceresinde gösterilen, harita verisinden kurulan önizleme kaydı. */
@@ -212,14 +214,15 @@ const formatLightPercent = (value: number) => `%${Math.round(Math.max(0, Math.mi
 function describeStarLightValue(
   star: ViewportStarItem,
   myLight: number | null,
-  friendLight: StarBrightnessInfo | null
+  friendLight: StarBrightnessInfo | null,
+  t: TFunction
 ): string {
   if (star.catalog_code?.startsWith('SOL-')) return `${star.magnitude} mag`;
   if (!star.is_claimed) return formatLightPercent(UNCLAIMED_STAR_BRIGHTNESS);
   if (star.is_mine) return formatLightPercent(myLight ?? star.luminosity_level);
   if (friendLight?.visibility === 'friend') return formatLightPercent(friendLight.brightness);
   if (star.is_connected === true) return formatLightPercent(star.luminosity_level);
-  return 'Gizemli ✨';
+  return t('stars.card.mysterious');
 }
 
 /**
@@ -230,30 +233,32 @@ function describeStarLightValue(
 function describeStarLight(
   star: ViewportStarItem,
   myBrightness: MyStarBrightness | null,
-  friendLight: StarBrightnessInfo | null
+  friendLight: StarBrightnessInfo | null,
+  t: TFunction
 ): string | null {
   if (star.catalog_code?.startsWith('SOL-')) return null;
 
   if (star.is_mine) {
     if (!myBrightness) return null;
-    let text = `${myBrightness.cumulative_score} aktivite puanı`;
-    if (myBrightness.points_today > 0) text += ` · bugün +${myBrightness.points_today}`;
+    const parts = [t('stars.card.activityPoints', { count: myBrightness.cumulative_score })];
+    if (myBrightness.points_today > 0) parts.push(t('stars.card.pointsToday', { points: myBrightness.points_today }));
     const idleDays = myBrightness.days_inactive ?? 0;
-    if (idleDays >= 6) text += ' · ışık sönüyor, bugün bir anı paylaşın';
-    else if (idleDays === 5) text += ' · bugün aktivite olmazsa ışık azalmaya başlar';
-    return text;
+    if (idleDays >= 6) parts.push(t('stars.card.lightFading'));
+    else if (idleDays === 5) parts.push(t('stars.card.lightWarning'));
+    return parts.join(' · ');
   }
 
   if (!star.is_claimed) {
-    return 'Sahipsiz yıldızların hepsi aynı sönük ışıkla parlar · tescillenince aşkınızla parlamaya başlar';
+    return t('stars.card.unclaimedHint');
   }
-  if (friendLight?.visibility === 'friend') return `${friendLight.cumulative_score ?? 0} aktivite puanı`;
+  if (friendLight?.visibility === 'friend') return t('stars.card.activityPoints', { count: friendLight.cumulative_score ?? 0 });
   // Bağlı yıldızın ışığı üstte yazar; eski sunucu bağlantı bilgisini göndermiyorsa da söylenecek bir şey yok
   if (star.is_connected !== false) return null;
-  return 'Yıldızlarınızı bağlayınca gerçek ışığını görürsünüz';
+  return t('stars.card.connectToSee');
 }
 
 export const OurStarScreen: React.FC = () => {
+  const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { profile, session, isDemoMode, isLoading: isAuthLoading } = useAuth();
@@ -261,7 +266,7 @@ export const OurStarScreen: React.FC = () => {
   const coupleId = profile?.coupleId ?? null;
   const isPremium = isDemoMode || profile?.isPremium === true;
   const currentUserId = session?.user?.id ?? '';
-  const currentUserName = profile?.displayName || profile?.username || 'Partner';
+  const currentUserName = profile?.displayName || profile?.username || t('common.partner');
 
   // ─── TEMEL DURUMLAR (STATE) ────────────────────────────────────────
   const [isLoading, setIsLoading] = useState(true);
@@ -563,7 +568,7 @@ export const OurStarScreen: React.FC = () => {
         } else if (planetsResult.reason instanceof PremiumRequiredError) {
           setPremiumPaywallSource('exoplanet_view');
         } else {
-          showToast('Anı gezegenleri yüklenemedi. Lütfen tekrar deneyin.');
+          showToast(t('stars.screen.toasts.loadPlanetsFailed'));
         }
 
         if (connectionsResult.status === 'fulfilled') {
@@ -579,7 +584,7 @@ export const OurStarScreen: React.FC = () => {
           setPremiumPaywallSource('exoplanet_view');
           return;
         }
-        showToast('Yıldız verileri yüklenemedi. Lütfen bağlantınızı kontrol edip tekrar deneyin.');
+        showToast(t('stars.screen.toasts.loadStarFailed'));
         // Önbellekten çizilmiş ya da zaten ekranda olan yıldız (silent) geçici bir ağ hatası yüzünden
         // silinip kullanıcı yıldızı yokmuş gibi genel gökyüzüne atılmaz; yalnızca gösterilecek hiçbir
         // veri yoksa macro görünüme geçilir
@@ -647,7 +652,7 @@ export const OurStarScreen: React.FC = () => {
     }, 0);
     starService.getStarExoplanets(starDetails.star_id)
       .then(setExoplanets)
-      .catch(() => showToast('Kilitli gezegenler yenilenemedi. Lütfen tekrar deneyin.'));
+      .catch(() => showToast(t('stars.screen.toasts.refreshLockedFailed')));
     return () => clearTimeout(disposeTimer);
   }, [isAuthLoading, isDemoMode, isPremium, showToast, starDetails]);
 
@@ -678,14 +683,14 @@ export const OurStarScreen: React.FC = () => {
         triggerGlowWave();
         hapticSuccess();
 
-        const partnerTitle = spark.senderName || 'Sevgilin';
-        showToast(`${partnerTitle} yıldızınıza dokunarak sevgi titreşimi gönderdi! 💫`);
+        const partnerTitle = spark.senderName || t('common.partnerFallback');
+        showToast(t('stars.screen.toasts.partnerPulse', { partnerTitle }));
       },
       onResonanceChange: (event: ResonanceEvent) => {
         setIsResonanceActive(event.active);
         setStarDetails((prev) => (prev ? { ...prev, resonance_active: event.active } : null));
         if (event.active) {
-          showToast('Eşzamanlı rezonans başladı! Yıldızınız çift korona ile parlıyor 🌌');
+          showToast(t('stars.screen.toasts.resonanceStarted'));
         }
       },
     });
@@ -712,7 +717,7 @@ export const OurStarScreen: React.FC = () => {
     await hapticTap();
     triggerGlowWave();
     sparkManagerRef.current?.queueLovePing().catch(() => {});
-    showToast('Yıldıza dokundun; sevgi titreşimi eşine iletildi 💫');
+    showToast(t('stars.screen.toasts.pulseSent'));
   };
 
   // Mikro sahne memo'lu: geri çağrıları kimliği değişmeyen sarmalayıcılarla verilir,
@@ -779,7 +784,7 @@ export const OurStarScreen: React.FC = () => {
               setPremiumPaywallSource('exoplanet_view');
               return;
             }
-            showToast(error?.message || 'Gezegen ayrıntıları yüklenemedi.');
+            showToast(error?.message || t('stars.screen.toasts.planetDetailFailed'));
           });
       });
     },
@@ -844,7 +849,7 @@ export const OurStarScreen: React.FC = () => {
       };
       setSelectedMacroStar(myStarItem);
     }
-    showToast('Yıldızımıza süzülüyoruz ✨');
+    showToast(t('stars.screen.toasts.glidingHome'));
   }, [myStarRa, myStarDec, starDetails, showToast, prefetchSkyTiles]);
 
   // Makro (Gök Kubbe) / Mikro (yıldızın içi) geçişi
@@ -859,7 +864,7 @@ export const OurStarScreen: React.FC = () => {
     setHighlightPlanetId(null);
     // İçeri girişi sahnenin kendi açılış animasyonu ve ipucu karşılar; yalnızca çıkışta bildirim.
     if (nextMode === 'macro') {
-      showToast('Gök Kubbeye çıkıldı; tüm evreni keşfedebilirsiniz 🌌');
+      showToast(t('stars.screen.toasts.ascendedDome'));
     }
   }, [viewMode, starDetails, showToast]);
 
@@ -877,7 +882,7 @@ export const OurStarScreen: React.FC = () => {
       if (soundEnabled) {
         startCosmicAmbient().catch(() => {});
       } else {
-        showToast('Uygulama sesleri ayarlardan kapalı (Profil > Ses & Dokunsal Efektler).');
+        showToast(t('stars.screen.toasts.soundsOff'));
       }
     }
   }, [showToast]);
@@ -905,7 +910,7 @@ export const OurStarScreen: React.FC = () => {
   const handleMeteorCaught = () => {
     if (isWishOpen || wishOpenTimerRef.current) return;
     if (dailyWish.isUsedToday()) {
-      showToast('Bugünkü dileğini tuttun. Yarın yeni bir yıldız bekle ✨');
+      showToast(t('stars.screen.toasts.wishDone'));
       return;
     }
     // Partnerin bugünkü dileği kartta görünsün diye durum tazelenir
@@ -939,7 +944,7 @@ export const OurStarScreen: React.FC = () => {
     }
     // Gök kubbedeki kendi yıldız adı etiketi yeni isimle gelsin
     refreshSkyTiles();
-    showToast('Yıldızınızın yeni ismi gökyüzüne işlendi ✨');
+    showToast(t('stars.screen.toasts.renamed'));
   }, [coupleId, refreshSkyTiles, showToast]);
 
   // ─── TESCİL BAŞARISI (Claim Callback) ──────────────────────────────
@@ -950,7 +955,7 @@ export const OurStarScreen: React.FC = () => {
     setViewMode('micro');
     // Anı gezegenlerini sıfırdan çek
     loadStarData(true);
-    showToast('Yıldızınız gökyüzüne tescillendi! Hoş geldiniz ✨');
+    showToast(t('stars.screen.toasts.registered'));
   };
 
   // ─── ANİ GEZEGENİ HANDLER'LARI ─────────────────────────────────────
@@ -960,7 +965,7 @@ export const OurStarScreen: React.FC = () => {
       setDemoPlanetDetails((prev) => [newPlanet, ...prev]);
     }
     setExoplanets((prev) => [toMapPlanet(newPlanet), ...prev]);
-    showToast(`"${newPlanet.title}" anı gezegeni yörüngede dönmeye başladı! 🪐`);
+    showToast(t('stars.screen.toasts.planetAdded', { title: newPlanet.title }));
     refreshMyBrightness();
   }, [isDemoMode, showToast, refreshMyBrightness]);
 
@@ -972,7 +977,7 @@ export const OurStarScreen: React.FC = () => {
       prev.map((p) => (p.id === updatedPlanet.id ? toMapPlanet(updatedPlanet) : p))
     );
     setSelectedPlanet(updatedPlanet);
-    showToast(`"${updatedPlanet.title}" gezegeni güncellendi! ✨`);
+    showToast(t('stars.screen.toasts.planetUpdated', { title: updatedPlanet.title }));
   }, [isDemoMode, showToast]);
 
   const handlePlanetDeleted = useCallback((planetId: string) => {
@@ -981,7 +986,7 @@ export const OurStarScreen: React.FC = () => {
     }
     setExoplanets((prev) => prev.filter((p) => p.id !== planetId));
     setSelectedPlanet(null);
-    showToast('Anı gezegeni yörüngeden kaldırıldı.');
+    showToast(t('stars.screen.toasts.planetRemoved'));
     // Silinen gezegenin puanı geri alınır; ışık buna göre güncellenir.
     refreshMyBrightness();
   }, [isDemoMode, showToast, refreshMyBrightness]);
@@ -1017,14 +1022,14 @@ export const OurStarScreen: React.FC = () => {
   const handleConnectSelectedMacroStar = async () => {
     if (!selectedMacroStar || !starDetails) return;
     if (starConnections.length >= 3) {
-      showToast('Maksimum 3 bağlantı limitine ulaştınız (3/3).');
+      showToast(t('stars.screen.toasts.limitReached'));
       return;
     }
     setIsConnectingStar(true);
     try {
       const targetStarId = await starService.getStarIdByCatalogId(selectedMacroStar.catalog_id);
       if (!targetStarId) {
-        showToast('Hedef yıldız bilgisi alınamadı.');
+        showToast(t('stars.screen.toasts.targetInfoFailed'));
         return;
       }
       await starService.requestStarConnection(targetStarId);
@@ -1032,7 +1037,7 @@ export const OurStarScreen: React.FC = () => {
         hapticSuccess();
       }
       showToast(
-        `"${selectedMacroStar.custom_name || selectedMacroStar.catalog_code}" yıldızına bağlantı isteği gönderildi ✨`
+        t('stars.connect.success.requestSent', { custom_name: selectedMacroStar.custom_name || selectedMacroStar.catalog_code })
       );
       const [connections, pending] = await Promise.all([
         starService.getMyStarConnections(),
@@ -1045,7 +1050,7 @@ export const OurStarScreen: React.FC = () => {
       if (Platform.OS !== 'web') {
         hapticError();
       }
-      showToast(err?.message || 'Bağlantı isteği gönderilemedi.');
+      showToast(err?.message || t('stars.screen.toasts.requestFailed'));
     } finally {
       setIsConnectingStar(false);
     }
@@ -1057,10 +1062,10 @@ export const OurStarScreen: React.FC = () => {
   const selectedFriendLight =
     selectedMacroStar && selectedStarLight?.catalogId === selectedMacroStar.catalog_id ? selectedStarLight.info : null;
   const selectedStarLightText = selectedMacroStar
-    ? describeStarLight(selectedMacroStar, myBrightness, selectedFriendLight)
+    ? describeStarLight(selectedMacroStar, myBrightness, selectedFriendLight, t)
     : null;
   const selectedStarLightValue = selectedMacroStar
-    ? describeStarLightValue(selectedMacroStar, starLight ?? null, selectedFriendLight)
+    ? describeStarLightValue(selectedMacroStar, starLight ?? null, selectedFriendLight, t)
     : null;
 
   // Yıldızın içinde HUD her zaman koyu cam (uzay karanlıktır); gök kubbede tema izlenir.
@@ -1075,7 +1080,7 @@ export const OurStarScreen: React.FC = () => {
       <View style={styles.loadingContainer}>
         <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
         <ActivityIndicator size="large" color="#38BDF8" />
-        <Text style={styles.loadingText}>Kozmik Harita Yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t('stars.screen.loading')}</Text>
       </View>
     );
   }
@@ -1142,7 +1147,7 @@ export const OurStarScreen: React.FC = () => {
             },
           ]}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityLabel="Geri Dön"
+          accessibilityLabel={t('paywall.goBack')}
         >
           <ArrowLeft size={18} color={hudLight ? theme.text : '#FFFFFF'} />
         </TouchableOpacity>
@@ -1202,7 +1207,7 @@ export const OurStarScreen: React.FC = () => {
                   borderColor: hudLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(236, 72, 153, 0.35)',
                 },
               ]}
-              accessibilityLabel="Kozmik Bağlar"
+              accessibilityLabel={t('stars.connect.title')}
             >
               <Share2 size={16} color={theme.accent} />
               {pendingIncomingCount > 0 && (
@@ -1224,7 +1229,7 @@ export const OurStarScreen: React.FC = () => {
                 borderColor: hudLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.2)',
               },
             ]}
-            accessibilityLabel={isAmbientMuted ? 'Sesi Aç' : 'Sesi Kapat'}
+            accessibilityLabel={isAmbientMuted ? t('stars.screen.soundOnA11y') : t('stars.screen.soundOffA11y')}
           >
             {isAmbientMuted ? (
               <VolumeX size={16} color={hudLight ? '#6B7280' : 'rgba(255, 255, 255, 0.65)'} />
@@ -1245,7 +1250,7 @@ export const OurStarScreen: React.FC = () => {
                   borderColor: hudLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(56, 189, 248, 0.35)',
                 },
               ]}
-              accessibilityLabel="Yıldız Ara"
+              accessibilityLabel={t('stars.screen.searchA11y')}
             >
               <Search size={16} color={hudLight ? '#0284C7' : '#38BDF8'} />
             </TouchableOpacity>
@@ -1300,7 +1305,7 @@ export const OurStarScreen: React.FC = () => {
                 ? {
                     ra: Number(starDetails.ra),
                     dec: Number(starDetails.dec),
-                    name: starDetails.custom_name || 'Bizim Yıldızımız',
+                    name: starDetails.custom_name || t('stars.defaultName'),
                     luminosity: starLight ?? starDetails.luminosity_level ?? UNCLAIMED_STAR_BRIGHTNESS,
                     base_color: starDetails.base_color,
                     spectral_type: starDetails.spectral_type,
@@ -1430,7 +1435,7 @@ export const OurStarScreen: React.FC = () => {
                 ]}
               >
                 {selectedMacroStar.is_mine
-                  ? `⭐ ${selectedMacroStar.custom_name || starDetails?.custom_name || 'Bizim Yıldızımız'}`
+                  ? `⭐ ${selectedMacroStar.custom_name || starDetails?.custom_name || t('stars.defaultName')}`
                   : (selectedMacroStar.custom_name ||
                     (selectedMacroStar.common_name
                       ? `${selectedMacroStar.common_name} (${selectedMacroStar.catalog_code})`
@@ -1438,17 +1443,17 @@ export const OurStarScreen: React.FC = () => {
               </Text>
               {selectedMacroStar.is_mine ? (
                 <View style={styles.myStarBadge}>
-                  <Text style={styles.myStarBadgeText}>Bizim Yıldızımız 💫</Text>
+                  <Text style={styles.myStarBadgeText}>{t('stars.card.ourStar')}</Text>
                 </View>
               ) : selectedMacroStar.is_claimed ? (
                 <View style={styles.claimedBadge}>
                   <Text style={styles.claimedBadgeText}>
-                    🔒 Tescilli{selectedMacroStar.owner_initials ? ` • (${selectedMacroStar.owner_initials})` : ''}
+                    {t('stars.card.registered')}{selectedMacroStar.owner_initials ? ` • (${selectedMacroStar.owner_initials})` : ''}
                   </Text>
                 </View>
               ) : (
                 <View style={styles.availableBadge}>
-                  <Text style={styles.availableBadgeText}>Boşta</Text>
+                  <Text style={styles.availableBadgeText}>{t('stars.card.available')}</Text>
                 </View>
               )}
             </View>
@@ -1471,10 +1476,10 @@ export const OurStarScreen: React.FC = () => {
             ]}
           >
             <Text style={[styles.macroStarDetailText, { color: theme.textSecondary }]}>
-              Tayf: <Text style={styles.macroStarHighlight}>{selectedMacroStar.spectral_type}</Text>
+              {t('stars.card.spectrum')} <Text style={styles.macroStarHighlight}>{selectedMacroStar.spectral_type}</Text>
             </Text>
             <Text style={[styles.macroStarDetailText, { color: theme.textSecondary }]}>
-              Parlaklık: <Text style={styles.macroStarHighlight}>{selectedStarLightValue}</Text>
+              {t('stars.card.brightness')} <Text style={styles.macroStarHighlight}>{selectedStarLightValue}</Text>
             </Text>
             <Text style={[styles.macroStarDetailText, { color: theme.textSecondary }]}>
               RA/DEC: <Text style={styles.macroStarHighlight}>{Number(selectedMacroStar.ra).toFixed(1)}° / {Number(selectedMacroStar.dec).toFixed(1)}°</Text>
@@ -1509,7 +1514,7 @@ export const OurStarScreen: React.FC = () => {
                 style={styles.enterMicroBtn}
               >
                 <Orbit size={15} color="#030207" />
-                <Text style={styles.enterMicroBtnText}>Yıldızın İçine Gir 🪐</Text>
+                <Text style={styles.enterMicroBtnText}>{t('stars.card.enterStar')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 activeOpacity={0.85}
@@ -1525,7 +1530,7 @@ export const OurStarScreen: React.FC = () => {
                 ]}
               >
                 <Award size={15} color={isLight ? '#B45309' : '#FBBF24'} />
-                <Text style={[styles.viewCertBtnText, isLight && { color: '#B45309' }]}>Sertifika 📜</Text>
+                <Text style={[styles.viewCertBtnText, isLight && { color: '#B45309' }]}>{t('stars.card.certificate')}</Text>
               </TouchableOpacity>
             </View>
           ) : !selectedMacroStar.is_claimed && isDemoMode ? (
@@ -1539,7 +1544,7 @@ export const OurStarScreen: React.FC = () => {
               style={styles.claimThisStarBtn}
             >
               <Sparkles size={14} color="#030207" />
-              <Text style={styles.claimThisStarBtnText}>Bu Yıldızı Seç 💫</Text>
+              <Text style={styles.claimThisStarBtnText}>{t('stars.card.chooseStar')}</Text>
             </TouchableOpacity>
           ) : !selectedMacroStar.is_claimed && starDetails === null ? (
             // Kullanıcının yıldızı yok ve yıldız boşta: sahiplenme butonu
@@ -1553,7 +1558,7 @@ export const OurStarScreen: React.FC = () => {
               style={styles.claimThisStarBtn}
             >
               <Sparkles size={14} color="#030207" />
-              <Text style={styles.claimThisStarBtnText}>Bu Yıldızı Seç 💫</Text>
+              <Text style={styles.claimThisStarBtnText}>{t('stars.card.chooseStar')}</Text>
             </TouchableOpacity>
           ) : !selectedMacroStar.is_claimed && starDetails !== null ? (
             // Kullanıcının zaten yıldızı var ama boş yıldıza tıklandı: yıldız bilgisi + nazik bilgilendirme
@@ -1568,13 +1573,13 @@ export const OurStarScreen: React.FC = () => {
             >
               <Sparkles size={13} color={isLight ? '#B45309' : '#FBBF24'} />
               <Text style={[styles.alreadyOwnedText, isLight && { color: '#92400E' }]}>
-                Zaten bir yıldızınız var — her çift yalnızca bir yıldıza sahip olabilir ✨
+                {t('stars.card.alreadyHasStar')}
               </Text>
             </View>
           ) : isDemoMode ? (
             // Başkasının tescilli yıldızı (Demo modu)
             <Text style={[styles.claimedInfoText, isLight && { color: theme.textSecondary }]}>
-              🔒 Bu yıldız başka bir çift tarafından gökyüzüne tescillenmiştir.
+              {t('stars.card.takenByOther')}
             </Text>
           ) : starDetails === null ? (
             // Başkasının tescilli yıldızı ama kullanıcının kendi yıldızı henüz yok
@@ -1589,7 +1594,7 @@ export const OurStarScreen: React.FC = () => {
             >
               <Sparkles size={13} color={isLight ? '#B45309' : '#FBBF24'} />
               <Text style={[styles.alreadyOwnedText, isLight && { color: '#92400E' }]}>
-                Bağlantı kurabilmek için önce aşkınıza ait bir yıldız tescil etmelisiniz ✨
+                {t('stars.card.needStarFirst')}
               </Text>
             </View>
           ) : starConnections.some(
@@ -1602,7 +1607,7 @@ export const OurStarScreen: React.FC = () => {
             <View style={styles.alreadyConnectedBanner}>
               <Sparkles size={13} color="#EC4899" />
               <Text style={styles.alreadyConnectedText}>
-                ✨ Bu yıldızla zaten parıldayan bir takımyıldızı bağınız var.
+                {t('stars.card.alreadyBonded')}
               </Text>
             </View>
           ) : pendingRequests.some(
@@ -1620,7 +1625,7 @@ export const OurStarScreen: React.FC = () => {
             >
               <Clock size={13} color={isLight ? '#B45309' : '#FBBF24'} />
               <Text style={[styles.alreadyConnectedText, isLight && { color: '#92400E' }]}>
-                ⏳ Bu yıldıza bağlantı isteği gönderildi; onay bekleniyor.
+                {t('stars.card.requestPending')}
               </Text>
             </View>
           ) : selectedMacroStar.catalog_code?.startsWith('SOL-') ? (
@@ -1641,7 +1646,7 @@ export const OurStarScreen: React.FC = () => {
                   isLight && { color: '#92400E' },
                 ]}
               >
-                {SOLAR_DESCRIPTIONS[selectedMacroStar.catalog_code] || 'Güneş Sistemimizin kadim bir yolcusu ✨'}
+                {t(SOLAR_DESCRIPTION_KEYS[selectedMacroStar.catalog_code] ?? 'stars.solarDescriptions.fallback')}
               </Text>
             </View>
           ) : starConnections.length >= 3 ? (
@@ -1657,7 +1662,7 @@ export const OurStarScreen: React.FC = () => {
             >
               <AlertCircle size={13} color={isLight ? '#B45309' : '#FBBF24'} />
               <Text style={[styles.limitReachedText, isLight && { color: '#92400E' }]}>
-                Maksimum 3 bağlantı limitine ulaştınız (3/3).
+                {t('stars.screen.toasts.limitReached')}
               </Text>
             </View>
           ) : (
@@ -1678,7 +1683,7 @@ export const OurStarScreen: React.FC = () => {
                   style={styles.connectStarBtnGradient}
                 >
                   <Sparkles size={14} color="#FFFFFF" />
-                  <Text style={styles.connectStarBtnText}>Yıldızımızı Bağla ✨</Text>
+                  <Text style={styles.connectStarBtnText}>{t('stars.card.connectStar')}</Text>
                 </LinearGradient>
               )}
             </TouchableOpacity>
@@ -1714,12 +1719,12 @@ export const OurStarScreen: React.FC = () => {
                   <Sparkles size={16} color="#FBBF24" />
                 </View>
                 <Text style={[styles.onboardingGuideTitle, { color: theme.text }]}>
-                  Aşkınızın Yıldızını Seçin ✨
+                  {t('stars.card.pickTitle')}
                 </Text>
               </View>
 
               <Text style={[styles.onboardingGuideSubtitle, { color: theme.textSecondary, marginBottom: 0 }]}>
-                Gökyüzünde özgürce gezinin; aşkınıza layık boşta parıldayan bir yıldıza dokunup &quot;Bu Yıldızı Seç&quot; ile çiftinize tescil edin.
+                {t('stars.card.pickBody')}
               </Text>
             </View>
           )}
@@ -1730,7 +1735,7 @@ export const OurStarScreen: React.FC = () => {
               activeOpacity={0.85}
               onPress={handleFocusMyStar}
               style={styles.returnHomeBtn}
-              accessibilityLabel="Yıldızımıza Dön"
+              accessibilityLabel={t('stars.card.backToStarA11y')}
             >
               <LinearGradient
                 colors={['#10B981', '#059669']}
@@ -1739,7 +1744,7 @@ export const OurStarScreen: React.FC = () => {
                 style={styles.returnHomeGradient}
               >
                 <Sparkles size={15} color="#FFFFFF" />
-                <Text style={styles.returnHomeBtnText}>Yıldızımıza Dön ✨</Text>
+                <Text style={styles.returnHomeBtnText}>{t('stars.card.backToStar')}</Text>
               </LinearGradient>
             </TouchableOpacity>
           )}
@@ -1756,7 +1761,7 @@ export const OurStarScreen: React.FC = () => {
                   borderColor: isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(251, 191, 36, 0.35)',
                 },
               ]}
-              accessibilityLabel={viewMode === 'micro' ? 'Gök Kubbeye Çık' : 'Yıldızın İçine Gir'}
+              accessibilityLabel={viewMode === 'micro' ? t('stars.card.ascendA11y') : t('stars.card.enterStarA11y')}
             >
               {viewMode === 'micro' ? (
                 <Globe size={20} color="#38BDF8" />
@@ -1839,7 +1844,7 @@ export const OurStarScreen: React.FC = () => {
           onClose={() => setIsConnectionsModalOpen(false)}
           onNavigateToSky={() => {
             setViewMode('macro');
-            showToast('Gök Kubbede tescilli bir yıldıza dokunarak bağ kurabilirsiniz 🌌');
+            showToast(t('stars.screen.toasts.tapToConnect'));
           }}
           onConnectionChanged={() => {
             // Aktif bağlantıları ve rozeti yenile (canvas güncellemesi için); bağlantı
@@ -1878,7 +1883,7 @@ export const OurStarScreen: React.FC = () => {
               zoom: 1.8,
             });
             setViewMode('macro');
-            showToast(`${sec.name} sektörüne yönlendirildiniz. Boş bir yıldıza dokunarak seçebilirsiniz ✨`);
+            showToast(t('stars.screen.toasts.sectorRedirect', { name: t(sec.nameKey) }));
           }
         }}
       />
@@ -1909,7 +1914,7 @@ export const OurStarScreen: React.FC = () => {
           if (!existing) {
             const showMissing = () => {
               if (searchSelectionRef.current !== requestId) return;
-              showToast('Yıldızın bilgileri alınamadı; gökyüzünde yıldıza dokunarak açabilirsin.');
+              showToast(t('stars.screen.toasts.starInfoFailed'));
             };
             starService
               .getStarForSearchResult(item)

@@ -17,7 +17,8 @@ import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
 import { logger } from "@/utils/logger";
-import { Calendar, LocaleConfig } from "react-native-calendars";
+import { Calendar } from "react-native-calendars";
+import "@/lib/calendarLocale";
 import { 
   X, Check, ChevronLeft, AlignJustify, Lock, Crown, 
   Heart, Sparkles, Droplet, Coffee, MessageCircleHeart, Info, Gift
@@ -35,17 +36,10 @@ import {
   MAX_REASONABLE_DELAY_DAYS, MAX_STARTS_PER_MONTH, MIN_DAYS_BETWEEN_STARTS,
   estimateCycleLength, getPeriodStarts, getPeriodDays,
 } from "@/lib/periodCycle";
-
-LocaleConfig.locales['tr'] = {
-  monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
-  monthNamesShort: ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'],
-  dayNames: ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'],
-  dayNamesShort: ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'],
-  today: 'Bugün'
-};
-LocaleConfig.defaultLocale = 'tr';
+import { useTranslation } from "react-i18next";
 
 export default function PeriodTrackerScreen() {
+  const { t, i18n } = useTranslation();
   const { session, profile, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
@@ -114,17 +108,17 @@ export default function PeriodTrackerScreen() {
 
     let countdownText: string;
     if (daysLeft > 0) {
-      countdownText = `Sonraki Döngü: ${daysLeft} Gün Kaldı (${nextPeriodDate.locale("tr").format("D MMMM")}) 🌸`;
+      countdownText = t("period.countdown.next", { count: daysLeft, date: nextPeriodDate.locale(i18n.language).format("D MMMM") });
     } else if (daysLeft === 0) {
-      countdownText = "Bugün yeni döngü günü bekleniyor 🌸";
+      countdownText = t("period.countdown.today");
     } else if (-daysLeft <= MAX_REASONABLE_DELAY_DAYS) {
-      countdownText = `${-daysLeft} gün gecikti ⏳`;
+      countdownText = t("period.countdown.late", { count: -daysLeft });
     } else {
       // Çok uzun süredir kayıt yok: gecikme değil, büyük olasılıkla yeni başlangıç işaretlenmemiş
-      countdownText = "Yeni döngü kaydı bekleniyor 🌸";
+      countdownText = t("period.countdown.waiting");
     }
     return { cycleLength, nextPeriodDate, daysLeft, countdownText };
-  }, [periodStarts, latestStart, today]);
+  }, [periodStarts, latestStart, today, t, i18n.language]);
 
   // Takvime verilen tema nesnesi sabit kalmalı: her render'da yeni nesne gelirse react-native-calendars
   // stil sayfasını ve 42 gün hücresini baştan oluşturuyordu
@@ -175,21 +169,21 @@ export default function PeriodTrackerScreen() {
   // Yeni başlangıç eklenmeden önce manipülasyon kontrolleri (DB trigger'ı da aynı kuralları uygular)
   function validateNewStart(dateStr: string): boolean {
     if (dayjs(dateStr).isAfter(dayjs(today), "day")) {
-      appAlert("Geçersiz Tarih", "Gelecekteki bir günü regl başlangıcı olarak işaretleyemezsiniz.");
+      appAlert(t("period.errors.invalidDateTitle"), t("period.errors.futureStart"));
       return false;
     }
 
     const currentMonthStr = dateStr.substring(0, 7);
     const monthLogs = logs?.filter(l => l.date.startsWith(currentMonthStr)) || [];
     if (monthLogs.length >= MAX_STARTS_PER_MONTH) {
-      appAlert("Sınır 🌸", "Biyolojik olarak bir ay içerisinde en fazla 2 ayrı regl başlangıcı kaydedebilirsiniz.");
+      appAlert(t("period.errors.limitTitle"), t("period.errors.limitMessage"));
       return false;
     }
 
     const targetDate = dayjs(dateStr);
     const tooClose = logs?.some(l => Math.abs(targetDate.diff(dayjs(l.date), "day")) < MIN_DAYS_BETWEEN_STARTS);
     if (tooClose) {
-      appAlert("Biyolojik Aralık 🌸", "İki regl başlangıcı arasında en az 16 gün ara bulunmalıdır.");
+      appAlert(t("period.errors.intervalTitle"), t("period.errors.intervalMessage"));
       return false;
     }
     return true;
@@ -212,13 +206,13 @@ export default function PeriodTrackerScreen() {
   function handleDateClick(day: any) {
     if (executeOrIntercept(
       () => {},
-      "Döngü Takibini Başlatmak İçin Kayıt Olun 🌸",
-      "Kişisel döngünüzü kaydetmek, bilimsel tahminler almak ve partnerinizle paylaşmak için ücretsiz hesabınızı oluşturun."
+      t("demo.prompts.cycle.title"),
+      t("demo.prompts.cycle.description")
     )) {
       return;
     }
     if (!isFemale) {
-      appAlert("Bilgi 🌸", "Regl takvimini yalnızca kadın partner güncelleyebilir.");
+      appAlert(t("period.info.title"), t("period.info.femaleOnly"));
       return;
     }
 
@@ -236,8 +230,8 @@ export default function PeriodTrackerScreen() {
   async function handleQuickStart() {
     if (executeOrIntercept(
       () => {},
-      "Döngü Takibini Başlatmak İçin Kayıt Olun 🌸",
-      "Kişisel döngünüzü kaydetmek, bilimsel tahminler almak ve partnerinizle paylaşmak için ücretsiz hesabınızı oluşturun."
+      t("demo.prompts.cycle.title"),
+      t("demo.prompts.cycle.description")
     )) {
       return;
     }
@@ -249,7 +243,7 @@ export default function PeriodTrackerScreen() {
       await savePeriodStart(today);
     } catch (error: any) {
       logger.error("Period quick start error:", error);
-      appAlert("Hata", error?.message || "İşlem sırasında bir hata oluştu.");
+      appAlert(t("common.error"), error?.message || t("errors.actionFailed"));
     } finally {
       setLoading(false);
     }
@@ -258,8 +252,8 @@ export default function PeriodTrackerScreen() {
   async function handleToggle() {
     if (executeOrIntercept(
       () => {},
-      "Döngü Takibini Başlatmak İçin Kayıt Olun 🌸",
-      "Kişisel döngünüzü kaydetmek, bilimsel tahminler almak ve partnerinizle paylaşmak için ücretsiz hesabınızı oluşturun."
+      t("demo.prompts.cycle.title"),
+      t("demo.prompts.cycle.description")
     )) {
       setSelectedDate(null);
       return;
@@ -283,7 +277,7 @@ export default function PeriodTrackerScreen() {
       setSelectedDate(null);
     } catch (error: any) {
       logger.error("Period save error:", error);
-      appAlert("Hata", error?.message || "İşlem sırasında bir hata oluştu.");
+      appAlert(t("common.error"), error?.message || t("errors.actionFailed"));
     } finally {
       setLoading(false);
     }
@@ -296,7 +290,7 @@ export default function PeriodTrackerScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity 
             accessibilityRole="button"
-            accessibilityLabel="Geri"
+            accessibilityLabel={t("common.back")}
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();
@@ -311,9 +305,9 @@ export default function PeriodTrackerScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Döngü & Regl Takvimi</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{t("menu.cycle.title")}</Text>
             <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>
-              {isFemale ? "Kişisel Döngü & Sağlık Takibi 🌸" : "Sevgilinin Döngüsü & Destek Rehberi 💕"}
+              {isFemale ? t("period.subtitle.female") : t("period.subtitle.male")}
             </Text>
           </View>
 
@@ -321,7 +315,7 @@ export default function PeriodTrackerScreen() {
             <TourGuideButton onPress={openTour} />
             <TouchableOpacity 
               accessibilityRole="button"
-              accessibilityLabel="Menüyü aç"
+              accessibilityLabel={t("common.openMenu")}
               onPress={() => router.push("/menu")} 
               style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -346,15 +340,15 @@ export default function PeriodTrackerScreen() {
 
               <View style={styles.vipBadge}>
                 <Sparkles size={13} color={goldColor} />
-                <Text style={styles.vipBadgeText}>VIP ÇİFT AYRICALIĞI</Text>
+                <Text style={styles.vipBadgeText}>{t("paywall.vipBadge")}</Text>
               </View>
 
               <Text style={styles.luxuryLockTitle}>
-                Sevgilinin Döngüsünü Birlikte Takip Edin 💕
+                {t("period.lock.title")}
               </Text>
 
               <Text style={styles.luxuryLockDesc}>
-                Partnerinizin hassas dönemlerinden haberdar olarak ona en doğru zamanda anlayış ve şefkatle yaklaşabilirsiniz.
+                {t("period.lock.description")}
               </Text>
 
               {/* Avantaj Maddeleri */}
@@ -363,21 +357,21 @@ export default function PeriodTrackerScreen() {
                   <View style={styles.perkBullet}>
                     <Check size={13} color="#22c55e" strokeWidth={3} />
                   </View>
-                  <Text style={styles.perkText}>Hassas günlerinde sevgiline şefkatle destek ol</Text>
+                  <Text style={styles.perkText}>{t("period.lock.bullet1")}</Text>
                 </View>
 
                 <View style={styles.perkItem}>
                   <View style={styles.perkBullet}>
                     <Check size={13} color="#22c55e" strokeWidth={3} />
                   </View>
-                  <Text style={[styles.perkText, { color: theme.text }]}>Özel günleri ve tatil planlarını rahatça organize et</Text>
+                  <Text style={[styles.perkText, { color: theme.text }]}>{t("period.lock.bullet2")}</Text>
                 </View>
 
                 <View style={styles.perkItem}>
                   <View style={styles.perkBullet}>
                     <Check size={13} color="#22c55e" strokeWidth={3} />
                   </View>
-                  <Text style={[styles.perkText, { color: theme.text }]}>Duygu durum değişimlerini önceden fark et ve anlayış göster</Text>
+                  <Text style={[styles.perkText, { color: theme.text }]}>{t("period.lock.bullet3")}</Text>
                 </View>
               </View>
 
@@ -388,7 +382,7 @@ export default function PeriodTrackerScreen() {
                 style={[styles.upgradeBtn, { backgroundColor: theme.accent }]}
               >
                 <Crown color="#ffffff" size={18} />
-                <Text style={styles.upgradeBtnText}>Ayrıcalıkları Keşfet ✨</Text>
+                <Text style={styles.upgradeBtnText}>{t("paywall.discoverPerks")}</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -400,12 +394,12 @@ export default function PeriodTrackerScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.statusHeroTitle, { color: theme.text }]}>
-                    {isFemale ? "Döngü Takibi Aktif 🌸" : "Sevgilinin Döngüsü Takipte 💕"}
+                    {isFemale ? t("period.status.activeFemale") : t("period.status.activeMale")}
                   </Text>
                   <Text style={[styles.statusHeroSubtitle, { color: theme.textMuted }]}>
                     {latestStart
-                      ? `Son başlangıç: ${dayjs(latestStart).locale("tr").format("D MMMM YYYY")}`
-                      : "Henüz bir regl başlangıcı kaydedilmedi."
+                      ? t("period.status.lastStart", { date: dayjs(latestStart).locale(i18n.language).format("D MMMM YYYY") })
+                      : t("period.status.none")
                     }
                   </Text>
                   {cycleInfo && (
@@ -433,12 +427,12 @@ export default function PeriodTrackerScreen() {
                   ) : startedToday ? (
                     <>
                       <Check color="#ff4d6a" size={18} strokeWidth={3} />
-                      <Text style={[styles.quickStartBtnText, { color: "#ff4d6a" }]}>Bugün Kaydedildi</Text>
+                      <Text style={[styles.quickStartBtnText, { color: "#ff4d6a" }]}>{t("period.today.logged")}</Text>
                     </>
                   ) : (
                     <>
                       <Droplet color="#ffffff" size={18} />
-                      <Text style={styles.quickStartBtnText}>Bugün Reglim Başladı 🌸</Text>
+                      <Text style={styles.quickStartBtnText}>{t("period.today.start")}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -449,20 +443,20 @@ export default function PeriodTrackerScreen() {
                 <View style={[styles.gentleGuideCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
                   <View style={styles.guideHeader}>
                     <MessageCircleHeart size={18} color="#ff4d6a" />
-                    <Text style={[styles.guideTitle, { color: theme.text }]}>Sevgiline Destek Olma İpuçları</Text>
+                    <Text style={[styles.guideTitle, { color: theme.text }]}>{t("period.tips.title")}</Text>
                   </View>
                   <View style={styles.guideItemsBox}>
                     <View style={styles.guideItemRow}>
                       <Text style={{ fontSize: 16 }}>🍫</Text>
-                      <Text style={[styles.guideItemText, { color: theme.textSecondary }]}>Ona en sevdiği çikolatayı veya tatlıyı hediye edebilirsin.</Text>
+                      <Text style={[styles.guideItemText, { color: theme.textSecondary }]}>{t("period.tips.tip1")}</Text>
                     </View>
                     <View style={styles.guideItemRow}>
                       <Text style={{ fontSize: 16 }}>☕</Text>
-                      <Text style={[styles.guideItemText, { color: theme.textSecondary }]}>Sıcak bir bitki çayı hazırlayıp rahatlamasına yardımcı ol.</Text>
+                      <Text style={[styles.guideItemText, { color: theme.textSecondary }]}>{t("period.tips.tip2")}</Text>
                     </View>
                     <View style={styles.guideItemRow}>
                       <Text style={{ fontSize: 16 }}>🫂</Text>
-                      <Text style={[styles.guideItemText, { color: theme.textSecondary }]}>Ekstra anlayışlı davranıp onu sımsıkı kucakla.</Text>
+                      <Text style={[styles.guideItemText, { color: theme.textSecondary }]}>{t("period.tips.tip3")}</Text>
                     </View>
                   </View>
                 </View>
@@ -473,10 +467,10 @@ export default function PeriodTrackerScreen() {
                 <View style={[styles.femaleTipsCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
                   <View style={styles.guideHeader}>
                     <Sparkles size={17} color={theme.accent} />
-                    <Text style={[styles.guideTitle, { color: theme.text }]}>Günün Kendine Bakım Notu</Text>
+                    <Text style={[styles.guideTitle, { color: theme.text }]}>{t("period.selfCare.title")}</Text>
                   </View>
                   <Text style={[styles.femaleTipsText, { color: theme.textSecondary }]}>
-                    Her gün işaretlemene gerek yok; yalnızca reglinin başladığı günü seç ya da yukarıdaki butona dokun. 5 günlük süreci ve sonraki döngüyü biz hesaplarız. Bol su içmeyi ve kendini dinlendirmeyi unutma tatlım 🌸
+                    {t("period.selfCare.text")}
                   </Text>
                 </View>
               )}
@@ -489,7 +483,7 @@ export default function PeriodTrackerScreen() {
                   </View>
                 ) : (
                   <Calendar
-                    key={`${theme.id}_${theme.gender}`}
+                    key={`${theme.id}_${theme.gender}_${i18n.language}`}
                     current={today}
                     onDayPress={handleDateClick}
                     markedDates={markedDates}
@@ -501,12 +495,12 @@ export default function PeriodTrackerScreen() {
 
               {/* ─── GEÇMİŞ DÖNGÜ KAYITLARI ─── */}
               <View style={styles.pastRecordsSection}>
-                <Text style={[styles.pastSectionTitle, { color: theme.textMuted }]}>GEÇMİŞ KAYITLAR</Text>
+                <Text style={[styles.pastSectionTitle, { color: theme.textMuted }]}>{t("period.history.title")}</Text>
 
                 {!showPastRecords ? null : !logs || logs.length === 0 ? (
                   <View style={[styles.emptyBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}>
                     <Text style={{ fontSize: 32, marginBottom: 8 }}>🌸</Text>
-                    <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Henüz kayıtlı bir döngü günü bulunmuyor.</Text>
+                    <Text style={[styles.emptyText, { color: theme.textSecondary }]}>{t("period.history.empty")}</Text>
                   </View>
                 ) : (
                   <View style={{ gap: 10 }}>
@@ -519,12 +513,12 @@ export default function PeriodTrackerScreen() {
                               <Droplet size={18} color="#ff4d6a" />
                             </View>
                             <View>
-                              <Text style={[styles.logDateText, { color: theme.text }]}>{logDate.locale("tr").format("DD MMMM YYYY")}</Text>
-                              <Text style={[styles.logDayText, { color: theme.textMuted }]}>{logDate.locale("tr").format("dddd")}</Text>
+                              <Text style={[styles.logDateText, { color: theme.text }]}>{logDate.locale(i18n.language).format("DD MMMM YYYY")}</Text>
+                              <Text style={[styles.logDayText, { color: theme.textMuted }]}>{logDate.locale(i18n.language).format("dddd")}</Text>
                             </View>
                           </View>
                           <View style={styles.logRightTag}>
-                            <Text style={styles.logRightTagText}>{logDate.locale("tr").format("MMMM")}</Text>
+                            <Text style={styles.logRightTagText}>{logDate.locale(i18n.language).format("MMMM")}</Text>
                           </View>
                         </View>
                       );
@@ -546,13 +540,13 @@ export default function PeriodTrackerScreen() {
             </View>
 
             <Text style={[styles.modalDateTitle, { color: theme.text }]}>
-              {selectedDate ? dayjs(selectedDate).locale("tr").format("DD MMMM YYYY, dddd") : ""}
+              {selectedDate ? dayjs(selectedDate).locale(i18n.language).format("DD MMMM YYYY, dddd") : ""}
             </Text>
 
             <Text style={[styles.modalDescription, { color: theme.textSecondary }]}>
               {isAdding 
-                ? "Bu günü regl başlangıcı olarak işaretlemek istiyor musunuz?" 
-                : "Bu tarihteki regl kaydını kaldırmak istiyor musunuz?"
+                ? t("period.modal.addQuestion") 
+                : t("period.modal.removeQuestion")
               }
             </Text>
 
@@ -562,7 +556,7 @@ export default function PeriodTrackerScreen() {
                 disabled={loading}
                 onPress={() => setSelectedDate(null)}
               >
-                <Text style={[styles.modalCancelBtnText, { color: theme.textSecondary }]}>Vazgeç</Text>
+                <Text style={[styles.modalCancelBtnText, { color: theme.textSecondary }]}>{t("common.cancel")}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -580,7 +574,7 @@ export default function PeriodTrackerScreen() {
                   <>
                     <Check color="#ffffff" size={16} />
                     <Text style={styles.modalConfirmBtnText}>
-                      {isAdding ? "İşaretle" : "Kaydı Sil"}
+                      {isAdding ? t("period.modal.mark") : t("period.modal.delete")}
                     </Text>
                   </>
                 )}
@@ -596,8 +590,8 @@ export default function PeriodTrackerScreen() {
       <LazyPremiumPaywall
         visible={showPaywall}
         onClose={() => setShowPaywall(false)}
-        featureName="Döngü & Regl Takvimi"
-        featureDescription="Sevgilinizin döngüsünü birlikte takip edin, hassas dönemlerinde ona en doğru şekilde destek olun."
+        featureName={t("menu.cycle.title")}
+        featureDescription={t("period.premium.featureDescription")}
         gender={profile?.gender}
       />
       <LazyPageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />

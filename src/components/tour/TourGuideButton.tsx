@@ -2,6 +2,7 @@ import React from "react";
 import { TouchableOpacity, StyleSheet, View } from "react-native";
 import { HelpCircle, Lightbulb } from "lucide-react-native";
 import { useTheme } from "@/context/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 interface TourGuideButtonProps {
   onPress: () => void;
@@ -14,6 +15,7 @@ export function TourGuideButton({
   size = 18,
   variant = "help",
 }: TourGuideButtonProps) {
+  const { t } = useTranslation();
   const { theme, isLight } = useTheme();
 
   return (
@@ -32,7 +34,7 @@ export function TourGuideButton({
         },
       ]}
       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      accessibilityLabel="Sayfa Rehberi"
+      accessibilityLabel={t("tour.pageGuideA11y")}
     >
       {variant === "lightbulb" ? (
         <Lightbulb size={size} color={theme.accent} />

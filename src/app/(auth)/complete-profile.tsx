@@ -16,12 +16,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AlertCircle, ArrowRight, Sparkles, User as UserIcon } from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { useTranslation } from "react-i18next";
 
 type Gender = "male" | "female";
 
-const GENDER_OPTIONS: { value: Gender; label: string; symbol: string; color: string; bg: string }[] = [
-  { value: "female", label: "Kadın", symbol: "♀", color: "#FF4D6D", bg: "rgba(255, 77, 109, 0.14)" },
-  { value: "male", label: "Erkek", symbol: "♂", color: "#4D9CFF", bg: "rgba(77, 156, 255, 0.14)" },
+const GENDER_OPTIONS: { value: Gender; labelKey: "common.gender.female" | "common.gender.male"; symbol: string; color: string; bg: string }[] = [
+  { value: "female", labelKey: "common.gender.female", symbol: "♀", color: "#FF4D6D", bg: "rgba(255, 77, 109, 0.14)" },
+  { value: "male", labelKey: "common.gender.male", symbol: "♂", color: "#4D9CFF", bg: "rgba(77, 156, 255, 0.14)" },
 ];
 
 /**
@@ -29,6 +30,7 @@ const GENDER_OPTIONS: { value: Gender; label: string; symbol: string; color: str
  * useProtectedRoute, profile.needsProfileSetup true olduğu sürece kullanıcıyı buraya yönlendirir.
  */
 export default function CompleteProfileScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { session, refreshProfile, signOut } = useAuth();
   const userId = session?.user?.id;
@@ -53,15 +55,15 @@ export default function CompleteProfileScreen() {
   async function handleSave() {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError("Lütfen partnerine görünecek ismini yaz.");
+      setError(t("auth.completeProfile.nameRequired"));
       return;
     }
     if (!gender) {
-      setError("Lütfen cinsiyetini seç.");
+      setError(t("auth.completeProfile.genderRequired"));
       return;
     }
     if (!userId) {
-      setError("Oturum bulunamadı. Lütfen tekrar giriş yapın.");
+      setError(t("auth.errors.noSession"));
       return;
     }
 
@@ -76,12 +78,12 @@ export default function CompleteProfileScreen() {
         .select("id");
 
       if (updateError) throw updateError;
-      if (!data || data.length === 0) throw new Error("Profil kaydı bulunamadı.");
+      if (!data || data.length === 0) throw new Error(t("auth.completeProfile.recordNotFound"));
 
       await refreshProfile();
       router.replace("/(setup)/pairing");
     } catch (err: any) {
-      setError("Profil kaydedilemedi: " + (err?.message || "Lütfen tekrar dene."));
+      setError(t("auth.completeProfile.saveFailed", { message: err?.message || t("errors.tryAgain") }));
     } finally {
       setIsSaving(false);
     }
@@ -114,15 +116,15 @@ export default function CompleteProfileScreen() {
             <View style={[styles.iconCircle, { borderColor: accent }]}>
               <Sparkles size={30} color={accent} />
             </View>
-            <Text style={styles.title}>Seni Nasıl Tanıyalım? ✨</Text>
+            <Text style={styles.title}>{t("auth.completeProfile.title")}</Text>
             <Text style={styles.subtitle}>
-              Partnerine görüneceğin ismi ve uygulamanın temasını belirleyelim.
+              {t("auth.completeProfile.subtitle")}
             </Text>
           </View>
 
           {/* İsim */}
           <View style={styles.inputGroup}>
-            <Text style={styles.fieldLabel}>PARTNERİNE GÖRÜNECEK İSİM</Text>
+            <Text style={styles.fieldLabel}>{t("auth.completeProfile.nameLabel")}</Text>
             <View style={styles.inputBox}>
               <View style={styles.inputIconBox}>
                 <UserIcon size={18} color="rgba(255,255,255,0.45)" />
@@ -133,7 +135,7 @@ export default function CompleteProfileScreen() {
                   setEditedName(text);
                   if (error) setError("");
                 }}
-                placeholder="Örn. Selin"
+                placeholder={t("auth.completeProfile.namePlaceholder")}
                 placeholderTextColor="rgba(255,255,255,0.25)"
                 selectionColor={accent}
                 selectTextOnFocus
@@ -144,14 +146,14 @@ export default function CompleteProfileScreen() {
             </View>
             <Text style={styles.hint}>
               {suggestedName && !nameEdited
-                ? "Hesabından aldık — istediğin gibi değiştirebilirsin."
-                : "İstediğin zaman profilinden değiştirebilirsin."}
+                ? t("auth.completeProfile.hintSuggested")
+                : t("auth.completeProfile.hintChangeLater")}
             </Text>
           </View>
 
           {/* Cinsiyet */}
           <View style={styles.inputGroup}>
-            <Text style={styles.fieldLabel}>CİNSİYETİN</Text>
+            <Text style={styles.fieldLabel}>{t("auth.completeProfile.genderLabel")}</Text>
             <View style={styles.genderRow}>
               {GENDER_OPTIONS.map((option) => {
                 const isSelected = gender === option.value;
@@ -183,7 +185,7 @@ export default function CompleteProfileScreen() {
                       {option.symbol}
                     </Text>
                     <Text style={[styles.genderLabel, isSelected && { color: "#FFFFFF", fontFamily: "Inter_700Bold" }]}>
-                      {option.label}
+                      {t(option.labelKey)}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -215,7 +217,7 @@ export default function CompleteProfileScreen() {
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
                 <View style={styles.ctaRow}>
-                  <Text style={styles.ctaText}>Devam Et</Text>
+                  <Text style={styles.ctaText}>{t("common.continue")}</Text>
                   <ArrowRight size={18} color="#FFFFFF" />
                 </View>
               )}
@@ -228,7 +230,7 @@ export default function CompleteProfileScreen() {
             activeOpacity={0.7}
             style={styles.secondaryBtn}
           >
-            <Text style={styles.secondaryBtnText}>Farklı bir hesapla devam et</Text>
+            <Text style={styles.secondaryBtnText}>{t("auth.completeProfile.useAnotherAccount")}</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

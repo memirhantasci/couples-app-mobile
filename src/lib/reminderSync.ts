@@ -8,6 +8,7 @@ import {
   scheduleDateLocalNotification,
   type LocalNotificationOptions,
 } from "@/lib/notifications";
+import i18n from "@/lib/i18n";
 
 /**
  * Yerel (cihazda zamanlanan) hatırlatıcıların tek doğruluk kaynağı.
@@ -34,38 +35,39 @@ const MAX_LETTER_REMINDERS = 15;
 /** Arka arkaya gelen senkron isteklerini sıklaştırmamak için alt sınır. */
 const MIN_SYNC_INTERVAL_MS = 2 * 60 * 1000;
 
-export const MEDICINE_REMINDER_OPTIONS: LocalNotificationOptions = {
-  subtitle: "İlaç Takibi",
+// Metinler dil değişince güncel kalsın diye sabit değil, çağrıldığında üretilir
+const medicineReminderOptions = (): LocalNotificationOptions => ({
+  subtitle: i18n.t("notifications.labels.medicineTracking"),
   color: "#34D399",
   channelId: "medicine_channel",
-  data: { type: "medicine_reminder", route: "/(tabs)/medicine", actionLabel: "İlaç Takibine Git 💊" },
-};
+  data: { type: "medicine_reminder", route: "/(tabs)/medicine", actionLabel: i18n.t("notifications.actions.goToMedicine") },
+});
 
-export const MEETING_REMINDER_OPTIONS: LocalNotificationOptions = {
-  subtitle: "Buluşma Yaklaşıyor",
+const meetingReminderOptions = (): LocalNotificationOptions => ({
+  subtitle: i18n.t("notifications.local.meetingSoon"),
   color: "#C084FC",
   channelId: "partner_messages",
-  data: { type: "meeting", route: "/(tabs)/meetings", actionLabel: "Planı Gör 🗓️" },
-};
+  data: { type: "meeting", route: "/(tabs)/meetings", actionLabel: i18n.t("notifications.actions.viewPlan") },
+});
 
-export const LETTER_UNLOCK_OPTIONS: LocalNotificationOptions = {
-  subtitle: "Kilit Açıldı",
+const letterUnlockOptions = (): LocalNotificationOptions => ({
+  subtitle: i18n.t("notifications.local.letterUnlocked"),
   color: "#F5C563",
   channelId: "letters_channel",
-  data: { type: "letter", route: "/(tabs)/letters", actionLabel: "Mektubu Aç 📜" },
-};
+  data: { type: "letter", route: "/(tabs)/letters", actionLabel: i18n.t("notifications.actions.openLetter") },
+});
 
 export const medicineReminderId = (medicineId: number | string, time: string) =>
   `${MEDICINE_PREFIX}${medicineId}_${time}`;
 
 export const meetingReminderId = (meetingId: number | string) => `${MEETING_PREFIX}${meetingId}`;
 
-const medicineReminderBody = (name: string) => `${name} ilacını alma vakti geldi. Kendine iyi bak 💙`;
-const meetingReminderBody = (title: string) => `"${title}" buluşmanıza ${MEETING_REMINDER_HOURS} saat kaldı. Hazırlıklar tamam mı? 💕`;
+const medicineReminderBody = (name: string) => i18n.t("notifications.local.medicineBody", { name });
+const meetingReminderBody = (title: string) => i18n.t("notifications.local.meetingBody", { title, hours: MEETING_REMINDER_HOURS });
 const letterUnlockBody = (count: number) =>
   count > 1
-    ? `Bugün ${count} mektubunun kilidi açıldı! Açmak için dokun 📜`
-    : "Bugün bir mektubunun kilidi açıldı! Açmak için dokun 📜";
+    ? i18n.t("notifications.local.letterUnlockMany", { count })
+    : i18n.t("notifications.local.letterUnlockOne");
 
 /** "09:00" / "09:00:00" → "09:00"; geçersizse null. */
 function normalizeTime(raw: string | null | undefined): string | null {
@@ -84,11 +86,11 @@ export function scheduleMedicineReminder(medicineId: number | string, name: stri
   const [h, m] = normalized.split(":").map(Number);
   return scheduleDailyLocalNotification(
     medicineReminderId(medicineId, normalized),
-    "İlaç Vakti 💧",
+    i18n.t("notifications.local.medicineTitle"),
     medicineReminderBody(name),
     h,
     m,
-    MEDICINE_REMINDER_OPTIONS
+    medicineReminderOptions()
   );
 }
 
@@ -100,10 +102,10 @@ export function scheduleMeetingReminder(meetingId: number | string, title: strin
   const when = dayjs(meetingDateTime).subtract(MEETING_REMINDER_HOURS, "hour").toDate();
   return scheduleDateLocalNotification(
     meetingReminderId(meetingId),
-    "Buluşma Yaklaşıyor! ⏳",
+    i18n.t("notifications.local.meetingTitle"),
     meetingReminderBody(title),
     when,
-    MEETING_REMINDER_OPTIONS
+    meetingReminderOptions()
   );
 }
 
@@ -209,7 +211,7 @@ async function syncLetterUnlocks(scheduled: ScheduledMap) {
     keep.add(id);
     const body = letterUnlockBody(count);
     if (dateUpToDate(scheduled.get(id), body, when)) continue;
-    await scheduleDateLocalNotification(id, "Mühürlü Mektup 💌", body, when, LETTER_UNLOCK_OPTIONS);
+    await scheduleDateLocalNotification(id, i18n.t("notifications.local.letterTitle"), body, when, letterUnlockOptions());
   }
 
   await cancelOrphans(scheduled, LETTER_PREFIX, keep);

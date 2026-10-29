@@ -2,6 +2,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "../global.css";
 // Çok büyük sistem yazı boyutunda ekranlar bozulmasın: tüm metinlere büyüme sınırı koyar
 import "@/lib/fontScaleCap";
+// Çok dilli altyapı: cihaz dili / kayıtlı tercih algılanır, dayjs locale'i ayarlanır
+import "@/lib/i18n";
 import React, { useEffect, useEffectEvent, useRef } from "react";
 import { LogBox, TurboModuleRegistry } from "react-native";
 import Constants from "expo-constants";
@@ -22,6 +24,8 @@ import { navigateAfterAuth, releaseAuthFlow, setAuthFlowActive } from "@/lib/nav
 import { parseAppLink } from "@/lib/deepLinks";
 import { toast } from "@/lib/toast";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
+import { useLanguageReady } from "@/hooks/useLanguageReady";
+import { useTranslation } from "react-i18next";
 import { ToastHost } from "@/components/ui/ToastHost";
 import { OfflineBanner } from "@/components/ui/OfflineBanner";
 import { AppErrorScreen } from "@/components/ui/AppErrorScreen";
@@ -88,6 +92,8 @@ const queryClient = new QueryClient({
 function RootLayoutNav() {
   const { isSignedIn, isLoading, isDemoMode, exitDemoMode, refreshProfile } = useAuth();
   const { theme, isLight } = useTheme();
+  const { i18n } = useTranslation();
+  const languageReady = useLanguageReady();
 
   // Enforce role-based routing
   useProtectedRoute();
@@ -101,12 +107,18 @@ function RootLayoutNav() {
     Inter_800ExtraBold,
   });
 
-  // Hide splash as soon as auth state is resolved — don't wait for fonts
+  // Hide splash as soon as auth state and the saved language are resolved — don't wait for fonts
+  // (dil beklenmezse kayıtlı tercih okunana kadar ekran bir an yanlış dilde görünebilir)
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && languageReady) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [isLoading]);
+  }, [isLoading, languageReady]);
+
+  // Android bildirim kanallarının adları sistem ayarlarında görünür: dil değişince yeniden yazılır
+  useEffect(() => {
+    configureAndroidNotificationChannel();
+  }, [i18n.language]);
 
   // Safety fallback: yalnızca oturum çözümü takılırsa (ör. çok yavaş ağ) splash'ı zorla kapat.
   // Kısa tutulursa oturum henüz çözülmeden yanlış (demo/giriş) ekran bir an görünür.

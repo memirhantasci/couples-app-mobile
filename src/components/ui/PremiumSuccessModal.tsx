@@ -3,6 +3,7 @@ import { View, Text, Modal, StyleSheet, TouchableOpacity } from "react-native";
 import { CheckCircle, Crown, Image as ImageIcon, Mail, Infinity } from "lucide-react-native";
 import { BlurView } from "expo-blur";
 import { useTheme } from "@/context/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 interface PremiumSuccessModalProps {
   visible: boolean;
@@ -12,6 +13,7 @@ interface PremiumSuccessModalProps {
 }
 
 export function PremiumSuccessModal({ visible, onClose, subtitle }: PremiumSuccessModalProps) {
+  const { t } = useTranslation();
   // useTheme: seçili açık/koyu modu da yakalar (getTheme(profile?.gender) açık temada koyu stilde kalıyordu)
   const { theme, isLight } = useTheme();
 
@@ -29,9 +31,9 @@ export function PremiumSuccessModal({ visible, onClose, subtitle }: PremiumSucce
             </View>
           </View>
           
-          <Text style={[styles.title, { color: theme.text }]}>Tebrikler!</Text>
+          <Text style={[styles.title, { color: theme.text }]}>{t("common.congratulations")}</Text>
           <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-            {subtitle ?? "Artık Premium üyesiniz. Bütün sınırlar kalktı, aşkınızın tadını sınırsızca çıkarabilirsiniz."}
+            {subtitle ?? t("paywall.success.message")}
           </Text>
 
           <View style={styles.featuresContainer}>
@@ -40,8 +42,8 @@ export function PremiumSuccessModal({ visible, onClose, subtitle }: PremiumSucce
                 <Infinity color={theme.accent} size={20} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.featureTitle, { color: theme.text }]}>Sınırsız Kullanım</Text>
-                <Text style={[styles.featureDesc, { color: theme.textMuted }]}>Token derdi olmadan dilediğinizi yapın.</Text>
+                <Text style={[styles.featureTitle, { color: theme.text }]}>{t("paywall.success.unlimitedUse")}</Text>
+                <Text style={[styles.featureDesc, { color: theme.textMuted }]}>{t("paywall.success.unlimitedUseSub")}</Text>
               </View>
             </View>
 
@@ -50,8 +52,8 @@ export function PremiumSuccessModal({ visible, onClose, subtitle }: PremiumSucce
                 <ImageIcon color={theme.accent} size={20} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.featureTitle, { color: theme.text }]}>Sınırsız Fotoğraf</Text>
-                <Text style={[styles.featureDesc, { color: theme.textMuted }]}>Ortak galeriye dilediğiniz kadar anı ekleyin.</Text>
+                <Text style={[styles.featureTitle, { color: theme.text }]}>{t("paywall.success.unlimitedPhotos")}</Text>
+                <Text style={[styles.featureDesc, { color: theme.textMuted }]}>{t("paywall.success.unlimitedPhotosSub")}</Text>
               </View>
             </View>
 
@@ -60,8 +62,8 @@ export function PremiumSuccessModal({ visible, onClose, subtitle }: PremiumSucce
                 <Mail color={theme.accent} size={20} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.featureTitle, { color: theme.text }]}>Sınırsız Mektup</Text>
-                <Text style={[styles.featureDesc, { color: theme.textMuted }]}>Geleceğe dilediğiniz kadar mektup gönderin.</Text>
+                <Text style={[styles.featureTitle, { color: theme.text }]}>{t("paywall.success.unlimitedLetters")}</Text>
+                <Text style={[styles.featureDesc, { color: theme.textMuted }]}>{t("paywall.success.unlimitedLettersSub")}</Text>
               </View>
             </View>
           </View>
@@ -70,7 +72,7 @@ export function PremiumSuccessModal({ visible, onClose, subtitle }: PremiumSucce
             style={[styles.actionBtn, { backgroundColor: theme.accent }]} 
             onPress={onClose}
           >
-            <Text style={[styles.actionBtnText, { color: "#FFFFFF" }]}>Harika! Başla</Text>
+            <Text style={[styles.actionBtnText, { color: "#FFFFFF" }]}>{t("paywall.success.cta")}</Text>
           </TouchableOpacity>
 
         </View>

@@ -16,7 +16,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { logger } from "@/utils/logger";
 import { decode } from "base64-arraybuffer";
 import { Image as ImageIcon, X, Save, Menu, ImagePlus, ChevronLeft , AlignJustify} from "lucide-react-native";
-import { dayjs, todayString, formatDateTR } from "@/lib/date";
+import { dayjs, todayString, formatLongDate } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -27,11 +27,13 @@ import { useDemoAction } from "@/hooks/useDemoAction";
 import { useNotificationPriming } from "@/hooks/useNotificationPriming";
 import { toast } from "@/lib/toast";
 import { LazyPremiumPaywall, LazyDemoActionModal, LazyPermissionPrimingModal, LazyDateTimePickerSheet } from "@/components/ui/lazyMount";
+import { useTranslation } from "react-i18next";
 
 /** Yüklenen anı fotoğrafının en geniş kenarı (px); galeri yüklemesindeki tam boy ile aynı. */
 const MEMORY_IMAGE_MAX_WIDTH = 1600;
 
 export default function AddMemoryScreen() {
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams();
   const queryClient = useQueryClient();
@@ -77,8 +79,8 @@ export default function AddMemoryScreen() {
   async function pickImage() {
     if (executeOrIntercept(
       () => {},
-      "Özel Günlere Fotoğraf Eklemek İçin Kayıt Olun 📸",
-      "Özel gün ve yıldönümlerinize anı fotoğrafları eklemek için ücretsiz hesabınızı oluşturun."
+      t("memories.demo.addPhotoTitle"),
+      t("memories.demo.addPhotoDescription")
     )) {
       return;
     }
@@ -103,8 +105,8 @@ export default function AddMemoryScreen() {
   async function handleSave() {
     if (executeOrIntercept(
       () => {},
-      "Özel Gün Kaydetmek İçin Kayıt Olun 💖",
-      "Yıldönümleri ve özel günlerinizi kaydetmek ve geri sayım başlatmak için ücretsiz hesabınızı oluşturun."
+      t("memories.demo.saveTitle"),
+      t("memories.demo.saveDescription")
     )) {
       return;
     }
@@ -116,7 +118,7 @@ export default function AddMemoryScreen() {
     setErrors(newErrors);
 
     if (newErrors.title || newErrors.date) {
-      toast.warning("Lütfen bir başlık ve tarih girin.", { title: "Eksik bilgi" });
+      toast.warning(t("memories.add.titleAndDateRequired"), { title: t("common.missingInformation") });
       return;
     }
 
@@ -130,7 +132,7 @@ export default function AddMemoryScreen() {
       // Upload image if a new one was selected
       if (localImage) {
         if (localImage.fileSize && localImage.fileSize > 5 * 1024 * 1024) {
-           appAlert("Dosya Çok Büyük", "Lütfen 5 MB'dan daha küçük bir fotoğraf seçin.");
+           appAlert(t("memories.add.fileTooLargeTitle"), t("memories.add.fileTooLargeMessage"));
            setLoading(false);
            return;
         }
@@ -142,7 +144,7 @@ export default function AddMemoryScreen() {
           localImage.width > MEMORY_IMAGE_MAX_WIDTH ? [{ resize: { width: MEMORY_IMAGE_MAX_WIDTH } }] : [],
           { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true }
         );
-        if (!compressed.base64) throw new Error("Fotoğraf hazırlanamadı.");
+        if (!compressed.base64) throw new Error(t("memories.add.photoPrepFailed"));
         const contentType = 'image/jpeg';
         const fileExt = 'jpg';
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -209,12 +211,12 @@ export default function AddMemoryScreen() {
       // Yeni anı kaydedildiyse, uygunsa bildirim ön-onay kartını göster; yönlendirme kart kapanınca yapılır
       if (!isEditing && (await priming.maybePrompt())) return;
 
-      toast.success(isEditing ? "Özel gün güncellendi ✨" : "Özel gün kaydedildi ✨");
+      toast.success(isEditing ? t("memories.toasts.updated") : t("memories.toasts.saved"));
       router.replace("/(tabs)/memories");
     } catch (error: any) {
       logger.error("Memory save error:", error);
       if (uploadedPath) removeStoredFiles("memories", [uploadedPath]).catch(() => {});
-      appAlert("Hata", "Anı kaydedilirken bir hata oluştu.");
+      appAlert(t("common.error"), t("memories.add.saveFailed"));
     } finally {
       setLoading(false);
     }
@@ -248,7 +250,7 @@ export default function AddMemoryScreen() {
           <TouchableOpacity onPress={() => router.replace("/(tabs)/memories")} style={{ padding: 8, marginLeft: -8 }}>
             <ChevronLeft color={theme.text} size={28} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{isEditing ? "Anıyı Düzenle" : "Yeni Anı Ekle"}</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{isEditing ? t("memories.add.editTitle") : t("memories.add.newTitle")}</Text>
           <View style={{ width: 28 }} />
         </View>
 
@@ -262,7 +264,7 @@ export default function AddMemoryScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.textSecondary }, errors.title && { color: "red" }]}>Başlık</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }, errors.title && { color: "red" }]}>{t("home.meeting.titleLabel")}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: theme.unitBg, color: theme.text, borderColor: theme.cardBorder, borderWidth: 1 }, errors.title && { borderColor: "red" }]}
               value={title}
@@ -270,27 +272,27 @@ export default function AddMemoryScreen() {
                 setTitle(text);
                 setErrors(prev => ({ ...prev, title: false }));
               }}
-              placeholder="Örn: İlk Buluşmamız"
+              placeholder={t("memories.add.titlePlaceholder")}
               placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.4)"}
               maxLength={100}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.textSecondary }, errors.date && { color: "red" }]}>Tarih</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }, errors.date && { color: "red" }]}>{t("common.date")}</Text>
             <TouchableOpacity
               style={[styles.input, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder, borderWidth: 1 }, errors.date && { borderColor: "red" }]}
               onPress={() => setShowDatePicker(true)}
             >
               <Text style={{ color: date ? theme.text : (isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.4)") }}>
-                {date ? formatDateTR(date) : "Tarih Seçin"}
+                {date ? formatLongDate(date, i18n.language) : t("memories.add.selectDate")}
               </Text>
             </TouchableOpacity>
 
             <LazyDateTimePickerSheet
               visible={showDatePicker}
               mode="date"
-              title="Anı Tarihi"
+              title={t("memories.add.dateTitle")}
               value={date ? dayjs(date).toDate() : new Date()}
               onCancel={() => setShowDatePicker(false)}
               onConfirm={(selectedDate) => {
@@ -302,12 +304,12 @@ export default function AddMemoryScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>Açıklama (İsteğe bağlı)</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>{t("memories.add.descriptionLabel")}</Text>
             <TextInput
               style={[styles.input, styles.textArea, { backgroundColor: theme.unitBg, color: theme.text, borderColor: theme.cardBorder, borderWidth: 1 }]}
               value={description}
               onChangeText={setDescription}
-              placeholder="O güne dair hatırlamak istediklerin..."
+              placeholder={t("memories.add.descriptionPlaceholder")}
               placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.4)"}
               multiline
               maxLength={1000}
@@ -315,7 +317,7 @@ export default function AddMemoryScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>Fotoğraf (İsteğe bağlı)</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>{t("memories.add.photoLabel")}</Text>
             <TouchableOpacity style={[styles.imagePicker, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder, borderWidth: 1 }]} onPress={pickImage}>
               {localImage ? (
                 <Image source={{ uri: localImage.uri }} style={styles.previewImg} contentFit="cover" />
@@ -324,7 +326,7 @@ export default function AddMemoryScreen() {
               ) : (
                 <View style={styles.imagePlaceholder}>
                   <ImagePlus color={theme.textMuted} size={32} />
-                  <Text style={[styles.imagePlaceholderText, { color: theme.textMuted }]}>Galeriden Seç</Text>
+                  <Text style={[styles.imagePlaceholderText, { color: theme.textMuted }]}>{t("memories.add.chooseFromGallery")}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -340,7 +342,7 @@ export default function AddMemoryScreen() {
             ) : (
               <>
                 <Save color="#fff" size={20} />
-                <Text style={styles.saveBtnText}>Kaydet</Text>
+                <Text style={styles.saveBtnText}>{t("common.save")}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -350,8 +352,8 @@ export default function AddMemoryScreen() {
       <LazyPremiumPaywall
         visible={showPaywall}
         onClose={() => setShowPaywall(false)}
-        featureName="Fotoğraflı Özel Gün"
-        featureDescription="Özel günlerinize fotoğraf eklemek için Premium'a geçmeniz gerekmektedir."
+        featureName={t("memories.premium.featureName")}
+        featureDescription={t("memories.premium.featureDescription")}
         gender={profile?.gender}
       />
 

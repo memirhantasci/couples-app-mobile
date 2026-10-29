@@ -34,6 +34,7 @@ import {
   NotificationType,
   NOTIFICATION_THEMES,
 } from "@/types/notification";
+import { useTranslation } from "react-i18next";
 
 interface InAppNotificationBannerProps {
   notification: InAppNotificationData | null;
@@ -49,6 +50,7 @@ export const InAppNotificationBanner: React.FC<InAppNotificationBannerProps> = (
   onDismiss,
   onAction,
 }) => {
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -305,7 +307,7 @@ export const InAppNotificationBanner: React.FC<InAppNotificationBannerProps> = (
               <View style={styles.badgeTextWrapper}>
                 <View style={styles.badgeHeaderRow}>
                   <Text style={[styles.badgeTag, { color: themeConfig.accentColor }]}>
-                    {themeConfig.badgeLabel.toUpperCase()}
+                    {t(themeConfig.badgeLabelKey).toLocaleUpperCase(i18n.language)}
                   </Text>
                   <Sparkles size={11} color={themeConfig.accentColor} style={{ marginLeft: 4 }} />
                 </View>
@@ -350,7 +352,7 @@ export const InAppNotificationBanner: React.FC<InAppNotificationBannerProps> = (
               <View style={styles.medicineSnippet}>
                 <CheckCircle2 size={13} color="#34D399" />
                 <Text style={styles.medicineSnippetText} numberOfLines={1}>
-                  {notification.metadata.medicineName} dozu içildi
+                  {t("notifications.banner.doseTaken", { medicineName: notification.metadata.medicineName })}
                 </Text>
               </View>
             ) : null}
@@ -375,7 +377,7 @@ export const InAppNotificationBanner: React.FC<InAppNotificationBannerProps> = (
                   { color: themeConfig.accentColor },
                 ]}
               >
-                {notification.actionLabel || themeConfig.defaultActionLabel}
+                {notification.actionLabel || t(themeConfig.defaultActionLabelKey)}
               </Text>
               <ChevronRight size={14} color={themeConfig.accentColor} />
             </TouchableOpacity>

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from "react-native";
 import { Pill, Check, Flame } from "lucide-react-native";
 import type { AppTheme } from "@/lib/theme";
 import type { MedicineTab, WeeklyComplianceDay } from "./medicineTypes";
+import { useTranslation } from "react-i18next";
 
 interface MedicineStreakCardProps {
   theme: AppTheme;
@@ -20,6 +21,7 @@ export function MedicineStreakCard({
   weeklyCompliance,
   streakCount,
 }: MedicineStreakCardProps) {
+  const { t } = useTranslation();
   return (
     <View style={[styles.streakCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}>
       <View style={styles.streakHeader}>
@@ -29,12 +31,12 @@ export function MedicineStreakCard({
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.streakTitle, { color: theme.text }]}>
-              {streakCount > 0 ? `${streakCount} Günlük Seri! 🔥` : "Alışkanlık Serisi 💧"}
+              {streakCount > 0 ? t("medicine.streak.title", { count: streakCount }) : t("medicine.streak.habit")}
             </Text>
             <Text style={[styles.streakSub, { color: theme.textMuted }]}>
               {streakCount > 0
-                ? "Harika bir disiplin, aksatmadan devam ediyorsun!"
-                : (activeTab === "me" ? "İlaçlarını düzenli alarak seriyi başlat!" : "Sevgilinin ilaç takibi serisi")}
+                ? t("medicine.streak.great")
+                : (activeTab === "me" ? t("medicine.streak.startMine") : t("medicine.streak.partner"))}
             </Text>
           </View>
         </View>

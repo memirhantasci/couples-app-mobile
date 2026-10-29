@@ -8,6 +8,7 @@ import { dayjs } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
 import { SwipeDismissView } from "@/components/ui/SwipeDismissView";
 import type { CalendarPhotoItem } from "./calendarTypes";
+import { useTranslation } from "react-i18next";
 
 interface CalendarPhotoLightboxProps {
   /** `null` keeps the modal closed. */
@@ -19,6 +20,7 @@ interface CalendarPhotoLightboxProps {
 
 // ─── FOTOĞRAF TAM EKRAN (LIGHTBOX) MODALI ────────────────────────────────────
 export function CalendarPhotoLightbox({ photo, theme, getAuthorName, onClose }: CalendarPhotoLightboxProps) {
+  const { i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const topInset = useRealTopInset();
 
@@ -45,7 +47,7 @@ export function CalendarPhotoLightbox({ photo, theme, getAuthorName, onClose }: 
           <View style={styles.lightboxDatePill}>
             <CalendarIcon size={13} color={theme.accent} />
             <Text style={[styles.lightboxDateText, { color: theme.accent }]}>
-              {photo ? dayjs(photo.taken_date).locale("tr").format("DD MMMM YYYY") : ""}
+              {photo ? dayjs(photo.taken_date).locale(i18n.language).format("DD MMMM YYYY") : ""}
             </Text>
           </View>
 

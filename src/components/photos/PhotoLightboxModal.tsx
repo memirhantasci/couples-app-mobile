@@ -9,6 +9,7 @@ import type { AppTheme } from "@/lib/theme";
 import { SwipeDismissView } from "@/components/ui/SwipeDismissView";
 import { DialogHost } from "@/components/ui/DialogHost";
 import type { PhotoItem } from "./photoTypes";
+import { useTranslation } from "react-i18next";
 
 interface PhotoLightboxModalProps {
   /** `null` keeps the modal closed. */
@@ -33,6 +34,7 @@ export function PhotoLightboxModal({
   onNext,
   onDelete,
 }: PhotoLightboxModalProps) {
+  const { i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const topInset = useRealTopInset();
   const currentPhoto = selectedIndex !== null && photos[selectedIndex] ? photos[selectedIndex] : null;
@@ -123,7 +125,7 @@ export function PhotoLightboxModal({
               <View style={styles.lightboxDatePill}>
                 <Calendar size={13} color={theme.accent} />
                 <Text style={[styles.lightboxDateText, { color: theme.accent }]}>
-                  {dayjs(currentPhoto.taken_date).locale("tr").format("DD MMMM YYYY")}
+                  {dayjs(currentPhoto.taken_date).locale(i18n.language).format("DD MMMM YYYY")}
                 </Text>
                 {currentPhoto.taken_time ? (
                   <>

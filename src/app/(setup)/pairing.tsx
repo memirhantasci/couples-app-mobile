@@ -23,6 +23,7 @@ import { navigateAfterAuth } from "@/lib/navigate";
 import { isDefinitivePairingError, normalizePairingCode, translatePairingError } from "@/lib/pairingCode";
 import { useNotificationPriming } from "@/hooks/useNotificationPriming";
 import { PermissionPrimingModal } from "@/components/common/PermissionPrimingModal";
+import { useTranslation } from "react-i18next";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -54,6 +55,7 @@ async function fetchPairingStatus(): Promise<PairingStatus> {
 // ─── Pairing Screen ──────────────────────────────────────────────────────────
 
 export default function PairingScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -162,22 +164,22 @@ export default function PairingScreen() {
     if (!code) return;
     const inviteLink = `couplesapp://invite?code=${code}`;
     const shareMessage = [
-      "Sevgilim, ikimize özel küçük bir evren kurdum! 💌✨",
+      t("setup.pairing.share.greeting"),
       "",
-      "Eşleşme Kodumuz:",
+      t("setup.pairing.share.codeLabel"),
       code,
       "",
-      "Nasıl bağlanacağız?",
-      "1. Couples App'i aç",
-      "2. 'Eşleşme Kodu' alanına yukarıdaki kodu yapıştır",
-      "3. Veya doğrudan şu bağlantıya dokun:",
+      t("setup.pairing.share.howTitle"),
+      t("setup.pairing.share.step1"),
+      t("setup.pairing.share.step2"),
+      t("setup.pairing.share.step3"),
       inviteLink,
       "",
-      "Seni çok seviyorum ❤️",
+      t("setup.pairing.share.closing"),
     ].join("\n");
 
     await Share.share({
-      title: "Couples App Daveti 💕",
+      title: t("setup.pairing.share.title"),
       message: shareMessage,
       url: inviteLink,
     });
@@ -205,7 +207,7 @@ export default function PairingScreen() {
   async function handleSubmit() {
     const code = normalizePairingCode(inputCode);
     if (code.length < 4) {
-      setSubmitError("Geçerli bir eşleşme kodu gir.");
+      setSubmitError(t("setup.pairing.invalidCode"));
       return;
     }
     if (!userId) return;
@@ -252,7 +254,7 @@ export default function PairingScreen() {
                 marginBottom: 8,
               }}
             >
-              Sevgilinle Eşleş 💕
+              {t("setup.pairing.title")}
             </Text>
             <Text
               style={{
@@ -261,7 +263,7 @@ export default function PairingScreen() {
                 lineHeight: 22,
               }}
             >
-              Partnerinle bağlanmak için aşağıdaki 6 haneli kodunu paylaş veya partnerinin kodunu gir.
+              {t("setup.pairing.subtitle")}
             </Text>
           </View>
 
@@ -280,12 +282,12 @@ export default function PairingScreen() {
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Sparkles color="#FF4D6A" size={18} />
                 <Text style={{ color: "#FF4D6A", fontSize: 13, fontFamily: "Inter_700Bold", letterSpacing: 1 }}>
-                  SENİN EŞLEŞME KODUN
+                  {t("setup.pairing.yourCode")}
                 </Text>
               </View>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#10B981" }} />
-                <Text style={{ color: "#10B981", fontSize: 12, fontFamily: "Inter_600SemiBold" }}>Aktif</Text>
+                <Text style={{ color: "#10B981", fontSize: 12, fontFamily: "Inter_600SemiBold" }}>{t("setup.pairing.active")}</Text>
               </View>
             </View>
 
@@ -312,10 +314,10 @@ export default function PairingScreen() {
                   letterSpacing: 8,
                 }}
               >
-                {activePairingCode ?? "KOD ALINIYOR"}
+                {activePairingCode ?? t("setup.pairing.fetchingCode")}
               </Text>
               <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 4 }}>
-                (Kopyalamak için dokun)
+                {t("setup.pairing.tapToCopy")}
               </Text>
             </TouchableOpacity>
 
@@ -341,14 +343,14 @@ export default function PairingScreen() {
                   <>
                     <Check color="#10B981" size={16} />
                     <Text style={{ color: "#10B981", fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
-                      Kopyalandı ✨
+                      {t("common.copied")}
                     </Text>
                   </>
                 ) : (
                   <>
                     <Copy color="rgba(255,255,255,0.8)" size={16} />
                     <Text style={{ color: "#FFFFFF", fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
-                      Kodu Kopyala
+                      {t("setup.pairing.copyCode")}
                     </Text>
                   </>
                 )}
@@ -374,14 +376,14 @@ export default function PairingScreen() {
                   <>
                     <Check color="#10B981" size={16} />
                     <Text style={{ color: "#10B981", fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
-                      Kopyalandı ✨
+                      {t("common.copied")}
                     </Text>
                   </>
                 ) : (
                   <>
                     <Link color="rgba(255,255,255,0.8)" size={16} />
                     <Text style={{ color: "#FFFFFF", fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
-                      Bağlantıyı Kopyala
+                      {t("setup.pairing.copyLink")}
                     </Text>
                   </>
                 )}
@@ -410,7 +412,7 @@ export default function PairingScreen() {
             >
               <Share2 color="#FFFFFF" size={18} />
               <Text style={{ color: "#FFFFFF", fontFamily: "Inter_700Bold", fontSize: 15 }}>
-                Sevgilini Davet Et (Paylaş) 💕
+                {t("setup.pairing.invite")}
               </Text>
             </TouchableOpacity>
 
@@ -418,7 +420,7 @@ export default function PairingScreen() {
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center" }}>
               <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#FF4D6A" }} />
               <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
-                Partnerin bekleniyor (bağlantıyı açtığında otomatik algılanır)...
+                {t("setup.pairing.waiting")}
               </Text>
             </View>
           </View>
@@ -435,10 +437,10 @@ export default function PairingScreen() {
             }}
           >
             <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "700", marginBottom: 6 }}>
-              Partnerinin Kodunu Gir
+              {t("setup.pairing.enterTitle")}
             </Text>
             <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginBottom: 18 }}>
-              Onun ekranında görünen 6 haneli kodu buraya yaz.
+              {t("setup.pairing.enterHint")}
             </Text>
 
             <TextInput
@@ -501,7 +503,7 @@ export default function PairingScreen() {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>
-                  Eşleş
+                  {t("setup.pairing.submit")}
                 </Text>
               )}
             </TouchableOpacity>
@@ -519,12 +521,12 @@ export default function PairingScreen() {
             }}
           >
             <Text style={{ color: "#FFFFFF", fontSize: 14.5, fontFamily: "Inter_700Bold", marginBottom: 12 }}>
-              Partnerin Katıldığında Neler Açılacak? ✨
+              {t("setup.pairing.unlocksTitle")}
             </Text>
             {[
-              "⏳ Ortak Aşk Sayacınız ve özel yıldönümü bildirimleriniz",
-              "💌 Birbirinize özel mühürlü mektuplar ve origami animasyonu",
-              "📸 Birlikte gezdiğiniz yerlerin haritası ve ortak anı albümünüz",
+              t("setup.pairing.unlock1"),
+              t("setup.pairing.unlock2"),
+              t("setup.pairing.unlock3"),
             ].map((item, index) => (
               <Text
                 key={item}
@@ -563,7 +565,7 @@ export default function PairingScreen() {
           >
             <Sparkles color="#FF4D6A" size={18} />
             <Text style={{ color: "#FF4D6A", fontSize: 14, fontFamily: "Inter_700Bold" }}>
-              Uygulamayı Demo Modunda Keşfet ✨
+              {t("setup.pairing.exploreDemo")}
             </Text>
           </TouchableOpacity>
           <Text
@@ -576,7 +578,7 @@ export default function PairingScreen() {
               marginBottom: 16,
             }}
           >
-            (Partnerini beklerken uygulamanın tüm özelliklerini demo çiftiyle güvenle keşfedebilirsin).
+            {t("setup.pairing.exploreDemoHint")}
           </Text>
 
           {/* ─── 5. ÇIKIŞ / GERİ DÖN BUTONU ─── */}
@@ -599,7 +601,7 @@ export default function PairingScreen() {
           >
             <LogOut color="rgba(255,255,255,0.4)" size={16} />
             <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 13.5, fontWeight: "600" }}>
-              Giriş Ekranına Dön
+              {t("auth.reset.backToSignIn")}
             </Text>
           </TouchableOpacity>
         </ScrollView>

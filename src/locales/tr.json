@@ -1,0 +1,2931 @@
+{
+  "auth": {
+    "welcome": {
+      "subtitle": "Aşkınızı belgelemenin ve büyütmenin en romantik yolu. Anılarınız, mektuplarınız ve yıldızınız yalnızca ikinize ait.",
+      "exploreA11y": "Uygulamayı örnek verilerle keşfet",
+      "explore": "Uygulamayı Keşfet (Demo)",
+      "exploreHint": "Demo, örnek verilerle gezdirir; hesabınız ya da verileriniz değildir."
+    },
+    "createAccount": "Hesap Oluştur",
+    "signIn": "Giriş Yap",
+    "deletion": {
+      "pendingTitle": "Hesabın silinmek üzere",
+      "pendingMessage": "Bu hesap için silme talebi var: hesabın ve ilişkinize ait tüm veriler {{deletionDay}} tarihinde kalıcı olarak silinecek.\n\nHesabını kullanmaya devam etmek istiyorsan silmeyi iptal et.",
+      "cancel": "Silmeyi İptal Et",
+      "cancelFailed": "Silme iptal edilemedi. Bağlantını kontrol edip tekrar dene.",
+      "canceled": "Silme işlemi iptal edildi. Tekrar hoş geldin 💕"
+    },
+    "signOut": "Çıkış Yap",
+    "login": {
+      "legalNotice": "Giriş yaparak <terms>Kullanım Koşulları</terms>, <privacy>Gizlilik Politikası</privacy> ve <kvkk>KVKK Metni</kvkk>’ni kabul etmiş sayılırsınız.",
+      "tagline": "Aşkınızı belgelemenin ve büyütmenin en romantik yolu.",
+      "taglineSub": "Birlikte unutulmaz anılar biriktirmek için ilk adımı atın.",
+      "identifierLabel": "E-POSTA VEYA KULLANICI ADI",
+      "identifierPlaceholder": "ornek@gmail.com veya kullanıcı adı",
+      "forgotPassword": "Şifremi Unuttum?",
+      "googleSignIn": "Google ile Giriş Yap",
+      "googleContinue": "Google ile Devam Et"
+    },
+    "register": {
+      "legalNotice": "Hesap Oluştur’a ya da Apple / Google ile devam etmeye dokunarak <terms>Kullanım Koşulları</terms>, <privacy>Gizlilik Politikası</privacy> ve <kvkk>KVKK Aydınlatma Metni</kvkk>’ni kabul etmiş sayılırsınız.",
+      "successCode": "Kayıt başarılı! Doğrulama kodunuz gönderildi.",
+      "successSigningIn": "Kayıt başarılı! Giriş yapılıyor...",
+      "inviteTitle": "Sevgilinin Davetiyle Katılıyorsun 💕",
+      "inviteSub": "Eşleşme kodun ({{code}}) otomatik tanımlandı. Kayıt tamamlandığında kod girmene gerek kalmadan doğrudan sevgilinle eşleşeceksin!",
+      "nameLabel": "AD SOYAD",
+      "namePlaceholder": "Örn. Selin Yılmaz",
+      "usernameLabel": "KULLANICI ADI",
+      "passwordPlaceholder": "En az 6 karakter",
+      "genderLabel": "CİNSİYETİNİZ",
+      "genderFemale": "Kadın ♀",
+      "genderMale": "Erkek ♂",
+      "pairingCodeLabel": "EŞLEŞME KODU (İSTEĞE BAĞLI)",
+      "pairingCodePlaceholder": "Örn. X7Y9Z2"
+    },
+    "codeSentTo": "<email>{{email}}</email> adresine kod gönderdik",
+    "errors": {
+      "deviceCodeFailed": "Cihaz doğrulama kodu gönderilemedi: {{message}}",
+      "sessionMissing": "Oturum bilgisi alınamadı. Lütfen tekrar deneyin.",
+      "signInFailed": "Oturum açılamadı. Lütfen tekrar deneyin.",
+      "lockout_one": "Çok fazla başarısız deneme. {{count}} saniye bekle.",
+      "lockout_other": "Çok fazla başarısız deneme. {{count}} saniye bekle.",
+      "emailNotVerified": "E-posta adresiniz henüz doğrulanmamış.",
+      "identifierRequired": "Kullanıcı adı veya e-posta gerekli.",
+      "passwordRequired": "Şifre gerekli.",
+      "wrongEmailOrPassword": "E-posta veya şifre hatalı.",
+      "tooManyAttempts": "Çok fazla deneme yapıldı. Lütfen birkaç dakika sonra tekrar dene.",
+      "signInUnavailable": "Giriş şu anda yapılamıyor. Bağlantını kontrol edip tekrar dene.",
+      "wrongUsernameOrPassword": "Kullanıcı adı veya şifre hatalı.",
+      "displayNameRequired": "Görünen isim gerekli.",
+      "displayNameTooLong": "Görünen isim en fazla {{max}} karakter olabilir.",
+      "usernameTooShort": "Kullanıcı adı en az 3 karakter olmalı.",
+      "usernameInvalidChars": "Kullanıcı adı yalnızca a-z harfleri, rakam ve _ içerebilir.",
+      "emailInvalid": "Geçerli bir e-posta girin.",
+      "passwordTooShort": "Şifre en az 6 karakter olmalı.",
+      "usernameCheckFailed": "Kullanıcı adı kontrol edilemedi. Lütfen tekrar dene.",
+      "usernameTaken": "Bu kullanıcı adı zaten alınmış.",
+      "emailTaken": "Bu e-posta zaten kayıtlı.",
+      "usernameJustTaken": "Bu kullanıcı adı az önce alındı. Lütfen başka bir kullanıcı adı dene.",
+      "registerFailed": "Kayıt başarısız.",
+      "noEmailForVerification": "Hesabınızda doğrulama için e-posta adresi bulunamadı.",
+      "signInLinkFailed": "Giriş bağlantısı oluşturulamadı.",
+      "googleFailed": "Google ile giriş yapılırken bir sorun oluştu.",
+      "appleNotCompleted": "Apple kimlik doğrulaması tamamlanamadı.",
+      "appleFailed": "Apple ile giriş yapılırken bir sorun oluştu.",
+      "emailNotFound": "E-posta adresi bulunamadı.",
+      "tooManyAttemptsPolite": "Çok fazla deneme yapıldı. Lütfen birkaç dakika sonra tekrar deneyin.",
+      "noSession": "Oturum bulunamadı. Lütfen tekrar giriş yapın."
+    },
+    "verifyDevice": {
+      "sendFailedWithMessage": "Kod gönderilemedi: {{message}}",
+      "codeIncomplete": "Lütfen 6 haneli kodu eksiksiz girin.",
+      "codeInvalid": "Geçersiz veya süresi dolmuş kod.",
+      "resent": "Yeni doğrulama kodu e-postanıza gönderildi.",
+      "resentTitle": "Kod gönderildi",
+      "resendError": "Kod gönderilirken bir hata oluştu.",
+      "title": "Yeni Cihaz Doğrulaması",
+      "submit": "Cihazı Onayla ve Giriş Yap",
+      "sending": "Gönderiliyor...",
+      "resendCountdown": "Kodu tekrar gönder ({{seconds}}s)",
+      "resend": "Kodu tekrar gönder"
+    },
+    "completeProfile": {
+      "saveFailed": "Profil kaydedilemedi: {{message}}",
+      "nameRequired": "Lütfen partnerine görünecek ismini yaz.",
+      "genderRequired": "Lütfen cinsiyetini seç.",
+      "recordNotFound": "Profil kaydı bulunamadı.",
+      "title": "Seni Nasıl Tanıyalım? ✨",
+      "subtitle": "Partnerine görüneceğin ismi ve uygulamanın temasını belirleyelim.",
+      "nameLabel": "PARTNERİNE GÖRÜNECEK İSİM",
+      "namePlaceholder": "Örn. Selin",
+      "hintSuggested": "Hesabından aldık — istediğin gibi değiştirebilirsin.",
+      "hintChangeLater": "İstediğin zaman profilinden değiştirebilirsin.",
+      "genderLabel": "CİNSİYETİN",
+      "useAnotherAccount": "Farklı bir hesapla devam et"
+    },
+    "signUp": "Kayıt Ol",
+    "passwordLabel": "ŞİFRE",
+    "exploreDemoMode": "Uygulamayı Keşfet (Demo Modu)",
+    "verify": {
+      "linkInvalid": "Bağlantı geçersiz veya süresi dolmuş. Lütfen tekrar e-posta iste.",
+      "codeIncomplete": "Lütfen 6 haneli kodu eksiksiz gir.",
+      "emailMissing": "E-posta bilgisi eksik. Lütfen tekrar dene.",
+      "codeInvalid": "Kod hatalı veya süresi dolmuş. Lütfen tekrar dene.",
+      "resendFailed": "Kod gönderilemedi. Lütfen tekrar dene.",
+      "resent": "Yeni doğrulama kodu e-postana gönderildi.",
+      "resentTitle": "Gönderildi!",
+      "verifying": "Doğrulanıyor...",
+      "title": "E-postanı Doğrula",
+      "submit": "Doğrula",
+      "noCode": "Kod gelmedi mi?",
+      "resend": "Tekrar Gönder"
+    },
+    "codeSentGeneric": "E-posta adresinize kod gönderdik",
+    "forgot": {
+      "identifierRequired": "Lütfen kullanıcı adınızı ya da e-posta adresinizi girin.",
+      "sendFailed": "Kod gönderilemedi. Bağlantını kontrol edip tekrar dene.",
+      "title": "Şifreni mi Unuttun?",
+      "subtitle": "Endişelenme, sana yardımcı olacağız. Kullanıcı adını ya da e-posta adresini girerek başlayabilirsin.",
+      "identifierLabel": "Kullanıcı Adı veya E-posta",
+      "identifierPlaceholder": "kullaniciadi veya ornek@mail.com",
+      "submit": "Kod Gönder"
+    },
+    "reset": {
+      "codeRequired": "Lütfen doğrulama kodunu girin.",
+      "passwordTooShort": "Şifreniz en az 6 karakter olmalı.",
+      "mismatch": "Şifreler eşleşmiyor.",
+      "restart": "Lütfen şifre sıfırlamayı baştan başlat.",
+      "codeInvalid": "Kod geçersiz ya da süresi dolmuş.",
+      "updateFailed": "Şifre güncellenirken bir hata oluştu.",
+      "successTitle": "Şifreniz Güncellendi!",
+      "successMessage": "Artık yeni şifrenizle giriş yapabilirsiniz.",
+      "backToSignIn": "Giriş Ekranına Dön",
+      "title": "Yeni Şifre Belirle",
+      "subtitle": "Bu bilgilerle bir hesap varsa kayıtlı e-postana bir doğrulama kodu gönderdik. Kodu ve yeni şifreni gir.",
+      "codeLabel": "Doğrulama Kodu",
+      "newPassword": "Yeni Şifre",
+      "newPasswordPlaceholder": "Yeni şifreniz",
+      "confirmPassword": "Şifreyi Tekrar Gir",
+      "confirmPlaceholder": "Yeni şifrenizi doğrulayın",
+      "submit": "Şifreyi Güncelle"
+    }
+  },
+  "notifications": {
+    "push": {
+      "letterDeleteResponse": {
+        "approvedWithTitle": "\"{{letterTitle}}\" mektubunun silinmesine izin verdi.",
+        "approved": "Mektubunun silinmesine izin verdi.",
+        "keepWithTitle": "\"{{letterTitle}}\" mektubunun saklanmasını istedi 💛",
+        "keep": "Mektubunun saklanmasını istedi 💛",
+        "subtitle": "Mektup Silme İsteği"
+      },
+      "medicine": {
+        "drankWithName": "{{medicineName}} ilacını içti. İçin rahat olsun! 🌿",
+        "drank": "İlacını içti. İçin rahat olsun! 🌿",
+        "dueWithName": "{{medicineName}} ilacını içme zamanı geldi! ⏰",
+        "due": "İlacını içme zamanı geldi! ⏰"
+      },
+      "letter": {
+        "subtitle": "Yeni Mektup",
+        "bodyWithTitle": "Sana mühürlü bir mektup bıraktı: \"{{letterTitle}}\" 📜",
+        "body": "Sana mühürlü bir mektup bıraktı 📜"
+      },
+      "letterDeleteRequest": {
+        "subtitle": "Mektup Silme Onayı",
+        "bodyWithTitle": "\"{{letterTitle}}\" mektubunun silinmesi için onayını istiyor. Sen onay vermeden silinmez.",
+        "body": "Bir mektubunun silinmesi için onayını istiyor. Sen onay vermeden silinmez."
+      },
+      "memory": {
+        "subtitle": "Yeni Anı",
+        "bodyWithTitle": "Yeni bir anı ekledi: \"{{memoryTitle}}\" 💕"
+      },
+      "gallery": {
+        "subtitle": "Ortak Galeri",
+        "bodyWithText": "Yeni bir anı ekledi: {{text}}",
+        "body": "Ortak galeriye yeni bir anı fotoğrafı ekledi ✨"
+      },
+      "mood": {
+        "subtitle": "Ruh Hali",
+        "body": "Bugün kendini {{emoji}} hissediyor."
+      },
+      "map": {
+        "subtitle": "Aşk Haritası",
+        "body": "Haritaya senin için yeni bir anı notu bıraktı 🗺️"
+      },
+      "meeting": {
+        "updatedSubtitle": "Buluşma Güncellendi",
+        "planSubtitle": "Buluşma Planı",
+        "updatedAction": "Buluşma planını güncelledi",
+        "plannedAction": "Yeni bir buluşma planladı"
+      },
+      "period": {
+        "subtitle": "Özel Gün",
+        "body": "Regl dönemi başladı. Ona biraz daha özen gösterme zamanı! 💕"
+      },
+      "pairing": {
+        "subtitle": "Eşleşme Tamamlandı",
+        "body": "Partnerin katıldı! Birlikte harika anılar biriktirmeye hazırsınız ✨"
+      },
+      "accountDeletion": {
+        "subtitle": "Hesap Silme",
+        "body": "Hesabını silme talebinde bulundu."
+      }
+    },
+    "labels": {
+      "medicineTracking": "İlaç Takibi",
+      "cycleTracking": "Döngü Takibi"
+    },
+    "actions": {
+      "goToMedicine": "İlaç Takibine Git 💊",
+      "viewPlan": "Planı Gör 🗓️",
+      "openLetter": "Mektubu Aç 📜",
+      "goToLetters": "Mektuplara Git 💌",
+      "goToMemories": "Anılara Git 📸",
+      "goToMap": "Haritaya Git 🗺️",
+      "goToCycle": "Döngü Takibine Git 🌸",
+      "goToHome": "Ana Sayfaya Git ✨",
+      "goToMeetings": "Buluşmalara Git 🗓️",
+      "letsStart": "Birlikte Başlayalım ✨",
+      "view": "Görüntüle ❤️"
+    },
+    "local": {
+      "meetingSoon": "Buluşma Yaklaşıyor",
+      "letterUnlocked": "Kilit Açıldı",
+      "medicineBody": "{{name}} ilacını alma vakti geldi. Kendine iyi bak 💙",
+      "meetingBody": "\"{{title}}\" buluşmanıza {{hours}} saat kaldı. Hazırlıklar tamam mı? 💕",
+      "letterUnlockMany": "Bugün {{count}} mektubunun kilidi açıldı! Açmak için dokun 📜",
+      "letterUnlockOne": "Bugün bir mektubunun kilidi açıldı! Açmak için dokun 📜",
+      "medicineTitle": "İlaç Vakti 💧",
+      "meetingTitle": "Buluşma Yaklaşıyor! ⏳",
+      "letterTitle": "Mühürlü Mektup 💌"
+    },
+    "channels": {
+      "general": "Genel Bildirimler ❤️",
+      "partnerMessages": "Sevgilinden Mesajlar & Anılar ❤️",
+      "medicine": "İlaç & Sağlık 💊"
+    },
+    "types": {
+      "letter": {
+        "badge": "Mühürlü Mektup"
+      },
+      "medicine": {
+        "badge": "İlacını İçti!"
+      },
+      "medicineReminder": {
+        "badge": "İlaç Vakti Geldi"
+      },
+      "photo": {
+        "badge": "Yeni Bir Anı"
+      },
+      "map": {
+        "badge": "Haritada Aşk Notu"
+      },
+      "period": {
+        "badge": "Şefkat & Özen Zamanı"
+      },
+      "mood": {
+        "badge": "Ruh Hali Güncellemesi"
+      },
+      "meeting": {
+        "badge": "Buluşma Planı"
+      },
+      "pairing": {
+        "badge": "Eşleşme Tamamlandı"
+      },
+      "general": {
+        "badge": "Çift Bildirimi"
+      }
+    },
+    "demo": {
+      "letter": {
+        "title": "Gelecekten Bir Mektup 💌",
+        "body": "Sevgilin senin için kalpten bir mektup mühürledi. Açmak için dokun!",
+        "letterTitle": "Birlikte Yaşlanacağımız Günlere..."
+      },
+      "medicine": {
+        "title": "İlacını İçti! 💊✨",
+        "body": "Sevgilin sabah vitaminini içti. İçin rahat olsun, sağlığına dikkat ediyor! 🌿",
+        "medicineName": "B12 & Omega Vitamini"
+      },
+      "medicineReminder": {
+        "body": "Günün sağlık dozu vakti geldi. Bir bardak suyla almayı unutma!",
+        "medicineName": "Günlük Vitamin"
+      },
+      "photo": {
+        "title": "Yeni Bir Anı 📸",
+        "body": "Sevgilin albümünüze yeni bir fotoğraf ekledi. Anının detaylarına göz at!"
+      },
+      "map": {
+        "title": "Haritada Yeni Bir Aşk Notu 💌",
+        "body": "Sevgilin Kadıköy Sahili'ne gizli bir aşk notu bıraktı: 'Seni ilk gördüğüm yer...'"
+      },
+      "period": {
+        "title": "Regl Dönemi Başladı 🌸",
+        "body": "Sevgilinin döngüsü başladı. Ona biraz daha özen gösterme zamanı!"
+      },
+      "mood": {
+        "title": "Ruh Hali Güncellendi 🥰",
+        "body": "Sevgilin 'Seni Çok Özledim' modunu seçti! Günün anını birlikte paylaşın."
+      },
+      "meeting": {
+        "title": "Yeni Bir Buluşma Planı 🗓️",
+        "body": "Hafta sonu için romantik akşam yemeği planı oluşturuldu!"
+      },
+      "general": {
+        "title": "Seni Çok Seviyorum ❤️",
+        "body": "Günün her anında aklımdasın!"
+      }
+    },
+    "fallbackTitle": "Bildirim",
+    "banner": {
+      "doseTaken": "{{medicineName}} dozu içildi"
+    },
+    "priming": {
+      "benefit1": "Sevgilinden mektup geldiğinde anında haberin olsun",
+      "benefit2": "Paylaştığı yeni anıları ilk sen gör",
+      "benefit3": "Özel günleri ve hatırlatmaları kaçırma",
+      "title": "Hiçbir Anı Kaçırma ✨",
+      "description": "Sevgilin sana bir şey bıraktığında sana hemen fısıldayalım. Bildirimleri istediğin zaman ayarlardan kapatabilirsin.",
+      "enable": "Bildirimleri Aç ❤️"
+    },
+    "showcase": {
+      "letter": {
+        "title": "Mühürlü Aşk Mektubu 💌",
+        "subtitle": "Gelecekten Bir Mektup Geldiğinde",
+        "description": "Altın varaklı mühür rozeti, parşömen ışıltısı ve doğrudan 'Mektuplara Git' butonu içeren romantik tasarım."
+      },
+      "medicine": {
+        "subtitle": "Partner İlacını Aldığında",
+        "description": "Zümrüt yeşili & nane temalı, su damlası rozeti ve doğrudan 'İlaç Takibine Git' butonu içeren sağlık tasarımı."
+      },
+      "reminder": {
+        "title": "İlaç Vakti Geldi 💧",
+        "subtitle": "Günlük Hatırlatıcı Kurulduğunda",
+        "description": "Mavi gök tonlarında saat ve su uyarısı içeren, doğrudan ilaç sayfasına yönlendiren hatırlatıcı kartı."
+      },
+      "photo": {
+        "title": "Yeni Bir Anı & Fotoğraf 📸",
+        "subtitle": "Ortak Albüme Fotoğraf Eklendiğinde",
+        "description": "Polaroid çerçeve hissi veren, gün batımı tonlarında parıltılı fotoğraf bildirimi."
+      },
+      "map": {
+        "title": "Haritada Aşk Notu 📍",
+        "subtitle": "Bir Konuma Gizli Not Bırakıldığında",
+        "description": "Büyüleyici lavanta-gece mavisi tonlarında, konum pini ve harita keşif kartı."
+      },
+      "period": {
+        "title": "Regl & Şefkat Desteği 🌸",
+        "subtitle": "Döngü Başlangıcı Paylaşıldığında",
+        "description": "Yumuşak pembe, nilüfer çiçeği ve doğrudan 'Döngü Takibine Git' butonu sunan özel bakım bildirimi."
+      },
+      "mood": {
+        "title": "Ruh Hali Güncellemesi ✨",
+        "subtitle": "Partner Günün Modunu Seçtiğinde",
+        "description": "Güneş sarısı ışıltısı ve 'Ana Sayfaya Git' butonu içeren ruh hali kartı."
+      },
+      "heading": "ÖZEL BİLDİRİM TASARIMLARI",
+      "title": "Bildirim Görsel Vitrini ✨",
+      "subtitle": "Aşağıdaki tasarımlara dokunarak canlı bildirim kartlarını test edin.",
+      "tryLive": "Bu Bildirimi Canlı Göster"
+    }
+  },
+  "setup": {
+    "errors": {
+      "datesSaveFailedWithMessage": "Tarihler kaydedilirken bir hata oluştu: {{message}}",
+      "generic": "Bir hata oluştu, lütfen tekrar deneyin.",
+      "invalidCode": "Bu kodla bekleyen bir partner bulunamadı. Kodu partnerinin ekranından harf harf kontrol et.",
+      "codeUnavailable": "Bu kod artık kullanılamıyor; sahibi başka biriyle eşleşmiş.",
+      "selfCode": "Bu senin kendi kodun. Partnerinin ekranındaki kodu girmelisin.",
+      "alreadyPaired": "Zaten partnerinle eşleşmiş durumdasın.",
+      "pairingFailed": "Eşleşme işlemi tamamlanamadı, lütfen tekrar deneyin.",
+      "datesSaveFailed": "Tarihler kaydedilemedi. Lütfen tekrar deneyin.",
+      "pairingInfoMissing": "Eşleşme bilgisi alınamadı. Lütfen tekrar dene.",
+      "futureDate": "Gelecek bir tarih seçemezsiniz.",
+      "meetAfterRelationship": "Tanışma tarihi, sevgili olma tarihinden sonra olamaz.",
+      "relationshipDateRequired": "Lütfen sevgililik tarihinizi belirleyin.",
+      "datesChangeLimit": "Bu dönemki tarih değişikliği haklarınızı kullandınız."
+    },
+    "dates": {
+      "partnerSavedToast": "Partnerin ilişki tarihinizi {{date}} olarak kaydetti; sayacınız bu günden başladı. Yanlışsa Profil › İlişki Tarihleri'nden düzeltebilirsiniz.",
+      "partnerSavedTitle": "Tarihiniz belirlendi 💕",
+      "meetFuture": "Tanışma tarihi gelecekte olamaz.",
+      "title": "İlişki Tarihleriniz",
+      "subtitle": "Bu özel günleri birlikte sayalım ve asla unutmayalım.",
+      "relationshipLabel": "Sevgili Olma Tarihi / Yıl Dönümü 💕",
+      "relationshipHint": "Birlikteliğinizin başladığı gün",
+      "meetLabel": "Tanışma Tarihi (İsteğe Bağlı) ✨",
+      "meetHint": "İlk buluştuğunuz o eşsiz an",
+      "meetDay": "Tanışma günü",
+      "meetOptionalNote": "Henüz tam günü hatırlamıyorsanız boş bırakabilirsiniz.",
+      "submit": "Başla & Kaydet",
+      "later": "Daha Sonra Belirle",
+      "meetPickerTitle": "Tanışma Tarihi",
+      "relationshipPickerTitle": "Sevgili Olma Tarihi"
+    },
+    "pairing": {
+      "share": {
+        "greeting": "Sevgilim, ikimize özel küçük bir evren kurdum! 💌✨",
+        "codeLabel": "Eşleşme Kodumuz:",
+        "howTitle": "Nasıl bağlanacağız?",
+        "step1": "1. Couples App'i aç",
+        "step2": "2. 'Eşleşme Kodu' alanına yukarıdaki kodu yapıştır",
+        "step3": "3. Veya doğrudan şu bağlantıya dokun:",
+        "closing": "Seni çok seviyorum ❤️",
+        "title": "Couples App Daveti 💕"
+      },
+      "invalidCode": "Geçerli bir eşleşme kodu gir.",
+      "title": "Sevgilinle Eşleş 💕",
+      "subtitle": "Partnerinle bağlanmak için aşağıdaki 6 haneli kodunu paylaş veya partnerinin kodunu gir.",
+      "yourCode": "SENİN EŞLEŞME KODUN",
+      "active": "Aktif",
+      "fetchingCode": "KOD ALINIYOR",
+      "tapToCopy": "(Kopyalamak için dokun)",
+      "copyCode": "Kodu Kopyala",
+      "copyLink": "Bağlantıyı Kopyala",
+      "invite": "Sevgilini Davet Et (Paylaş) 💕",
+      "waiting": "Partnerin bekleniyor (bağlantıyı açtığında otomatik algılanır)...",
+      "enterTitle": "Partnerinin Kodunu Gir",
+      "enterHint": "Onun ekranında görünen 6 haneli kodu buraya yaz.",
+      "submit": "Eşleş",
+      "unlocksTitle": "Partnerin Katıldığında Neler Açılacak? ✨",
+      "unlock1": "⏳ Ortak Aşk Sayacınız ve özel yıldönümü bildirimleriniz",
+      "unlock2": "💌 Birbirinize özel mühürlü mektuplar ve origami animasyonu",
+      "unlock3": "📸 Birlikte gezdiğiniz yerlerin haritası ve ortak anı albümünüz",
+      "exploreDemo": "Uygulamayı Demo Modunda Keşfet ✨",
+      "exploreDemoHint": "(Partnerini beklerken uygulamanın tüm özelliklerini demo çiftiyle güvenle keşfedebilirsin)."
+    }
+  },
+  "common": {
+    "ok": "Tamam",
+    "cancel": "Vazgeç",
+    "confirm": "Onayla",
+    "partnerFallback": "Sevgilin",
+    "error": "Hata",
+    "close": "Kapat",
+    "tryAgain": "Tekrar Dene",
+    "continue": "Devam Et",
+    "offlineBanner": "Bağlantı yok · Kayıtlı veriler gösteriliyor",
+    "gender": {
+      "female": "Kadın",
+      "male": "Erkek"
+    },
+    "copied": "Kopyalandı ✨",
+    "userFallback": "Kullanıcı",
+    "you": "Sen",
+    "openMenu": "Menüyü aç",
+    "save": "Kaydet",
+    "getDirections": "Yol Tarifi Al",
+    "seeAll": "Tümünü Gör",
+    "today": "Bugün",
+    "cancelAction": "İptal",
+    "back": "Geri",
+    "missingInfo": "Eksik Bilgi",
+    "discoverPremium": "Premium'u Keşfet",
+    "missingInformation": "Eksik bilgi",
+    "unauthorizedTitle": "Yetkisiz İşlem",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "update": "Güncelle",
+    "title": "Başlık",
+    "date": "Tarih",
+    "reset": "Sıfırla",
+    "required": "Zorunlu",
+    "congratulations": "Tebrikler!",
+    "loading": "Yükleniyor...",
+    "or": "veya",
+    "gotIt": "Anladım",
+    "confirmAndSave": "Onayla ve Kaydet",
+    "yourPartner": "Partnerin",
+    "warning": "Uyarı",
+    "info": "Bilgi",
+    "yesterday": "Dün",
+    "next": "Sonraki",
+    "forward": "İleri",
+    "partner": "Partner"
+  },
+  "permissions": {
+    "notNow": "Şimdi Değil",
+    "openSettings": "Ayarları Aç",
+    "requiredTitle": "İzin Gerekli",
+    "cameraDenied": "Fotoğraf çekebilmek için ayarlardan kamera iznini açmalısın.",
+    "galleryDenied": "Fotoğraf seçebilmek için ayarlardan galeri iznini açmalısın.",
+    "notForNow": "Şimdilik Değil"
+  },
+  "profile": {
+    "avatar": {
+      "processFailed": "Fotoğraf işlenemedi.",
+      "updated": "Profil fotoğrafın güncellendi 💖",
+      "uploadFailed": "Profil fotoğrafı yüklenemedi. Lütfen tekrar dene.",
+      "removed": "Profil fotoğrafın kaldırıldı.",
+      "removeFailed": "Profil fotoğrafı kaldırılamadı.",
+      "sheetTitle": "Profil Fotoğrafı",
+      "sheetSubtitle": "Sevgilin seni bu fotoğrafla görecek 💕",
+      "takePhoto": "Fotoğraf Çek",
+      "removeCurrent": "Mevcut Fotoğrafı Kaldır",
+      "changeA11y": "Profil fotoğrafını değiştir"
+    },
+    "tabBar": {
+      "title": "Alt Bar Menüsü Özelleştirme",
+      "selected": "SEÇİLEN SEKMELER ({{count}}/{{max}})",
+      "description": "Alt barda hızlıca erişmek istediğiniz sayfaları seçin. Kullanmadığınız sekmeleri (örn. ilaç takibi yapmıyorsanız İlaçlar'ı) kaldırıp yerine Galeri, Notlar veya Buluşma ekleyebilirsiniz.",
+      "preview": "Aktif Alt Bar Önizlemesi"
+    },
+    "theme": {
+      "title": "Arayüz & Tema Modu",
+      "femaleModes": "KADIN ARAYÜZ MODLARI 🌸",
+      "maleModes": "ERKEK ARAYÜZ MODLARI ⚡"
+    },
+    "cooldown": {
+      "daysLeft_one": "{{count}} gün kaldı",
+      "daysLeft_other": "{{count}} gün kaldı",
+      "nameLocked_one": "İsim 30 günde bir değiştirilebilir. Sonraki değişiklik için {{count}} gün beklemeniz gerekmektedir.",
+      "nameLocked_other": "İsim 30 günde bir değiştirilebilir. Sonraki değişiklik için {{count}} gün beklemeniz gerekmektedir.",
+      "genderLocked_one": "Cinsiyet tercihi 90 günde bir değiştirilebilir. Kalan süre: {{count}} gün.",
+      "genderLocked_other": "Cinsiyet tercihi 90 günde bir değiştirilebilir. Kalan süre: {{count}} gün."
+    },
+    "alerts": {
+      "nameRestricted_one": "Görünen isminizi 30 günde bir değiştirebilirsiniz. Bir sonraki değişiklik için {{count}} gün beklemeniz gerekmektedir.",
+      "nameRestricted_other": "Görünen isminizi 30 günde bir değiştirebilirsiniz. Bir sonraki değişiklik için {{count}} gün beklemeniz gerekmektedir.",
+      "genderRestricted_one": "Cinsiyet tercihinizi 90 günde bir değiştirebilirsiniz. Bir sonraki değişiklik için {{count}} gün beklemeniz gerekmektedir.",
+      "genderRestricted_other": "Cinsiyet tercihinizi 90 günde bir değiştirebilirsiniz. Bir sonraki değişiklik için {{count}} gün beklemeniz gerekmektedir.",
+      "nameRestrictedTitle": "İsim Değişikliği Kısıtlı 🔒",
+      "genderRestrictedTitle": "Cinsiyet Değişikliği Kısıtlı 🔒",
+      "confirmBothTitle": "Profil Değişikliği Onayı 👤",
+      "confirmBothMessage": "İsminizi ve cinsiyet tercihinizi değiştirmek üzeresiniz.\n\n• İsminizi güncelledikten sonra 30 gün boyunca tekrar değiştiremezsiniz.\n• Cinsiyet tercihinizi güncelledikten sonra tema paletiniz ve özel modüller doğrudan güncellenecek olup 90 gün boyunca tekrar değiştiremezsiniz.\n\nOnaylıyor musunuz?",
+      "confirmNameTitle": "İsim Değişikliği Onayı 👤",
+      "confirmNameMessage": "İsminizi değiştirmek üzeresiniz. Bu işlem sonrasında 30 gün boyunca tekrar isim değiştiremezsiniz.\n\nOnaylıyor musunuz?",
+      "confirmGenderTitle": "Cinsiyet Değişikliği Onayı 🌸",
+      "confirmGenderMessage": "Cinsiyet tercihinizi değiştirmek üzeresiniz. Bu işlem tema paletinizi ve cinsiyete özel modülleri doğrudan güncelleyecektir.\n\nSonraki 90 gün boyunca tekrar cinsiyet değiştiremezsiniz. Onaylıyor musunuz?"
+    },
+    "dates": {
+      "lockWithDate_one": "Bu dönemki değişiklik hakları siz veya partneriniz tarafından kullanıldı. Yeni hakkınız <b>{{count}} gün</b> sonra ({{periodEndText}}) açılacak.",
+      "lockWithDate_other": "Bu dönemki değişiklik hakları siz veya partneriniz tarafından kullanıldı. Yeni hakkınız <b>{{count}} gün</b> sonra ({{periodEndText}}) açılacak.",
+      "lockNoDate_one": "Bu dönemki değişiklik hakları siz veya partneriniz tarafından kullanıldı. Yeni hakkınız <b>{{count}} gün</b> sonra açılacak.",
+      "lockNoDate_other": "Bu dönemki değişiklik hakları siz veya partneriniz tarafından kullanıldı. Yeni hakkınız <b>{{count}} gün</b> sonra açılacak.",
+      "rightsWithRenewal_one": "Çiftinizin bu dönem {{count}} değişiklik hakkı var (dönem {{periodEndText}} tarihinde yenilenir). İlk 30 günde 2, sonrasında her 30 günde 1 hak tanınır.",
+      "rightsWithRenewal_other": "Çiftinizin bu dönem {{count}} değişiklik hakkı var (dönem {{periodEndText}} tarihinde yenilenir). İlk 30 günde 2, sonrasında her 30 günde 1 hak tanınır.",
+      "rightsNoRenewal_one": "Çiftinizin bu dönem {{count}} değişiklik hakkı var. İlk 30 günde 2, sonrasında her 30 günde 1 hak tanınır.",
+      "rightsNoRenewal_other": "Çiftinizin bu dönem {{count}} değişiklik hakkı var. İlk 30 günde 2, sonrasında her 30 günde 1 hak tanınır.",
+      "lockedWhenDate": "{{date}} ({{days}} gün sonra)",
+      "firstSaveNote": "İlişki tarihlerinizi ilk kez kaydediyorsunuz; bu kayıt değişiklik hakkı harcamaz.",
+      "allowanceNote": "⚠️ Bu işlem çiftinizin değişiklik haklarından birini kullanır (bu dönem kalan: {{remaining}}). Haklar çift bazlıdır; partnerinizin yaptığı değişiklik de aynı haktan düşer.",
+      "updateTitle": "İlişki Tarihlerini Güncelle 💕",
+      "updateMessage": "İlişki tarihlerinizi güncellemek üzeresiniz. Bu işlem ana sayfa sayaçlarınızı ve Özel Günler arşivinizi güncelleyecektir.\n\n{{rightNote}}\n\nOnaylıyor musunuz?",
+      "confirmUpdate": "Onayla ve Güncelle",
+      "lockedWhenNext": "bir sonraki dönemde",
+      "lockedTitle": "İlişki Tarihleri Kilitli 🔒",
+      "lockedMessage": "Bu dönemki değişiklik hakları siz veya partneriniz tarafından kullanıldı. Yeni hakkınız {{when}} açılacak.",
+      "title": "İlişki Tarihleri",
+      "lockedCardTitle": "Tarihler Kilitli (Çift Bazlı Kısıtlama)",
+      "firstSaveHint": "İlk kayıt değişiklik hakkı harcamaz. Sonrasında ilk 30 günde 2, ardından her 30 günde 1 değişiklik hakkınız olur.",
+      "hint": "İlişki tarihleri çift bazlı olarak ilk 30 günde 2, sonrasında her 30 günde 1 kez güncellenebilir.",
+      "meetLabel": "TANIŞMA TARİHİ (İSTEĞE BAĞLI)",
+      "selectDate": "Tarih Seçiniz",
+      "relationshipLabel": "SEVGİLİ OLMA TARİHİ",
+      "update": "Tarihleri Güncelle 💕"
+    },
+    "push": {
+      "datesUpdatedBody": "{{name}} ilişki tarihlerimizi güncelledi.",
+      "datesUpdatedTitle": "İlişki Tarihlerimiz Güncellendi 💕",
+      "deleteTitle": "Hesap silme talebi",
+      "deleteBody": "Partnerin hesabını silme talebinde bulundu. Ortak anılarınız {{deletionDay}} tarihinde kalıcı olarak silinecek."
+    },
+    "guestName": "Misafir (Demo)",
+    "demo": {
+      "updateTitle": "Profili Güncellemek İçin Kayıt Olun 👤",
+      "updateDescription": "Kişisel profilinizi ve tercihlerinizi kaydetmek için ücretsiz hesabınızı oluşturun.",
+      "datesTitle": "İlişki Tarihlerini Belirlemek İçin Kayıt Olun 💕",
+      "datesDescription": "Tanışma ve sevgililik tarihinizi kaydetmek, sayaçları başlatmak için ücretsiz hesabınızı oluşturun.",
+      "accountTitle": "Hesap İşlemleri İçin Giriş Yapın 👤",
+      "accountDescription": "Hesabınızı yönetmek veya silmek için geçerli bir hesabınız olmalıdır."
+    },
+    "toasts": {
+      "noChanges": "Profil bilgilerinizde herhangi bir değişiklik yapmadınız.",
+      "updated": "Profil bilgilerin güncellendi ✨",
+      "noDateChanges": "İlişki tarihlerinde herhangi bir değişiklik yapmadınız.",
+      "datesUpdated": "İlişki tarihlerin ve özel günlerin güncellendi 💕"
+    },
+    "errors": {
+      "nameTooShort": "Lütfen en az 2 karakterden oluşan bir isim girin.",
+      "updateFailed": "Profil güncellenemedi. Lütfen tekrar deneyin.",
+      "missingDate": "Eksik tarih"
+    },
+    "signOut": {
+      "message": "Hesabınızdan çıkış yapmak istediğinize emin misiniz?"
+    },
+    "delete": {
+      "title": "⚠️ Hesabını Sil",
+      "message": "Hesabın ve ilişkinize ait tüm fotoğraflar, mektuplar, günlükler ve anılar 7 gün sonra kalıcı olarak silinir. Partnerinin hesabı kalır ancak ortak veriler onun için de silinir.\n\nBu 7 gün içinde aynı hesapla giriş yaparak silmeyi iptal edebilirsin.\n\nAktif bir aboneliğin varsa App Store veya Google Play üzerinden ayrıca iptal etmelisin.",
+      "confirm": "Evet, Hesabımı Sil",
+      "requestFailed": "Silme talebi oluşturulamadı. Lütfen bağlantını kontrol edip tekrar dene.",
+      "scheduledMessage": "Hesabın ve tüm verilerin {{deletionDay}} tarihinde kalıcı olarak silinecek. Fikrini değiştirirsen bu tarihe kadar giriş yapıp silmeyi iptal edebilirsin."
+    },
+    "subtitle": "Profil & Hesap Tercihleri ⚙️",
+    "membership": {
+      "premium": "Premium Üye",
+      "standard": "Standart Üye",
+      "paired": "Eşleşildi"
+    },
+    "wallet": {
+      "title": "Cüzdan & Bakiye",
+      "current": "Mevcut Jetonların"
+    },
+    "session": {
+      "title": "Oturum & Güvenlik",
+      "description": "Cihazınızdan güvenli bir şekilde çıkış yapın. Bildirim jetonlarınız temizlenecektir."
+    },
+    "personal": {
+      "title": "Kişisel Bilgiler",
+      "nameLabel": "GÖRÜNEN İSİM",
+      "namePlaceholder": "Adınız...",
+      "nameFreeChange": "1 ücretsiz değişiklik hakkınız hazır (Değişiklikten sonra 30 gün cooldown başlar).",
+      "nameRule": "İsim her 30 günde bir kez değiştirilebilir.",
+      "genderLabel": "CİNSİYET TERCİHİ",
+      "genderFreeChange": "1 ücretsiz düzeltme hakkınız hazır (Değişiklikten sonra 90 gün cooldown başlar).",
+      "genderRule": "Cinsiyet tercihi her 90 günde bir değiştirilebilir.",
+      "save": "Değişiklikleri Kaydet"
+    },
+    "danger": {
+      "title": "Hesap Yönetimi & Tehlike Bölgesi",
+      "noticeTitle": "⚠️ KVKK md. 11 Kapsamında Veri İmhası",
+      "noticeText": "Unutulma hakkınız uyarınca hesabınızı sildiğinizde hesabınız, profil fotoğrafınız ve ilişkinize ait tüm ortak fotoğraflar, şifreli mektuplar, günlükler ve veriler 7 günlük cayma süresi sonunda sunucularımızdan kalıcı olarak imha edilir. Bu süre içinde aynı hesapla giriş yaparak vazgeçebilirsiniz.",
+      "delete": "Hesabımı ve Tüm Verileri Sil"
+    },
+    "legal": {
+      "title": "Yasal & Gizlilik Sözleşmeleri",
+      "description": "Verilerinizin güvenliği, gizliliğiniz ve mevzuat haklarınızla ilgili tüm yasal metinleri dilediğiniz zaman inceleyebilirsiniz."
+    },
+    "promo": {
+      "demoTitle": "Promosyon Kodu Kullanmak İçin Kayıt Olun 🎁",
+      "demoDescription": "Kazanacağınız token ve ayrıcalıkları hesabınıza tanımlamak için ücretsiz hesap oluşturun.",
+      "activateFailed": "Premium aktif edilemedi.",
+      "actionFailed": "İşlem başarısız.",
+      "ended": "Premium başarıyla sonlandırıldı.",
+      "cancelFailed": "Premium iptal edilemedi.",
+      "tokensAdded": "{{amount}} Token hesabına yüklendi!",
+      "redeemFailed": "Promosyon kodu kullanılamadı.",
+      "title": "Promosyon & Hediye Kodu",
+      "description": "Özel bir indirim veya hediye kodunuz varsa buraya girerek hesabınıza tanımlayabilirsiniz.",
+      "placeholder": "HEDİYE KODU",
+      "redeem": "Kullan",
+      "appStoreOffer": "App Store Teklif Kodu Kullan 🍎"
+    },
+    "sound": {
+      "title": "Ses & Dokunsal Efektler",
+      "description": "Uygulamadaki eylemler (mektup gönderme, ruh hali seçimi, ilaç takibi) için özel mikro sesleri ve dokunsal titreşimleri yönetin. Telefonunuz sessiz moddayken sesler çalmaz.",
+      "inApp": "Uygulama İçi Sesler",
+      "inAppSub": "Mektup, ruh hali, ilaç, harita, fotoğraf ve Aşk Ölçer sesleri",
+      "haptics": "Dokunsal Titreşim (Haptics)",
+      "hapticsSub": "Dokunmalarda yumuşak premium geri bildirim",
+      "tryTitle": "MİKRO SESLERİ DENE 🎧",
+      "letter": "Mektup",
+      "medicine": "İlaç",
+      "loveMeter": "Aşk Ölçer"
+    },
+    "tours": {
+      "title": "Tanıtımlar & Özellik Rehberleri",
+      "description": "Uygulamadaki tüm sayfaların ve özelliklerin ne işe yaradığını dilediğiniz an baştan inceleyebilirsiniz.",
+      "openGuide": "Bu Sayfanın Rehberini Aç 💡",
+      "reset": "Sıfırlandı"
+    }
+  },
+  "photos": {
+    "errors": {
+      "deleteFailed": "Fotoğraf silinemedi.",
+      "uploadFailedWithMessage": "Fotoğraf yüklenemedi: {{message}}",
+      "saveFailedWithMessage": "Kaydetme sırasında bir sorun oluştu: {{message}}",
+      "ownOnly": "Sadece kendi yüklediğiniz fotoğrafları silebilirsiniz.",
+      "deleteFailedGeneric": "Fotoğraf silinirken bir hata oluştu."
+    },
+    "add": {
+      "addressNotFoundTitle": "Adres Bulunamadı",
+      "addressNotFoundMessage": "Girdiğiniz il, ilçe, mahalle veya sokak bulunamadı. Lütfen yazımı kontrol edin veya harita üzerinden seçmeyi deneyin.",
+      "addressSearchFailed": "Adres aranırken bir sorun oluştu.",
+      "pickFailed": "Fotoğraf seçilirken bir hata oluştu.",
+      "selectPhoto": "Lütfen bir fotoğraf seçin.",
+      "enterDate": "Lütfen bir çekim tarihi girin.",
+      "enterStory": "Lütfen fotoğraf için bir açıklama veya hikaye girin.",
+      "invalidContent": "Geçersiz içerik tespit edildi. Lütfen açıklamayı tekrar yazın.",
+      "processFailed": "Fotoğraf işlenemedi. Lütfen fotoğrafı tekrar seçin.",
+      "notifyBodyWithTitle": "{{senderName}} galeriye yeni bir fotoğraf ekledi: \"{{photoTitle}}\"",
+      "notifyBody": "{{senderName}} galeriye yeni bir fotoğraf ekledi.",
+      "viewPhoto": "Fotoğrafı Gör 📸",
+      "added": "Fotoğraf ortak arşive eklendi! 🎉",
+      "subtitle": "Ortak Galeri Anısı 📸",
+      "image": "Görsel",
+      "change": "Değiştir",
+      "select": "Fotoğraf Seç",
+      "selectHint": "Galerinizden ortak arşive eklemek istediğiniz fotoğrafı seçin",
+      "scanning": "Çekim tarihi taranıyor...",
+      "captureDetected": "Çekim zamanı algılandı: {{date}}, {{time}}",
+      "captureMissing": "Fotoğrafta çekim zamanı bulunamadı, şimdiki zaman eklendi.",
+      "locationInfo": "Konum Bilgisi",
+      "locationAuto": "Fotoğraftan Otomatik Algılandı",
+      "locationSet": "Belirlenen Konum",
+      "remove": "Kaldır",
+      "addressPlaceholder": "İl, ilçe, mahalle veya sokak yazın...",
+      "find": "Bul",
+      "pickOnMap": "Haritadan Nokta Seç",
+      "pickOnMapHint": "Haritaya dokunarak tam konumu işaretleyin",
+      "timeInfo": "Zaman Bilgisi",
+      "dateTaken": "Çekim Tarihi *",
+      "time": "Saat",
+      "pick": "Seç",
+      "dateTakenTitle": "Çekim Tarihi",
+      "timeTakenTitle": "Çekim Saati",
+      "details": "Anı Detayları",
+      "titleLabel": "Fotoğraf Başlığı (İsteğe bağlı)",
+      "titlePlaceholder": "Örn: Kapadokya Gün Batımı ✨",
+      "storyLabel": "Anının Hikayesi *",
+      "required": "Zorunlu alan",
+      "storyPlaceholder": "Bu fotoğrafa dair hatırlamak istediğin özel bir his, mekan veya anı...",
+      "premiumFeature": "Premium Özellik 🔒",
+      "submit": "Ortak Arşive Ekle",
+      "featureDescription": "Ortak galeriye dilediğiniz kadar fotoğraf yükleyin.",
+      "locationTitle": "Fotoğraf Konumu"
+    },
+    "delete": {
+      "title": "Fotoğrafı Sil",
+      "message": "Bu fotoğrafı galeriden kalıcı olarak silmek istediğinize emin misiniz?"
+    },
+    "count_one": "{{count}} Ortak Hatıra 📸",
+    "count_other": "{{count}} Ortak Hatıra 📸",
+    "archiveTitle": "Aşk Arşivimiz 📸",
+    "sort": {
+      "newest": "Yeniden Eskiye",
+      "oldest": "Eskiden Yeniye"
+    },
+    "empty": {
+      "title": "Ortak anı duvarınız henüz bembeyaz",
+      "description": "Birlikte çekildiğiniz en sevdiğiniz fotoğrafı ekleyerek başlayın.",
+      "cta": "İlk Fotoğrafı Seç 📸"
+    },
+    "premium": {
+      "featureName": "Fotoğraf Galerisi"
+    },
+    "specialKeepsake": "Özel Hatıra ✨",
+    "lock": {
+      "perk1": "Sınırsız yüksek kaliteli ortak fotoğraf yükleme",
+      "perk2": "3 farklı ızgara (Grid) görünümü ve tam ekran lightbox",
+      "perk3": "Aşk takviminde fotoğraflı gün hatıraları",
+      "title": "Ortak Galeri ve Anı Arşivi",
+      "description": "Birlikte çektiğiniz fotoğrafları ortak bir bulutta sınırsızca saklayın, tarihleriyle ölümsüzleştirin."
+    }
+  },
+  "demo": {
+    "memories": {
+      "relationshipStart": {
+        "title": "Sevgili Olduğumuz İlk Gün 💖",
+        "description": "Birlikte el ele tutuşup geleceğe söz verdiğimiz o an..."
+      },
+      "firstMeeting": {
+        "title": "İlk Tanıştığımız Gün ☕",
+        "description": "Gözlerinin içindeki parıltıyı ilk fark ettiğim gün."
+      }
+    },
+    "prompts": {
+      "avatar": {
+        "title": "Profilinizi Özelleştirmek İçin Ücretsiz Kayıt Olun 📸",
+        "description": "Sevgilinizle birbirinizin en tatlı fotoğraflarını profilinizde görmek için ücretsiz hesabınızı oluşturun."
+      },
+      "generic": {
+        "title": "Bu Özelliği Kullanmak İçin Kayıt Olun 💖",
+        "description": "Demo modunda verilerinizi kalıcı olarak kaydetmek, aşk mektupları mühürlemek ve partnerinizle eşleşmek için ücretsiz hesabınızı oluşturun."
+      },
+      "addPhoto": {
+        "title": "Ortak Fotoğraf Eklemek İçin Kayıt Olun 📸",
+        "description": "Sevgilinizle ortak anı albümü oluşturmak ve fotoğraflarınızın çekildiği yerleri haritada görmek için ücretsiz hesabınızı oluşturun."
+      },
+      "writeLetter": {
+        "title": "Mektup Yazmak ve Mühürlemek İçin Kayıt Olun 💌",
+        "description": "Partnerinize zaman kilitli mektuplar göndermek ve dilediğiniz tarihte açılmasını sağlamak için ücretsiz hesap oluşturun."
+      },
+      "deletePhoto": {
+        "title": "Fotoğrafı Silmek İçin Kayıt Olun 🗑️",
+        "description": "Fotoğraf arşivinizi yönetmek ve silmek için ücretsiz hesabınızı oluşturun."
+      },
+      "calendarNote": {
+        "title": "Takvime Not Eklemek İçin Kayıt Olun 📅",
+        "description": "Özel günlerinizi, hatıralarınızı ve planlarınızı ortak takviminize kaydetmek için ücretsiz hesabınızı oluşturun."
+      },
+      "cycle": {
+        "title": "Döngü Takibini Başlatmak İçin Kayıt Olun 🌸",
+        "description": "Kişisel döngünüzü kaydetmek, bilimsel tahminler almak ve partnerinizle paylaşmak için ücretsiz hesabınızı oluşturun."
+      },
+      "planMeetup": {
+        "title": "Yeni Buluşma Planlamak İçin Kayıt Olun 🍷",
+        "description": "Partnerinizle özel buluşmalar planlamak, haritada yerini görmek ve canlı geri sayım başlatmak için ücretsiz hesabınızı oluşturun."
+      },
+      "addMedicine": {
+        "title": "İlaç Eklemek İçin Kayıt Olun 💊",
+        "description": "İlaç ve vitaminlerinizi düzenli takip etmek ve bildirim almak için ücretsiz hesabınızı oluşturun."
+      },
+      "mapNote": {
+        "title": "Haritaya Aşk Notu Bırakmak İçin Kayıt Olun 📍",
+        "description": "Partnerinizle gittiğiniz özel konumlara hatıra notları bırakmak için ücretsiz hesabınızı oluşturun."
+      }
+    },
+    "calendar": {
+      "dinnerTitle": "Romantik Akşam Yemeği 🍷",
+      "dinnerLocation": "Boğaz Manzaralı Restoran"
+    },
+    "default": {
+      "title": "Sevgilinle Ortak Alanını Başlat 💖",
+      "description": "Bu özelliği kullanmak, kendi anılarınızı güvenle kaydetmek ve partnerinizi davet etmek için ücretsiz hesabınızı oluşturun."
+    },
+    "modal": {
+      "album": "Ortak Aşk Albümü & Harita",
+      "letters": "Zaman Kilitli Sürpriz Mektuplar",
+      "create": "Ücretsiz Hesap Oluştur",
+      "haveAccount": "Zaten bir hesabım var (Giriş Yap)",
+      "keepExploring": "İncelemeye Devam Et"
+    },
+    "banner": {
+      "a11y": "Demo sürümü. Kayıt olmak için dokunun",
+      "title": "Demo Sürümü",
+      "subtitle": "· Kayıt olmadan inceliyorsun",
+      "promptTitle": "Kendi Çift Alanınızı Başlatın ✨",
+      "promptDescription": "Demo modundan çıkıp partnerinizle ortak anılarınızı biriktirmek, aşk mektupları mühürlemek ve özel günlerinizi saymak için ücretsiz hesap oluşturun."
+    }
+  },
+  "greetings": {
+    "nicknames": [
+      "Aşkım",
+      "Sevgilim",
+      "Bebeğim",
+      "Bir Tanem",
+      "Balım",
+      "Tatlım",
+      "Canım",
+      "Ömrüm",
+      "Hayatım",
+      "Gözbebeğim",
+      "Ay Yüzlüm",
+      "En Sevdiğim",
+      "En Güzel Tesadüfüm",
+      "Kalbim",
+      "Cennetim"
+    ],
+    "myLoveFallback": "Sevgilim",
+    "sweetieFallback": "Tatlım"
+  },
+  "home": {
+    "greeting": {
+      "morning": "Günaydın",
+      "afternoon": "Tünaydın",
+      "evening": "İyi Akşamlar",
+      "night": "Tatlı Rüyalar"
+    },
+    "moodCaption": {
+      "love": "Aşk dolu bir gün! Bunu sevgilinle paylaş 💕",
+      "happy": "Gülüşün bugün her yere yansımış ✨",
+      "calm": "Sakin bir gün... Bir mesajla renklendir 🌿",
+      "sad": "Zor bir gün olabilir, sevgin yanında 🤍",
+      "angry": "Derin bir nefes al, birlikte atlatırsınız 🌬️",
+      "sleepy": "Dinlen biraz, kendine nazik ol 🌙"
+    },
+    "caption": {
+      "anniversaryToday": "Bugün {{years}}. yıl dönümünüz, kutlu olsun 🥂",
+      "valentines": "Sevgililer Günün kutlu olsun 💘",
+      "anniversaryTomorrow": "{{years}}. yıl dönümünüz yarın! 💛",
+      "anniversaryDaysLeft": "{{years}}. yıl dönümünüze {{daysLeft}} gün kaldı 💛"
+    },
+    "loveMeter": {
+      "subtitle": {
+        "excellent": "Kusursuz bir bağ! Aşkınız zirvede 🔥",
+        "great": "Harika bir uyum! Birbirinizi hiç ihmal etmiyorsunuz 💖",
+        "good": "Güzel bir gün! Birbirinize küçük bir not bırakabilirsiniz 💌",
+        "low": "Bugün biraz ilgi zamanı! Bir anı paylaşmaya ne dersiniz? 🌸"
+      },
+      "demoSubtitle": "Kusursuz Bir Uyum! 💖",
+      "defaultSubtitle": "Bugün için ölçüldü 💝 · Harika bir uyum!",
+      "title": "Aşk Ölçer ✨",
+      "loading": "Aşk skoru hesaplanıyor..."
+    },
+    "couple": {
+      "a11yLabel": "{{me}} ve {{partner}}"
+    },
+    "pending": {
+      "sealedOne": "Sana mühürlü bir mektup var 💌",
+      "sealedMany": "Sana {{count}} mühürlü mektup var 💌",
+      "a11y_one": "{{count}} bekleyen mektup. Mektuplara git",
+      "a11y_other": "{{count}} bekleyen mektup. Mektuplara git",
+      "daysUnit_one": "gün",
+      "daysUnit_other": "gün",
+      "opensToday": "Bugün açılıyor",
+      "opensTomorrow": "Yarın açılıyor",
+      "opensInDays": "{{daysLeft}} gün sonra",
+      "title": "Bekleyen Mektuplar",
+      "letterFrom": "{{name}}'dan Mektup",
+      "closeEyes": "Gözlerini kapat ve zamanı bekle… 🔒",
+      "opensOn": "{{date}} tarihinde açılacak"
+    },
+    "periodAlert": {
+      "title": "Özel Gün Yaklaşıyor 🌸",
+      "body": "Partnerinin regl dönemi 2 gün içinde başlayabilir. Ona biraz daha şefkat gösterme zamanı! 💕"
+    },
+    "demoRibbon": {
+      "a11y": "Demo moddasın. Ücretsiz kayıt olmak veya giriş yapmak için dokun",
+      "text": "Örnek verilerle geziyorsun. Kendi hesabını açmak için dokun"
+    },
+    "journeyTitle": "AŞKIMIZIN YOLCULUĞU",
+    "counters": {
+      "together": "Gündür Sevgiliyiz",
+      "inMyLife": "Gündür Hayatımdasın"
+    },
+    "quote": {
+      "title": "GÜNÜN İLHAMI"
+    },
+    "wrapped": {
+      "title": "Aylık Wrapped Hazır! ✨",
+      "subtitle": "Aşk özetini ve anılarınızı keşfedin"
+    },
+    "header": {
+      "goodMorning": "Günaydın, {{name}}"
+    },
+    "dailyNote": {
+      "demoTitle": "Günün Notunu Kaydetmek İçin Kayıt Olun 📖",
+      "demoDescription": "Gününüzü, hislerinizi ve sadece size özel kişisel günlüğünüzü güvenle saklamak için ücretsiz hesabınızı oluşturun.",
+      "saveFailed": "Not kaydedilemedi",
+      "saved": "Günlük notun kaydedildi ✨",
+      "title": "Günlük Notum",
+      "writeTomorrow": "Yarın yeni bir not yazabilirsin 🌙",
+      "seePast": "Geçmiş Notlarımı Gör",
+      "placeholder": "Bugün nasıldı? Ne hissediyorsun?..."
+    },
+    "meeting": {
+      "happened": "Buluşma gerçekleşti!",
+      "days": "GÜN",
+      "hours": "SAAT",
+      "minutes": "DAKİKA",
+      "seconds": "SANİYE",
+      "next": "Sıradaki Buluşma",
+      "details": "Buluşma Detayları",
+      "titleLabel": "Başlık",
+      "dateTime": "Tarih & Saat",
+      "location": "Konum"
+    },
+    "mood": {
+      "cooldownToast_one": "Ruh halini {{count}} saniye sonra tekrar güncelleyebilirsin.",
+      "cooldownToast_other": "Ruh halini {{count}} saniye sonra tekrar güncelleyebilirsin.",
+      "cooldownTitle": "Lütfen biraz bekle",
+      "dailyLimitToast": "Bugün ruh halini en fazla 5 kez güncelleyebilirsin. Yarın yeniden!",
+      "dailyLimitTitle": "Günlük limit doldu",
+      "demoTitle": "Ruh Halinizi Paylaşmak İçin Kayıt Olun 😊",
+      "demoDescription": "Bugün nasıl hissettiğinizi sevgilinizle paylaşmak ve duygusal bağınızı güçlendirmek için ücretsiz hesabınızı oluşturun.",
+      "saveFailed": "Ruh hali kaydedilemedi",
+      "question": "Bugün nasılsın?",
+      "updatedCooldown": "Ruh halin güncellendi ✨ ({{cooldown}} sn sonra tekrar değiştirebilirsin)",
+      "limitReached": "Bugünkü ruh hali güncelleme limitine (5/5) ulaştın 🌸",
+      "canUpdateAnytime": "Ruh halini gün içinde dilediğin an güncelleyebilirsin ✨",
+      "pickPrompt": "Bugün nasıl hissettiğini seç 💭"
+    }
+  },
+  "paywall": {
+    "freeTrialButton_one": "{{count}} Gün Ücretsiz Dene",
+    "freeTrialButton_other": "{{count}} Gün Ücretsiz Dene",
+    "upgradeButton": "Premium'a Geç",
+    "vipBadge": "VIP ÇİFT AYRICALIĞI",
+    "discoverPerks": "Ayrıcalıkları Keşfet ✨",
+    "periods": {
+      "year": "/ Yıl",
+      "month": "/ Ay",
+      "week": "/ Hafta",
+      "sixMonths": "/ 6 Ay",
+      "threeMonths": "/ 3 Ay",
+      "twoMonths": "/ 2 Ay",
+      "lifetime": "(Ömür Boyu)"
+    },
+    "featureGate": "<feature>{{feature}}</feature> özelliği Premium abonelere özeldir.",
+    "tokenBalance": "({{currentBalance}} token'ın var)",
+    "activated": "Premium aboneliğin başarıyla aktif edildi.",
+    "purchaseFailedTitle": "Satın Alma Başarısız",
+    "restored": "Satın alımların geri yüklendi.",
+    "noActiveSubscription": "Aktif bir aboneliğin bulunamadı.",
+    "restoreFailed": "Geri yükleme başarısız oldu.",
+    "features": {
+      "shared": "Partnerin için de geçerli ortak Premium",
+      "photos": "Sınırsız fotoğraf yükleme ve galeri",
+      "periodMen": "Erkekler için regl takvimi görünümü",
+      "pastPhotos": "Takvimde geçmiş günlerin fotoğrafları",
+      "letters": "Sınırsız geleceğe mektup yazma",
+      "noAds": "Tüm reklamlardan arınmış deneyim"
+    },
+    "subtitle": "İkiniz için de geçerli tek abonelik",
+    "storeUnavailable": "Şu anda mağazaya bağlanılamıyor veya paketler yüklenemedi. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.",
+    "goBack": "Geri Dön",
+    "restore": "Satın Alımları Geri Yükle",
+    "legalNotice": "Aboneliğiniz onaylandığında ödeme mağaza hesabınızdan tahsil edilir. Cari dönemin bitiminden en az 24 saat önce iptal edilmediği sürece abonelik otomatik olarak yenilenir. Satın alımdan sonra hesap ayarlarınızdan dilediğiniz an iptal edebilirsiniz.",
+    "links": {
+      "terms": "Kullanım Koşulları (EULA)",
+      "privacy": "Gizlilik Politikası",
+      "subscription": "Abonelik Koşulları"
+    },
+    "accountRequiredTitle": "Premium İçin Hesap Gerekli 👑",
+    "accountRequiredDescription": "Abonelik hesabınıza tanımlanır. Satın almadan önce ücretsiz hesabınızı oluşturun veya giriş yapın.",
+    "copy": {
+      "general": {
+        "name": "Bu özellik",
+        "description": "Premium ile birlikte tüm özel anı alanlarına erişin."
+      },
+      "starClaim": {
+        "name": "Yıldız sahiplenme",
+        "description": "Yıldızınızı sahiplenin ve gökyüzünde birlikte parlatın.",
+        "cta": "Yıldızımızı Aç"
+      },
+      "exoplanetCreate": {
+        "name": "Anı gezegeni oluşturma",
+        "description": "Anılarınızı yıldızınızın yörüngesine yerleştirmek için Premium gerekli.",
+        "cta": "Anı Gezegenlerini Aç"
+      },
+      "exoplanetView": {
+        "name": "Anı gezegeni içeriği",
+        "description": "Fotoğraflarınız, mektuplarınız ve anı ayrıntılarınız Premium ile korunur.",
+        "cta": "Anılarımı Aç"
+      },
+      "exoplanetAuto": {
+        "name": "Otomatik anı gezegenleri",
+        "description": "45 günlük anı döngüsünü devam ettirmek için Premium gerekli.",
+        "cta": "Otomatik Anıları Aç"
+      },
+      "avatar": {
+        "name": "Özel Profil Fotoğrafı",
+        "description": "👑 Sevgilinizle birbirinizin en tatlı fotoğraflarını profilinizde görmek için Premium'a geçin.",
+        "cta": "Profil Fotoğrafını Aç"
+      }
+    },
+    "perks": {
+      "letters": "💌 Sınırsız Mektup Yaz",
+      "photos": "📸 Fotoğraf Galerisi & Yükleme",
+      "period": "🩸 Regl Takvimi (Erkek Görünümü)",
+      "specialDays": "📅 Fotoğraflı Özel Günler",
+      "avatar": "👑 Özel Profil Fotoğrafı",
+      "noAds": "🚫 Reklamsız Deneyim"
+    },
+    "required": "Premium Gerekli",
+    "cancelAnytime": "İstediğin zaman iptal et",
+    "eulaLink": "Abonelik & Kullanım Koşulları (EULA)",
+    "useTokens": "{{cost}} Token ile Kullan",
+    "watchAd": "🎬 Reklam İzleyerek +25 Token Kazan",
+    "success": {
+      "message": "Artık Premium üyesiniz. Bütün sınırlar kalktı, aşkınızın tadını sınırsızca çıkarabilirsiniz.",
+      "unlimitedUse": "Sınırsız Kullanım",
+      "unlimitedUseSub": "Token derdi olmadan dilediğinizi yapın.",
+      "unlimitedPhotos": "Sınırsız Fotoğraf",
+      "unlimitedPhotosSub": "Ortak galeriye dilediğiniz kadar anı ekleyin.",
+      "unlimitedLetters": "Sınırsız Mektup",
+      "unlimitedLettersSub": "Geleceğe dilediğiniz kadar mektup gönderin.",
+      "cta": "Harika! Başla"
+    },
+    "celebration": "Partnerin Premium'a geçti! Artık ikiniz de Premium üyesiniz; bütün sınırlar kalktı, aşkınızın tadını sınırsızca çıkarabilirsiniz."
+  },
+  "tabs": {
+    "home": {
+      "label": "Ana Sayfa",
+      "description": "Aşk sayacı, sayaçlar, aşk puanı ve günün özeti"
+    },
+    "calendar": {
+      "label": "Takvim",
+      "description": "Ortak etkinlikler, aşk takvimi ve özel günler"
+    },
+    "letters": {
+      "label": "Mektuplar",
+      "description": "Zaman kilitli aşk mektupları ve sürprizler"
+    },
+    "photos": {
+      "label": "Galeri",
+      "description": "Ortak fotoğraf arşivi, hatıralar ve albümler"
+    },
+    "map": {
+      "label": "Harita",
+      "description": "Fotoğraflı anı pinleri ve aşk haritası"
+    },
+    "medicine": {
+      "label": "İlaçlar",
+      "description": "İlaç hatırlatıcı, doz takibi ve sağlık geçmişi"
+    },
+    "dailyNotes": {
+      "label": "Günlük",
+      "description": "Sana özel, şifreli kişisel not defterin"
+    },
+    "meetings": {
+      "label": "Buluşma",
+      "description": "Buluşma geri sayımı ve randevu planlama"
+    },
+    "memories": {
+      "label": "Özel Gün",
+      "description": "Tanışma ve sevgili olma milatları ve yıl dönümleri"
+    },
+    "periodTracker": {
+      "label": "Döngü",
+      "description": "Kadın regl döngüsü ve semptom takip takvimi"
+    },
+    "profile": {
+      "label": "Ayarlar",
+      "description": "Profil, tema ve uygulama yapılandırması"
+    },
+    "toasts": {
+      "homeRequired": "Ana Sayfa alt barda zorunludur ve kaldırılamaz.",
+      "homeRequiredTitle": "Sabit sekme",
+      "minTabs": "Alt barda en az {{min}} sekme bulunmalıdır.",
+      "limitTitle": "Sınır",
+      "maxTabs": "Alt barda en fazla {{max}} sekme yer alabilir. Lütfen önce başka bir sekmeyi çıkarın.",
+      "maxTabsTitle": "Maksimum sekme sınırı"
+    }
+  },
+  "themes": {
+    "femaleCurrent": {
+      "name": "Gül & Bordo",
+      "description": "Romantik bordo ve gül tonları (Varsayılan)"
+    },
+    "femaleDark": {
+      "name": "Gece Modu",
+      "description": "Zarif, göz yormayan derin gece siyahı"
+    },
+    "femaleLight": {
+      "name": "Açık Mod",
+      "description": "Aydınlık, ferah ve canlı pembe tonlar"
+    },
+    "maleCurrent": {
+      "name": "Mavi Mod",
+      "description": "Mevcut derin gece mavisi (Varsayılan)"
+    },
+    "maleDark": {
+      "name": "Gece Modu",
+      "description": "Karizmatik, simsiyah obsidyen koyu mod"
+    },
+    "maleLight": {
+      "name": "Beyaz Mod",
+      "description": "Aydınlık, minimalist kar beyazı ve kobalt"
+    }
+  },
+  "wrapped": {
+    "periodTitleMonth": "{{period}} Özeti",
+    "periodTitleYear": "{{year}} Yılı Özeti",
+    "moods": {
+      "loveStruck": "Aşk Dolu & Çok Mutlu",
+      "happy": "Mutlu",
+      "calm": "Sakin",
+      "seekingTenderness": "Şefkat Arayışında",
+      "passionate": "Tutkulu & Sabırsız",
+      "tiredTogether": "Yorgun ama Birlikte",
+      "demoTop": "Aşk Dolu & Mutlu",
+      "fallback": "Sevgi Dolu"
+    },
+    "demoTopLocation": "Kadıköy Sahil",
+    "demoStatement": "Biz bu ay 31 kez birbirimizi seçtik.",
+    "demoHighlight": "Birlikte 4 yeni küçük anı büyüttük.",
+    "anywhereTogether": "Birlikte Her Yer",
+    "statement_one": "Biz bu dönemde {{count}} kez birbirimizi seçtik.",
+    "statement_other": "Biz bu dönemde {{count}} kez birbirimizi seçtik.",
+    "highlight_one": "{{count}} tatlı anıyı birlikte biriktirdik.",
+    "highlight_other": "{{count}} tatlı anıyı birlikte biriktirdik.",
+    "shareTitle": "Couple Wrapped'imizi Paylaş",
+    "slides": {
+      "storyTitle": "BİZİM HİKAYEMİZ",
+      "daysTogether": "gündür aynı gökyüzünün altında birbirimizi seçiyoruz",
+      "quote": "“Aşk, birlikte geçirilen her günü bir hediye gibi hissettirmektir.”",
+      "moodTitle": "BU DÖNEMİN ORTAK DUYGUSU",
+      "moodDescription_one": "Tam {{count}} gün boyunca birbirinize en çok bu duyguyu yansıttınız.",
+      "moodDescription_other": "Tam {{count}} gün boyunca birbirinize en çok bu duyguyu yansıttınız.",
+      "pillLove": "🥰 Sevgi Dolu Anlar",
+      "pillHarmony": "✨ Yüksek Uyum",
+      "wordsTitle": "SÖZLERİN VE DÜŞÜNCELERİN GÜCÜ",
+      "loveLetters": "Aşk Mektubu",
+      "journalNotes": "Günlük Not"
+    },
+    "card": {
+      "together": "Birlikte",
+      "days_one": "{{count}} Gün",
+      "days_other": "{{count}} Gün",
+      "mostFelt": "En Çok Hissedilen",
+      "sharedNotes": "Paylaşılan Not & Mektup",
+      "items_one": "{{count}} Adet",
+      "items_other": "{{count}} Adet",
+      "meetupPlace": "Buluşulan Şehir / Yer"
+    },
+    "shareInstagram": "Instagram Story’de Paylaş"
+  },
+  "map": {
+    "customLocation": "Özel Konum",
+    "errors": {
+      "saveFailedWithMessage": "Not kaydedilemedi: {{message}}",
+      "deleteFailedWithMessage": "Not silinemedi: {{message}}",
+      "ownNotesOnly": "Sadece kendi yazdığınız notları silebilirsiniz."
+    },
+    "picker": {
+      "defaultTitle": "Konum Seçin",
+      "selected": "Seçilen Konum",
+      "addressNotFound": "Girdiğiniz il, ilçe, mahalle veya sokak bulunamadı. Lütfen yazımı kontrol edin veya harita üzerinden bir noktaya dokunun.",
+      "searchFailed": "Adres aranırken bir hata oluştu.",
+      "permissionTitle": "Konum İzni Gerekli",
+      "permissionMessage": "Mevcut konumunuzu görebilmek için ayarlardan konum erişimine izin vermelisiniz.",
+      "noneTitle": "Konum Belirlenmedi",
+      "noneMessage": "Lütfen harita üzerinden bir noktaya dokunarak konum seçin.",
+      "resolving": "Adres çözümleniyor...",
+      "tapToChange": "Noktayı değiştirmek için dokunun",
+      "pickPoint": "Haritadan bir nokta seçin",
+      "searchPlaceholder": "İl, ilçe, mahalle veya sokak ara...",
+      "tapToSet": "Konum belirlemek için haritaya dokunun",
+      "markedPoint": "Harita Üzerinde İşaretlenen Nokta",
+      "confirm": "Bu Konumu Onayla",
+      "webNote": "Harita seçici mobil uygulamaya özeldir. Web ortamında varsayılan konum kullanılabilir.",
+      "webDefault": "Varsayılan Konumu Seç (İstanbul)"
+    },
+    "summary": {
+      "photos_one": "{{count}} Anı",
+      "photos_other": "{{count}} Anı",
+      "notes_one": "{{count}} Not",
+      "notes_other": "{{count}} Not",
+      "meetups_one": "{{count}} Buluşma",
+      "meetups_other": "{{count}} Buluşma"
+    },
+    "meetingCountdown": {
+      "done": "Gerçekleşti",
+      "today": "🎉 Bugün Buluşma Günü!",
+      "tomorrow": "⏳ Yarın!",
+      "days_one": "⏳ {{count}} gün kaldı",
+      "days_other": "⏳ {{count}} gün kaldı"
+    },
+    "theme": {
+      "title": "Harita Teması",
+      "romantic": "🌸 Romantik",
+      "romanticDesc": "Sıcak & Krem",
+      "midnight": "🌙 Gece",
+      "midnightDesc": "Kadife Koyu",
+      "silver": "✨ Sade",
+      "silverDesc": "Gümüş Minimal"
+    },
+    "story": {
+      "headlineMany_one": "Aşkımız {{count}} şehirde ve {{maxDist}} kilometrede büyüdü.",
+      "headlineMany_other": "Aşkımız {{count}} şehirde ve {{maxDist}} kilometrede büyüdü.",
+      "headlinePins_one": "Birlikte {{count}} unutulmaz noktada anı bıraktık.",
+      "headlinePins_other": "Birlikte {{count}} unutulmaz noktada anı bıraktık.",
+      "firstStop": "İlk Durağımız",
+      "latestRoute": "Son Rotamız",
+      "shareTitle": "Aşk Haritamızı Paylaş",
+      "title": "AŞK HARİTASI HİKAYEMİZ",
+      "emptyTitle": "Henüz harita iziniz bulunmuyor",
+      "emptyDescription": "Anı veya fotoğraf ekledikçe seyahat hikayeniz burada şekillenecek ✨",
+      "firstStopLabel": "İlk Durak",
+      "latestRouteLabel": "Son Rota",
+      "trail": "Harita İzi",
+      "kilometers": "Kilometre",
+      "explored": "Keşif Yeri",
+      "shareInstagram": "Instagram Story'de Paylaş"
+    },
+    "toasts": {
+      "noteLeft": "Aşk notun haritaya bırakıldı 📍"
+    },
+    "notify": {
+      "memoryNote": "{{senderName}} haritaya bir anı notu bıraktı: \"{{notePreview}}\"",
+      "loveNote": "{{senderName}} haritaya senin için bir aşk notu bıraktı.",
+      "explore": "Haritada Keşfet 🗺️"
+    },
+    "demo": {
+      "deletePhotoDescription": "Haritadaki fotoğrafları yönetmek ve silmek için ücretsiz hesabınızı oluşturun.",
+      "deleteNoteDescription": "Haritadaki aşk notlarını yönetmek ve silmek için ücretsiz hesabınızı oluşturun."
+    },
+    "delete": {
+      "photoMessage": "Bu fotoğrafı haritadan ve galeriden silmek istiyor musunuz?",
+      "noteTitle": "Notu Sil",
+      "noteMessage": "Bu notu haritadan silmek istiyor musunuz?"
+    },
+    "permission": {
+      "title": "Konum İzni",
+      "message": "Konumunuza gidebilmek için ayarlardan konum iznini açmalısınız."
+    },
+    "empty": {
+      "title": "Haritanız henüz bembeyaz",
+      "description": "Birlikte gittiğiniz ilk yere bir aşk notu bırakın: haritada istediğiniz yere dokunmanız yeter, konum izni gerekmez.",
+      "cta": "İlk Notu Bırak 📍"
+    },
+    "pick": {
+      "cancelA11y": "Yer seçmeyi iptal et",
+      "hint": "Notu bırakmak istediğin yere dokun · İptal"
+    },
+    "longPressHint": "Not bırakmak için haritaya uzun basın",
+    "web": {
+      "description": "İnteraktif anı haritası mobil cihazlara (iOS / Android) özeldir. Web ortamında “Bizim Yıldızımız”, Fotoğraflar ve diğer modülleri deneyimleyebilirsiniz."
+    },
+    "addNote": {
+      "title": "Buraya Bir Aşk Notu Bırak 💌",
+      "subtitle": "Sevgilin haritayı açtığında burada senin notunu görecek.",
+      "placeholder": "Buraya dair özel bir hatıra veya aşk sözü yaz...",
+      "submit": "Notu Mühürle & Bırak"
+    },
+    "controls": {
+      "storyA11y": "Hikayemiz - Harita Özeti",
+      "showAllA11y": "Tüm Pinleri Göster",
+      "myLocationA11y": "Konumuma Git"
+    },
+    "detail": {
+      "photoMemory": "Fotoğraf Anısı",
+      "enlarge": "Büyüt",
+      "noteBadge": "Harita Aşk Notu",
+      "directionsToLocation": "Konuma Yol Tarifi",
+      "seeMeetups": "Buluşmaları Gör"
+    },
+    "filters": {
+      "photos": "Fotoğraflar ({{total}})",
+      "notes": "Aşk Notları ({{total}})",
+      "meetups": "Buluşmalar ({{total}})"
+    },
+    "lightbox": {
+      "directions": "Bu Konuma Yol Tarifi Al"
+    }
+  },
+  "errors": {
+    "encryptionKeyNotReady": "Şifreleme anahtarı henüz hazır değil. Lütfen birkaç saniye sonra tekrar dene.",
+    "unexpected": "Beklenmedik bir hata oluştu.",
+    "tryAgain": "Lütfen tekrar dene.",
+    "screen": {
+      "title": "Bir şeyler ters gitti",
+      "message": "Beklenmedik bir hata oluştu. Verilerin güvende. Tekrar denemeyi ya da uygulamayı kapatıp açmayı dene.",
+      "retryA11y": "Tekrar dene"
+    },
+    "unexpectedWithMessage": "Beklenmedik bir hata oluştu: {{message}}",
+    "genericWithMessage": "Bir hata oluştu: {{message}}",
+    "unknown": "Bilinmeyen hata",
+    "generic": "Bir hata oluştu.",
+    "actionFailed": "İşlem sırasında bir hata oluştu."
+  },
+  "menu": {
+    "daysTogether_one": "{{count}} Gün",
+    "daysTogether_other": "{{count}} Gün",
+    "title": "Uygulama Menüsü",
+    "demo": {
+      "title": "Demo Modundasınız ✨",
+      "description": "Uygulamayı kayıt olmadan inceliyorsunuz. Sevgilinizle ortak alanınızı başlatıp anılarınızı kaydetmek için kaydolun.",
+      "signUp": "Ücretsiz Kayıt Ol 💖"
+    },
+    "sections": {
+      "love": "AŞK & ORTAK ANILAR",
+      "health": "SAĞLIK & TAKİP",
+      "account": "HESAP & AYARLAR"
+    },
+    "ourStar": {
+      "title": "Bizim Yıldızımız ✨",
+      "subtitle": "Gökyüzündeki sonsuz dijital anıtınız"
+    },
+    "home": {
+      "subtitle": "Günün özeti ve aşk ölçer"
+    },
+    "gallery": {
+      "subtitle": "Birlikte biriktirdiğiniz fotoğraflar"
+    },
+    "upload": {
+      "title": "Fotoğraf Yükle",
+      "subtitle": "Yeni anı ve fotoğraf paylaş"
+    },
+    "journal": {
+      "title": "Günlüğüm",
+      "subtitle": "Sana özel şifreli not defterin"
+    },
+    "letters": {
+      "subtitle": "Zaman kilitli aşk mektupları"
+    },
+    "specialDays": {
+      "title": "Özel Günler & Yıldönümleri",
+      "subtitle": "Unutulmaz tarihlerin geri sayımı"
+    },
+    "calendar": {
+      "title": "Aşk Takvimi",
+      "subtitle": "Ruh halleri, notlar ve fotoğraflar"
+    },
+    "map": {
+      "subtitle": "Fotoğraflı anılar ve mühürlü aşk notları"
+    },
+    "meetups": {
+      "title": "Buluşmalar",
+      "subtitle": "Geri sayım ve buluşma planları"
+    },
+    "medicine": {
+      "subtitle": "Senin ve sevgilinin günlük dozları"
+    },
+    "cycle": {
+      "title": "Döngü & Regl Takvimi",
+      "subtitle": "Hassas dönemler ve hatırlatıcılar"
+    },
+    "guide": {
+      "title": "Nasıl Çalışır? (Özellik Rehberi)",
+      "subtitle": "Her sayfa ve özelliğin detaylı tanıtımı"
+    },
+    "settings": {
+      "title": "Ayarlar & Profil",
+      "subtitle": "Sesler, temalar, tarihler ve güvenlik"
+    },
+    "legal": {
+      "title": "Yasal Bilgiler & Gizlilik",
+      "subtitle": "KVKK, gizlilik ve kullanım şartları"
+    },
+    "signOut": {
+      "subtitle": "Oturumu güvenli bir şekilde kapat"
+    },
+    "guides": {
+      "title": "Özellik Rehberleri",
+      "subtitle": "İncelemek istediğiniz sayfayı seçin",
+      "resetTitle": "Sıfırlandı 🎉",
+      "resetMessage": "Ana Sayfa'ya döndüğünüzde kısa tanıtım turu yeniden gösterilecek. Diğer sayfaların rehberine sağ üstteki ? butonundan ulaşabilirsiniz.",
+      "restartTour": "Ana Sayfa Turunu Yeniden Başlat 🔄"
+    }
+  },
+  "moods": {
+    "veryHappy": "Çok Mutlu",
+    "happy": "Mutlu",
+    "okay": "Normal",
+    "sad": "Üzgün",
+    "angry": "Kızgın",
+    "tired": "Yorgun",
+    "inLove": "Aşık / Sevgi Dolu",
+    "loving": "Sevgi Dolu",
+    "peaceful": "Huzurlu",
+    "excited": "Heyecanlı"
+  },
+  "letters": {
+    "deleteRequest": {
+      "confirmOnDate": "Partnerin onay verirse mektup {{date}} tarihinde ikiniz için de kalıcı olarak silinir. Onay vermezse mektup yerinde kalır.",
+      "confirmNow": "Partnerin onay verirse mektup hemen ikiniz için de kalıcı olarak silinir. Onay vermezse mektup yerinde kalır."
+    },
+    "errors": {
+      "sealFailedWithMessage": "Mektup mühürlenirken bir hata oluştu: {{message}}",
+      "missingFields": "Lütfen kime göndereceğinizi, başlığı ve mektup içeriğini doldurun.",
+      "invalidContent": "Geçersiz içerik tespit edildi.",
+      "actionFailedTitle": "İşlem Başarısız",
+      "tryAgainLater": "Lütfen biraz sonra tekrar deneyin."
+    },
+    "insufficient": {
+      "title": "Yetersiz Bakiye",
+      "message": "Mektup mühürlemek için 100 Token veya aktif Premium üyelik gereklidir."
+    },
+    "tokenUse": {
+      "title": "Token Kullanımı",
+      "message": "Bu mektubu mühürlemek için 100 token kullanılacaktır. Onaylıyor musunuz?",
+      "confirm": "Onayla ve Mühürle"
+    },
+    "toasts": {
+      "hidden": "Mektup listenden gizlendi; Gizlenenler'den geri getirebilirsin",
+      "unhidden": "Mektup listene geri döndü ✨",
+      "requestSent": "Silme isteğin gönderildi; partnerinin onayı bekleniyor 🕊️",
+      "requestWithdrawn": "Silme isteğin geri çekildi; mektup yerinde duruyor 💌",
+      "keptLetter": "Mektup saklanmaya devam edecek 💛",
+      "deletedBoth": "Mektup ikiniz için de silindi",
+      "approvalSaved": "Onayın kaydedildi; mektup {{date}} tarihinde silinecek",
+      "sealed": "Mektubun mühürlendi ve geleceğe emanet edildi ✨"
+    },
+    "push": {
+      "deleteRequestBody": "Bir mektubun silinmesi için onayını istiyor.",
+      "viewRequest": "İsteği Gör 💌",
+      "keepAsked": "Mektubunun saklanmasını istedi."
+    },
+    "allowDelete": {
+      "title": "Silinmesine İzin Veriyor musun? 🗑️",
+      "messageOnDate": "Mektup {{date}} tarihinde ikiniz için de kalıcı olarak silinecek. O güne kadar fikrini değiştirebilirsin.",
+      "messageNow": "Mektup ikiniz için de hemen ve kalıcı olarak silinecek. Bu işlem geri alınamaz.",
+      "confirm": "İzin Ver"
+    },
+    "cantDelete": {
+      "title": "Açılış Gününe Kadar Silinemez 🔒",
+      "message": "Mühürlenen bir mektup partnerine ulaşmadan silinemez. Yer kaplamasın istersen yalnızca kendi listenden gizleyebilir, dilediğinde geri getirebilirsin."
+    },
+    "hideFromList": "Listemden Gizle",
+    "tooEarly": {
+      "title": "Biraz Erken ⏳",
+      "message": "Partnerin mektubu okuyabilsin diye silme isteği, açılıştan 72 saat sonra gönderilebilir: {{date}} itibarıyla."
+    },
+    "partnerKept": {
+      "title": "Partnerin Bu Mektubu Saklamak İstedi 💛",
+      "message": "Yeni bir silme isteğini {{date}} itibarıyla gönderebilirsin."
+    },
+    "sendRequest": {
+      "title": "Silme İsteği Gönderilsin mi? 🗑️",
+      "confirm": "İsteği Gönder"
+    },
+    "demo": {
+      "manageTitle": "Mektuplarını Yönetmek İçin Kayıt Olun 💌",
+      "manageDescription": "Mektupları listenden gizlemek ve silme isteği göndermek için ücretsiz hesap oluşturun."
+    },
+    "options": {
+      "unhide": "Listeme Geri Getir",
+      "withdraw": "Silme İsteğini Geri Çek",
+      "requestDeletion": "Silinmesini İste",
+      "title": "Mektup Seçenekleri ✉️",
+      "messageReceived": "Gizlemek mektubu silmez, yalnızca senin listeni etkiler. Silmek ise açılıştan sonra partnerinin onayıyla mümkündür.",
+      "messageSent": "Gizlemek mektubu silmez, yalnızca senin listeni etkiler; dilediğin an geri getirebilirsin."
+    },
+    "myLoveHeart": "Sevgilim ❤️",
+    "note": {
+      "pending": "Silme isteğin partnerinin onayını bekliyor",
+      "withdraw": "Geri çek",
+      "partnerApproved": "Partnerin onay verdi · {{deletionDay}} tarihinde silinecek",
+      "youApproved": "Silinmesine izin verdin · {{deletionDay}} tarihinde silinecek",
+      "keep": "Saklansın",
+      "partnerKept": "Partnerin bu mektubu saklamak istedi 💛"
+    },
+    "badge": {
+      "received": "📥 Gelen",
+      "sent": "📤 Giden"
+    },
+    "card": {
+      "locked": "Kilitli • {{date}}",
+      "sealed": "Mühürlü • {{date}}",
+      "sentStatus": "Gönderildi",
+      "opened": "Açıldı",
+      "optionsA11y": "Mektup seçenekleri",
+      "lockedTitle": "🔒 Geleceğe Kilitli Mektup",
+      "from": "Gönderen: {{personName}}",
+      "to": "Alıcı: {{personName}}",
+      "lockedNote": "Bu mektup sevdiğin tarafından belirlenen tarihe kadar özel bir mühürle kilitlenmiştir...",
+      "content": "Mektup İçeriği",
+      "openingDate": "Açılış Tarihi: {{date}}",
+      "deletionAsk": "Partnerin bu mektubun silinmesini istiyor. Sen onay vermeden silinmez.",
+      "keepIt": "Saklansın 💛",
+      "allowDeletion": "Silinmesine İzin Ver",
+      "hiddenOnlyForYou": "Yalnızca senin listende gizli",
+      "bringBack": "Geri getir"
+    },
+    "subtitle": "Geleceğe Zaman Kapsülü 💌",
+    "write": {
+      "cta": "Yeni Bir Mektup Yaz",
+      "ctaSub": "Sevdiğine gelecekte açılacak bir mesaj bırak ✨"
+    },
+    "filters": {
+      "all": "Tümü ({{total}})",
+      "received": "Gelen ({{total}})",
+      "sent": "Giden ({{total}})"
+    },
+    "approvalBanner": {
+      "one": "Partnerin bir mektubun silinmesi için onayını bekliyor",
+      "many": "Partnerin {{total}} mektubun silinmesi için onayını bekliyor"
+    },
+    "hiddenNote": "Gizlediğin mektuplar yalnızca senin listenden kalkar; partnerin görmeye devam eder.",
+    "backToMine": "Mektuplarıma Dön",
+    "hiddenTab": "Gizlenenler ({{total}})",
+    "empty": {
+      "hiddenTitle": "Bu sekmede gizlenen mektup yok",
+      "hiddenDescription": "Listenden gizlediğin mektuplar burada durur; dilediğin an geri getirebilirsin.",
+      "noneYetTitle": "Sana ilk mektup henüz gelmedi",
+      "firstMarkTitle": "Geleceğe ilk izi bırak!",
+      "noneYetDescription": "Partnerin sana mühürlü bir mektup yazdığında burada belirecek. Sen de ilk adımı atıp ona bir sürpriz bırakabilirsin.",
+      "firstMarkDescription": "Partnerinin ilk yıl dönümünüzde veya doğum gününde açacağı ilk mühürlü mektubunu hemen yaz.",
+      "cta": "İlk Mektubu Mühürle 💌"
+    },
+    "loadMore": "Daha Fazla Mektup Yükle ({{shown}} Gösteriliyor) 📜",
+    "compose": {
+      "title": "Mektup Mühürle",
+      "toLabel": "KİME GÖNDERİLECEK *",
+      "partnerNotPaired": "Partnerin henüz eşleşmemiş",
+      "unlockDateLabel": "KİLİT AÇILMA TARİHİ *",
+      "timeLock": "Zaman Kilidi",
+      "unlockDateTitle": "Kilit Açılma Tarihi",
+      "titleLabel": "MEKTUP BAŞLIĞI *",
+      "titlePlaceholder": "Örn: 1. Yılımızda Açılacak Özel Bir Not...",
+      "contentLabel": "MEKTUP İÇERİĞİ *",
+      "contentPlaceholder": "Yüreğinden geçenleri dök... Gelecekte sevdiğinin okumasını istediğin en özel satırlar...",
+      "submit": "Mektubu Mühürle 💌",
+      "tokenNote": "* Premium olmayan üyeler için 100 Token karşılığında mühürlenir. (Mevcut bakiyeniz: {{balance}} Token)"
+    },
+    "premium": {
+      "featureName": "Mektup Yaz",
+      "featureDescription": "Sevdiğine zamanda yolculuğa çıkan mektuplar yaz."
+    },
+    "bird": {
+      "wroteToYou": "{{name}} sana yazdı",
+      "manyNew": "{{total}}{{plus}} yeni mektubun var 💌",
+      "oneNew": "Yeni bir mektubun var 💌",
+      "opensOn": "🔒 {{date}} tarihinde açılacak",
+      "ready": "📜 Okumaya hazır, dokun ve oku",
+      "a11y": "{{senderTag}}. {{title}}. {{subtitle}}. Mektuplara gitmek için dokun."
+    },
+    "origami": {
+      "title": "Sevgilime Özel...",
+      "sealing": "Mühürleniyor... 💌",
+      "sealed": "Mühürlendi ✨",
+      "caption": "Geleceğe emanet ediliyor... ✨",
+      "skip": "Animasyonu geç"
+    }
+  },
+  "memories": {
+    "defaults": {
+      "meet": {
+        "title": "Tanışma Yıl Dönümümüz",
+        "description": "Hikayemizin başladığı o güzel gün..."
+      },
+      "relationship": {
+        "title": "Sevgili Olma Yıl Dönümümüz",
+        "description": "Aşkımızın resmi olarak başladığı gün..."
+      }
+    },
+    "badge": {
+      "todayWithYear": "🎉 Bugün {{year}}. Yıl Dönümümüz!",
+      "today": "🎉 Bugün Yıl Dönümümüz!",
+      "daysLeftWithYear_one": "⏳ {{year}}. Yılımıza {{count}} Gün Kaldı",
+      "daysLeftWithYear_other": "⏳ {{year}}. Yılımıza {{count}} Gün Kaldı",
+      "daysLeft_one": "⏳ {{count}} Gün Kaldı",
+      "daysLeft_other": "⏳ {{count}} Gün Kaldı",
+      "dayNumber": "✨ {{totalDays}}. Gün"
+    },
+    "errors": {
+      "deleteFailedWithMessage": "Silinirken bir hata oluştu: {{message}}"
+    },
+    "demo": {
+      "deleteTitle": "Özel Günü Silmek İçin Kayıt Olun 🗑️",
+      "deleteDescription": "Kaydettiğiniz özel günleri ve anıları yönetmek için ücretsiz hesabınızı oluşturun.",
+      "addTitle": "Özel Gün ve Anı Eklemek İçin Kayıt Olun 💖",
+      "addDescription": "İlişkinizin dönüm noktalarını kaydetmek ve yıldönümü bildirimleri almak için ücretsiz hesabınızı oluşturun.",
+      "editTitle": "Özel Günü Düzenlemek İçin Kayıt Olun ✏️",
+      "editDescription": "Anılarınızı ve özel günlerinizi düzenlemek için ücretsiz hesabınızı oluşturun.",
+      "addPhotoTitle": "Özel Günlere Fotoğraf Eklemek İçin Kayıt Olun 📸",
+      "addPhotoDescription": "Özel gün ve yıldönümlerinize anı fotoğrafları eklemek için ücretsiz hesabınızı oluşturun.",
+      "saveTitle": "Özel Gün Kaydetmek İçin Kayıt Olun 💖",
+      "saveDescription": "Yıldönümleri ve özel günlerinizi kaydetmek ve geri sayım başlatmak için ücretsiz hesabınızı oluşturun."
+    },
+    "delete": {
+      "title": "Anıyı Sil",
+      "message": "Bu özel günü silmek istediğine emin misin?"
+    },
+    "toasts": {
+      "deleted": "Özel gün silindi 🗑️",
+      "updated": "Özel gün güncellendi ✨",
+      "saved": "Özel gün kaydedildi ✨"
+    },
+    "title": "Özel Günler",
+    "subtitle": "En tatlı anılarımızın milatları",
+    "done": "Bitti",
+    "empty": {
+      "title": "Anı defteriniz henüz bembeyaz",
+      "description": "Tanıştığınız günü, ilk buluşmanızı, size özel her şeyi ekleyin; yıllar sonra ilk sayfa sizi gülümsetsin.",
+      "cta": "İlk Özel Günü Ekle ✨"
+    },
+    "addNew": "Yeni Özel Gün Ekle",
+    "add": {
+      "titleAndDateRequired": "Lütfen bir başlık ve tarih girin.",
+      "fileTooLargeTitle": "Dosya Çok Büyük",
+      "fileTooLargeMessage": "Lütfen 5 MB'dan daha küçük bir fotoğraf seçin.",
+      "photoPrepFailed": "Fotoğraf hazırlanamadı.",
+      "saveFailed": "Anı kaydedilirken bir hata oluştu.",
+      "editTitle": "Anıyı Düzenle",
+      "newTitle": "Yeni Anı Ekle",
+      "titlePlaceholder": "Örn: İlk Buluşmamız",
+      "selectDate": "Tarih Seçin",
+      "dateTitle": "Anı Tarihi",
+      "descriptionLabel": "Açıklama (İsteğe bağlı)",
+      "descriptionPlaceholder": "O güne dair hatırlamak istediklerin...",
+      "photoLabel": "Fotoğraf (İsteğe bağlı)",
+      "chooseFromGallery": "Galeriden Seç"
+    },
+    "premium": {
+      "featureName": "Fotoğraflı Özel Gün",
+      "featureDescription": "Özel günlerinize fotoğraf eklemek için Premium'a geçmeniz gerekmektedir."
+    }
+  },
+  "dailyNotes": {
+    "demo": {
+      "deleteTitle": "Günlüğü Silmek İçin Kayıt Olun 🗑️",
+      "deleteDescription": "Günlük notlarınızı yönetmek ve silmek için ücretsiz hesabınızı oluşturun.",
+      "editTitle": "Günlüğü Düzenlemek İçin Kayıt Olun ✏️",
+      "editDescription": "Günlük notlarınızı güncellemek için ücretsiz hesabınızı oluşturun.",
+      "writeTitle": "Günlük Not Yazmak İçin Kayıt Olun 📖",
+      "writeDescription": "Günün hislerini ve sevgi notlarını şifreli olarak kaydetmek için ücretsiz hesabınızı oluşturun.",
+      "createTitle": "Günlük Tutmak İçin Kayıt Olun 📖",
+      "createDescription": "Şifrelenerek saklanan ve yalnızca sizin görebileceğiniz kişisel günlüğünüzü oluşturmak için ücretsiz hesabınızı başlatın."
+    },
+    "delete": {
+      "title": "Günlüğü Sil",
+      "message": "Bu günlük kaydını kalıcı olarak silmek istediğinize emin misiniz?"
+    },
+    "errors": {
+      "deleteFailed": "Günlük silinirken hata oluştu.",
+      "updateFailed": "Günlük güncellenemedi."
+    },
+    "subtitle": "Sadece senin görebildiğin notların 📓",
+    "writeToday": "Günün Günlüğünü Yaz",
+    "writeTodaySub": "İçinden geçenleri defterine emanet et ✨",
+    "empty": {
+      "title": "Günlüğünün ilk sayfası seni bekliyor",
+      "description": "Bugün hissettiklerini, sevgilinle yaşadığın güzel bir anı ya da sadece aklından geçenleri yaz; sadece sen okuyabilirsin.",
+      "cta": "İlk Sayfayı Yaz ✍️"
+    },
+    "edit": {
+      "title": "Günlüğü Düzenle",
+      "placeholder": "Günlüğünüz...",
+      "counter": "{{chars}} / {{max}} harf"
+    },
+    "add": {
+      "writeSomething": "Lütfen günlüğünüze bir şeyler yazın.",
+      "invalidContent": "Geçersiz içerik. Lütfen notu tekrar yazın.",
+      "readFailed": "Bugünün mevcut günlüğü okunamadı, üzerine yazılmadı.",
+      "pageFullTitle": "Sayfa Dolu",
+      "pageFullMessage": "Bugünün günlük sayfası doldu. Günlüklerim ekranından mevcut notu düzenleyebilirsin.",
+      "saved": "Günlüğün kaydedildi ✨",
+      "saveFailed": "Günlük kaydedilirken bir hata oluştu.",
+      "title": "Yeni Günlük Sayfası",
+      "subtitle": "Sadece senin görebildiğin özel notun 🔒",
+      "label": "GÜNLÜK NOTUN",
+      "counter_one": "{{chars}} / {{max}} harf ({{count}} kelime)",
+      "counter_other": "{{chars}} / {{max}} harf ({{count}} kelime)",
+      "placeholder": "Sevgili günlük, bugün içimden geçenler...",
+      "submit": "Günlüğü Deftere Kaydet 📖"
+    }
+  },
+  "calendar": {
+    "demo": {
+      "deleteTitle": "Notu Silmek İçin Kayıt Olun 🗑️",
+      "deleteDescription": "Takvimdeki notlarınızı yönetmek ve silmek için ücretsiz hesabınızı oluşturun."
+    },
+    "unnamed": "İsimsiz",
+    "subtitle": "Özel Günler & Hatıralar 📅",
+    "dayRecords": "Günün Kayıtları ve Anıları",
+    "editNote": "Notu Düzenle",
+    "addNote": "Not Ekle",
+    "status": {
+      "planned": "Planlandı",
+      "canceled": "İptal Edildi"
+    },
+    "period": {
+      "start": "Regl Başlangıcı",
+      "dayOfCycle": "Regl Döngüsünün {{day}}. Günü",
+      "summary": "{{authorName}} · {{days}} günlük süreç",
+      "logged": "Döngü kaydı"
+    },
+    "empty": {
+      "title": "Henüz Kayıt Yok",
+      "description": "Bu güne ait henüz bir not, ruh hali, buluşma veya fotoğraf bulunmuyor.",
+      "cta": "İlk Notu Ekle ✍️"
+    },
+    "legend": {
+      "note": "Not",
+      "myMood": "Ruh Halim",
+      "partner": "Partnerim",
+      "photo": "Fotoğraf"
+    },
+    "noteModal": {
+      "editTitle": "Günün Notunu Düzenle",
+      "addTitle": "Güne Not Ekle",
+      "placeholder": "Bugünle ilgili küçük bir hatıra veya not bırak...",
+      "counter": "{{chars}} / 1000 karakter"
+    },
+    "sections": {
+      "photos": "FOTOĞRAF ARŞİVİ",
+      "notes": "GÜNÜN NOTLARI",
+      "moods": "HİSSEDİLEN RUH HALLERİ",
+      "meetings": "GÜNÜN BULUŞMALARI",
+      "period": "DÖNGÜ & SAĞLIK TAKİBİ"
+    },
+    "note": {
+      "yours": "Senin notun",
+      "fromPartner": "Sevgilinin sana bıraktığı not"
+    }
+  },
+  "ads": {
+    "loadFailed": "Reklam yüklenirken bir hata oluştu.",
+    "earned": "25 Token kazandın!",
+    "addFailed": "Token eklenirken bir hata oluştu.",
+    "title": "Token Kazan",
+    "description": "Kısa bir reklam izleyerek 25 Token kazanabilirsin.",
+    "watch": "Reklamı İzle (+25)",
+    "webSimulation": "Web Simülasyonu",
+    "webDescription": "Mobil reklamlar web ortamında desteklenmemektedir. Test amaçlı ödülü doğrudan alabilirsiniz.",
+    "claim": "Ödülü Al ✨"
+  },
+  "legal": {
+    "docs": {
+      "kvkk": {
+        "title": "KVKK Aydınlatma Metni",
+        "sub": "6698 Sayılı Kanun Kapsamında Bilgilendirme"
+      },
+      "privacy": {
+        "sub": "Veri Koruma, Şifreleme ve Güvenlik İlkeleri"
+      },
+      "terms": {
+        "sub": "Kullanıcı Sözleşmesi ve Genel Kurallar"
+      },
+      "consent": {
+        "title": "Açık Rıza Metni",
+        "sub": "Sağlık ve Konum Verilerinin İşlenmesi"
+      },
+      "subscription": {
+        "title": "Abonelik ve İade Şartları",
+        "sub": "Mesafeli Satış, İptal ve Yenileme"
+      }
+    },
+    "tabs": {
+      "kvkk": "KVKK",
+      "privacy": "Gizlilik",
+      "terms": "Koşullar",
+      "consent": "Açık Rıza",
+      "subscription": "Abonelik"
+    },
+    "modal": {
+      "title": "Yasal & Gizlilik",
+      "subtitle": "Mevzuat ve Kullanıcı Sözleşmeleri",
+      "lastUpdated": "Son Güncelleme: {{date}}",
+      "accept": "Okudum ve Anladım"
+    }
+  },
+  "language": {
+    "title": "Dil Seçimi",
+    "description": "Uygulamanın dilini seç. Değişiklik anında uygulanır."
+  },
+  "period": {
+    "countdown": {
+      "next_one": "Sonraki Döngü: {{count}} Gün Kaldı ({{date}}) 🌸",
+      "next_other": "Sonraki Döngü: {{count}} Gün Kaldı ({{date}}) 🌸",
+      "today": "Bugün yeni döngü günü bekleniyor 🌸",
+      "late_one": "{{count}} gün gecikti ⏳",
+      "late_other": "{{count}} gün gecikti ⏳",
+      "waiting": "Yeni döngü kaydı bekleniyor 🌸"
+    },
+    "errors": {
+      "invalidDateTitle": "Geçersiz Tarih",
+      "futureStart": "Gelecekteki bir günü regl başlangıcı olarak işaretleyemezsiniz.",
+      "limitTitle": "Sınır 🌸",
+      "limitMessage": "Biyolojik olarak bir ay içerisinde en fazla 2 ayrı regl başlangıcı kaydedebilirsiniz.",
+      "intervalTitle": "Biyolojik Aralık 🌸",
+      "intervalMessage": "İki regl başlangıcı arasında en az 16 gün ara bulunmalıdır."
+    },
+    "info": {
+      "title": "Bilgi 🌸",
+      "femaleOnly": "Regl takvimini yalnızca kadın partner güncelleyebilir."
+    },
+    "subtitle": {
+      "female": "Kişisel Döngü & Sağlık Takibi 🌸",
+      "male": "Sevgilinin Döngüsü & Destek Rehberi 💕"
+    },
+    "lock": {
+      "title": "Sevgilinin Döngüsünü Birlikte Takip Edin 💕",
+      "description": "Partnerinizin hassas dönemlerinden haberdar olarak ona en doğru zamanda anlayış ve şefkatle yaklaşabilirsiniz.",
+      "bullet1": "Hassas günlerinde sevgiline şefkatle destek ol",
+      "bullet2": "Özel günleri ve tatil planlarını rahatça organize et",
+      "bullet3": "Duygu durum değişimlerini önceden fark et ve anlayış göster"
+    },
+    "status": {
+      "activeFemale": "Döngü Takibi Aktif 🌸",
+      "activeMale": "Sevgilinin Döngüsü Takipte 💕",
+      "lastStart": "Son başlangıç: {{date}}",
+      "none": "Henüz bir regl başlangıcı kaydedilmedi."
+    },
+    "today": {
+      "logged": "Bugün Kaydedildi",
+      "start": "Bugün Reglim Başladı 🌸"
+    },
+    "tips": {
+      "title": "Sevgiline Destek Olma İpuçları",
+      "tip1": "Ona en sevdiği çikolatayı veya tatlıyı hediye edebilirsin.",
+      "tip2": "Sıcak bir bitki çayı hazırlayıp rahatlamasına yardımcı ol.",
+      "tip3": "Ekstra anlayışlı davranıp onu sımsıkı kucakla."
+    },
+    "selfCare": {
+      "title": "Günün Kendine Bakım Notu",
+      "text": "Her gün işaretlemene gerek yok; yalnızca reglinin başladığı günü seç ya da yukarıdaki butona dokun. 5 günlük süreci ve sonraki döngüyü biz hesaplarız. Bol su içmeyi ve kendini dinlendirmeyi unutma tatlım 🌸"
+    },
+    "history": {
+      "title": "GEÇMİŞ KAYITLAR",
+      "empty": "Henüz kayıtlı bir döngü günü bulunmuyor."
+    },
+    "modal": {
+      "addQuestion": "Bu günü regl başlangıcı olarak işaretlemek istiyor musunuz?",
+      "removeQuestion": "Bu tarihteki regl kaydını kaldırmak istiyor musunuz?",
+      "mark": "İşaretle",
+      "delete": "Kaydı Sil"
+    },
+    "premium": {
+      "featureDescription": "Sevgilinizin döngüsünü birlikte takip edin, hassas dönemlerinde ona en doğru şekilde destek olun."
+    }
+  },
+  "meetings": {
+    "push": {
+      "updatedBody": "{{name}} buluşma planını güncelledi: {{title}}",
+      "updatedTitle": "Buluşma Güncellendi 📅"
+    },
+    "demo": {
+      "editTitle": "Buluşmayı Düzenlemek İçin Kayıt Olun 📍",
+      "editDescription": "Buluşma detaylarını ve konumunu güncellemek için ücretsiz hesabınızı oluşturun.",
+      "saveTitle": "Buluşmayı Kaydetmek İçin Kayıt Olun 📅",
+      "saveDescription": "Buluşmalarınızı kaydetmek ve partnerinizle paylaşmak için ücretsiz hesabınızı oluşturun.",
+      "deleteTitle": "Buluşmayı Silmek İçin Kayıt Olun 🗑️",
+      "deleteDescription": "Planlanan buluşmaları yönetmek ve silmek için ücretsiz hesabınızı oluşturun."
+    },
+    "errors": {
+      "past": "Geçmiş bir zamana buluşma planlayamazsınız!",
+      "titleRequired": "Lütfen buluşma için bir başlık girin.",
+      "onlyPlanner": "Bu buluşmayı yalnızca planlayan kişi güncelleyebilir.",
+      "actionFailed": "İşlem gerçekleştirilemedi. Lütfen daha sonra tekrar deneyin.",
+      "deleteFailed": "Buluşma silinemedi."
+    },
+    "toasts": {
+      "updated": "Buluşma güncellendi 🎉",
+      "planned": "Buluşma planlandı 🎉"
+    },
+    "delete": {
+      "title": "Buluşmayı Sil",
+      "message": "Bu buluşmayı silmek istediğinize emin misiniz?"
+    },
+    "subtitle": "Randevular & Özel Anlar 📍",
+    "plan": {
+      "cta": "Yeni Bir Buluşma Planla",
+      "ctaSub": "Tarih, saat ve haritadan konum belirleyin ✨"
+    },
+    "upcoming": "YAKLAŞAN BULUŞMALAR",
+    "count_one": "{{count}} Randevu",
+    "count_other": "{{count}} Randevu",
+    "card": {
+      "editA11y": "Buluşmayı düzenle",
+      "deleteA11y": "Buluşmayı sil",
+      "plannedByYou": "Bu buluşmayı sen planladın ✨",
+      "plannedByPartner": "Sevgilin bu buluşmayı planladı ✨",
+      "directions": "Haritada Yol Tarifi Al 🗺️"
+    },
+    "empty": {
+      "noneTitle": "Sıradaki buluşma henüz yok",
+      "firstTitle": "İlk buluşmanızı planlayın",
+      "noneDescription": "Yeni bir akşam yemeği, kahve molası ya da küçük bir kaçamak planlamaya ne dersiniz?",
+      "firstDescription": "Romantik bir akşam yemeği ya da kahve molası planlayın; geri sayım ana sayfanızda sizi heyecanla bekler.",
+      "noneCta": "Yeni Buluşma Planla 🥂",
+      "firstCta": "İlk Buluşmayı Planla 🥂"
+    },
+    "past": "GEÇMİŞ BULUŞMALAR",
+    "showOlder": "Daha eski buluşmaları göster ({{remaining}})",
+    "form": {
+      "editTitle": "Buluşmayı Düzenle",
+      "newTitle": "Yeni Buluşma Planla",
+      "titleLabel": "BULUŞMA BAŞLIĞI",
+      "titlePlaceholder": "Örn: Yıldönümü Yemeği, Kahve Randevusu...",
+      "dateLabel": "TARİH",
+      "timeLabel": "SAAT",
+      "locationLabel": "BULUŞMA YERİ / KONUM",
+      "locationPlaceholder": "Buluşulacak mekan veya adres...",
+      "update": "Buluşmayı Güncelle",
+      "save": "Randevuyu Kaydet ✨",
+      "datePickerTitle": "Buluşma Tarihi",
+      "timePickerTitle": "Buluşma Saati",
+      "locationPickerTitle": "Buluşma Noktası"
+    }
+  },
+  "medicine": {
+    "manager": {
+      "owner": {
+        "mine": "Benim",
+        "partner": "Sevgilimin"
+      },
+      "registeredSub_one": "{{owner}} • Günde {{count}} kez",
+      "registeredSub_other": "{{owner}} • Günde {{count}} kez",
+      "duplicateTime": "Bu ilaç için bu saati zaten seçtiniz. Lütfen farklı bir saat belirleyin.",
+      "editTitle": "İlacı Düzenle",
+      "title": "İlaç Yönetimi & Ekle",
+      "saved": "KAYITLI İLAÇLAR",
+      "detailsTitle": "İLAÇ DETAYLARI",
+      "newFormTitle": "YENİ İLAÇ FORMU",
+      "forMe": "Ben",
+      "nameLabel": "İLAÇ ADI",
+      "namePlaceholder": "Örn: Aspirin, B12 Vitamini...",
+      "frequencyLabel": "GÜNLÜK DOZ SIKLIĞI",
+      "times_one": "{{count}} Kez",
+      "times_other": "{{count}} Kez",
+      "doseTimesLabel": "DOZ SAATLERİ",
+      "startLabel": "BAŞLANGIÇ",
+      "endLabel": "BİTİŞ",
+      "saveUpdate": "Güncellemeyi Kaydet",
+      "addToList": "İlacı Listeye Ekle",
+      "doseTimePickerTitle": "Doz Saati",
+      "startPickerTitle": "Başlangıç Tarihi",
+      "endPickerTitle": "Bitiş Tarihi"
+    },
+    "notify": {
+      "drankBody": "{{senderName}}, {{medName}} ilacını içti. İçin rahat olsun! 🌿"
+    },
+    "errors": {
+      "statusUpdateFailed": "Durum güncellenirken bir sorun oluştu.",
+      "duplicateTimes": "Aynı ilaç için birden fazla aynı saat seçilemez. Lütfen farklı doz saatleri belirleyin.",
+      "partnerNotPaired": "Partneriniz henüz eşleşmemiş.",
+      "unexpected": "Beklenmeyen bir hata oluştu.",
+      "deleteFailed": "Silinirken hata oluştu."
+    },
+    "demo": {
+      "useTitle": "İlaç Takibini Kullanmak İçin Kayıt Olun 💊",
+      "useDescription": "Günlük ilaç ve vitaminlerinizi kaydetmek ve partnerinizle eşleşmek için ücretsiz hesabınızı oluşturun.",
+      "editTitle": "İlacı Düzenlemek İçin Kayıt Olun 💊",
+      "editDescription": "İlaç bilgilerinizi ve saatlerinizi güncellemek için ücretsiz hesabınızı oluşturun.",
+      "deleteTitle": "İlacı Silmek İçin Kayıt Olun 🗑️",
+      "deleteDescription": "İlaç takviminizi yönetmek için ücretsiz hesabınızı oluşturun.",
+      "manageTitle": "Yeni İlaç ve Hatırlatıcı Eklemek İçin Kayıt Olun 💊",
+      "manageDescription": "Günlük ilaçlarınızı planlamak ve partnerinizle birbirinizi takip etmek için ücretsiz hesabınızı oluşturun."
+    },
+    "toasts": {
+      "updated": "İlaç bilgisi güncellendi 🎉",
+      "saved": "Yeni ilaç kaydedildi 🎉"
+    },
+    "push": {
+      "newTitle": "Yeni İlaç Eklendi 💊",
+      "newForYou": "Sevgilin senin için yeni bir ilaç ekledi: {{name}}",
+      "new": "Sevgilin yeni bir ilaç ekledi: {{name}}"
+    },
+    "delete": {
+      "title": "İlacı Sil",
+      "message": "Bu ilacı silmek istediğinize emin misiniz?"
+    },
+    "subtitle": "Günlük Sağlık Hatırlatıcısı 💊",
+    "manage": {
+      "cta": "Yeni İlaç Ekle veya Yönet",
+      "ctaSub": "Günlük dozları ve saatleri planlayın ✨"
+    },
+    "tabs": {
+      "mine": "Benim İlaçlarım",
+      "partner": "Sevgilimin İlaçları 💕"
+    },
+    "today": {
+      "title": "BUGÜNÜN DOZLARI",
+      "emptyTitle": "Bugün İçin İlaç Yok",
+      "emptyPartner": "Sevgilinizin bugün alması gereken bir ilaç bulunmuyor.",
+      "emptyMine": "Bugün almanız gereken herhangi bir ilaç planlanmamış."
+    },
+    "add": "İlaç Ekle",
+    "dose": {
+      "perDay_one": "Günde {{count}} doz ({{times}})",
+      "perDay_other": "Günde {{count}} doz ({{times}})",
+      "taken": "Alındı ({{time}}) ✔️",
+      "skipped": "Atlandı ({{time}})",
+      "pending": "Bekliyor ({{time}})",
+      "notTaken": "Henüz Alınmadı ({{time}})",
+      "skip": "Atla ({{time}})",
+      "took": "İçtim ({{time}})"
+    },
+    "history": {
+      "title": "GEÇMİŞ GÜNLÜK TAKİP (SON 14 GÜN)",
+      "empty": "Geçmiş ilaç kaydı bulunmuyor.",
+      "entry": "{{name}} • {{taken}}/{{total}} Alındı ({{times}})"
+    },
+    "streak": {
+      "title": "{{count}} Günlük Seri! 🔥",
+      "habit": "Alışkanlık Serisi 💧",
+      "great": "Harika bir disiplin, aksatmadan devam ediyorsun!",
+      "startMine": "İlaçlarını düzenli alarak seriyi başlat!",
+      "partner": "Sevgilinin ilaç takibi serisi"
+    }
+  },
+  "tour": {
+    "guideTitle": "{{title}} Rehberi",
+    "featureCounter": "Özellik {{current}} / {{total}}",
+    "loveTip": "Aşk Püf Noktası",
+    "gotIt": "Anladım, Başla! 🎉",
+    "skipA11y": "Turu geç",
+    "skip": "Turu Geç",
+    "letsBegin": "Başlayalım 🎉",
+    "pageGuideA11y": "Sayfa Rehberi"
+  },
+  "picker": {
+    "selectDate": "Tarih Seç",
+    "selectTime": "Saat Seç"
+  },
+  "stars": {
+    "solar": {
+      "sun": "Güneş",
+      "mercury": "Merkür",
+      "venus": "Venüs",
+      "earth": "Dünya",
+      "moon": "Ay",
+      "mars": "Mars",
+      "jupiter": "Jüpiter",
+      "saturn": "Satürn",
+      "uranus": "Uranüs",
+      "neptune": "Neptün",
+      "pluto": "Plüton"
+    },
+    "errors": {
+      "cooldownActive_one": "Günlük kıvılcım hakkınız henüz yenilenmedi. Kalan süre: {{count}} saniye.",
+      "cooldownActive_other": "Günlük kıvılcım hakkınız henüz yenilenmedi. Kalan süre: {{count}} saniye.",
+      "spamCooldown_one": "Lütfen peş peşe titreşim göndermeden önce {{count}} saniye bekleyin.",
+      "spamCooldown_other": "Lütfen peş peşe titreşim göndermeden önce {{count}} saniye bekleyin.",
+      "starTaken": "Bu yıldız az önce başka bir çift tarafından seçildi, lütfen başka bir yıldız seçin.",
+      "alreadyHasStar": "Zaten bir yıldızınız var — her çift yalnızca bir yıldıza sahip olabilir.",
+      "nameModeration": "Yıldız ismi topluluk kurallarına aykırı kelimeler içeremez.",
+      "premiumRequired": "Bu işlem için aktif Premium üyelik gereklidir.",
+      "needStar": "Bağlantı kurabilmek için önce bir yıldız sahiplenmelisiniz.",
+      "maxConnections": "Maksimum 3 yıldız bağlantısı sınırına ulaşıldı.",
+      "connectionExists": "Bu yıldızla zaten aktif veya bekleyen bir bağlantı mevcut.",
+      "requestAnswered": "Bu bağlantı isteği zaten yanıtlanmış.",
+      "renameCooldown": "İsim değiştirme hakkınız henüz yenilenmedi.",
+      "mediaLinkFailed": "Medya erişim bağlantısı oluşturulamadı.",
+      "nameEmpty": "İsim boş olamaz.",
+      "nameBlocked": "Girdiğiniz isim topluluk kurallarına aykırı kelimeler içeriyor. Lütfen farklı bir isim seçin."
+    },
+    "defaultName": "Bizim Yıldızımız",
+    "defaultNameSparkle": "Bizim Yıldızımız ✨",
+    "debug": {
+      "hudA11y": "Gökyüzü performans paneli"
+    },
+    "activity": {
+      "mood": "Ruh hali",
+      "medicine": "İlaç takibi",
+      "calendar_note": "Takvim notu",
+      "pinned_note": "Harita notu",
+      "period_tracking": "Döngü takibi",
+      "letter": "Mektup",
+      "planet": "Anı gezegeni",
+      "photo": "Fotoğraf",
+      "diary": "Günlük",
+      "profile_pic": "Profil fotoğrafı",
+      "meeting": "Buluşma",
+      "memory": "Anı",
+      "wish": "Dilek"
+    },
+    "pointsToast_one": "+{{count}} puan, yıldızınız parladı 🌟",
+    "pointsToast_other": "+{{count}} puan, yıldızınız parladı 🌟",
+    "micro": {
+      "certificateA11y": "{{name}}, tescil sertifikasını görüntüle",
+      "showAllA11y": "Tüm sistemi göster",
+      "showAll": "Tümünü gör",
+      "sendLightA11y": "Yıldıza ışık gönder",
+      "lockedPlanetA11y": "Kilitli anı gezegeni",
+      "fallbackNote": "Canlı yörünge animasyonları cihaz derlemesinde çalışır",
+      "lockedLabel": "🔒 Kilitli anı",
+      "hintStar": "Yıldıza dokun, sevgine titreşim gönder",
+      "hintDrag": "Sürükle, sistemi çevir · Gezegene dokun, anını aç",
+      "emptyTitle": "Yörüngeniz sizi bekliyor",
+      "emptySubtitle": "İlk anınızı aşağıdan bir gezegene dönüştürün ✨",
+      "spectralClass": "{{spectral_type}} tayfı",
+      "resonanceBanner": "REZONANS · İKİNİZ DE BURADASINIZ",
+      "heartOfStar": "YILDIZIMIZIN KALBİ",
+      "statLight": "IŞIK",
+      "statMemories": "ANI",
+      "statSparks": "KIVILCIM",
+      "openPlanetA11y": "{{display_title}} anı gezegenini aç",
+      "lockedMemory": "Kilitli anı",
+      "unlockPremium": "Premium ile aç 👑",
+      "planetSub": "{{typeLabel}} · {{orbit_distance}}. kuşak",
+      "createA11y": "Yeni anı gezegeni oluştur",
+      "createFirst": "İlk anı gezegeninizi oluşturun",
+      "createFirstSub": "Fotoğraflarınız ve hikâyeniz yörüngede dönsün",
+      "planetsEyebrow": "ANI GEZEGENLERİ",
+      "planetCount_one": "{{count}} anı yörüngede",
+      "planetCount_other": "{{count}} anı yörüngede",
+      "orbitEmpty": "Yörünge boş",
+      "backToSky": "Gök Kubbeye Dön"
+    },
+    "macro": {
+      "fallbackTitle": "Makro Gökyüzü Haritası",
+      "fallbackDescription": "10.000+ yıldız ve nebulayı 60 FPS akıcılıkla çizmek için donanım hızlandırmalı Skia C++ motoru kullanılır.",
+      "noticeTitle": "Development Build Gereklidir",
+      "noticeText": "Projenizdeki özel native modüller (RevenueCat, Ads, QuickCrypto vb.) nedeniyle bu haritayı tam performanslı görüntülemek için terminalden uygulamayı derleyin:",
+      "loadedStars": "Yüklü Yıldız: {{starCount}} adet"
+    },
+    "connectionBadge": {
+      "accepted": "\"{{starName}}\" ile yıldız bağınız kuruldu! Gökyüzünde parıldıyor 💫",
+      "declined": "Bağlantı isteği reddedildi.",
+      "pendingA11y_one": "{{count}} bekleyen yıldız bağlantı isteği",
+      "pendingA11y_other": "{{count}} bekleyen yıldız bağlantı isteği",
+      "title": "Bağlantı İstekleri",
+      "allAnswered": "Bekleyen tüm istekler yanıtlandı ✨",
+      "wantsToConnect": "yıldızı bağlantı kurmak istiyor",
+      "accept": "Kabul Et ✨",
+      "decline": "Reddet"
+    },
+    "radar": {
+      "scanning": "Kozmik koordinatlar taranıyor...",
+      "locked": "Kozmik çekim alanına kilitlenildi ⚡",
+      "approaching": "Gök Kubbede yıldızımıza yaklaşıldı ✨",
+      "active": "EVE DÖNÜŞ RADARI AKTİF",
+      "targetLocked": "HEDEF KİLİTLENDİ",
+      "ra": "SAĞ AÇIKLIK (RA)",
+      "dec": "DİK AÇIKLIK (DEC)"
+    },
+    "sectors": {
+      "centerFallback": "Merkez Sektör",
+      "orion": {
+        "name": "Avcı Sektörü",
+        "description": "Gökyüzünün en görkemli avcısı. Rigel ve Betelgeuse gibi süperdevlere ev sahipliği yapar.",
+        "mythology": "Mitolojide gök kubbenin koruyucu savaşçısı olarak kabul edilir."
+      },
+      "ursa_major": {
+        "name": "Büyük Ayı Sektörü",
+        "description": "Yedi parlak yıldızdan oluşan Büyük Kepçe ile kuzey göğünün kılavuzudur.",
+        "mythology": "Kutup yıldızını bulduran sonsuz yön gösterici."
+      },
+      "cassiopeia": {
+        "name": "Kraliçe Sektörü",
+        "description": "Gökyüzünde belirgin W şekliyle parıldayan kraliçe takımyıldızı.",
+        "mythology": "Güzelliğiyle övünen efsanevi Etiyopya Kraliçesi."
+      },
+      "cygnus": {
+        "name": "Kuğu Sektörü",
+        "description": "Samanyolu kuşağı boyunca kanat çırpan zarif Kuğu.",
+        "mythology": "Kuzeyhaçı olarak da bilinen sadakat sembolü."
+      },
+      "taurus": {
+        "name": "Boğa Sektörü",
+        "description": "Aldebaran'ın kızıl ateşiyle yanan antik Boğa takımyıldızı.",
+        "mythology": "Zeus'un Europa'yı kaçırdığı beyaz boğa formunun gökyüzü yansıması."
+      },
+      "gemini": {
+        "name": "İkizler Sektörü",
+        "description": "Castor ve Pollux ikiz yıldızlarıyla gökyüzündeki kardeşlik sembolü.",
+        "mythology": "Ayrılmaz ikizler — biri ölümlü, biri tanrısal."
+      },
+      "aries": {
+        "name": "Koç Sektörü",
+        "description": "İlkbahar ekinoksunun antik kapısı ve Altın Post'un sahibi.",
+        "mythology": "Jason ve Arganotlar'ın aradığı efsanevi Altın Post'u taşıyan koç."
+      },
+      "cancer": {
+        "name": "Yengeç Sektörü",
+        "description": "Gökyüzünün en sade ama en gizemli köşesi, Arı Kovanı kümelenmesin barındırır.",
+        "mythology": "Herkül ile savaşta savaşan küçük ama cesur yengeç."
+      },
+      "leo": {
+        "name": "Aslan Sektörü",
+        "description": "Regulus'un mavi ışığıyla taçlanan gökyüzünün kralı.",
+        "mythology": "Nemea Aslanı — Herkül'ün ilk ve en zorlu görevi."
+      },
+      "virgo": {
+        "name": "Başak Sektörü",
+        "description": "Spica yıldızıyla parlayan bereket tanrıçası ve galaksi kümelerinin evi.",
+        "mythology": "Hasat mevsiminin habercisi, bereket ve adalet tanrıçası."
+      },
+      "libra": {
+        "name": "Terazi Sektörü",
+        "description": "Gökyüzündeki adalet ve denge sembolü.",
+        "mythology": "Astrea'nın dünyayı terk ederken bıraktığı adalet terazisi."
+      },
+      "scorpius": {
+        "name": "Akrep Sektörü",
+        "description": "Antares'in kırmızı kalbiyle atan gökyüzünün en tehlikeli avcısı.",
+        "mythology": "Orion'u öldüren efsanevi akrep — ikisi aynı anda gökyüzünde görünmez."
+      },
+      "sagittarius": {
+        "name": "Yay Sektörü",
+        "description": "Samanyolu'nun merkezine ok atan okçu. Galaktik çekirdeğin kapısı.",
+        "mythology": "Bilge centaur Chiron'un gökyüzündeki yansıması."
+      },
+      "capricornus": {
+        "name": "Oğlak Sektörü",
+        "description": "Kış gündönümünün kapısı, antik denizkızı-keçi hibridi.",
+        "mythology": "Pan'ın balık kuyruğuna dönüşerek Typhon'dan kaçışının anısı."
+      },
+      "aquarius": {
+        "name": "Kova Sektörü",
+        "description": "Gökyüzünden yeryüzüne su döken su taşıyıcısı.",
+        "mythology": "Tanrıların su taşıyıcısı Ganymede'nin gökyüzündeki yeri."
+      },
+      "pisces": {
+        "name": "Balık Sektörü",
+        "description": "İlkbahar ekinoksunun modern kapısı, iki balığın kozmik dansı.",
+        "mythology": "Afrodit ve Eros'un nehirdeki balıklara dönüşerek kurtulduğu an."
+      },
+      "pegasus": {
+        "name": "Kanatlı At Sektörü",
+        "description": "Büyük Kare ile sonbahar göğünün en belirgin işareti.",
+        "mythology": "Medusa'nın kanından doğan efsanevi kanatlı at."
+      },
+      "andromeda": {
+        "name": "Zincirli Prenses Sektörü",
+        "description": "En yakın büyük galaksimizin (M31) ev sahibi.",
+        "mythology": "Kayalara zincirlenip deniz canavarından kurtarılan prenses."
+      },
+      "lyra": {
+        "name": "Çalgı Sektörü",
+        "description": "Vega ile parıldayan yaz üçgeninin en parlak köşesi.",
+        "mythology": "Orpheus'un büyüleyici lir müziğinin gökyüzündeki yankısı."
+      },
+      "aquila": {
+        "name": "Kartal Sektörü",
+        "description": "Altair ile parıldayan yaz üçgeninin güney ayağı.",
+        "mythology": "Zeus'un şimşek taşıyan kartalı."
+      },
+      "canis_major": {
+        "name": "Büyük Köpek Sektörü",
+        "description": "Gökyüzünün en parlak yıldızı Sirius'un evi.",
+        "mythology": "Avcı Orion'un sadık av köpeği."
+      },
+      "centaurus": {
+        "name": "Kentaur Sektörü",
+        "description": "Alpha Centauri ve Hadar ile güney göğünün en parlak çifti.",
+        "mythology": "Bilge centaur Chiron, yıldızlara yükselen şifacı ve öğretmen."
+      },
+      "crux": {
+        "name": "Güneyhaçı Sektörü",
+        "description": "Gökyüzünün en küçük ama en tanınır takımyıldızı.",
+        "mythology": "Güneye yön gösteren kutsal haç."
+      },
+      "phoenix": {
+        "name": "Anka Kuşu Sektörü",
+        "description": "Ateşten doğan efsanevi kuşun gökyüzündeki yuvası.",
+        "mythology": "Külleriinden yeniden doğan ölümsüz anka kuşu."
+      }
+    },
+    "atlas": {
+      "title": "🌌 Gökyüzü Atlası",
+      "subtitle": "24 Astronomik Sektör",
+      "scanning": "Sektörler taranıyor...",
+      "friend": "Arkadaş",
+      "fill": "{{claimed}} / {{total}} yıldız • %{{fillPercent}}",
+      "flyTo": "Oraya Uç",
+      "chooseStar": "Yıldız Seç"
+    },
+    "hud": {
+      "openAtlasA11y": "{{name}} sektörü, Atlas'ı aç",
+      "atlas": "Atlas"
+    },
+    "demoAuth": {
+      "light": "Işık %{{percent}}",
+      "title": "Bu yıldızı sahiplenmek için kayıt olmanız gerekiyor ✨",
+      "description": "Aşkınızı gökyüzüne mühürlemek, yıldızınızı adlandırmak ve partnerinizle ortak alanınızı başlatmak için ücretsiz hesabınızı oluşturun."
+    },
+    "info": {
+      "a11y": "Yıldız bilgileri ve sertifikayı görüntüle",
+      "resonance": "Rezonans"
+    },
+    "search": {
+      "sirius": "Sirius (Akyıldız)",
+      "polaris": "Polaris (Kutup Yıldızı)",
+      "title": "Evrende Ara",
+      "placeholder": "Güneş, Dünya, Venüs, Sirius, yıldız adı...",
+      "noResults": "Sonuç bulunamadı.",
+      "type": {
+        "common": "Sistem Cisimleri",
+        "custom": "Tescilli Yıldız",
+        "exoplanet": "Anı Gezegeni",
+        "catalog": "Katalog Yıldızı"
+      },
+      "ownStar": "(Senin Yıldızın)"
+    },
+    "connect": {
+      "step1": "Aşağıdaki butonla <b>Gök Kubbe (Makro Görünüm)</b> moduna geçin.",
+      "step2": "Başka bir çifte ait <b>tescilli bir yıldıza</b> dokunun.",
+      "step3": "Açılan yıldız kartındaki <b>“Yıldızımızı Bağla ✨”</b> butonuna basın.",
+      "tabs": {
+        "code": "Çift Kodu",
+        "search": "Yıldız Adı",
+        "sky": "Gökyüzü"
+      },
+      "errors": {
+        "loadFailed": "Bağlantı bilgileri yüklenirken hata oluştu.",
+        "copyFailed": "Kod kopyalanamadı.",
+        "minChars": "En az 2 karakter giriniz.",
+        "searchFailed": "Arama sırasında hata oluştu.",
+        "limitReached": "Maksimum 3 bağlantı limitine ulaştınız.",
+        "alreadyConnected": "\"{{custom_name}}\" yıldızıyla zaten bağlısınız ✨",
+        "alreadyRequested": "\"{{custom_name}}\" yıldızına zaten bir istek gönderdiniz; onay bekleniyor.",
+        "requestFailed": "İstek gönderilemedi.",
+        "noCodeOnClipboard": "Panoda bir çift kodu bulunamadı.",
+        "clipboardFailed": "Pano okunamadı.",
+        "codeLength": "Çift kodu {{length}} haneli olmalıdır.",
+        "ownCode": "Bu sizin kendi çift kodunuz. Bağ kurmak istediğiniz çiftin kodunu girin.",
+        "noCoupleForCode": "Bu kodla eşleşen bir çift bulunamadı. Adı benzeyen yıldızlar aşağıda listelendi.",
+        "noStarForCode": "Bu koda ait bir yıldız bulunamadı. Kodu kontrol edin; karşı çiftin de bir yıldız tescil etmiş olması gerekir.",
+        "codeSearchFailed": "Çift koduyla arama sırasında hata oluştu.",
+        "actionFailed": "İşlem gerçekleştirilemedi."
+      },
+      "success": {
+        "bondFormed": "\"{{custom_name}}\" ile kozmik bağ kuruldu ✨",
+        "requestSent": "\"{{custom_name}}\" yıldızına bağlantı isteği gönderildi ✨",
+        "requestCancelled": "Bağlantı isteği iptal edildi.",
+        "bondEnded": "\"{{starName}}\" ile olan kozmik bağ sonlandırıldı."
+      },
+      "confirm": {
+        "cancelRequest": "Bu bağlantı isteğini iptal etmek istediğinize emin misiniz?",
+        "breakBond": "\"{{starName}}\" ile aranızdaki yıldız bağını koparmak istiyor musunuz?",
+        "cancelTitle": "İsteği İptal Et",
+        "breakTitle": "Bağlantıyı Kopar",
+        "nevermind": "Vazgeç",
+        "cancelAction": "İptal Et",
+        "breakAction": "Kopar"
+      },
+      "connected": "Bağlı ✨",
+      "requestSentBadge": "İstek Gönderildi",
+      "limitFull": "Limit Dolu (3/3)",
+      "approveBond": "Bağı Onayla ✨",
+      "proposeBond": "Bağlantı Öner ✨",
+      "title": "Kozmik Bağlar",
+      "subtitle": "Takımyıldızı arkadaşlıkları • ({{activeConnectionCount}}/3 aktif bağ)",
+      "limitNotice": "Maksimum 3 bağlantı limitine ulaştınız. Yeni bir bağ kurmak için mevcut bağlarınızdan birini sonlandırabilirsiniz.",
+      "loading": "Yıldız bağları yükleniyor...",
+      "ourCodeA11y": "Bizim çift kodumuz {{pairingCode}}, kopyalamak için dokunun",
+      "ourCodeLabel": "Bizim Çift Kodumuz • arkadaşına ver",
+      "friendCodeTitle": "Arkadaşının Çift Kodu",
+      "friendCodeHint": "Bağ kurmak istediğiniz çiftin {{length}} haneli kodunu girin; yıldızlarınız gökyüzünde bir takımyıldızı çizgisiyle birleşsin.",
+      "friendCodeA11y": "Arkadaşının çift kodu",
+      "pasteA11y": "Panodaki kodu yapıştır",
+      "paste": "Yapıştır",
+      "connectA11y": "Bağlantı Kur",
+      "connectBtn": "Bağlantı Kur ✨",
+      "connectNote": "Karşı çift isteğinizi onayladığında yıldızlarınız birbirine bağlanır.",
+      "searchPlaceholder": "Yıldız adı girin...",
+      "search": "Ara",
+      "noResults": "“{{searchQuery}}” adında tescilli başka bir çift yıldızı bulunamadı.",
+      "skyGuideTitle": "Gök Kubbe Üzerinden Seçim",
+      "skyGuideDesc": "Evrende parıldayan diğer çiftlerin tescilli yıldızlarını gökyüzü haritasında keşfedebilir ve doğrudan yıldız kartından bağlantı isteği gönderebilirsiniz.",
+      "goToSky": "Gökyüzüne Git 🌌",
+      "currentBonds": "Mevcut Bağlantılarımız ({{activeConnectionCount}}/3)",
+      "noBonds": "Henüz başka bir çiftin yıldızıyla takımyıldızı bağınız bulunmuyor.",
+      "pendingTitle": "Onay Bekleyen İsteklerimiz ({{outgoingPendingCount}})",
+      "awaiting": "Karşı çiftin onayı bekleniyor…",
+      "cancelRequestA11y": "İsteği iptal et"
+    },
+    "wish": {
+      "announceOpen": "Bir yıldız kaydı. Bir dilek tut.",
+      "announceReleased": "Dileğin yola çıktı.",
+      "errors": {
+        "unreachable": "Şu an gökyüzüne ulaşamadık. Bağlantını kontrol edip tekrar dener misin?"
+      },
+      "alreadyTitle": "Bugünkü dileğini zaten tuttun",
+      "alreadyBody": "Her gün bir dilek hakkın var. Yarın gökyüzü sana yeni bir yıldız kaydıracak ✨",
+      "eyebrow": "BİR YILDIZ KAYDI",
+      "title": "Bir dilek tut",
+      "intro": "Gözlerini kapat, aklından geçeni yaz. Dileğin yalnızca gökyüzüne gider; kimse okumaz, hiçbir yere kaydedilmez.",
+      "partnerWished": "💫 Partnerin de bugün bir dilek tuttu",
+      "placeholder": "Dileğim…",
+      "inputA11y": "Dileğin",
+      "inputHint": "Dileğin hiçbir yere kaydedilmez",
+      "release": "Dileğimi gökyüzüne bırak",
+      "sending": "Gökyüzüne yollanıyor…",
+      "sentTitle": "Dileğin yola çıktı",
+      "sentBodyStar": "Yıldızınız biraz daha parladı ✨",
+      "sentBodyHeard": "Gökyüzü onu duydu ✨"
+    },
+    "claim": {
+      "preSelectedCoords": "RA {{ra}}° / DEC {{dec}}° • Işık %{{light}}",
+      "findInSector": "{{sector}}'den Yıldız Bul ✨",
+      "renameLocked": "İsim değiştirme hakkı {{date}} tarihinde yenilenir",
+      "radar": {
+        "engraving": "Yıldızınız evrene kazınıyor...",
+        "scanning": "Kozmik sinyal taranıyor, derin uzay katalogları inceleniyor...",
+        "catalogScan": "Gaia DR3 ve Hipparcos kataloğunda boşta duran yıldızlar taranıyor..."
+      },
+      "errors": {
+        "nameTooShort": "Yıldızınızın ismi en az 2 karakter olmalıdır.",
+        "nameTooLong": "Yıldızınızın ismi en fazla 40 karakter olabilir.",
+        "nameSame": "Yeni isim mevcut isimle aynı; hakkınız korunuyor.",
+        "renameFailed": "İsim değiştirilemedi. Lütfen tekrar deneyin.",
+        "noFreeStar": "Gökkubbede bu parlaklıkta uygun boşta yıldız bulunamadı. Lütfen tekrar deneyin.",
+        "cosmicGlitch": "Yıldız tescil edilirken kozmik bir parazit oluştu."
+      },
+      "intro": "Gerçek astronomik katalogdan (Gaia & Hipparcos), gökyüzünde gerçek koordinatlara sahip tekil bir yıldızı aşkınız adına tescil edin.",
+      "nameLabel": "YILDIZINIZIN İSMİ",
+      "namePlaceholder": "Örn: Sonsuz Aşkımız, Vega & Sirius...",
+      "registerThis": "Bu Yıldızı Tescille ✨",
+      "sectorFallback": "Sektör",
+      "scanSky": "Gökyüzünü Tara & Yıldızımızı Bul ✨",
+      "footnote": "* Tescillenen yıldız dünyada yalnızca sizin çiftinize ait olur ve asla ölmez.",
+      "registering": "Tescil Ediliyor",
+      "scanningDome": "Gökkubbe Taranıyor",
+      "errorTitle": "Kozmik Bağlantı Kesintisi",
+      "chooseAnother": "Başka Yıldız Seç",
+      "certTitle": "GÖKSEL TESCİL SERTİFİKASI",
+      "renamePlaceholder": "Yıldızınızın yeni ismi",
+      "renameNote": "İsmi ayda yalnızca bir kez değiştirebilirsiniz; hak kullanılınca 30 gün beklemeniz gerekir. Hak iki partner için ortaktır.",
+      "saving": "Kaydediliyor…",
+      "editNameA11y": "Yıldızın ismini düzenle",
+      "editName": "İsmi düzenle",
+      "certSubtitle": "Aşkınızın Işığı Evrende Sonsuza Kadar Parlamak Üzere Tescillendi",
+      "catalogCode": "KATALOG KODU",
+      "spectralClass": "TAYF SINIFI",
+      "certBody": "Yıldızınız gökyüzünde! Birlikte paylaştığınız her anı onu daha da parlatacak.",
+      "closeCert": "Sertifikayı Kapat ✨",
+      "enterMicro": "Mikro Evrenimize Adım At 🚀"
+    },
+    "exoplanet": {
+      "zoneHelp": "{{periodDesc}} · her anı kendi halkasında döner",
+      "types": {
+        "terrestrial": "Karasal",
+        "ocean_world": "Okyanus",
+        "crystal": "Kristal",
+        "ice_world": "Buz Dünyası",
+        "gas_giant": "Gaz Devi",
+        "volcanic": "Volkanik",
+        "desert": "Çöl",
+        "ringed_giant": "Halkalı Dev"
+      },
+      "zones": {
+        "z1": {
+          "label": "Kuşak 1",
+          "period": "Yıldıza en yakın yörünge"
+        },
+        "z2": {
+          "label": "Kuşak 2",
+          "period": "İç yörünge"
+        },
+        "z3": {
+          "label": "Kuşak 3",
+          "period": "Orta yörünge"
+        },
+        "z4": {
+          "label": "Kuşak 4",
+          "period": "Dış yörünge"
+        },
+        "z5": {
+          "label": "Kuşak 5",
+          "period": "Yıldıza en uzak yörünge"
+        }
+      },
+      "photoLimit": "Bir anı gezegenine en fazla 5 fotoğraf ekleyebilirsiniz.",
+      "galleryPermTitle": "Galeri İzni Gerekli",
+      "galleryPermBody": "Fotoğraf seçebilmek için ayarlardan galeri erişimine izin vermelisiniz.",
+      "pickFailed": "Fotoğraf seçilirken bir sorun oluştu.",
+      "deleteTitle": "Bu anıyı kalıcı olarak silmek istediğinize emin misiniz?",
+      "deleteBody": "Bu işlem geri alınamaz ve anıya ait fotoğraflar da sistemden kaldırılır.",
+      "deleteConfirm": "Evet, Sil",
+      "deleteFailed": "Gezegen silinirken bir sorun oluştu.",
+      "uploading": "Fotoğraflar yükleniyor ({{current}}/{{total}})...",
+      "photoProcessFailed": "Fotoğraf verisi işlenemedi.",
+      "errors": {
+        "verifyingLimit": "Gezegen limiti doğrulanıyor, lütfen bekleyin...",
+        "limitReached": "Maksimum 10 anı gezegeni sınırına ulaşıldı.",
+        "titleLength": "Başlık 2 ile 60 karakter arasında olmalıdır.",
+        "invalidDate": "Lütfen geçerli bir tarih girin (YYYY-AA-GG).",
+        "futureDate": "Anı tarihi gelecek bir zaman olamaz. Bugün veya geçmiş bir gün seçiniz.",
+        "createFailed": "Gezegen oluşturulurken bir hata oluştu.",
+        "updateFailed": "Gezegen güncellenirken bir hata oluştu."
+      },
+      "placing": "Anı gezegeni yörüngeye yerleştiriliyor...",
+      "push": {
+        "title": "Yeni Bir Anı Gezegeni ✨",
+        "body": "Sevgilin yörüngeye yeni bir anı gezegeni yerleştirdi: \"{{trimmedTitle}}\"",
+        "action": "Gezegeni Gör 🪐"
+      },
+      "updating": "Anı gezegeni güncelleniyor...",
+      "eyebrowAuto": "OTOMATİK ANI GEZEGENİ",
+      "eyebrowView": "ANI GEZEGENİ",
+      "eyebrowEdit": "ANI GEZEGENİNİ DÜZENLE",
+      "eyebrowNew": "YENİ ANI GEZEGENİ",
+      "selectDate": "Tarih seçin",
+      "lockedBody": "Fotoğraflar, mektuplar ve ayrıntılar Premium üyeliğiniz yeniden aktif olduğunda açılır.",
+      "unlockPremium": "Premium ile Aç",
+      "deletePlanet": "Gezegeni Sil",
+      "orbitLine": "{{orbit_distance}}. kuşak · {{type}}",
+      "auto": "Otomatik",
+      "loadingStory": "Fotoğraflar ve hikâye yükleniyor…",
+      "photoCount_one": "ANILAR · {{count}} FOTOĞRAF",
+      "photoCount_other": "ANILAR · {{count}} FOTOĞRAF",
+      "photoOpenA11y": "Fotoğraf {{number}}, tam ekran aç",
+      "noPhotos": "Bu gezegene henüz fotoğraf eklenmemiş.",
+      "ourStory": "HİKÂYEMİZ",
+      "linkedLetters": "İLİŞKİLİ MEKTUPLAR · {{linkedLetterIdCount}}",
+      "letterNumber": "Mektup #{{number}}",
+      "viewLetter": "Mektubu görüntüle",
+      "deletePlanetA11y": "Gezegeni sil",
+      "newPlanet": "Yeni anı gezegeni",
+      "previewLine": "{{orbitZone}}. kuşak · {{type}} · {{formDateLabel}}",
+      "limitFullTitle": "Gezegen Limiti Dolu (10/10)",
+      "limitFullBody": "Maksimum 10 anı gezegeni oluşturabilirsiniz. Yeni bir anı eklemek için lütfen mevcut gezegenlerden birini silin.",
+      "titleLabel": "ANI BAŞLIĞI",
+      "titlePlaceholder": "Örn: İlk Tatilimiz, Kapadokya Balonları...",
+      "dateLabel": "ANI TARİHİ",
+      "zoneLabel": "YÖRÜNGE KUŞAĞI",
+      "typeLabel": "GEZEGEN TÜRÜ",
+      "storyLabel": "ANI HİKÂYESİ · İSTEĞE BAĞLI",
+      "storyPlaceholder": "Bu anıyı sevgiliniz için ölümsüzleştiren satırları yazın...",
+      "photosLabel": "FOTOĞRAFLAR · {{totalPhotosCount}}/5",
+      "addPhoto": "Fotoğraf Ekle",
+      "removePhotoA11y": "Fotoğrafı kaldır",
+      "pickHint": "Galeri'den en fazla 5 fotoğraf seçin",
+      "saving": "Kaydediliyor...",
+      "checkingLimit": "Limit Kontrol Ediliyor...",
+      "placingShort": "Yörüngeye Yerleştiriliyor...",
+      "placeBtn": "Anı Gezegenini Yörüngeye Yerleştir 🪐"
+    },
+    "solarDescriptions": {
+      "sun": "Güneş Sistemimizin kalbi, tüm evrenin yaşam kaynağı.",
+      "mercury": "Güneşe en yakın, kalbimizin en sıcak ve tutkulu köşesi.",
+      "venus": "Aşkın ve güzelliğin simgesi, gökyüzünün en parlak Çoban Yıldızı.",
+      "earth": "Tüm anılarımızın ve sevgimizin filizlendiği biricik mavi gezegen.",
+      "moon": "Gecelerimizin aydınlatıcısı, sadık ve zarif uydumuz Ay.",
+      "mars": "Aşkımızın sönmeyen ateşi ve cesareti, Kızıl Gezegen.",
+      "jupiter": "Tüm zorluklara karşı bizi koruyan dev kalkan, sevgimizin koruyucusu.",
+      "saturn": "Zamanın ötesindeki bağlılığımızın ve sadakatimizin sonsuz halkası.",
+      "uranus": "Gökyüzünün dingin, masmavi ve büyüleyici buz gülü.",
+      "neptune": "Aşkımızın derinliği gibi dipsiz ve huzurlu okyanuslar diyarı.",
+      "pluto": "Evrenin ucunda bile olsa birbirini asla unutmayan kalplerin simgesi.",
+      "fallback": "Güneş Sistemimizin kadim bir yolcusu ✨"
+    },
+    "card": {
+      "mysterious": "Gizemli ✨",
+      "activityPoints_one": "{{count}} aktivite puanı",
+      "activityPoints_other": "{{count}} aktivite puanı",
+      "pointsToday": "bugün +{{points}}",
+      "lightFading": "ışık sönüyor, bugün bir anı paylaşın",
+      "lightWarning": "bugün aktivite olmazsa ışık azalmaya başlar",
+      "unclaimedHint": "Sahipsiz yıldızların hepsi aynı sönük ışıkla parlar · tescillenince aşkınızla parlamaya başlar",
+      "connectToSee": "Yıldızlarınızı bağlayınca gerçek ışığını görürsünüz",
+      "ourStar": "Bizim Yıldızımız 💫",
+      "registered": "🔒 Tescilli",
+      "available": "Boşta",
+      "spectrum": "Tayf:",
+      "brightness": "Parlaklık:",
+      "enterStar": "Yıldızın İçine Gir 🪐",
+      "certificate": "Sertifika 📜",
+      "chooseStar": "Bu Yıldızı Seç 💫",
+      "alreadyHasStar": "Zaten bir yıldızınız var — her çift yalnızca bir yıldıza sahip olabilir ✨",
+      "takenByOther": "🔒 Bu yıldız başka bir çift tarafından gökyüzüne tescillenmiştir.",
+      "needStarFirst": "Bağlantı kurabilmek için önce aşkınıza ait bir yıldız tescil etmelisiniz ✨",
+      "alreadyBonded": "✨ Bu yıldızla zaten parıldayan bir takımyıldızı bağınız var.",
+      "requestPending": "⏳ Bu yıldıza bağlantı isteği gönderildi; onay bekleniyor.",
+      "connectStar": "Yıldızımızı Bağla ✨",
+      "pickTitle": "Aşkınızın Yıldızını Seçin ✨",
+      "pickBody": "Gökyüzünde özgürce gezinin; aşkınıza layık boşta parıldayan bir yıldıza dokunup \"Bu Yıldızı Seç\" ile çiftinize tescil edin.",
+      "backToStarA11y": "Yıldızımıza Dön",
+      "backToStar": "Yıldızımıza Dön ✨",
+      "ascendA11y": "Gök Kubbeye Çık",
+      "enterStarA11y": "Yıldızın İçine Gir"
+    },
+    "screen": {
+      "toasts": {
+        "loadPlanetsFailed": "Anı gezegenleri yüklenemedi. Lütfen tekrar deneyin.",
+        "loadStarFailed": "Yıldız verileri yüklenemedi. Lütfen bağlantınızı kontrol edip tekrar deneyin.",
+        "refreshLockedFailed": "Kilitli gezegenler yenilenemedi. Lütfen tekrar deneyin.",
+        "partnerPulse": "{{partnerTitle}} yıldızınıza dokunarak sevgi titreşimi gönderdi! 💫",
+        "resonanceStarted": "Eşzamanlı rezonans başladı! Yıldızınız çift korona ile parlıyor 🌌",
+        "pulseSent": "Yıldıza dokundun; sevgi titreşimi eşine iletildi 💫",
+        "planetDetailFailed": "Gezegen ayrıntıları yüklenemedi.",
+        "glidingHome": "Yıldızımıza süzülüyoruz ✨",
+        "ascendedDome": "Gök Kubbeye çıkıldı; tüm evreni keşfedebilirsiniz 🌌",
+        "soundsOff": "Uygulama sesleri ayarlardan kapalı (Profil > Ses & Dokunsal Efektler).",
+        "wishDone": "Bugünkü dileğini tuttun. Yarın yeni bir yıldız bekle ✨",
+        "renamed": "Yıldızınızın yeni ismi gökyüzüne işlendi ✨",
+        "registered": "Yıldızınız gökyüzüne tescillendi! Hoş geldiniz ✨",
+        "planetAdded": "\"{{title}}\" anı gezegeni yörüngede dönmeye başladı! 🪐",
+        "planetUpdated": "\"{{title}}\" gezegeni güncellendi! ✨",
+        "planetRemoved": "Anı gezegeni yörüngeden kaldırıldı.",
+        "limitReached": "Maksimum 3 bağlantı limitine ulaştınız (3/3).",
+        "targetInfoFailed": "Hedef yıldız bilgisi alınamadı.",
+        "requestFailed": "Bağlantı isteği gönderilemedi.",
+        "tapToConnect": "Gök Kubbede tescilli bir yıldıza dokunarak bağ kurabilirsiniz 🌌",
+        "sectorRedirect": "{{name}} sektörüne yönlendirildiniz. Boş bir yıldıza dokunarak seçebilirsiniz ✨",
+        "starInfoFailed": "Yıldızın bilgileri alınamadı; gökyüzünde yıldıza dokunarak açabilirsin."
+      },
+      "loading": "Kozmik Harita Yükleniyor...",
+      "soundOnA11y": "Sesi Aç",
+      "soundOffA11y": "Sesi Kapat",
+      "searchA11y": "Yıldız Ara"
+    }
+  },
+  "quotes": {
+    "daily": [
+      "Seninle her gün daha çok seviyorum seni.",
+      "Gözlerin, benim için en güzel ışık.",
+      "Sen olmadan bir gün bile düşünemiyorum.",
+      "Seninle geçirdiğim her an hazineden değerli.",
+      "Kalbin attığında benimki de seninle atıyor.",
+      "Seni sevmek, nefes almak kadar doğal.",
+      "Her sabah gözlerimi açtığımda ilk düşündüğüm sensin.",
+      "Sesini duymak, en güzel melodi benim için.",
+      "Seninle olmak, evde olmak demek.",
+      "Gülüşün, en karanlık günümü aydınlatıyor.",
+      "Sen benim en büyük şansım ve en güzel kaderim.",
+      "Seni seviyorum; dün de, bugün de, her zaman.",
+      "Yanımda olduğunda dünya daha güzel görünüyor.",
+      "Her bakışında yeniden aşık oluyorum sana.",
+      "Sen benim için her şeysin; geçmişim, bugünum, geleceğim.",
+      "Seninle yaşadığım her an, kalbimde sonsuza kadar yaşayacak.",
+      "Seni düşünmek, en sevdiğim hobim oldu.",
+      "Elini tuttuğumda tüm endişelerim uçup gidiyor.",
+      "Sen benim kalbimin en gizli sayfasısın.",
+      "Birlikte güldüğümüz anlarda, hayat daha manalı.",
+      "Seni sevmek, hayatımın en doğru kararı.",
+      "Gözlerin, anlatmaya sözcük bulamadığım bir şiir.",
+      "Sen varken her gün sevgililer günü.",
+      "Kalbim seninle konuştuğunda kelimeler yetmez.",
+      "Her fısıltın, ruhuma işliyor.",
+      "Seninle olan her hatıram, kalbimin en değerli hazinesi.",
+      "Seni düşündükçe yüzümde gülümseme beliriyor.",
+      "Yanında olduğumda zaman nasıl geçiyor anlamıyorum.",
+      "Sen benim için eşsizsin; kimse seni yerini alamaz.",
+      "Seninle uykuya dalmak, en huzurlu an.",
+      "Gülüşün, tüm kederi alıp götürüyor.",
+      "Seni sevdikçe, sevinç içimde büyüyor.",
+      "Ellerini tuttuğumda, her şey yerli yerine oturuyor.",
+      "Sen benim güneşimsin; hayatıma ışık ve sıcaklık getiriyorsun.",
+      "Seninle yaşadığım her küçük an, büyük mutluluklar taşıyor.",
+      "Kalbim seni çağırıyor, her attığında.",
+      "Seninle olmak, en büyük maceram.",
+      "Bakışların, sözcüksüz binlerce şey anlatıyor.",
+      "Seni sevmek, en kolay ve en güzel şey.",
+      "Seninle geçen her gün, ömrüme ömür katıyor.",
+      "Sen olmadan, bu hayat yarım kalır.",
+      "Seninle her şey daha anlamlı, her yer daha güzel.",
+      "Kalbindeki sevgi, benim en büyük zenginliğim.",
+      "Seni düşünmek, yorgunluğumu bir anda alıp götürüyor.",
+      "Seninle her gün yeni bir başlangıç.",
+      "Gözlerin kapalıyken bile seni hissediyorum.",
+      "Sen benim en güzel rüyamsın.",
+      "Seninle konuşmak, ruhuma iyi geliyor.",
+      "Her sabah seninle daha mutlu uyanıyorum.",
+      "Seni sevmek, kalbimin en güzel ritmi.",
+      "Sen varken korkacak hiçbir şey yok.",
+      "Seninle güvenli, seninle huzurlu, seninle tam.",
+      "Seni seviyorum; şimdi, burada ve her zaman.",
+      "Seninle geçirdiğim her dakika, değer biçilmez.",
+      "Sen benim için mükemmelsin; tıpkı olduğun gibi.",
+      "Seninle olan hikayemiz, en sevdiğim hikaye.",
+      "Seni düşünmek, kalbimi ısıtıyor.",
+      "Gülümsemen, günümü kurtarıyor.",
+      "Seninle olmak, hayatımın en büyük lütfu.",
+      "Seni sevdikçe, daha da çok seviyorum.",
+      "Kalbim sana ait; şimdi ve sonsuza dek.",
+      "Seninle her mevsim güzel.",
+      "Seni sevmek, en büyük başarım.",
+      "Sen benim için dünyanın en güzel armağanısın.",
+      "Seninle her anın tadını çıkarıyorum.",
+      "Gözlerinin içinde kaybolmak istiyorum.",
+      "Seni düşünmek, bir güzellik içimde açıyor.",
+      "Seninle olmak, en doğru seçimim.",
+      "Her gün seninle daha çok büyüyorum.",
+      "Sen benim kalbimin sesi, ruhumun yankısısın.",
+      "Seninle her şey mümkün.",
+      "Seni seviyorum; sözcükler yetmese de.",
+      "Seninle geçen zaman, en değerli zamanım.",
+      "Gözlerin, her şeyi anlatıyor bana.",
+      "Seninle olmak, nefes almak gibi.",
+      "Seni sevmek, kalbimde yankılanıyor.",
+      "Seninle mutlu olmak, en büyük dileğim.",
+      "Sen benim için dünyanın merkezi.",
+      "Seninle geçirdiğim her gece, sabaha kadar gülümsüyorum.",
+      "Seni seviyorum; tüm benliğimle.",
+      "Kalbim seninle, her an, her yerde.",
+      "Sen benim için biriciksin.",
+      "Seninle hayat, bir sanat eseri gibi.",
+      "Seni düşündükçe içim aydınlanıyor.",
+      "Seninle olmak, en güzel varolma biçimim.",
+      "Seni sevmek, hayatımın en anlamlı eylemi.",
+      "Gülüşün, beni hayata bağlıyor.",
+      "Seninle her zorluk daha kolay.",
+      "Sen benim için sonsuzluğun anlamısın.",
+      "Seninle olan her an, kalbimde iz bırakıyor.",
+      "Seni seviyorum; bu kadar basit, bu kadar derin.",
+      "Seninle geçen her gün, bir şiir gibi.",
+      "Gözlerin, benim en güzel manzaram.",
+      "Seninle olmak, en büyük şansım.",
+      "Seni sevmek, içimde bir çiçek gibi açıyor.",
+      "Sen benim için her şeyin başı ve sonu.",
+      "Seninle her anı yaşamak istiyorum.",
+      "Kalbim seni çağırıyor, durmadan.",
+      "Seni seviyorum; düne de, bugüne de, yarına da.",
+      "Seninle olmak, en güzel his.",
+      "Sen benim için vazgeçilmezsin.",
+      "Seninle her gün, yeni bir aşkın başlangıcı.",
+      "Seni düşündükçe kalbim hafifliyor.",
+      "Seninle olmak, en büyük huzurum.",
+      "Gülüşün, en güzel müzik.",
+      "Seni sevmek, her şeyi daha güzel yapıyor.",
+      "Sen benim için mucivedir.",
+      "Seninle geçirdiğim her gün, bir armağan.",
+      "Kalbim sana, ruhum sana ait.",
+      "Seni seviyorum; sonsuz ve koşulsuz.",
+      "Seninle olan her bakışta, bir dünya kuruluyor.",
+      "Sen benim için, hayatın kendisisin.",
+      "Seninle her şey daha renkli.",
+      "Seni düşünmek, kalbimi güldürüyor.",
+      "Seninle olmak, en büyük ödülüm.",
+      "Seni sevmek, ruhumu besliyor.",
+      "Gözlerin, benim için en değerli hazine.",
+      "Seninle her an, ömrümün en güzel sayfası.",
+      "Sen benim için, eşsiz bir hazinesin.",
+      "Seninle geçirdiğim her gece, sabaha dek gülümsüyorum.",
+      "Kalbim, seninle daha güçlü atıyor.",
+      "Seni seviyorum; kelimeler bu sevgiyi anlatmaya yetmez.",
+      "Seninle olmak, en büyük lüksüm.",
+      "Seni düşündüğümde, dünya durmuş gibi oluyor.",
+      "Seninle her yer güzel.",
+      "Sen benim için, her şeyin anlamısın.",
+      "Seni sevmek, içimde yankılanıyor.",
+      "Seninle olmak, hayatımın en büyük nimeti.",
+      "Gülüşün, kalbimi ısıtıyor.",
+      "Seni seviyorum; her geçen gün daha fazla.",
+      "Sen benim için, en güzel rüya.",
+      "Seninle geçen her dakika, ömrüme değer katıyor.",
+      "Kalbim, seninle tam.",
+      "Seni düşündükçe, içim coşuyor.",
+      "Seninle olmak, en büyük mutluluğum.",
+      "Seni sevmek, hayatımın en güzel kısmı.",
+      "Gözlerin, kalbime dokunan en güzel şey.",
+      "Seninle her gün, yeni bir aşk masalı.",
+      "Sen benim için, en özel insan.",
+      "Seninle geçirdiğim her an, sonsuzluğu taşıyor.",
+      "Kalbim sana adanmış, tamamen.",
+      "Seni seviyorum; şimdi ve her zaman.",
+      "Seninle olmak, en güzel gerçekliğim.",
+      "Seni düşünmek, en keyifli zaman.",
+      "Seninle her şey mümkün, her şey güzel.",
+      "Gülüşün, en büyük ödülüm.",
+      "Seni sevmek, en doğal eylemim.",
+      "Sen benim için, hayatımın şiirisin.",
+      "Seninle geçen her gün, kalbimde iz bırakıyor.",
+      "Kalbim, seninle daha mutlu.",
+      "Seni seviyorum; bu his asla değişmeyecek.",
+      "Seninle olmak, en büyük zenginliğim.",
+      "Seni düşündükçe, gülümsemek kaçınılmaz.",
+      "Seninle her yer, daha anlamlı.",
+      "Gözlerin, bana hep umut veriyor.",
+      "Seni sevmek, içimde bir ışık gibi parlıyor.",
+      "Sen benim için, en güzel varlık.",
+      "Seninle geçirdiğim her an, özel.",
+      "Kalbim, seninle şarkı söylüyor.",
+      "Seni seviyorum; bu gerçeği hiç değiştirmek istemiyorum.",
+      "Seninle olmak, en güzel var oluş.",
+      "Seni düşünmek, beni huzura kavuşturuyor.",
+      "Seninle her yol, güzel.",
+      "Gülüşün, en büyük motivasyonum.",
+      "Seni sevmek, hayatımı anlamlı kılıyor.",
+      "Sen benim için, tek ve eşsizsin.",
+      "Seninle geçen her gece, sabaha kadar huzur içindeyim.",
+      "Kalbim, seni her geçen gün daha çok seviyor.",
+      "Seni seviyorum; geçmişte, şimdi ve gelecekte.",
+      "Seninle olmak, en büyük armağan.",
+      "Seni düşündükçe, dünya daha güzel.",
+      "Seninle her an, anlamlı.",
+      "Gözlerin, benim için kapıları açıyor.",
+      "Seni sevmek, ruhumu zenginleştiriyor.",
+      "Sen benim için, hayatımın kılavuzusun.",
+      "Seninle geçirdiğim her gün, ömrümün en değerlisi.",
+      "Kalbim, seninle huzurlu.",
+      "Seni seviyorum; bu kelimeler az bile.",
+      "Seninle olmak, en büyük ayrıcalığım.",
+      "Seni düşünmek, içimi aydınlatıyor.",
+      "Seninle her şey, daha anlamlı ve değerli.",
+      "Gülüşün, en güzel armağan.",
+      "Seni sevmek, hayatımın en büyük onuru.",
+      "Sen benim için, her şeyin ötesinde bir değersin.",
+      "Seninle geçen her an, sonsuzluğa değer.",
+      "Kalbim, seninle tam ve huzurlu.",
+      "Seni seviyorum; bu his bitmez, bitmeyecek.",
+      "Seninle olmak, en büyük güven.",
+      "Seni düşündükçe, kalbim genişliyor.",
+      "Seninle her gün, daha güçlü oluyorum.",
+      "Gözlerin, en güzel şiiri anlatıyor.",
+      "Seni sevmek, en büyük dileğim gerçek oldu.",
+      "Sen benim için, hayatımın en güzel bölümüsün.",
+      "Seninle geçirdiğim her an, altın gibi.",
+      "Kalbim, seninle dans ediyor.",
+      "Seni seviyorum; dağlar kadar, denizler kadar.",
+      "Seninle olmak, her şeyi mümkün kılıyor.",
+      "Seni düşünmek, en güzel kaçış.",
+      "Seninle her yer, cennete dönüşüyor.",
+      "Gülüşün, en büyük enerji kaynağım.",
+      "Seni sevmek, en güzel bağlılık.",
+      "Sen benim için, bu hayatın anlamısın.",
+      "Seninle geçen her gün, bir mucize.",
+      "Kalbim, seninle her an daha çok açılıyor.",
+      "Seni seviyorum; bu his, ruhuma işlemiş.",
+      "Seninle olmak, en büyük hazzım.",
+      "Seni düşündükçe, kalbim coşuyor.",
+      "Seninle her adım, daha hafif.",
+      "Gözlerin, bana yol gösteriyor.",
+      "Seni sevmek, en doğal hislerimden biri.",
+      "Sen benim için, her şeyin başlangıcısın.",
+      "Seninle geçirdiğim her gün, kalbimde iz bırakıyor.",
+      "Kalbim, seninle güçlü.",
+      "Seni seviyorum; bu his, beni tamamlıyor.",
+      "Seninle olmak, en büyük neşem.",
+      "Seni düşünmek, beni hayata bağlıyor.",
+      "Seninle her yer, daha ferah.",
+      "Gülüşün, beni her zaman güldürüyor.",
+      "Seni sevmek, hayatımın özüdür.",
+      "Sen benim için, en değerli insan.",
+      "Seninle geçen her an, bir şükran kaynağı.",
+      "Kalbim, seninle özgür.",
+      "Seni seviyorum; bu kelimelerle yetinmek zorundayım.",
+      "Seninle olmak, en güzel alışkanlığım.",
+      "Seni düşündükçe, içim dolup taşıyor.",
+      "Seninle her yol, daha kısa.",
+      "Gözlerin, benim için en derin deniz.",
+      "Seni sevmek, beni daha iyi biri yapıyor.",
+      "Sen benim için, hayatımın kahramanısın.",
+      "Seninle geçirdiğim her gün, bir şans.",
+      "Kalbim, seninle dolu.",
+      "Seni seviyorum; bu his, sonsuza uzanıyor.",
+      "Seninle olmak, en büyük servetim.",
+      "Seni düşünmek, en güzel teselli.",
+      "Seninle her şey, daha canlı.",
+      "Gülüşün, en büyük moral kaynağım.",
+      "Seni sevmek, ruhumu dinlendiriyor.",
+      "Sen benim için, hayatımın güneşisin.",
+      "Seninle geçen her an, bir güzellik barındırıyor.",
+      "Kalbim, seninle sevinçle dolu.",
+      "Seni seviyorum; bu gerçek, asla değişmeyecek.",
+      "Seninle olmak, en büyük sığınağım.",
+      "Seni düşündükçe, kalbim ısınıyor.",
+      "Seninle her zorluk, daha kolay aşılıyor.",
+      "Gözlerin, bana umut veriyor.",
+      "Seni sevmek, hayatımın en büyük neşesi.",
+      "Sen benim için, her şeyin güzeli.",
+      "Seninle geçirdiğim her an, özel ve eşsiz.",
+      "Kalbim, seninle her gün daha büyüyor.",
+      "Seni seviyorum; bu sevgi, büyüyüp gelişiyor.",
+      "Seninle olmak, en güzel seçimim.",
+      "Seni düşünmek, en tatlı meşguliyet.",
+      "Seninle her gün, yeni bir macera.",
+      "Gülüşün, en güzel ses.",
+      "Seni sevmek, hayatıma renk katıyor.",
+      "Sen benim için, hayatımın şiirisin.",
+      "Seninle geçen her gün, bir nimet.",
+      "Kalbim, seninle hep genç.",
+      "Seni seviyorum; bu his, bitmez tükenmez.",
+      "Seninle olmak, en büyük şükranım.",
+      "Seni düşündükçe, dünya güzelleşiyor.",
+      "Seninle her an, değerli.",
+      "Gözlerin, beni hep büyülüyor.",
+      "Seni sevmek, içimde bir ateş yakıyor.",
+      "Sen benim için, her şeyin ötesindesin.",
+      "Seninle geçirdiğim her gece, huzur dolu.",
+      "Kalbim, seninle sürekli şarkı söylüyor.",
+      "Seni seviyorum; tüm varlığımla.",
+      "Seninle olmak, en büyük varoluş amacım.",
+      "Seni düşünmek, beni huzurlu kılıyor.",
+      "Seninle her şey, mükemmel.",
+      "Gülüşün, her şeyi iyileştiriyor.",
+      "Seni sevmek, hayatımın en güzel anlamı.",
+      "Sen benim için, en değerli armağan.",
+      "Seninle geçen her an, ebediyete değer.",
+      "Kalbim, seninle hep aşkla dolu.",
+      "Seni seviyorum; bu his, kalbimin en derin yerinde.",
+      "Seninle olmak, en büyük mutluluğum ve huzurum.",
+      "Seni düşündükçe, kalbim şükranla dolup taşıyor.",
+      "Seninle her gün, bir hediyedir.",
+      "Gözlerin, benim için sonsuzluk.",
+      "Seni sevmek, hayatımın en doğal parçası.",
+      "Sen benim için, her şeyin özüsün.",
+      "Seninle geçirdiğim her an, altından değerli.",
+      "Kalbim, seninle sonsuza dek.",
+      "Seni seviyorum; bu kelimeler az kalsa da, his sonsuz."
+    ]
+  }
+}

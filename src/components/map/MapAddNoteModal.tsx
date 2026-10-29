@@ -13,6 +13,7 @@ import {
 import { DialogHost } from "@/components/ui/DialogHost";
 import { BlurView } from "expo-blur";
 import { Check, StickyNote, X } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 
 interface MapAddNoteModalProps {
   visible: boolean;
@@ -33,6 +34,7 @@ interface NoteFormProps {
 // Metin state'i burada yaşar; modal her açıldığında form yeniden mount olur,
 // bu yüzden alan her seferinde boş başlar.
 function MapAddNoteForm({ accent, isSaving, onSave, onClose }: NoteFormProps) {
+  const { t } = useTranslation();
   const [noteText, setNoteText] = useState("");
   const hasText = noteText.trim().length > 0;
 
@@ -51,9 +53,9 @@ function MapAddNoteForm({ accent, isSaving, onSave, onClose }: NoteFormProps) {
             <StickyNote size={20} color={accent} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.modalNoteTitle}>Buraya Bir Aşk Notu Bırak 💌</Text>
+            <Text style={styles.modalNoteTitle}>{t("map.addNote.title")}</Text>
             <Text style={styles.modalNoteSubtitle}>
-              Sevgilin haritayı açtığında burada senin notunu görecek.
+              {t("map.addNote.subtitle")}
             </Text>
           </View>
           <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
@@ -65,7 +67,7 @@ function MapAddNoteForm({ accent, isSaving, onSave, onClose }: NoteFormProps) {
           style={styles.modalNoteInput}
           value={noteText}
           onChangeText={setNoteText}
-          placeholder="Buraya dair özel bir hatıra veya aşk sözü yaz..."
+          placeholder={t("map.addNote.placeholder")}
           placeholderTextColor="rgba(255,255,255,0.4)"
           multiline
           numberOfLines={4}
@@ -79,7 +81,7 @@ function MapAddNoteForm({ accent, isSaving, onSave, onClose }: NoteFormProps) {
 
         <View style={styles.modalButtonsRow}>
           <TouchableOpacity style={styles.modalCancelBtn} onPress={onClose}>
-            <Text style={styles.modalCancelBtnText}>Vazgeç</Text>
+            <Text style={styles.modalCancelBtnText}>{t("common.cancel")}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -99,7 +101,7 @@ function MapAddNoteForm({ accent, isSaving, onSave, onClose }: NoteFormProps) {
             ) : (
               <>
                 <Check size={16} color="#fff" />
-                <Text style={styles.modalSaveBtnText}>Notu Mühürle & Bırak</Text>
+                <Text style={styles.modalSaveBtnText}>{t("map.addNote.submit")}</Text>
               </>
             )}
           </TouchableOpacity>

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from "react-native";
 import { Heart } from "lucide-react-native";
 import { UserAvatar } from "@/components/avatar/UserAvatar";
 import { useTheme } from "@/context/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 interface CoupleAvatarRingProps {
   myName?: string | null;
@@ -24,11 +25,18 @@ export const CoupleAvatarRing = memo(function CoupleAvatarRing({
   size = 36,
 }: CoupleAvatarRingProps) {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const heartSize = Math.round(size * 0.5);
   const moodSize = Math.round(size * 0.52);
 
   return (
-    <View style={styles.row} accessibilityLabel={`${myName || "Sen"} ve ${partnerName || "Sevgilin"}`}>
+    <View
+      style={styles.row}
+      accessibilityLabel={t("home.couple.a11yLabel", {
+        me: myName || t("common.you"),
+        partner: partnerName || t("common.partnerFallback"),
+      })}
+    >
       <UserAvatar uri={myAvatarUrl} name={myName} size={size} borderColor={theme.cardBg} borderWidth={2} />
 
       <View

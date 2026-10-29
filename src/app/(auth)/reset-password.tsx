@@ -14,8 +14,10 @@ import { useLocalSearchParams, router } from "expo-router";
 import { resetPasswordWithCode } from "@/lib/authGateway";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArrowLeft } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 
 export default function ResetPasswordScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ identifier?: string }>();
   const [otpCode, setOtpCode] = useState("");
@@ -28,19 +30,19 @@ export default function ResetPasswordScreen() {
   async function handleReset() {
     setError("");
     if (!otpCode.trim()) {
-      setError("Lütfen doğrulama kodunu girin.");
+      setError(t("auth.reset.codeRequired"));
       return;
     }
     if (newPassword.length < 6) {
-      setError("Şifreniz en az 6 karakter olmalı.");
+      setError(t("auth.reset.passwordTooShort"));
       return;
     }
     if (newPassword !== confirm) {
-      setError("Şifreler eşleşmiyor.");
+      setError(t("auth.reset.mismatch"));
       return;
     }
     if (!params.identifier) {
-      setError("Lütfen şifre sıfırlamayı baştan başlat.");
+      setError(t("auth.reset.restart"));
       return;
     }
 
@@ -52,20 +54,20 @@ export default function ResetPasswordScreen() {
 
       if (!result.ok) {
         if (result.code === "invalid_code") {
-          setError("Kod geçersiz ya da süresi dolmuş.");
+          setError(t("auth.reset.codeInvalid"));
         } else if (result.code === "weak_password") {
-          setError("Şifreniz en az 6 karakter olmalı.");
+          setError(t("auth.reset.passwordTooShort"));
         } else if (result.code === "too_many_requests") {
-          setError("Çok fazla deneme yapıldı. Lütfen birkaç dakika sonra tekrar deneyin.");
+          setError(t("auth.errors.tooManyAttemptsPolite"));
         } else {
-          setError("Şifre güncellenirken bir hata oluştu.");
+          setError(t("auth.reset.updateFailed"));
         }
         return;
       }
 
       setSuccess(true);
     } catch (e) {
-      setError("Beklenmedik bir hata oluştu.");
+      setError(t("errors.unexpected"));
     } finally {
       setIsLoading(false);
     }
@@ -77,10 +79,10 @@ export default function ResetPasswordScreen() {
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 30 }}>
           <Text style={{ fontSize: 60, marginBottom: 20 }}>✅</Text>
           <Text style={{ color: "#fff", fontSize: 24, fontWeight: "800", marginBottom: 10, textAlign: "center" }}>
-            Şifreniz Güncellendi!
+            {t("auth.reset.successTitle")}
           </Text>
           <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 15, textAlign: "center", marginBottom: 40 }}>
-            Artık yeni şifrenizle giriş yapabilirsiniz.
+            {t("auth.reset.successMessage")}
           </Text>
           <TouchableOpacity
             onPress={() => router.replace("/(auth)/login")}
@@ -92,7 +94,7 @@ export default function ResetPasswordScreen() {
             }}
           >
             <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>
-              Giriş Ekranına Dön
+              {t("auth.reset.backToSignIn")}
             </Text>
           </TouchableOpacity>
         </View>
@@ -160,13 +162,13 @@ export default function ResetPasswordScreen() {
           </TouchableOpacity>
 
           <Text style={{ color: "#fff", fontSize: 30, fontWeight: "800", marginBottom: 12, letterSpacing: -0.5 }}>
-            Yeni Şifre Belirle
+            {t("auth.reset.title")}
           </Text>
           <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 15, lineHeight: 22, marginBottom: 32 }}>
-            Bu bilgilerle bir hesap varsa kayıtlı e-postana bir doğrulama kodu gönderdik. Kodu ve yeni şifreni gir.
+            {t("auth.reset.subtitle")}
           </Text>
 
-          <Text style={labelStyle}>Doğrulama Kodu</Text>
+          <Text style={labelStyle}>{t("auth.reset.codeLabel")}</Text>
           <TextInput
             value={otpCode}
             onChangeText={setOtpCode}
@@ -178,11 +180,11 @@ export default function ResetPasswordScreen() {
             style={inputStyle}
           />
 
-          <Text style={labelStyle}>Yeni Şifre</Text>
+          <Text style={labelStyle}>{t("auth.reset.newPassword")}</Text>
           <TextInput
             value={newPassword}
             onChangeText={setNewPassword}
-            placeholder="Yeni şifreniz"
+            placeholder={t("auth.reset.newPasswordPlaceholder")}
             autoComplete="new-password"
             textContentType="newPassword"
             autoCapitalize="none"
@@ -191,11 +193,11 @@ export default function ResetPasswordScreen() {
             style={inputStyle}
           />
 
-          <Text style={labelStyle}>Şifreyi Tekrar Gir</Text>
+          <Text style={labelStyle}>{t("auth.reset.confirmPassword")}</Text>
           <TextInput
             value={confirm}
             onChangeText={setConfirm}
-            placeholder="Yeni şifrenizi doğrulayın"
+            placeholder={t("auth.reset.confirmPlaceholder")}
             autoComplete="new-password"
             textContentType="newPassword"
             autoCapitalize="none"
@@ -232,7 +234,7 @@ export default function ResetPasswordScreen() {
               <ActivityIndicator color="#fff" />
             ) : (
               <Text style={{ color: "#fff", fontWeight: "800", fontSize: 17 }}>
-                Şifreyi Güncelle
+                {t("auth.reset.submit")}
               </Text>
             )}
           </TouchableOpacity>

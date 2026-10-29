@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import i18n from "@/lib/i18n";
 
 /**
  * İlişki tarihleri yalnızca sunucu RPC'leriyle yazılır:
@@ -43,11 +44,11 @@ export function daysUntilPeriodEnd(periodEndsAt: string | null): number {
 }
 
 export function translateDatesError(msg: string | undefined): string {
-  if (!msg) return "Tarihler kaydedilemedi. Lütfen tekrar deneyin.";
-  if (msg.includes("NOT_PAIRED")) return "Eşleşme bilgisi alınamadı. Lütfen tekrar dene.";
-  if (msg.includes("FUTURE_DATE")) return "Gelecek bir tarih seçemezsiniz.";
-  if (msg.includes("MEET_AFTER_RELATIONSHIP")) return "Tanışma tarihi, sevgili olma tarihinden sonra olamaz.";
-  if (msg.includes("RELATIONSHIP_DATE_REQUIRED")) return "Lütfen sevgililik tarihinizi belirleyin.";
-  if (msg.includes("DATES_CHANGE_LIMIT")) return "Bu dönemki tarih değişikliği haklarınızı kullandınız.";
-  return "Tarihler kaydedilirken bir hata oluştu: " + msg;
+  if (!msg) return i18n.t("setup.errors.datesSaveFailed");
+  if (msg.includes("NOT_PAIRED")) return i18n.t("setup.errors.pairingInfoMissing");
+  if (msg.includes("FUTURE_DATE")) return i18n.t("setup.errors.futureDate");
+  if (msg.includes("MEET_AFTER_RELATIONSHIP")) return i18n.t("setup.errors.meetAfterRelationship");
+  if (msg.includes("RELATIONSHIP_DATE_REQUIRED")) return i18n.t("setup.errors.relationshipDateRequired");
+  if (msg.includes("DATES_CHANGE_LIMIT")) return i18n.t("setup.errors.datesChangeLimit");
+  return i18n.t("setup.errors.datesSaveFailedWithMessage", { message: msg });
 }

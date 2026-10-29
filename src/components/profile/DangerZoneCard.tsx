@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from "rea
 import { Trash2 } from "lucide-react-native";
 import type { AppTheme } from "@/lib/theme";
 import { ModernSection } from "./ModernSection";
+import { useTranslation } from "react-i18next";
 
 interface DangerZoneCardProps {
   theme: AppTheme;
@@ -12,17 +13,18 @@ interface DangerZoneCardProps {
 }
 
 export function DangerZoneCard({ theme, isLight, loading, onDeleteAccount }: DangerZoneCardProps) {
+  const { t } = useTranslation();
   return (
     <ModernSection
-      title="Hesap Yönetimi & Tehlike Bölgesi"
+      title={t("profile.danger.title")}
       icon={<Trash2 size={18} color="#ff4d6a" />}
       theme={theme}
       defaultOpen={false}
     >
       <View style={[styles.dangerNoticeBox, isLight && { backgroundColor: "rgba(255, 77, 106, 0.08)", borderColor: "rgba(255, 77, 106, 0.25)" }]}>
-        <Text style={styles.dangerNoticeTitle}>⚠️ KVKK md. 11 Kapsamında Veri İmhası</Text>
+        <Text style={styles.dangerNoticeTitle}>{t("profile.danger.noticeTitle")}</Text>
         <Text style={[styles.dangerNoticeText, { color: isLight ? "#991B1B" : "rgba(255,255,255,0.7)" }]}>
-          Unutulma hakkınız uyarınca hesabınızı sildiğinizde hesabınız, profil fotoğrafınız ve ilişkinize ait tüm ortak fotoğraflar, şifreli mektuplar, günlükler ve veriler 7 günlük cayma süresi sonunda sunucularımızdan kalıcı olarak imha edilir. Bu süre içinde aynı hesapla giriş yaparak vazgeçebilirsiniz.
+          {t("profile.danger.noticeText")}
         </Text>
       </View>
 
@@ -35,7 +37,7 @@ export function DangerZoneCard({ theme, isLight, loading, onDeleteAccount }: Dan
         {loading ? (
           <ActivityIndicator color="#ff4d6a" size="small" />
         ) : (
-          <Text style={styles.deleteAccountBtnText}>Hesabımı ve Tüm Verileri Sil</Text>
+          <Text style={styles.deleteAccountBtnText}>{t("profile.danger.delete")}</Text>
         )}
       </TouchableOpacity>
     </ModernSection>

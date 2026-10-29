@@ -4,6 +4,7 @@ import { dayjs } from "@/lib/date";
 import { isAwaitingPurge } from "@/lib/letterPolicy";
 import { DEMO_LETTERS, DEMO_MEETINGS, DEMO_PHOTOS, DEMO_PROFILE } from "@/constants/demoData";
 import type { PhotoItem } from "@/components/photos/photoTypes";
+import i18n from "@/lib/i18n";
 
 /**
  * Ana sekmelerin liste sorguları. Hem ekranlar hem de arka plan ön yüklemesi (prefetchMainScreens) aynı
@@ -73,7 +74,7 @@ export async function fetchLetters(params: {
         // İçerik burada çözülmez: crypto-js saf JS olduğundan 30-60 mektubu birden çözmek ekranı
         // kilitliyordu. Çözme yalnızca ekranda görünen/açılan satır için render'da (önbellekli) yapılır.
         content: l.content,
-        sender: senderObj ? { ...senderObj, username: senderObj.username || "Sevgilin" } : null,
+        sender: senderObj ? { ...senderObj, username: senderObj.username || i18n.t("common.partnerFallback") } : null,
       };
     });
 
@@ -85,7 +86,7 @@ export async function fetchLetters(params: {
         ...l,
         _type: "sent" as const,
         content: l.content,
-        receiver: receiverObj ? { ...receiverObj, username: receiverObj.username || "Sevgilin" } : null,
+        receiver: receiverObj ? { ...receiverObj, username: receiverObj.username || i18n.t("common.partnerFallback") } : null,
       };
     });
 
@@ -144,15 +145,15 @@ export async function fetchMemoriesPage(params: { coupleId: number | null; pageP
     return [
       {
         id: 1,
-        title: "Sevgili Olduğumuz İlk Gün 💖",
+        title: i18n.t("demo.memories.relationshipStart.title"),
         date: DEMO_PROFILE.relationshipStartDate ?? dayjs().subtract(365, "day").format("YYYY-MM-DD"),
-        description: "Birlikte el ele tutuşup geleceğe söz verdiğimiz o an...",
+        description: i18n.t("demo.memories.relationshipStart.description"),
       },
       {
         id: 2,
-        title: "İlk Tanıştığımız Gün ☕",
+        title: i18n.t("demo.memories.firstMeeting.title"),
         date: DEMO_PROFILE.meetDate ?? dayjs().subtract(428, "day").format("YYYY-MM-DD"),
-        description: "Gözlerinin içindeki parıltıyı ilk fark ettiğim gün.",
+        description: i18n.t("demo.memories.firstMeeting.description"),
       },
     ] as any[];
   }

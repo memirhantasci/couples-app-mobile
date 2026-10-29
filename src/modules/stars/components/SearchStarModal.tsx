@@ -25,6 +25,9 @@ import { useTheme } from '@/context/ThemeContext';
 import { starService } from '../api/starService';
 import { CelestialSearchResult } from '../types/star.types';
 import { SOLAR_SYSTEM_OBJECTS } from '../canvas/macro/solarSystem';
+import { SOLAR_NAME_KEYS } from '../utils/solarNames';
+import type { ParseKeys } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 interface SearchStarModalProps {
   visible: boolean;
@@ -32,11 +35,13 @@ interface SearchStarModalProps {
   onSelectStar: (item: CelestialSearchResult) => void;
 }
 
-const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
+/** Yerel nesneler: `display_name` dile göre bileşende çözülür (özel ad olan Vega/Betelgeuse sabit kalır). */
+type LocalCelestialBase = Omit<CelestialSearchResult, 'display_name'> & { display_name?: string };
+
+const LOCAL_CELESTIAL_BASE: LocalCelestialBase[] = ([
   {
     entity_id: '999901',
     entity_type: 'common',
-    display_name: 'Güneş',
     catalog_code: 'SOL-SUN',
     ra: 260.0000,
     dec: -12.0000,
@@ -45,7 +50,6 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999905',
     entity_type: 'common',
-    display_name: 'Merkür',
     catalog_code: 'SOL-MERCURY',
     ra: 263.0000,
     dec: -11.4000,
@@ -54,7 +58,6 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999903',
     entity_type: 'common',
-    display_name: 'Venüs',
     catalog_code: 'SOL-VENUS',
     ra: 266.5000,
     dec: -10.7000,
@@ -63,7 +66,6 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999902',
     entity_type: 'common',
-    display_name: 'Dünya',
     catalog_code: 'SOL-EARTH',
     ra: 270.5000,
     dec: -9.9000,
@@ -72,7 +74,6 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999904',
     entity_type: 'common',
-    display_name: 'Ay',
     catalog_code: 'SOL-MOON',
     ra: 271.2000,
     dec: -9.4000,
@@ -81,7 +82,6 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999906',
     entity_type: 'common',
-    display_name: 'Mars',
     catalog_code: 'SOL-MARS',
     ra: 275.5000,
     dec: -8.9000,
@@ -90,7 +90,6 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999907',
     entity_type: 'common',
-    display_name: 'Jüpiter',
     catalog_code: 'SOL-JUPITER',
     ra: 281.5000,
     dec: -7.7000,
@@ -99,7 +98,6 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999908',
     entity_type: 'common',
-    display_name: 'Satürn',
     catalog_code: 'SOL-SATURN',
     ra: 288.0000,
     dec: -6.4000,
@@ -108,7 +106,6 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999909',
     entity_type: 'common',
-    display_name: 'Uranüs',
     catalog_code: 'SOL-URANUS',
     ra: 294.0000,
     dec: -5.2000,
@@ -117,7 +114,6 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999910',
     entity_type: 'common',
-    display_name: 'Neptün',
     catalog_code: 'SOL-NEPTUNE',
     ra: 300.0000,
     dec: -4.0000,
@@ -126,7 +122,6 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: '999911',
     entity_type: 'common',
-    display_name: 'Plüton',
     catalog_code: 'SOL-PLUTO',
     ra: 305.0000,
     dec: -3.0000,
@@ -135,7 +130,6 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: 'hip-32349',
     entity_type: 'common',
-    display_name: 'Sirius (Akyıldız)',
     catalog_code: 'HIP-32349',
     ra: 101.2872,
     dec: -16.7161,
@@ -162,17 +156,23 @@ const LOCAL_CELESTIAL_OBJECTS: CelestialSearchResult[] = ([
   {
     entity_id: 'hip-11767',
     entity_type: 'common',
-    display_name: 'Polaris (Kutup Yıldızı)',
     catalog_code: 'HIP-11767',
     ra: 37.9545,
     dec: 89.2641,
     is_own_star: false,
   },
-] satisfies CelestialSearchResult[]).map((item) => {
+] satisfies LocalCelestialBase[]).map((item) => {
   // Güneş Sistemi cisimleri gökyüzündeki güncel (hesaplanan) konumlarına uçar.
   const solar = SOLAR_SYSTEM_OBJECTS.find((body) => body.catalog_code === item.catalog_code);
   return solar ? { ...item, ra: solar.ra, dec: solar.dec } : item;
 });
+
+/** Katalog kodu → görünen ad anahtarı (Güneş Sistemi adları solarNames ile ortaktır) */
+const LOCAL_NAME_KEYS: Readonly<Record<string, ParseKeys>> = {
+  ...SOLAR_NAME_KEYS,
+  'HIP-32349': 'stars.search.sirius',
+  'HIP-11767': 'stars.search.polaris',
+};
 
 function normalizeText(text: string): string {
   if (!text) return '';
@@ -193,6 +193,7 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
   onClose,
   onSelectStar,
 }) => {
+  const { t } = useTranslation();
   const { theme, isLight } = useTheme();
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -206,16 +207,25 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
 
   const trimmed = query.trim();
 
+  const localObjects = useMemo<CelestialSearchResult[]>(
+    () =>
+      LOCAL_CELESTIAL_BASE.map((item) => {
+        const nameKey = LOCAL_NAME_KEYS[item.catalog_code];
+        return { ...item, display_name: nameKey ? t(nameKey) : (item.display_name ?? item.catalog_code) };
+      }),
+    [t],
+  );
+
   // 1. Instant local match for high responsiveness
   const localMatches = useMemo(() => {
     if (trimmed.length < 1) return [];
     const norm = normalizeText(trimmed);
-    return LOCAL_CELESTIAL_OBJECTS.filter((obj) => {
+    return localObjects.filter((obj) => {
       const nName = normalizeText(obj.display_name);
       const nCode = normalizeText(obj.catalog_code);
       return nName.includes(norm) || nCode.includes(norm);
     });
-  }, [trimmed]);
+  }, [trimmed, localObjects]);
 
   const results = useMemo(() => {
     if (trimmed.length < 2 || remote?.query !== trimmed) return localMatches;
@@ -276,7 +286,7 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
           >
             {/* Header */}
             <View style={styles.header}>
-              <Text style={[styles.title, { color: theme.text }]}>Evrende Ara</Text>
+              <Text style={[styles.title, { color: theme.text }]}>{t('stars.search.title')}</Text>
               <TouchableOpacity
                 onPress={onClose}
                 style={[
@@ -301,7 +311,7 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
               <Search size={18} color={theme.textMuted} style={styles.searchIcon} />
               <TextInput
                 style={[styles.input, { color: theme.text }]}
-                placeholder="Güneş, Dünya, Venüs, Sirius, yıldız adı..."
+                placeholder={t('stars.search.placeholder')}
                 placeholderTextColor={theme.textMuted}
                 value={query}
                 onChangeText={setQuery}
@@ -320,7 +330,7 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
                 contentContainerStyle={styles.listContainer}
                 ListEmptyComponent={
                   query.trim().length >= 1 ? (
-                    <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Sonuç bulunamadı.</Text>
+                    <Text style={[styles.emptyText, { color: theme.textSecondary }]}>{t('stars.search.noResults')}</Text>
                   ) : null
                 }
                 renderItem={({ item }) => {
@@ -330,16 +340,16 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
                   const isEarth = item.catalog_code === 'SOL-EARTH';
 
                   if (item.entity_type === 'common') {
-                    typeLabel = 'Sistem Cisimleri';
+                    typeLabel = t('stars.search.type.common');
                     typeColor = '#FBBF24';
                   } else if (item.entity_type === 'custom') {
-                    typeLabel = 'Tescilli Yıldız';
+                    typeLabel = t('stars.search.type.custom');
                     typeColor = '#38BDF8';
                   } else if (item.entity_type === 'exoplanet') {
-                    typeLabel = 'Anı Gezegeni';
+                    typeLabel = t('stars.search.type.exoplanet');
                     typeColor = '#A78BFA';
                   } else {
-                    typeLabel = 'Katalog Yıldızı';
+                    typeLabel = t('stars.search.type.catalog');
                     typeColor = theme.textMuted;
                   }
 
@@ -366,7 +376,7 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                           <Text style={[styles.resultName, { color: theme.text }]}>{item.display_name}</Text>
                           {item.is_own_star && (
-                            <Text style={styles.ownStarBadge}> (Senin Yıldızın)</Text>
+                            <Text style={styles.ownStarBadge}> {t('stars.search.ownStar')}</Text>
                           )}
                         </View>
                         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>

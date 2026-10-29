@@ -11,6 +11,7 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { BellRing, Mail, Camera, Heart } from "lucide-react-native";
 import { useTheme } from "@/context/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 interface PermissionPrimingModalProps {
   visible: boolean;
@@ -19,16 +20,17 @@ interface PermissionPrimingModalProps {
 }
 
 const PERKS = [
-  { Icon: Mail, text: "Sevgilinden mektup geldiğinde anında haberin olsun" },
-  { Icon: Camera, text: "Paylaştığı yeni anıları ilk sen gör" },
-  { Icon: Heart, text: "Özel günleri ve hatırlatmaları kaçırma" },
-];
+  { Icon: Mail, textKey: "notifications.priming.benefit1" },
+  { Icon: Camera, textKey: "notifications.priming.benefit2" },
+  { Icon: Heart, textKey: "notifications.priming.benefit3" },
+] as const;
 
 export function PermissionPrimingModal({
   visible,
   onAccept,
   onDismiss,
 }: PermissionPrimingModalProps) {
+  const { t } = useTranslation();
   const { theme, isLight } = useTheme();
 
   return (
@@ -67,18 +69,17 @@ export function PermissionPrimingModal({
           </View>
 
           <Text style={[styles.title, { color: theme.text }]}>
-            Hiçbir Anı Kaçırma ✨
+            {t("notifications.priming.title")}
           </Text>
           <Text style={[styles.description, { color: theme.textSecondary }]}>
-            Sevgilin sana bir şey bıraktığında sana hemen fısıldayalım. Bildirimleri
-            istediğin zaman ayarlardan kapatabilirsin.
+            {t("notifications.priming.description")}
           </Text>
 
           {/* Fayda Rozetleri */}
           <View style={styles.perksContainer}>
-            {PERKS.map(({ Icon, text }) => (
+            {PERKS.map(({ Icon, textKey }) => (
               <View
-                key={text}
+                key={textKey}
                 style={[
                   styles.perkItem,
                   { backgroundColor: isLight ? "rgba(255,46,99,0.06)" : "rgba(255,46,99,0.12)" },
@@ -88,7 +89,7 @@ export function PermissionPrimingModal({
                 <Text
                   style={[styles.perkText, { color: isLight ? "#333" : "#EEE" }]}
                 >
-                  {text}
+                  {t(textKey)}
                 </Text>
               </View>
             ))}
@@ -106,7 +107,7 @@ export function PermissionPrimingModal({
               end={{ x: 1, y: 1 }}
               style={styles.primaryGradient}
             >
-              <Text style={styles.primaryBtnText}>Bildirimleri Aç ❤️</Text>
+              <Text style={styles.primaryBtnText}>{t("notifications.priming.enable")}</Text>
             </LinearGradient>
           </TouchableOpacity>
 
@@ -117,7 +118,7 @@ export function PermissionPrimingModal({
             style={styles.dismissBtn}
           >
             <Text style={[styles.dismissText, { color: theme.textMuted }]}>
-              Şimdilik Değil
+              {t("permissions.notForNow")}
             </Text>
           </TouchableOpacity>
         </View>

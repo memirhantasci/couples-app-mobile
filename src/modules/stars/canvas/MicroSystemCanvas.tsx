@@ -73,6 +73,7 @@ import { PlanetBody } from './micro/PlanetBody';
 import { OrbitPlane, OrbitTrail, ShockWave, SoulBody, SpaceBackdrop, StarCore } from './micro/SceneLayers';
 import { SceneOverlays } from './micro/SceneOverlays';
 import { MiniPlanet } from '../components/micro/MiniPlanet';
+import { useTranslation } from 'react-i18next';
 
 export interface MicroSystemCanvasProps {
   readonly starDetails: CoupleStarDetails;
@@ -129,6 +130,7 @@ function MicroSystemCanvasSkia({
   partnerAvatarUrl,
   paused = false,
 }: MicroSystemCanvasProps) {
+  const { t } = useTranslation();
   const screen = Dimensions.get('window');
   const canvasWidth = width ?? screen.width;
   const canvasHeight = height ?? screen.height;
@@ -579,10 +581,10 @@ function MicroSystemCanvasSkia({
             onPress={resetCamera}
             style={styles.resetButton}
             accessibilityRole="button"
-            accessibilityLabel="Tüm sistemi göster"
+            accessibilityLabel={t('stars.micro.showAllA11y')}
           >
             <Minimize2 size={14} color="#FDE68A" />
-            <Text style={styles.resetText}>Tümünü gör</Text>
+            <Text style={styles.resetText}>{t('stars.micro.showAll')}</Text>
           </TouchableOpacity>
         </Animated.View>
       )}
@@ -604,6 +606,7 @@ function MicroSystemCanvasFallback({
   viewportTop,
   viewportBottom,
 }: MicroSystemCanvasProps) {
+  const { t } = useTranslation();
   const screen = Dimensions.get('window');
   const canvasWidth = width ?? screen.width;
   const canvasHeight = height ?? screen.height;
@@ -648,7 +651,7 @@ function MicroSystemCanvasFallback({
             shadowColor: starColor,
           },
         ]}
-        accessibilityLabel="Yıldıza ışık gönder"
+        accessibilityLabel={t('stars.micro.sendLightA11y')}
       >
         <RNLinearGradient
           colors={['#FFFFFF', '#FFF8EC', starColor]}
@@ -670,7 +673,7 @@ function MicroSystemCanvasFallback({
             activeOpacity={0.8}
             onPress={() => onSelectPlanet?.(planet)}
             style={[styles.fallbackPlanet, { left: x - size / 2 - 10, top: y - size / 2 - 10 }]}
-            accessibilityLabel={planet.is_locked ? 'Kilitli anı gezegeni' : planet.display_title}
+            accessibilityLabel={planet.is_locked ? t('stars.micro.lockedPlanetA11y') : planet.display_title}
           >
             <MiniPlanet planet={planet} size={size} />
           </TouchableOpacity>
@@ -678,7 +681,7 @@ function MicroSystemCanvasFallback({
       })}
 
       <Text style={[styles.fallbackNote, { top: (viewportTop ?? canvasHeight * 0.2) + 4 }]}>
-        Canlı yörünge animasyonları cihaz derlemesinde çalışır
+        {t('stars.micro.fallbackNote')}
       </Text>
     </View>
   );

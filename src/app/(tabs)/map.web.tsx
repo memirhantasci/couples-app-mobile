@@ -2,17 +2,18 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { MapPin } from "lucide-react-native";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
+import { useTranslation } from "react-i18next";
 
 export default function MapScreen() {
+  const { t } = useTranslation();
   return (
     <ScreenBackground>
       <View style={styles.container}>
         <View style={styles.card}>
           <MapPin size={48} color="#38BDF8" style={{ marginBottom: 14 }} />
-          <Text style={styles.title}>Aşk Haritası</Text>
+          <Text style={styles.title}>{t("notifications.push.map.subtitle")}</Text>
           <Text style={styles.desc}>
-            İnteraktif anı haritası mobil cihazlara (iOS / Android) özeldir.
-            Web ortamında “Bizim Yıldızımız”, Fotoğraflar ve diğer modülleri deneyimleyebilirsiniz.
+            {t("map.web.description")}
           </Text>
         </View>
       </View>

@@ -1,6 +1,7 @@
 const CryptoJS = require('crypto-js');
 import * as ExpoCrypto from 'expo-crypto';
 import { logger } from '@/utils/logger';
+import i18n from '@/lib/i18n';
 
 /**
  * Çifte özel içeriklerin (mektup içeriği, günlük notu) simetrik şifrelenmesi.
@@ -77,7 +78,7 @@ function notifyKeyChange() {
 /** Anahtar hazır değilken şifreleme yapılmaz: içerik asla düz metin olarak yazılmamalı. */
 export class EncryptionKeyUnavailableError extends Error {
   constructor() {
-    super("Şifreleme anahtarı henüz hazır değil. Lütfen birkaç saniye sonra tekrar dene.");
+    super(i18n.t('errors.encryptionKeyNotReady'));
     this.name = "EncryptionKeyUnavailableError";
   }
 }

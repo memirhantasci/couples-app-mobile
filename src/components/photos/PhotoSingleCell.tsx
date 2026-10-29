@@ -5,6 +5,7 @@ import { Calendar, Clock, Trash2, Maximize2 } from "lucide-react-native";
 import { dayjs } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
 import type { PhotoItem } from "./photoTypes";
+import { useTranslation } from "react-i18next";
 
 interface PhotoSingleCellProps {
   item: PhotoItem;
@@ -18,6 +19,7 @@ interface PhotoSingleCellProps {
 
 // ─── 1 SÜTUNLU BÜYÜK HİKAYE KARTI ────────────────────────────────────────────
 function PhotoSingleCellBase({ item, index, isMine, theme, isLight, onPress, onDelete }: PhotoSingleCellProps) {
+  const { i18n } = useTranslation();
   const hasInfo = Boolean(item.title?.trim() || item.description?.trim());
 
   return (
@@ -27,7 +29,7 @@ function PhotoSingleCellBase({ item, index, isMine, theme, isLight, onPress, onD
         <View style={[styles.singleDateBadge, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)" }]}>
           <Calendar size={13} color={theme.accent} />
           <Text style={[styles.singleDateText, { color: theme.text }]}>
-            {dayjs(item.taken_date).locale("tr").format("DD MMMM YYYY")}
+            {dayjs(item.taken_date).locale(i18n.language).format("DD MMMM YYYY")}
           </Text>
           {item.taken_time ? (
             <>

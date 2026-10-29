@@ -6,6 +6,7 @@ import { AlignJustify, ChevronLeft } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { dayjs } from "@/lib/date";
+import { useTranslation } from "react-i18next";
 
 interface PageHeaderProps {
   title?: string;
@@ -14,15 +15,16 @@ interface PageHeaderProps {
 }
 
 export function PageHeader({ title = "", showBack = true, showMenu = true }: PageHeaderProps) {
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { profile } = useAuth();
   const { theme, isLight } = useTheme();
   const insets = useSafeAreaInsets();
 
   // Greeting name — display name or default
-  const name = profile?.displayName || "Tatlım";
+  const name = profile?.displayName || t("greetings.sweetieFallback");
   // Formatted date: "17 Ağustos Pazartesi"
-  const dateLabel = dayjs().format("D MMMM dddd");
+  const dateLabel = dayjs().locale(i18n.language).format("D MMMM dddd");
 
   // If this is the home screen (no title, no back button), show the greeting style
   const isHome = !showBack && !title;
@@ -33,7 +35,7 @@ export function PageHeader({ title = "", showBack = true, showMenu = true }: Pag
         <View style={styles.greetingBlock}>
           <View style={styles.greetingRow}>
             <Text style={[styles.greetingText, { color: theme.text }]}>
-              Günaydın, {name}{" "}
+              {t("home.header.goodMorning", { name })}{" "}
             </Text>
             <Text style={styles.heartEmoji}>❤️</Text>
           </View>

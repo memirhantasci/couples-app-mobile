@@ -1,6 +1,8 @@
 import { supabase } from "@/lib/supabase";
 import { dayjs, daysSince, todayString } from "@/lib/date";
 import { DEMO_HOME_DATA, DEMO_MAP_LOCATIONS, DEMO_PHOTOS } from "@/constants/demoData";
+import i18n from "@/lib/i18n";
+import type { ParseKeys } from "i18next";
 
 export interface CoupleWrappedData {
   periodTitle: string; // örn. "Ekim 2024 Özeti" veya "2024 Yılı Özeti"
@@ -21,13 +23,13 @@ export interface CoupleWrappedData {
 }
 
 // moods.mood_type, ruh hali seçicideki emojinin kendisidir (bkz. MoodSelector MOODS)
-const MOOD_EMOJIS: Record<string, { emoji: string; label: string }> = {
-  "😍": { emoji: "😍", label: "Aşk Dolu & Çok Mutlu" },
-  "😊": { emoji: "😊", label: "Mutlu" },
-  "😐": { emoji: "😐", label: "Sakin" },
-  "😢": { emoji: "😢", label: "Şefkat Arayışında" },
-  "😡": { emoji: "😡", label: "Tutkulu & Sabırsız" },
-  "😴": { emoji: "😴", label: "Yorgun ama Birlikte" },
+const MOOD_EMOJIS: Record<string, { emoji: string; labelKey: ParseKeys }> = {
+  "😍": { emoji: "😍", labelKey: "wrapped.moods.loveStruck" },
+  "😊": { emoji: "😊", labelKey: "wrapped.moods.happy" },
+  "😐": { emoji: "😐", labelKey: "wrapped.moods.calm" },
+  "😢": { emoji: "😢", labelKey: "wrapped.moods.seekingTenderness" },
+  "😡": { emoji: "😡", labelKey: "wrapped.moods.passionate" },
+  "😴": { emoji: "😴", labelKey: "wrapped.moods.tiredTogether" },
 };
 
 /**
@@ -49,8 +51,8 @@ export async function computeCoupleWrapped(
     : now.endOf("year").toISOString();
   
   const periodTitle = period === "month" 
-    ? now.locale("tr").format("MMMM YYYY") + " Özeti"
-    : now.format("YYYY") + " Yılı Özeti";
+    ? i18n.t("wrapped.periodTitleMonth", { period: now.locale(i18n.language).format("MMMM YYYY") })
+    : i18n.t("wrapped.periodTitleYear", { year: now.format("YYYY") });
 
   const daysTogether = startDateStr ? Math.max(1, daysSince(dayjs(startDateStr))) : 142;
 
@@ -62,11 +64,11 @@ export async function computeCoupleWrapped(
       dailyNotesCount: 28,
       meetingsCount: 4,
       photosCount: DEMO_PHOTOS.length || 16,
-      topMood: { emoji: "🥰", label: "Aşk Dolu & Mutlu", count: 22 },
-      topLocation: "Kadıköy Sahil",
+      topMood: { emoji: "🥰", label: i18n.t("wrapped.moods.demoTop"), count: 22 },
+      topLocation: i18n.t("wrapped.demoTopLocation"),
       totalLocationsCount: DEMO_MAP_LOCATIONS.length || 6,
-      romanticStatement: "Biz bu ay 31 kez birbirimizi seçtik.",
-      highlightStat: "Birlikte 4 yeni küçük anı büyüttük.",
+      romanticStatement: i18n.t("wrapped.demoStatement"),
+      highlightStat: i18n.t("wrapped.demoHighlight"),
     };
   }
 
@@ -135,14 +137,14 @@ export async function computeCoupleWrapped(
     }
   });
 
-  const topMoodObj = MOOD_EMOJIS[topMoodKey] || { emoji: "💖", label: "Sevgi Dolu" };
+  const topMoodObj = MOOD_EMOJIS[topMoodKey] || { emoji: "💖", labelKey: "wrapped.moods.fallback" as ParseKeys };
 
   // Lokasyon analizi
   const locations = (meetingsRes.data || [])
     .map((m) => m.location_name)
     .filter(Boolean) as string[];
 
-  const topLocation = locations.length > 0 ? locations[0] : "Birlikte Her Yer";
+  const topLocation = locations.length > 0 ? locations[0] : i18n.t("wrapped.anywhereTogether");
   const totalLocationsCount = locations.length;
 
   const daysCountInPeriod = period === "month" ? now.date() : now.dayOfYear();
@@ -156,12 +158,12 @@ export async function computeCoupleWrapped(
     photosCount,
     topMood: {
       emoji: topMoodObj.emoji,
-      label: topMoodObj.label,
+      label: i18n.t(topMoodObj.labelKey),
       count: maxMoodCount,
     },
     topLocation,
     totalLocationsCount,
-    romanticStatement: `Biz bu dönemde ${daysCountInPeriod} kez birbirimizi seçtik.`,
-    highlightStat: `${lettersCount + photosCount} tatlı anıyı birlikte biriktirdik.`,
+    romanticStatement: i18n.t("wrapped.statement", { count: daysCountInPeriod }),
+    highlightStat: i18n.t("wrapped.highlight", { count: lettersCount + photosCount }),
   };
 }

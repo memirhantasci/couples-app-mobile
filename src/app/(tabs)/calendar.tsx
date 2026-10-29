@@ -6,7 +6,7 @@ import { Image } from "expo-image";
 import { StorageImage } from "@/components/common/StorageImage";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { LocaleConfig } from "react-native-calendars";
+import "@/lib/calendarLocale";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useQueryClient } from "@tanstack/react-query";
@@ -36,40 +36,35 @@ import { PERIOD_DURATION_DAYS, getPeriodDays, getPeriodStarts } from "@/lib/peri
 import { MOODS } from "@/components/home/MoodSelector";
 import { useCalendarData } from "@/hooks/useCalendarData";
 import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
+import { useTranslation } from "react-i18next";
+import type { ParseKeys, TFunction } from "i18next";
 
 // Veritabanında ruh hali genelde emoji olarak saklanır; eski/demo kayıtlardaki ham anahtarlar (ör. "love") için eşleme.
-const MOOD_KEY_DISPLAY: Record<string, { emoji: string; label: string }> = {
-  love: { emoji: "🥰", label: "Aşık / Sevgi Dolu" },
-  loved: { emoji: "💖", label: "Sevgi Dolu" },
-  happy: { emoji: "😊", label: "Mutlu" },
-  calm: { emoji: "😌", label: "Huzurlu" },
-  excited: { emoji: "✨", label: "Heyecanlı" },
-  tired: { emoji: "😴", label: "Yorgun" },
-  sad: { emoji: "😢", label: "Üzgün" },
-  angry: { emoji: "😡", label: "Kızgın" },
+const MOOD_KEY_DISPLAY: Record<string, { emoji: string; labelKey: ParseKeys }> = {
+  love: { emoji: "🥰", labelKey: "moods.inLove" },
+  loved: { emoji: "💖", labelKey: "moods.loving" },
+  happy: { emoji: "😊", labelKey: "wrapped.moods.happy" },
+  calm: { emoji: "😌", labelKey: "moods.peaceful" },
+  excited: { emoji: "✨", labelKey: "moods.excited" },
+  tired: { emoji: "😴", labelKey: "moods.tired" },
+  sad: { emoji: "😢", labelKey: "moods.sad" },
+  angry: { emoji: "😡", labelKey: "moods.angry" },
 };
 
-function getMoodDisplay(moodType: string | null | undefined): { emoji: string; label: string } {
+// `t` parametre olarak alınır: ekran render sırasında çağırır, dil değişince etiket yenilenir
+function getMoodDisplay(moodType: string | null | undefined, t: TFunction): { emoji: string; label: string } {
   if (!moodType) return { emoji: "💭", label: "" };
   const byKey = MOOD_KEY_DISPLAY[moodType.trim().toLowerCase()];
-  if (byKey) return byKey;
+  if (byKey) return { emoji: byKey.emoji, label: t(byKey.labelKey) };
   const byEmoji = MOODS.find((mood) => mood.emoji === moodType);
-  if (byEmoji) return { emoji: byEmoji.emoji, label: byEmoji.label };
+  if (byEmoji) return { emoji: byEmoji.emoji, label: t(byEmoji.labelKey) };
   return { emoji: moodType, label: "" };
 }
-
-LocaleConfig.locales['tr'] = {
-  monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
-  monthNamesShort: ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'],
-  dayNames: ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'],
-  dayNamesShort: ['Pz','Pt','Sa','Ça','Pe','Cu','Ct'],
-  today: 'Bugün'
-};
-LocaleConfig.defaultLocale = 'tr';
 
 export { CALENDAR_COLORS };
 
 export default function CalendarScreen() {
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { session, profile, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
@@ -240,8 +235,8 @@ export default function CalendarScreen() {
   const openNoteModal = () => {
     if (executeOrIntercept(
       () => {},
-      "Takvime Not Eklemek İçin Kayıt Olun 📅",
-      "Özel günlerinizi, hatıralarınızı ve planlarınızı ortak takviminize kaydetmek için ücretsiz hesabınızı oluşturun."
+      t("demo.prompts.calendarNote.title"),
+      t("demo.prompts.calendarNote.description")
     )) {
       return;
     }
@@ -252,8 +247,8 @@ export default function CalendarScreen() {
   const handleSaveNote = async () => {
     if (executeOrIntercept(
       () => {},
-      "Takvime Not Eklemek İçin Kayıt Olun 📅",
-      "Özel günlerinizi, hatıralarınızı ve planlarınızı ortak takviminize kaydetmek için ücretsiz hesabınızı oluşturun."
+      t("demo.prompts.calendarNote.title"),
+      t("demo.prompts.calendarNote.description")
     )) {
       setShowNoteModal(false);
       return;
@@ -293,8 +288,8 @@ export default function CalendarScreen() {
   const handleDeleteNote = async () => {
     if (executeOrIntercept(
       () => {},
-      "Notu Silmek İçin Kayıt Olun 🗑️",
-      "Takvimdeki notlarınızı yönetmek ve silmek için ücretsiz hesabınızı oluşturun."
+      t("calendar.demo.deleteTitle"),
+      t("calendar.demo.deleteDescription")
     )) {
       setShowNoteModal(false);
       return;
@@ -315,15 +310,15 @@ export default function CalendarScreen() {
   };
 
   const getAuthorName = useCallback((itemUserId: string | undefined | null) => {
-    if (!itemUserId) return "İsimsiz";
+    if (!itemUserId) return t("calendar.unnamed");
     if (itemUserId === userId) {
       const myUserObj = (data?.users as any[])?.find(u => u.id === userId);
-      return myUserObj?.display_name || profile?.displayName || myUserObj?.username || "Sen";
+      return myUserObj?.display_name || profile?.displayName || myUserObj?.username || t("common.you");
     }
 
     const partnerObj = (data?.users as any[])?.find(u => u.id !== userId);
-    return partnerObj?.display_name || partnerObj?.username || "Sevgilin";
-  }, [data?.users, userId, profile?.displayName]);
+    return partnerObj?.display_name || partnerObj?.username || t("common.partnerFallback");
+  }, [data?.users, userId, profile?.displayName, t]);
 
   // Premium'a özel profil fotoğrafları (premium bitince null → harf avatarı)
   const { getAvatarUrl: getAuthorAvatar } = useCoupleAvatars();
@@ -335,7 +330,7 @@ export default function CalendarScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel="Geri"
+            accessibilityLabel={t("common.back")}
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();
@@ -350,15 +345,15 @@ export default function CalendarScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Takvim</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>Özel Günler & Hatıralar 📅</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{t("tabs.calendar.label")}</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>{t("calendar.subtitle")}</Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <TourGuideButton onPress={openTour} />
             <TouchableOpacity
               accessibilityRole="button"
-              accessibilityLabel="Menüyü aç"
+              accessibilityLabel={t("common.openMenu")}
               onPress={() => router.push("/menu")}
               style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -389,9 +384,9 @@ export default function CalendarScreen() {
           <View style={styles.selectedDayHeaderRow}>
             <View>
               <Text style={[styles.selectedDayDate, { color: theme.text }]}>
-                {dayjs(selectedDate).format("D MMMM YYYY, dddd")}
+                {dayjs(selectedDate).locale(i18n.language).format("D MMMM YYYY, dddd")}
               </Text>
-              <Text style={[styles.selectedDaySub, { color: theme.textMuted }]}>Günün Kayıtları ve Anıları</Text>
+              <Text style={[styles.selectedDaySub, { color: theme.textMuted }]}>{t("calendar.dayRecords")}</Text>
             </View>
 
             <TouchableOpacity
@@ -401,7 +396,7 @@ export default function CalendarScreen() {
             >
               <Plus size={16} color="#ffffff" />
               <Text style={styles.addNoteBtnText}>
-                {userNoteForSelectedDay ? "Notu Düzenle" : "Not Ekle"}
+                {userNoteForSelectedDay ? t("calendar.editNote") : t("calendar.addNote")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -485,7 +480,7 @@ export default function CalendarScreen() {
                     {selectedDayMoods.map((m: any, i: number) => {
                       const isMe = m.user_id === userId;
                       const authorName = getAuthorName(m.user_id);
-                      const moodDisplay = getMoodDisplay(m.mood_type);
+                      const moodDisplay = getMoodDisplay(m.mood_type, t);
                       const moodColor = isMe ? CALENDAR_COLORS.myMood : CALENDAR_COLORS.partnerMood;
                       const bgTint = isLight
                         ? (isMe ? "rgba(245,158,11,0.06)" : "rgba(14,165,233,0.06)")
@@ -496,7 +491,7 @@ export default function CalendarScreen() {
                         <View key={m.id || `mood-${i}`} style={[styles.moodCard, { backgroundColor: bgTint, borderColor: borderTint }]}>
                           <View style={[styles.moodTag, { backgroundColor: isLight ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.25)" }]}>
                             <Text style={[styles.moodTagText, { color: moodColor }]}>
-                              {isMe ? "Sen" : authorName}
+                              {isMe ? t("common.you") : authorName}
                             </Text>
                           </View>
                           <Text style={{ fontSize: 30, marginVertical: 3 }}>{moodDisplay.emoji}</Text>
@@ -528,7 +523,7 @@ export default function CalendarScreen() {
                             <Text style={[styles.statusBadgeText, {
                               color: isActive ? "#10B981" : "#EF4444"
                             }]}>
-                              {isActive ? "Planlandı" : "İptal Edildi"}
+                              {isActive ? t("calendar.status.planned") : t("calendar.status.canceled")}
                             </Text>
                           </View>
                         </View>
@@ -561,10 +556,10 @@ export default function CalendarScreen() {
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text style={[styles.periodTitle, { color: theme.text }]}>
-                            {period.dayIndex === 1 ? "Regl Başlangıcı" : `Regl Döngüsünün ${period.dayIndex}. Günü`}
+                            {period.dayIndex === 1 ? t("calendar.period.start") : t("calendar.period.dayOfCycle", { day: period.dayIndex })}
                           </Text>
                           <Text style={[styles.periodSub, { color: theme.textMuted }]}>
-                            {authorName ? `${authorName} · ${PERIOD_DURATION_DAYS} günlük süreç` : "Döngü kaydı"}
+                            {authorName ? t("calendar.period.summary", { authorName, days: PERIOD_DURATION_DAYS }) : t("calendar.period.logged")}
                           </Text>
                         </View>
                       </View>
@@ -577,9 +572,9 @@ export default function CalendarScreen() {
               {selectedDayNotes.length === 0 && selectedDayMoods.length === 0 && selectedDayPhotos.length === 0 && selectedDayMeetings.length === 0 && selectedDayPeriods.length === 0 && (
                 <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
                   <CalendarIcon size={32} color={theme.textMuted} />
-                  <Text style={[styles.emptyCardTitle, { color: theme.text }]}>Henüz Kayıt Yok</Text>
+                  <Text style={[styles.emptyCardTitle, { color: theme.text }]}>{t("calendar.empty.title")}</Text>
                   <Text style={[styles.emptyCardSub, { color: theme.textSecondary }]}>
-                    Bu güne ait henüz bir not, ruh hali, buluşma veya fotoğraf bulunmuyor.
+                    {t("calendar.empty.description")}
                   </Text>
                   <TouchableOpacity
                     style={[styles.emptyAddBtn, { backgroundColor: theme.accent }]}
@@ -587,7 +582,7 @@ export default function CalendarScreen() {
                     activeOpacity={0.85}
                   >
                     <Plus size={15} color="#ffffff" />
-                    <Text style={styles.emptyAddBtnText}>İlk Notu Ekle ✍️</Text>
+                    <Text style={styles.emptyAddBtnText}>{t("calendar.empty.cta")}</Text>
                   </TouchableOpacity>
                 </View>
               )}

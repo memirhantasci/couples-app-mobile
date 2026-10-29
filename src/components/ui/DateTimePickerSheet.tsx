@@ -14,6 +14,10 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react-native";
 import { useTheme } from "@/context/ThemeContext";
+import { useTranslation } from "react-i18next";
+import { LocaleConfig } from "react-native-calendars";
+import { DEFAULT_LANGUAGE, isAppLanguage } from "@/lib/i18n";
+import "@/lib/calendarLocale";
 
 /**
  * Uygulamanın TEK tarih / saat seçicisi. Hiçbir ekran DateTimePicker'ı doğrudan kullanmaz.
@@ -52,11 +56,15 @@ export function DateTimePickerSheet({ visible, onCancel, ...body }: DateTimePick
   );
 }
 
-const MONTHS = [
-  "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
-  "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
-];
-const WEEKDAYS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
+// Ay ve gün adları merkezi takvim yerelinden gelir (src/lib/calendarLocale.ts); hafta Pazartesi'den başlar
+function getCalendarNames(language: string) {
+  const locale = LocaleConfig.locales[isAppLanguage(language) ? language : DEFAULT_LANGUAGE];
+  const sundayFirst = locale.dayNamesShort;
+  return {
+    months: locale.monthNames,
+    weekdays: [...sundayFirst.slice(1), sundayFirst[0]],
+  };
+}
 
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 
@@ -69,11 +77,12 @@ function SheetBody({
   onConfirm,
   onCancel,
 }: Omit<DateTimePickerSheetProps, "visible">) {
+  const { t, i18n } = useTranslation();
   const { theme, isLight } = useTheme();
   const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState<Date>(value);
 
-  const heading = title ?? (mode === "date" ? "Tarih Seç" : "Saat Seç");
+  const heading = title ?? (mode === "date" ? t("picker.selectDate") : t("picker.selectTime"));
 
   return (
     <View style={styles.overlay}>
@@ -92,14 +101,14 @@ function SheetBody({
 
         <View style={styles.header}>
           <TouchableOpacity onPress={onCancel} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text style={[styles.headerAction, { color: theme.textSecondary }]}>Vazgeç</Text>
+            <Text style={[styles.headerAction, { color: theme.textSecondary }]}>{t("common.cancel")}</Text>
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.text }]}>{heading}</Text>
           <TouchableOpacity
             onPress={() => onConfirm(draft)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={[styles.headerAction, { color: theme.accent, fontFamily: "Inter_700Bold" }]}>Seç</Text>
+            <Text style={[styles.headerAction, { color: theme.accent, fontFamily: "Inter_700Bold" }]}>{t("photos.add.pick")}</Text>
           </TouchableOpacity>
         </View>
 
@@ -108,7 +117,7 @@ function SheetBody({
             value={draft}
             mode={mode}
             display="spinner"
-            locale="tr-TR"
+            locale={i18n.language === "tr" ? "tr-TR" : "en-US"}
             themeVariant={isLight ? "light" : "dark"}
             textColor={theme.text}
             minimumDate={minimumDate}
@@ -151,6 +160,8 @@ function CalendarPane({
   maximumDate?: Date;
 }) {
   const { theme } = useTheme();
+  const { i18n } = useTranslation();
+  const { months, weekdays } = getCalendarNames(i18n.language);
   const { width: screenWidth } = useWindowDimensions();
   const [view, setView] = useState(() => new Date(value.getFullYear(), value.getMonth(), 1));
   const [yearMode, setYearMode] = useState(false);
@@ -213,7 +224,7 @@ function CalendarPane({
 
         <TouchableOpacity onPress={() => setYearMode((v) => !v)} style={styles.monthTitleBtn} activeOpacity={0.7}>
           <Text style={[styles.monthTitle, { color: theme.text }]}>
-            {MONTHS[month]} {year}
+            {months[month]} {year}
           </Text>
           <ChevronDown
             size={16}
@@ -271,7 +282,7 @@ function CalendarPane({
       ) : (
         <View style={styles.calendarBody}>
           <View style={[styles.weekRow, { width: dayWidth * 7 }]}>
-            {WEEKDAYS.map((d) => (
+            {weekdays.map((d) => (
               <Text key={d} style={[styles.weekday, { color: theme.textMuted, width: dayWidth }]}>
                 {d}
               </Text>

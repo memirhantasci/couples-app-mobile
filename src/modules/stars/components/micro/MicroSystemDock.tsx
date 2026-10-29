@@ -17,6 +17,7 @@ import { Crown, Globe, Plus } from 'lucide-react-native';
 import type { StarSystemMapPlanet } from '../../types/star.types';
 import { planetTypeLabel } from '../ExoplanetModal';
 import { MiniPlanet } from './MiniPlanet';
+import { useTranslation } from 'react-i18next';
 
 export interface MicroSystemDockProps {
   readonly planets: readonly StarSystemMapPlanet[];
@@ -40,22 +41,23 @@ const PlanetCard = memo(function PlanetCard({
   highlighted: boolean;
   onPress: (planet: StarSystemMapPlanet) => void;
 }) {
-  const typeLabel = planetTypeLabel(planet.planet_type);
+  const { t } = useTranslation();
+  const typeLabel = planetTypeLabel(planet.planet_type, t);
   return (
     <TouchableOpacity
       activeOpacity={0.85}
       onPress={() => onPress(planet)}
       style={[styles.planetCard, highlighted && styles.planetCardActive]}
       accessibilityRole="button"
-      accessibilityLabel={planet.is_locked ? 'Kilitli anı gezegeni' : `${planet.display_title} anı gezegenini aç`}
+      accessibilityLabel={planet.is_locked ? t('stars.micro.lockedPlanetA11y') : t('stars.micro.openPlanetA11y', { display_title: planet.display_title })}
     >
       <MiniPlanet planet={planet} size={34} />
       <View style={styles.planetCardText}>
         <Text style={styles.planetCardTitle} numberOfLines={1}>
-          {planet.is_locked ? 'Kilitli anı' : planet.display_title}
+          {planet.is_locked ? t('stars.micro.lockedMemory') : planet.display_title}
         </Text>
         <Text style={styles.planetCardSub} numberOfLines={1}>
-          {planet.is_locked ? 'Premium ile aç 👑' : `${typeLabel} · ${planet.orbit_distance}. kuşak`}
+          {planet.is_locked ? t('stars.micro.unlockPremium') : t('stars.micro.planetSub', { typeLabel, orbit_distance: planet.orbit_distance })}
         </Text>
       </View>
     </TouchableOpacity>
@@ -63,13 +65,14 @@ const PlanetCard = memo(function PlanetCard({
 });
 
 function CreateCard({ isPremium, wide, onPress }: { isPremium: boolean; wide: boolean; onPress: () => void }) {
+  const { t } = useTranslation();
   return (
     <TouchableOpacity
       activeOpacity={0.85}
       onPress={onPress}
       style={[styles.createCard, wide && styles.createCardWide]}
       accessibilityRole="button"
-      accessibilityLabel="Yeni anı gezegeni oluştur"
+      accessibilityLabel={t('stars.micro.createA11y')}
     >
       <LinearGradient colors={['#FDE68A', '#F59E0B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.createIcon}>
         <Plus size={16} color="#3B1D00" strokeWidth={2.6} />
@@ -77,14 +80,14 @@ function CreateCard({ isPremium, wide, onPress }: { isPremium: boolean; wide: bo
       {wide ? (
         <View style={styles.planetCardText}>
           <Text style={styles.createWideTitle} numberOfLines={1}>
-            İlk anı gezegeninizi oluşturun
+            {t('stars.micro.createFirst')}
           </Text>
           <Text style={styles.planetCardSub} numberOfLines={1}>
-            Fotoğraflarınız ve hikâyeniz yörüngede dönsün
+            {t('stars.micro.createFirstSub')}
           </Text>
         </View>
       ) : (
-        <Text style={styles.createLabel}>Yeni Anı</Text>
+        <Text style={styles.createLabel}>{t('notifications.push.memory.subtitle')}</Text>
       )}
       {!isPremium && (
         <View style={styles.crownBadge}>
@@ -107,6 +110,7 @@ export const MicroSystemDock = memo(function MicroSystemDock({
   onExitToSky,
   onLayout,
 }: MicroSystemDockProps) {
+  const { t } = useTranslation();
   const hasPlanets = planets.length > 0;
 
   return (
@@ -125,9 +129,9 @@ export const MicroSystemDock = memo(function MicroSystemDock({
         />
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionEyebrow}>ANI GEZEGENLERİ</Text>
+          <Text style={styles.sectionEyebrow}>{t('stars.micro.planetsEyebrow')}</Text>
           <Text style={styles.sectionCount}>
-            {hasPlanets ? `${planets.length} anı yörüngede` : 'Yörünge boş'}
+            {hasPlanets ? t('stars.micro.planetCount', { count: planets.length }) : t('stars.micro.orbitEmpty')}
           </Text>
         </View>
 
@@ -157,10 +161,10 @@ export const MicroSystemDock = memo(function MicroSystemDock({
           onPress={onExitToSky}
           style={styles.skyButton}
           accessibilityRole="button"
-          accessibilityLabel="Gök Kubbeye Dön"
+          accessibilityLabel={t('stars.micro.backToSky')}
         >
           <Globe size={19} color="#7DD3FC" />
-          <Text style={styles.skyButtonText}>Gök Kubbeye Dön</Text>
+          <Text style={styles.skyButtonText}>{t('stars.micro.backToSky')}</Text>
         </TouchableOpacity>
       </View>
     </Animated.View>

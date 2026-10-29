@@ -36,6 +36,8 @@ import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import * as AppleAuthentication from "expo-apple-authentication";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
+import { Trans, useTranslation } from "react-i18next";
+import i18n from "@/lib/i18n";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -61,7 +63,7 @@ async function createSessionFromOAuthUrl(url: string): Promise<SupabaseUser> {
   const accessToken = params.get("access_token");
   const refreshToken = params.get("refresh_token");
   if (!accessToken || !refreshToken) {
-    throw new Error("Oturum bilgisi alınamadı. Lütfen tekrar deneyin.");
+    throw new Error(i18n.t("auth.errors.sessionMissing"));
   }
 
   const { data, error } = await supabase.auth.setSession({
@@ -69,7 +71,7 @@ async function createSessionFromOAuthUrl(url: string): Promise<SupabaseUser> {
     refresh_token: refreshToken,
   });
   if (error) throw error;
-  if (!data.user) throw new Error("Oturum açılamadı. Lütfen tekrar deneyin.");
+  if (!data.user) throw new Error(i18n.t("auth.errors.signInFailed"));
   return data.user;
 }
 
@@ -110,6 +112,7 @@ async function ensureDeviceAuthorized(userId: string, deviceId: string): Promise
 type Mode = "login" | "register";
 
 export default function LoginScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { initialMode, inviteCode } = useLocalSearchParams<{ initialMode?: string; inviteCode?: string }>();
   const { setIsDeviceAuthorized, enterDemoMode, refreshProfile } = useAuth();
@@ -220,7 +223,7 @@ export default function LoginScreen() {
     if (newAttempts >= MAX_ATTEMPTS) {
       const lockTime = Date.now() + LOCKOUT_SECONDS * 1000;
       setLockedUntil(lockTime);
-      setErrorMsg(`Çok fazla başarısız deneme. ${LOCKOUT_SECONDS} saniye bekle.`);
+      setErrorMsg(t("auth.errors.lockout", { count: LOCKOUT_SECONDS }));
       AsyncStorage.setItem(
         BRUTE_FORCE_KEY,
         JSON.stringify({ attempts: newAttempts, lockedUntil: lockTime, lastAttemptAt: Date.now() })
@@ -239,7 +242,7 @@ export default function LoginScreen() {
   }
 
   function showEmailNotConfirmed(email: string) {
-    setErrorMsg("E-posta adresiniz henüz doğrulanmamış.");
+    setErrorMsg(t("auth.errors.emailNotVerified"));
     setTimeout(() => {
       router.push({
         pathname: "/(auth)/verify",
@@ -257,15 +260,15 @@ export default function LoginScreen() {
     clearErrors();
     if (isLockedOut()) {
       const remaining = Math.ceil(((lockedUntil ?? 0) - Date.now()) / 1000);
-      setErrorMsg(`Çok fazla başarısız deneme. ${remaining} saniye bekle.`);
+      setErrorMsg(t("auth.errors.lockout", { count: remaining }));
       return;
     }
     if (!loginUsername.trim()) {
-      setErrorMsg("Kullanıcı adı veya e-posta gerekli.");
+      setErrorMsg(t("auth.errors.identifierRequired"));
       return;
     }
     if (!loginPassword.trim()) {
-      setErrorMsg("Şifre gerekli.");
+      setErrorMsg(t("auth.errors.passwordRequired"));
       return;
     }
 
@@ -284,7 +287,7 @@ export default function LoginScreen() {
           if (error?.message.includes("Email not confirmed")) {
             showEmailNotConfirmed(email);
           } else {
-            setErrorMsg("E-posta veya şifre hatalı.");
+            setErrorMsg(t("auth.errors.wrongEmailOrPassword"));
           }
           return;
         }
@@ -294,15 +297,15 @@ export default function LoginScreen() {
         const result = await signInWithUsername(normalizeUsername(identifier), password);
         if (!result.ok) {
           if (result.code === "too_many_requests") {
-            setErrorMsg("Çok fazla deneme yapıldı. Lütfen birkaç dakika sonra tekrar dene.");
+            setErrorMsg(t("auth.errors.tooManyAttempts"));
           } else if (result.code === "unavailable") {
-            setErrorMsg("Giriş şu anda yapılamıyor. Bağlantını kontrol edip tekrar dene.");
+            setErrorMsg(t("auth.errors.signInUnavailable"));
           } else {
             registerFailedAttempt();
             if (result.code === "email_not_confirmed" && result.email) {
               showEmailNotConfirmed(result.email);
             } else {
-              setErrorMsg("Kullanıcı adı veya şifre hatalı.");
+              setErrorMsg(t("auth.errors.wrongUsernameOrPassword"));
             }
           }
           return;
@@ -354,7 +357,7 @@ export default function LoginScreen() {
         });
 
         if (otpError) {
-          setErrorMsg("Cihaz doğrulama kodu gönderilemedi: " + otpError.message);
+          setErrorMsg(t("auth.errors.deviceCodeFailed", { message: otpError.message }));
           setIsLoading(false);
           return;
         }
@@ -386,7 +389,7 @@ export default function LoginScreen() {
       // tek kişilik bekleme çifti olan kullanıcı tarih ekranına gidip geri fırlatılmasın)
       navigateAfterAuth(await refreshProfile());
     } catch (e: any) {
-      setErrorMsg("Beklenmedik bir hata oluştu.");
+      setErrorMsg(t("errors.unexpected"));
     } finally {
       releaseAuthFlow();
       setIsLoading(false);
@@ -400,27 +403,27 @@ export default function LoginScreen() {
     const username = normalizeUsername(regUsername);
 
     if (!displayName) {
-      setErrorMsg("Görünen isim gerekli.");
+      setErrorMsg(t("auth.errors.displayNameRequired"));
       return;
     }
     if (displayName.length > DISPLAY_NAME_MAX_LENGTH) {
-      setErrorMsg(`Görünen isim en fazla ${DISPLAY_NAME_MAX_LENGTH} karakter olabilir.`);
+      setErrorMsg(t("auth.errors.displayNameTooLong", { max: DISPLAY_NAME_MAX_LENGTH }));
       return;
     }
     if (username.length < 3) {
-      setErrorMsg("Kullanıcı adı en az 3 karakter olmalı.");
+      setErrorMsg(t("auth.errors.usernameTooShort"));
       return;
     }
     if (!isValidUsername(username)) {
-      setErrorMsg("Kullanıcı adı yalnızca a-z harfleri, rakam ve _ içerebilir.");
+      setErrorMsg(t("auth.errors.usernameInvalidChars"));
       return;
     }
     if (!regEmail.trim() || !regEmail.includes("@")) {
-      setErrorMsg("Geçerli bir e-posta girin.");
+      setErrorMsg(t("auth.errors.emailInvalid"));
       return;
     }
     if (!regPassword.trim() || regPassword.length < 6) {
-      setErrorMsg("Şifre en az 6 karakter olmalı.");
+      setErrorMsg(t("auth.errors.passwordTooShort"));
       return;
     }
 
@@ -437,13 +440,13 @@ export default function LoginScreen() {
       if (availabilityError) {
         setErrorMsg(
           availabilityError.message.includes("TOO_MANY_REQUESTS")
-            ? "Çok fazla deneme yapıldı. Lütfen birkaç dakika sonra tekrar dene."
-            : "Kullanıcı adı kontrol edilemedi. Lütfen tekrar dene."
+            ? t("auth.errors.tooManyAttempts")
+            : t("auth.errors.usernameCheckFailed")
         );
         return;
       }
       if (!isAvailable) {
-        setErrorMsg("Bu kullanıcı adı zaten alınmış.");
+        setErrorMsg(t("auth.errors.usernameTaken"));
         return;
       }
 
@@ -463,10 +466,10 @@ export default function LoginScreen() {
 
       if (error) {
         if (error.message.includes("already registered")) {
-          setErrorMsg("Bu e-posta zaten kayıtlı.");
+          setErrorMsg(t("auth.errors.emailTaken"));
         } else if (error.message.includes("Database error saving new user")) {
           // Uygunluk kontrolüyle kayıt arasında aynı kullanıcı adı başkasınca alındı
-          setErrorMsg("Bu kullanıcı adı az önce alındı. Lütfen başka bir kullanıcı adı dene.");
+          setErrorMsg(t("auth.errors.usernameJustTaken"));
         } else {
           setErrorMsg(error.message);
         }
@@ -474,7 +477,7 @@ export default function LoginScreen() {
       }
 
       if (!data.user) {
-        setErrorMsg("Kayıt başarısız.");
+        setErrorMsg(t("auth.errors.registerFailed"));
         setIsLoading(false);
         return;
       }
@@ -488,7 +491,7 @@ export default function LoginScreen() {
 
       // If email confirmation is enabled in Supabase, session will be null
       if (!data.session) {
-        setSuccessMsg("Kayıt başarılı! Doğrulama kodunuz gönderildi.");
+        setSuccessMsg(t("auth.register.successCode"));
         setTimeout(() => {
           router.push({
             pathname: "/(auth)/verify",
@@ -503,7 +506,7 @@ export default function LoginScreen() {
 
       // signUp oturumu zaten açtı; ikinci bir girişe gerek yok (ikinci bir SIGNED_IN olayı cihaz
       // kontrolünü yeniden başlatıyor, başarısız olursa kullanıcı açık oturumla burada kalıyordu)
-      setSuccessMsg("Kayıt başarılı! Giriş yapılıyor...");
+      setSuccessMsg(t("auth.register.successSigningIn"));
 
       const deviceId = await getOrCreateDeviceId();
 
@@ -525,7 +528,7 @@ export default function LoginScreen() {
       // Koruyucu kilitliyken yönlendirmeyi akışın kendisi yapar (eşleşme ekranı bekleyen kodu kullanır)
       navigateAfterAuth(await refreshProfile());
     } catch (e: any) {
-      setErrorMsg("Beklenmedik bir hata oluştu.");
+      setErrorMsg(t("errors.unexpected"));
     } finally {
       releaseAuthFlow();
       setIsLoading(false);
@@ -548,14 +551,14 @@ export default function LoginScreen() {
 
     if (!isAuthorized) {
       // Yeni cihaz: klasik girişteki gibi e-posta OTP doğrulaması iste
-      if (!user.email) throw new Error("Hesabınızda doğrulama için e-posta adresi bulunamadı.");
+      if (!user.email) throw new Error(t("auth.errors.noEmailForVerification"));
 
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: user.email,
         options: { shouldCreateUser: false },
       });
       if (otpError) {
-        throw new Error("Cihaz doğrulama kodu gönderilemedi: " + otpError.message);
+        throw new Error(t("auth.errors.deviceCodeFailed", { message: otpError.message }));
       }
 
       setIsDeviceAuthorized(false);
@@ -593,7 +596,7 @@ export default function LoginScreen() {
         options: { redirectTo: redirectUrl, skipBrowserRedirect: true },
       });
       if (error) throw error;
-      if (!data?.url) throw new Error("Giriş bağlantısı oluşturulamadı.");
+      if (!data?.url) throw new Error(t("auth.errors.signInLinkFailed"));
 
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
       // Kullanıcı tarayıcıyı kapattıysa sessizce çık
@@ -602,7 +605,7 @@ export default function LoginScreen() {
       const user = await createSessionFromOAuthUrl(result.url);
       await handleSocialSuccess(user);
     } catch (err: any) {
-      setErrorMsg(err?.message || "Google ile giriş yapılırken bir sorun oluştu.");
+      setErrorMsg(err?.message || t("auth.errors.googleFailed"));
     } finally {
       releaseAuthFlow();
       setIsLoading(false);
@@ -623,7 +626,7 @@ export default function LoginScreen() {
         ],
       });
       if (!credential.identityToken) {
-        throw new Error("Apple kimlik doğrulaması tamamlanamadı.");
+        throw new Error(t("auth.errors.appleNotCompleted"));
       }
 
       const { data, error } = await supabase.auth.signInWithIdToken({
@@ -631,7 +634,7 @@ export default function LoginScreen() {
         token: credential.identityToken,
       });
       if (error) throw error;
-      if (!data.user) throw new Error("Oturum açılamadı. Lütfen tekrar deneyin.");
+      if (!data.user) throw new Error(t("auth.errors.signInFailed"));
 
       // Apple adı yalnızca ilk girişte verir; profil tamamlama ekranı önerebilsin diye metadata'ya yaz
       if (credential.fullName) {
@@ -649,7 +652,7 @@ export default function LoginScreen() {
     } catch (err: any) {
       // Kullanıcı Apple penceresini kapattıysa hata gösterme
       if (err?.code !== "ERR_REQUEST_CANCELED") {
-        setErrorMsg(err?.message || "Apple ile giriş yapılırken bir sorun oluştu.");
+        setErrorMsg(err?.message || t("auth.errors.appleFailed"));
       }
     } finally {
       releaseAuthFlow();
@@ -731,8 +734,8 @@ export default function LoginScreen() {
             <Text style={styles.heroTitle}>Couples App</Text>
             <Text style={styles.heroSubtitle}>
               {mode === "login"
-                ? "Aşkınızı belgelemenin ve büyütmenin en romantik yolu."
-                : "Birlikte unutulmaz anılar biriktirmek için ilk adımı atın."}
+                ? t("auth.login.tagline")
+                : t("auth.login.taglineSub")}
             </Text>
           </View>
 
@@ -755,7 +758,7 @@ export default function LoginScreen() {
                   mode === "login" && styles.segmentBtnTextActive
                 ]}
               >
-                Giriş Yap
+                {t("auth.signIn")}
               </Text>
             </TouchableOpacity>
 
@@ -776,7 +779,7 @@ export default function LoginScreen() {
                   mode === "register" && styles.segmentBtnTextActive
                 ]}
               >
-                Kayıt Ol
+                {t("auth.signUp")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -786,7 +789,7 @@ export default function LoginScreen() {
             <View style={styles.formContainer}>
               {/* E-Posta / Kullanıcı Adı */}
               <View style={styles.inputGroup}>
-                <Text style={styles.fieldLabel}>E-POSTA VEYA KULLANICI ADI</Text>
+                <Text style={styles.fieldLabel}>{t("auth.login.identifierLabel")}</Text>
                 <View style={styles.inputBox}>
                   <View style={styles.inputIconBox}>
                     <AtSign size={18} color="rgba(255,255,255,0.45)" />
@@ -794,7 +797,7 @@ export default function LoginScreen() {
                   <TextInput
                     value={loginUsername}
                     onChangeText={setLoginUsername}
-                    placeholder="ornek@gmail.com veya kullanıcı adı"
+                    placeholder={t("auth.login.identifierPlaceholder")}
                     autoComplete="username"
                     textContentType="username"
                     placeholderTextColor="rgba(255,255,255,0.25)"
@@ -809,7 +812,7 @@ export default function LoginScreen() {
 
               {/* Şifre */}
               <View style={styles.inputGroup}>
-                <Text style={styles.fieldLabel}>ŞİFRE</Text>
+                <Text style={styles.fieldLabel}>{t("auth.passwordLabel")}</Text>
                 <View style={styles.inputBox}>
                   <View style={styles.inputIconBox}>
                     <Lock size={18} color="rgba(255,255,255,0.45)" />
@@ -848,35 +851,21 @@ export default function LoginScreen() {
                 activeOpacity={0.7}
               >
                 <Text style={[styles.forgotText, { color: activeAccent }]}>
-                  Şifremi Unuttum?
+                  {t("auth.login.forgotPassword")}
                 </Text>
               </TouchableOpacity>
 
               {/* Giriş Modu Yasal Bilgilendirme */}
               <View style={styles.loginLegalNotice}>
                 <Text style={styles.loginLegalText}>
-                  Giriş yaparak{" "}
-                  <Text
-                    style={[styles.legalLink, { color: activeAccent }]}
-                    onPress={() => openLegalDoc("terms")}
-                  >
-                    Kullanım Koşulları
-                  </Text>
-                  {", "}
-                  <Text
-                    style={[styles.legalLink, { color: activeAccent }]}
-                    onPress={() => openLegalDoc("privacy")}
-                  >
-                    Gizlilik Politikası
-                  </Text>
-                  {" ve "}
-                  <Text
-                    style={[styles.legalLink, { color: activeAccent }]}
-                    onPress={() => openLegalDoc("kvkk")}
-                  >
-                    KVKK Metni
-                  </Text>
-                  ’ni kabul etmiş sayılırsınız.
+                  <Trans
+                    i18nKey="auth.login.legalNotice"
+                    components={{
+                      terms: <Text style={[styles.legalLink, { color: activeAccent }]} onPress={() => openLegalDoc("terms")} />,
+                      privacy: <Text style={[styles.legalLink, { color: activeAccent }]} onPress={() => openLegalDoc("privacy")} />,
+                      kvkk: <Text style={[styles.legalLink, { color: activeAccent }]} onPress={() => openLegalDoc("kvkk")} />,
+                    }}
+                  />
                 </Text>
               </View>
             </View>
@@ -892,9 +881,9 @@ export default function LoginScreen() {
                     <Heart size={16} color="#FF2E63" fill="#FF2E63" />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.inviteBannerTitle}>Sevgilinin Davetiyle Katılıyorsun 💕</Text>
+                    <Text style={styles.inviteBannerTitle}>{t("auth.register.inviteTitle")}</Text>
                     <Text style={styles.inviteBannerSub}>
-                      Eşleşme kodun ({activeInviteCode}) otomatik tanımlandı. Kayıt tamamlandığında kod girmene gerek kalmadan doğrudan sevgilinle eşleşeceksin!
+                      {t("auth.register.inviteSub", { code: activeInviteCode })}
                     </Text>
                   </View>
                 </View>
@@ -902,7 +891,7 @@ export default function LoginScreen() {
 
               {/* Ad Soyad */}
               <View style={styles.inputGroup}>
-                <Text style={styles.fieldLabel}>AD SOYAD</Text>
+                <Text style={styles.fieldLabel}>{t("auth.register.nameLabel")}</Text>
                 <View style={styles.inputBox}>
                   <View style={styles.inputIconBox}>
                     <User size={18} color="rgba(255,255,255,0.45)" />
@@ -911,7 +900,7 @@ export default function LoginScreen() {
                     value={regDisplayName}
                     onChangeText={setRegDisplayName}
                     maxLength={DISPLAY_NAME_MAX_LENGTH}
-                    placeholder="Örn. Selin Yılmaz"
+                    placeholder={t("auth.register.namePlaceholder")}
                     placeholderTextColor="rgba(255,255,255,0.25)"
                     selectionColor={activeAccent}
                     style={styles.textInputField}
@@ -921,7 +910,7 @@ export default function LoginScreen() {
 
               {/* Kullanıcı Adı */}
               <View style={styles.inputGroup}>
-                <Text style={styles.fieldLabel}>KULLANICI ADI</Text>
+                <Text style={styles.fieldLabel}>{t("auth.register.usernameLabel")}</Text>
                 <View style={styles.inputBox}>
                   <View style={styles.inputIconBox}>
                     <AtSign size={18} color="rgba(255,255,255,0.45)" />
@@ -965,7 +954,7 @@ export default function LoginScreen() {
 
               {/* Şifre */}
               <View style={styles.inputGroup}>
-                <Text style={styles.fieldLabel}>ŞİFRE</Text>
+                <Text style={styles.fieldLabel}>{t("auth.passwordLabel")}</Text>
                 <View style={styles.inputBox}>
                   <View style={styles.inputIconBox}>
                     <Lock size={18} color="rgba(255,255,255,0.45)" />
@@ -977,7 +966,7 @@ export default function LoginScreen() {
                     textContentType="newPassword"
                     autoCapitalize="none"
                     autoCorrect={false}
-                    placeholder="En az 6 karakter"
+                    placeholder={t("auth.register.passwordPlaceholder")}
                     placeholderTextColor="rgba(255,255,255,0.25)"
                     secureTextEntry={!showRegPass}
                     selectionColor={activeAccent}
@@ -999,11 +988,11 @@ export default function LoginScreen() {
 
               {/* Cinsiyet Seçimi */}
               <View style={styles.inputGroup}>
-                <Text style={styles.fieldLabel}>CİNSİYETİNİZ</Text>
+                <Text style={styles.fieldLabel}>{t("auth.register.genderLabel")}</Text>
                 <View style={styles.genderRow}>
                   {([
-                    { val: "female" as const, label: "Kadın ♀", color: "#FF4D6D", bg: "rgba(255, 77, 109, 0.14)" },
-                    { val: "male" as const, label: "Erkek ♂", color: "#4D9CFF", bg: "rgba(77, 156, 255, 0.14)" },
+                    { val: "female" as const, label: t("auth.register.genderFemale"), color: "#FF4D6D", bg: "rgba(255, 77, 109, 0.14)" },
+                    { val: "male" as const, label: t("auth.register.genderMale"), color: "#4D9CFF", bg: "rgba(77, 156, 255, 0.14)" },
                   ]).map(({ val, label, color, bg }) => {
                     const isSelected = regGender === val;
                     return (
@@ -1036,7 +1025,7 @@ export default function LoginScreen() {
 
               {/* Eşleşme Kodu */}
               <View style={styles.inputGroup}>
-                <Text style={styles.fieldLabel}>EŞLEŞME KODU (İSTEĞE BAĞLI)</Text>
+                <Text style={styles.fieldLabel}>{t("auth.register.pairingCodeLabel")}</Text>
                 <View style={styles.inputBox}>
                   <View style={styles.inputIconBox}>
                     <Link size={18} color="rgba(255,255,255,0.45)" />
@@ -1044,7 +1033,7 @@ export default function LoginScreen() {
                   <TextInput
                     value={regPairingCode}
                     onChangeText={(t) => setRegPairingCode(normalizePairingCode(t))}
-                    placeholder="Örn. X7Y9Z2"
+                    placeholder={t("auth.register.pairingCodePlaceholder")}
                     placeholderTextColor="rgba(255,255,255,0.25)"
                     autoCapitalize="characters"
                     autoCorrect={false}
@@ -1091,7 +1080,7 @@ export default function LoginScreen() {
               ) : (
                 <View style={styles.ctaContentRow}>
                   <Text style={styles.ctaText}>
-                    {mode === "login" ? "Giriş Yap" : "Hesap Oluştur"}
+                    {mode === "login" ? t("auth.signIn") : t("auth.createAccount")}
                   </Text>
                   <ArrowRight size={18} color="#ffffff" />
                 </View>
@@ -1103,28 +1092,14 @@ export default function LoginScreen() {
           {mode === "register" && (
             <View style={styles.registerLegalNotice}>
               <Text style={styles.loginLegalText}>
-                Hesap Oluştur’a ya da Apple / Google ile devam etmeye dokunarak{" "}
-                <Text
-                  style={[styles.legalLink, { color: activeAccent }]}
-                  onPress={() => openLegalDoc("terms")}
-                >
-                  Kullanım Koşulları
-                </Text>
-                {", "}
-                <Text
-                  style={[styles.legalLink, { color: activeAccent }]}
-                  onPress={() => openLegalDoc("privacy")}
-                >
-                  Gizlilik Politikası
-                </Text>
-                {" ve "}
-                <Text
-                  style={[styles.legalLink, { color: activeAccent }]}
-                  onPress={() => openLegalDoc("kvkk")}
-                >
-                  KVKK Aydınlatma Metni
-                </Text>
-                ’ni kabul etmiş sayılırsınız.
+                <Trans
+                  i18nKey="auth.register.legalNotice"
+                  components={{
+                    terms: <Text style={[styles.legalLink, { color: activeAccent }]} onPress={() => openLegalDoc("terms")} />,
+                    privacy: <Text style={[styles.legalLink, { color: activeAccent }]} onPress={() => openLegalDoc("privacy")} />,
+                    kvkk: <Text style={[styles.legalLink, { color: activeAccent }]} onPress={() => openLegalDoc("kvkk")} />,
+                  }}
+                />
               </Text>
             </View>
           )}
@@ -1166,7 +1141,7 @@ export default function LoginScreen() {
                 <Text style={styles.googleBadgeText}>G</Text>
               </View>
               <Text style={styles.socialBtnText}>
-                {mode === "login" ? "Google ile Giriş Yap" : "Google ile Devam Et"}
+                {mode === "login" ? t("auth.login.googleSignIn") : t("auth.login.googleContinue")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -1178,7 +1153,7 @@ export default function LoginScreen() {
           >
             <Sparkles size={16} color={activeAccent} style={{ marginRight: 8 }} />
             <Text style={[styles.demoModeBtnText, { color: activeAccent }]}>
-              Uygulamayı Keşfet (Demo Modu)
+              {t("auth.exploreDemoMode")}
             </Text>
             <ArrowRight size={15} color={activeAccent} style={{ marginLeft: 6 }} />
           </TouchableOpacity>

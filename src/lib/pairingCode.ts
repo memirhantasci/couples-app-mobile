@@ -1,3 +1,4 @@
+import i18n from "@/lib/i18n";
 /**
  * Eşleşme kodu yardımcıları. Kodlar sunucuda (get_or_create_my_couple) üretilir;
  * sunucu girilen kodu ayrıca normalize eder ve eski kodlardaki 0/O, 1/I karışıklığını tolere eder.
@@ -24,11 +25,11 @@ export function isDefinitivePairingError(msg: string | undefined): boolean {
 }
 
 export function translatePairingError(msg: string | undefined): string {
-  if (!msg) return "Bir hata oluştu, lütfen tekrar deneyin.";
-  if (msg.includes("INVALID_CODE")) return "Bu kodla bekleyen bir partner bulunamadı. Kodu partnerinin ekranından harf harf kontrol et.";
-  if (msg.includes("CODE_ALREADY_USED") || msg.includes("COUPLE_FULL")) return "Bu kod artık kullanılamıyor; sahibi başka biriyle eşleşmiş.";
-  if (msg.includes("SELF_CODE")) return "Bu senin kendi kodun. Partnerinin ekranındaki kodu girmelisin.";
-  if (msg.includes("ALREADY_PAIRED")) return "Zaten partnerinle eşleşmiş durumdasın.";
-  if (msg.includes("doğrudan değiştirilemez")) return "Eşleşme işlemi tamamlanamadı, lütfen tekrar deneyin.";
+  if (!msg) return i18n.t("setup.errors.generic");
+  if (msg.includes("INVALID_CODE")) return i18n.t("setup.errors.invalidCode");
+  if (msg.includes("CODE_ALREADY_USED") || msg.includes("COUPLE_FULL")) return i18n.t("setup.errors.codeUnavailable");
+  if (msg.includes("SELF_CODE")) return i18n.t("setup.errors.selfCode");
+  if (msg.includes("ALREADY_PAIRED")) return i18n.t("setup.errors.alreadyPaired");
+  if (msg.includes("doğrudan değiştirilemez")) return i18n.t("setup.errors.pairingFailed");
   return msg;
 }

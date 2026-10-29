@@ -42,6 +42,7 @@ import {
   ChevronRight,
   Lightbulb,
 } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 
 const ICON_MAP: Record<string, any> = {
   Home,
@@ -83,6 +84,7 @@ interface PageTourModalProps {
 }
 
 export function PageTourModal({ visible, guide, onClose }: PageTourModalProps) {
+  const { t } = useTranslation();
   const { theme, isLight } = useTheme();
   const insets = useSafeAreaInsets();
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -159,7 +161,7 @@ export function PageTourModal({ visible, guide, onClose }: PageTourModalProps) {
                   {guide.tagline}
                 </Text>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>
-                  {guide.title} Rehberi
+                  {t("tour.guideTitle", { title: guide.title })}
                 </Text>
               </View>
             </View>
@@ -191,7 +193,7 @@ export function PageTourModal({ visible, guide, onClose }: PageTourModalProps) {
                     { color: isLight ? "#8A8494" : "rgba(255,255,255,0.5)" },
                   ]}
                 >
-                  Özellik {currentIndex + 1} / {features.length}
+                  {t("tour.featureCounter", { current: currentIndex + 1, total: features.length })}
                 </Text>
                 <View style={styles.stepDots}>
                   {features.map((_, i) => (
@@ -287,7 +289,7 @@ export function PageTourModal({ visible, guide, onClose }: PageTourModalProps) {
                           { color: theme.accent },
                         ]}
                       >
-                        Aşk Püf Noktası
+                        {t("tour.loveTip")}
                       </Text>
                       <Text
                         style={[
@@ -326,7 +328,7 @@ export function PageTourModal({ visible, guide, onClose }: PageTourModalProps) {
                   >
                     <ChevronLeft size={18} color={theme.text} />
                     <Text style={[styles.navPrevText, { color: theme.text }]}>
-                      Geri
+                      {t("common.back")}
                     </Text>
                   </TouchableOpacity>
                 ) : (
@@ -342,7 +344,7 @@ export function PageTourModal({ visible, guide, onClose }: PageTourModalProps) {
                   activeOpacity={0.85}
                 >
                   <Text style={styles.navNextText}>
-                    {isLastStep ? "Anladım, Başla! 🎉" : "Sonraki"}
+                    {isLastStep ? t("tour.gotIt") : t("common.next")}
                   </Text>
                   {!isLastStep && <ChevronRight size={18} color="#FFFFFF" />}
                 </TouchableOpacity>

@@ -33,6 +33,7 @@ import {
 import * as Location from "expo-location";
 import { useTheme } from "@/context/ThemeContext";
 import { isValidCoordinate, geocodeAddressString, formatGeocodedAddress } from "@/utils/exifHelper";
+import { useTranslation } from "react-i18next";
 
 const { width: SW, height: SH } = Dimensions.get("window");
 
@@ -110,8 +111,10 @@ export function MapPickerModal({
   onClose,
   onSelectLocation,
   initialLocation,
-  title = "Konum Seçin",
+  title,
 }: MapPickerModalProps) {
+  const { t } = useTranslation();
+  const resolvedTitle = title ?? t("map.picker.defaultTitle");
   const insets = useSafeAreaInsets();
   const topInset = useRealTopInset();
   const { theme, isLight: isAppLight } = useTheme();
@@ -162,12 +165,12 @@ export function MapPickerModal({
       const results = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
       if (results && results.length > 0) {
         const fullAddr = formatGeocodedAddress(results[0]);
-        setResolvedAddress(fullAddr || "Seçilen Konum");
+        setResolvedAddress(fullAddr || t("map.picker.selected"));
       } else {
-        setResolvedAddress("Seçilen Konum");
+        setResolvedAddress(t("map.picker.selected"));
       }
     } catch {
-      setResolvedAddress("Seçilen Konum");
+      setResolvedAddress(t("map.picker.selected"));
     } finally {
       setIsResolvingAddress(false);
     }
@@ -185,12 +188,12 @@ export function MapPickerModal({
         setResolvedAddress(res.locationName);
       } else {
         appAlert(
-          "Adres Bulunamadı",
-          "Girdiğiniz il, ilçe, mahalle veya sokak bulunamadı. Lütfen yazımı kontrol edin veya harita üzerinden bir noktaya dokunun."
+          t("photos.add.addressNotFoundTitle"),
+          t("map.picker.addressNotFound")
         );
       }
     } catch {
-      appAlert("Hata", "Adres aranırken bir hata oluştu.");
+      appAlert(t("common.error"), t("map.picker.searchFailed"));
     } finally {
       setIsSearching(false);
     }
@@ -217,7 +220,7 @@ export function MapPickerModal({
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         if (!silent) {
-          showPermissionDeniedDialog("Konum İzni Gerekli", "Mevcut konumunuzu görebilmek için ayarlardan konum erişimine izin vermelisiniz.");
+          showPermissionDeniedDialog(t("map.picker.permissionTitle"), t("map.picker.permissionMessage"));
         }
         return;
       }
@@ -312,7 +315,7 @@ export function MapPickerModal({
       });
       onClose();
     } else {
-      appAlert("Konum Belirlenmedi", "Lütfen harita üzerinden bir noktaya dokunarak konum seçin.");
+      appAlert(t("map.picker.noneTitle"), t("map.picker.noneMessage"));
     }
   };
 
@@ -417,14 +420,14 @@ export function MapPickerModal({
             {/* Başlık & Alt Başlık */}
             <View style={styles.topTitleBox}>
               <Text style={[styles.topBarTitle, { color: isLight ? "#1A1528" : "#FFFFFF" }]}>
-                {title}
+                {resolvedTitle}
               </Text>
               <Text style={[styles.topBarSub, { color: isLight ? "#6B6577" : "rgba(255,255,255,0.6)" }]}>
                 {isResolvingAddress
-                  ? "Adres çözümleniyor..."
+                  ? t("map.picker.resolving")
                   : selectedCoord
-                  ? "Noktayı değiştirmek için dokunun"
-                  : "Haritadan bir nokta seçin"}
+                  ? t("map.picker.tapToChange")
+                  : t("map.picker.pickPoint")}
               </Text>
             </View>
 
@@ -479,7 +482,7 @@ export function MapPickerModal({
             <Search size={15} color={theme.accent} style={{ marginLeft: 10 }} />
             <TextInput
               style={[styles.searchInput, { color: isLight ? "#1A1528" : "#FFFFFF" }]}
-              placeholder="İl, ilçe, mahalle veya sokak ara..."
+              placeholder={t("map.picker.searchPlaceholder")}
               placeholderTextColor={isLight ? "rgba(26,21,40,0.55)" : "rgba(255,255,255,0.45)"}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -501,7 +504,7 @@ export function MapPickerModal({
                   onPress={handleSearchAddress}
                   style={[styles.searchGoBtn, { backgroundColor: theme.accent }]}
                 >
-                  <Text style={styles.searchGoBtnText}>Bul</Text>
+                  <Text style={styles.searchGoBtnText}>{t("photos.add.find")}</Text>
                 </TouchableOpacity>
               </View>
             ) : null}
@@ -518,12 +521,12 @@ export function MapPickerModal({
                 },
               ]}
             >
-              <Text style={[styles.themeMenuHeader, { color: isLight ? "#333" : "#fff" }]}>Harita Teması</Text>
+              <Text style={[styles.themeMenuHeader, { color: isLight ? "#333" : "#fff" }]}>{t("map.theme.title")}</Text>
               <View style={styles.themeOptionsRow}>
                 {[
-                  { id: "romantic" as const, label: "🌸 Romantik", desc: "Sıcak & Krem" },
-                  { id: "midnight" as const, label: "🌙 Gece", desc: "Kadife Koyu" },
-                  { id: "silver" as const, label: "✨ Sade", desc: "Gümüş Minimal" },
+                  { id: "romantic" as const, label: t("map.theme.romantic"), desc: t("map.theme.romanticDesc") },
+                  { id: "midnight" as const, label: t("map.theme.midnight"), desc: t("map.theme.midnightDesc") },
+                  { id: "silver" as const, label: t("map.theme.silver"), desc: t("map.theme.silverDesc") },
                 ].map((t) => (
                   <TouchableOpacity
                     key={t.id}
@@ -575,7 +578,7 @@ export function MapPickerModal({
             <BlurView tint={isLight ? "light" : "dark"} intensity={85} style={StyleSheet.absoluteFill} />
             <Heart size={14} color={theme.accent} fill={theme.accent} />
             <Text style={[styles.hintPillText, { color: isLight ? "#222" : "#fff" }]}>
-              Konum belirlemek için haritaya dokunun
+              {t("map.picker.tapToSet")}
             </Text>
           </View>
         )}
@@ -599,7 +602,7 @@ export function MapPickerModal({
               <View style={styles.detailCardHeader}>
                 <View style={[styles.detailBadge, { backgroundColor: `${theme.accent}25` }]}>
                   <MapPin size={12} color={theme.accent} />
-                  <Text style={[styles.detailBadgeText, { color: theme.accent }]}>Seçilen Konum</Text>
+                  <Text style={[styles.detailBadgeText, { color: theme.accent }]}>{t("map.picker.selected")}</Text>
                 </View>
 
                 <TouchableOpacity
@@ -620,7 +623,7 @@ export function MapPickerModal({
                   style={[styles.locationTitle, { color: isLight ? "#1A1528" : "#FFFFFF" }]}
                   numberOfLines={2}
                 >
-                  {resolvedAddress || "Harita Üzerinde İşaretlenen Nokta"}
+                  {resolvedAddress || t("map.picker.markedPoint")}
                 </Text>
                 <Text style={[styles.locationCoords, { color: isLight ? "#5C566B" : "rgba(255,255,255,0.6)" }]}>
                   📍 {selectedCoord.latitude.toFixed(5)}, {selectedCoord.longitude.toFixed(5)}
@@ -640,7 +643,7 @@ export function MapPickerModal({
                   style={styles.confirmGradient}
                 >
                   <Check size={18} color="#FFFFFF" strokeWidth={2.6} />
-                  <Text style={styles.confirmBtnText}>Bu Konumu Onayla</Text>
+                  <Text style={styles.confirmBtnText}>{t("map.picker.confirm")}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>

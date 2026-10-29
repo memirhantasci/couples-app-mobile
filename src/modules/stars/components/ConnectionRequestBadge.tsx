@@ -26,6 +26,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/context/ThemeContext';
 import { starService } from '../api/starService';
 import type { PendingConnectionDetail } from '../types/star.types';
+import { useTranslation } from 'react-i18next';
 
 export interface ConnectionRequestBadgeProps {
   readonly pendingRequests: PendingConnectionDetail[];
@@ -41,6 +42,7 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
   onModalVisibilityChange,
   style,
 }) => {
+  const { t } = useTranslation();
   const { theme, isLight } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -87,8 +89,8 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
         setFeedbackMessage({
           type: 'success',
           text: accept
-            ? `"${starName}" ile yıldız bağınız kuruldu! Gökyüzünde parıldıyor 💫`
-            : `Bağlantı isteği reddedildi.`,
+            ? t('stars.connectionBadge.accepted', { starName })
+            : t('stars.connectionBadge.declined'),
         });
 
         onConnectionChanged?.();
@@ -98,7 +100,7 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
         }
         setFeedbackMessage({
           type: 'error',
-          text: err?.message || 'İşlem sırasında bir hata oluştu.',
+          text: err?.message || t('errors.actionFailed'),
         });
       } finally {
         setActionLoadingId(null);
@@ -119,7 +121,7 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
         activeOpacity={0.8}
         onPress={handleOpen}
         style={[styles.badgeContainer, style]}
-        accessibilityLabel={`${incomingCount} bekleyen yıldız bağlantı isteği`}
+        accessibilityLabel={t('stars.connectionBadge.pendingA11y', { count: incomingCount })}
       >
         <LinearGradient
           colors={[theme.accent, theme.accentLight || theme.accent]}
@@ -160,7 +162,7 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
             <View style={styles.modalHeader}>
               <View style={styles.modalTitleRow}>
                 <Sparkles size={18} color="#FBBF24" />
-                <Text style={[styles.modalTitle, { color: theme.text }]}>Bağlantı İstekleri</Text>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>{t('stars.connectionBadge.title')}</Text>
               </View>
               <TouchableOpacity
                 onPress={handleClose}
@@ -204,7 +206,7 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
                 <View style={styles.emptyState}>
                   <Check size={28} color="#10B981" />
                   <Text style={[styles.emptyStateText, { color: theme.textSecondary }]}>
-                    Bekleyen tüm istekler yanıtlandı ✨
+                    {t('stars.connectionBadge.allAnswered')}
                   </Text>
                 </View>
               ) : (
@@ -226,7 +228,7 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
                           <Sparkles size={14} color="#F59E0B" />
                         </View>
                         <Text style={[styles.requestPromptText, { color: theme.text }]}>
-                          <Text style={styles.starNameBold}>“{req.other_star_name}”</Text> yıldızı bağlantı kurmak istiyor
+                          <Text style={styles.starNameBold}>“{req.other_star_name}”</Text> {t('stars.connectionBadge.wantsToConnect')}
                         </Text>
                       </View>
 
@@ -247,7 +249,7 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
                               end={{ x: 1, y: 1 }}
                               style={styles.acceptBtnGradient}
                             >
-                              <Text style={styles.acceptBtnText}>Kabul Et ✨</Text>
+                              <Text style={styles.acceptBtnText}>{t('stars.connectionBadge.accept')}</Text>
                             </LinearGradient>
                           )}
                         </TouchableOpacity>
@@ -264,7 +266,7 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
                             },
                           ]}
                         >
-                          <Text style={[styles.rejectBtnText, { color: theme.textSecondary }]}>Reddet</Text>
+                          <Text style={[styles.rejectBtnText, { color: theme.textSecondary }]}>{t('stars.connectionBadge.decline')}</Text>
                         </TouchableOpacity>
                       </View>
                     </View>

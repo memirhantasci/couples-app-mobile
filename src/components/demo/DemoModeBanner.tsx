@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DemoActionModal } from "./DemoActionModal";
+import { useTranslation } from "react-i18next";
 
 /** Şeridin durum çubuğunun altında kalan yüksekliği (kendi içeriği). */
 export const DEMO_STRIP_CONTENT_HEIGHT = 30;
@@ -19,6 +20,7 @@ export const DEMO_STRIP_CONTENT_HEIGHT = 30;
  * şerit üstlendiği için (bkz. `_layout.tsx`) ekranlar kendi üst boşluklarını şeridin altından başlatır.
  */
 export function DemoModeBanner() {
+  const { t } = useTranslation();
   const { isDemoMode } = useAuth();
   const { theme, isLight } = useTheme();
   const insets = useSafeAreaInsets();
@@ -32,7 +34,7 @@ export function DemoModeBanner() {
         onPress={() => setModalVisible(true)}
         activeOpacity={0.85}
         accessibilityRole="button"
-        accessibilityLabel="Demo sürümü. Kayıt olmak için dokunun"
+        accessibilityLabel={t("demo.banner.a11y")}
       >
         {/* Gradyan durum çubuğu boşluğunu da kaplar: şerit ile üstündeki alan tek parça görünür */}
         <LinearGradient
@@ -54,18 +56,18 @@ export function DemoModeBanner() {
               style={[styles.title, { color: isLight ? "#9F1239" : "#FFFFFF" }]}
               numberOfLines={1}
             >
-              Demo Sürümü
+              {t("demo.banner.title")}
             </Text>
             <Text
               style={[styles.subtitle, { color: isLight ? "#BE5A75" : "rgba(255, 255, 255, 0.6)" }]}
               numberOfLines={1}
             >
-              · Kayıt olmadan inceliyorsun
+              {t("demo.banner.subtitle")}
             </Text>
           </View>
 
           <View style={[styles.cta, { backgroundColor: theme.accent }]}>
-            <Text style={styles.ctaText}>Kayıt Ol</Text>
+            <Text style={styles.ctaText}>{t("auth.signUp")}</Text>
             <ArrowRight size={11} color="#FFFFFF" />
           </View>
         </LinearGradient>
@@ -74,8 +76,8 @@ export function DemoModeBanner() {
       <DemoActionModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
-        title="Kendi Çift Alanınızı Başlatın ✨"
-        description="Demo modundan çıkıp partnerinizle ortak anılarınızı biriktirmek, aşk mektupları mühürlemek ve özel günlerinizi saymak için ücretsiz hesap oluşturun."
+        title={t("demo.banner.promptTitle")}
+        description={t("demo.banner.promptDescription")}
       />
     </>
   );

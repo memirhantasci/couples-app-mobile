@@ -39,6 +39,7 @@ import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 import { CoupleWrappedData } from "@/utils/wrappedCalculator";
 import { AppTheme } from "@/lib/theme";
+import { useTranslation } from "react-i18next";
 
 const { width: SW, height: SH } = Dimensions.get("window");
 
@@ -64,9 +65,10 @@ export function CoupleWrappedModal({
   visible,
   onClose,
   data,
-  partnerName = "Sevgilim",
+  partnerName,
   theme,
 }: CoupleWrappedModalProps) {
+  const { t } = useTranslation();
   const [currentSlide, setCurrentSlide] = useState(0);
   // Aktif slaytın ilerleme çubuğu (0-100): UI thread'inde animasyonla ilerler. Eskiden 50 ms'de bir React state
   // güncelleniyor, tüm modal (4 slayt, görseller) saniyede 20 kez yeniden çiziliyordu.
@@ -124,7 +126,7 @@ export function CoupleWrappedModal({
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {
           mimeType: "image/png",
-          dialogTitle: "Couple Wrapped'imizi Paylaş",
+          dialogTitle: t("wrapped.shareTitle"),
           UTI: "public.png",
         });
       } else {
@@ -187,13 +189,13 @@ export function CoupleWrappedModal({
                 <View style={styles.iconCircle}>
                   <Heart size={38} color="#FF4D6D" fill="#FF4D6D" />
                 </View>
-                <Text style={styles.subHeading}>BİZİM HİKAYEMİZ</Text>
+                <Text style={styles.subHeading}>{t("wrapped.slides.storyTitle")}</Text>
                 <Text style={styles.bigStatNumber}>{data.daysTogether}</Text>
-                <Text style={styles.statLabel}>gündür aynı gökyüzünün altında birbirimizi seçiyoruz</Text>
+                <Text style={styles.statLabel}>{t("wrapped.slides.daysTogether")}</Text>
 
                 <View style={styles.quoteBox}>
                   <Text style={styles.quoteText}>
-                    “Aşk, birlikte geçirilen her günü bir hediye gibi hissettirmektir.”
+                    {t("wrapped.slides.quote")}
                   </Text>
                 </View>
               </View>
@@ -203,18 +205,18 @@ export function CoupleWrappedModal({
             {currentSlide === 1 && (
               <View style={styles.slideContent}>
                 <Text style={styles.emojiDisplay}>{data.topMood.emoji}</Text>
-                <Text style={styles.subHeading}>BU DÖNEMİN ORTAK DUYGUSU</Text>
+                <Text style={styles.subHeading}>{t("wrapped.slides.moodTitle")}</Text>
                 <Text style={styles.mainTitle}>{data.topMood.label}</Text>
                 <Text style={styles.statDescription}>
-                  Tam {data.topMood.count} gün boyunca birbirinize en çok bu duyguyu yansıttınız.
+                  {t("wrapped.slides.moodDescription", { count: data.topMood.count })}
                 </Text>
 
                 <View style={styles.badgeRow}>
                   <View style={styles.miniPill}>
-                    <Text style={styles.miniPillText}>🥰 Sevgi Dolu Anlar</Text>
+                    <Text style={styles.miniPillText}>{t("wrapped.slides.pillLove")}</Text>
                   </View>
                   <View style={styles.miniPill}>
-                    <Text style={styles.miniPillText}>✨ Yüksek Uyum</Text>
+                    <Text style={styles.miniPillText}>{t("wrapped.slides.pillHarmony")}</Text>
                   </View>
                 </View>
               </View>
@@ -226,15 +228,15 @@ export function CoupleWrappedModal({
                 <View style={styles.iconCircle}>
                   <Mail size={36} color="#FF8FA3" />
                 </View>
-                <Text style={styles.subHeading}>SÖZLERİN VE DÜŞÜNCELERİN GÜCÜ</Text>
+                <Text style={styles.subHeading}>{t("wrapped.slides.wordsTitle")}</Text>
                 <View style={styles.twoColumnGrid}>
                   <View style={styles.statBox}>
                     <Text style={styles.boxNumber}>{data.lettersCount}</Text>
-                    <Text style={styles.boxLabel}>Aşk Mektubu</Text>
+                    <Text style={styles.boxLabel}>{t("wrapped.slides.loveLetters")}</Text>
                   </View>
                   <View style={styles.statBox}>
                     <Text style={styles.boxNumber}>{data.dailyNotesCount}</Text>
-                    <Text style={styles.boxLabel}>Günlük Not</Text>
+                    <Text style={styles.boxLabel}>{t("wrapped.slides.journalNotes")}</Text>
                   </View>
                 </View>
                 <Text style={styles.statDescription}>
@@ -270,22 +272,22 @@ export function CoupleWrappedModal({
                   {/* Kart İçi Grid İstatistikler */}
                   <View style={styles.cardMetricsContainer}>
                     <View style={styles.cardMetricRow}>
-                      <Text style={styles.cardMetricLabel}>Birlikte</Text>
-                      <Text style={styles.cardMetricVal}>{data.daysTogether} Gün</Text>
+                      <Text style={styles.cardMetricLabel}>{t("wrapped.card.together")}</Text>
+                      <Text style={styles.cardMetricVal}>{t("wrapped.card.days", { count: data.daysTogether })}</Text>
                     </View>
                     <View style={styles.cardMetricDivider} />
                     <View style={styles.cardMetricRow}>
-                      <Text style={styles.cardMetricLabel}>En Çok Hissedilen</Text>
+                      <Text style={styles.cardMetricLabel}>{t("wrapped.card.mostFelt")}</Text>
                       <Text style={styles.cardMetricVal}>{data.topMood.emoji} {data.topMood.label}</Text>
                     </View>
                     <View style={styles.cardMetricDivider} />
                     <View style={styles.cardMetricRow}>
-                      <Text style={styles.cardMetricLabel}>Paylaşılan Not & Mektup</Text>
-                      <Text style={styles.cardMetricVal}>{data.lettersCount + data.dailyNotesCount} Adet</Text>
+                      <Text style={styles.cardMetricLabel}>{t("wrapped.card.sharedNotes")}</Text>
+                      <Text style={styles.cardMetricVal}>{t("wrapped.card.items", { count: data.lettersCount + data.dailyNotesCount })}</Text>
                     </View>
                     <View style={styles.cardMetricDivider} />
                     <View style={styles.cardMetricRow}>
-                      <Text style={styles.cardMetricLabel}>Buluşulan Şehir / Yer</Text>
+                      <Text style={styles.cardMetricLabel}>{t("wrapped.card.meetupPlace")}</Text>
                       <Text style={styles.cardMetricVal}>{data.topLocation}</Text>
                     </View>
                   </View>
@@ -315,7 +317,7 @@ export function CoupleWrappedModal({
                     ) : (
                       <>
                         <Share2 size={18} color="#FFFFFF" />
-                        <Text style={styles.shareBtnText}>Instagram Story’de Paylaş</Text>
+                        <Text style={styles.shareBtnText}>{t("wrapped.shareInstagram")}</Text>
                       </>
                     )}
                   </LinearGradient>

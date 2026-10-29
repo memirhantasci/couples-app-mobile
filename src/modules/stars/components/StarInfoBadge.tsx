@@ -38,6 +38,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useCoupleAvatars } from '@/hooks/useCoupleAvatars';
 import { CoupleAvatarRing } from '@/components/home/CoupleAvatarRing';
 import type { CoupleStarDetails } from '../types/star.types';
+import { useTranslation } from 'react-i18next';
 
 // ============================================================================
 // SABİTLER VE YARDIMCILAR
@@ -91,6 +92,7 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
   onPressCertificate,
   style,
 }) => {
+  const { t } = useTranslation();
   const { theme, isLight } = useTheme();
   const { profile } = useAuth();
   // Ortak yıldızın etrafında iki ruh: çiftin profil fotoğrafları (Premium, en az biri varsa)
@@ -180,14 +182,14 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
           activeOpacity={0.82}
           onPress={onPressCertificate}
           style={styles.contentContainer}
-          accessibilityLabel="Yıldız bilgileri ve sertifikayı görüntüle"
+          accessibilityLabel={t('stars.info.a11y')}
         >
           {/* ÜST SATIR: Yıldız İsmi ve Canlı Rozetler */}
           <View style={styles.topRow}>
             <View style={styles.nameBlock}>
               <View style={[styles.spectralDot, { backgroundColor: spectralColor }]} />
               <Text style={[styles.starName, { color: theme.text }]} numberOfLines={1}>
-                {starDetails.custom_name || 'Bizim Yıldızımız'}
+                {starDetails.custom_name || t('stars.defaultName')}
               </Text>
               {starDetails.common_name ? (
                 <Text style={[styles.starCommonName, { color: theme.textMuted }]} numberOfLines={1}>
@@ -197,7 +199,7 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
               {effectiveResonance && (
                 <View style={styles.resonancePill}>
                   <Flame size={10} color="#F59E0B" />
-                  <Text style={styles.resonancePillText}>Rezonans</Text>
+                  <Text style={styles.resonancePillText}>{t('stars.info.resonance')}</Text>
                 </View>
               )}
             </View>
@@ -206,7 +208,7 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
               <View style={styles.coupleAvatars}>
                 <CoupleAvatarRing
                   myName={profile?.displayName}
-                  partnerName="Sevgilin"
+                  partnerName={t('common.partnerFallback')}
                   myAvatarUrl={myAvatarUrl}
                   partnerAvatarUrl={partnerAvatarUrl}
                   size={24}

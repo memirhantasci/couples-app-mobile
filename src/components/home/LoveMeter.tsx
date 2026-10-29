@@ -11,6 +11,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { AppTheme } from "@/lib/theme";
 import { playCelebration } from "@/lib/soundEffects";
+import { useTranslation } from "react-i18next";
 
 interface LoveMeterProps {
   value?: number | null; // 0-100
@@ -24,6 +25,7 @@ interface LoveMeterProps {
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
 export const LoveMeter = memo(function LoveMeter({ value, theme, subtitle, isLoading }: LoveMeterProps) {
+  const { t } = useTranslation();
   const hasValue = value !== undefined && value !== null;
   // Çubuğun genişliği ve yüzde sayacı aynı değerden okunur: ikisi hep birlikte hareket eder
   const widthVal = useSharedValue(hasValue ? (value as number) : 0);
@@ -48,7 +50,7 @@ export const LoveMeter = memo(function LoveMeter({ value, theme, subtitle, isLoa
     width: `${widthVal.value}%` as any,
   }));
 
-  const displaySubtitle = subtitle ?? "Bugün için ölçüldü 💝 · Harika bir uyum!";
+  const displaySubtitle = subtitle ?? t("home.loveMeter.defaultSubtitle");
 
   return (
     <TouchableOpacity
@@ -61,7 +63,7 @@ export const LoveMeter = memo(function LoveMeter({ value, theme, subtitle, isLoa
     >
       {/* Başlık + yüzde */}
       <View style={styles.headerRow}>
-        <Text style={[styles.title, { color: theme.text }]}>Aşk Ölçer ✨</Text>
+        <Text style={[styles.title, { color: theme.text }]}>{t("home.loveMeter.title")}</Text>
         {isLoading && !hasValue ? (
           <Text style={[styles.percentLabel, { color: theme.accent, opacity: 0.5 }]}>--%</Text>
         ) : (
@@ -90,7 +92,7 @@ export const LoveMeter = memo(function LoveMeter({ value, theme, subtitle, isLoa
 
       {/* Alt açıklama — dinamik */}
       <Text style={[styles.subtitle, { color: theme.textMuted }]}>
-        {isLoading && !hasValue ? "Aşk skoru hesaplanıyor..." : displaySubtitle}
+        {isLoading && !hasValue ? t("home.loveMeter.loading") : displaySubtitle}
       </Text>
     </TouchableOpacity>
   );

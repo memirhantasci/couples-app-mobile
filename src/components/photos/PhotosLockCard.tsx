@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Crown, Sparkles, Check } from "lucide-react-native";
 import type { AppTheme } from "@/lib/theme";
+import { useTranslation } from "react-i18next";
 
 interface PhotosLockCardProps {
   theme: AppTheme;
@@ -9,14 +10,15 @@ interface PhotosLockCardProps {
   onUpgrade: () => void;
 }
 
-const PERKS = [
-  "Sınırsız yüksek kaliteli ortak fotoğraf yükleme",
-  "3 farklı ızgara (Grid) görünümü ve tam ekran lightbox",
-  "Aşk takviminde fotoğraflı gün hatıraları",
-];
-
 // ─── LÜKS KİLİT KARTI (PREMIUMSIZ) ───────────────────────────────────────────
 export function PhotosLockCard({ theme, isLight, onUpgrade }: PhotosLockCardProps) {
+  const { t } = useTranslation();
+  const perks = [
+    t("photos.lock.perk1"),
+    t("photos.lock.perk2"),
+    t("photos.lock.perk3"),
+  ];
+
   return (
     <View style={[styles.luxuryLockCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
       <View style={[styles.luxuryLockIconBox, { backgroundColor: theme.pillAccentBg }]}>
@@ -25,16 +27,16 @@ export function PhotosLockCard({ theme, isLight, onUpgrade }: PhotosLockCardProp
 
       <View style={styles.vipBadge}>
         <Sparkles size={13} color={isLight ? "#A16207" : "#ffd700"} />
-        <Text style={[styles.vipBadgeText, isLight && { color: "#A16207" }]}>VIP ÇİFT AYRICALIĞI</Text>
+        <Text style={[styles.vipBadgeText, isLight && { color: "#A16207" }]}>{t("paywall.vipBadge")}</Text>
       </View>
 
-      <Text style={[styles.luxuryLockTitle, { color: theme.text }]}>Ortak Galeri ve Anı Arşivi</Text>
+      <Text style={[styles.luxuryLockTitle, { color: theme.text }]}>{t("photos.lock.title")}</Text>
       <Text style={[styles.luxuryLockDesc, { color: theme.textSecondary }]}>
-        Birlikte çektiğiniz fotoğrafları ortak bir bulutta sınırsızca saklayın, tarihleriyle ölümsüzleştirin.
+        {t("photos.lock.description")}
       </Text>
 
       <View style={[styles.perksList, { backgroundColor: isLight ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.03)", borderColor: theme.cardBorder }]}>
-        {PERKS.map((perk) => (
+        {perks.map((perk) => (
           <View key={perk} style={styles.perkItem}>
             <View style={styles.perkBullet}>
               <Check size={12} color="#22c55e" strokeWidth={3} />
@@ -50,7 +52,7 @@ export function PhotosLockCard({ theme, isLight, onUpgrade }: PhotosLockCardProp
         activeOpacity={0.88}
       >
         <Crown color="#ffffff" size={17} />
-        <Text style={styles.upgradeBtnText}>Ayrıcalıkları Keşfet ✨</Text>
+        <Text style={styles.upgradeBtnText}>{t("paywall.discoverPerks")}</Text>
       </TouchableOpacity>
     </View>
   );

@@ -18,14 +18,16 @@ import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { playBubblePop } from "@/lib/soundEffects";
 import { toast } from "@/lib/toast";
+import { useTranslation } from "react-i18next";
 
+// emoji, veritabanına yazılan ruh hali değeridir (moods.mood_type) ve değişmez; yalnızca etiket çevrilir
 export const MOODS = [
-  { emoji: "😍", label: "Çok Mutlu" },
-  { emoji: "😊", label: "Mutlu" },
-  { emoji: "😐", label: "Normal" },
-  { emoji: "😢", label: "Üzgün" },
-  { emoji: "😡", label: "Kızgın" },
-  { emoji: "😴", label: "Yorgun" },
+  { emoji: "😍", labelKey: "moods.veryHappy" },
+  { emoji: "😊", labelKey: "moods.happy" },
+  { emoji: "😐", labelKey: "moods.okay" },
+  { emoji: "😢", labelKey: "moods.sad" },
+  { emoji: "😡", labelKey: "moods.angry" },
+  { emoji: "😴", labelKey: "moods.tired" },
 ] as const;
 
 const COOLDOWN_SECONDS = 60; // Değişiklikler arası 60 saniye bekleme süresi
@@ -37,6 +39,7 @@ interface MoodSelectorProps {
 }
 
 export const MoodSelector = memo(function MoodSelector({ currentMood, theme }: MoodSelectorProps) {
+  const { t } = useTranslation();
   const { session, profile } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const queryClient = useQueryClient();
@@ -120,8 +123,8 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, theme }: M
       if (elapsed < COOLDOWN_SECONDS) {
         const remaining = COOLDOWN_SECONDS - elapsed;
         setCooldown(remaining);
-        toast.info(`Ruh halini ${remaining} saniye sonra tekrar güncelleyebilirsin.`, {
-          title: "Lütfen biraz bekle",
+        toast.info(t("home.mood.cooldownToast", { count: remaining }), {
+          title: t("home.mood.cooldownTitle"),
           emoji: "⏳",
         });
         return;
@@ -129,8 +132,8 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, theme }: M
     }
 
     if (updateCount >= MAX_DAILY_MOOD_UPDATES) {
-      toast.info("Bugün ruh halini en fazla 5 kez güncelleyebilirsin. Yarın yeniden!", {
-        title: "Günlük limit doldu",
+      toast.info(t("home.mood.dailyLimitToast"), {
+        title: t("home.mood.dailyLimitTitle"),
         emoji: "🌸",
       });
       return;
@@ -140,8 +143,8 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, theme }: M
     playBubblePop();
     if (executeOrIntercept(
       () => {},
-      "Ruh Halinizi Paylaşmak İçin Kayıt Olun 😊",
-      "Bugün nasıl hissettiğinizi sevgilinizle paylaşmak ve duygusal bağınızı güçlendirmek için ücretsiz hesabınızı oluşturun."
+      t("home.mood.demoTitle"),
+      t("home.mood.demoDescription")
     )) {
       return;
     }
@@ -193,7 +196,7 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, theme }: M
       // Partner bildirimi sunucudaki moods tetikleyicisinden (send-push) gider; burada ayrıca göndermek çift bildirim yapıyordu.
     } else {
       logger.error("Mood error:", JSON.stringify(error, null, 2));
-      toast.error(error?.message || "Bilinmeyen hata", { title: "Ruh hali kaydedilemedi" });
+      toast.error(error?.message || t("errors.unknown"), { title: t("home.mood.saveFailed") });
     }
   }
 
@@ -201,7 +204,7 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, theme }: M
 
   return (
     <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
-      <Text style={[styles.title, { color: theme.text }]}>Bugün nasılsın?</Text>
+      <Text style={[styles.title, { color: theme.text }]}>{t("home.mood.question")}</Text>
 
       <View style={styles.row}>
         {MOODS.map((mood) => {
@@ -233,7 +236,7 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, theme }: M
                 ]}
                 numberOfLines={1}
               >
-                {mood.label}
+                {t(mood.labelKey)}
               </Text>
             </TouchableOpacity>
           );
@@ -248,19 +251,19 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, theme }: M
 
       {cooldown > 0 ? (
         <Text style={[styles.lockedText, { color: theme.textMuted }]}>
-          Ruh halin güncellendi ✨ ({cooldown} sn sonra tekrar değiştirebilirsin)
+          {t("home.mood.updatedCooldown", { cooldown })}
         </Text>
       ) : updateCount >= MAX_DAILY_MOOD_UPDATES ? (
         <Text style={[styles.lockedText, { color: theme.textMuted }]}>
-          Bugünkü ruh hali güncelleme limitine (5/5) ulaştın 🌸
+          {t("home.mood.limitReached")}
         </Text>
       ) : selected ? (
         <Text style={[styles.lockedText, { color: theme.textMuted }]}>
-          Ruh halini gün içinde dilediğin an güncelleyebilirsin ✨
+          {t("home.mood.canUpdateAnytime")}
         </Text>
       ) : (
         <Text style={[styles.lockedText, { color: theme.textMuted }]}>
-          Bugün nasıl hissettiğini seç 💭
+          {t("home.mood.pickPrompt")}
         </Text>
       )}
 

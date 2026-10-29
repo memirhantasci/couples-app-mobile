@@ -22,6 +22,7 @@ import { Award, Heart, Orbit, Sparkles, Zap } from 'lucide-react-native';
 import { dayjs, daysSince } from '@/lib/date';
 import type { CoupleStarDetails } from '../../types/star.types';
 import { rgba } from '../../canvas/micro/microScene';
+import { useTranslation } from 'react-i18next';
 
 export interface MicroStarHeaderProps {
   readonly starDetails: CoupleStarDetails;
@@ -70,13 +71,14 @@ export const MicroStarHeader = memo(function MicroStarHeader({
   onPressCertificate,
   onLayout,
 }: MicroStarHeaderProps) {
+  const { t } = useTranslation();
   const starColor = starDetails.base_color || '#9DB4FF';
   const luminosityPercent = Math.round(Math.max(0, Math.min(1, luminosity)) * 100);
   const daysInSky = daysSince(dayjs(starDetails.created_at));
   const meta = [
     starDetails.catalog_code,
     starDetails.common_name || null,
-    starDetails.spectral_type ? `${starDetails.spectral_type} tayfı` : null,
+    starDetails.spectral_type ? t('stars.micro.spectralClass', { spectral_type: starDetails.spectral_type }) : null,
   ]
     .filter(Boolean)
     .join('  ·  ');
@@ -99,10 +101,10 @@ export const MicroStarHeader = memo(function MicroStarHeader({
         {resonanceActive ? (
           <View style={styles.resonanceRow}>
             <PulseDot />
-            <Text style={[styles.eyebrow, styles.eyebrowResonance]}>REZONANS · İKİNİZ DE BURADASINIZ</Text>
+            <Text style={[styles.eyebrow, styles.eyebrowResonance]}>{t('stars.micro.resonanceBanner')}</Text>
           </View>
         ) : (
-          <Text style={styles.eyebrow}>YILDIZIMIZIN KALBİ</Text>
+          <Text style={styles.eyebrow}>{t('stars.micro.heartOfStar')}</Text>
         )}
         <LinearGradient
           colors={['rgba(253, 230, 138, 0.55)', 'rgba(253, 230, 138, 0)']}
@@ -118,10 +120,10 @@ export const MicroStarHeader = memo(function MicroStarHeader({
         onPress={onPressCertificate}
         style={styles.titleRow}
         accessibilityRole="button"
-        accessibilityLabel={`${starDetails.custom_name || 'Bizim Yıldızımız'}, tescil sertifikasını görüntüle`}
+        accessibilityLabel={t('stars.micro.certificateA11y', { name: starDetails.custom_name || t('stars.defaultName') })}
       >
         <Text style={[styles.title, { textShadowColor: rgba(starColor, 0.85) }]} numberOfLines={1}>
-          {starDetails.custom_name || 'Bizim Yıldızımız'}
+          {starDetails.custom_name || t('stars.defaultName')}
         </Text>
         <View style={styles.certBadge}>
           <Award size={13} color="#FBBF24" />
@@ -134,7 +136,7 @@ export const MicroStarHeader = memo(function MicroStarHeader({
 
       {/* Hayat belirtileri: tek satırlık cam şerit */}
       <View style={styles.statStrip} pointerEvents="none">
-        <Stat icon={<Sparkles size={11} color="#FBBF24" />} value={`%${luminosityPercent}`} label="IŞIK">
+        <Stat icon={<Sparkles size={11} color="#FBBF24" />} value={`%${luminosityPercent}`} label={t('stars.micro.statLight')}>
           <View style={styles.meter}>
             <LinearGradient
               colors={luminosity >= 0.8 ? ['#FDE68A', '#F59E0B'] : ['#7DD3FC', '#38BDF8']}
@@ -145,11 +147,11 @@ export const MicroStarHeader = memo(function MicroStarHeader({
           </View>
         </Stat>
         <View style={styles.statDivider} />
-        <Stat icon={<Orbit size={11} color="#C4B5FD" />} value={String(planetCount)} label="ANI" />
+        <Stat icon={<Orbit size={11} color="#C4B5FD" />} value={String(planetCount)} label={t('stars.micro.statMemories')} />
         <View style={styles.statDivider} />
-        <Stat icon={<Zap size={11} color="#FDE68A" />} value={String(starDetails.total_sparks_count ?? 0)} label="KIVILCIM" />
+        <Stat icon={<Zap size={11} color="#FDE68A" />} value={String(starDetails.total_sparks_count ?? 0)} label={t('stars.micro.statSparks')} />
         <View style={styles.statDivider} />
-        <Stat icon={<Heart size={11} color="#F472B6" fill="#F472B6" />} value={String(daysInSky)} label="GÜN" />
+        <Stat icon={<Heart size={11} color="#F472B6" fill="#F472B6" />} value={String(daysInSky)} label={t('home.meeting.days')} />
       </View>
     </Animated.View>
   );

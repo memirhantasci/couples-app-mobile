@@ -16,12 +16,14 @@ import {
 import { showPermissionDeniedDialog } from "@/lib/permissions";
 import { toast } from "@/lib/toast";
 import { logger } from "@/utils/logger";
+import { useTranslation } from "react-i18next";
 
 // iOS, kapanmakta olan bir Modal'ın üstüne picker açamaz: alt menü kapandıktan sonra açılır
 const SHEET_DISMISS_DELAY_MS = Platform.OS === "ios" ? 400 : 150;
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function useAvatarUpload() {
+  const { t } = useTranslation();
   const { session, profile, isDemoMode } = useAuth();
   const queryClient = useQueryClient();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
@@ -41,8 +43,8 @@ export function useAvatarUpload() {
   const openAvatarMenu = useCallback(() => {
     if (executeOrIntercept(
       () => {},
-      "Profilinizi Özelleştirmek İçin Ücretsiz Kayıt Olun 📸",
-      "Sevgilinizle birbirinizin en tatlı fotoğraflarını profilinizde görmek için ücretsiz hesabınızı oluşturun."
+      t("demo.prompts.avatar.title"),
+      t("demo.prompts.avatar.description")
     )) {
       return;
     }
@@ -71,20 +73,20 @@ export function useAvatarUpload() {
       const base64 = await processAvatarImage(asset);
       await uploadAvatarRequest({ userId, isPremium, base64 });
       await refreshAvatars();
-      toast.success("Profil fotoğrafın güncellendi 💖");
+      toast.success(t("profile.avatar.updated"));
     } catch (error) {
       if (error instanceof AvatarPermissionError) {
         showPermissionDeniedDialog(
-          "İzin Gerekli",
+          t("permissions.requiredTitle"),
           error.source === "camera"
-            ? "Fotoğraf çekebilmek için ayarlardan kamera iznini açmalısın."
-            : "Fotoğraf seçebilmek için ayarlardan galeri iznini açmalısın."
+            ? t("permissions.cameraDenied")
+            : t("permissions.galleryDenied")
         );
       } else if (isPremiumRejection(error)) {
         setShowPaywall(true);
       } else {
         logger.error("Avatar upload error:", error);
-        toast.error("Profil fotoğrafı yüklenemedi. Lütfen tekrar dene.");
+        toast.error(t("profile.avatar.uploadFailed"));
       }
     } finally {
       setIsUploading(false);
@@ -99,10 +101,10 @@ export function useAvatarUpload() {
     try {
       await removeAvatarRequest(userId);
       await refreshAvatars();
-      toast.success("Profil fotoğrafın kaldırıldı.");
+      toast.success(t("profile.avatar.removed"));
     } catch (error) {
       logger.error("Avatar remove error:", error);
-      toast.error("Profil fotoğrafı kaldırılamadı.");
+      toast.error(t("profile.avatar.removeFailed"));
     } finally {
       setIsUploading(false);
     }

@@ -6,6 +6,7 @@ import { resetAllPageTours } from "@/hooks/usePageTour";
 import { toast } from "@/lib/toast";
 import { ModernSection } from "./ModernSection";
 import { profileSharedStyles } from "./profileSharedStyles";
+import { useTranslation } from "react-i18next";
 
 interface TourGuidesCardProps {
   theme: AppTheme;
@@ -14,15 +15,16 @@ interface TourGuidesCardProps {
 }
 
 export function TourGuidesCard({ theme, isLight, onOpenTour }: TourGuidesCardProps) {
+  const { t } = useTranslation();
   return (
     <ModernSection
-      title="Tanıtımlar & Özellik Rehberleri"
+      title={t("profile.tours.title")}
       icon={<Sparkles size={18} color={theme.accent} />}
       theme={theme}
       defaultOpen={false}
     >
       <Text style={[profileSharedStyles.sessionHintText, { color: theme.textMuted }]}>
-        Uygulamadaki tüm sayfaların ve özelliklerin ne işe yaradığını dilediğiniz an baştan inceleyebilirsiniz.
+        {t("profile.tours.description")}
       </Text>
 
       <View style={{ gap: 10 }}>
@@ -38,15 +40,15 @@ export function TourGuidesCard({ theme, isLight, onOpenTour }: TourGuidesCardPro
           activeOpacity={0.8}
         >
           <Sparkles size={16} color={theme.accent} />
-          <Text style={[profileSharedStyles.logoutBtnText, { color: theme.accent }]}>Bu Sayfanın Rehberini Aç 💡</Text>
+          <Text style={[profileSharedStyles.logoutBtnText, { color: theme.accent }]}>{t("profile.tours.openGuide")}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={async () => {
             await resetAllPageTours();
             toast.success(
-              "Ana Sayfa'ya döndüğünüzde kısa tanıtım turu yeniden gösterilecek. Diğer sayfaların rehberine sağ üstteki ? butonundan ulaşabilirsiniz.",
-              { title: "Sıfırlandı", emoji: "🎉", duration: 4600 }
+              t("menu.guides.resetMessage"),
+              { title: t("profile.tours.reset"), emoji: "🎉", duration: 4600 }
             );
           }}
           style={[
@@ -58,7 +60,7 @@ export function TourGuidesCard({ theme, isLight, onOpenTour }: TourGuidesCardPro
           ]}
           activeOpacity={0.8}
         >
-          <Text style={[profileSharedStyles.logoutBtnText, { color: theme.text }]}>Ana Sayfa Turunu Yeniden Başlat 🔄</Text>
+          <Text style={[profileSharedStyles.logoutBtnText, { color: theme.text }]}>{t("menu.guides.restartTour")}</Text>
         </TouchableOpacity>
       </View>
     </ModernSection>

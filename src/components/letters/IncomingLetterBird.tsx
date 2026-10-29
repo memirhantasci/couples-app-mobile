@@ -22,6 +22,7 @@ import { cubicBezierPoint, cubicBezierTangent, headingDegrees, smoothstep } from
 import { hapticTap } from "@/lib/soundEffects";
 import { dayjs } from "@/lib/date";
 import type { ArrivedLetters } from "@/lib/letterArrival";
+import { useTranslation } from "react-i18next";
 
 interface IncomingLetterBirdProps {
   arrival: ArrivedLetters;
@@ -49,6 +50,7 @@ const HALF_BIRD = ORIGAMI_BIRD_SIZE / 2;
  * kapatır. Hapa dokunmak mektuplara götürür; yukarı kaydırmak ya da beklemek kapatır.
  */
 export function IncomingLetterBird({ arrival, onOpen, onDismiss }: IncomingLetterBirdProps) {
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
@@ -220,14 +222,14 @@ export function IncomingLetterBird({ arrival, onOpen, onDismiss }: IncomingLette
     };
   });
 
-  const senderTag = `${arrival.senderName ?? "Sevgilin"} sana yazdı`;
+  const senderTag = t("letters.bird.wroteToYou", { name: arrival.senderName ?? t("common.partnerFallback") });
   const title =
     arrival.count > 1
-      ? `${arrival.count}${arrival.hasMore ? "+" : ""} yeni mektubun var 💌`
-      : "Yeni bir mektubun var 💌";
+      ? t("letters.bird.manyNew", { total: arrival.count, plus: arrival.hasMore ? "+" : "" })
+      : t("letters.bird.oneNew");
   const subtitle = arrival.locked && arrival.unlockDate
-    ? `🔒 ${dayjs(arrival.unlockDate).locale("tr").format("D MMMM YYYY")} tarihinde açılacak`
-    : "📜 Okumaya hazır, dokun ve oku";
+    ? t("letters.bird.opensOn", { date: dayjs(arrival.unlockDate).locale(i18n.language).format("D MMMM YYYY") })
+    : t("letters.bird.ready");
 
   return (
     <View pointerEvents="box-none" style={styles.layer}>
@@ -235,7 +237,7 @@ export function IncomingLetterBird({ arrival, onOpen, onDismiss }: IncomingLette
         <Animated.View
           accessible
           accessibilityRole="button"
-          accessibilityLabel={`${senderTag}. ${title}. ${subtitle}. Mektuplara gitmek için dokun.`}
+          accessibilityLabel={t("letters.bird.a11y", { senderTag, title, subtitle })}
           // Ekran okuyucuyla "etkinleştir" jesti RNGH Tap'ini tetiklemez; aynı eylem burada da bağlı
           onAccessibilityTap={handleOpen}
           style={[styles.shadowWrap, { top: pillTop, left: pillLeft, width: pillWidth }, pillStyle]}

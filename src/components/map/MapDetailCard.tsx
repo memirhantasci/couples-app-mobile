@@ -17,6 +17,8 @@ import type { ReactNode } from "react";
 import { dayjs } from "@/lib/date";
 import { openDirections } from "./openDirections";
 import type { MapNote, MeetingPin, PhotoPin, SelectedItem } from "./mapTypes";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 type DetailItem = NonNullable<SelectedItem>;
 
@@ -34,17 +36,18 @@ interface MapDetailCardProps {
 }
 
 // Buluşma Geri Sayımı Metni
-function getMeetingCountdown(meetingDateStr: string): string {
+// `t` parametre olarak alınır: bileşen render sırasında çağırır, dil değişince metin yenilenir
+function getMeetingCountdown(meetingDateStr: string, t: TFunction): string {
   const now = dayjs();
   const target = dayjs(meetingDateStr);
   const diffMinutes = target.diff(now, "minute");
 
-  if (diffMinutes < 0) return "Gerçekleşti";
+  if (diffMinutes < 0) return t("map.meetingCountdown.done");
 
   const calendarDays = target.startOf("day").diff(now.startOf("day"), "day");
-  if (calendarDays === 0) return "🎉 Bugün Buluşma Günü!";
-  if (calendarDays === 1) return "⏳ Yarın!";
-  return `⏳ ${calendarDays} gün kaldı`;
+  if (calendarDays === 0) return t("map.meetingCountdown.today");
+  if (calendarDays === 1) return t("map.meetingCountdown.tomorrow");
+  return t("map.meetingCountdown.days", { count: calendarDays });
 }
 
 // ─── ORTAK BAŞLIK (Rozet + Kapat) ─────────────────────────────────────────────
@@ -100,11 +103,12 @@ function PhotoDetail({
   onZoomPhoto: (photo: PhotoPin) => void;
   onDeletePhoto: (photo: PhotoPin) => void;
 }) {
+  const { t, i18n } = useTranslation();
   return (
     <View style={styles.detailCardBody}>
       <DetailHeader
         icon={<Camera size={12} color="#fff" />}
-        label="Fotoğraf Anısı"
+        label={t("map.detail.photoMemory")}
         onClose={onClose}
       />
 
@@ -122,10 +126,10 @@ function PhotoDetail({
 
         <View style={styles.photoDetailInfo}>
           <Text style={styles.photoDetailTitle} numberOfLines={2}>
-            {photo.title || "Fotoğraf Anısı"}
+            {photo.title || t("map.detail.photoMemory")}
           </Text>
           <Text style={styles.photoDetailDate}>
-            📅 {dayjs(photo.taken_date).locale("tr").format("D MMMM YYYY")}
+            📅 {dayjs(photo.taken_date).locale(i18n.language).format("D MMMM YYYY")}
           </Text>
           {photo.location_name ? (
             <Text style={styles.photoDetailLocation} numberOfLines={1}>
@@ -151,7 +155,7 @@ function PhotoDetail({
           activeOpacity={0.85}
         >
           <Navigation size={14} color="#fff" />
-          <Text style={styles.actionBtnText}>Yol Tarifi Al</Text>
+          <Text style={styles.actionBtnText}>{t("common.getDirections")}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -160,7 +164,7 @@ function PhotoDetail({
           activeOpacity={0.85}
         >
           <ZoomIn size={14} color="#fff" />
-          <Text style={styles.actionBtnSecondaryText}>Büyüt</Text>
+          <Text style={styles.actionBtnSecondaryText}>{t("map.detail.enlarge")}</Text>
         </TouchableOpacity>
 
         {isOwner && <DeleteButton onPress={() => onDeletePhoto(photo)} />}
@@ -183,11 +187,12 @@ function NoteDetail({
   onClose: () => void;
   onDeleteNote: (note: MapNote) => void;
 }) {
+  const { t, i18n } = useTranslation();
   return (
     <View style={styles.detailCardBody}>
       <DetailHeader
         icon={<StickyNote size={12} color="#fff" />}
-        label="Harita Aşk Notu"
+        label={t("map.detail.noteBadge")}
         badgeColor="rgba(224, 30, 90, 0.85)"
         onClose={onClose}
       />
@@ -197,7 +202,7 @@ function NoteDetail({
         <Text style={styles.quoteMark}>“</Text>
         <Text style={styles.noteMessageText}>{note.note}</Text>
         <Text style={styles.noteDateMeta}>
-          {dayjs(note.created_at).locale("tr").format("D MMMM YYYY, HH:mm")}
+          {dayjs(note.created_at).locale(i18n.language).format("D MMMM YYYY, HH:mm")}
         </Text>
       </View>
 
@@ -208,7 +213,7 @@ function NoteDetail({
           activeOpacity={0.85}
         >
           <Navigation size={14} color="#fff" />
-          <Text style={styles.actionBtnText}>Konuma Yol Tarifi</Text>
+          <Text style={styles.actionBtnText}>{t("map.detail.directionsToLocation")}</Text>
         </TouchableOpacity>
 
         {isOwner && <DeleteButton onPress={() => onDeleteNote(note)} />}
@@ -227,11 +232,12 @@ function MeetingDetail({
   onClose: () => void;
   onOpenMeetings: () => void;
 }) {
+  const { t, i18n } = useTranslation();
   return (
     <View style={styles.detailCardBody}>
       <DetailHeader
         icon={<Calendar size={12} color="#fff" />}
-        label="Buluşma Planı"
+        label={t("notifications.push.meeting.planSubtitle")}
         badgeColor="rgba(109, 40, 217, 0.85)"
         onClose={onClose}
       />
@@ -241,13 +247,13 @@ function MeetingDetail({
           <Text style={styles.meetingTitleText}>{meeting.title}</Text>
           <View style={styles.meetingCountdownBadge}>
             <Text style={styles.meetingCountdownText}>
-              {getMeetingCountdown(meeting.meeting_datetime)}
+              {getMeetingCountdown(meeting.meeting_datetime, t)}
             </Text>
           </View>
         </View>
 
         <Text style={styles.meetingDatetimeText}>
-          🗓️ {dayjs(meeting.meeting_datetime).locale("tr").format("D MMMM YYYY, dddd · HH:mm")}
+          🗓️ {dayjs(meeting.meeting_datetime).locale(i18n.language).format("D MMMM YYYY, dddd · HH:mm")}
         </Text>
         {meeting.location_name ? (
           <Text style={styles.meetingLocationText} numberOfLines={2}>
@@ -263,7 +269,7 @@ function MeetingDetail({
           activeOpacity={0.85}
         >
           <Navigation size={14} color="#fff" />
-          <Text style={styles.actionBtnText}>Yol Tarifi Al</Text>
+          <Text style={styles.actionBtnText}>{t("common.getDirections")}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -271,7 +277,7 @@ function MeetingDetail({
           onPress={onOpenMeetings}
           activeOpacity={0.8}
         >
-          <Text style={styles.actionBtnSecondaryText}>Buluşmaları Gör</Text>
+          <Text style={styles.actionBtnSecondaryText}>{t("map.detail.seeMeetups")}</Text>
           <ChevronRight size={14} color="#fff" />
         </TouchableOpacity>
       </View>

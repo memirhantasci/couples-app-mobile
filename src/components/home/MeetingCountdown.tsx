@@ -5,6 +5,7 @@ import { MapPin, X, Navigation } from "lucide-react-native";
 import { AppTheme } from "@/lib/theme";
 import { UserAvatar } from "@/components/avatar/UserAvatar";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
+import { useTranslation } from "react-i18next";
 
 export interface Meeting {
   id: number;
@@ -23,8 +24,9 @@ interface CountdownProps {
 }
 
 export const MeetingCountdown = memo(function MeetingCountdown({ meeting, theme }: CountdownProps) {
+  const { t, i18n } = useTranslation();
   const targetDate = meeting.meeting_datetime;
-  const title = meeting.title || "Buluşma";
+  const title = meeting.title || t("tabs.meetings.label");
 
   const [countdown, setCountdown] = useState(() => getCountdown(targetDate));
   const [showModal, setShowModal] = useState(false);
@@ -52,7 +54,7 @@ export const MeetingCountdown = memo(function MeetingCountdown({ meeting, theme 
     }
   };
 
-  const formattedDate = dayjs(targetDate).format("D MMMM");
+  const formattedDate = dayjs(targetDate).locale(i18n.language).format("D MMMM");
 
   if (countdown.isPast) {
     return (
@@ -64,7 +66,7 @@ export const MeetingCountdown = memo(function MeetingCountdown({ meeting, theme 
         <Text style={{ fontSize: 28, marginBottom: 8 }}>🎉</Text>
         <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: theme.text }}>{title}</Text>
         <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: theme.textMuted, marginTop: 4 }}>
-          Buluşma gerçekleşti!
+          {t("home.meeting.happened")}
         </Text>
         <MeetingModal
           visible={showModal}
@@ -78,10 +80,10 @@ export const MeetingCountdown = memo(function MeetingCountdown({ meeting, theme 
   }
 
   const units = [
-    { label: "GÜN", value: countdown.days },
-    { label: "SAAT", value: countdown.hours },
-    { label: "DAKİKA", value: countdown.minutes },
-    { label: "SANİYE", value: countdown.seconds },
+    { label: t("home.meeting.days"), value: countdown.days },
+    { label: t("home.meeting.hours"), value: countdown.hours },
+    { label: t("home.meeting.minutes"), value: countdown.minutes },
+    { label: t("home.meeting.seconds"), value: countdown.seconds },
   ];
 
   return (
@@ -100,7 +102,7 @@ export const MeetingCountdown = memo(function MeetingCountdown({ meeting, theme 
           </View>
         )}
         <View style={{ flex: 1 }}>
-          <Text style={[styles.sectionLabel, { color: theme.text }]}>Sıradaki Buluşma</Text>
+          <Text style={[styles.sectionLabel, { color: theme.text }]}>{t("home.meeting.next")}</Text>
           {meeting.location_name && (
             <Text style={[styles.locationText, { color: theme.textSecondary }]}>{meeting.location_name}</Text>
           )}
@@ -145,8 +147,9 @@ function MeetingModal({
   openDirections: () => void;
   theme: AppTheme;
 }) {
+  const { t, i18n } = useTranslation();
   const formattedDate = dayjs(meeting.meeting_datetime)
-    .locale("tr")
+    .locale(i18n.language)
     .format("DD MMMM YYYY, dddd - HH:mm");
 
   return (
@@ -154,7 +157,7 @@ function MeetingModal({
       <View style={styles.modalOverlay}>
         <View style={[styles.modalContent, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
           <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Buluşma Detayları</Text>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>{t("home.meeting.details")}</Text>
             <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>
               <X color={theme.textSecondary} size={24} />
             </TouchableOpacity>
@@ -162,18 +165,18 @@ function MeetingModal({
 
           <View style={{ gap: 16 }}>
             <View>
-              <Text style={[styles.detailLabel, { color: theme.textMuted }]}>Başlık</Text>
-              <Text style={[styles.detailValue, { color: theme.text }]}>{meeting.title || "Buluşma"}</Text>
+              <Text style={[styles.detailLabel, { color: theme.textMuted }]}>{t("home.meeting.titleLabel")}</Text>
+              <Text style={[styles.detailValue, { color: theme.text }]}>{meeting.title || t("tabs.meetings.label")}</Text>
             </View>
 
             <View>
-              <Text style={[styles.detailLabel, { color: theme.textMuted }]}>Tarih & Saat</Text>
+              <Text style={[styles.detailLabel, { color: theme.textMuted }]}>{t("home.meeting.dateTime")}</Text>
               <Text style={[styles.detailValue, { color: theme.text }]}>{formattedDate}</Text>
             </View>
 
             {meeting.location_name && (
               <View>
-                <Text style={[styles.detailLabel, { color: theme.textMuted }]}>Konum</Text>
+                <Text style={[styles.detailLabel, { color: theme.textMuted }]}>{t("home.meeting.location")}</Text>
                 <View
                   style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}
                 >
@@ -189,7 +192,7 @@ function MeetingModal({
                 onPress={openDirections}
               >
                 <Navigation color="#fff" size={18} />
-                <Text style={styles.directionsBtnText}>Yol Tarifi Al</Text>
+                <Text style={styles.directionsBtnText}>{t("common.getDirections")}</Text>
               </TouchableOpacity>
             )}
           </View>

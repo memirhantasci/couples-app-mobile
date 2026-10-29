@@ -25,6 +25,7 @@ import {
   smoothstep,
   type Point,
 } from "@/lib/bezier";
+import { useTranslation } from "react-i18next";
 
 interface OrigamiBirdAnimationProps {
   visible: boolean;
@@ -79,6 +80,7 @@ function FlightScene({
   onComplete: () => void;
   accentColor: string;
 }) {
+  const { t } = useTranslation();
   const { width: screenW, height: screenH } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
 
@@ -287,7 +289,7 @@ function FlightScene({
               <View style={styles.stampCircle}>
                 <Heart size={16} color="#FF4D6D" fill="#FF4D6D" />
               </View>
-              <Text style={styles.letterTitle}>Sevgilime Özel...</Text>
+              <Text style={styles.letterTitle}>{t("letters.origami.title")}</Text>
             </View>
 
             <View style={styles.letterLinesWrapper}>
@@ -299,12 +301,12 @@ function FlightScene({
 
             <View style={styles.letterFooter}>
               <Animated.Text style={[styles.letterFooterText, { color: accentColor }, sealingTextStyle]}>
-                Mühürleniyor... 💌
+                {t("letters.origami.sealing")}
               </Animated.Text>
               <Animated.Text
                 style={[styles.letterFooterText, styles.letterFooterOverlay, { color: accentColor }, sealedTextStyle]}
               >
-                Mühürlendi ✨
+                {t("letters.origami.sealed")}
               </Animated.Text>
             </View>
 
@@ -330,7 +332,7 @@ function FlightScene({
         </Animated.View>
 
         <Animated.Text pointerEvents="none" style={[styles.caption, captionStyle]}>
-          Geleceğe emanet ediliyor... ✨
+          {t("letters.origami.caption")}
         </Animated.Text>
 
         {/* Ekrana dokunarak animasyon geçilebilir */}
@@ -338,7 +340,7 @@ function FlightScene({
           style={StyleSheet.absoluteFill}
           onPress={skip}
           accessibilityRole="button"
-          accessibilityLabel="Animasyonu geç"
+          accessibilityLabel={t("letters.origami.skip")}
         />
       </View>
     </Modal>

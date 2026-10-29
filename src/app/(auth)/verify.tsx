@@ -25,10 +25,12 @@ import { useAuth, DEVICE_AUTH_CACHE_KEY } from "@/context/AuthContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { applyOtpInput } from "@/lib/otp";
+import { Trans, useTranslation } from "react-i18next";
 
 const OTP_LENGTH = 6;
 
 export default function VerifyScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { setIsDeviceAuthorized, refreshProfile } = useAuth();
   const params = useLocalSearchParams<{
@@ -69,7 +71,7 @@ export default function VerifyScreen() {
 
       if (error) {
         setErrorMsg(
-          "Bağlantı geçersiz veya süresi dolmuş. Lütfen tekrar e-posta iste."
+          t("auth.verify.linkInvalid")
         );
         return;
       }
@@ -125,11 +127,11 @@ export default function VerifyScreen() {
   async function handleManualVerify(code?: string) {
     const otp = code ?? digits.join("");
     if (otp.length < OTP_LENGTH) {
-      setErrorMsg("Lütfen 6 haneli kodu eksiksiz gir.");
+      setErrorMsg(t("auth.verify.codeIncomplete"));
       return;
     }
     if (!params.email) {
-      setErrorMsg("E-posta bilgisi eksik. Lütfen tekrar dene.");
+      setErrorMsg(t("auth.verify.emailMissing"));
       return;
     }
     if (isLoading) return;
@@ -147,7 +149,7 @@ export default function VerifyScreen() {
       setIsLoading(false);
 
       if (error) {
-        setErrorMsg("Kod hatalı veya süresi dolmuş. Lütfen tekrar dene.");
+        setErrorMsg(t("auth.verify.codeInvalid"));
         setDigits(Array(OTP_LENGTH).fill(""));
         inputRefs.current[0]?.focus();
         setFocusedIndex(0);
@@ -217,9 +219,9 @@ export default function VerifyScreen() {
     });
     setIsLoading(false);
     if (error) {
-      appAlert("Hata", "Kod gönderilemedi. Lütfen tekrar dene.");
+      appAlert(t("common.error"), t("auth.verify.resendFailed"));
     } else {
-      toast.success("Yeni doğrulama kodu e-postana gönderildi.", { title: "Gönderildi!", emoji: "📧" });
+      toast.success(t("auth.verify.resent"), { title: t("auth.verify.resentTitle"), emoji: "📧" });
     }
   }
 
@@ -232,7 +234,7 @@ export default function VerifyScreen() {
         <Text
           style={{ color: "rgba(255,255,255,0.6)", marginTop: 16, fontSize: 15 }}
         >
-          Doğrulanıyor...
+          {t("auth.verify.verifying")}
         </Text>
       </View>
     );
@@ -294,7 +296,7 @@ export default function VerifyScreen() {
                 marginBottom: 8,
               }}
             >
-              E-postanı Doğrula
+              {t("auth.verify.title")}
             </Text>
             
             <Text
@@ -307,14 +309,13 @@ export default function VerifyScreen() {
               }}
             >
               {params.email ? (
-                <>
-                  <Text style={{ color: "#FFFFFF", fontFamily: "Inter_600SemiBold" }}>
-                    {params.email}
-                  </Text>
-                  {" adresine kod gönderdik"}
-                </>
+                <Trans
+                  i18nKey="auth.codeSentTo"
+                  values={{ email: params.email }}
+                  components={{ email: <Text style={{ color: "#FFFFFF", fontFamily: "Inter_600SemiBold" }} /> }}
+                />
               ) : (
-                "E-posta adresinize kod gönderdik"
+                t("auth.codeSentGeneric")
               )}
             </Text>
           </View>
@@ -392,7 +393,7 @@ export default function VerifyScreen() {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={{ color: "#fff", fontWeight: "700", fontSize: 17 }}>
-                  Doğrula
+                  {t("auth.verify.submit")}
                 </Text>
               )}
             </LinearGradient>
@@ -400,11 +401,11 @@ export default function VerifyScreen() {
 
           <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center" }}>
             <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>
-              Kod gelmedi mi?{" "}
+              {t("auth.verify.noCode")}{" "}
             </Text>
             <TouchableOpacity onPress={handleResend} disabled={isLoading}>
               <Text style={{ color: "#FF4D6A", fontSize: 14, fontWeight: "600" }}>
-                Tekrar Gönder
+                {t("auth.verify.resend")}
               </Text>
             </TouchableOpacity>
           </View>

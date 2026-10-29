@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import type { PurchasesPackage } from "react-native-purchases";
 
 const DAYS_PER_UNIT: Record<string, number> = { DAY: 1, WEEK: 7, MONTH: 30, YEAR: 365 };
@@ -15,8 +16,11 @@ export function freeTrialDays(pkg: PurchasesPackage | null | undefined): number 
   return days > 0 ? days : null;
 }
 
-/** Satın alma düğmesinin metni: deneme hakkı varsa "N Gün Ücretsiz Dene", yoksa "Premium'a Geç". */
-export function purchaseButtonLabel(pkg: PurchasesPackage | null | undefined): string {
+/**
+ * Satın alma düğmesinin metni: deneme hakkı varsa "N Gün Ücretsiz Dene", yoksa "Premium'a Geç".
+ * `t` parametre olarak alınır: ekran render sırasında çağırır, dil değişince metin yenilenir.
+ */
+export function purchaseButtonLabel(pkg: PurchasesPackage | null | undefined, t: TFunction): string {
   const days = freeTrialDays(pkg);
-  return days ? `${days} Gün Ücretsiz Dene` : "Premium'a Geç";
+  return days ? t("paywall.freeTrialButton", { count: days }) : t("paywall.upgradeButton");
 }

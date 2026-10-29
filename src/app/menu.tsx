@@ -32,8 +32,10 @@ import { useDeferredReady } from "@/hooks/useDeferredReady";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { EditableAvatar } from "@/components/avatar/EditableAvatar";
 import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
+import { useTranslation } from "react-i18next";
 
 export default function MenuScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { profile, session, signOut, isDemoMode, exitDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
@@ -133,19 +135,19 @@ export default function MenuScreen() {
         .neq("id", currentUserId)
         .maybeSingle();
 
-      return data?.display_name || data?.username || "Sevgilin";
+      return data?.display_name || data?.username || t("common.partnerFallback");
     },
     staleTime: 1000 * 60 * 60,
   });
 
-  const displayName = profile?.displayName || "Kullanıcı";
+  const displayName = profile?.displayName || t("common.userFallback");
 
   return (
     <ScreenBackground>
       <View style={{ flex: 1 }}>
         {/* HEADER */}
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>Uygulama Menüsü</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>{t("menu.title")}</Text>
           <TouchableOpacity 
             onPress={handleClose} 
             style={[styles.closeBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : theme.cardBg, borderColor: theme.cardBorder }]}
@@ -168,10 +170,10 @@ export default function MenuScreen() {
               >
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 }}>
                   <Sparkles size={18} color="#FF2E63" />
-                  <Text style={styles.demoCardTitle}>Demo Modundasınız ✨</Text>
+                  <Text style={styles.demoCardTitle}>{t("menu.demo.title")}</Text>
                 </View>
                 <Text style={styles.demoCardDesc}>
-                  Uygulamayı kayıt olmadan inceliyorsunuz. Sevgilinizle ortak alanınızı başlatıp anılarınızı kaydetmek için kaydolun.
+                  {t("menu.demo.description")}
                 </Text>
                 <TouchableOpacity
                   onPress={() => {
@@ -181,7 +183,7 @@ export default function MenuScreen() {
                   style={styles.demoCardBtn}
                   activeOpacity={0.88}
                 >
-                  <Text style={styles.demoCardBtnText}>Ücretsiz Kayıt Ol 💖</Text>
+                  <Text style={styles.demoCardBtnText}>{t("menu.demo.signUp")}</Text>
                 </TouchableOpacity>
               </LinearGradient>
             </View>
@@ -195,7 +197,7 @@ export default function MenuScreen() {
               <View style={styles.profileSubtitleRow}>
                 <Heart size={11} color={theme.accent} fill={theme.accent} />
                 <Text style={[styles.profileSubtitle, { color: theme.textSecondary }]}>
-                  {displayName} & {partnerName || "Sevgilin"}{relDate ? ` • ${daysSinceTogether} Gün` : ""}
+                  {displayName} & {partnerName || t("common.partnerFallback")}{relDate ? ` • ${t("menu.daysTogether", { count: daysSinceTogether })}` : ""}
                 </Text>
               </View>
             </View>
@@ -203,7 +205,7 @@ export default function MenuScreen() {
 
           {/* ─── KATEGORİ 1: AŞK & ANILAR (ANA BÖLÜMLER) ─── */}
           <View style={styles.sectionContainer}>
-            <Text style={styles.sectionHeaderLabel}>AŞK & ORTAK ANILAR</Text>
+            <Text style={styles.sectionHeaderLabel}>{t("menu.sections.love")}</Text>
 
             <TouchableOpacity 
               style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
@@ -214,8 +216,8 @@ export default function MenuScreen() {
                 <Orbit color={theme.accent} size={18} />
               </View>
               <View style={styles.menuTextContainer}>
-                <Text style={styles.menuTitle}>Bizim Yıldızımız ✨</Text>
-                <Text style={styles.menuSub}>Gökyüzündeki sonsuz dijital anıtınız</Text>
+                <Text style={styles.menuTitle}>{t("menu.ourStar.title")}</Text>
+                <Text style={styles.menuSub}>{t("menu.ourStar.subtitle")}</Text>
               </View>
               <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
@@ -229,8 +231,8 @@ export default function MenuScreen() {
                 <Home color={theme.accent} size={18} />
               </View>
               <View style={styles.menuTextContainer}>
-                <Text style={styles.menuTitle}>Ana Sayfa</Text>
-                <Text style={styles.menuSub}>Günün özeti ve aşk ölçer</Text>
+                <Text style={styles.menuTitle}>{t("tabs.home.label")}</Text>
+                <Text style={styles.menuSub}>{t("menu.home.subtitle")}</Text>
               </View>
               <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
@@ -244,8 +246,8 @@ export default function MenuScreen() {
                 <Images color={theme.accent} size={18} />
               </View>
               <View style={styles.menuTextContainer}>
-                <Text style={styles.menuTitle}>Ortak Galeri</Text>
-                <Text style={styles.menuSub}>Birlikte biriktirdiğiniz fotoğraflar</Text>
+                <Text style={styles.menuTitle}>{t("notifications.push.gallery.subtitle")}</Text>
+                <Text style={styles.menuSub}>{t("menu.gallery.subtitle")}</Text>
               </View>
               <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
@@ -255,8 +257,8 @@ export default function MenuScreen() {
               onPress={() => {
                 if (executeOrIntercept(
                   () => handleRoute("/(tabs)/add-photo"),
-                  "Ortak Fotoğraf Eklemek İçin Kayıt Olun 📸",
-                  "Sevgilinizle ortak anı albümü oluşturmak ve fotoğraflarınızın çekildiği yerleri haritada görmek için ücretsiz hesabınızı oluşturun."
+                  t("demo.prompts.addPhoto.title"),
+                  t("demo.prompts.addPhoto.description")
                 )) {
                   return;
                 }
@@ -272,8 +274,8 @@ export default function MenuScreen() {
                 <ImagePlus color={theme.accent} size={18} />
               </View>
               <View style={styles.menuTextContainer}>
-                <Text style={styles.menuTitle}>Fotoğraf Yükle</Text>
-                <Text style={styles.menuSub}>Yeni anı ve fotoğraf paylaş</Text>
+                <Text style={styles.menuTitle}>{t("menu.upload.title")}</Text>
+                <Text style={styles.menuSub}>{t("menu.upload.subtitle")}</Text>
               </View>
               <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
@@ -287,8 +289,8 @@ export default function MenuScreen() {
                 <BookOpen color={theme.accent} size={18} />
               </View>
               <View style={styles.menuTextContainer}>
-                <Text style={styles.menuTitle}>Günlüğüm</Text>
-                <Text style={styles.menuSub}>Sana özel şifreli not defterin</Text>
+                <Text style={styles.menuTitle}>{t("menu.journal.title")}</Text>
+                <Text style={styles.menuSub}>{t("menu.journal.subtitle")}</Text>
               </View>
               <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
@@ -303,8 +305,8 @@ export default function MenuScreen() {
                 <Mail color={theme.accent} size={18} />
               </View>
               <View style={styles.menuTextContainer}>
-                <Text style={styles.menuTitle}>Mektuplar</Text>
-                <Text style={styles.menuSub}>Zaman kilitli aşk mektupları</Text>
+                <Text style={styles.menuTitle}>{t("tabs.letters.label")}</Text>
+                <Text style={styles.menuSub}>{t("menu.letters.subtitle")}</Text>
               </View>
               <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
@@ -318,8 +320,8 @@ export default function MenuScreen() {
                 <Heart color={theme.accent} size={18} />
               </View>
               <View style={styles.menuTextContainer}>
-                <Text style={styles.menuTitle}>Özel Günler & Yıldönümleri</Text>
-                <Text style={styles.menuSub}>Unutulmaz tarihlerin geri sayımı</Text>
+                <Text style={styles.menuTitle}>{t("menu.specialDays.title")}</Text>
+                <Text style={styles.menuSub}>{t("menu.specialDays.subtitle")}</Text>
               </View>
               <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
@@ -333,8 +335,8 @@ export default function MenuScreen() {
                 <CalendarHeart color={theme.accent} size={18} />
               </View>
               <View style={styles.menuTextContainer}>
-                <Text style={styles.menuTitle}>Aşk Takvimi</Text>
-                <Text style={styles.menuSub}>Ruh halleri, notlar ve fotoğraflar</Text>
+                <Text style={styles.menuTitle}>{t("menu.calendar.title")}</Text>
+                <Text style={styles.menuSub}>{t("menu.calendar.subtitle")}</Text>
               </View>
               <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
@@ -348,8 +350,8 @@ export default function MenuScreen() {
                 <MapPin color={theme.accent} size={18} />
               </View>
               <View style={styles.menuTextContainer}>
-                <Text style={styles.menuTitle}>Aşk Haritası</Text>
-                <Text style={styles.menuSub}>Fotoğraflı anılar ve mühürlü aşk notları</Text>
+                <Text style={styles.menuTitle}>{t("notifications.push.map.subtitle")}</Text>
+                <Text style={styles.menuSub}>{t("menu.map.subtitle")}</Text>
               </View>
               <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
@@ -363,8 +365,8 @@ export default function MenuScreen() {
                 <Clock color={theme.accent} size={18} />
               </View>
               <View style={styles.menuTextContainer}>
-                <Text style={styles.menuTitle}>Buluşmalar</Text>
-                <Text style={styles.menuSub}>Geri sayım ve buluşma planları</Text>
+                <Text style={styles.menuTitle}>{t("menu.meetups.title")}</Text>
+                <Text style={styles.menuSub}>{t("menu.meetups.subtitle")}</Text>
               </View>
               <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
@@ -374,7 +376,7 @@ export default function MenuScreen() {
             <>
               {/* ─── KATEGORİ 2: SAĞLIK & ÖZEL TAKİP ─── */}
               <View style={styles.sectionContainer}>
-                <Text style={styles.sectionHeaderLabel}>SAĞLIK & TAKİP</Text>
+                <Text style={styles.sectionHeaderLabel}>{t("menu.sections.health")}</Text>
 
                 <TouchableOpacity 
                   style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
@@ -385,8 +387,8 @@ export default function MenuScreen() {
                     <Pill color={theme.accent} size={18} />
                   </View>
                   <View style={styles.menuTextContainer}>
-                    <Text style={styles.menuTitle}>İlaç Takibi</Text>
-                    <Text style={styles.menuSub}>Senin ve sevgilinin günlük dozları</Text>
+                    <Text style={styles.menuTitle}>{t("notifications.labels.medicineTracking")}</Text>
+                    <Text style={styles.menuSub}>{t("menu.medicine.subtitle")}</Text>
                   </View>
                   <ChevronRight color={theme.textMuted} size={18} />
                 </TouchableOpacity>
@@ -400,8 +402,8 @@ export default function MenuScreen() {
                     <Droplet color={theme.accent} size={18} />
                   </View>
                   <View style={styles.menuTextContainer}>
-                    <Text style={styles.menuTitle}>Döngü & Regl Takvimi</Text>
-                    <Text style={styles.menuSub}>Hassas dönemler ve hatırlatıcılar</Text>
+                    <Text style={styles.menuTitle}>{t("menu.cycle.title")}</Text>
+                    <Text style={styles.menuSub}>{t("menu.cycle.subtitle")}</Text>
                   </View>
                   <ChevronRight color={theme.textMuted} size={18} />
                 </TouchableOpacity>
@@ -409,7 +411,7 @@ export default function MenuScreen() {
 
               {/* ─── KATEGORİ 3: AYARLAR & HESAP ─── */}
               <View style={styles.sectionContainer}>
-                <Text style={styles.sectionHeaderLabel}>HESAP & AYARLAR</Text>
+                <Text style={styles.sectionHeaderLabel}>{t("menu.sections.account")}</Text>
 
 
                 <TouchableOpacity 
@@ -421,8 +423,8 @@ export default function MenuScreen() {
                     <HelpCircle color={theme.accent} size={18} />
                   </View>
                   <View style={styles.menuTextContainer}>
-                    <Text style={styles.menuTitle}>Nasıl Çalışır? (Özellik Rehberi)</Text>
-                    <Text style={styles.menuSub}>Her sayfa ve özelliğin detaylı tanıtımı</Text>
+                    <Text style={styles.menuTitle}>{t("menu.guide.title")}</Text>
+                    <Text style={styles.menuSub}>{t("menu.guide.subtitle")}</Text>
                   </View>
                   <ChevronRight color={theme.textMuted} size={18} />
                 </TouchableOpacity>
@@ -436,8 +438,8 @@ export default function MenuScreen() {
                     <Settings color={theme.accent} size={18} />
                   </View>
                   <View style={styles.menuTextContainer}>
-                    <Text style={styles.menuTitle}>Ayarlar & Profil</Text>
-                    <Text style={styles.menuSub}>Sesler, temalar, tarihler ve güvenlik</Text>
+                    <Text style={styles.menuTitle}>{t("menu.settings.title")}</Text>
+                    <Text style={styles.menuSub}>{t("menu.settings.subtitle")}</Text>
                   </View>
                   <ChevronRight color={theme.textMuted} size={18} />
                 </TouchableOpacity>
@@ -451,8 +453,8 @@ export default function MenuScreen() {
                     <ShieldCheck color={theme.accent} size={18} />
                   </View>
                   <View style={styles.menuTextContainer}>
-                    <Text style={styles.menuTitle}>Yasal Bilgiler & Gizlilik</Text>
-                    <Text style={styles.menuSub}>KVKK, gizlilik ve kullanım şartları</Text>
+                    <Text style={styles.menuTitle}>{t("menu.legal.title")}</Text>
+                    <Text style={styles.menuSub}>{t("menu.legal.subtitle")}</Text>
                   </View>
                   <ChevronRight color={theme.textMuted} size={18} />
                 </TouchableOpacity>
@@ -466,8 +468,8 @@ export default function MenuScreen() {
                     <LogOut color="#ff4d6a" size={18} />
                   </View>
                   <View style={styles.menuTextContainer}>
-                    <Text style={[styles.menuTitle, { color: "#ff4d6a" }]}>Çıkış Yap</Text>
-                    <Text style={styles.menuSub}>Oturumu güvenli bir şekilde kapat</Text>
+                    <Text style={[styles.menuTitle, { color: "#ff4d6a" }]}>{t("auth.signOut")}</Text>
+                    <Text style={styles.menuSub}>{t("menu.signOut.subtitle")}</Text>
                   </View>
                   <ChevronRight color="rgba(255, 77, 106, 0.4)" size={18} />
                 </TouchableOpacity>
@@ -497,8 +499,8 @@ export default function MenuScreen() {
             <View style={{ backgroundColor: isLight ? "#fff" : "#1A1624", borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "80%", padding: 20, paddingBottom: insets.bottom + 20 }}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <View>
-                  <Text style={{ fontSize: 18, fontWeight: "700", color: theme.text }}>Özellik Rehberleri</Text>
-                  <Text style={{ fontSize: 12, color: theme.textMuted }}>İncelemek istediğiniz sayfayı seçin</Text>
+                  <Text style={{ fontSize: 18, fontWeight: "700", color: theme.text }}>{t("menu.guides.title")}</Text>
+                  <Text style={{ fontSize: 12, color: theme.textMuted }}>{t("menu.guides.subtitle")}</Text>
                 </View>
                 <TouchableOpacity onPress={() => setShowGuideCatalog(false)} style={{ padding: 6 }}>
                   <X color={theme.text} size={20} />
@@ -527,11 +529,11 @@ export default function MenuScreen() {
                   onPress={async () => {
                     await resetAllPageTours();
                     setShowGuideCatalog(false);
-                    appAlert("Sıfırlandı 🎉", "Ana Sayfa'ya döndüğünüzde kısa tanıtım turu yeniden gösterilecek. Diğer sayfaların rehberine sağ üstteki ? butonundan ulaşabilirsiniz.");
+                    appAlert(t("menu.guides.resetTitle"), t("menu.guides.resetMessage"));
                   }}
                   style={{ marginTop: 12, padding: 14, borderRadius: 14, backgroundColor: theme.pillAccentBg, borderWidth: 1, borderColor: theme.pillAccentBorder, alignItems: "center" }}
                 >
-                  <Text style={{ color: theme.accent, fontWeight: "700", fontSize: 14 }}>Ana Sayfa Turunu Yeniden Başlat 🔄</Text>
+                  <Text style={{ color: theme.accent, fontWeight: "700", fontSize: 14 }}>{t("menu.guides.restartTour")}</Text>
                 </TouchableOpacity>
               </ScrollView>
             </View>

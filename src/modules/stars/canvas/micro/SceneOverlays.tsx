@@ -15,6 +15,7 @@ import { Hand, Sparkles } from 'lucide-react-native';
 
 import type { StarSystemMapPlanet } from '../../types/star.types';
 import { B_ALPHA, B_DEPTH, B_SCALE, B_X, B_Y, BODY_STRIDE, clamp } from './microScene';
+import { useTranslation } from 'react-i18next';
 
 const LABEL_WIDTH = 140;
 const AVATAR_SIZE = 30;
@@ -31,6 +32,7 @@ interface PlanetLabelProps {
 }
 
 const PlanetLabel = memo(function PlanetLabel({ index, motion, intro, radius, title, locked }: PlanetLabelProps) {
+  const { t } = useTranslation();
   const base = index * BODY_STRIDE;
   const style = useAnimatedStyle(() => {
     const m = motion.value;
@@ -51,7 +53,7 @@ const PlanetLabel = memo(function PlanetLabel({ index, motion, intro, radius, ti
     <Animated.View style={[styles.labelAnchor, style]}>
       <View style={styles.labelPill}>
         <Text style={[styles.labelText, locked && styles.labelTextLocked]} numberOfLines={1}>
-          {locked ? '🔒 Kilitli anı' : title}
+          {locked ? t('stars.micro.lockedLabel') : title}
         </Text>
       </View>
     </Animated.View>
@@ -97,6 +99,7 @@ const SoulAvatar = memo(function SoulAvatar({ index, souls, uri, color }: SoulAv
 let hasShownSceneHint = false;
 
 function SceneHint({ top }: { top: number }) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(() => !hasShownSceneHint);
 
   useEffect(() => {
@@ -116,11 +119,11 @@ function SceneHint({ top }: { top: number }) {
       <View style={styles.hintPill}>
         <View style={styles.hintRow}>
           <Sparkles size={12} color="#FDE68A" />
-          <Text style={styles.hintText}>Yıldıza dokun, sevgine titreşim gönder</Text>
+          <Text style={styles.hintText}>{t('stars.micro.hintStar')}</Text>
         </View>
         <View style={styles.hintRow}>
           <Hand size={12} color="#C4B5FD" />
-          <Text style={styles.hintText}>Sürükle, sistemi çevir · Gezegene dokun, anını aç</Text>
+          <Text style={styles.hintText}>{t('stars.micro.hintDrag')}</Text>
         </View>
       </View>
     </Animated.View>
@@ -156,6 +159,7 @@ export const SceneOverlays = memo(function SceneOverlays({
   emptyCaptionTop,
   showHint,
 }: SceneOverlaysProps) {
+  const { t } = useTranslation();
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       {planets.map((planet, index) => (
@@ -175,8 +179,8 @@ export const SceneOverlays = memo(function SceneOverlays({
 
       {planets.length === 0 && (
         <Animated.View entering={FadeIn.delay(900).duration(700)} style={[styles.emptyWrap, { top: emptyCaptionTop }]}>
-          <Text style={styles.emptyTitle}>Yörüngeniz sizi bekliyor</Text>
-          <Text style={styles.emptyText}>İlk anınızı aşağıdan bir gezegene dönüştürün ✨</Text>
+          <Text style={styles.emptyTitle}>{t('stars.micro.emptyTitle')}</Text>
+          <Text style={styles.emptyText}>{t('stars.micro.emptySubtitle')}</Text>
         </Animated.View>
       )}
 

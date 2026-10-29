@@ -1,4 +1,5 @@
 import dayjs, { type Dayjs } from "dayjs";
+import type { ParseKeys, TFunction } from "i18next";
 
 // ─── Özel Günler & Dinamik Selamlama ────────────────────────────────────────────
 // Saf fonksiyonlar (ağ / depolama yok): ana sayfa başlığı ve aşk sayacının altın ışıltısı
@@ -76,21 +77,22 @@ export function getDayPeriod(hour: number): DayPeriod {
   return "night";
 }
 
-const PERIOD_GREETING: Record<DayPeriod, { text: string; emoji: string }> = {
-  morning: { text: "Günaydın", emoji: "☀️" },
-  afternoon: { text: "Tünaydın", emoji: "🌸" },
-  evening: { text: "İyi Akşamlar", emoji: "" },
-  night: { text: "Tatlı Rüyalar", emoji: "🌙" },
+// Metinler çeviri anahtarı olarak tutulur; getGreeting çağıranın `t` fonksiyonuyla çevirir
+const PERIOD_GREETING: Record<DayPeriod, { textKey: ParseKeys; emoji: string }> = {
+  morning: { textKey: "home.greeting.morning", emoji: "☀️" },
+  afternoon: { textKey: "home.greeting.afternoon", emoji: "🌸" },
+  evening: { textKey: "home.greeting.evening", emoji: "" },
+  night: { textKey: "home.greeting.night", emoji: "🌙" },
 };
 
 // Anahtarlar MoodSelector'daki emojilerle aynıdır
-const MOOD_CAPTION: Record<string, string> = {
-  "😍": "Aşk dolu bir gün! Bunu sevgilinle paylaş 💕",
-  "😊": "Gülüşün bugün her yere yansımış ✨",
-  "😐": "Sakin bir gün... Bir mesajla renklendir 🌿",
-  "😢": "Zor bir gün olabilir, sevgin yanında 🤍",
-  "😡": "Derin bir nefes al, birlikte atlatırsınız 🌬️",
-  "😴": "Dinlen biraz, kendine nazik ol 🌙",
+const MOOD_CAPTION: Record<string, ParseKeys> = {
+  "😍": "home.moodCaption.love",
+  "😊": "home.moodCaption.happy",
+  "😐": "home.moodCaption.calm",
+  "😢": "home.moodCaption.sad",
+  "😡": "home.moodCaption.angry",
+  "😴": "home.moodCaption.sleepy",
 };
 
 export interface Greeting {
@@ -100,27 +102,34 @@ export interface Greeting {
   caption: string | null;
 }
 
+/**
+ * `t` parametre olarak alınır: ana sayfa render sırasında çağırır; böylece (React Compiler önbelleğine
+ * karşı) dil değişince sonuç yenilenir.
+ */
 export function getGreeting(
   now: Dayjs,
   special: SpecialDayState,
+  t: TFunction,
   mood?: string | null
 ): Greeting {
-  const base = PERIOD_GREETING[getDayPeriod(now.hour())];
+  const period = PERIOD_GREETING[getDayPeriod(now.hour())];
+  const base = { text: t(period.textKey), emoji: period.emoji };
   const anniversary = special.anniversary;
 
   // Öncelik: yıldönümü günü > 14 Şubat > yaklaşan yıldönümü > ruh hali
   if (anniversary && anniversary.daysLeft === 0) {
-    return { ...base, emoji: "🥂", caption: `Bugün ${anniversary.years}. yıl dönümünüz, kutlu olsun 🥂` };
+    return { ...base, emoji: "🥂", caption: t("home.caption.anniversaryToday", { years: anniversary.years }) };
   }
   if (special.isValentines) {
-    return { ...base, emoji: "💘", caption: "Sevgililer Günün kutlu olsun 💘" };
+    return { ...base, emoji: "💘", caption: t("home.caption.valentines") };
   }
   if (anniversary && anniversary.daysLeft <= ANNIVERSARY_GLOW_DAYS) {
     const caption =
       anniversary.daysLeft === 1
-        ? `${anniversary.years}. yıl dönümünüz yarın! 💛`
-        : `${anniversary.years}. yıl dönümünüze ${anniversary.daysLeft} gün kaldı 💛`;
+        ? t("home.caption.anniversaryTomorrow", { years: anniversary.years })
+        : t("home.caption.anniversaryDaysLeft", { years: anniversary.years, daysLeft: anniversary.daysLeft });
     return { ...base, caption };
   }
-  return { ...base, caption: (mood && MOOD_CAPTION[mood]) || null };
+  const moodKey = mood ? MOOD_CAPTION[mood] : undefined;
+  return { ...base, caption: moodKey ? t(moodKey) : null };
 }

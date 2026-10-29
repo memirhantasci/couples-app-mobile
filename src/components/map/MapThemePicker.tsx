@@ -2,6 +2,8 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import type { MapThemeType } from "./mapTypes";
+import type { ParseKeys } from "i18next";
+import { useTranslation } from "react-i18next";
 
 interface MapThemePickerProps {
   accent: string;
@@ -10,41 +12,42 @@ interface MapThemePickerProps {
   onSelect: (theme: MapThemeType) => void;
 }
 
-const THEME_OPTIONS: { id: MapThemeType; label: string; desc: string }[] = [
-  { id: "romantic", label: "🌸 Romantik", desc: "Sıcak & Krem" },
-  { id: "midnight", label: "🌙 Gece", desc: "Kadife Koyu" },
-  { id: "silver", label: "✨ Sade", desc: "Gümüş Minimal" },
+const THEME_OPTIONS: { id: MapThemeType; labelKey: ParseKeys; descKey: ParseKeys }[] = [
+  { id: "romantic", labelKey: "map.theme.romantic", descKey: "map.theme.romanticDesc" },
+  { id: "midnight", labelKey: "map.theme.midnight", descKey: "map.theme.midnightDesc" },
+  { id: "silver", labelKey: "map.theme.silver", descKey: "map.theme.silverDesc" },
 ];
 
 // ─── TEMA SEÇİCİ AÇILIR MENÜ ──────────────────────────────────────────────────
 export function MapThemePicker({ accent, isLight, mapTheme, onSelect }: MapThemePickerProps) {
+  const { t } = useTranslation();
   return (
     <View style={[styles.themePickerMenu, { backgroundColor: isLight ? "#FFFFFF" : "#1A1626" }]}>
       <Text style={[styles.themeMenuHeader, { color: isLight ? "#333" : "#fff" }]}>
-        Harita Teması
+        {t("map.theme.title")}
       </Text>
       <View style={styles.themeOptionsRow}>
-        {THEME_OPTIONS.map((t) => (
+        {THEME_OPTIONS.map((option) => (
           <TouchableOpacity
-            key={t.id}
+            key={option.id}
             style={[
               styles.themeOptionBtn,
               { borderColor: isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.12)" },
-              mapTheme === t.id && {
+              mapTheme === option.id && {
                 borderColor: accent,
                 backgroundColor: `${accent}15`,
               },
             ]}
-            onPress={() => onSelect(t.id)}
+            onPress={() => onSelect(option.id)}
           >
             <Text
               style={[
                 styles.themeOptionTitle,
                 { color: isLight ? "#444" : "#FFFFFF" },
-                mapTheme === t.id && { color: accent },
+                mapTheme === option.id && { color: accent },
               ]}
             >
-              {t.label}
+              {t(option.labelKey)}
             </Text>
             <Text
               style={[
@@ -52,7 +55,7 @@ export function MapThemePicker({ accent, isLight, mapTheme, onSelect }: MapTheme
                 { color: isLight ? "#888" : "rgba(255,255,255,0.7)" },
               ]}
             >
-              {t.desc}
+              {t(option.descKey)}
             </Text>
           </TouchableOpacity>
         ))}

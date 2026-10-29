@@ -17,6 +17,7 @@ import {
 } from "@/lib/soundEffects";
 import { ModernSection } from "./ModernSection";
 import { profileSharedStyles } from "./profileSharedStyles";
+import { useTranslation } from "react-i18next";
 
 interface SoundHapticsTestBoxProps {
   theme: AppTheme;
@@ -24,6 +25,7 @@ interface SoundHapticsTestBoxProps {
 }
 
 export function SoundHapticsTestBox({ theme, isLight }: SoundHapticsTestBoxProps) {
+  const { t } = useTranslation();
   // Ses & Titreşim Ayarları
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [hapticEnabled, setHapticEnabled] = useState(true);
@@ -49,13 +51,13 @@ export function SoundHapticsTestBox({ theme, isLight }: SoundHapticsTestBoxProps
 
   return (
     <ModernSection
-      title="Ses & Dokunsal Efektler"
+      title={t("profile.sound.title")}
       icon={<Volume2 size={18} color={theme.accent} />}
       theme={theme}
       defaultOpen={false}
     >
       <Text style={[profileSharedStyles.sessionHintText, { color: theme.textMuted }]}>
-        Uygulamadaki eylemler (mektup gönderme, ruh hali seçimi, ilaç takibi) için özel mikro sesleri ve dokunsal titreşimleri yönetin. Telefonunuz sessiz moddayken sesler çalmaz.
+        {t("profile.sound.description")}
       </Text>
 
       <View style={{ gap: 12 }}>
@@ -66,8 +68,8 @@ export function SoundHapticsTestBox({ theme, isLight }: SoundHapticsTestBoxProps
               {soundEnabled ? <Volume2 size={18} color={theme.accent} /> : <VolumeX size={18} color={theme.textMuted} />}
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.settingToggleTitle, { color: theme.text }]}>Uygulama İçi Sesler</Text>
-              <Text style={[styles.settingToggleSub, { color: theme.textMuted }]}>Mektup, ruh hali, ilaç, harita, fotoğraf ve Aşk Ölçer sesleri</Text>
+              <Text style={[styles.settingToggleTitle, { color: theme.text }]}>{t("profile.sound.inApp")}</Text>
+              <Text style={[styles.settingToggleSub, { color: theme.textMuted }]}>{t("profile.sound.inAppSub")}</Text>
             </View>
           </View>
           <Switch
@@ -85,8 +87,8 @@ export function SoundHapticsTestBox({ theme, isLight }: SoundHapticsTestBoxProps
               <Vibrate size={18} color={theme.accent} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.settingToggleTitle, { color: theme.text }]}>Dokunsal Titreşim (Haptics)</Text>
-              <Text style={[styles.settingToggleSub, { color: theme.textMuted }]}>Dokunmalarda yumuşak premium geri bildirim</Text>
+              <Text style={[styles.settingToggleTitle, { color: theme.text }]}>{t("profile.sound.haptics")}</Text>
+              <Text style={[styles.settingToggleSub, { color: theme.textMuted }]}>{t("profile.sound.hapticsSub")}</Text>
             </View>
           </View>
           <Switch
@@ -100,7 +102,7 @@ export function SoundHapticsTestBox({ theme, isLight }: SoundHapticsTestBoxProps
         {/* Sesleri Önizle & Dene */}
         <View style={{ marginTop: 4 }}>
           <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary, marginBottom: 8 }]}>
-            MİKRO SESLERİ DENE 🎧
+            {t("profile.sound.tryTitle")}
           </Text>
           <View style={styles.soundTestGrid}>
             <TouchableOpacity
@@ -109,7 +111,7 @@ export function SoundHapticsTestBox({ theme, isLight }: SoundHapticsTestBoxProps
               activeOpacity={0.7}
             >
               <Text style={styles.soundTestEmoji}>🥰</Text>
-              <Text style={[styles.soundTestLabel, { color: theme.text }]}>Ruh Hali</Text>
+              <Text style={[styles.soundTestLabel, { color: theme.text }]}>{t("notifications.push.mood.subtitle")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -118,7 +120,7 @@ export function SoundHapticsTestBox({ theme, isLight }: SoundHapticsTestBoxProps
               activeOpacity={0.7}
             >
               <Text style={styles.soundTestEmoji}>💌</Text>
-              <Text style={[styles.soundTestLabel, { color: theme.text }]}>Mektup</Text>
+              <Text style={[styles.soundTestLabel, { color: theme.text }]}>{t("profile.sound.letter")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -127,7 +129,7 @@ export function SoundHapticsTestBox({ theme, isLight }: SoundHapticsTestBoxProps
               activeOpacity={0.7}
             >
               <Text style={styles.soundTestEmoji}>💊</Text>
-              <Text style={[styles.soundTestLabel, { color: theme.text }]}>İlaç</Text>
+              <Text style={[styles.soundTestLabel, { color: theme.text }]}>{t("profile.sound.medicine")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -136,7 +138,7 @@ export function SoundHapticsTestBox({ theme, isLight }: SoundHapticsTestBoxProps
               activeOpacity={0.7}
             >
               <Text style={styles.soundTestEmoji}>📍</Text>
-              <Text style={[styles.soundTestLabel, { color: theme.text }]}>Harita</Text>
+              <Text style={[styles.soundTestLabel, { color: theme.text }]}>{t("tabs.map.label")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -145,7 +147,7 @@ export function SoundHapticsTestBox({ theme, isLight }: SoundHapticsTestBoxProps
               activeOpacity={0.7}
             >
               <Text style={styles.soundTestEmoji}>📸</Text>
-              <Text style={[styles.soundTestLabel, { color: theme.text }]}>Fotoğraf</Text>
+              <Text style={[styles.soundTestLabel, { color: theme.text }]}>{t("calendar.legend.photo")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -154,7 +156,7 @@ export function SoundHapticsTestBox({ theme, isLight }: SoundHapticsTestBoxProps
               activeOpacity={0.7}
             >
               <Text style={styles.soundTestEmoji}>💖</Text>
-              <Text style={[styles.soundTestLabel, { color: theme.text }]}>Aşk Ölçer</Text>
+              <Text style={[styles.soundTestLabel, { color: theme.text }]}>{t("profile.sound.loveMeter")}</Text>
             </TouchableOpacity>
           </View>
         </View>

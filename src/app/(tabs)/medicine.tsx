@@ -47,8 +47,10 @@ import type {
   MedicineTab,
   WeeklyComplianceDay,
 } from "@/components/medicine/medicineTypes";
+import { useTranslation } from "react-i18next";
 
 export default function MedicineScreen() {
+  const { t, i18n } = useTranslation();
   const { profile, session, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
@@ -190,18 +192,18 @@ export default function MedicineScreen() {
       if (status === "DRANK") {
         playSuccessChime();
         const med = data?.medicines?.find((m: any) => m.id === medicineId);
-        const medName = med?.name || "İlaç";
-        const senderName = profile?.displayName || "Sevgilin";
+        const medName = med?.name || t("profile.sound.medicine");
+        const senderName = profile?.displayName || t("common.partnerFallback");
 
         // Gerçek hesapta partner bildirimi sunucudaki tetikleyiciden (send-push) gelir; çift bildirim olmasın diye yalnızca demo gösterilir.
         if (isDemoMode || !coupleId || !userId) {
           showNotification({
             type: "medicine",
-            title: "İlacını İçti! 💊✨",
-            body: `${senderName}, ${medName} ilacını içti. İçin rahat olsun! 🌿`,
+            title: t("notifications.demo.medicine.title"),
+            body: t("medicine.notify.drankBody", { senderName, medName }),
             senderName,
             route: "/(tabs)/medicine",
-            actionLabel: "İlaç Takibine Git 💊",
+            actionLabel: t("notifications.actions.goToMedicine"),
             metadata: {
               medicineName: medName,
             },
@@ -213,7 +215,7 @@ export default function MedicineScreen() {
       if (context?.previousData) {
         queryClient.setQueryData(medicineQueryKey, context.previousData);
       }
-      appAlert("Hata", "Durum güncellenirken bir sorun oluştu.");
+      appAlert(t("common.error"), t("medicine.errors.statusUpdateFailed"));
     },
     onSettled: () => {
       setLoadingSlot(null);
@@ -224,8 +226,8 @@ export default function MedicineScreen() {
   const handleLog = (medicineId: number, status: string, timeSlot: string) => {
     if (executeOrIntercept(
       () => {},
-      "İlaç Takibini Kullanmak İçin Kayıt Olun 💊",
-      "Günlük ilaç ve vitaminlerinizi kaydetmek ve partnerinizle eşleşmek için ücretsiz hesabınızı oluşturun."
+      t("medicine.demo.useTitle"),
+      t("medicine.demo.useDescription")
     )) {
       return;
     }
@@ -236,8 +238,8 @@ export default function MedicineScreen() {
   const handleSubmitMedicine = async (values: MedicineFormValues): Promise<MedicineSubmitResult> => {
     if (executeOrIntercept(
       () => {},
-      "İlaç Eklemek İçin Kayıt Olun 💊",
-      "İlaç ve vitaminlerinizi düzenli takip etmek ve bildirim almak için ücretsiz hesabınızı oluşturun."
+      t("demo.prompts.addMedicine.title"),
+      t("demo.prompts.addMedicine.description")
     )) {
       return "demo";
     }
@@ -251,7 +253,7 @@ export default function MedicineScreen() {
     const formattedTimes = values.times.map(t => dayjs(t).format("HH:mm"));
     const uniqueTimes = new Set(formattedTimes);
     if (uniqueTimes.size !== formattedTimes.length) {
-      appAlert("Uyarı", "Aynı ilaç için birden fazla aynı saat seçilemez. Lütfen farklı doz saatleri belirleyin.");
+      appAlert(t("common.warning"), t("medicine.errors.duplicateTimes"));
       return "error";
     }
 
@@ -268,7 +270,7 @@ export default function MedicineScreen() {
           .maybeSingle();
 
         if (!partnerData?.id) {
-          appAlert("Bilgi", "Partneriniz henüz eşleşmemiş.");
+          appAlert(t("common.info"), t("medicine.errors.partnerNotPaired"));
           return "error";
         }
         targetUserId = partnerData.id;
@@ -303,7 +305,7 @@ export default function MedicineScreen() {
         }
 
         // İlaç formu modalı sonuç döndükten sonra kapanır → pil kapanışı bekler
-        toast.success("İlaç bilgisi güncellendi 🎉", { delay: 350 });
+        toast.success(t("medicine.toasts.updated"), { delay: 350 });
       } else {
         const { data: newMed, error } = await supabase.from("medicines").insert(payload).select("id").single();
         if (error) throw error;
@@ -315,19 +317,19 @@ export default function MedicineScreen() {
         notifyPartner(
           coupleId,
           userId,
-          "Yeni İlaç Eklendi 💊",
+          t("medicine.push.newTitle"),
           values.isPartnerAdd
-            ? `Sevgilin senin için yeni bir ilaç ekledi: ${cleanMedName}`
-            : `Sevgilin yeni bir ilaç ekledi: ${cleanMedName}`,
+            ? t("medicine.push.newForYou", { name: cleanMedName })
+            : t("medicine.push.new", { name: cleanMedName }),
           {
             type: "medicine",
             medicineName: cleanMedName,
             route: "/(tabs)/medicine",
-            actionLabel: "İlaç Takibine Git 💊",
+            actionLabel: t("notifications.actions.goToMedicine"),
           }
         );
 
-        toast.success("Yeni ilaç kaydedildi 🎉", { delay: 350 });
+        toast.success(t("medicine.toasts.saved"), { delay: 350 });
       }
 
       refetch();
@@ -335,7 +337,7 @@ export default function MedicineScreen() {
       primeAfterCloseRef.current = true;
       return "success";
     } catch (err: any) {
-      appAlert("Hata", err?.message || "Beklenmeyen bir hata oluştu.");
+      appAlert(t("common.error"), err?.message || t("medicine.errors.unexpected"));
       return "error";
     }
   };
@@ -344,24 +346,24 @@ export default function MedicineScreen() {
   const handleBeforeEditMedicine = () => {
     return !executeOrIntercept(
       () => {},
-      "İlacı Düzenlemek İçin Kayıt Olun 💊",
-      "İlaç bilgilerinizi ve saatlerinizi güncellemek için ücretsiz hesabınızı oluşturun."
+      t("medicine.demo.editTitle"),
+      t("medicine.demo.editDescription")
     );
   };
 
   const handleDeleteMedicine = async (id: number) => {
     if (executeOrIntercept(
       () => {},
-      "İlacı Silmek İçin Kayıt Olun 🗑️",
-      "İlaç takviminizi yönetmek için ücretsiz hesabınızı oluşturun."
+      t("medicine.demo.deleteTitle"),
+      t("medicine.demo.deleteDescription")
     )) {
       return;
     }
 
-    appAlert("İlacı Sil", "Bu ilacı silmek istediğinize emin misiniz?", [
-      { text: "Vazgeç", style: "cancel" },
+    appAlert(t("medicine.delete.title"), t("medicine.delete.message"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Sil",
+        text: t("common.delete"),
         style: "destructive",
         onPress: async () => {
           setIsDeleting(id);
@@ -375,7 +377,7 @@ export default function MedicineScreen() {
           const { error } = await supabase.from("medicines").delete().eq("id", id).eq("couple_id", coupleId);
           setIsDeleting(null);
           if (error) {
-            appAlert("Hata", "Silinirken hata oluştu.");
+            appAlert(t("common.error"), t("medicine.errors.deleteFailed"));
           } else {
             refetch();
           }
@@ -464,7 +466,7 @@ export default function MedicineScreen() {
     for (let i = 6; i >= 0; i--) {
       const d = dayjs().subtract(i, "day");
       const dateStr = d.format("YYYY-MM-DD");
-      const dayLabel = d.locale("tr").format("dd");
+      const dayLabel = d.locale(i18n.language).format("dd");
       const dayNumber = d.format("D");
       const isToday = i === 0;
 
@@ -547,7 +549,7 @@ export default function MedicineScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel="Geri"
+            accessibilityLabel={t("common.back")}
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();
@@ -562,15 +564,15 @@ export default function MedicineScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>İlaç Takibi</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>Günlük Sağlık Hatırlatıcısı 💊</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{t("notifications.labels.medicineTracking")}</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>{t("medicine.subtitle")}</Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <TourGuideButton onPress={openTour} />
             <TouchableOpacity
               accessibilityRole="button"
-              accessibilityLabel="Menüyü aç"
+              accessibilityLabel={t("common.openMenu")}
               onPress={() => router.push("/menu")}
               style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -591,8 +593,8 @@ export default function MedicineScreen() {
             onPress={() => {
               if (executeOrIntercept(
                 () => {},
-                "Yeni İlaç ve Hatırlatıcı Eklemek İçin Kayıt Olun 💊",
-                "Günlük ilaçlarınızı planlamak ve partnerinizle birbirinizi takip etmek için ücretsiz hesabınızı oluşturun."
+                t("medicine.demo.manageTitle"),
+                t("medicine.demo.manageDescription")
               )) {
                 return;
               }
@@ -604,8 +606,8 @@ export default function MedicineScreen() {
               <Plus size={20} color={theme.accent} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.quickActionTitle, { color: theme.text }]}>Yeni İlaç Ekle veya Yönet</Text>
-              <Text style={[styles.quickActionSub, { color: theme.textMuted }]}>Günlük dozları ve saatleri planlayın ✨</Text>
+              <Text style={[styles.quickActionTitle, { color: theme.text }]}>{t("medicine.manage.cta")}</Text>
+              <Text style={[styles.quickActionSub, { color: theme.textMuted }]}>{t("medicine.manage.ctaSub")}</Text>
             </View>
             <ChevronRight size={18} color={theme.textMuted} />
           </TouchableOpacity>
@@ -618,7 +620,7 @@ export default function MedicineScreen() {
               activeOpacity={0.8}
             >
               <Text style={[styles.segmentedText, { color: activeTab === "me" ? theme.accent : theme.textSecondary }, activeTab === "me" && { fontFamily: "Inter_700Bold" }]}>
-                Benim İlaçlarım
+                {t("medicine.tabs.mine")}
               </Text>
             </TouchableOpacity>
 
@@ -628,7 +630,7 @@ export default function MedicineScreen() {
               activeOpacity={0.8}
             >
               <Text style={[styles.segmentedText, { color: activeTab === "partner" ? theme.accent : theme.textSecondary }, activeTab === "partner" && { fontFamily: "Inter_700Bold" }]}>
-                Sevgilimin İlaçları 💕
+                {t("medicine.tabs.partner")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -645,8 +647,8 @@ export default function MedicineScreen() {
           {/* BUGÜNÜN İLAÇLARI BÖLÜMÜ */}
           <View style={styles.sectionBlock}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>BUGÜNÜN DOZLARI</Text>
-              <Text style={[styles.sectionDateSub, { color: theme.textMuted }]}>{dayjs().locale("tr").format("D MMMM, dddd")}</Text>
+              <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t("medicine.today.title")}</Text>
+              <Text style={[styles.sectionDateSub, { color: theme.textMuted }]}>{dayjs().locale(i18n.language).format("D MMMM, dddd")}</Text>
             </View>
 
             {isLoading ? (
@@ -657,16 +659,16 @@ export default function MedicineScreen() {
             ) : filteredMedicines.length === 0 ? (
               <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}>
                 <Pill size={36} color={theme.textMuted} />
-                <Text style={[styles.emptyCardTitle, { color: theme.text }]}>Bugün İçin İlaç Yok</Text>
+                <Text style={[styles.emptyCardTitle, { color: theme.text }]}>{t("medicine.today.emptyTitle")}</Text>
                 <Text style={[styles.emptyCardSub, { color: theme.textSecondary }]}>
-                  {activeTab === "partner" ? "Sevgilinizin bugün alması gereken bir ilaç bulunmuyor." : "Bugün almanız gereken herhangi bir ilaç planlanmamış."}
+                  {activeTab === "partner" ? t("medicine.today.emptyPartner") : t("medicine.today.emptyMine")}
                 </Text>
                 <TouchableOpacity
                   style={[styles.emptyBtn, { backgroundColor: theme.accent }]}
                   onPress={() => openManagerModal({ isPartnerAdd: activeTab === "partner" })}
                 >
                   <Plus size={15} color="#ffffff" />
-                  <Text style={styles.emptyBtnText}>İlaç Ekle</Text>
+                  <Text style={styles.emptyBtnText}>{t("medicine.add")}</Text>
                 </TouchableOpacity>
               </View>
             ) : (

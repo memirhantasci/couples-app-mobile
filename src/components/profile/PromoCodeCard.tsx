@@ -17,6 +17,7 @@ import type { useDemoAction } from "@/hooks/useDemoAction";
 import { toast } from "@/lib/toast";
 import { suppressPremiumCelebration } from "@/lib/premiumCelebration";
 import { ModernSection } from "./ModernSection";
+import { useTranslation } from "react-i18next";
 
 interface PromoCodeCardProps {
   theme: AppTheme;
@@ -33,6 +34,7 @@ export function PromoCodeCard({
   refreshProfile,
   onPremiumSuccess,
 }: PromoCodeCardProps) {
+  const { t } = useTranslation();
   const [promoCode, setPromoCode] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
 
@@ -40,8 +42,8 @@ export function PromoCodeCard({
   async function handleRedeemPromo() {
     if (executeOrIntercept(
       () => {},
-      "Promosyon Kodu Kullanmak İçin Kayıt Olun 🎁",
-      "Kazanacağınız token ve ayrıcalıkları hesabınıza tanımlamak için ücretsiz hesap oluşturun."
+      t("profile.promo.demoTitle"),
+      t("profile.promo.demoDescription")
     )) {
       return;
     }
@@ -72,9 +74,9 @@ export function PromoCodeCard({
           return;
         }
 
-        appAlert("Hata", rpcError?.message || promoError?.message || "Premium aktif edilemedi.");
+        appAlert(t("common.error"), rpcError?.message || promoError?.message || t("profile.promo.activateFailed"));
       } catch (err: any) {
-        appAlert("Hata", err?.message || "İşlem başarısız.");
+        appAlert(t("common.error"), err?.message || t("profile.promo.actionFailed"));
       } finally {
         setPromoLoading(false);
       }
@@ -92,13 +94,13 @@ export function PromoCodeCard({
         if (!rpcError) {
           await refreshProfile();
           setPromoCode("");
-          toast.info("Premium başarıyla sonlandırıldı.");
+          toast.info(t("profile.promo.ended"));
           return;
         }
 
-        appAlert("Hata", rpcError?.message || "Premium iptal edilemedi.");
+        appAlert(t("common.error"), rpcError?.message || t("profile.promo.cancelFailed"));
       } catch (err: any) {
-        appAlert("Hata", err?.message || "İşlem başarısız.");
+        appAlert(t("common.error"), err?.message || t("profile.promo.actionFailed"));
       } finally {
         setPromoLoading(false);
       }
@@ -118,12 +120,12 @@ export function PromoCodeCard({
       if (data?.reward_type === "premium") {
         onPremiumSuccess();
       } else {
-        toast.success(`${data?.reward_amount} Token hesabına yüklendi!`, { title: "Tebrikler!", emoji: "🎉" });
+        toast.success(t("profile.promo.tokensAdded", { amount: data?.reward_amount }), { title: t("common.congratulations"), emoji: "🎉" });
       }
 
       setPromoCode("");
     } catch (err: any) {
-      appAlert("Hata", err.message || "Promosyon kodu kullanılamadı.");
+      appAlert(t("common.error"), err.message || t("profile.promo.redeemFailed"));
     } finally {
       setPromoLoading(false);
     }
@@ -131,13 +133,13 @@ export function PromoCodeCard({
 
   return (
     <ModernSection
-      title="Promosyon & Hediye Kodu"
+      title={t("profile.promo.title")}
       icon={<Gift size={18} color={theme.accent} />}
       theme={theme}
       defaultOpen={false}
     >
       <Text style={[styles.promoHintText, { color: theme.textMuted }]}>
-        Özel bir indirim veya hediye kodunuz varsa buraya girerek hesabınıza tanımlayabilirsiniz.
+        {t("profile.promo.description")}
       </Text>
 
       <View style={styles.promoInputRow}>
@@ -150,7 +152,7 @@ export function PromoCodeCard({
               borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
             },
           ]}
-          placeholder="HEDİYE KODU"
+          placeholder={t("profile.promo.placeholder")}
           placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
           value={promoCode}
           onChangeText={setPromoCode}
@@ -170,7 +172,7 @@ export function PromoCodeCard({
           {promoLoading ? (
             <ActivityIndicator color="#ffffff" size="small" />
           ) : (
-            <Text style={styles.promoApplyBtnText}>Kullan</Text>
+            <Text style={styles.promoApplyBtnText}>{t("profile.promo.redeem")}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -181,7 +183,7 @@ export function PromoCodeCard({
           style={[styles.iosCodeBtn, { backgroundColor: theme.unitBg, borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}
           activeOpacity={0.8}
         >
-          <Text style={[styles.iosCodeBtnText, { color: theme.textSecondary }]}>App Store Teklif Kodu Kullan 🍎</Text>
+          <Text style={[styles.iosCodeBtnText, { color: theme.textSecondary }]}>{t("profile.promo.appStoreOffer")}</Text>
         </TouchableOpacity>
       )}
     </ModernSection>

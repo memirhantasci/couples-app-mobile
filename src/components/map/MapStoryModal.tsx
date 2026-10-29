@@ -14,6 +14,7 @@ import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 import { AppTheme } from "@/lib/theme";
 import { dayjs } from "@/lib/date";
+import { useTranslation } from "react-i18next";
 
 
 interface MapPinItem {
@@ -89,6 +90,7 @@ function maxDistanceKm(pins: readonly { latitude: number; longitude: number }[])
 const EXACT_PAIRWISE_LIMIT = 150;
 
 export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalProps) {
+  const { t } = useTranslation();
   const [isSharing, setIsSharing] = useState(false);
   const shareCardRef = useRef<View>(null);
 
@@ -105,8 +107,8 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
 
     const maxDist = maxDistanceKm(pins);
 
-    const firstPlace = pins[pins.length - 1]?.location_name || "İlk Durağımız";
-    const latestPlace = pins[0]?.location_name || "Son Rotamız";
+    const firstPlace = pins[pins.length - 1]?.location_name || t("map.story.firstStop");
+    const latestPlace = pins[0]?.location_name || t("map.story.latestRoute");
     const cityCount = Math.max(1, locationNames.length);
 
     return {
@@ -117,10 +119,10 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
       latestPlace,
       headline:
         maxDist > 50
-          ? `Aşkımız ${cityCount} şehirde ve ${maxDist} kilometrede büyüdü.`
-          : `Birlikte ${totalPins} unutulmaz noktada anı bıraktık.`,
+          ? t("map.story.headlineMany", { count: cityCount, maxDist })
+          : t("map.story.headlinePins", { count: totalPins }),
     };
-  }, [pins, visible]);
+  }, [pins, visible, t]);
 
   const handleShare = async () => {
     if (!shareCardRef.current || !stats) return;
@@ -135,7 +137,7 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {
           mimeType: "image/png",
-          dialogTitle: "Aşk Haritamızı Paylaş",
+          dialogTitle: t("map.story.shareTitle"),
           UTI: "public.png",
         });
       } else {
@@ -161,7 +163,7 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
           <View style={styles.topBar}>
             <View style={styles.badge}>
               <Sparkles size={14} color="#FF6B8B" />
-              <Text style={styles.badgeText}>AŞK HARİTASI HİKAYEMİZ</Text>
+              <Text style={styles.badgeText}>{t("map.story.title")}</Text>
             </View>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={styles.closeBtn}>
               <X size={20} color="#FFFFFF" />
@@ -173,9 +175,9 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
               <View style={styles.emptyIconCircle}>
                 <Compass size={26} color="#FF4D6D" />
               </View>
-              <Text style={styles.emptyTitle}>Henüz harita iziniz bulunmuyor</Text>
+              <Text style={styles.emptyTitle}>{t("map.story.emptyTitle")}</Text>
               <Text style={styles.emptyText}>
-                Anı veya fotoğraf ekledikçe seyahat hikayeniz burada şekillenecek ✨
+                {t("map.story.emptyDescription")}
               </Text>
             </View>
           ) : (
@@ -204,7 +206,7 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
               <View style={styles.stopRow}>
                 <View style={styles.dotStart} />
                 <View style={styles.stopTextGroup}>
-                  <Text style={styles.stopLabel}>İlk Durak</Text>
+                  <Text style={styles.stopLabel}>{t("map.story.firstStopLabel")}</Text>
                   <Text style={styles.stopValue}>{stats.firstPlace}</Text>
                 </View>
               </View>
@@ -214,7 +216,7 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
               <View style={styles.stopRow}>
                 <View style={styles.dotEnd} />
                 <View style={styles.stopTextGroup}>
-                  <Text style={styles.stopLabel}>Son Rota</Text>
+                  <Text style={styles.stopLabel}>{t("map.story.latestRouteLabel")}</Text>
                   <Text style={styles.stopValue}>{stats.latestPlace}</Text>
                 </View>
               </View>
@@ -224,17 +226,17 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
             <View style={styles.metricsGrid}>
               <View style={styles.metricItem}>
                 <Text style={styles.metricNum}>{stats.totalPins}</Text>
-                <Text style={styles.metricLabel}>Harita İzi</Text>
+                <Text style={styles.metricLabel}>{t("map.story.trail")}</Text>
               </View>
               <View style={styles.metricDivider} />
               <View style={styles.metricItem}>
                 <Text style={styles.metricNum}>{stats.maxDistanceKm}</Text>
-                <Text style={styles.metricLabel}>Kilometre</Text>
+                <Text style={styles.metricLabel}>{t("map.story.kilometers")}</Text>
               </View>
               <View style={styles.metricDivider} />
               <View style={styles.metricItem}>
                 <Text style={styles.metricNum}>{Math.max(1, stats.locationsList.length)}</Text>
-                <Text style={styles.metricLabel}>Keşif Yeri</Text>
+                <Text style={styles.metricLabel}>{t("map.story.explored")}</Text>
               </View>
             </View>
 
@@ -263,7 +265,7 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
               ) : (
                 <>
                   <Share2 size={18} color="#FFFFFF" />
-                  <Text style={styles.shareBtnText}>Instagram Story&apos;de Paylaş</Text>
+                  <Text style={styles.shareBtnText}>{t("map.story.shareInstagram")}</Text>
                 </>
               )}
             </LinearGradient>

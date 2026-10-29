@@ -60,13 +60,10 @@ import {
   letterDeletionState,
   letterUnlockAt,
 } from "@/lib/letterPolicy";
+import { useTranslation } from "react-i18next";
 
-const DEMO_MANAGE_TITLE = "Mektuplarını Yönetmek İçin Kayıt Olun 💌";
-const DEMO_MANAGE_DESCRIPTION =
-  "Mektupları listenden gizlemek ve silme isteği göndermek için ücretsiz hesap oluşturun.";
-
-const formatPolicyMoment = (ms: number) => dayjs(ms).locale("tr").format("D MMMM HH:mm");
-const formatPolicyDay = (ms: number) => dayjs(ms).locale("tr").format("D MMMM");
+const formatPolicyMoment = (ms: number, language: string) => dayjs(ms).locale(language).format("D MMMM HH:mm");
+const formatPolicyDay = (ms: number, language: string) => dayjs(ms).locale(language).format("D MMMM");
 
 // Bakan kişinin kendi listesinden gizlediği mektuplar ayrı görünümde durur. Yanıt bekleyen bir
 // silme isteği, alıcı mektubu gizlemiş olsa da gözden kaçmasın diye ana listede kalır.
@@ -81,6 +78,7 @@ const safeDecrypt = (val: string | null | undefined): string => (val ? decrypt(v
 const readableName = (val: string | null | undefined): string => (val ?? "").trim();
 
 export default function LettersScreen() {
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { session, profile, refreshProfile, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
@@ -205,8 +203,8 @@ export default function LettersScreen() {
   const handleOpenWriteModal = () => {
     if (executeOrIntercept(
       () => {},
-      "Mektup Yazmak ve Mühürlemek İçin Kayıt Olun 💌",
-      "Partnerinize zaman kilitli mektuplar göndermek ve dilediğiniz tarihte açılmasını sağlamak için ücretsiz hesap oluşturun."
+      t("demo.prompts.writeLetter.title"),
+      t("demo.prompts.writeLetter.description")
     )) {
       return;
     }
@@ -220,8 +218,8 @@ export default function LettersScreen() {
   const handleSave = async () => {
     if (executeOrIntercept(
       () => {},
-      "Mektup Yazmak ve Mühürlemek İçin Kayıt Olun 💌",
-      "Partnerinize zaman kilitli mektuplar göndermek ve dilediğiniz tarihte açılmasını sağlamak için ücretsiz hesap oluşturun."
+      t("demo.prompts.writeLetter.title"),
+      t("demo.prompts.writeLetter.description")
     )) {
       setShowWriteModal(false);
       return;
@@ -235,7 +233,7 @@ export default function LettersScreen() {
     setErrors(newErrors);
 
     if (newErrors.receiver || newErrors.title || newErrors.content) {
-      appAlert("Eksik Bilgi", "Lütfen kime göndereceğinizi, başlığı ve mektup içeriğini doldurun.");
+      appAlert(t("common.missingInfo"), t("letters.errors.missingFields"));
       return;
     }
 
@@ -249,7 +247,7 @@ export default function LettersScreen() {
       const cleanContent = sanitize(content.trim());
 
       if (!cleanTitle || !cleanContent) {
-        appAlert("Hata", "Geçersiz içerik tespit edildi.");
+        appAlert(t("common.error"), t("letters.errors.invalidContent"));
         setLoadingForm(false);
         return;
       }
@@ -287,12 +285,12 @@ export default function LettersScreen() {
       logger.error("Letter save error:", error);
       if (error?.code === "P0002" || error?.message?.includes("Token") || error?.message?.includes("Premium")) {
         appAlert(
-          "Yetersiz Bakiye",
-          "Mektup mühürlemek için 100 Token veya aktif Premium üyelik gereklidir.",
+          t("letters.insufficient.title"),
+          t("letters.insufficient.message"),
           [
-            { text: "Vazgeç", style: "cancel" },
+            { text: t("common.cancel"), style: "cancel" },
             { 
-              text: "Premium'u Keşfet", 
+              text: t("common.discoverPremium"), 
               onPress: () => {
                 setShowWriteModal(false);
                 setShowPaywall(true);
@@ -301,7 +299,7 @@ export default function LettersScreen() {
           ]
         );
       } else {
-        appAlert("Hata", "Mektup mühürlenirken bir hata oluştu: " + (error?.message || ""));
+        appAlert(t("common.error"), t("letters.errors.sealFailedWithMessage", { message: error?.message || "" }));
       }
     } finally {
       setLoadingForm(false);
@@ -317,11 +315,11 @@ export default function LettersScreen() {
 
     if (!isPremium) {
       appAlert(
-        "Token Kullanımı",
-        "Bu mektubu mühürlemek için 100 token kullanılacaktır. Onaylıyor musunuz?",
+        t("letters.tokenUse.title"),
+        t("letters.tokenUse.message"),
         [
-          { text: "İptal", style: "cancel" },
-          { text: "Onayla ve Mühürle", onPress: () => handleSave() }
+          { text: t("common.cancelAction"), style: "cancel" },
+          { text: t("letters.tokenUse.confirm"), onPress: () => handleSave() }
         ]
       );
     } else {
@@ -336,7 +334,7 @@ export default function LettersScreen() {
       await action();
     } catch (error: any) {
       logger.error("Letter action error:", error);
-      appAlert("İşlem Başarısız", error?.message || "Lütfen biraz sonra tekrar deneyin.");
+      appAlert(t("letters.errors.actionFailedTitle"), error?.message || t("letters.errors.tryAgainLater"));
     } finally {
       setBusyLetterId(null);
       queryClient.invalidateQueries({ queryKey: ["letters_data"] });
@@ -348,7 +346,7 @@ export default function LettersScreen() {
       const { error } = await supabase.rpc("set_letter_hidden", { p_letter_id: letter.id, p_hidden: hidden });
       if (error) throw error;
       toast.success(
-        hidden ? "Mektup listenden gizlendi; Gizlenenler'den geri getirebilirsin" : "Mektup listene geri döndü ✨"
+        hidden ? t("letters.toasts.hidden") : t("letters.toasts.unhidden")
       );
     });
 
@@ -356,13 +354,13 @@ export default function LettersScreen() {
     runLetterAction(letter.id, async () => {
       const { error } = await supabase.rpc("request_letter_deletion", { p_letter_id: letter.id });
       if (error) throw error;
-      toast.success("Silme isteğin gönderildi; partnerinin onayı bekleniyor 🕊️");
+      toast.success(t("letters.toasts.requestSent"));
       if (coupleId && userId) {
-        notifyPartner(coupleId, userId, "Mektup Silme Onayı", "Bir mektubun silinmesi için onayını istiyor.", {
+        notifyPartner(coupleId, userId, t("notifications.push.letterDeleteRequest.subtitle"), t("letters.push.deleteRequestBody"), {
           type: "letter_delete_request",
           letterTitle: letter.title,
           route: "/(tabs)/letters",
-          actionLabel: "İsteği Gör 💌",
+          actionLabel: t("letters.push.viewRequest"),
         });
       }
     });
@@ -371,7 +369,7 @@ export default function LettersScreen() {
     runLetterAction(letter.id, async () => {
       const { error } = await supabase.rpc("cancel_letter_deletion", { p_letter_id: letter.id });
       if (error) throw error;
-      toast.success("Silme isteğin geri çekildi; mektup yerinde duruyor 💌");
+      toast.success(t("letters.toasts.requestWithdrawn"));
     });
 
   const respondToDeletion = (letter: any, approve: boolean) =>
@@ -382,18 +380,18 @@ export default function LettersScreen() {
       });
       if (error) throw error;
       if (!approve) {
-        toast.success("Mektup saklanmaya devam edecek 💛");
+        toast.success(t("letters.toasts.keptLetter"));
       } else if (deletedNow) {
-        toast.success("Mektup ikiniz için de silindi");
+        toast.success(t("letters.toasts.deletedBoth"));
       } else {
-        toast.success(`Onayın kaydedildi; mektup ${formatPolicyDay(letterDeletableAt(letter))} tarihinde silinecek`);
+        toast.success(t("letters.toasts.approvalSaved", { date: formatPolicyDay(letterDeletableAt(letter), i18n.language) }));
       }
       if (coupleId && userId) {
         notifyPartner(
           coupleId,
           userId,
-          "Mektup Silme İsteği",
-          approve ? "Mektubunun silinmesine izin verdi." : "Mektubunun saklanmasını istedi.",
+          t("notifications.push.letterDeleteResponse.subtitle"),
+          approve ? t("notifications.push.letterDeleteResponse.approved") : t("letters.push.keepAsked"),
           {
             type: "letter_delete_response",
             approved: approve,
@@ -407,13 +405,13 @@ export default function LettersScreen() {
   const handleApproveDeletion = (letter: any) => {
     const deletableAt = letterDeletableAt(letter);
     appAlert(
-      "Silinmesine İzin Veriyor musun? 🗑️",
+      t("letters.allowDelete.title"),
       Date.now() < deletableAt
-        ? `Mektup ${formatPolicyDay(deletableAt)} tarihinde ikiniz için de kalıcı olarak silinecek. O güne kadar fikrini değiştirebilirsin.`
-        : "Mektup ikiniz için de hemen ve kalıcı olarak silinecek. Bu işlem geri alınamaz.",
+        ? t("letters.allowDelete.messageOnDate", { date: formatPolicyDay(deletableAt, i18n.language) })
+        : t("letters.allowDelete.messageNow"),
       [
-        { text: "Vazgeç", style: "cancel" },
-        { text: "İzin Ver", style: "destructive", onPress: () => respondToDeletion(letter, true) },
+        { text: t("common.cancel"), style: "cancel" },
+        { text: t("letters.allowDelete.confirm"), style: "destructive", onPress: () => respondToDeletion(letter, true) },
       ]
     );
   };
@@ -421,11 +419,11 @@ export default function LettersScreen() {
   const handleRequestDeletion = (letter: any, isLocked: boolean) => {
     if (isLocked) {
       appAlert(
-        "Açılış Gününe Kadar Silinemez 🔒",
-        "Mühürlenen bir mektup partnerine ulaşmadan silinemez. Yer kaplamasın istersen yalnızca kendi listenden gizleyebilir, dilediğinde geri getirebilirsin.",
+        t("letters.cantDelete.title"),
+        t("letters.cantDelete.message"),
         [
-          { text: "Vazgeç", style: "cancel" },
-          { text: "Listemden Gizle", onPress: () => handleSetHidden(letter, true) },
+          { text: t("common.cancel"), style: "cancel" },
+          { text: t("letters.hideFromList"), onPress: () => handleSetHidden(letter, true) },
         ]
       );
       return;
@@ -434,8 +432,8 @@ export default function LettersScreen() {
     const opensAt = deletionRequestOpensAt(letter);
     if (now < opensAt) {
       appAlert(
-        "Biraz Erken ⏳",
-        `Partnerin mektubu okuyabilsin diye silme isteği, açılıştan 72 saat sonra gönderilebilir: ${formatPolicyMoment(opensAt)} itibarıyla.`,
+        t("letters.tooEarly.title"),
+        t("letters.tooEarly.message", { date: formatPolicyMoment(opensAt, i18n.language) }),
         undefined,
         { forceDialog: true }
       );
@@ -444,8 +442,8 @@ export default function LettersScreen() {
     const retryAt = deletionRetryAt(letter);
     if (retryAt !== null && now < retryAt) {
       appAlert(
-        "Partnerin Bu Mektubu Saklamak İstedi 💛",
-        `Yeni bir silme isteğini ${formatPolicyMoment(retryAt)} itibarıyla gönderebilirsin.`,
+        t("letters.partnerKept.title"),
+        t("letters.partnerKept.message", { date: formatPolicyMoment(retryAt, i18n.language) }),
         undefined,
         { forceDialog: true }
       );
@@ -453,37 +451,39 @@ export default function LettersScreen() {
     }
     const deletableAt = letterDeletableAt(letter);
     appAlert(
-      "Silme İsteği Gönderilsin mi? 🗑️",
-      `Partnerin onay verirse mektup ${now < deletableAt ? `${formatPolicyDay(deletableAt)} tarihinde` : "hemen"} ikiniz için de kalıcı olarak silinir. Onay vermezse mektup yerinde kalır.`,
+      t("letters.sendRequest.title"),
+      now < deletableAt
+        ? t("letters.deleteRequest.confirmOnDate", { date: formatPolicyDay(deletableAt, i18n.language) })
+        : t("letters.deleteRequest.confirmNow"),
       [
-        { text: "Vazgeç", style: "cancel" },
-        { text: "İsteği Gönder", onPress: () => submitDeletionRequest(letter) },
+        { text: t("common.cancel"), style: "cancel" },
+        { text: t("letters.sendRequest.confirm"), onPress: () => submitDeletionRequest(letter) },
       ]
     );
   };
 
   const openLetterMenu = (letter: any, itemType: "sent" | "received", isLocked: boolean) => {
-    if (executeOrIntercept(() => {}, DEMO_MANAGE_TITLE, DEMO_MANAGE_DESCRIPTION)) return;
+    if (executeOrIntercept(() => {}, t("letters.demo.manageTitle"), t("letters.demo.manageDescription"))) return;
     const hidden = isHiddenBy(letter, itemType);
     const buttons: DialogButton[] = [
       hidden
-        ? { text: "Listeme Geri Getir", onPress: () => handleSetHidden(letter, false) }
-        : { text: "Listemden Gizle", onPress: () => handleSetHidden(letter, true) },
+        ? { text: t("letters.options.unhide"), onPress: () => handleSetHidden(letter, false) }
+        : { text: t("letters.hideFromList"), onPress: () => handleSetHidden(letter, true) },
     ];
     if (itemType === "sent") {
       const deletion = letterDeletionState(letter);
       buttons.push(
         deletion === "pending" || deletion === "approved"
-          ? { text: "Silme İsteğini Geri Çek", onPress: () => handleCancelDeletion(letter) }
-          : { text: "Silinmesini İste", onPress: () => handleRequestDeletion(letter, isLocked) }
+          ? { text: t("letters.options.withdraw"), onPress: () => handleCancelDeletion(letter) }
+          : { text: t("letters.options.requestDeletion"), onPress: () => handleRequestDeletion(letter, isLocked) }
       );
     }
-    buttons.push({ text: "Vazgeç", style: "cancel" });
+    buttons.push({ text: t("common.cancel"), style: "cancel" });
     appAlert(
-      "Mektup Seçenekleri ✉️",
+      t("letters.options.title"),
       itemType === "sent"
-        ? "Gizlemek mektubu silmez, yalnızca senin listeni etkiler. Silmek ise açılıştan sonra partnerinin onayıyla mümkündür."
-        : "Gizlemek mektubu silmez, yalnızca senin listeni etkiler; dilediğin an geri getirebilirsin.",
+        ? t("letters.options.messageReceived")
+        : t("letters.options.messageSent"),
       buttons,
       { tone: "question" }
     );
@@ -501,11 +501,11 @@ export default function LettersScreen() {
 
     const personObj = itemType === "received" ? letter.sender : letter.receiver;
     const personName =
-      readableName(personObj?.display_name) || readableName(personObj?.username) || "Sevgilim ❤️";
+      readableName(personObj?.display_name) || readableName(personObj?.username) || t("letters.myLoveHeart");
     const personAvatarUrl = getAvatarUrl(itemType === "received" ? letter.sender_id : letter.receiver_id);
 
     let relativeDate = dayjs(letter.created_at).format("DD MMMM YYYY");
-    if (dayjs(letter.created_at).isSame(dayjs(), 'day')) relativeDate = "Bugün";
+    if (dayjs(letter.created_at).isSame(dayjs(), 'day')) relativeDate = t("common.today");
 
     // Kilitli (henüz açılamayan) mektubun içeriği hiç çözülmez; açılabilir olanlar önbellekten gelir
     const letterContent = canOpen ? safeDecrypt(letter.content) : "";
@@ -513,29 +513,29 @@ export default function LettersScreen() {
     // Silme isteğinin durumu: alıcıya karar kutusu, diğer durumlarda tek satırlık not
     const deletion = letterDeletionState(letter);
     const isBusy = busyLetterId === letter.id;
-    const deletionDay = formatPolicyDay(letterDeletableAt(letter));
+    const deletionDay = formatPolicyDay(letterDeletableAt(letter), i18n.language);
     const amber = isLight ? "#B45309" : "#f59e0b";
     let deletionNote: { icon: React.ReactNode; text: string; action?: { label: string; onPress: () => void } } | null = null;
     if (itemType === "sent" && deletion === "pending") {
       deletionNote = {
         icon: <Hourglass size={14} color={amber} />,
-        text: "Silme isteğin partnerinin onayını bekliyor",
-        action: { label: "Geri çek", onPress: () => handleCancelDeletion(letter) },
+        text: t("letters.note.pending"),
+        action: { label: t("letters.note.withdraw"), onPress: () => handleCancelDeletion(letter) },
       };
     } else if (deletion === "approved") {
       deletionNote = {
         icon: <Clock size={14} color={amber} />,
         text: itemType === "sent"
-          ? `Partnerin onay verdi · ${deletionDay} tarihinde silinecek`
-          : `Silinmesine izin verdin · ${deletionDay} tarihinde silinecek`,
+          ? t("letters.note.partnerApproved", { deletionDay })
+          : t("letters.note.youApproved", { deletionDay }),
         action: itemType === "sent"
-          ? { label: "Vazgeç", onPress: () => handleCancelDeletion(letter) }
-          : { label: "Saklansın", onPress: () => respondToDeletion(letter, false) },
+          ? { label: t("common.cancel"), onPress: () => handleCancelDeletion(letter) }
+          : { label: t("letters.note.keep"), onPress: () => respondToDeletion(letter, false) },
       };
     } else if (itemType === "sent" && deletion === "rejected") {
       deletionNote = {
         icon: <HeartHandshake size={14} color={theme.accent} />,
-        text: "Partnerin bu mektubu saklamak istedi 💛",
+        text: t("letters.note.partnerKept"),
       };
     }
 
@@ -573,7 +573,7 @@ export default function LettersScreen() {
                       { color: itemType === "received" ? "#c084fc" : "#60a5fa" },
                     ]}
                   >
-                    {itemType === "received" ? "📥 Gelen" : "📤 Giden"}
+                    {itemType === "received" ? t("letters.badge.received") : t("letters.badge.sent")}
                   </Text>
                 </View>
               )}
@@ -582,7 +582,7 @@ export default function LettersScreen() {
                 <View style={styles.lockedBadge}>
                   <LockKeyhole size={13} color={isLight ? "#B45309" : "#f59e0b"} />
                   <Text style={styles.lockedBadgeText}>
-                    Kilitli • {dayjs(unlockDateStr).locale("tr").format("DD MMM YYYY")}
+                    {t("letters.card.locked", { date: dayjs(unlockDateStr).locale(i18n.language).format("DD MMM YYYY") })}
                   </Text>
                 </View>
               ) : (
@@ -591,9 +591,9 @@ export default function LettersScreen() {
                   <Text style={styles.unlockedBadgeText}>
                     {itemType === "sent"
                       ? isLockedDate
-                        ? `Mühürlü • ${dayjs(unlockDateStr).locale("tr").format("DD MMM YYYY")}`
-                        : "Gönderildi"
-                      : "Açıldı"}
+                        ? t("letters.card.sealed", { date: dayjs(unlockDateStr).locale(i18n.language).format("DD MMM YYYY") })
+                        : t("letters.card.sentStatus")
+                      : t("letters.card.opened")}
                   </Text>
                 </View>
               )}
@@ -614,7 +614,7 @@ export default function LettersScreen() {
                   onPress={() => openLetterMenu(letter, itemType, isLockedDate)}
                   style={[styles.cardMoreBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)" }]}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  accessibilityLabel="Mektup seçenekleri"
+                  accessibilityLabel={t("letters.card.optionsA11y")}
                 >
                   <MoreHorizontal size={16} color={theme.textMuted} />
                 </TouchableOpacity>
@@ -624,14 +624,14 @@ export default function LettersScreen() {
 
           {/* Mektup Başlığı */}
           <Text style={[styles.cardTitle, { color: theme.text }]}>
-            {canOpen ? letter.title : "🔒 Geleceğe Kilitli Mektup"}
+            {canOpen ? letter.title : t("letters.card.lockedTitle")}
           </Text>
 
           {/* Gönderen / Alıcı Bilgisi */}
           <View style={styles.personRow}>
             <UserAvatar uri={personAvatarUrl} name={personName} size={22} borderWidth={1} />
             <Text style={[styles.personText, { color: theme.textSecondary }]}>
-              {itemType === "received" ? `Gönderen: ${personName}` : `Alıcı: ${personName}`}
+              {itemType === "received" ? t("letters.card.from", { personName }) : t("letters.card.to", { personName })}
             </Text>
           </View>
 
@@ -647,7 +647,7 @@ export default function LettersScreen() {
             >
               {canOpen
                 ? letterContent
-                : "Bu mektup sevdiğin tarafından belirlenen tarihe kadar özel bir mühürle kilitlenmiştir..."}
+                : t("letters.card.lockedNote")}
             </Text>
           )}
 
@@ -655,12 +655,12 @@ export default function LettersScreen() {
           {canOpen && isOpen && (
             <View style={[styles.letterContentBox, { borderTopColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
               <View style={styles.letterContentHeaderRow}>
-                <Text style={[styles.letterContentLabel, { color: theme.accent }]}>Mektup İçeriği</Text>
+                <Text style={[styles.letterContentLabel, { color: theme.accent }]}>{t("letters.card.content")}</Text>
               </View>
               <Text style={[styles.letterContentText, { color: theme.text }]}>{letterContent}</Text>
               {unlockDateStr ? (
                 <Text style={[styles.letterFooterNote, { color: theme.textMuted }]}>
-                  {`Açılış Tarihi: ${dayjs(unlockDateStr).locale("tr").format("DD MMMM YYYY")}`}
+                  {t("letters.card.openingDate", { date: dayjs(unlockDateStr).locale(i18n.language).format("DD MMMM YYYY") })}
                 </Text>
               ) : null}
             </View>
@@ -673,7 +673,7 @@ export default function LettersScreen() {
             <View style={styles.deletionRequestRow}>
               <Hourglass size={15} color={amber} />
               <Text style={[styles.deletionRequestText, { color: theme.text }]}>
-                Partnerin bu mektubun silinmesini istiyor. Sen onay vermeden silinmez.
+                {t("letters.card.deletionAsk")}
               </Text>
             </View>
             <View style={styles.policyActions}>
@@ -683,7 +683,7 @@ export default function LettersScreen() {
                 disabled={isBusy}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.policyBtnText, { color: theme.text }]}>Saklansın 💛</Text>
+                <Text style={[styles.policyBtnText, { color: theme.text }]}>{t("letters.card.keepIt")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.policyBtn, { backgroundColor: theme.accent, borderColor: theme.accent }]}
@@ -694,7 +694,7 @@ export default function LettersScreen() {
                 {isBusy ? (
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
-                  <Text style={[styles.policyBtnText, { color: "#ffffff" }]}>Silinmesine İzin Ver</Text>
+                  <Text style={[styles.policyBtnText, { color: "#ffffff" }]}>{t("letters.card.allowDeletion")}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -720,13 +720,13 @@ export default function LettersScreen() {
         {isHiddenView && (
           <View style={styles.policyStrip}>
             <EyeOff size={14} color={theme.textMuted} />
-            <Text style={[styles.policyStripText, { color: theme.textMuted }]}>Yalnızca senin listende gizli</Text>
+            <Text style={[styles.policyStripText, { color: theme.textMuted }]}>{t("letters.card.hiddenOnlyForYou")}</Text>
             <TouchableOpacity
               onPress={() => handleSetHidden(letter, false)}
               disabled={isBusy}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={[styles.policyLink, { color: theme.accent }]}>Geri getir</Text>
+              <Text style={[styles.policyLink, { color: theme.accent }]}>{t("letters.card.bringBack")}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -736,6 +736,7 @@ export default function LettersScreen() {
     theme.cardBg, theme.cardBorder, theme.text, theme.textMuted, theme.textSecondary, theme.accent, theme.unitBg,
     isLight, userId, openLetterId, activeTab, getAvatarUrl, busyLetterId, isHiddenView,
     openLetterMenu, handleSetHidden, handleCancelDeletion, respondToDeletion, handleApproveDeletion,
+    t, i18n.language,
   ]);
 
   const keyExtractor = useCallback((item: any) => item.id.toString(), []);
@@ -754,7 +755,7 @@ export default function LettersScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity 
             accessibilityRole="button"
-            accessibilityLabel="Geri"
+            accessibilityLabel={t("common.back")}
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();
@@ -769,8 +770,8 @@ export default function LettersScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Mektuplar</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>Geleceğe Zaman Kapsülü 💌</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{t("tabs.letters.label")}</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>{t("letters.subtitle")}</Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -785,7 +786,7 @@ export default function LettersScreen() {
 
             <TouchableOpacity 
               accessibilityRole="button"
-              accessibilityLabel="Menüyü aç"
+              accessibilityLabel={t("common.openMenu")}
               onPress={() => router.push("/menu")} 
               style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -806,8 +807,8 @@ export default function LettersScreen() {
               <PenLine size={20} color={theme.accent} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.writeActionTitle, { color: theme.text }]}>Yeni Bir Mektup Yaz</Text>
-              <Text style={[styles.writeActionSub, { color: theme.textMuted }]}>Sevdiğine gelecekte açılacak bir mesaj bırak ✨</Text>
+              <Text style={[styles.writeActionTitle, { color: theme.text }]}>{t("letters.write.cta")}</Text>
+              <Text style={[styles.writeActionSub, { color: theme.textMuted }]}>{t("letters.write.ctaSub")}</Text>
             </View>
             <ChevronRight size={18} color={theme.textMuted} />
           </TouchableOpacity>
@@ -821,7 +822,7 @@ export default function LettersScreen() {
             activeOpacity={0.8}
           >
             <Text style={[styles.tabText, { color: activeTab === "all" ? theme.accent : theme.textSecondary }, activeTab === "all" && { fontFamily: "Inter_700Bold" }]}>
-              Tümü ({allLetters.length})
+              {t("letters.filters.all", { total: allLetters.length })}
             </Text>
           </TouchableOpacity>
 
@@ -831,7 +832,7 @@ export default function LettersScreen() {
             activeOpacity={0.8}
           >
             <Text style={[styles.tabText, { color: activeTab === "received" ? theme.accent : theme.textSecondary }, activeTab === "received" && { fontFamily: "Inter_700Bold" }]}>
-              Gelen ({receivedLetters.length})
+              {t("letters.filters.received", { total: receivedLetters.length })}
             </Text>
           </TouchableOpacity>
 
@@ -841,7 +842,7 @@ export default function LettersScreen() {
             activeOpacity={0.8}
           >
             <Text style={[styles.tabText, { color: activeTab === "sent" ? theme.accent : theme.textSecondary }, activeTab === "sent" && { fontFamily: "Inter_700Bold" }]}>
-              Giden ({sentLetters.length})
+              {t("letters.filters.sent", { total: sentLetters.length })}
             </Text>
           </TouchableOpacity>
         </View>
@@ -856,8 +857,8 @@ export default function LettersScreen() {
             <Hourglass size={16} color={isLight ? "#B45309" : "#f59e0b"} />
             <Text style={[styles.approvalBannerText, { color: isLight ? "#92400E" : "#FCD34D" }]}>
               {pendingApprovalCount === 1
-                ? "Partnerin bir mektubun silinmesi için onayını bekliyor"
-                : `Partnerin ${pendingApprovalCount} mektubun silinmesi için onayını bekliyor`}
+                ? t("letters.approvalBanner.one")
+                : t("letters.approvalBanner.many", { total: pendingApprovalCount })}
             </Text>
             <ChevronRight size={16} color={isLight ? "#B45309" : "#f59e0b"} />
           </TouchableOpacity>
@@ -868,7 +869,7 @@ export default function LettersScreen() {
           <View style={styles.hiddenBar}>
             {isHiddenView ? (
               <Text style={[styles.hiddenBarText, { color: theme.textMuted }]}>
-                Gizlediğin mektuplar yalnızca senin listenden kalkar; partnerin görmeye devam eder.
+                {t("letters.hiddenNote")}
               </Text>
             ) : (
               <View style={{ flex: 1 }} />
@@ -891,7 +892,7 @@ export default function LettersScreen() {
                 <EyeOff size={13} color={theme.textSecondary} />
               )}
               <Text style={[styles.hiddenToggleText, { color: isHiddenView ? theme.accent : theme.textSecondary }]}>
-                {isHiddenView ? "Mektuplarıma Dön" : `Gizlenenler (${hiddenCount})`}
+                {isHiddenView ? t("letters.backToMine") : t("letters.hiddenTab", { total: hiddenCount })}
               </Text>
             </TouchableOpacity>
           </View>
@@ -920,22 +921,22 @@ export default function LettersScreen() {
               isHiddenView ? (
                 <EmptyState
                   emoji="🙈"
-                  title="Bu sekmede gizlenen mektup yok"
-                  description="Listenden gizlediğin mektuplar burada durur; dilediğin an geri getirebilirsin."
-                  ctaLabel="Mektuplarıma Dön"
+                  title={t("letters.empty.hiddenTitle")}
+                  description={t("letters.empty.hiddenDescription")}
+                  ctaLabel={t("letters.backToMine")}
                   onPressCta={() => setShowHidden(false)}
                   theme={theme}
                 />
               ) : (
               <EmptyState
                 emoji={activeTab === "received" ? "📬" : "💌"}
-                title={activeTab === "received" ? "Sana ilk mektup henüz gelmedi" : "Geleceğe ilk izi bırak!"}
+                title={activeTab === "received" ? t("letters.empty.noneYetTitle") : t("letters.empty.firstMarkTitle")}
                 description={
                   activeTab === "received"
-                    ? "Partnerin sana mühürlü bir mektup yazdığında burada belirecek. Sen de ilk adımı atıp ona bir sürpriz bırakabilirsin."
-                    : "Partnerinin ilk yıl dönümünüzde veya doğum gününde açacağı ilk mühürlü mektubunu hemen yaz."
+                    ? t("letters.empty.noneYetDescription")
+                    : t("letters.empty.firstMarkDescription")
                 }
-                ctaLabel="İlk Mektubu Mühürle 💌"
+                ctaLabel={t("letters.empty.cta")}
                 onPressCta={handleOpenWriteModal}
                 theme={theme}
               />
@@ -949,7 +950,7 @@ export default function LettersScreen() {
                   activeOpacity={0.8}
                 >
                   <Text style={[styles.loadMoreText, { color: theme.accent }]}>
-                    Daha Fazla Mektup Yükle ({currentList.length} Gösteriliyor) 📜
+                    {t("letters.loadMore", { shown: currentList.length })}
                   </Text>
                 </TouchableOpacity>
               ) : null
@@ -978,7 +979,7 @@ export default function LettersScreen() {
             <View style={[styles.modalHeader, { borderBottomColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <PenLine size={20} color={theme.accent} />
-                <Text style={[styles.modalHeaderTitle, { color: theme.text }]}>Mektup Mühürle</Text>
+                <Text style={[styles.modalHeaderTitle, { color: theme.text }]}>{t("letters.compose.title")}</Text>
               </View>
 
               <TouchableOpacity 
@@ -1003,7 +1004,7 @@ export default function LettersScreen() {
                 {/* KİME ALANI */}
                 <View>
                   <Text style={[styles.fieldLabel, { color: theme.textSecondary }, errors.receiver && { color: "#ff5c77" }]}>
-                    KİME GÖNDERİLECEK *
+                    {t("letters.compose.toLabel")}
                   </Text>
                   <View style={styles.usersSelectorRow}>
                     {users?.map((u) => {
@@ -1036,7 +1037,7 @@ export default function LettersScreen() {
                               isSelected && { fontFamily: "Inter_700Bold" }
                             ]}
                           >
-                            {readableName(u.display_name) || readableName(u.username) || "Sevgilim ❤️"}
+                            {readableName(u.display_name) || readableName(u.username) || t("letters.myLoveHeart")}
                           </Text>
                         </TouchableOpacity>
                       );
@@ -1044,7 +1045,7 @@ export default function LettersScreen() {
                     {(!users || users.length === 0) && (
                       <View style={[styles.userPillBtn, { backgroundColor: theme.unitBg, flex: 1 }]}>
                         <Text style={{ color: theme.textMuted, fontSize: 13 }}>
-                          Partnerin henüz eşleşmemiş
+                          {t("letters.compose.partnerNotPaired")}
                         </Text>
                       </View>
                     )}
@@ -1054,10 +1055,10 @@ export default function LettersScreen() {
                 {/* AÇILIŞ TARİHİ (KİLİT) */}
                 <View>
                   <View style={styles.fieldLabelRow}>
-                    <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>KİLİT AÇILMA TARİHİ *</Text>
+                    <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{t("letters.compose.unlockDateLabel")}</Text>
                     <View style={[styles.lockHintPill, { backgroundColor: theme.pillAccentBg }]}>
                       <LockKeyhole size={11} color={theme.accent} />
-                      <Text style={[styles.lockHintText, { color: theme.accent }]}>Zaman Kilidi</Text>
+                      <Text style={[styles.lockHintText, { color: theme.accent }]}>{t("letters.compose.timeLock")}</Text>
                     </View>
                   </View>
 
@@ -1075,7 +1076,7 @@ export default function LettersScreen() {
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                       <CalendarIcon size={18} color={theme.accent} />
                       <Text style={[styles.dateSelectorText, { color: theme.text }]}>
-                        {dayjs(unlockDate).locale("tr").format("DD MMMM YYYY, dddd")}
+                        {dayjs(unlockDate).locale(i18n.language).format("DD MMMM YYYY, dddd")}
                       </Text>
                     </View>
                     <ChevronRight size={16} color={theme.textMuted} />
@@ -1084,7 +1085,7 @@ export default function LettersScreen() {
                   <LazyDateTimePickerSheet
                     visible={showDatePicker}
                     mode="date"
-                    title="Kilit Açılma Tarihi"
+                    title={t("letters.compose.unlockDateTitle")}
                     value={dayjs(unlockDate).toDate()}
                     minimumDate={dayjs().startOf("day").toDate()}
                     onCancel={() => setShowDatePicker(false)}
@@ -1098,7 +1099,7 @@ export default function LettersScreen() {
                 {/* MEKTUP BAŞLIĞI */}
                 <View>
                   <Text style={[styles.fieldLabel, { color: theme.textSecondary }, errors.title && { color: "#ff5c77" }]}>
-                    MEKTUP BAŞLIĞI *
+                    {t("letters.compose.titleLabel")}
                   </Text>
                   <TextInput
                     style={[
@@ -1115,7 +1116,7 @@ export default function LettersScreen() {
                       setTitle(text);
                       setErrors(prev => ({ ...prev, title: false }));
                     }}
-                    placeholder="Örn: 1. Yılımızda Açılacak Özel Bir Not..."
+                    placeholder={t("letters.compose.titlePlaceholder")}
                     placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
                     maxLength={100}
                   />
@@ -1124,7 +1125,7 @@ export default function LettersScreen() {
                 {/* MEKTUP İÇERİĞİ */}
                 <View>
                   <Text style={[styles.fieldLabel, { color: theme.textSecondary }, errors.content && { color: "#ff5c77" }]}>
-                    MEKTUP İÇERİĞİ *
+                    {t("letters.compose.contentLabel")}
                   </Text>
                   <TextInput
                     style={[
@@ -1142,7 +1143,7 @@ export default function LettersScreen() {
                       setContent(text);
                       setErrors(prev => ({ ...prev, content: false }));
                     }}
-                    placeholder="Yüreğinden geçenleri dök... Gelecekte sevdiğinin okumasını istediğin en özel satırlar..."
+                    placeholder={t("letters.compose.contentPlaceholder")}
                     placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
                     multiline
                     numberOfLines={6}
@@ -1166,14 +1167,14 @@ export default function LettersScreen() {
                   ) : (
                     <>
                       <Send size={18} color="#ffffff" />
-                      <Text style={styles.sealBtnText}>Mektubu Mühürle 💌</Text>
+                      <Text style={styles.sealBtnText}>{t("letters.compose.submit")}</Text>
                     </>
                   )}
                 </TouchableOpacity>
 
                 {!isPremium && (
                   <Text style={[styles.tokenNoticeText, { color: theme.textMuted }]}>
-                    * Premium olmayan üyeler için 100 Token karşılığında mühürlenir. (Mevcut bakiyeniz: {tokenBalance} Token)
+                    {t("letters.compose.tokenNote", { balance: tokenBalance })}
                   </Text>
                 )}
             </KeyboardAwareScrollView>
@@ -1187,8 +1188,8 @@ export default function LettersScreen() {
       <LazyPremiumPaywall
         visible={showPaywall}
         onClose={() => setShowPaywall(false)}
-        featureName="Mektup Yaz"
-        featureDescription="Sevdiğine zamanda yolculuğa çıkan mektuplar yaz."
+        featureName={t("letters.premium.featureName")}
+        featureDescription={t("letters.premium.featureDescription")}
         gender={profile?.gender}
         onWatchAd={() => {
           setShowPaywall(false);
@@ -1208,7 +1209,7 @@ export default function LettersScreen() {
           setShowOrigamiAnimation(false);
           // Kuş uçup gidince bloklayıcı bir kart yerine süzülen başarı pili.
           // Titreşim yok: mühür ve başarı titreşimi zaten verildi.
-          toast.success("Mektubun mühürlendi ve geleceğe emanet edildi ✨", { delay: 250, haptic: false });
+          toast.success(t("letters.toasts.sealed"), { delay: 250, haptic: false });
           // Bildirim ön-onay kartı, başarı pili görülebilsin diye biraz sonra gösterilir
           setTimeout(() => priming.maybePrompt(), 2800);
         }}

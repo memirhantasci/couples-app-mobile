@@ -1,4 +1,5 @@
 import type { ViewportStarItem } from '../../types/star.types';
+import { solarBodyName } from '../../utils/solarNames';
 
 /**
  * Güneş Sistemi cisimleri (rendered locally, never fetched from the catalog).
@@ -242,149 +243,128 @@ export function computeSolarSystemLayout(date: Date = new Date()): Record<string
   return layout;
 }
 
-type SolarBody = Omit<ViewportStarItem, 'ra' | 'dec'>;
+// Görünen adlar (common_name / custom_name) tanımda tutulmaz; nesne oluşturulurken dile göre canlı çözülür
+type SolarBody = Omit<ViewportStarItem, 'ra' | 'dec' | 'common_name' | 'custom_name'>;
 
 const SOLAR_BODIES: readonly SolarBody[] = [
   {
     catalog_id: 999901,
     catalog_code: 'SOL-SUN',
-    common_name: 'Güneş',
     magnitude: -26.74,
     spectral_type: 'G2V',
     base_color: '#FFF4E8',
     is_claimed: true,
     is_mine: false,
-    custom_name: 'Güneş',
     luminosity_level: 1.0,
     resonance_active: true,
   },
   {
     catalog_id: 999905,
     catalog_code: 'SOL-MERCURY',
-    common_name: 'Merkür',
     magnitude: -0.4,
     spectral_type: 'Terrestrial',
     base_color: '#CBD5E1',
     is_claimed: true,
     is_mine: false,
-    custom_name: 'Merkür',
     luminosity_level: 1.0,
     resonance_active: false,
   },
   {
     catalog_id: 999903,
     catalog_code: 'SOL-VENUS',
-    common_name: 'Venüs',
     magnitude: -4.4,
     spectral_type: 'Terrestrial',
     base_color: '#FFE5C2',
     is_claimed: true,
     is_mine: false,
-    custom_name: 'Venüs',
     luminosity_level: 1.0,
     resonance_active: false,
   },
   {
     catalog_id: 999902,
     catalog_code: 'SOL-EARTH',
-    common_name: 'Dünya',
     magnitude: -3.8,
     spectral_type: 'Terrestrial',
     base_color: '#38BDF8',
     is_claimed: true,
     is_mine: false,
-    custom_name: 'Dünya',
     luminosity_level: 1.0,
     resonance_active: false,
   },
   {
     catalog_id: 999904,
     catalog_code: 'SOL-MOON',
-    common_name: 'Ay',
     magnitude: -12.74,
     spectral_type: 'Moon',
     base_color: '#E2E8F0',
     is_claimed: true,
     is_mine: false,
-    custom_name: 'Ay',
     luminosity_level: 1.0,
     resonance_active: false,
   },
   {
     catalog_id: 999906,
     catalog_code: 'SOL-MARS',
-    common_name: 'Mars',
     magnitude: -1.5,
     spectral_type: 'Terrestrial',
     base_color: '#EF4444',
     is_claimed: true,
     is_mine: false,
-    custom_name: 'Mars',
     luminosity_level: 1.0,
     resonance_active: false,
   },
   {
     catalog_id: 999907,
     catalog_code: 'SOL-JUPITER',
-    common_name: 'Jüpiter',
     magnitude: -2.7,
     spectral_type: 'Gas Giant',
     base_color: '#F59E0B',
     is_claimed: true,
     is_mine: false,
-    custom_name: 'Jüpiter',
     luminosity_level: 1.0,
     resonance_active: false,
   },
   {
     catalog_id: 999908,
     catalog_code: 'SOL-SATURN',
-    common_name: 'Satürn',
     magnitude: 0.2,
     spectral_type: 'Gas Giant',
     base_color: '#FDE047',
     is_claimed: true,
     is_mine: false,
-    custom_name: 'Satürn',
     luminosity_level: 1.0,
     resonance_active: false,
   },
   {
     catalog_id: 999909,
     catalog_code: 'SOL-URANUS',
-    common_name: 'Uranüs',
     magnitude: 5.5,
     spectral_type: 'Ice Giant',
     base_color: '#22D3EE',
     is_claimed: true,
     is_mine: false,
-    custom_name: 'Uranüs',
     luminosity_level: 1.0,
     resonance_active: false,
   },
   {
     catalog_id: 999910,
     catalog_code: 'SOL-NEPTUNE',
-    common_name: 'Neptün',
     magnitude: 7.8,
     spectral_type: 'Ice Giant',
     base_color: '#3B82F6',
     is_claimed: true,
     is_mine: false,
-    custom_name: 'Neptün',
     luminosity_level: 1.0,
     resonance_active: false,
   },
   {
     catalog_id: 999911,
     catalog_code: 'SOL-PLUTO',
-    common_name: 'Plüton',
     magnitude: 14.0,
     spectral_type: 'Dwarf',
     base_color: '#C084FC',
     is_claimed: true,
     is_mine: false,
-    custom_name: 'Plüton',
     luminosity_level: 1.0,
     resonance_active: false,
   },
@@ -393,7 +373,12 @@ const SOLAR_BODIES: readonly SolarBody[] = [
 const POSITIONS_AT_LAUNCH = computeSolarSystemLayout();
 
 /** Uygulama açılışındaki gerçek dizilimle (derli toplu yerleşimde) Güneş Sistemi cisimleri. */
-export const SOLAR_SYSTEM_OBJECTS: ViewportStarItem[] = SOLAR_BODIES.map((body) => ({
-  ...body,
-  ...POSITIONS_AT_LAUNCH[body.catalog_code],
-}));
+export const SOLAR_SYSTEM_OBJECTS: ViewportStarItem[] = SOLAR_BODIES.map((body) => {
+  const item = { ...body, ...POSITIONS_AT_LAUNCH[body.catalog_code] } as ViewportStarItem;
+  // Adlar her okunduğunda geçerli dilde çözülür (kopyalama anında geçerli dil kullanılır)
+  Object.defineProperties(item, {
+    common_name: { get: () => solarBodyName(body.catalog_code), enumerable: true, configurable: true },
+    custom_name: { get: () => solarBodyName(body.catalog_code) ?? '', enumerable: true, configurable: true },
+  });
+  return item;
+});

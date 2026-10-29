@@ -22,10 +22,12 @@ import { navigateAfterAuth, setAuthFlowActive, releaseAuthFlow } from "@/lib/nav
 import { toast } from "@/lib/toast";
 
 import { applyOtpInput } from "@/lib/otp";
+import { Trans, useTranslation } from "react-i18next";
 
 const OTP_LENGTH = 6;
 
 export default function VerifyDeviceScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { userId, deviceId, email, codeSent } = useLocalSearchParams<{
     userId: string;
@@ -85,7 +87,7 @@ export default function VerifyDeviceScreen() {
   const handleVerify = async () => {
     const code = digits.join("");
     if (code.length !== OTP_LENGTH) {
-      setErrorMsg("Lütfen 6 haneli kodu eksiksiz girin.");
+      setErrorMsg(t("auth.verifyDevice.codeIncomplete"));
       return;
     }
 
@@ -95,7 +97,7 @@ export default function VerifyDeviceScreen() {
 
     try {
       if (!targetEmail) {
-        setErrorMsg("E-posta adresi bulunamadı.");
+        setErrorMsg(t("auth.errors.emailNotFound"));
         setIsLoading(false);
         return;
       }
@@ -108,7 +110,7 @@ export default function VerifyDeviceScreen() {
       });
 
       if (otpError || !data.session) {
-        setErrorMsg("Geçersiz veya süresi dolmuş kod.");
+        setErrorMsg(t("auth.verifyDevice.codeInvalid"));
         setIsLoading(false);
         setDigits(Array(OTP_LENGTH).fill(""));
         inputRefs.current[0]?.focus();
@@ -149,7 +151,7 @@ export default function VerifyDeviceScreen() {
       // Route user correctly based on couple state (eşleşme ölçütü AuthContext ile aynı: 2 üye)
       navigateAfterAuth(await refreshProfile());
     } catch (e: any) {
-      setErrorMsg("Beklenmedik bir hata oluştu.");
+      setErrorMsg(t("errors.unexpected"));
       setIsLoading(false);
     } finally {
       releaseAuthFlow();
@@ -159,7 +161,7 @@ export default function VerifyDeviceScreen() {
   const handleResend = async () => {
     if (resendCooldown > 0 || isResending) return;
     if (!targetEmail) {
-      setErrorMsg("E-posta adresi bulunamadı.");
+      setErrorMsg(t("auth.errors.emailNotFound"));
       return;
     }
     setIsResending(true);
@@ -170,13 +172,13 @@ export default function VerifyDeviceScreen() {
         options: { shouldCreateUser: false },
       });
       if (error) {
-        setErrorMsg("Kod gönderilemedi: " + error.message);
+        setErrorMsg(t("auth.verifyDevice.sendFailedWithMessage", { message: error.message }));
       } else {
         setResendCooldown(60);
-        toast.success("Yeni doğrulama kodu e-postanıza gönderildi.", { title: "Kod gönderildi", emoji: "📧" });
+        toast.success(t("auth.verifyDevice.resent"), { title: t("auth.verifyDevice.resentTitle"), emoji: "📧" });
       }
     } catch {
-      setErrorMsg("Kod gönderilirken bir hata oluştu.");
+      setErrorMsg(t("auth.verifyDevice.resendError"));
     } finally {
       setIsResending(false);
     }
@@ -249,7 +251,7 @@ export default function VerifyDeviceScreen() {
                 marginBottom: 8,
               }}
             >
-              Yeni Cihaz Doğrulaması
+              {t("auth.verifyDevice.title")}
             </Text>
             
             <Text
@@ -262,14 +264,13 @@ export default function VerifyDeviceScreen() {
               }}
             >
               {targetEmail ? (
-                <>
-                  <Text style={{ color: "#FFFFFF", fontFamily: "Inter_600SemiBold" }}>
-                    {targetEmail}
-                  </Text>
-                  {" adresine kod gönderdik"}
-                </>
+                <Trans
+                  i18nKey="auth.codeSentTo"
+                  values={{ email: targetEmail }}
+                  components={{ email: <Text style={{ color: "#FFFFFF", fontFamily: "Inter_600SemiBold" }} /> }}
+                />
               ) : (
-                "E-posta adresinize kod gönderdik"
+                t("auth.codeSentGeneric")
               )}
             </Text>
           </View>
@@ -347,7 +348,7 @@ export default function VerifyDeviceScreen() {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={{ color: "#fff", fontWeight: "700", fontSize: 17 }}>
-                  Cihazı Onayla ve Giriş Yap
+                  {t("auth.verifyDevice.submit")}
                 </Text>
               )}
             </LinearGradient>
@@ -367,10 +368,10 @@ export default function VerifyDeviceScreen() {
               }}
             >
               {isResending
-                ? "Gönderiliyor..."
+                ? t("auth.verifyDevice.sending")
                 : resendCooldown > 0
-                ? `Kodu tekrar gönder (${resendCooldown}s)`
-                : "Kodu tekrar gönder"}
+                ? t("auth.verifyDevice.resendCountdown", { seconds: resendCooldown })
+                : t("auth.verifyDevice.resend")}
             </Text>
           </TouchableOpacity>
 

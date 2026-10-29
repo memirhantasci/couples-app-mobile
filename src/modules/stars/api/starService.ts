@@ -13,6 +13,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/utils/logger';
+import i18n from '@/lib/i18n';
 import type {
   ActiveStarConnection,
   ClaimRandomStarParams,
@@ -89,6 +90,13 @@ function parseCooldownSeconds(error: any, defaultSec: number): number {
 }
 
 /**
+ * Yerelleştirilmiş mesaj taşırken sunucu hata kodunu korur: çağıranlar metne değil `code`'a bakarak ayrım yapar.
+ */
+function codedError(code: string, message: string): Error & { code: string } {
+  return Object.assign(new Error(message), { code });
+}
+
+/**
  * Supabase/PostgreSQL hatalarını inceler; P0001/P0002 ise yapılandırılmış
  * SparkCooldownException üretir, aksi halde hatayı doğrudan fırlatır.
  */
@@ -98,7 +106,7 @@ function handleSupabaseError(error: any): never {
     throw new SparkCooldownException(
       'COOLDOWN_ACTIVE',
       remaining,
-      error.message || `Günlük kıvılcım hakkınız henüz yenilenmedi. Kalan süre: ${remaining} saniye.`,
+      i18n.t('stars.errors.cooldownActive', { count: remaining }),
     );
   }
 
@@ -107,61 +115,47 @@ function handleSupabaseError(error: any): never {
     throw new SparkCooldownException(
       'SPAM_COOLDOWN',
       remaining,
-      error.message || `Lütfen peş peşe titreşim göndermeden önce ${remaining} saniye bekleyin.`,
+      i18n.t('stars.errors.spamCooldown', { count: remaining }),
     );
   }
 
   // P0004: Hedef yıldız race condition ile başkaca alındı
   if (error?.code === 'P0004') {
-    throw new Error(
-      error.message || 'Bu yıldız az önce başka bir çift tarafından seçildi, lütfen başka bir yıldız seçin.',
-    );
+    throw codedError('P0004', i18n.t('stars.errors.starTaken'));
   }
 
   // P0005: Bu çiftin zaten bir yıldızı var (frontend engelini atlatma / race)
   if (error?.code === 'P0005') {
-    throw new Error(
-      error.message || 'Zaten bir yıldızınız var — her çift yalnızca bir yıldıza sahip olabilir.',
-    );
+    throw codedError('P0005', i18n.t('stars.errors.alreadyHasStar'));
   }
 
   // P0006: İçerik moderasyonu ihlali
   if (error?.code === 'P0006') {
-    throw new Error(
-      error.message || 'Yıldız ismi topluluk kurallarına aykırı kelimeler içeremez.',
-    );
+    throw codedError('P0006', i18n.t('stars.errors.nameModeration'));
   }
 
   // P0010 is also used by the older star-connection flow. Only turn the
   // entitlement variant into PremiumRequiredError.
   if (error?.code === 'P0010') {
     if (String(error.message || '').toLocaleLowerCase('tr-TR').includes('premium')) {
-      throw new PremiumRequiredError(error.message || 'Bu işlem için aktif Premium üyelik gereklidir.');
+      throw new PremiumRequiredError(i18n.t('stars.errors.premiumRequired'));
     }
-    throw new Error(
-      error.message || 'Bağlantı kurabilmek için önce bir yıldız sahiplenmelisiniz.',
-    );
+    throw codedError('P0010', i18n.t('stars.errors.needStar'));
   }
 
   // P0011: Maksimum 3 yıldız bağlantısı sınırı
   if (error?.code === 'P0011') {
-    throw new Error(
-      error.message || 'Maksimum 3 yıldız bağlantısı sınırına ulaşıldı.',
-    );
+    throw codedError('P0011', i18n.t('stars.errors.maxConnections'));
   }
 
   // P0012: Zaten aktif veya bekleyen bağlantı var
   if (error?.code === 'P0012') {
-    throw new Error(
-      error.message || 'Bu yıldızla zaten aktif veya bekleyen bir bağlantı mevcut.',
-    );
+    throw codedError('P0012', i18n.t('stars.errors.connectionExists'));
   }
 
   // P0014: İstek zaten yanıtlanmış
   if (error?.code === 'P0014') {
-    throw new Error(
-      error.message || 'Bu bağlantı isteği zaten yanıtlanmış.',
-    );
+    throw codedError('P0014', i18n.t('stars.errors.requestAnswered'));
   }
 
   throw error;
@@ -381,7 +375,7 @@ export async function renameMyStar(newName: string): Promise<CoupleStarDetails> 
   if (error) {
     if (error.code === 'P0012') {
       throw new StarRenameCooldownError(
-        'İsim değiştirme hakkınız henüz yenilenmedi.',
+        i18n.t('stars.errors.renameCooldown'),
         typeof error.hint === 'string' && error.hint ? error.hint : null,
       );
     }
@@ -426,7 +420,7 @@ async function hydrateMediaUrls(record: StarExoplanetRecord): Promise<StarExopla
       const { data, error } = await supabase.storage
         .from('couple-memories')
         .createSignedUrl(path, 60 * 15);
-      if (error || !data) throw error || new Error('Medya erişim bağlantısı oluşturulamadı.');
+      if (error || !data) throw error || new Error(i18n.t('stars.errors.mediaLinkFailed'));
       return data.signedUrl;
     }),
   );

@@ -13,6 +13,7 @@ import { useRouter } from "expo-router";
 import { Sparkles, Heart, ArrowRight, X, UserPlus, LogIn } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 interface DemoActionModalProps {
   visible: boolean;
@@ -24,9 +25,12 @@ interface DemoActionModalProps {
 export function DemoActionModal({
   visible,
   onClose,
-  title = "Sevgilinle Ortak Alanını Başlat 💖",
-  description = "Bu özelliği kullanmak, kendi anılarınızı güvenle kaydetmek ve partnerinizi davet etmek için ücretsiz hesabınızı oluşturun.",
+  title,
+  description,
 }: DemoActionModalProps) {
+  const { t } = useTranslation();
+  const resolvedTitle = title ?? t("demo.default.title");
+  const resolvedDescription = description ?? t("demo.default.description");
   const router = useRouter();
   const { exitDemoMode } = useAuth();
   const { theme, isLight } = useTheme();
@@ -98,21 +102,21 @@ export function DemoActionModal({
 
           {/* Başlık & Açıklama */}
           <Text style={[styles.title, { color: theme.text }]}>
-            {title}
+            {resolvedTitle}
           </Text>
           <Text style={[styles.description, { color: theme.textSecondary }]}>
-            {description}
+            {resolvedDescription}
           </Text>
 
           {/* Avantaj Rozetleri */}
           <View style={styles.perksContainer}>
             <View style={[styles.perkItem, { backgroundColor: isLight ? "rgba(255,46,99,0.06)" : "rgba(255,46,99,0.12)" }]}>
               <Heart size={14} color="#FF2E63" />
-              <Text style={[styles.perkText, { color: isLight ? "#333" : "#EEE" }]}>Ortak Aşk Albümü & Harita</Text>
+              <Text style={[styles.perkText, { color: isLight ? "#333" : "#EEE" }]}>{t("demo.modal.album")}</Text>
             </View>
             <View style={[styles.perkItem, { backgroundColor: isLight ? "rgba(255,46,99,0.06)" : "rgba(255,46,99,0.12)" }]}>
               <Sparkles size={14} color="#FF2E63" />
-              <Text style={[styles.perkText, { color: isLight ? "#333" : "#EEE" }]}>Zaman Kilitli Sürpriz Mektuplar</Text>
+              <Text style={[styles.perkText, { color: isLight ? "#333" : "#EEE" }]}>{t("demo.modal.letters")}</Text>
             </View>
           </View>
 
@@ -129,7 +133,7 @@ export function DemoActionModal({
               style={styles.primaryGradient}
             >
               <UserPlus size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-              <Text style={styles.primaryBtnText}>Ücretsiz Hesap Oluştur</Text>
+              <Text style={styles.primaryBtnText}>{t("demo.modal.create")}</Text>
               <ArrowRight size={18} color="#FFFFFF" style={{ marginLeft: 6 }} />
             </LinearGradient>
           </TouchableOpacity>
@@ -142,7 +146,7 @@ export function DemoActionModal({
           >
             <LogIn size={15} color={theme.accent} style={{ marginRight: 6 }} />
             <Text style={[styles.secondaryBtnText, { color: theme.accent }]}>
-              Zaten bir hesabım var (Giriş Yap)
+              {t("demo.modal.haveAccount")}
             </Text>
           </TouchableOpacity>
 
@@ -153,7 +157,7 @@ export function DemoActionModal({
             style={styles.dismissBtn}
           >
             <Text style={[styles.dismissText, { color: theme.textMuted }]}>
-              İncelemeye Devam Et
+              {t("demo.modal.keepExploring")}
             </Text>
           </TouchableOpacity>
         </View>

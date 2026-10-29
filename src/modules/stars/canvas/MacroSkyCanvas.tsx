@@ -36,6 +36,8 @@ import { SOLAR_SYSTEM_OBJECTS, isInsideSolarSystem } from './macro/solarSystem';
 import { EMPTY_STAR_FIELD, StarFieldBuilder, type StarField } from './macro/starField';
 import { starVisibility, UNCLAIMED_STAR_BRIGHTNESS } from './macro/starStyle';
 import { useSkyCamera } from './macro/useSkyCamera';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/lib/i18n';
 
 export { SOLAR_SYSTEM_OBJECTS };
 
@@ -136,7 +138,7 @@ function heroTapTarget(
   return {
     catalog_id: extra?.catalog_id ?? 999999,
     catalog_code: extra?.catalog_code ?? 'OUR-STAR',
-    common_name: name || 'Bizim Yıldızımız',
+    common_name: name || i18n.t('stars.defaultName'),
     ra,
     dec,
     magnitude: 1.5,
@@ -144,7 +146,7 @@ function heroTapTarget(
     base_color: extra?.base_color ?? '#FBBF24',
     is_claimed: true,
     is_mine: true,
-    custom_name: name || 'Bizim Yıldızımız',
+    custom_name: name || i18n.t('stars.defaultName'),
     luminosity_level: extra?.luminosity ?? UNCLAIMED_STAR_BRIGHTNESS,
     resonance_active: extra?.resonance_active ?? false,
   };
@@ -174,6 +176,7 @@ function MacroSkyCanvasSkia({
   height = 844,
   paused = false,
 }: MacroSkyCanvasProps) {
+  const { t } = useTranslation();
   // Parents construct this prop inline; depend on its primitives only.
   const myStarRa = myStarCoords?.ra;
   const myStarDec = myStarCoords?.dec;
@@ -207,7 +210,7 @@ function MacroSkyCanvasSkia({
       filtered.push({
         catalog_id: myStarCoords?.catalog_id ?? 999999,
         catalog_code: myStarCoords?.catalog_code ?? 'OUR-STAR',
-        common_name: myStarName || 'Bizim Yıldızımız',
+        common_name: myStarName || t('stars.defaultName'),
         ra: myStarRa,
         dec: myStarDec,
         magnitude: 2.0,
@@ -215,13 +218,13 @@ function MacroSkyCanvasSkia({
         base_color: myStarCoords?.base_color ?? '#FBBF24',
         is_claimed: true,
         is_mine: true,
-        custom_name: myStarName || 'Bizim Yıldızımız',
+        custom_name: myStarName || t('stars.defaultName'),
         luminosity_level: myStarCoords?.luminosity ?? UNCLAIMED_STAR_BRIGHTNESS,
         resonance_active: myStarCoords?.resonance_active ?? false,
       });
     }
     return filtered;
-  }, [allStars, myStarRa, myStarDec, myStarName, myStarCoords]);
+  }, [allStars, myStarRa, myStarDec, myStarName, myStarCoords, t]);
 
   const fontProvider = useFonts(LABEL_FONTS);
 
@@ -422,7 +425,8 @@ function MacroSkyCanvasSkia({
         solarObjects: SOLAR_SYSTEM_OBJECTS,
       }),
     );
-  }, [overlay, staticAssets, labelCache, fontProvider, myStarRa, myStarDec, myStarName, myStarLuminosity, myStarColor, connections, stars]);
+    // `t` dil değişince yenilenir; Güneş Sistemi etiketleri geçerli dilde yeniden çizilsin.
+  }, [overlay, staticAssets, labelCache, fontProvider, myStarRa, myStarDec, myStarName, myStarLuminosity, myStarColor, connections, stars, t]);
 
   // First viewport report, so the parent loads stars for the initial view.
   useEffect(() => {
@@ -495,28 +499,29 @@ function MacroSkyCanvasFallback({
   width = 390,
   height = 844,
 }: MacroSkyCanvasProps) {
+  const { t } = useTranslation();
   return (
     <View style={[styles.container, styles.fallbackContainer, { width, height }]}>
       <View style={styles.fallbackCard}>
         <View style={styles.fallbackIconBadge}>
           <Sparkles size={28} color="#FBBF24" />
         </View>
-        <Text style={styles.fallbackTitle}>Makro Gökyüzü Haritası</Text>
+        <Text style={styles.fallbackTitle}>{t('stars.macro.fallbackTitle')}</Text>
         <Text style={styles.fallbackSubtitle}>Skia Graphics Engine</Text>
         <Text style={styles.fallbackDescription}>
-          10.000+ yıldız ve nebulayı 60 FPS akıcılıkla çizmek için donanım hızlandırmalı Skia C++ motoru kullanılır.
+          {t('stars.macro.fallbackDescription')}
         </Text>
         <View style={styles.fallbackNoticeBox}>
-          <Text style={styles.fallbackNoticeTitle}>Development Build Gereklidir</Text>
+          <Text style={styles.fallbackNoticeTitle}>{t('stars.macro.noticeTitle')}</Text>
           <Text style={styles.fallbackNoticeText}>
-            Projenizdeki özel native modüller (RevenueCat, Ads, QuickCrypto vb.) nedeniyle bu haritayı tam performanslı görüntülemek için terminalden uygulamayı derleyin:
+            {t('stars.macro.noticeText')}
           </Text>
           <View style={styles.fallbackCodeBadge}>
             <Text style={styles.fallbackCodeText}>npx expo run:android</Text>
           </View>
         </View>
         <Text style={styles.fallbackMetaText}>
-          Yüklü Yıldız: {stars.length} adet
+          {t('stars.macro.loadedStars', { starCount: stars.length })}
         </Text>
       </View>
     </View>

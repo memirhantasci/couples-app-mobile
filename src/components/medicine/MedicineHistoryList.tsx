@@ -4,12 +4,15 @@ import { CheckCircle2 } from "lucide-react-native";
 import { dayjs } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
 import type { MedicineHistoryGrouped } from "./medicineTypes";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
-const getRelativeDateLabel = (dateStr: string) => {
+// t ve dil parametre olarak alınır: bileşen render sırasında çağırır, dil değişince etiket yenilenir
+const getRelativeDateLabel = (dateStr: string, t: TFunction, language: string) => {
   const d = dayjs(dateStr);
-  if (d.isSame(dayjs(), "day")) return "Bugün";
-  if (d.isSame(dayjs().subtract(1, "day"), "day")) return "Dün";
-  return d.locale("tr").format("D MMMM");
+  if (d.isSame(dayjs(), "day")) return t("common.today");
+  if (d.isSame(dayjs().subtract(1, "day"), "day")) return t("common.yesterday");
+  return d.locale(language).format("D MMMM");
 };
 
 interface MedicineHistoryListProps {
@@ -21,11 +24,12 @@ interface MedicineHistoryListProps {
 
 // ─── GEÇMİŞ (SON 14 GÜN) ─────────────────────────────────────────────────────
 export function MedicineHistoryList({ theme, historyGrouped, sortedDates }: MedicineHistoryListProps) {
+  const { t, i18n } = useTranslation();
   return (
     <View style={styles.sectionBlock}>
-      <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>GEÇMİŞ GÜNLÜK TAKİP (SON 14 GÜN)</Text>
+      <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t("medicine.history.title")}</Text>
       {sortedDates.length === 0 ? (
-        <Text style={[styles.historyEmptyText, { color: theme.textMuted }]}>Geçmiş ilaç kaydı bulunmuyor.</Text>
+        <Text style={[styles.historyEmptyText, { color: theme.textMuted }]}>{t("medicine.history.empty")}</Text>
       ) : (
         sortedDates.map((dateStr) => (
           <React.Fragment key={dateStr}>
@@ -36,9 +40,9 @@ export function MedicineHistoryList({ theme, historyGrouped, sortedDates }: Medi
               return (
                 <View key={`${dateStr}-${idx}`} style={[styles.historyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.historyDate, { color: theme.text }]}>{getRelativeDateLabel(dateStr)}</Text>
+                    <Text style={[styles.historyDate, { color: theme.text }]}>{getRelativeDateLabel(dateStr, t, i18n.language)}</Text>
                     <Text style={[styles.historyMedSub, { color: theme.textSecondary }]}>
-                      {med.name} • {med.drankSlots}/{med.totalSlots} Alındı ({med.times.join(", ")})
+                      {t("medicine.history.entry", { name: med.name, taken: med.drankSlots, total: med.totalSlots, times: med.times.join(", ") })}
                     </Text>
                   </View>
                   <CheckCircle2 color={iconColor} size={20} />

@@ -1,11 +1,11 @@
 import { supabase } from "@/lib/supabase";
 import { todayString, dayjs } from "@/lib/date";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
+import type { TFunction } from "i18next";
 
 /** Aşk Skoru: 15 (min) – 100 (max) arasında sınırlandırılmış sonuç */
 export interface LoveScoreResult {
   score: number;
-  subtitle: string;
   breakdown: Record<string, number>; // analiz ve denetim için
 }
 
@@ -333,7 +333,6 @@ export async function computeLoveScore(
 
     const result: LoveScoreResult = {
       score: clampedScore,
-      subtitle: getSubtitle(clampedScore),
       breakdown,
     };
 
@@ -347,15 +346,18 @@ export async function computeLoveScore(
     if (cached) return cached;
     return {
       score: 50,
-      subtitle: getSubtitle(50),
       breakdown: { fallback: 1 },
     };
   }
 }
 
-function getSubtitle(score: number): string {
-  if (score >= 90) return "Kusursuz bir bağ! Aşkınız zirvede 🔥";
-  if (score >= 75) return "Harika bir uyum! Birbirinizi hiç ihmal etmiyorsunuz 💖";
-  if (score >= 50) return "Güzel bir gün! Birbirinize küçük bir not bırakabilirsiniz 💌";
-  return "Bugün biraz ilgi zamanı! Bir anı paylaşmaya ne dersiniz? 🌸";
+/**
+ * Skora göre alt başlık. Metin önbelleğe yazılmaz, ekranda `t` ile üretilir:
+ * böylece önbellekteki skor dil değişse de güncel dilde görünür.
+ */
+export function getLoveScoreSubtitle(score: number, t: TFunction): string {
+  if (score >= 90) return t("home.loveMeter.subtitle.excellent");
+  if (score >= 75) return t("home.loveMeter.subtitle.great");
+  if (score >= 50) return t("home.loveMeter.subtitle.good");
+  return t("home.loveMeter.subtitle.low");
 }

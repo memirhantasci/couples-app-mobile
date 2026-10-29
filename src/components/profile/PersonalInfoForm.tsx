@@ -5,6 +5,7 @@ import type { AppTheme } from "@/lib/theme";
 import type { CooldownStatus } from "@/lib/cooldown";
 import { ModernSection } from "./ModernSection";
 import { profileSharedStyles } from "./profileSharedStyles";
+import { useTranslation } from "react-i18next";
 
 interface PersonalInfoFormProps {
   theme: AppTheme;
@@ -35,13 +36,14 @@ export function PersonalInfoForm({
   onSelectGender,
   onSave,
 }: PersonalInfoFormProps) {
+  const { t } = useTranslation();
   const fieldBorder = isLight ? theme.cardBorder : "rgba(255,255,255,0.08)";
   const isNameLocked = nameCooldown ? !nameCooldown.canChange : false;
   const isGenderLocked = genderCooldown ? !genderCooldown.canChange : false;
 
   return (
     <ModernSection
-      title="Kişisel Bilgiler"
+      title={t("profile.personal.title")}
       icon={<User size={18} color={theme.accent} />}
       theme={theme}
       defaultOpen={true}
@@ -50,13 +52,13 @@ export function PersonalInfoForm({
       <View style={profileSharedStyles.inputGroup}>
         <View style={styles.labelRow}>
           <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>
-            GÖRÜNEN İSİM
+            {t("profile.personal.nameLabel")}
           </Text>
           {isNameLocked && (
             <View style={[styles.badge, { backgroundColor: "rgba(255, 179, 0, 0.12)", borderColor: "rgba(255, 179, 0, 0.3)" }]}>
               <Lock size={11} color="#FFB300" />
               <Text style={[styles.badgeText, { color: "#FFB300" }]}>
-                {nameCooldown?.remainingDays} gün kaldı
+                {t("profile.cooldown.daysLeft", { count: nameCooldown?.remainingDays ?? 0 })}
               </Text>
             </View>
           )}
@@ -74,7 +76,7 @@ export function PersonalInfoForm({
           ]}
           value={displayName}
           onChangeText={onChangeDisplayName}
-          placeholder="Adınız..."
+          placeholder={t("profile.personal.namePlaceholder")}
           placeholderTextColor={theme.textMuted}
           maxLength={50}
           editable={!isNameLocked && !loading}
@@ -86,19 +88,19 @@ export function PersonalInfoForm({
             <View style={styles.hintRow}>
               <Clock size={12} color={theme.textMuted} />
               <Text style={[styles.hintText, { color: theme.textMuted }]}>
-                İsim 30 günde bir değiştirilebilir. Sonraki değişiklik için {nameCooldown?.remainingDays} gün beklemeniz gerekmektedir.
+                {t("profile.cooldown.nameLocked", { count: nameCooldown?.remainingDays ?? 0 })}
               </Text>
             </View>
           ) : nameCooldown?.isInitialFreeRight ? (
             <View style={styles.hintRow}>
               <Sparkles size={12} color={theme.accent} />
               <Text style={[styles.hintText, { color: theme.accent }]}>
-                1 ücretsiz değişiklik hakkınız hazır (Değişiklikten sonra 30 gün cooldown başlar).
+                {t("profile.personal.nameFreeChange")}
               </Text>
             </View>
           ) : (
             <Text style={[styles.hintText, { color: theme.textMuted }]}>
-              İsim her 30 günde bir kez değiştirilebilir.
+              {t("profile.personal.nameRule")}
             </Text>
           )}
         </View>
@@ -108,13 +110,13 @@ export function PersonalInfoForm({
       <View style={profileSharedStyles.inputGroup}>
         <View style={styles.labelRow}>
           <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>
-            CİNSİYET TERCİHİ
+            {t("profile.personal.genderLabel")}
           </Text>
           {isGenderLocked && (
             <View style={[styles.badge, { backgroundColor: "rgba(255, 179, 0, 0.12)", borderColor: "rgba(255, 179, 0, 0.3)" }]}>
               <Lock size={11} color="#FFB300" />
               <Text style={[styles.badgeText, { color: "#FFB300" }]}>
-                {genderCooldown?.remainingDays} gün kaldı
+                {t("profile.cooldown.daysLeft", { count: genderCooldown?.remainingDays ?? 0 })}
               </Text>
             </View>
           )}
@@ -151,7 +153,7 @@ export function PersonalInfoForm({
                     isSelected && { fontFamily: "Inter_700Bold" },
                   ]}
                 >
-                  {g === "female" ? "Kadın" : "Erkek"}
+                  {g === "female" ? t("common.gender.female") : t("common.gender.male")}
                 </Text>
               </TouchableOpacity>
             );
@@ -164,19 +166,19 @@ export function PersonalInfoForm({
             <View style={styles.hintRow}>
               <Clock size={12} color={theme.textMuted} />
               <Text style={[styles.hintText, { color: theme.textMuted }]}>
-                Cinsiyet tercihi 90 günde bir değiştirilebilir. Kalan süre: {genderCooldown?.remainingDays} gün.
+                {t("profile.cooldown.genderLocked", { count: genderCooldown?.remainingDays ?? 0 })}
               </Text>
             </View>
           ) : genderCooldown?.isInitialFreeRight ? (
             <View style={styles.hintRow}>
               <Sparkles size={12} color={theme.accent} />
               <Text style={[styles.hintText, { color: theme.accent }]}>
-                1 ücretsiz düzeltme hakkınız hazır (Değişiklikten sonra 90 gün cooldown başlar).
+                {t("profile.personal.genderFreeChange")}
               </Text>
             </View>
           ) : (
             <Text style={[styles.hintText, { color: theme.textMuted }]}>
-              Cinsiyet tercihi her 90 günde bir değiştirilebilir.
+              {t("profile.personal.genderRule")}
             </Text>
           )}
         </View>
@@ -196,7 +198,7 @@ export function PersonalInfoForm({
         {loading ? (
           <ActivityIndicator color="#ffffff" size="small" />
         ) : (
-          <Text style={profileSharedStyles.actionSaveBtnText}>Değişiklikleri Kaydet</Text>
+          <Text style={profileSharedStyles.actionSaveBtnText}>{t("profile.personal.save")}</Text>
         )}
       </TouchableOpacity>
     </ModernSection>

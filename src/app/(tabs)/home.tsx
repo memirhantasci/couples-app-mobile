@@ -37,6 +37,7 @@ import { useTheme } from "@/context/ThemeContext";
 
 import { useClockBucket } from "@/hooks/useClockBucket";
 import { getGreeting, getSpecialDayState } from "@/lib/specialDays";
+import { getLoveScoreSubtitle } from "@/lib/loveScore";
 import { AnniversaryGlow } from "@/components/home/AnniversaryGlow";
 import { LoveMeter } from "@/components/home/LoveMeter";
 import { MoodSelector, MOODS } from "@/components/home/MoodSelector";
@@ -54,8 +55,10 @@ import { fetchWidgetUnread } from "@/lib/widgetUnread";
 import { CoupleAvatarRing } from "@/components/home/CoupleAvatarRing";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 import { LazySpotlightTour, LazyCoupleWrappedModal } from "@/components/ui/lazyMount";
+import { useTranslation } from "react-i18next";
 
 export default function HomeScreen() {
+  const { t, i18n } = useTranslation();
   const { session, profile, isDemoMode, exitDemoMode } = useAuth();
   const { theme, isLight } = useTheme();
   const router = useRouter();
@@ -284,7 +287,9 @@ export default function HomeScreen() {
 
       if (periodLogs && periodLogs.length > 0) {
         const logDateStr = periodLogs[0].date;
-        if (lastScheduledDate === logDateStr) {
+        // Damga tarih + dil: dil değişince bildirim yeni dilde yeniden kurulur
+        const scheduleStamp = `${logDateStr}|${i18n.language}`;
+        if (lastScheduledDate === scheduleStamp) {
           return; // Zaten bu döngü için bildirim zamanlandı
         }
 
@@ -294,22 +299,22 @@ export default function HomeScreen() {
         if (notifyDate.getTime() > Date.now()) {
           await scheduleDateLocalNotification(
             "period_approach_alert",
-            "Özel Gün Yaklaşıyor 🌸",
-            "Partnerinin regl dönemi 2 gün içinde başlayabilir. Ona biraz daha şefkat gösterme zamanı! 💕",
+            t("home.periodAlert.title"),
+            t("home.periodAlert.body"),
             notifyDate,
             {
-              subtitle: "Döngü Takibi",
+              subtitle: t("notifications.labels.cycleTracking"),
               color: "#FB7185",
               channelId: "partner_messages",
-              data: { type: "period", route: "/(tabs)/period-tracker", actionLabel: "Döngü Takibine Git 🌸" },
+              data: { type: "period", route: "/(tabs)/period-tracker", actionLabel: t("notifications.actions.goToCycle") },
             }
           );
-          await AsyncStorage.setItem(cacheKey, logDateStr);
+          await AsyncStorage.setItem(cacheKey, scheduleStamp);
         }
       }
     }
     setupPeriodNotification();
-  }, [profile?.isPremium, profile?.gender, coupleId, userId, dashboardData?.partner]);
+  }, [profile?.isPremium, profile?.gender, coupleId, userId, dashboardData?.partner, i18n.language, t]);
 
   // Saat / gün değişince (ve uygulama öne gelince) selamlama ile özel gün durumu yeniden hesaplansın
   useClockBucket();
@@ -330,21 +335,25 @@ export default function HomeScreen() {
   const DEMO_DAYS_KNOWN = 428;
   const daysSinceMeeting = meetDate ? daysSince(dayjs(meetDate)) : isDemoMode ? DEMO_DAYS_KNOWN : 0;
   const daysSinceTogether = relDate ? daysSince(dayjs(relDate)) : isDemoMode ? DEMO_DAYS_TOGETHER : 0;
-  const name = profile?.displayName || "Sevgilim";
+  const name = profile?.displayName || t("greetings.myLoveFallback");
   const partnerDisplayName =
-    dashboardData?.partner?.display_name || dashboardData?.partner?.username || "Sevgilin";
-  const quote = useMemo(() => getQuoteForDay(doy), [doy]);
+    dashboardData?.partner?.display_name || dashboardData?.partner?.username || t("common.partnerFallback");
+  const quote = useMemo(() => getQuoteForDay(doy, t), [doy, t]);
   const activeLoveScore = isDemoMode 
-    ? { score: 96, subtitle: "Kusursuz Bir Uyum! 💖" }
+    ? { score: 96 }
     : (loveScoreData || cachedScore);
   const loveMeter = activeLoveScore?.score;
-  const loveSubtitle = activeLoveScore?.subtitle;
-  const dateLabel = useMemo(() => dayjs().format("D MMMM, dddd"), []);
+  const loveSubtitle = isDemoMode
+    ? t("home.loveMeter.demoSubtitle")
+    : loveMeter !== undefined
+      ? getLoveScoreSubtitle(loveMeter, t)
+      : undefined;
+  const dateLabel = useMemo(() => dayjs().locale(i18n.language).format("D MMMM, dddd"), [i18n.language]);
 
   // ─── Dinamik selamlama + özel günler (yıldönümüne ≤3 gün kala ve 14 Şubat'ta altın ışıltı) ───
   const nowDay = dayjs();
   const specialDay = getSpecialDayState(relDate, nowDay);
-  const greeting = getGreeting(nowDay, specialDay, dashboardData?.currentMood);
+  const greeting = getGreeting(nowDay, specialDay, t, dashboardData?.currentMood);
   const captionColor = specialDay.glow ? (isLight ? "#B7791F" : "#F5C563") : theme.textSecondary;
 
   // ─── BULUŞMA KARTI ───
@@ -374,7 +383,10 @@ export default function HomeScreen() {
   // gereği widget'a ASLA gönderilmez.
   const partnerMoodEmoji: string | null = dashboardData?.partnerMood ?? null;
   const partnerMoodLabel = partnerMoodEmoji
-    ? MOODS.find((m) => m.emoji === partnerMoodEmoji)?.label ?? null
+    ? (() => {
+        const mood = MOODS.find((m) => m.emoji === partnerMoodEmoji);
+        return mood ? t(mood.labelKey) : null;
+      })()
     : null;
   const isPremiumActive = !!profile?.isPremium;
   const premiumExpiresAt = profile?.premiumExpiresAt ?? null;
@@ -508,7 +520,7 @@ export default function HomeScreen() {
               <TourGuideButton onPress={startSpotlight} />
               <TouchableOpacity 
                 accessibilityRole="button"
-                accessibilityLabel="Menüyü aç"
+                accessibilityLabel={t("common.openMenu")}
                 onPress={() => router.push("/menu")} 
                 style={[
                   styles.menuBtn, 
@@ -535,11 +547,11 @@ export default function HomeScreen() {
               }}
               style={[styles.demoRibbon, { backgroundColor: theme.pillAccentBg, borderColor: theme.cardBorder }]}
               accessibilityRole="button"
-              accessibilityLabel="Demo moddasın. Ücretsiz kayıt olmak veya giriş yapmak için dokun"
+              accessibilityLabel={t("home.demoRibbon.a11y")}
             >
               <Sparkles size={14} color={theme.accent} />
               <Text style={[styles.demoRibbonText, { color: theme.text }]} numberOfLines={2}>
-                Örnek verilerle geziyorsun. Kendi hesabını açmak için dokun
+                {t("home.demoRibbon.text")}
               </Text>
               <ChevronRight size={14} color={theme.textMuted} />
             </TouchableOpacity>
@@ -560,7 +572,7 @@ export default function HomeScreen() {
               <View style={[styles.heroTopBadge, { backgroundColor: theme.pillAccentBg }]}>
                 <Heart size={13} color={theme.accent} fill={theme.accent} />
                 <Text style={[styles.heroTopBadgeText, { color: theme.accent }]}>
-                  AŞKIMIZIN YOLCULUĞU
+                  {t("home.journeyTitle")}
                 </Text>
               </View>
               <CoupleAvatarRing
@@ -579,7 +591,7 @@ export default function HomeScreen() {
                   <Heart size={16} color={theme.accent} fill={theme.accent} />
                 </View>
                 <Text style={[styles.counterNumber, { color: theme.text }]}>{relDate || isDemoMode ? daysSinceTogether : "—"}</Text>
-                <Text style={[styles.counterDesc, { color: theme.textSecondary }]}>Gündür Sevgiliyiz</Text>
+                <Text style={[styles.counterDesc, { color: theme.textSecondary }]}>{t("home.counters.together")}</Text>
               </View>
 
               {/* Tanışma Sayacı */}
@@ -588,7 +600,7 @@ export default function HomeScreen() {
                   <Sparkles size={16} color={isLight ? "#B7791F" : "#ffd700"} />
                 </View>
                 <Text style={[styles.counterNumber, { color: theme.text }]}>{meetDate || isDemoMode ? daysSinceMeeting : "—"}</Text>
-                <Text style={[styles.counterDesc, { color: theme.textSecondary }]}>Gündür Hayatımdasın</Text>
+                <Text style={[styles.counterDesc, { color: theme.textSecondary }]}>{t("home.counters.inMyLife")}</Text>
               </View>
             </View>
           </View>
@@ -604,7 +616,7 @@ export default function HomeScreen() {
               <View style={[styles.actionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
                 <Images size={17} color={theme.accent} />
               </View>
-              <Text style={[styles.actionPillText, { color: theme.textSecondary }]}>Galeri</Text>
+              <Text style={[styles.actionPillText, { color: theme.textSecondary }]}>{t("tabs.photos.label")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -615,7 +627,7 @@ export default function HomeScreen() {
               <View style={[styles.actionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
                 <BookOpen size={17} color={theme.accent} />
               </View>
-              <Text style={[styles.actionPillText, { color: theme.textSecondary }]}>Günlüğüm</Text>
+              <Text style={[styles.actionPillText, { color: theme.textSecondary }]}>{t("menu.journal.title")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -626,7 +638,7 @@ export default function HomeScreen() {
               <View style={[styles.actionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
                 <Mail size={17} color={theme.accent} />
               </View>
-              <Text style={[styles.actionPillText, { color: theme.textSecondary }]}>Mektuplar</Text>
+              <Text style={[styles.actionPillText, { color: theme.textSecondary }]}>{t("tabs.letters.label")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -637,7 +649,7 @@ export default function HomeScreen() {
               <View style={[styles.actionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
                 <MapPin size={17} color={theme.accent} />
               </View>
-              <Text style={[styles.actionPillText, { color: theme.textSecondary }]}>Buluşma</Text>
+              <Text style={[styles.actionPillText, { color: theme.textSecondary }]}>{t("tabs.meetings.label")}</Text>
             </TouchableOpacity>
           </View>
 
@@ -655,7 +667,7 @@ export default function HomeScreen() {
               <View style={[styles.quoteStarCircle, { backgroundColor: theme.pillAccentBg }]}>
                 <Sparkles size={14} color={theme.accent} />
               </View>
-              <Text style={[styles.quoteTitle, { color: theme.accent }]}>GÜNÜN İLHAMI</Text>
+              <Text style={[styles.quoteTitle, { color: theme.accent }]}>{t("home.quote.title")}</Text>
             </View>
             <Text style={[styles.quoteText, { color: theme.text }]}>“{quote}”</Text>
           </View>
@@ -686,8 +698,8 @@ export default function HomeScreen() {
                     <Sparkles size={16} color="#FF4D6D" />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.wrappedTitle}>Aylık Wrapped Hazır! ✨</Text>
-                    <Text style={styles.wrappedSub}>Aşk özetini ve anılarınızı keşfedin</Text>
+                    <Text style={styles.wrappedTitle}>{t("home.wrapped.title")}</Text>
+                    <Text style={styles.wrappedSub}>{t("home.wrapped.subtitle")}</Text>
                   </View>
                 </View>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>

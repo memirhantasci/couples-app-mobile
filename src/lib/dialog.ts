@@ -10,6 +10,7 @@
 // Hook gerektirmez: bağlamlardan ve yardımcı fonksiyonlardan doğrudan çağrılabilir. Görüntüleme `DialogHost` ile yapılır.
 
 import { toast } from "@/lib/toast";
+import i18n from "@/lib/i18n";
 
 export type DialogTone = "info" | "success" | "warning" | "error" | "danger" | "question";
 
@@ -212,7 +213,7 @@ export function appAlert(
     id: ++seq,
     title: cleanTitle || rawTitle,
     message: rawMessage,
-    buttons: list.length > 0 ? list : [{ text: "Tamam" }],
+    buttons: list.length > 0 ? list : [{ text: i18n.t("common.ok") }],
     tone,
     emoji,
     cancelable: options.cancelable ?? true,
@@ -234,9 +235,9 @@ export function confirmDialog(config: {
       config.title,
       config.message,
       [
-        { text: config.cancelText ?? "Vazgeç", style: "cancel", onPress: () => resolve(false) },
+        { text: config.cancelText ?? i18n.t("common.cancel"), style: "cancel", onPress: () => resolve(false) },
         {
-          text: config.confirmText ?? "Onayla",
+          text: config.confirmText ?? i18n.t("common.confirm"),
           style: config.destructive ? "destructive" : "default",
           onPress: () => resolve(true),
         },

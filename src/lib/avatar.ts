@@ -2,6 +2,7 @@ import * as ImagePicker from "expo-image-picker";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import { decode } from "base64-arraybuffer";
 import { supabase } from "@/lib/supabase";
+import i18n from "@/lib/i18n";
 
 /**
  * Profil fotoğrafı (PP) — Premium'a özel.
@@ -76,7 +77,7 @@ export async function processAvatarImage(asset: Pick<ImagePicker.ImagePickerAsse
     const rendered = await context.renderAsync();
     const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: AVATAR_QUALITY, base64: true });
     rendered.release();
-    if (!saved.base64) throw new Error("Fotoğraf işlenemedi.");
+    if (!saved.base64) throw new Error(i18n.t("profile.avatar.processFailed"));
     return saved.base64;
   } finally {
     context.release();

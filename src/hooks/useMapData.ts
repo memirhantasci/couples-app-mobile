@@ -16,6 +16,7 @@ import {
 import { dayjs } from "@/lib/date";
 import { supabase } from "@/lib/supabase";
 import { isValidCoordinate } from "@/utils/exifHelper";
+import { useTranslation } from "react-i18next";
 
 // Veri gelmeden önce her render'da yeni dizi üretmemek için sabit boş listeler.
 const NO_PHOTOS: PhotoPin[] = [];
@@ -36,6 +37,7 @@ const MAX_MAP_PINS = 200;
  * Ekran her odaklandığında üçünü de yeniler.
  */
 export function useMapData({ coupleId, isPremium, isDemoMode }: UseMapDataArgs) {
+  const { t } = useTranslation();
   // ─── 1. Fotoğraf Pinleri (description dahil) ──────────────────────────────
   const photosQuery = useQuery<PhotoPin[]>({
     queryKey: ["map_photos", coupleId, isDemoMode],
@@ -48,7 +50,7 @@ export function useMapData({ coupleId, isPremium, isDemoMode }: UseMapDataArgs) 
           storage_path: p.storage_path,
           latitude: p.latitude!,
           longitude: p.longitude!,
-          location_name: p.city || "Özel Konum",
+          location_name: p.city || t("map.customLocation"),
           taken_date: p.taken_date,
           title: p.title,
           description: p.description,

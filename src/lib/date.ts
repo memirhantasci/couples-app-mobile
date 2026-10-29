@@ -1,5 +1,7 @@
 import dayjs from "dayjs";
-import "dayjs/locale/tr";
+// Dayjs'in aktif locale'ini (tr / en) i18n kurar ve dil değişince günceller
+import "@/lib/i18n";
+import type { TFunction } from "i18next";
 import dayOfYearPlugin from "dayjs/plugin/dayOfYear";
 import duration from "dayjs/plugin/duration";
 import isBetween from "dayjs/plugin/isBetween";
@@ -13,7 +15,6 @@ dayjs.extend(relativeTime);
 dayjs.extend(dayOfYearPlugin);
 dayjs.extend(utc);
 dayjs.extend(timezone);
-dayjs.locale("tr");
 
 // Varsayılan olarak Türkiye saatini kullan
 dayjs.tz.setDefault("Europe/Istanbul");
@@ -58,10 +59,11 @@ export function todayString(): string {
 }
 
 /**
- * Formats a date for display in Turkish
+ * Formats a date for display in the given app language (pass `i18n.language` from useTranslation
+ * so the result follows language changes)
  */
-export function formatDateTR(date: string | Date | dayjs.Dayjs): string {
-  return dayjs(date).locale("tr").format("D MMMM YYYY");
+export function formatLongDate(date: string | Date | dayjs.Dayjs, language: string): string {
+  return dayjs(date).locale(language).format("D MMMM YYYY");
 }
 
 /**
@@ -89,24 +91,8 @@ export function getLoveMeter(): number {
 /**
  * Returns today's greeting (hitap) based on day of year
  */
-export function getTodayHitap(): string {
-  const hitaplar = [
-    "Aşkım",
-    "Sevgilim",
-    "Bebeğim",
-    "Bir Tanem",
-    "Balım",
-    "Tatlım",
-    "Canım",
-    "Ömrüm",
-    "Hayatım",
-    "Gözbebeğim",
-    "Ay Yüzlüm",
-    "En Sevdiğim",
-    "En Güzel Tesadüfüm",
-    "Kalbim",
-    "Cennetim",
-  ];
+export function getTodayHitap(t: TFunction): string {
+  const hitaplar = t("greetings.nicknames", { returnObjects: true });
   const doy = dayOfYear();
   return hitaplar[doy % hitaplar.length];
 }

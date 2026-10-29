@@ -29,6 +29,7 @@ import {
   type Size,
   type VisibleArea,
 } from "./spotlightLayout";
+import { useTranslation } from "react-i18next";
 
 // Skia yalnızca native modül mevcutsa yüklenir (Expo Go vb. ortamlarda çökmesin);
 // yoksa tur, ışık deliği olmadan ortalanmış kartlarla çalışmaya devam eder.
@@ -97,6 +98,7 @@ export function SpotlightTour({ visible, steps, onClose }: SpotlightTourProps) {
 }
 
 function SpotlightTourContent({ steps, onClose }: Omit<SpotlightTourProps, "visible">) {
+  const { t } = useTranslation();
   const { theme, isLight } = useTheme();
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
@@ -344,9 +346,9 @@ function SpotlightTourContent({ steps, onClose }: Omit<SpotlightTourProps, "visi
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   style={[styles.skipBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)" }]}
                   accessibilityRole="button"
-                  accessibilityLabel="Turu geç"
+                  accessibilityLabel={t("tour.skipA11y")}
                 >
-                  <Text style={[styles.skipText, { color: mutedText }]}>Turu Geç</Text>
+                  <Text style={[styles.skipText, { color: mutedText }]}>{t("tour.skip")}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -371,7 +373,7 @@ function SpotlightTourContent({ steps, onClose }: Omit<SpotlightTourProps, "visi
                     activeOpacity={0.8}
                   >
                     <ChevronLeft size={16} color={theme.text} />
-                    <Text style={[styles.prevText, { color: theme.text }]}>Geri</Text>
+                    <Text style={[styles.prevText, { color: theme.text }]}>{t("common.back")}</Text>
                   </TouchableOpacity>
                 ) : (
                   <View />
@@ -381,7 +383,7 @@ function SpotlightTourContent({ steps, onClose }: Omit<SpotlightTourProps, "visi
                   style={[styles.nextBtn, { backgroundColor: theme.accent }]}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.nextText}>{shownIndex === steps.length - 1 ? "Başlayalım 🎉" : "İleri"}</Text>
+                  <Text style={styles.nextText}>{shownIndex === steps.length - 1 ? t("tour.letsBegin") : t("common.forward")}</Text>
                   {shownIndex !== steps.length - 1 && <ChevronRight size={16} color="#FFFFFF" />}
                 </TouchableOpacity>
               </View>

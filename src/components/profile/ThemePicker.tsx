@@ -4,6 +4,7 @@ import { Palette, Check } from "lucide-react-native";
 import { getAvailableThemes, type AppTheme, type ThemeMode } from "@/lib/theme";
 import { ModernSection } from "./ModernSection";
 import { profileSharedStyles } from "./profileSharedStyles";
+import { useTranslation } from "react-i18next";
 
 interface ThemePickerProps {
   theme: AppTheme;
@@ -14,27 +15,28 @@ interface ThemePickerProps {
 }
 
 export function ThemePicker({ theme, isLight, gender, themeMode, onSelectTheme }: ThemePickerProps) {
+  const { t } = useTranslation();
   return (
     <ModernSection
-      title="Arayüz & Tema Modu"
+      title={t("profile.theme.title")}
       icon={<Palette size={18} color={theme.accent} />}
       theme={theme}
       defaultOpen={true}
     >
       <View style={{ gap: 10 }}>
         <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>
-          {gender === "female" ? "KADIN ARAYÜZ MODLARI 🌸" : "ERKEK ARAYÜZ MODLARI ⚡"}
+          {gender === "female" ? t("profile.theme.femaleModes") : t("profile.theme.maleModes")}
         </Text>
 
         <View style={styles.themeOptionsContainer}>
-          {getAvailableThemes(gender).map((t) => {
-            const isSelected = themeMode === t.id;
+          {getAvailableThemes(gender).map((option) => {
+            const isSelected = themeMode === option.id;
             return (
               <TouchableOpacity
-                key={t.id}
+                key={option.id}
                 activeOpacity={0.82}
                 onPress={() => {
-                  onSelectTheme(t.id);
+                  onSelectTheme(option.id);
                 }}
                 style={[
                   styles.themeOptionCard,
@@ -47,16 +49,16 @@ export function ThemePicker({ theme, isLight, gender, themeMode, onSelectTheme }
               >
                 {/* Renk Paleti Önizleme */}
                 <View style={styles.palettePreviewRow}>
-                  <View style={[styles.colorDot, { backgroundColor: t.previewColors[0] }]} />
-                  <View style={[styles.colorDot, { backgroundColor: t.previewColors[1] }]} />
-                  <View style={[styles.colorDot, { backgroundColor: t.previewColors[2] }]} />
+                  <View style={[styles.colorDot, { backgroundColor: option.previewColors[0] }]} />
+                  <View style={[styles.colorDot, { backgroundColor: option.previewColors[1] }]} />
+                  <View style={[styles.colorDot, { backgroundColor: option.previewColors[2] }]} />
                 </View>
 
                 {/* Bilgi */}
                 <View style={styles.themeInfoBlock}>
                   <View style={styles.themeTitleRow}>
                     <Text style={[styles.themeOptionTitle, { color: theme.text }]}>
-                      {t.name}
+                      {t(option.nameKey)}
                     </Text>
                     {isSelected ? (
                       <View style={[styles.activeThemeCheck, { backgroundColor: theme.accent }]}>
@@ -67,7 +69,7 @@ export function ThemePicker({ theme, isLight, gender, themeMode, onSelectTheme }
                     )}
                   </View>
                   <Text style={[styles.themeOptionDesc, { color: theme.textMuted }]}>
-                    {t.description}
+                    {t(option.descriptionKey)}
                   </Text>
                 </View>
               </TouchableOpacity>

@@ -14,31 +14,36 @@ import { LegalDocType } from "@/constants/legalTexts";
 import { toast } from "@/lib/toast";
 import { suppressPremiumCelebration } from "@/lib/premiumCelebration";
 import { purchaseButtonLabel } from "@/lib/trialLabel";
+import type { TFunction } from "i18next";
 import { LazyDemoActionModal } from "@/components/ui/lazyMount";
+import { useTranslation } from "react-i18next";
 
 
-function getPackagePeriodLabel(packageType?: string): string {
+// `t` parametre olarak alınır: ekran render sırasında çağırır, dil değişince etiket yenilenir.
+// packageType değerleri RevenueCat'in sabitleridir ve değişmez; yalnızca görünen etiket çevrilir.
+function getPackagePeriodLabel(packageType: string | undefined, t: TFunction): string {
   switch (packageType) {
     case "ANNUAL":
-      return " / Yıl";
+      return t("paywall.periods.year");
     case "MONTHLY":
-      return " / Ay";
+      return t("paywall.periods.month");
     case "WEEKLY":
-      return " / Hafta";
+      return t("paywall.periods.week");
     case "SIX_MONTH":
-      return " / 6 Ay";
+      return t("paywall.periods.sixMonths");
     case "THREE_MONTH":
-      return " / 3 Ay";
+      return t("paywall.periods.threeMonths");
     case "TWO_MONTH":
-      return " / 2 Ay";
+      return t("paywall.periods.twoMonths");
     case "LIFETIME":
-      return " (Ömür Boyu)";
+      return t("paywall.periods.lifetime");
     default:
       return "";
   }
 }
 
 export default function PaywallScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { refreshProfile, isDemoMode } = useAuth();
   const { theme, isLight } = useTheme();
@@ -104,11 +109,11 @@ export default function PaywallScreen() {
       const customerInfo = await RevenueCatService.purchasePackage(selectedPackage);
       if (customerInfo && typeof customerInfo.entitlements.active['Premium'] !== "undefined") {
         await refreshProfile();
-        toast.success("Premium aboneliğin başarıyla aktif edildi.", { title: "Tebrikler!", emoji: "👑", duration: 3400 });
+        toast.success(t("paywall.activated"), { title: t("common.congratulations"), emoji: "👑", duration: 3400 });
         handleBack();
       }
     } catch (e: any) {
-      appAlert("Satın Alma Başarısız", e.message || "Bir hata oluştu.");
+      appAlert(t("paywall.purchaseFailedTitle"), e.message || t("errors.generic"));
     } finally {
       setPurchasing(false);
     }
@@ -125,25 +130,25 @@ export default function PaywallScreen() {
       const customerInfo = await RevenueCatService.restorePurchases();
       if (customerInfo && typeof customerInfo.entitlements.active['Premium'] !== "undefined") {
         await refreshProfile();
-        toast.success("Satın alımların geri yüklendi.");
+        toast.success(t("paywall.restored"));
         handleBack();
       } else {
-        toast.info("Aktif bir aboneliğin bulunamadı.");
+        toast.info(t("paywall.noActiveSubscription"));
       }
     } catch (e: any) {
-      appAlert("Hata", "Geri yükleme başarısız oldu.");
+      appAlert(t("common.error"), t("paywall.restoreFailed"));
     } finally {
       setPurchasing(false);
     }
   };
 
   const features = [
-    "Partnerin için de geçerli ortak Premium",
-    "Sınırsız fotoğraf yükleme ve galeri",
-    "Erkekler için regl takvimi görünümü",
-    "Takvimde geçmiş günlerin fotoğrafları",
-    "Sınırsız geleceğe mektup yazma",
-    "Tüm reklamlardan arınmış deneyim",
+    t("paywall.features.shared"),
+    t("paywall.features.photos"),
+    t("paywall.features.periodMen"),
+    t("paywall.features.pastPhotos"),
+    t("paywall.features.letters"),
+    t("paywall.features.noAds"),
   ];
 
   return (
@@ -175,7 +180,7 @@ export default function PaywallScreen() {
             <Crown color={theme.accent} size={48} />
           </View>
           <Text style={[styles.title, { color: theme.text }]}>Couples Premium</Text>
-          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>İkiniz için de geçerli tek abonelik</Text>
+          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{t("paywall.subtitle")}</Text>
         </View>
 
         <View
@@ -214,14 +219,14 @@ export default function PaywallScreen() {
                 }}
               >
                 <Text style={{ color: theme.textSecondary, textAlign: "center", marginBottom: 12, fontSize: 13.5 }}>
-                  Şu anda mağazaya bağlanılamıyor veya paketler yüklenemedi. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.
+                  {t("paywall.storeUnavailable")}
                 </Text>
                 <View style={{ flexDirection: "row", gap: 10 }}>
                   <TouchableOpacity onPress={retryOfferings} style={{ paddingVertical: 8, paddingHorizontal: 16, backgroundColor: theme.accent, borderRadius: 8 }}>
-                    <Text style={{ color: "#fff", fontWeight: "bold" }}>Tekrar Dene</Text>
+                    <Text style={{ color: "#fff", fontWeight: "bold" }}>{t("common.tryAgain")}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={handleBack} style={{ paddingVertical: 8, paddingHorizontal: 16, borderWidth: 1, borderColor: theme.cardBorder, borderRadius: 8 }}>
-                    <Text style={{ color: theme.textSecondary, fontWeight: "bold" }}>Geri Dön</Text>
+                    <Text style={{ color: theme.textSecondary, fontWeight: "bold" }}>{t("paywall.goBack")}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -247,7 +252,10 @@ export default function PaywallScreen() {
                         {pkg.product.title.replace("(Couples App)", "")}
                       </Text>
                       <Text style={[styles.packagePrice, { color: isSelected ? theme.accent : theme.textSecondary }]}>
-                        {pkg.product.priceString}{getPackagePeriodLabel(pkg.packageType)}
+                        {pkg.product.priceString}{(() => {
+                          const period = getPackagePeriodLabel(pkg.packageType, t);
+                          return period ? ` ${period}` : "";
+                        })()}
                       </Text>
                     </View>
                     <View
@@ -279,7 +287,7 @@ export default function PaywallScreen() {
                 {purchasing ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.ctaBtnText}>{purchaseButtonLabel(selectedPackage)}</Text>
+                  <Text style={styles.ctaBtnText}>{purchaseButtonLabel(selectedPackage, t)}</Text>
                 )}
               </TouchableOpacity>
             )}
@@ -287,7 +295,7 @@ export default function PaywallScreen() {
             {/* Paketler yüklenemese de her zaman görünür (Apple 3.1.1: geri yükleme her zaman erişilebilir olmalı) */}
             <TouchableOpacity style={styles.restoreBtn} onPress={handleRestore} disabled={purchasing}>
               <ShieldCheck color={theme.textMuted} size={16} />
-              <Text style={[styles.restoreText, { color: theme.textMuted }]}>Satın Alımları Geri Yükle</Text>
+              <Text style={[styles.restoreText, { color: theme.textMuted }]}>{t("paywall.restore")}</Text>
             </TouchableOpacity>
 
             {/* Yasal Abonelik ve İade Bilgilendirmesi */}
@@ -298,20 +306,20 @@ export default function PaywallScreen() {
               ]}
             >
               <Text style={[styles.legalNoticeText, { color: theme.textMuted }]}>
-                Aboneliğiniz onaylandığında ödeme mağaza hesabınızdan tahsil edilir. Cari dönemin bitiminden en az 24 saat önce iptal edilmediği sürece abonelik otomatik olarak yenilenir. Satın alımdan sonra hesap ayarlarınızdan dilediğiniz an iptal edebilirsiniz.
+                {t("paywall.legalNotice")}
               </Text>
 
               <View style={styles.legalLinksRow}>
                 <TouchableOpacity onPress={() => openLegal("terms")}>
-                  <Text style={[styles.legalLinkText, { color: theme.accent }]}>Kullanım Koşulları (EULA)</Text>
+                  <Text style={[styles.legalLinkText, { color: theme.accent }]}>{t("paywall.links.terms")}</Text>
                 </TouchableOpacity>
                 <Text style={[styles.legalLinkDot, { color: theme.textMuted }]}>•</Text>
                 <TouchableOpacity onPress={() => openLegal("privacy")}>
-                  <Text style={[styles.legalLinkText, { color: theme.accent }]}>Gizlilik Politikası</Text>
+                  <Text style={[styles.legalLinkText, { color: theme.accent }]}>{t("paywall.links.privacy")}</Text>
                 </TouchableOpacity>
                 <Text style={[styles.legalLinkDot, { color: theme.textMuted }]}>•</Text>
                 <TouchableOpacity onPress={() => openLegal("subscription")}>
-                  <Text style={[styles.legalLinkText, { color: theme.accent }]}>Abonelik Koşulları</Text>
+                  <Text style={[styles.legalLinkText, { color: theme.accent }]}>{t("paywall.links.subscription")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -322,8 +330,8 @@ export default function PaywallScreen() {
       <LazyDemoActionModal
         visible={demoPromptVisible}
         onClose={() => setDemoPromptVisible(false)}
-        title="Premium İçin Hesap Gerekli 👑"
-        description="Abonelik hesabınıza tanımlanır. Satın almadan önce ücretsiz hesabınızı oluşturun veya giriş yapın."
+        title={t("paywall.accountRequiredTitle")}
+        description={t("paywall.accountRequiredDescription")}
       />
       <LegalModal
         visible={legalModalVisible}

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFrameCallback, useSharedValue } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 export type SkyDebugMetrics = Readonly<Record<string, string | number>>;
 
@@ -26,6 +27,7 @@ function formatMetric(value: string | number) {
  * average hides. Tap to collapse.
  */
 export function SkyDebugHud({ getMetrics }: SkyDebugHudProps) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [collapsed, setCollapsed] = useState(false);
   const [lines, setLines] = useState<string[]>([]);
@@ -96,7 +98,7 @@ export function SkyDebugHud({ getMetrics }: SkyDebugHudProps) {
     <Pressable
       onPress={() => setCollapsed((value) => !value)}
       style={[styles.container, { top: insets.top + 112 }]}
-      accessibilityLabel="Gökyüzü performans paneli"
+      accessibilityLabel={t('stars.debug.hudA11y')}
     >
       {(collapsed ? lines.slice(0, 1) : lines).map((line, index) => (
         <Text key={index} style={styles.line}>

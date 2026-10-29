@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, Platform, TouchableOpacity } from "react-native
 import { BlurView } from "expo-blur";
 import React, { useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useTranslation } from "react-i18next";
 import { SafeAreaInsetsContext, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/context/ThemeContext";
 import { useTabBar } from "@/context/TabBarContext";
@@ -12,6 +13,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   const { theme, isLight } = useTheme();
   const { enabledTabs, allTabs } = useTabBar();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const tabLookup = useMemo(() => {
     return allTabs.reduce((acc, tab) => {
@@ -67,7 +69,8 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
       <View style={styles.tabBarInner}>
         {visibleTabs.map(({ route, config }) => {
           const isFocused = state.routes[state.index].name === route.name;
-          const { label, Icon } = config;
+          const { labelKey, Icon } = config;
+          const label = t(labelKey);
 
           const onPress = () => {
             const event = navigation.emit({

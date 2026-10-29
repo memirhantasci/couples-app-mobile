@@ -32,6 +32,7 @@ import { Radio, Crosshair, Sparkles, Navigation, X, Orbit } from 'lucide-react-n
 import { useTheme } from '@/context/ThemeContext';
 import { getSectorByCoords } from '../config/skySectors.data';
 import type { CoupleStarDetails } from '../types/star.types';
+import { useTranslation } from 'react-i18next';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const RADAR_SIZE = Math.min(SCREEN_WIDTH - 64, 300);
@@ -49,8 +50,9 @@ export const HomeRadarOverlay: React.FC<HomeRadarOverlayProps> = ({
   onComplete,
   onClose,
 }) => {
+  const { t } = useTranslation();
   const { theme, isLight } = useTheme();
-  const [phaseText, setPhaseText] = useState('Kozmik koordinatlar taranıyor...');
+  const [phaseText, setPhaseText] = useState(t('stars.radar.scanning'));
   const [phaseStep, setPhaseStep] = useState(1);
 
   // Animations
@@ -106,13 +108,13 @@ export const HomeRadarOverlay: React.FC<HomeRadarOverlayProps> = ({
     // Aşamalar ve Haptik Geri Bildirimler
     const t1 = setTimeout(() => {
       setPhaseStep(2);
-      setPhaseText('Kozmik çekim alanına kilitlenildi ⚡');
+      setPhaseText(t('stars.radar.locked'));
       hapticStamp();
     }, 700);
 
     const t2 = setTimeout(() => {
       setPhaseStep(3);
-      setPhaseText('Gök Kubbede yıldızımıza yaklaşıldı ✨');
+      setPhaseText(t('stars.radar.approaching'));
       hapticTap();
     }, 1400);
 
@@ -127,7 +129,7 @@ export const HomeRadarOverlay: React.FC<HomeRadarOverlayProps> = ({
       clearTimeout(t2);
       clearTimeout(tComplete);
     };
-  }, [visible, onComplete]);
+  }, [visible, onComplete, t]);
 
   const sweepStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${sweepAngle.value}deg` }],
@@ -154,7 +156,7 @@ export const HomeRadarOverlay: React.FC<HomeRadarOverlayProps> = ({
 
   if (!visible) return null;
 
-  const starName = starDetails?.custom_name || 'Bizim Yıldızımız';
+  const starName = starDetails?.custom_name || t('stars.defaultName');
   const starRa = starDetails ? Number(starDetails.ra).toFixed(4) : '0.0000';
   const starDec = starDetails
     ? (Number(starDetails.dec) >= 0 ? '+' : '') + Number(starDetails.dec).toFixed(4)
@@ -162,7 +164,7 @@ export const HomeRadarOverlay: React.FC<HomeRadarOverlayProps> = ({
   const sectorInfo = starDetails
     ? getSectorByCoords(Number(starDetails.ra), Number(starDetails.dec))
     : null;
-  const sector = sectorInfo ? `${sectorInfo.symbol} ${sectorInfo.name}` : 'Merkez Sektör';
+  const sector = sectorInfo ? `${sectorInfo.symbol} ${t(sectorInfo.nameKey)}` : t('stars.sectors.centerFallback');
 
   return (
     <Modal
@@ -182,7 +184,7 @@ export const HomeRadarOverlay: React.FC<HomeRadarOverlayProps> = ({
         <View style={styles.topHud}>
           <View style={styles.radarStatusPill}>
             <Radio size={14} color="#10B981" />
-            <Text style={styles.radarStatusText}>EVE DÖNÜŞ RADARI AKTİF</Text>
+            <Text style={styles.radarStatusText}>{t('stars.radar.active')}</Text>
           </View>
           {onClose && (
             <TouchableOpacity
@@ -245,7 +247,7 @@ export const HomeRadarOverlay: React.FC<HomeRadarOverlayProps> = ({
           <View style={styles.targetHeader}>
             <View style={styles.targetBadge}>
               <Navigation size={12} color="#10B981" />
-              <Text style={styles.targetBadgeText}>HEDEF KİLİTLENDİ</Text>
+              <Text style={styles.targetBadgeText}>{t('stars.radar.targetLocked')}</Text>
             </View>
             <Text style={[styles.sectorText, { color: theme.textSecondary }]}>{sector}</Text>
           </View>
@@ -262,7 +264,7 @@ export const HomeRadarOverlay: React.FC<HomeRadarOverlayProps> = ({
             ]}
           >
             <View style={styles.coordItem}>
-              <Text style={[styles.coordLabel, { color: theme.textMuted }]}>SAĞ AÇIKLIK (RA)</Text>
+              <Text style={[styles.coordLabel, { color: theme.textMuted }]}>{t('stars.radar.ra')}</Text>
               <Text style={[styles.coordValue, { color: isLight ? '#0284C7' : '#38BDF8' }]}>{starRa}°</Text>
             </View>
             <View
@@ -272,7 +274,7 @@ export const HomeRadarOverlay: React.FC<HomeRadarOverlayProps> = ({
               ]}
             />
             <View style={styles.coordItem}>
-              <Text style={[styles.coordLabel, { color: theme.textMuted }]}>DİK AÇIKLIK (DEC)</Text>
+              <Text style={[styles.coordLabel, { color: theme.textMuted }]}>{t('stars.radar.dec')}</Text>
               <Text style={[styles.coordValue, { color: isLight ? '#0284C7' : '#38BDF8' }]}>{starDec}°</Text>
             </View>
           </View>

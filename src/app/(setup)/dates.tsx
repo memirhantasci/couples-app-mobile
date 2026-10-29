@@ -15,16 +15,18 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { setDatesSkipped } from "@/lib/datesSkip";
 import { translateDatesError } from "@/lib/relationshipDates";
-import { formatDateTR } from "@/lib/date";
+import { formatLongDate } from "@/lib/date";
 import { toast } from "@/lib/toast";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Calendar, Check, ChevronRight, Heart, Sparkles } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
+import i18n from "@/lib/i18n";
 
 // İlk kaydeden kazanır: partner tarihleri bizden önce kaydettiyse sayaçlar onun tarihinden başlar
 function announcePartnerDates(relationshipStartDate: string) {
   toast.info(
-    `Partnerin ilişki tarihinizi ${formatDateTR(relationshipStartDate)} olarak kaydetti; sayacınız bu günden başladı. Yanlışsa Profil › İlişki Tarihleri'nden düzeltebilirsiniz.`,
-    { title: "Tarihiniz belirlendi 💕", duration: 7000 }
+    i18n.t("setup.dates.partnerSavedToast", { date: formatLongDate(relationshipStartDate, i18n.language) }),
+    { title: i18n.t("setup.dates.partnerSavedTitle"), duration: 7000 }
   );
 }
 
@@ -80,6 +82,7 @@ function WebDateInput({
 }
 
 export default function DatesScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { session, profile, refreshProfile } = useAuth();
   const userId = session?.user?.id;
@@ -170,23 +173,23 @@ export default function DatesScreen() {
     const relStr = formatDate(relDate);
 
     if (relStr > todayStr) {
-      setError("Gelecek bir tarih seçemezsiniz.");
+      setError(t("setup.errors.futureDate"));
       return;
     }
     if (includeMeetDate) {
       const meetStr = formatDate(meetDate);
       if (meetStr > todayStr) {
-        setError("Tanışma tarihi gelecekte olamaz.");
+        setError(t("setup.dates.meetFuture"));
         return;
       }
       if (meetStr > relStr) {
-        setError("Tanışma tarihi, sevgili olma tarihinden sonra olamaz.");
+        setError(t("setup.errors.meetAfterRelationship"));
         return;
       }
     }
 
     if (!userId) {
-      setError("Oturum bulunamadı. Lütfen tekrar giriş yapın.");
+      setError(t("auth.errors.noSession"));
       return;
     }
     setIsLoading(true);
@@ -216,7 +219,7 @@ export default function DatesScreen() {
       router.replace("/(tabs)/home");
     } catch (err: any) {
       savingRef.current = false;
-      setError("Beklenmedik bir hata oluştu: " + (err?.message || ""));
+      setError(t("errors.unexpectedWithMessage", { message: err?.message || "" }));
     } finally {
       setIsLoading(false);
     }
@@ -232,7 +235,7 @@ export default function DatesScreen() {
       await refreshProfile();
       router.replace("/(tabs)/home");
     } catch (err: any) {
-      setError("Bir hata oluştu: " + (err?.message || ""));
+      setError(t("errors.genericWithMessage", { message: err?.message || "" }));
     } finally {
       setIsLoading(false);
     }
@@ -272,7 +275,7 @@ export default function DatesScreen() {
               marginBottom: 12,
             }}
           >
-            İlişki Tarihleriniz
+            {t("setup.dates.title")}
           </Text>
           <Text
             style={{
@@ -281,7 +284,7 @@ export default function DatesScreen() {
               textAlign: "center",
             }}
           >
-            Bu özel günleri birlikte sayalım ve asla unutmayalım.
+            {t("setup.dates.subtitle")}
           </Text>
         </View>
 
@@ -330,10 +333,10 @@ export default function DatesScreen() {
 
           <View style={{ flex: 1 }}>
             <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "700", marginBottom: 2 }}>
-              Sevgili Olma Tarihi / Yıl Dönümü 💕
+              {t("setup.dates.relationshipLabel")}
             </Text>
             <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
-              Birlikteliğinizin başladığı gün
+              {t("setup.dates.relationshipHint")}
             </Text>
           </View>
 
@@ -379,10 +382,10 @@ export default function DatesScreen() {
 
             <View style={{ flex: 1 }}>
               <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "700", marginBottom: 2 }}>
-                Tanışma Tarihi (İsteğe Bağlı) ✨
+                {t("setup.dates.meetLabel")}
               </Text>
               <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
-                İlk buluştuğunuz o eşsiz an
+                {t("setup.dates.meetHint")}
               </Text>
             </View>
           </TouchableOpacity>
@@ -416,7 +419,7 @@ export default function DatesScreen() {
 
               <Sparkles color="#FF4D6A" size={20} style={{ marginRight: 12 }} />
               <Text style={{ flex: 1, color: "rgba(255,255,255,0.6)", fontSize: 13 }}>
-                Tanışma günü
+                {t("setup.dates.meetDay")}
               </Text>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Text style={{ color: "#FFFFFF", fontSize: 15, fontWeight: "600", letterSpacing: 1 }}>
@@ -435,7 +438,7 @@ export default function DatesScreen() {
                 marginLeft: 36,
               }}
             >
-              Henüz tam günü hatırlamıyorsanız boş bırakabilirsiniz.
+              {t("setup.dates.meetOptionalNote")}
             </Text>
           )}
         </View>
@@ -481,7 +484,7 @@ export default function DatesScreen() {
               <ActivityIndicator color="#fff" />
             ) : (
               <Text style={{ color: "#fff", fontWeight: "700", fontSize: 17 }}>
-                Başla & Kaydet
+                {t("setup.dates.submit")}
               </Text>
             )}
           </LinearGradient>
@@ -502,7 +505,7 @@ export default function DatesScreen() {
           }}
         >
           <Text style={{ color: "rgba(255,255,255,0.7)", fontWeight: "600", fontSize: 15 }}>
-            Daha Sonra Belirle
+            {t("setup.dates.later")}
           </Text>
         </TouchableOpacity>
 
@@ -514,7 +517,7 @@ export default function DatesScreen() {
           <DateTimePickerSheet
             visible={includeMeetDate && showMeetPicker}
             mode="date"
-            title="Tanışma Tarihi"
+            title={t("setup.dates.meetPickerTitle")}
             value={meetDate}
             maximumDate={formatDate(relDate) < formatDate(today) ? relDate : today}
             onCancel={() => setShowMeetPicker(false)}
@@ -523,7 +526,7 @@ export default function DatesScreen() {
           <DateTimePickerSheet
             visible={showRelPicker}
             mode="date"
-            title="Sevgili Olma Tarihi"
+            title={t("setup.dates.relationshipPickerTitle")}
             value={relDate}
             maximumDate={today}
             onCancel={() => setShowRelPicker(false)}

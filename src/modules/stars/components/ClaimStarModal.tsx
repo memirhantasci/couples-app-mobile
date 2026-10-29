@@ -51,6 +51,7 @@ import { computeOwnCoupleInitials } from '../utils/ownerInitials';
 import type { CoupleStarDetails, ViewportStarItem } from '../types/star.types';
 import { SKY_SECTORS, type SectorConfig } from '../config/skySectors.data';
 import { UNCLAIMED_STAR_BRIGHTNESS } from '../canvas/macro/starStyle';
+import { useTranslation } from 'react-i18next';
 
 // ============================================================================
 // TİPLER VE SABİTLER
@@ -99,6 +100,7 @@ const CosmicRadarSweep: React.FC<{ isSlowWarning: boolean; isConfirming?: boolea
   confirmedRa,
   confirmedDec,
 }) => {
+  const { t } = useTranslation();
   const { theme, isLight } = useTheme();
   const rotation = useSharedValue(0);
   const pulse1 = useSharedValue(0);
@@ -211,10 +213,10 @@ const CosmicRadarSweep: React.FC<{ isSlowWarning: boolean; isConfirming?: boolea
         </View>
         <Text style={[styles.scanningSubText, { color: theme.textMuted }]}>
           {isConfirming
-            ? 'Yıldızınız evrene kazınıyor...'
+            ? t('stars.claim.radar.engraving')
             : isSlowWarning
-            ? 'Kozmik sinyal taranıyor, derin uzay katalogları inceleniyor...'
-            : 'Gaia DR3 ve Hipparcos kataloğunda boşta duran yıldızlar taranıyor...'}
+            ? t('stars.claim.radar.scanning')
+            : t('stars.claim.radar.catalogScan')}
         </Text>
       </View>
     </View>
@@ -238,6 +240,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
   canRename = false,
   onRenamed,
 }) => {
+  const { t, i18n } = useTranslation();
   const { theme, isLight } = useTheme();
   const [modalState, setModalState] = useState<ClaimModalState>(
     initialStar ? 'certificate' : 'input'
@@ -286,11 +289,11 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
   const submitRename = async () => {
     if (renameBusy || !claimedStar) return;
     const trimmed = renameValue.trim();
-    if (trimmed.length < 2) return setRenameError('Yıldızınızın ismi en az 2 karakter olmalıdır.');
-    if (trimmed.length > 40) return setRenameError('Yıldızınızın ismi en fazla 40 karakter olabilir.');
-    if (trimmed === claimedStar.custom_name) return setRenameError('Yeni isim mevcut isimle aynı; hakkınız korunuyor.');
+    if (trimmed.length < 2) return setRenameError(t('stars.claim.errors.nameTooShort'));
+    if (trimmed.length > 40) return setRenameError(t('stars.claim.errors.nameTooLong'));
+    if (trimmed === claimedStar.custom_name) return setRenameError(t('stars.claim.errors.nameSame'));
     const modResult = moderateStarName(trimmed);
-    if (!modResult.isValid) return setRenameError(modResult.message || 'Yıldız ismi topluluk kurallarına aykırı kelimeler içeremez.');
+    if (!modResult.isValid) return setRenameError(modResult.message || t('stars.errors.nameModeration'));
 
     setRenameBusy(true);
     setRenameError('');
@@ -306,7 +309,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
         setRenameLockedUntil(err.availableAt);
         setIsRenaming(false);
       } else {
-        setRenameError(err?.message || 'İsim değiştirilemedi. Lütfen tekrar deneyin.');
+        setRenameError(err?.message || t('stars.claim.errors.renameFailed'));
       }
       await hapticError();
     } finally {
@@ -353,17 +356,17 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
     }
     const trimmed = customName.trim();
     if (trimmed.length < 2) {
-      setErrorMessage('Yıldızınızın ismi en az 2 karakter olmalıdır.');
+      setErrorMessage(t('stars.claim.errors.nameTooShort'));
       return;
     }
     if (trimmed.length > 40) {
-      setErrorMessage('Yıldızınızın ismi en fazla 40 karakter olabilir.');
+      setErrorMessage(t('stars.claim.errors.nameTooLong'));
       return;
     }
 
     const modResult = moderateStarName(trimmed);
     if (!modResult.isValid) {
-      setErrorMessage(modResult.message || 'Yıldız ismi topluluk kurallarına aykırı kelimeler içeremez.');
+      setErrorMessage(modResult.message || t('stars.errors.nameModeration'));
       return;
     }
 
@@ -437,12 +440,12 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
       setModalState('error');
       setErrorMessage(
         errCode === 'P0004'
-          ? 'Bu yıldız az önce başka bir çift tarafından seçildi, lütfen başka bir yıldız seçin.'
+          ? t('stars.errors.starTaken')
           : isAlreadyOwnedErr
-          ? 'Zaten bir yıldızınız var — her çift yalnızca bir yıldıza sahip olabilir.'
+          ? t('stars.errors.alreadyHasStar')
           : errCode === 'P0003'
-          ? 'Gökkubbede bu parlaklıkta uygun boşta yıldız bulunamadı. Lütfen tekrar deneyin.'
-          : errorOccurred.message || 'Yıldız tescil edilirken kozmik bir parazit oluştu.'
+          ? t('stars.claim.errors.noFreeStar')
+          : errorOccurred.message || t('stars.claim.errors.cosmicGlitch')
       );
       await hapticError();
     } else if (resultStar) {
@@ -527,7 +530,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                   <Sparkles size={28} color="#FBBF24" />
                 </View>
 
-                <Text style={[styles.modalTitle, { color: theme.text }]}>Bizim Yıldızımız</Text>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>{t('stars.defaultName')}</Text>
 
                 {/* Seçili yıldız önizleme kartı (preSelectedStar varsa) */}
                 {preSelectedStar ? (
@@ -551,7 +554,11 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                         </Text>
                       ) : null}
                       <Text style={[styles.preSelectedStarCoords, { color: theme.textMuted }]}>
-                        RA {Number(preSelectedStar.ra).toFixed(2)}° / DEC {Number(preSelectedStar.dec) >= 0 ? '+' : ''}{Number(preSelectedStar.dec).toFixed(2)}° • Işık %{Math.round(UNCLAIMED_STAR_BRIGHTNESS * 100)}
+                        {t('stars.claim.preSelectedCoords', {
+                          ra: Number(preSelectedStar.ra).toFixed(2),
+                          dec: `${Number(preSelectedStar.dec) >= 0 ? '+' : ''}${Number(preSelectedStar.dec).toFixed(2)}`,
+                          light: Math.round(UNCLAIMED_STAR_BRIGHTNESS * 100),
+                        })}
                       </Text>
                     </View>
                     <View style={[styles.preSelectedStarSpectral, isLight && { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: 'rgba(0,0,0,0.08)' }]}>
@@ -571,26 +578,25 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                     <Text style={{ fontSize: 24 }}>{sectorConfig.symbol}</Text>
                     <View style={styles.preSelectedStarInfo}>
                       <Text style={[styles.preSelectedStarCode, { color: sectorConfig.themeColor }]}>
-                        {sectorConfig.name}
+                        {t(sectorConfig.nameKey)}
                       </Text>
                       <Text style={[styles.preSelectedStarCommon, { color: theme.text }]}>
                         {sectorConfig.latinName} • {sectorConfig.code3}
                       </Text>
                       <Text style={[styles.preSelectedStarCoords, { color: theme.textMuted }]}>
-                        {sectorConfig.description}
+                        {t(sectorConfig.descriptionKey)}
                       </Text>
                     </View>
                   </View>
                 ) : (
                   <Text style={[styles.modalSubtitle, { color: theme.textSecondary }]}>
-                    Gerçek astronomik katalogdan (Gaia &amp; Hipparcos), gökyüzünde gerçek koordinatlara sahip
-                    tekil bir yıldızı aşkınız adına tescil edin.
+                    {t('stars.claim.intro')}
                   </Text>
                 )}
 
                 {/* İSİM GİRDİSİ */}
                 <View style={styles.inputWrapper}>
-                  <Text style={[styles.inputLabel, { color: theme.textMuted }]}>YILDIZINIZIN İSMİ</Text>
+                  <Text style={[styles.inputLabel, { color: theme.textMuted }]}>{t('stars.claim.nameLabel')}</Text>
                   <TextInput
                     style={[
                       styles.textInput,
@@ -600,7 +606,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                         color: theme.text,
                       },
                     ]}
-                    placeholder="Örn: Sonsuz Aşkımız, Vega & Sirius..."
+                    placeholder={t('stars.claim.namePlaceholder')}
                     placeholderTextColor={isLight ? 'rgba(0, 0, 0, 0.35)' : 'rgba(255, 255, 255, 0.3)'}
                     value={customName}
                     onChangeText={(text) => {
@@ -638,16 +644,16 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                     <Sparkles size={18} color="#FFFFFF" />
                     <Text style={styles.primaryButtonText}>
                       {preSelectedStar
-                        ? 'Bu Yıldızı Tescille ✨'
+                        ? t('stars.claim.registerThis')
                         : isSectorMode
-                        ? `${sectorConfig?.name ?? 'Sektör'}'den Yıldız Bul ✨`
-                        : 'Gökyüzünü Tara & Yıldızımızı Bul ✨'}
+                        ? t('stars.claim.findInSector', { sector: sectorConfig ? t(sectorConfig.nameKey) : t('stars.claim.sectorFallback') })
+                        : t('stars.claim.scanSky')}
                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>
 
                 <Text style={[styles.footnoteText, { color: theme.textMuted }]}>
-                  * Tescillenen yıldız dünyada yalnızca sizin çiftinize ait olur ve asla ölmez.
+                  {t('stars.claim.footnote')}
                 </Text>
               </View>
             )}
@@ -665,7 +671,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                 ]}
               >
                 <Text style={[styles.modalTitle, { color: theme.text }]}>
-                  {isSpecificMode ? 'Tescil Ediliyor' : 'Gökkubbe Taranıyor'}
+                  {isSpecificMode ? t('stars.claim.registering') : t('stars.claim.scanningDome')}
                 </Text>
                 <CosmicRadarSweep
                   isSlowWarning={isSlowWarning}
@@ -692,7 +698,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                   <AlertCircle size={32} color="#EF4444" />
                 </View>
 
-                <Text style={[styles.modalTitle, { color: theme.text }]}>Kozmik Bağlantı Kesintisi</Text>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>{t('stars.claim.errorTitle')}</Text>
                 <Text style={[styles.modalSubtitle, { color: theme.textSecondary }]}>{errorMessage}</Text>
 
                 {/* P0005 hatası: tekrar deneme anlamsız, sadece kapat */}
@@ -706,7 +712,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                       colors={['#374151', '#4B5563']}
                       style={styles.buttonGradient}
                     >
-                      <Text style={styles.primaryButtonText}>Kapat</Text>
+                      <Text style={styles.primaryButtonText}>{t('common.close')}</Text>
                     </LinearGradient>
                   </TouchableOpacity>
                 ) : (
@@ -720,7 +726,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                       style={styles.buttonGradient}
                     >
                       <Text style={styles.primaryButtonText}>
-                        {isSpecificMode ? 'Başka Yıldız Seç' : 'Tekrar Dene'}
+                        {isSpecificMode ? t('stars.claim.chooseAnother') : t('common.tryAgain')}
                       </Text>
                     </LinearGradient>
                   </TouchableOpacity>
@@ -757,7 +763,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                   ]}
                 >
                   <Award size={20} color={isLight ? '#D97706' : '#F59E0B'} />
-                  <Text style={[styles.certBadgeText, { color: isLight ? '#B45309' : '#FBBF24' }]}>GÖKSEL TESCİL SERTİFİKASI</Text>
+                  <Text style={[styles.certBadgeText, { color: isLight ? '#B45309' : '#FBBF24' }]}>{t('stars.claim.certTitle')}</Text>
                 </View>
 
                 <Text style={[styles.certStarName, { color: theme.text }]}>{claimedStar.custom_name}</Text>
@@ -774,7 +780,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                         maxLength={40}
                         autoFocus
                         editable={!renameBusy}
-                        placeholder="Yıldızınızın yeni ismi"
+                        placeholder={t('stars.claim.renamePlaceholder')}
                         placeholderTextColor={theme.textMuted}
                         selectionColor="#F59E0B"
                         returnKeyType="done"
@@ -789,20 +795,20 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                         ]}
                       />
                       <Text style={[styles.renameHint, { color: renameError ? '#F87171' : theme.textMuted }]}>
-                        {renameError || 'İsmi ayda yalnızca bir kez değiştirebilirsiniz; hak kullanılınca 30 gün beklemeniz gerekir. Hak iki partner için ortaktır.'}
+                        {renameError || t('stars.claim.renameNote')}
                       </Text>
                       <View style={styles.renameActions}>
                         <TouchableOpacity onPress={cancelRename} disabled={renameBusy} style={styles.renameCancelBtn} activeOpacity={0.8}>
-                          <Text style={[styles.renameCancelText, { color: theme.textSecondary }]}>Vazgeç</Text>
+                          <Text style={[styles.renameCancelText, { color: theme.textSecondary }]}>{t('common.cancel')}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={submitRename} disabled={renameBusy} style={[styles.renameSaveBtn, renameBusy && { opacity: 0.6 }]} activeOpacity={0.85}>
-                          <Text style={styles.renameSaveText}>{renameBusy ? 'Kaydediliyor…' : 'Kaydet'}</Text>
+                          <Text style={styles.renameSaveText}>{renameBusy ? t('stars.claim.saving') : t('common.save')}</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
                   ) : isNameLocked ? (
                     <Text style={[styles.renameLockedText, { color: theme.textMuted }]}>
-                      İsim değiştirme hakkı {dayjs(nameLockedUntil as string).locale('tr').format('D MMMM')} tarihinde yenilenir
+                      {t('stars.claim.renameLocked', { date: dayjs(nameLockedUntil as string).locale(i18n.language).format('D MMMM') })}
                     </Text>
                   ) : (
                     <TouchableOpacity
@@ -813,10 +819,10 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                         { borderColor: isLight ? 'rgba(217, 119, 6, 0.35)' : 'rgba(251, 191, 36, 0.35)' },
                       ]}
                       accessibilityRole="button"
-                      accessibilityLabel="Yıldızın ismini düzenle"
+                      accessibilityLabel={t('stars.claim.editNameA11y')}
                     >
                       <Pencil size={12} color={isLight ? '#B45309' : '#FBBF24'} />
-                      <Text style={[styles.renameLinkText, { color: isLight ? '#B45309' : '#FBBF24' }]}>İsmi düzenle</Text>
+                      <Text style={[styles.renameLinkText, { color: isLight ? '#B45309' : '#FBBF24' }]}>{t('stars.claim.editName')}</Text>
                     </TouchableOpacity>
                   )
                 ) : null}
@@ -825,17 +831,17 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                   <Text style={[styles.certCommonName, { color: theme.textSecondary }]}>({claimedStar.common_name})</Text>
                 ) : null}
                 <Text style={[styles.certSubText, { color: theme.textMuted }]}>
-                  Aşkınızın Işığı Evrende Sonsuza Kadar Parlamak Üzere Tescillendi
+                  {t('stars.claim.certSubtitle')}
                 </Text>
 
                 {/* ASTRONOMİK KÜNYE TABLOSU */}
                 <View style={styles.certInfoGrid}>
                   <View style={[styles.gridItem, { backgroundColor: isLight ? theme.unitBg : 'rgba(255, 255, 255, 0.05)', borderColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.1)' }]}>
-                    <Text style={[styles.gridLabel, { color: theme.textMuted }]}>KATALOG KODU</Text>
+                    <Text style={[styles.gridLabel, { color: theme.textMuted }]}>{t('stars.claim.catalogCode')}</Text>
                     <Text style={[styles.gridValueHighlight, { color: isLight ? '#D97706' : '#38BDF8' }]}>{claimedStar.catalog_code}</Text>
                   </View>
                   <View style={[styles.gridItem, { backgroundColor: isLight ? theme.unitBg : 'rgba(255, 255, 255, 0.05)', borderColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.1)' }]}>
-                    <Text style={[styles.gridLabel, { color: theme.textMuted }]}>TAYF SINIFI</Text>
+                    <Text style={[styles.gridLabel, { color: theme.textMuted }]}>{t('stars.claim.spectralClass')}</Text>
                     <Text style={[styles.gridValue, { color: theme.text }]}>{claimedStar.spectral_type}</Text>
                   </View>
                   <View style={[styles.gridItem, { backgroundColor: isLight ? theme.unitBg : 'rgba(255, 255, 255, 0.05)', borderColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.1)' }]}>
@@ -854,7 +860,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                 <View style={[styles.firstSparkNote, { backgroundColor: isLight ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.12)', borderColor: isLight ? 'rgba(16, 185, 129, 0.25)' : 'rgba(16, 185, 129, 0.3)' }]}>
                   <CheckCircle2 size={16} color="#10B981" />
                   <Text style={[styles.firstSparkText, { color: isLight ? '#065F46' : '#A7F3D0' }]}>
-                    Yıldızınız gökyüzünde! Birlikte paylaştığınız her anı onu daha da parlatacak.
+                    {t('stars.claim.certBody')}
                   </Text>
                 </View>
 
@@ -871,7 +877,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                     style={styles.buttonGradient}
                   >
                     <Text style={styles.primaryButtonText}>
-                      {initialStar ? 'Sertifikayı Kapat ✨' : 'Mikro Evrenimize Adım At 🚀'}
+                      {initialStar ? t('stars.claim.closeCert') : t('stars.claim.enterMicro')}
                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>

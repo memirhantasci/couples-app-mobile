@@ -5,6 +5,7 @@ import type { AppTheme } from "@/lib/theme";
 import type { LegalDocType } from "@/constants/legalTexts";
 import { ModernSection } from "./ModernSection";
 import { profileSharedStyles } from "./profileSharedStyles";
+import { useTranslation } from "react-i18next";
 
 interface LegalDocsListProps {
   theme: AppTheme;
@@ -12,23 +13,24 @@ interface LegalDocsListProps {
 }
 
 const LEGAL_ITEMS = [
-  { id: "kvkk" as const, title: "KVKK Aydınlatma Metni", sub: "6698 Sayılı Kanun Kapsamında Bilgilendirme", icon: ShieldCheck },
-  { id: "privacy" as const, title: "Gizlilik Politikası", sub: "Veri Koruma, Şifreleme ve Güvenlik İlkeleri", icon: Lock },
-  { id: "terms" as const, title: "Kullanım Koşulları (EULA)", sub: "Kullanıcı Sözleşmesi ve Genel Kurallar", icon: FileText },
-  { id: "consent" as const, title: "Açık Rıza Metni", sub: "Sağlık ve Konum Verilerinin İşlenmesi", icon: UserCheck },
-  { id: "subscription" as const, title: "Abonelik ve İade Şartları", sub: "Mesafeli Satış, İptal ve Yenileme", icon: CreditCard },
-];
+  { id: "kvkk" as const, titleKey: "legal.docs.kvkk.title", subKey: "legal.docs.kvkk.sub", icon: ShieldCheck },
+  { id: "privacy" as const, titleKey: "paywall.links.privacy", subKey: "legal.docs.privacy.sub", icon: Lock },
+  { id: "terms" as const, titleKey: "paywall.links.terms", subKey: "legal.docs.terms.sub", icon: FileText },
+  { id: "consent" as const, titleKey: "legal.docs.consent.title", subKey: "legal.docs.consent.sub", icon: UserCheck },
+  { id: "subscription" as const, titleKey: "legal.docs.subscription.title", subKey: "legal.docs.subscription.sub", icon: CreditCard },
+] as const;
 
 export function LegalDocsList({ theme, onOpenDoc }: LegalDocsListProps) {
+  const { t } = useTranslation();
   return (
     <ModernSection
-      title="Yasal & Gizlilik Sözleşmeleri"
+      title={t("profile.legal.title")}
       icon={<ShieldCheck size={18} color={theme.accent} />}
       theme={theme}
       defaultOpen={false}
     >
       <Text style={[profileSharedStyles.sessionHintText, { color: theme.textMuted }]}>
-        Verilerinizin güvenliği, gizliliğiniz ve mevzuat haklarınızla ilgili tüm yasal metinleri dilediğiniz zaman inceleyebilirsiniz.
+        {t("profile.legal.description")}
       </Text>
 
       <View style={styles.legalListContainer}>
@@ -45,8 +47,8 @@ export function LegalDocsList({ theme, onOpenDoc }: LegalDocsListProps) {
                 <ItemIcon size={16} color={theme.accent} />
               </View>
               <View style={styles.legalItemTextBox}>
-                <Text style={[styles.legalItemTitle, { color: theme.text }]}>{item.title}</Text>
-                <Text style={[styles.legalItemSub, { color: theme.textMuted }]}>{item.sub}</Text>
+                <Text style={[styles.legalItemTitle, { color: theme.text }]}>{t(item.titleKey)}</Text>
+                <Text style={[styles.legalItemSub, { color: theme.textMuted }]}>{t(item.subKey)}</Text>
               </View>
               <ChevronRight size={16} color={theme.textMuted} />
             </TouchableOpacity>

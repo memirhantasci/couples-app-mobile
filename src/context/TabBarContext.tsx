@@ -6,6 +6,8 @@ import {
   LucideIcon
 } from "lucide-react-native";
 import { toast } from "@/lib/toast";
+import type { ParseKeys } from "i18next";
+import { useTranslation } from "react-i18next";
 
 export const TAB_STORAGE_KEY = "@couples_app_bottom_bar_tabs_v1";
 
@@ -24,80 +26,81 @@ export type TabKey =
 
 export interface TabItemDefinition {
   key: TabKey;
-  label: string;
+  /** Çeviri anahtarı: ekranlar `t(item.labelKey)` ile çevirir */
+  labelKey: ParseKeys;
   badgeLabel?: string;
   Icon: LucideIcon;
-  description: string;
+  descriptionKey: ParseKeys;
   isMandatory?: boolean;
 }
 
 export const ALL_TAB_DEFINITIONS: TabItemDefinition[] = [
   {
     key: "home",
-    label: "Ana Sayfa",
+    labelKey: "tabs.home.label",
     Icon: Home,
-    description: "Aşk sayacı, sayaçlar, aşk puanı ve günün özeti",
+    descriptionKey: "tabs.home.description",
     isMandatory: true,
   },
   {
     key: "calendar",
-    label: "Takvim",
+    labelKey: "tabs.calendar.label",
     Icon: CalendarHeart,
-    description: "Ortak etkinlikler, aşk takvimi ve özel günler",
+    descriptionKey: "tabs.calendar.description",
   },
   {
     key: "letters",
-    label: "Mektuplar",
+    labelKey: "tabs.letters.label",
     Icon: Mail,
-    description: "Zaman kilitli aşk mektupları ve sürprizler",
+    descriptionKey: "tabs.letters.description",
   },
   {
     key: "photos",
-    label: "Galeri",
+    labelKey: "tabs.photos.label",
     Icon: Images,
-    description: "Ortak fotoğraf arşivi, hatıralar ve albümler",
+    descriptionKey: "tabs.photos.description",
   },
   {
     key: "map",
-    label: "Harita",
+    labelKey: "tabs.map.label",
     Icon: MapPin,
-    description: "Fotoğraflı anı pinleri ve aşk haritası",
+    descriptionKey: "tabs.map.description",
   },
   {
     key: "medicine",
-    label: "İlaçlar",
+    labelKey: "tabs.medicine.label",
     Icon: Pill,
-    description: "İlaç hatırlatıcı, doz takibi ve sağlık geçmişi",
+    descriptionKey: "tabs.medicine.description",
   },
   {
     key: "daily-notes",
-    label: "Günlük",
+    labelKey: "tabs.dailyNotes.label",
     Icon: BookOpen,
-    description: "Sana özel, şifreli kişisel not defterin",
+    descriptionKey: "tabs.dailyNotes.description",
   },
   {
     key: "meetings",
-    label: "Buluşma",
+    labelKey: "tabs.meetings.label",
     Icon: Clock,
-    description: "Buluşma geri sayımı ve randevu planlama",
+    descriptionKey: "tabs.meetings.description",
   },
   {
     key: "memories",
-    label: "Özel Gün",
+    labelKey: "tabs.memories.label",
     Icon: Sparkles,
-    description: "Tanışma ve sevgili olma milatları ve yıl dönümleri",
+    descriptionKey: "tabs.memories.description",
   },
   {
     key: "period-tracker",
-    label: "Döngü",
+    labelKey: "tabs.periodTracker.label",
     Icon: Droplet,
-    description: "Kadın regl döngüsü ve semptom takip takvimi",
+    descriptionKey: "tabs.periodTracker.description",
   },
   {
     key: "profile",
-    label: "Ayarlar",
+    labelKey: "tabs.profile.label",
     Icon: Settings,
-    description: "Profil, tema ve uygulama yapılandırması",
+    descriptionKey: "tabs.profile.description",
   },
 ];
 
@@ -136,6 +139,7 @@ const MAX_TABS = 6;
 const MIN_TABS = 2;
 
 export function TabBarProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const [enabledTabs, setEnabledTabs] = useState<TabKey[]>(DEFAULT_TABS);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -181,7 +185,7 @@ export function TabBarProvider({ children }: { children: React.ReactNode }) {
   const toggleTab = useCallback(
     (key: TabKey): boolean => {
       if (key === "home") {
-        toast.info("Ana Sayfa alt barda zorunludur ve kaldırılamaz.", { title: "Sabit sekme", emoji: "📌" });
+        toast.info(t("tabs.toasts.homeRequired"), { title: t("tabs.toasts.homeRequiredTitle"), emoji: "📌" });
         return false;
       }
 
@@ -189,7 +193,7 @@ export function TabBarProvider({ children }: { children: React.ReactNode }) {
 
       if (isCurrentlyEnabled) {
         if (enabledTabs.length <= MIN_TABS) {
-          toast.warning(`Alt barda en az ${MIN_TABS} sekme bulunmalıdır.`, { title: "Sınır" });
+          toast.warning(t("tabs.toasts.minTabs", { min: MIN_TABS }), { title: t("tabs.toasts.limitTitle") });
           return false;
         }
 
@@ -200,8 +204,8 @@ export function TabBarProvider({ children }: { children: React.ReactNode }) {
       } else {
         if (enabledTabs.length >= MAX_TABS) {
           toast.warning(
-            `Alt barda en fazla ${MAX_TABS} sekme yer alabilir. Lütfen önce başka bir sekmeyi çıkarın.`,
-            { title: "Maksimum sekme sınırı" }
+            t("tabs.toasts.maxTabs", { max: MAX_TABS }),
+            { title: t("tabs.toasts.maxTabsTitle") }
           );
           return false;
         }

@@ -27,6 +27,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { SKY_SECTORS_LIST, type SectorConfig } from '../config/skySectors.data';
 import { starService } from '../api/starService';
 import type { SectorDynamicOverview, FlyToTarget } from '../types/star.types';
+import { useTranslation } from 'react-i18next';
 
 interface SectorAtlasModalProps {
   readonly visible: boolean;
@@ -46,6 +47,7 @@ export const SectorAtlasModal: React.FC<SectorAtlasModalProps> = ({
   onClaimFromSector,
   hasOwnStar = false,
 }) => {
+  const { t } = useTranslation();
   const { theme, isLight } = useTheme();
   const [dynamicData, setDynamicData] = useState<SectorDynamicOverview[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -134,8 +136,8 @@ export const SectorAtlasModal: React.FC<SectorAtlasModalProps> = ({
               { borderBottomColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.06)' },
             ]}
           >
-            <Text style={[styles.headerTitle, { color: theme.text }]}>🌌 Gökyüzü Atlası</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>24 Astronomik Sektör</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>{t('stars.atlas.title')}</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>{t('stars.atlas.subtitle')}</Text>
             <TouchableOpacity
               onPress={onClose}
               style={[
@@ -152,7 +154,7 @@ export const SectorAtlasModal: React.FC<SectorAtlasModalProps> = ({
           {isLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={theme.accent} />
-              <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Sektörler taranıyor...</Text>
+              <Text style={[styles.loadingText, { color: theme.textSecondary }]}>{t('stars.atlas.scanning')}</Text>
             </View>
           ) : (
             <ScrollView
@@ -190,7 +192,7 @@ export const SectorAtlasModal: React.FC<SectorAtlasModalProps> = ({
                           <Text style={styles.sectorSymbol}>{sector.symbol}</Text>
                           <View style={styles.cardTitleBlock}>
                             <Text style={[styles.sectorName, { color: sector.themeColor }]}>
-                              {sector.name}
+                              {t(sector.nameKey)}
                             </Text>
                             <Text style={[styles.sectorLatin, { color: theme.textMuted }]}>{sector.latinName}</Text>
                           </View>
@@ -201,7 +203,7 @@ export const SectorAtlasModal: React.FC<SectorAtlasModalProps> = ({
                           {hasFriends && (
                             <View style={styles.friendBadge}>
                               <Users size={11} color="#34D399" />
-                              <Text style={styles.friendBadgeText}>Arkadaş</Text>
+                              <Text style={styles.friendBadgeText}>{t('stars.atlas.friend')}</Text>
                             </View>
                           )}
                           {energy > 0 && (
@@ -215,7 +217,7 @@ export const SectorAtlasModal: React.FC<SectorAtlasModalProps> = ({
 
                       {/* Açıklama */}
                       <Text style={[styles.sectorDesc, { color: theme.textSecondary }]} numberOfLines={2}>
-                        {sector.description}
+                        {t(sector.descriptionKey)}
                       </Text>
 
                       {/* Doluluk barı */}
@@ -237,7 +239,7 @@ export const SectorAtlasModal: React.FC<SectorAtlasModalProps> = ({
                           />
                         </View>
                         <Text style={[styles.fillBarLabel, { color: theme.textMuted }]}>
-                          {claimed} / {total} yıldız • %{fillPercent}
+                          {t('stars.atlas.fill', { claimed, total, fillPercent })}
                         </Text>
                       </View>
 
@@ -249,7 +251,7 @@ export const SectorAtlasModal: React.FC<SectorAtlasModalProps> = ({
                           activeOpacity={0.7}
                         >
                           <Rocket size={14} color="#FFF" />
-                          <Text style={styles.actionButtonText}>Oraya Uç</Text>
+                          <Text style={styles.actionButtonText}>{t('stars.atlas.flyTo')}</Text>
                         </TouchableOpacity>
 
                         {!hasOwnStar && (
@@ -266,7 +268,7 @@ export const SectorAtlasModal: React.FC<SectorAtlasModalProps> = ({
                           >
                             <Sparkles size={14} color={sector.themeColor} />
                             <Text style={[styles.actionButtonText, { color: sector.themeColor }]}>
-                              Yıldız Seç
+                              {t('stars.atlas.chooseStar')}
                             </Text>
                           </TouchableOpacity>
                         )}

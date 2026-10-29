@@ -5,9 +5,11 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-reac
 import { dayjs } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
 import { CALENDAR_COLORS } from "./calendarColors";
+import { useTranslation } from "react-i18next";
+import type { ParseKeys } from "i18next";
 
 interface LegendEntry {
-  label: string;
+  labelKey: ParseKeys;
   color: string;
   /** "r,g,b" used for the tinted chip background and border. */
   rgb: string;
@@ -16,15 +18,15 @@ interface LegendEntry {
 }
 
 const LEGEND_ENTRIES: LegendEntry[] = [
-  { label: "Not", color: CALENDAR_COLORS.note, rgb: "236,72,153", textLight: "#BE185D", textDark: "#F472B6" },
-  { label: "Ruh Halim", color: CALENDAR_COLORS.myMood, rgb: "245,158,11", textLight: "#B45309", textDark: "#FBBF24" },
-  { label: "Partnerim", color: CALENDAR_COLORS.partnerMood, rgb: "14,165,233", textLight: "#0369A1", textDark: "#38BDF8" },
-  { label: "Fotoğraf", color: CALENDAR_COLORS.photo, rgb: "16,185,129", textLight: "#047857", textDark: "#34D399" },
-  { label: "Buluşma", color: CALENDAR_COLORS.meeting, rgb: "139,92,246", textLight: "#7C3AED", textDark: "#A78BFA" },
+  { labelKey: "calendar.legend.note", color: CALENDAR_COLORS.note, rgb: "236,72,153", textLight: "#BE185D", textDark: "#F472B6" },
+  { labelKey: "calendar.legend.myMood", color: CALENDAR_COLORS.myMood, rgb: "245,158,11", textLight: "#B45309", textDark: "#FBBF24" },
+  { labelKey: "calendar.legend.partner", color: CALENDAR_COLORS.partnerMood, rgb: "14,165,233", textLight: "#0369A1", textDark: "#38BDF8" },
+  { labelKey: "calendar.legend.photo", color: CALENDAR_COLORS.photo, rgb: "16,185,129", textLight: "#047857", textDark: "#34D399" },
+  { labelKey: "tabs.meetings.label", color: CALENDAR_COLORS.meeting, rgb: "139,92,246", textLight: "#7C3AED", textDark: "#A78BFA" },
 ];
 
 const PERIOD_LEGEND_ENTRY: LegendEntry = {
-  label: "Döngü",
+  labelKey: "tabs.periodTracker.label",
   color: CALENDAR_COLORS.period,
   rgb: "225,29,72",
   textLight: "#BE123C",
@@ -53,6 +55,7 @@ function CalendarMonthViewComponent({
   onPrevMonth,
   onNextMonth,
 }: CalendarMonthViewProps) {
+  const { t, i18n } = useTranslation();
   const legendEntries = canSeePeriod ? [...LEGEND_ENTRIES, PERIOD_LEGEND_ENTRY] : LEGEND_ENTRIES;
 
   // 🚀 PERFORMANS: Takvim tema nesnesini memoize ederek her render'da stylesheet recalculation yapılmasını önlüyoruz
@@ -119,7 +122,7 @@ function CalendarMonthViewComponent({
         <View style={styles.monthTextBox}>
           <CalendarIcon size={16} color={theme.accent} />
           <Text style={[styles.monthText, { color: theme.text }]}>
-            {dayjs(currentMonth).format("MMMM YYYY")}
+            {dayjs(currentMonth).locale(i18n.language).format("MMMM YYYY")}
           </Text>
         </View>
 
@@ -135,7 +138,7 @@ function CalendarMonthViewComponent({
           // Ay anahtarda OLMALI: react-native-calendars `current` değişince gösterdiği ayı kendiliğinden
           // güncellemez. Anahtardan çıkınca başlık Eylül yazarken ızgara Ekim'de kalıyor, Eylül'ün günlerine
           // basınca da Ekim'in tarihleri seçiliyordu.
-          key={`${currentMonth.slice(0, 7)}_${theme.id}`}
+          key={`${currentMonth.slice(0, 7)}_${theme.id}_${i18n.language}`}
           firstDay={1}
           onDayPress={onDayPress}
           markedDates={markedDates}
@@ -147,7 +150,7 @@ function CalendarMonthViewComponent({
         <View style={[styles.legendRow, { borderTopColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
           {legendEntries.map((entry) => (
             <View
-              key={entry.label}
+              key={entry.labelKey}
               style={[
                 styles.legendItem,
                 {
@@ -158,7 +161,7 @@ function CalendarMonthViewComponent({
             >
               <View style={[styles.legendDot, { backgroundColor: entry.color }]} />
               <Text style={[styles.legendText, { color: isLight ? entry.textLight : entry.textDark }]}>
-                {entry.label}
+                {t(entry.labelKey)}
               </Text>
             </View>
           ))}

@@ -5,6 +5,7 @@ import { Maximize2 } from "lucide-react-native";
 import { dayjs } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
 import type { PhotoItem } from "./photoTypes";
+import { useTranslation } from "react-i18next";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -17,6 +18,7 @@ interface PhotoGrid2CellProps {
 
 // ─── 2 SÜTUNLU MODERN ESTETİK KART HÜCRESİ ───────────────────────────────────
 function PhotoGrid2CellBase({ item, index, theme, onPress }: PhotoGrid2CellProps) {
+  const { t, i18n } = useTranslation();
   const itemWidth = (SCREEN_WIDTH - 32 - 10) / 2;
 
   return (
@@ -45,7 +47,7 @@ function PhotoGrid2CellBase({ item, index, theme, onPress }: PhotoGrid2CellProps
 
       <View style={styles.grid2Details}>
         <Text style={[styles.grid2Date, { color: theme.textMuted }]} numberOfLines={1}>
-          {dayjs(item.taken_date).locale("tr").format("D MMM YYYY")}
+          {dayjs(item.taken_date).locale(i18n.language).format("D MMM YYYY")}
         </Text>
 
         {item.title ? (
@@ -53,7 +55,7 @@ function PhotoGrid2CellBase({ item, index, theme, onPress }: PhotoGrid2CellProps
             {item.title}
           </Text>
         ) : (
-          <Text style={[styles.grid2EmptySub, { color: theme.textMuted }]}>Özel Hatıra ✨</Text>
+          <Text style={[styles.grid2EmptySub, { color: theme.textMuted }]}>{t("photos.specialKeepsake")}</Text>
         )}
       </View>
     </TouchableOpacity>

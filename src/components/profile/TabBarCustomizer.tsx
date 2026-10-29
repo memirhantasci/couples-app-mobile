@@ -5,6 +5,7 @@ import type { AppTheme } from "@/lib/theme";
 import { useTabBar } from "@/context/TabBarContext";
 import { ModernSection } from "./ModernSection";
 import { profileSharedStyles } from "./profileSharedStyles";
+import { useTranslation } from "react-i18next";
 
 interface TabBarCustomizerProps {
   theme: AppTheme;
@@ -12,11 +13,12 @@ interface TabBarCustomizerProps {
 }
 
 export function TabBarCustomizer({ theme, isLight }: TabBarCustomizerProps) {
+  const { t } = useTranslation();
   const { enabledTabs, allTabs, toggleTab, isTabEnabled, resetTabs, maxTabs } = useTabBar();
 
   return (
     <ModernSection
-      title="Alt Bar Menüsü Özelleştirme"
+      title={t("profile.tabBar.title")}
       icon={<LayoutGrid size={18} color={theme.accent} />}
       theme={theme}
       defaultOpen={true}
@@ -24,7 +26,7 @@ export function TabBarCustomizer({ theme, isLight }: TabBarCustomizerProps) {
       <View style={{ gap: 12 }}>
         <View style={styles.tabSectionHeaderRow}>
           <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>
-            SEÇİLEN SEKMELER ({enabledTabs.length}/{maxTabs})
+            {t("profile.tabBar.selected", { count: enabledTabs.length, max: maxTabs })}
           </Text>
           <TouchableOpacity
             onPress={resetTabs}
@@ -32,12 +34,12 @@ export function TabBarCustomizer({ theme, isLight }: TabBarCustomizerProps) {
             activeOpacity={0.7}
           >
             <RotateCcw size={12} color={theme.accent} />
-            <Text style={[styles.resetTabsText, { color: theme.accent }]}>Sıfırla</Text>
+            <Text style={[styles.resetTabsText, { color: theme.accent }]}>{t("common.reset")}</Text>
           </TouchableOpacity>
         </View>
 
         <Text style={[styles.sectionSubtitleText, { color: theme.textMuted }]}>
-          Alt barda hızlıca erişmek istediğiniz sayfaları seçin. Kullanmadığınız sekmeleri (örn. ilaç takibi yapmıyorsanız İlaçlar&apos;ı) kaldırıp yerine Galeri, Notlar veya Buluşma ekleyebilirsiniz.
+          {t("profile.tabBar.description")}
         </Text>
 
         {/* Canlı Önizleme Çubuğu */}
@@ -51,12 +53,12 @@ export function TabBarCustomizer({ theme, isLight }: TabBarCustomizerProps) {
           ]}
         >
           <Text style={[styles.tabPreviewTitle, { color: theme.textSecondary }]}>
-            Aktif Alt Bar Önizlemesi
+            {t("profile.tabBar.preview")}
           </Text>
 
           <View style={styles.tabPreviewCapsulesRow}>
             {enabledTabs.map((key) => {
-              const item = allTabs.find((t) => t.key === key);
+              const item = allTabs.find((tab) => tab.key === key);
               if (!item) return null;
               const ItemIcon = item.Icon;
               return (
@@ -72,7 +74,7 @@ export function TabBarCustomizer({ theme, isLight }: TabBarCustomizerProps) {
                 >
                   <ItemIcon size={12} color={theme.accent} />
                   <Text style={[styles.tabPreviewCapsuleText, { color: theme.text }]} numberOfLines={1}>
-                    {item.label}
+                    {t(item.labelKey)}
                   </Text>
                 </View>
               );
@@ -122,17 +124,17 @@ export function TabBarCustomizer({ theme, isLight }: TabBarCustomizerProps) {
                   <View style={styles.tabOptionInfo}>
                     <View style={styles.tabOptionTitleRow}>
                       <Text style={[styles.tabOptionTitle, { color: theme.text }]}>
-                        {item.label}
+                        {t(item.labelKey)}
                       </Text>
                       {isMandatory && (
                         <View style={[styles.mandatoryBadge, { backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.1)" }]}>
                           <Lock size={9} color={theme.textMuted} />
-                          <Text style={[styles.mandatoryBadgeText, { color: theme.textMuted }]}>Zorunlu</Text>
+                          <Text style={[styles.mandatoryBadgeText, { color: theme.textMuted }]}>{t("common.required")}</Text>
                         </View>
                       )}
                     </View>
                     <Text style={[styles.tabOptionDesc, { color: theme.textMuted }]} numberOfLines={1}>
-                      {item.description}
+                      {t(item.descriptionKey)}
                     </Text>
                   </View>
                 </View>

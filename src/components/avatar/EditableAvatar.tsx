@@ -9,6 +9,7 @@ import { UserAvatar } from "./UserAvatar";
 import { AvatarActionSheet } from "./AvatarActionSheet";
 import { PremiumPaywall } from "@/components/ui/PremiumPaywall";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
+import { useTranslation } from "react-i18next";
 
 interface EditableAvatarProps {
   name?: string | null;
@@ -20,6 +21,7 @@ interface EditableAvatarProps {
  * Menü ve Ayarlar ekranındaki profil kartlarında kullanılır.
  */
 export function EditableAvatar({ name, size = 50 }: EditableAvatarProps) {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const { profile } = useAuth();
   const { myAvatarUrl, hasStoredAvatar } = useCoupleAvatars();
@@ -34,7 +36,7 @@ export function EditableAvatar({ name, size = 50 }: EditableAvatarProps) {
         disabled={avatar.isUploading}
         activeOpacity={0.8}
         accessibilityRole="button"
-        accessibilityLabel="Profil fotoğrafını değiştir"
+        accessibilityLabel={t("profile.avatar.changeA11y")}
         hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
       >
         <UserAvatar

@@ -24,6 +24,7 @@ const CACHED_PROFILE_KEY = "@couples_app_cached_profile";
 export const DEVICE_AUTH_CACHE_KEY = "@device_auth_cache";
 const DEVICE_AUTH_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 import { DEMO_PROFILE, DEMO_SESSION } from "@/constants/demoData";
+import i18n from "@/lib/i18n";
 
 // Maximum time (ms) to wait for auth initialization before forcing loading=false
 const AUTH_INIT_TIMEOUT_MS = 8000;
@@ -175,12 +176,12 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
 function showPendingDeletionPrompt(scheduledFor: string, signOut: () => Promise<void>) {
   const deletionDay = dayjs(scheduledFor).format("D MMMM YYYY");
   appAlert(
-    "Hesabın silinmek üzere",
-    `Bu hesap için silme talebi var: hesabın ve ilişkinize ait tüm veriler ${deletionDay} tarihinde kalıcı olarak silinecek.\n\nHesabını kullanmaya devam etmek istiyorsan silmeyi iptal et.`,
+    i18n.t("auth.deletion.pendingTitle"),
+    i18n.t("auth.deletion.pendingMessage", { deletionDay }),
     [
-      { text: "Çıkış Yap", style: "cancel", onPress: () => { signOut().catch(() => {}); } },
+      { text: i18n.t("auth.signOut"), style: "cancel", onPress: () => { signOut().catch(() => {}); } },
       {
-        text: "Silmeyi İptal Et",
+        text: i18n.t("auth.deletion.cancel"),
         onPress: async () => {
           let failed = false;
           try {
@@ -191,11 +192,11 @@ function showPendingDeletionPrompt(scheduledFor: string, signOut: () => Promise<
             failed = true;
           }
           if (failed) {
-            toast.error("Silme iptal edilemedi. Bağlantını kontrol edip tekrar dene.");
+            toast.error(i18n.t("auth.deletion.cancelFailed"));
             showPendingDeletionPrompt(scheduledFor, signOut);
             return;
           }
-          toast.success("Silme işlemi iptal edildi. Tekrar hoş geldin 💕");
+          toast.success(i18n.t("auth.deletion.canceled"));
         },
       },
     ],

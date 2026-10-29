@@ -35,6 +35,7 @@ import {
 import { useTheme } from "@/context/ThemeContext";
 import type { AppTheme } from "@/lib/theme";
 import { hapticError, hapticSuccess, hapticTap, hapticWarning } from "@/lib/soundEffects";
+import { useTranslation } from "react-i18next";
 
 const EXIT_MS = 190;
 
@@ -105,6 +106,7 @@ export function DialogHost({
 }
 
 function DialogCard({ item }: { item: DialogItem }) {
+  const { t } = useTranslation();
   const { theme, isLight } = useTheme();
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
@@ -205,7 +207,7 @@ function DialogCard({ item }: { item: DialogItem }) {
         <Pressable
           style={StyleSheet.absoluteFill}
           onPress={() => item.cancelable && close(null)}
-          accessibilityLabel="Kapat"
+          accessibilityLabel={t("common.close")}
         >
           <BlurView
             tint={isLight ? "light" : "dark"}
@@ -270,7 +272,7 @@ function DialogCard({ item }: { item: DialogItem }) {
                 {ordered.map((button, index) => {
                   const isPrimary = button === primaryButton;
                   const isDestructive = button.style === "destructive";
-                  const label = button.text ?? "Tamam";
+                  const label = button.text ?? t("common.ok");
                   return (
                     <Pressable
                       key={`${label}-${index}`}

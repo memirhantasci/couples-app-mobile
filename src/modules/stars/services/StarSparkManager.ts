@@ -21,6 +21,7 @@ import type {
   ResonanceEvent,
   SparkBroadcastPayload,
 } from '../types/star.types';
+import i18n from '@/lib/i18n';
 
 // ============================================================================
 // 1. MODÜL DÜZEYİNDE KALICI BELLEK (Remount-Safe 60s Trigger Window)
@@ -91,12 +92,12 @@ export class StarSparkManager {
     if (typeof options === 'string') {
       this.starId = options;
       this.senderId = '';
-      this.senderName = 'Partner';
+      this.senderName = i18n.t('common.partner');
       this.currentLuminosity = 1.0;
     } else {
       this.starId = options.starId;
       this.senderId = options.senderId ?? '';
-      this.senderName = options.senderName ?? 'Partner';
+      this.senderName = options.senderName ?? i18n.t('common.partner');
       this.currentLuminosity = options.initialLuminosity ?? 1.0;
     }
   }

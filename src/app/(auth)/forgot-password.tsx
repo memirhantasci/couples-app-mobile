@@ -16,8 +16,10 @@ import { requestPasswordReset } from "@/lib/authGateway";
 import { normalizeUsername } from "@/lib/username";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArrowLeft, Lock } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 
 export default function ForgotPasswordScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [identifier, setIdentifier] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -27,7 +29,7 @@ export default function ForgotPasswordScreen() {
     setErrorMsg("");
     const value = identifier.trim();
     if (!value) {
-      setErrorMsg("Lütfen kullanıcı adınızı ya da e-posta adresinizi girin.");
+      setErrorMsg(t("auth.forgot.identifierRequired"));
       return;
     }
 
@@ -42,8 +44,8 @@ export default function ForgotPasswordScreen() {
       if (!result.ok) {
         setErrorMsg(
           result.code === "too_many_requests"
-            ? "Çok fazla deneme yapıldı. Lütfen birkaç dakika sonra tekrar deneyin."
-            : "Kod gönderilemedi. Bağlantını kontrol edip tekrar dene."
+            ? t("auth.errors.tooManyAttemptsPolite")
+            : t("auth.forgot.sendFailed")
         );
         return;
       }
@@ -53,7 +55,7 @@ export default function ForgotPasswordScreen() {
         params: { identifier: normalized },
       });
     } catch (e) {
-      setErrorMsg("Beklenmedik bir hata oluştu.");
+      setErrorMsg(t("errors.unexpected"));
     } finally {
       setIsLoading(false);
     }
@@ -119,7 +121,7 @@ export default function ForgotPasswordScreen() {
               letterSpacing: -0.5,
             }}
           >
-            Şifreni mi Unuttun?
+            {t("auth.forgot.title")}
           </Text>
           <Text
             style={{
@@ -131,7 +133,7 @@ export default function ForgotPasswordScreen() {
               paddingHorizontal: 8,
             }}
           >
-            Endişelenme, sana yardımcı olacağız. Kullanıcı adını ya da e-posta adresini girerek başlayabilirsin.
+            {t("auth.forgot.subtitle")}
           </Text>
 
           {/* Input */}
@@ -143,12 +145,12 @@ export default function ForgotPasswordScreen() {
               marginLeft: 2,
             }}
           >
-            Kullanıcı Adı veya E-posta
+            {t("auth.forgot.identifierLabel")}
           </Text>
           <TextInput
             value={identifier}
             onChangeText={setIdentifier}
-            placeholder="kullaniciadi veya ornek@mail.com"
+            placeholder={t("auth.forgot.identifierPlaceholder")}
             placeholderTextColor="rgba(255,255,255,0.25)"
             autoCapitalize="none"
             autoCorrect={false}
@@ -210,7 +212,7 @@ export default function ForgotPasswordScreen() {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={{ color: "#fff", fontWeight: "800", fontSize: 17 }}>
-                  Kod Gönder
+                  {t("auth.forgot.submit")}
                 </Text>
               )}
             </LinearGradient>

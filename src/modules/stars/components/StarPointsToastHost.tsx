@@ -12,22 +12,24 @@ import { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/lib/toast';
+import i18n from '@/lib/i18n';
+import type { ParseKeys } from 'i18next';
 import type { CoupleActivityLogRecord, StarActivityType } from '../types/star.types';
 
-const ACTIVITY_LABELS: Record<StarActivityType, string> = {
-  mood: 'Ruh hali',
-  medicine: 'İlaç takibi',
-  calendar_note: 'Takvim notu',
-  pinned_note: 'Harita notu',
-  period_tracking: 'Döngü takibi',
-  letter: 'Mektup',
-  planet: 'Anı gezegeni',
-  photo: 'Fotoğraf',
-  diary: 'Günlük',
-  profile_pic: 'Profil fotoğrafı',
-  meeting: 'Buluşma',
-  memory: 'Anı',
-  wish: 'Dilek',
+const ACTIVITY_LABEL_KEYS: Record<StarActivityType, ParseKeys> = {
+  mood: 'stars.activity.mood',
+  medicine: 'stars.activity.medicine',
+  calendar_note: 'stars.activity.calendar_note',
+  pinned_note: 'stars.activity.pinned_note',
+  period_tracking: 'stars.activity.period_tracking',
+  letter: 'stars.activity.letter',
+  planet: 'stars.activity.planet',
+  photo: 'stars.activity.photo',
+  diary: 'stars.activity.diary',
+  profile_pic: 'stars.activity.profile_pic',
+  meeting: 'stars.activity.meeting',
+  memory: 'stars.activity.memory',
+  wish: 'stars.activity.wish',
 };
 
 /** Bu aktivitelerin ekranı ışık katkısını zaten kendisi gösterir (ör. dilek ekranı); bildirim tekrarlanmaz. */
@@ -83,8 +85,9 @@ export function StarPointsToastHost() {
           if (!hasStar || cancelled) return;
 
           // Kayıt ekranının kendi başarı bildiriminden sonra sıraya girer; haptik onda zaten verildi.
-          toast.success(`+${entry.points} puan, yıldızınız parladı 🌟`, {
-            title: ACTIVITY_LABELS[entry.activity_type],
+          // Abonelik uzun ömürlüdür; metin, olay anındaki geçerli dilde çözülür.
+          toast.success(i18n.t('stars.pointsToast', { count: entry.points }), {
+            title: i18n.t(ACTIVITY_LABEL_KEYS[entry.activity_type]),
             haptic: false,
           });
         },

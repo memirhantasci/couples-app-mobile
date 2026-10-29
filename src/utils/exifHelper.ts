@@ -1,6 +1,7 @@
 import * as Location from "expo-location";
 import { dayjs } from "@/lib/date";
 import { logger } from "@/utils/logger";
+import i18n from "@/lib/i18n";
 
 export interface ExtractedExifResult {
   takenDate: string | null;
@@ -137,7 +138,7 @@ export function formatGeocodedAddress(item: Location.LocationGeocodedAddress): s
     parts.push(item.country);
   }
 
-  return parts.join(", ") || (city || subregion || "Özel Konum");
+  return parts.join(", ") || (city || subregion || i18n.t("map.customLocation"));
 }
 
 /**

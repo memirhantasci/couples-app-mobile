@@ -2,13 +2,15 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Camera, FileText, Smile, MapPin, Droplet } from "lucide-react-native";
 import { CALENDAR_COLORS } from "./calendarColors";
+import { useTranslation } from "react-i18next";
+import type { ParseKeys } from "i18next";
 
 export type DaySectionVariant = "photo" | "note" | "mood" | "meeting" | "period";
 
 interface VariantConfig {
   Icon: typeof Camera;
   color: string;
-  label: string;
+  labelKey: ParseKeys;
   /** "r,g,b" used for the tinted badge background and border. */
   rgb: string;
   textLight: string;
@@ -21,7 +23,7 @@ const VARIANTS: Record<DaySectionVariant, VariantConfig> = {
   photo: {
     Icon: Camera,
     color: CALENDAR_COLORS.photo,
-    label: "FOTOĞRAF ARŞİVİ",
+    labelKey: "calendar.sections.photos",
     rgb: "16,185,129",
     textLight: "#047857",
     textDark: "#34D399",
@@ -30,7 +32,7 @@ const VARIANTS: Record<DaySectionVariant, VariantConfig> = {
   note: {
     Icon: FileText,
     color: CALENDAR_COLORS.note,
-    label: "GÜNÜN NOTLARI",
+    labelKey: "calendar.sections.notes",
     rgb: "236,72,153",
     textLight: "#BE185D",
     textDark: "#F472B6",
@@ -39,7 +41,7 @@ const VARIANTS: Record<DaySectionVariant, VariantConfig> = {
   mood: {
     Icon: Smile,
     color: CALENDAR_COLORS.myMood,
-    label: "HİSSEDİLEN RUH HALLERİ",
+    labelKey: "calendar.sections.moods",
     rgb: "245,158,11",
     textLight: "#B45309",
     textDark: "#FBBF24",
@@ -48,7 +50,7 @@ const VARIANTS: Record<DaySectionVariant, VariantConfig> = {
   meeting: {
     Icon: MapPin,
     color: CALENDAR_COLORS.meeting,
-    label: "GÜNÜN BULUŞMALARI",
+    labelKey: "calendar.sections.meetings",
     rgb: "139,92,246",
     textLight: "#7C3AED",
     textDark: "#A78BFA",
@@ -57,7 +59,7 @@ const VARIANTS: Record<DaySectionVariant, VariantConfig> = {
   period: {
     Icon: Droplet,
     color: CALENDAR_COLORS.period,
-    label: "DÖNGÜ & SAĞLIK TAKİBİ",
+    labelKey: "calendar.sections.period",
     rgb: "225,29,72",
     textLight: "#BE123C",
     textDark: "#FB7185",
@@ -77,7 +79,8 @@ interface DaySectionCardProps {
 }
 
 export function DaySectionCard({ variant, isLight, children }: DaySectionCardProps) {
-  const { Icon, color, label, rgb, textLight, textDark, gap } = VARIANTS[variant];
+  const { t } = useTranslation();
+  const { Icon, color, labelKey, rgb, textLight, textDark, gap } = VARIANTS[variant];
 
   return (
     <View style={{ gap }}>
@@ -91,7 +94,7 @@ export function DaySectionCard({ variant, isLight, children }: DaySectionCardPro
         ]}
       >
         <Icon size={15} color={color} />
-        <Text style={[styles.sectionHeaderText, { color: isLight ? textLight : textDark }]}>{label}</Text>
+        <Text style={[styles.sectionHeaderText, { color: isLight ? textLight : textDark }]}>{t(labelKey)}</Text>
       </View>
 
       {children}

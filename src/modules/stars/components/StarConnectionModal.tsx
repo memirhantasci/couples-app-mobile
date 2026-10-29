@@ -72,6 +72,8 @@ import type {
   PendingConnectionDetail,
   StarSearchResult,
 } from '../types/star.types';
+import { Trans, useTranslation } from 'react-i18next';
+import type { ParseKeys } from 'i18next';
 
 export interface StarConnectionModalProps {
   readonly visible: boolean;
@@ -85,10 +87,10 @@ export interface StarConnectionModalProps {
 
 type TabType = 'code' | 'search' | 'sky';
 
-const TABS: readonly { key: TabType; label: string; Icon: LucideIcon }[] = [
-  { key: 'code', label: 'Çift Kodu', Icon: KeyRound },
-  { key: 'search', label: 'Yıldız Adı', Icon: Search },
-  { key: 'sky', label: 'Gökyüzü', Icon: Compass },
+const TABS: readonly { key: TabType; labelKey: ParseKeys; Icon: LucideIcon }[] = [
+  { key: 'code', labelKey: 'stars.connect.tabs.code', Icon: KeyRound },
+  { key: 'search', labelKey: 'stars.connect.tabs.search', Icon: Search },
+  { key: 'sky', labelKey: 'stars.connect.tabs.sky', Icon: Compass },
 ];
 
 const CODE_CELL_INDEXES = Array.from({ length: PAIRING_CODE_LENGTH }, (_, index) => index);
@@ -100,6 +102,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
   onConnectionChanged,
   onNavigateToSky,
 }) => {
+  const { t } = useTranslation();
   const { theme, isLight } = useTheme();
   const [activeTab, setActiveTab] = useState<TabType>('code');
   const [isLoading, setIsLoading] = useState(false);
@@ -151,12 +154,12 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
           setHasLoaded(true);
         })
         .catch((err: any) => {
-          setErrorMessage(err?.message || 'Bağlantı bilgileri yüklenirken hata oluştu.');
+          setErrorMessage(err?.message || t('stars.connect.errors.loadFailed'));
         })
         .finally(() => {
           setIsLoading(false);
         }),
-    [coupleId]
+    [coupleId, t]
   );
 
   const loadData = useCallback(async () => {
@@ -203,15 +206,15 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
       setCodeCopied(true);
       setTimeout(() => setCodeCopied(false), 2200);
     } catch {
-      setErrorMessage('Kod kopyalanamadı.');
+      setErrorMessage(t('stars.connect.errors.copyFailed'));
     }
-  }, [pairingCode]);
+  }, [pairingCode, t]);
 
   // ─── ARAMA ─────────────────────────────────────────────────────────
   const handleSearch = useCallback(async () => {
     const trimmed = searchQuery.trim();
     if (!trimmed || trimmed.length < 2) {
-      setErrorMessage('En az 2 karakter giriniz.');
+      setErrorMessage(t('stars.connect.errors.minChars'));
       return;
     }
     setIsSearching(true);
@@ -221,11 +224,11 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
       const results = await starService.searchStarByName(trimmed);
       setSearchResults(results);
     } catch (err: any) {
-      setErrorMessage(err?.message || 'Arama sırasında hata oluştu.');
+      setErrorMessage(err?.message || t('stars.connect.errors.searchFailed'));
     } finally {
       setIsSearching(false);
     }
-  }, [searchQuery]);
+  }, [searchQuery, t]);
 
   // ─── BAĞLANTI İSTEĞİ GÖNDER ─────────────────────────────────────────
   // Hem arama sonuçlarındaki "Bağlantı Öner" hem de çift koduyla "Bağlantı Kur" bu akışı kullanır.
@@ -233,16 +236,16 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
   const sendConnectionRequest = useCallback(
     async (target: StarSearchResult): Promise<boolean> => {
       if (!canConnect || activeConnections.length >= 3) {
-        setErrorMessage('Maksimum 3 bağlantı limitine ulaştınız.');
+        setErrorMessage(t('stars.connect.errors.limitReached'));
         return false;
       }
       if (activeConnections.some((c) => c.other_star_id === target.star_id)) {
-        setErrorMessage(`"${target.custom_name}" yıldızıyla zaten bağlısınız ✨`);
+        setErrorMessage(t('stars.connect.errors.alreadyConnected', { custom_name: target.custom_name }));
         return false;
       }
       const existing = pendingConnections.find((p) => p.other_star_id === target.star_id);
       if (existing && !existing.is_incoming) {
-        setErrorMessage(`"${target.custom_name}" yıldızına zaten bir istek gönderdiniz; onay bekleniyor.`);
+        setErrorMessage(t('stars.connect.errors.alreadyRequested', { custom_name: target.custom_name }));
         return false;
       }
 
@@ -252,10 +255,10 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
       try {
         if (existing) {
           await starService.respondToConnection(existing.connection_id, true);
-          setSuccessMessage(`"${target.custom_name}" ile kozmik bağ kuruldu ✨`);
+          setSuccessMessage(t('stars.connect.success.bondFormed', { custom_name: target.custom_name }));
         } else {
           await starService.requestStarConnection(target.star_id);
-          setSuccessMessage(`"${target.custom_name}" yıldızına bağlantı isteği gönderildi ✨`);
+          setSuccessMessage(t('stars.connect.success.requestSent', { custom_name: target.custom_name }));
         }
         if (Platform.OS !== 'web') {
           hapticSuccess();
@@ -267,13 +270,13 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
         if (Platform.OS !== 'web') {
           hapticError();
         }
-        setErrorMessage(err?.message || 'İstek gönderilemedi.');
+        setErrorMessage(err?.message || t('stars.connect.errors.requestFailed'));
         return false;
       } finally {
         setActionLoadingId(null);
       }
     },
-    [canConnect, activeConnections, pendingConnections, loadData, onConnectionChanged]
+    [canConnect, activeConnections, pendingConnections, loadData, onConnectionChanged, t]
   );
 
   const handleSendRequest = useCallback(
@@ -294,7 +297,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
     try {
       const code = extractPairingCode(await Clipboard.getStringAsync());
       if (!code) {
-        setErrorMessage('Panoda bir çift kodu bulunamadı.');
+        setErrorMessage(t('stars.connect.errors.noCodeOnClipboard'));
         return;
       }
       if (Platform.OS !== 'web') {
@@ -304,23 +307,23 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
       setErrorMessage(null);
       setCodeCandidates([]);
     } catch {
-      setErrorMessage('Pano okunamadı.');
+      setErrorMessage(t('stars.connect.errors.clipboardFailed'));
     }
-  }, []);
+  }, [t]);
 
   const handleConnectByCode = useCallback(async () => {
     if (isConnectingByCode) return;
     const code = friendCode;
     if (!isCompletePairingCode(code)) {
-      setErrorMessage(`Çift kodu ${PAIRING_CODE_LENGTH} haneli olmalıdır.`);
+      setErrorMessage(t('stars.connect.errors.codeLength', { length: PAIRING_CODE_LENGTH }));
       return;
     }
     if (pairingCode && code === pairingCode.toUpperCase()) {
-      setErrorMessage('Bu sizin kendi çift kodunuz. Bağ kurmak istediğiniz çiftin kodunu girin.');
+      setErrorMessage(t('stars.connect.errors.ownCode'));
       return;
     }
     if (!canConnect || activeConnections.length >= 3) {
-      setErrorMessage('Maksimum 3 bağlantı limitine ulaştınız.');
+      setErrorMessage(t('stars.connect.errors.limitReached'));
       return;
     }
 
@@ -336,10 +339,10 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
         }
         if (similar.length > 0) {
           setCodeCandidates(similar);
-          setErrorMessage('Bu kodla eşleşen bir çift bulunamadı. Adı benzeyen yıldızlar aşağıda listelendi.');
+          setErrorMessage(t('stars.connect.errors.noCoupleForCode'));
         } else {
           setErrorMessage(
-            'Bu koda ait bir yıldız bulunamadı. Kodu kontrol edin; karşı çiftin de bir yıldız tescil etmiş olması gerekir.'
+            t('stars.connect.errors.noStarForCode')
           );
         }
         return;
@@ -352,7 +355,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
       if (Platform.OS !== 'web') {
         hapticError();
       }
-      setErrorMessage(err?.message || 'Çift koduyla arama sırasında hata oluştu.');
+      setErrorMessage(err?.message || t('stars.connect.errors.codeSearchFailed'));
     } finally {
       setIsConnectingByCode(false);
     }
@@ -363,6 +366,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
     canConnect,
     activeConnections.length,
     sendConnectionRequest,
+    t,
   ]);
 
   // ─── BAĞLANTIYI KOPAR / İSTEĞİ İPTAL ET ──────────────────────────
@@ -379,13 +383,13 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
           }
           setSuccessMessage(
             isPending
-              ? 'Bağlantı isteği iptal edildi.'
-              : `"${starName}" ile olan kozmik bağ sonlandırıldı.`
+              ? t('stars.connect.success.requestCancelled')
+              : t('stars.connect.success.bondEnded', { starName })
           );
           await loadData();
           onConnectionChanged?.();
         } catch (err: any) {
-          setErrorMessage(err?.message || 'İşlem gerçekleştirilemedi.');
+          setErrorMessage(err?.message || t('stars.connect.errors.actionFailed'));
         } finally {
           setActionLoadingId(null);
         }
@@ -393,23 +397,23 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
 
       if (Platform.OS === 'web') {
         const msg = isPending
-          ? 'Bu bağlantı isteğini iptal etmek istediğinize emin misiniz?'
-          : `"${starName}" ile aranızdaki yıldız bağını koparmak istiyor musunuz?`;
+          ? t('stars.connect.confirm.cancelRequest')
+          : t('stars.connect.confirm.breakBond', { starName });
         if (window.confirm(msg)) doRemove();
       } else {
         appAlert(
-          isPending ? 'İsteği İptal Et' : 'Bağlantıyı Kopar',
+          isPending ? t('stars.connect.confirm.cancelTitle') : t('stars.connect.confirm.breakTitle'),
           isPending
-            ? 'Bu bağlantı isteğini iptal etmek istediğinize emin misiniz?'
-            : `"${starName}" ile aranızdaki yıldız bağını koparmak istiyor musunuz?`,
+            ? t('stars.connect.confirm.cancelRequest')
+            : t('stars.connect.confirm.breakBond', { starName }),
           [
-            { text: 'Vazgeç', style: 'cancel' },
-            { text: isPending ? 'İptal Et' : 'Kopar', style: 'destructive', onPress: doRemove },
+            { text: t('stars.connect.confirm.nevermind'), style: 'cancel' },
+            { text: isPending ? t('stars.connect.confirm.cancelAction') : t('stars.connect.confirm.breakAction'), style: 'destructive', onPress: doRemove },
           ]
         );
       }
     },
-    [loadData, onConnectionChanged]
+    [loadData, onConnectionChanged, t]
   );
 
   const isLimitReached = activeConnections.length >= 3;
@@ -446,7 +450,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
 
         {isAlreadyConnected ? (
           <View style={styles.connectedBadge}>
-            <Text style={styles.connectedBadgeText}>Bağlı ✨</Text>
+            <Text style={styles.connectedBadgeText}>{t('stars.connect.connected')}</Text>
           </View>
         ) : isRequestSent ? (
           <View
@@ -455,7 +459,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
               { backgroundColor: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255, 255, 255, 0.08)' },
             ]}
           >
-            <Text style={[styles.pendingBadgeText, { color: theme.textSecondary }]}>İstek Gönderildi</Text>
+            <Text style={[styles.pendingBadgeText, { color: theme.textSecondary }]}>{t('stars.connect.requestSentBadge')}</Text>
           </View>
         ) : (
           <TouchableOpacity
@@ -489,10 +493,10 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                   ]}
                 >
                   {isLimitReached
-                    ? 'Limit Dolu (3/3)'
+                    ? t('stars.connect.limitFull')
                     : isRequestReceived
-                      ? 'Bağı Onayla ✨'
-                      : 'Bağlantı Öner ✨'}
+                      ? t('stars.connect.approveBond')
+                      : t('stars.connect.proposeBond')}
                 </Text>
               </LinearGradient>
             )}
@@ -529,10 +533,10 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
             <View style={styles.titleBlock}>
               <View style={styles.titleRow}>
                 <Share2 size={18} color={theme.accent} />
-                <Text style={[styles.title, { color: theme.text }]}>Kozmik Bağlar</Text>
+                <Text style={[styles.title, { color: theme.text }]}>{t('stars.connect.title')}</Text>
               </View>
               <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-                Takımyıldızı arkadaşlıkları • ({activeConnections.length}/3 aktif bağ)
+                {t('stars.connect.subtitle', { activeConnectionCount: activeConnections.length })}
               </Text>
             </View>
 
@@ -550,7 +554,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
 
           {/* ─── 3 SEKME BUTONLARI ──────────────────────────────────── */}
           <View style={styles.tabBar}>
-            {TABS.map(({ key, label, Icon }) => {
+            {TABS.map(({ key, labelKey, Icon }) => {
               const isActive = activeTab === key;
               return (
                 <TouchableOpacity
@@ -582,7 +586,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                       isActive && [styles.tabTextActive, { color: theme.text }],
                     ]}
                   >
-                    {label}
+                    {t(labelKey)}
                   </Text>
                 </TouchableOpacity>
               );
@@ -609,7 +613,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
             <View style={styles.limitWarningBanner}>
               <Sparkles size={14} color="#FBBF24" />
               <Text style={styles.limitWarningText}>
-                Maksimum 3 bağlantı limitine ulaştınız. Yeni bir bağ kurmak için mevcut bağlarınızdan birini sonlandırabilirsiniz.
+                {t('stars.connect.limitNotice')}
               </Text>
             </View>
           )}
@@ -625,7 +629,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
             {isLoading && !hasLoaded ? (
               <View style={styles.loadingBox}>
                 <ActivityIndicator size="large" color={theme.accent} />
-                <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Yıldız bağları yükleniyor...</Text>
+                <Text style={[styles.loadingText, { color: theme.textSecondary }]}>{t('stars.connect.loading')}</Text>
               </View>
             ) : activeTab === 'code' ? (
               /* ─── SEKME 1: ÇİFT KODU ─────────────────────────────── */
@@ -635,7 +639,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                   <TouchableOpacity
                     activeOpacity={0.82}
                     onPress={handleCopyPairingCode}
-                    accessibilityLabel={`Bizim çift kodumuz ${pairingCode}, kopyalamak için dokunun`}
+                    accessibilityLabel={t('stars.connect.ourCodeA11y', { pairingCode })}
                     style={[
                       styles.pairingCodeCard,
                       {
@@ -649,7 +653,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                     </View>
                     <View style={styles.pairingCodeTextBlock}>
                       <Text style={[styles.pairingCodeLabel, { color: theme.textSecondary }]}>
-                        Bizim Çift Kodumuz • arkadaşına ver
+                        {t('stars.connect.ourCodeLabel')}
                       </Text>
                       <Text style={[styles.pairingCodeValue, { color: theme.text }]}>{pairingCode}</Text>
                     </View>
@@ -678,10 +682,9 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                       <Link2 size={16} color={theme.accent} />
                     </View>
                     <View style={styles.friendCodeTextBlock}>
-                      <Text style={[styles.friendCodeTitle, { color: theme.text }]}>Arkadaşının Çift Kodu</Text>
+                      <Text style={[styles.friendCodeTitle, { color: theme.text }]}>{t('stars.connect.friendCodeTitle')}</Text>
                       <Text style={[styles.friendCodeHint, { color: theme.textSecondary }]}>
-                        Bağ kurmak istediğiniz çiftin {PAIRING_CODE_LENGTH} haneli kodunu girin; yıldızlarınız gökyüzünde
-                        bir takımyıldızı çizgisiyle birleşsin.
+                        {t('stars.connect.friendCodeHint', { length: PAIRING_CODE_LENGTH })}
                       </Text>
                     </View>
                   </View>
@@ -729,7 +732,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                       caretHidden
                       selectionColor="transparent"
                       underlineColorAndroid="transparent"
-                      accessibilityLabel="Arkadaşının çift kodu"
+                      accessibilityLabel={t('stars.connect.friendCodeA11y')}
                       style={styles.codeHiddenInput}
                     />
                   </View>
@@ -738,14 +741,14 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                     <TouchableOpacity
                       activeOpacity={0.8}
                       onPress={handlePasteFriendCode}
-                      accessibilityLabel="Panodaki kodu yapıştır"
+                      accessibilityLabel={t('stars.connect.pasteA11y')}
                       style={[
                         styles.pasteBtn,
                         { backgroundColor: theme.pillAccentBg, borderColor: theme.pillAccentBorder },
                       ]}
                     >
                       <ClipboardPaste size={14} color={theme.accent} />
-                      <Text style={[styles.pasteBtnText, { color: theme.accent }]}>Yapıştır</Text>
+                      <Text style={[styles.pasteBtnText, { color: theme.accent }]}>{t('stars.connect.paste')}</Text>
                     </TouchableOpacity>
                     <Text style={[styles.codeCounter, { color: theme.textMuted }]}>
                       {friendCode.length}/{PAIRING_CODE_LENGTH}
@@ -756,7 +759,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                     activeOpacity={0.85}
                     disabled={!canSubmitCode}
                     onPress={handleConnectByCode}
-                    accessibilityLabel="Bağlantı Kur"
+                    accessibilityLabel={t('stars.connect.connectA11y')}
                     accessibilityState={{ disabled: !canSubmitCode }}
                     style={styles.connectBtn}
                   >
@@ -783,7 +786,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                               { color: canSubmitCode ? '#FFFFFF' : theme.textMuted },
                             ]}
                           >
-                            {isLimitReached ? 'Limit Dolu (3/3)' : 'Bağlantı Kur ✨'}
+                            {isLimitReached ? t('stars.connect.limitFull') : t('stars.connect.connectBtn')}
                           </Text>
                         </>
                       )}
@@ -791,7 +794,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                   </TouchableOpacity>
 
                   <Text style={[styles.connectNote, { color: theme.textMuted }]}>
-                    Karşı çift isteğinizi onayladığında yıldızlarınız birbirine bağlanır.
+                    {t('stars.connect.connectNote')}
                   </Text>
                 </View>
 
@@ -816,7 +819,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                     <Search size={16} color={theme.textMuted} />
                     <TextInput
                       style={[styles.input, { color: theme.text }]}
-                      placeholder="Yıldız adı girin..."
+                      placeholder={t('stars.connect.searchPlaceholder')}
                       placeholderTextColor={theme.textMuted}
                       value={searchQuery}
                       onChangeText={setSearchQuery}
@@ -839,7 +842,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                     {isSearching ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
-                      <Text style={styles.searchButtonText}>Ara</Text>
+                      <Text style={styles.searchButtonText}>{t('stars.connect.search')}</Text>
                     )}
                   </TouchableOpacity>
                 </View>
@@ -849,7 +852,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                   {searchPerformed && searchResults.length === 0 && !isSearching && (
                     <View style={styles.emptyResults}>
                       <Text style={[styles.emptyResultsText, { color: theme.textSecondary }]}>
-                        “{searchQuery}” adında tescilli başka bir çift yıldızı bulunamadı.
+                        {t('stars.connect.noResults', { searchQuery })}
                       </Text>
                     </View>
                   )}
@@ -871,12 +874,11 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                 >
                   <View style={styles.skyGuideHeader}>
                     <Globe size={24} color="#38BDF8" />
-                    <Text style={[styles.skyGuideTitle, { color: theme.text }]}>Gök Kubbe Üzerinden Seçim</Text>
+                    <Text style={[styles.skyGuideTitle, { color: theme.text }]}>{t('stars.connect.skyGuideTitle')}</Text>
                   </View>
 
                   <Text style={[styles.skyGuideDescription, { color: theme.textSecondary }]}>
-                    Evrende parıldayan diğer çiftlerin tescilli yıldızlarını gökyüzü haritasında keşfedebilir
-                    ve doğrudan yıldız kartından bağlantı isteği gönderebilirsiniz.
+                    {t('stars.connect.skyGuideDesc')}
                   </Text>
 
                   <View style={styles.stepList}>
@@ -885,7 +887,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                         <Text style={styles.stepNumberText}>1</Text>
                       </View>
                       <Text style={[styles.stepItemText, { color: theme.textSecondary }]}>
-                        Aşağıdaki butonla <Text style={styles.stepHighlight}>Gök Kubbe (Makro Görünüm)</Text> moduna geçin.
+                        <Trans i18nKey="stars.connect.step1" components={{ b: <Text style={styles.stepHighlight} /> }} />
                       </Text>
                     </View>
 
@@ -894,7 +896,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                         <Text style={styles.stepNumberText}>2</Text>
                       </View>
                       <Text style={[styles.stepItemText, { color: theme.textSecondary }]}>
-                        Başka bir çifte ait <Text style={styles.stepHighlight}>tescilli bir yıldıza</Text> dokunun.
+                        <Trans i18nKey="stars.connect.step2" components={{ b: <Text style={styles.stepHighlight} /> }} />
                       </Text>
                     </View>
 
@@ -903,7 +905,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                         <Text style={styles.stepNumberText}>3</Text>
                       </View>
                       <Text style={[styles.stepItemText, { color: theme.textSecondary }]}>
-                        Açılan yıldız kartındaki <Text style={styles.stepHighlight}>“Yıldızımızı Bağla ✨”</Text> butonuna basın.
+                        <Trans i18nKey="stars.connect.step3" components={{ b: <Text style={styles.stepHighlight} /> }} />
                       </Text>
                     </View>
                   </View>
@@ -924,7 +926,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                       style={styles.goToSkyBtnGradient}
                     >
                       <Globe size={16} color="#FFFFFF" />
-                      <Text style={styles.goToSkyBtnText}>Gökyüzüne Git 🌌</Text>
+                      <Text style={styles.goToSkyBtnText}>{t('stars.connect.goToSky')}</Text>
                     </LinearGradient>
                   </TouchableOpacity>
                 </View>
@@ -941,7 +943,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
               <View style={styles.sectionHeaderRow}>
                 <Link2 size={15} color={theme.accent} />
                 <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
-                  Mevcut Bağlantılarımız ({activeConnections.length}/3)
+                  {t('stars.connect.currentBonds', { activeConnectionCount: activeConnections.length })}
                 </Text>
               </View>
 
@@ -953,7 +955,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                   ]}
                 >
                   <Text style={[styles.emptyActiveText, { color: theme.textMuted }]}>
-                    Henüz başka bir çiftin yıldızıyla takımyıldızı bağınız bulunmuyor.
+                    {t('stars.connect.noBonds')}
                   </Text>
                 </View>
               ) : (
@@ -1004,7 +1006,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                 <View style={styles.sectionHeaderRow}>
                   <Clock size={15} color={isLight ? '#B45309' : '#FBBF24'} />
                   <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
-                    Onay Bekleyen İsteklerimiz ({outgoingPending.length})
+                    {t('stars.connect.pendingTitle', { outgoingPendingCount: outgoingPending.length })}
                   </Text>
                 </View>
 
@@ -1026,7 +1028,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                           </Text>
                         </View>
                         <Text style={[styles.pendingHintText, { color: theme.textMuted }]}>
-                          Karşı çiftin onayı bekleniyor…
+                          {t('stars.connect.awaiting')}
                         </Text>
                       </View>
 
@@ -1034,7 +1036,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                         activeOpacity={0.7}
                         disabled={isActionLoading}
                         onPress={() => handleRemove(request.connection_id, request.other_star_name, true)}
-                        accessibilityLabel="İsteği iptal et"
+                        accessibilityLabel={t('stars.connect.cancelRequestA11y')}
                         style={styles.disconnectBtn}
                       >
                         {isActionLoading ? (

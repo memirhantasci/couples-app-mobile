@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, Modal, TouchableOpacity } from "react-native";
 import { X, MapPin } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 
 export interface LocationData {
   latitude: number;
@@ -20,8 +21,10 @@ export function MapPickerModal({
   visible,
   onClose,
   onSelectLocation,
-  title = "Konum Seçin",
+  title,
 }: MapPickerModalProps) {
+  const { t } = useTranslation();
+  const resolvedTitle = title ?? t("map.picker.defaultTitle");
   if (!visible) return null;
 
   return (
@@ -32,9 +35,9 @@ export function MapPickerModal({
             <X size={18} color="#FFFFFF" />
           </TouchableOpacity>
           <MapPin size={40} color="#38BDF8" style={{ marginBottom: 12 }} />
-          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.title}>{resolvedTitle}</Text>
           <Text style={styles.desc}>
-            Harita seçici mobil uygulamaya özeldir. Web ortamında varsayılan konum kullanılabilir.
+            {t("map.picker.webNote")}
           </Text>
           <TouchableOpacity
             onPress={() => {
@@ -47,7 +50,7 @@ export function MapPickerModal({
             }}
             style={styles.actionBtn}
           >
-            <Text style={styles.actionBtnText}>Varsayılan Konumu Seç (İstanbul)</Text>
+            <Text style={styles.actionBtnText}>{t("map.picker.webDefault")}</Text>
           </TouchableOpacity>
         </View>
       </View>

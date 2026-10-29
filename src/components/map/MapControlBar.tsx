@@ -7,6 +7,7 @@ import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { MapFilterChips } from "./MapFilterChips";
 import { MapThemePicker } from "./MapThemePicker";
 import type { FilterType, MapThemeType } from "./mapTypes";
+import { useTranslation } from "react-i18next";
 
 interface MapControlBarProps {
   accent: string;
@@ -47,6 +48,7 @@ export function MapControlBar({
   onFitAll,
   onLocate,
 }: MapControlBarProps) {
+  const { t } = useTranslation();
   const [showThemePicker, setShowThemePicker] = useState(false);
 
   const handleThemeSelect = useCallback(
@@ -76,7 +78,7 @@ export function MapControlBar({
       <View style={styles.topBarMainRow}>
         <View style={styles.topBarTitleBlock}>
           <Text style={[styles.topBarTitle, { color: isLight ? "#1A1528" : "#FFFFFF" }]}>
-            Aşk Haritası
+            {t("notifications.push.map.subtitle")}
           </Text>
           <Text
             style={[
@@ -85,8 +87,13 @@ export function MapControlBar({
             ]}
             numberOfLines={1}
           >
-            {isPremium ? `${photoCount} Anı · ` : ""}
-            {noteCount} Not · {meetingCount} Buluşma
+            {[
+              isPremium ? t("map.summary.photos", { count: photoCount }) : null,
+              t("map.summary.notes", { count: noteCount }),
+              t("map.summary.meetups", { count: meetingCount }),
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </Text>
         </View>
 
@@ -98,7 +105,7 @@ export function MapControlBar({
             style={actionBtnStyle}
             onPress={onOpenStory}
             activeOpacity={0.8}
-            accessibilityLabel="Hikayemiz - Harita Özeti"
+            accessibilityLabel={t("map.controls.storyA11y")}
           >
             <BookHeart size={16} color={accent} />
           </TouchableOpacity>
@@ -107,7 +114,7 @@ export function MapControlBar({
             style={actionBtnStyle}
             onPress={() => setShowThemePicker((open) => !open)}
             activeOpacity={0.8}
-            accessibilityLabel="Harita Teması"
+            accessibilityLabel={t("map.theme.title")}
           >
             <Layers size={16} color={accent} />
           </TouchableOpacity>
@@ -116,7 +123,7 @@ export function MapControlBar({
             style={actionBtnStyle}
             onPress={onFitAll}
             activeOpacity={0.8}
-            accessibilityLabel="Tüm Pinleri Göster"
+            accessibilityLabel={t("map.controls.showAllA11y")}
           >
             <Maximize2 size={16} color={accent} />
           </TouchableOpacity>
@@ -125,7 +132,7 @@ export function MapControlBar({
             style={actionBtnStyle}
             onPress={onLocate}
             activeOpacity={0.8}
-            accessibilityLabel="Konumuma Git"
+            accessibilityLabel={t("map.controls.myLocationA11y")}
           >
             {isLocating ? (
               <ActivityIndicator size={16} color={accent} />

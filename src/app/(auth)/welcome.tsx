@@ -13,10 +13,12 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArrowRight, Heart, Sparkles } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
+import { useTranslation } from "react-i18next";
 
 const ACCENT = "#FF4D6D";
 
 export default function WelcomeScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { enterDemoMode } = useAuth();
 
@@ -49,8 +51,7 @@ export default function WelcomeScreen() {
           </View>
           <Text style={styles.title}>Couples App</Text>
           <Text style={styles.subtitle}>
-            Aşkınızı belgelemenin ve büyütmenin en romantik yolu. Anılarınız, mektuplarınız ve yıldızınız
-            yalnızca ikinize ait.
+            {t("auth.welcome.subtitle")}
           </Text>
         </View>
 
@@ -66,7 +67,7 @@ export default function WelcomeScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.primaryBtn}
             >
-              <Text style={styles.primaryBtnText}>Hesap Oluştur</Text>
+              <Text style={styles.primaryBtnText}>{t("auth.createAccount")}</Text>
             </LinearGradient>
           </TouchableOpacity>
 
@@ -76,7 +77,7 @@ export default function WelcomeScreen() {
             style={styles.secondaryBtn}
             accessibilityRole="button"
           >
-            <Text style={styles.secondaryBtnText}>Giriş Yap</Text>
+            <Text style={styles.secondaryBtnText}>{t("auth.signIn")}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -84,13 +85,13 @@ export default function WelcomeScreen() {
             onPress={handleExplore}
             style={styles.exploreBtn}
             accessibilityRole="button"
-            accessibilityLabel="Uygulamayı örnek verilerle keşfet"
+            accessibilityLabel={t("auth.welcome.exploreA11y")}
           >
             <Sparkles size={16} color={ACCENT} style={{ marginRight: 8 }} />
-            <Text style={styles.exploreBtnText}>Uygulamayı Keşfet (Demo)</Text>
+            <Text style={styles.exploreBtnText}>{t("auth.welcome.explore")}</Text>
             <ArrowRight size={15} color={ACCENT} style={{ marginLeft: 6 }} />
           </TouchableOpacity>
-          <Text style={styles.exploreHint}>Demo, örnek verilerle gezdirir; hesabınız ya da verileriniz değildir.</Text>
+          <Text style={styles.exploreHint}>{t("auth.welcome.exploreHint")}</Text>
         </View>
       </View>
     </View>

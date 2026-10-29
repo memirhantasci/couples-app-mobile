@@ -23,6 +23,8 @@ import {
 } from "lucide-react-native";
 import { LEGAL_DOCS, LegalDocType } from "@/constants/legalTexts";
 import { getTheme } from "@/lib/theme";
+import { useTranslation } from "react-i18next";
+import type { ParseKeys } from "i18next";
 
 interface LegalModalProps {
   visible: boolean;
@@ -31,12 +33,12 @@ interface LegalModalProps {
   accentColor?: string;
 }
 
-const TABS: { id: LegalDocType; label: string; icon: any }[] = [
-  { id: "kvkk", label: "KVKK", icon: ShieldCheck },
-  { id: "privacy", label: "Gizlilik", icon: Lock },
-  { id: "terms", label: "Koşullar", icon: FileText },
-  { id: "consent", label: "Açık Rıza", icon: UserCheck },
-  { id: "subscription", label: "Abonelik", icon: CreditCard },
+const TABS: { id: LegalDocType; labelKey: ParseKeys; icon: any }[] = [
+  { id: "kvkk", labelKey: "legal.tabs.kvkk", icon: ShieldCheck },
+  { id: "privacy", labelKey: "legal.tabs.privacy", icon: Lock },
+  { id: "terms", labelKey: "legal.tabs.terms", icon: FileText },
+  { id: "consent", labelKey: "legal.tabs.consent", icon: UserCheck },
+  { id: "subscription", labelKey: "legal.tabs.subscription", icon: CreditCard },
 ];
 
 export function LegalModal({
@@ -45,6 +47,7 @@ export function LegalModal({
   initialDoc = "kvkk",
   accentColor = "#FF4D6D",
 }: LegalModalProps) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   // Demo modunda insets.top 0'a çekilir; tam ekran pencere ekranın tepesinden başladığı için gerçek değer alınır
   const topInset = useRealTopInset();
@@ -81,8 +84,8 @@ export function LegalModal({
               <ShieldCheck color={accentColor} size={20} />
             </View>
             <View>
-              <Text style={styles.headerTitle}>Yasal & Gizlilik</Text>
-              <Text style={styles.headerSub}>Mevzuat ve Kullanıcı Sözleşmeleri</Text>
+              <Text style={styles.headerTitle}>{t("legal.modal.title")}</Text>
+              <Text style={styles.headerSub}>{t("legal.modal.subtitle")}</Text>
             </View>
           </View>
 
@@ -129,7 +132,7 @@ export function LegalModal({
                       isActive && { color: "#FFFFFF", fontFamily: "Inter_700Bold" },
                     ]}
                   >
-                    {tab.label}
+                    {t(tab.labelKey)}
                   </Text>
                 </TouchableOpacity>
               );
@@ -147,7 +150,7 @@ export function LegalModal({
             </View>
             <View style={styles.dateBox}>
               <Calendar size={12} color="rgba(255,255,255,0.4)" />
-              <Text style={styles.dateText}>Son Güncelleme: {currentDoc.lastUpdated}</Text>
+              <Text style={styles.dateText}>{t("legal.modal.lastUpdated", { date: currentDoc.lastUpdated })}</Text>
             </View>
           </View>
 
@@ -200,7 +203,7 @@ export function LegalModal({
             activeOpacity={0.88}
           >
             <Check size={18} color="#FFFFFF" />
-            <Text style={styles.acceptBtnText}>Okudum ve Anladım</Text>
+            <Text style={styles.acceptBtnText}>{t("legal.modal.accept")}</Text>
           </TouchableOpacity>
         </View>
       </View>

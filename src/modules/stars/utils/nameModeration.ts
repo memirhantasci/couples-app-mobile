@@ -1,3 +1,4 @@
+import i18n from "@/lib/i18n";
 /**
  * @file nameModeration.ts
  * @module modules/stars/utils
@@ -24,7 +25,7 @@ function escapeRegex(str: string): string {
  */
 export function moderateStarName(name: string): { isValid: boolean; message?: string } {
   if (!name) {
-    return { isValid: false, message: 'İsim boş olamaz.' };
+    return { isValid: false, message: i18n.t("stars.errors.nameEmpty") };
   }
 
   const normalized = name.toLocaleLowerCase('tr-TR').trim();
@@ -36,7 +37,7 @@ export function moderateStarName(name: string): { isValid: boolean; message?: st
     if (regex.test(normalized)) {
       return { 
         isValid: false, 
-        message: 'Girdiğiniz isim topluluk kurallarına aykırı kelimeler içeriyor. Lütfen farklı bir isim seçin.' 
+        message: i18n.t("stars.errors.nameBlocked") 
       };
     }
   }

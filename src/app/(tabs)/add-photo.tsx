@@ -40,6 +40,7 @@ import { sanitize, sanitizeStrict } from "@/utils/sanitize";
 import { playCameraClick } from "@/lib/soundEffects";
 import { toast } from "@/lib/toast";
 import { LazyPremiumPaywall, LazyDemoActionModal, LazyDateTimePickerSheet } from "@/components/ui/lazyMount";
+import { useTranslation } from "react-i18next";
 
 interface LocationData {
   latitude: number;
@@ -48,6 +49,7 @@ interface LocationData {
 }
 
 export default function AddPhotoScreen() {
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { session, profile, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
@@ -106,12 +108,12 @@ export default function AddPhotoScreen() {
         setManualAddressInput("");
       } else {
         appAlert(
-          "Adres Bulunamadı",
-          "Girdiğiniz il, ilçe, mahalle veya sokak bulunamadı. Lütfen yazımı kontrol edin veya harita üzerinden seçmeyi deneyin."
+          t("photos.add.addressNotFoundTitle"),
+          t("photos.add.addressNotFoundMessage")
         );
       }
     } catch {
-      appAlert("Hata", "Adres aranırken bir sorun oluştu.");
+      appAlert(t("common.error"), t("photos.add.addressSearchFailed"));
     } finally {
       setIsSearchingAddress(false);
     }
@@ -120,8 +122,8 @@ export default function AddPhotoScreen() {
   const handlePickImage = async () => {
     if (executeOrIntercept(
       () => {},
-      "Ortak Fotoğraf Eklemek İçin Kayıt Olun 📸",
-      "Sevgilinizle ortak anı albümü oluşturmak ve fotoğraflarınızın çekildiği yerleri haritada görmek için ücretsiz hesabınızı oluşturun."
+      t("demo.prompts.addPhoto.title"),
+      t("demo.prompts.addPhoto.description")
     )) {
       return;
     }
@@ -195,15 +197,15 @@ export default function AddPhotoScreen() {
 
     } catch (error) {
       logger.error("Photo pick error:", error);
-      appAlert("Hata", "Fotoğraf seçilirken bir hata oluştu.");
+      appAlert(t("common.error"), t("photos.add.pickFailed"));
     }
   };
 
   const handleSave = async () => {
     if (executeOrIntercept(
       () => {},
-      "Ortak Fotoğraf Eklemek İçin Kayıt Olun 📸",
-      "Sevgilinizle ortak anı albümü oluşturmak ve fotoğraflarınızın çekildiği yerleri haritada görmek için ücretsiz hesabınızı oluşturun."
+      t("demo.prompts.addPhoto.title"),
+      t("demo.prompts.addPhoto.description")
     )) {
       return;
     }
@@ -221,17 +223,17 @@ export default function AddPhotoScreen() {
     setErrors(newErrors);
 
     if (newErrors.photo) {
-      toast.warning("Lütfen bir fotoğraf seçin.", { title: "Eksik bilgi" });
+      toast.warning(t("photos.add.selectPhoto"), { title: t("common.missingInformation") });
       return;
     }
 
     if (!takenDate) {
-      toast.warning("Lütfen bir çekim tarihi girin.", { title: "Eksik bilgi" });
+      toast.warning(t("photos.add.enterDate"), { title: t("common.missingInformation") });
       return;
     }
 
     if (newErrors.description) {
-      toast.warning("Lütfen fotoğraf için bir açıklama veya hikaye girin.", { title: "Eksik bilgi" });
+      toast.warning(t("photos.add.enterStory"), { title: t("common.missingInformation") });
       return;
     }
 
@@ -245,13 +247,13 @@ export default function AddPhotoScreen() {
       const cleanDescription = sanitize(description.trim());
 
       if (!cleanDescription) {
-        appAlert("Hata", "Geçersiz içerik tespit edildi. Lütfen açıklamayı tekrar yazın.");
+        appAlert(t("common.error"), t("photos.add.invalidContent"));
         setUploading(false);
         return;
       }
 
       if (!localImage.base64) {
-        throw new Error("Fotoğraf işlenemedi. Lütfen fotoğrafı tekrar seçin.");
+        throw new Error(t("photos.add.processFailed"));
       }
 
       // Tam boy görsel yükleme — base64 decode ile doğrudan ArrayBuffer yüklemesi.
@@ -265,7 +267,7 @@ export default function AddPhotoScreen() {
           contentType: "image/jpeg",
         });
 
-      if (uploadError) throw new Error("Fotoğraf yüklenemedi: " + uploadError.message);
+      if (uploadError) throw new Error(t("photos.errors.uploadFailedWithMessage", { message: uploadError.message }));
 
       // Thumbnail yükleme — galeri ızgarası için hızlı küçük resim
       let thumbPath: string | null = null;
@@ -325,21 +327,21 @@ export default function AddPhotoScreen() {
       playCameraClick();
 
       if (isPremium && coupleId && userId) {
-        const senderName = profile?.displayName || "Sevgilin";
+        const senderName = profile?.displayName || t("common.partnerFallback");
         const photoTitle = title.trim();
         const notificationBody = photoTitle 
-          ? `${senderName} galeriye yeni bir fotoğraf ekledi: "${photoTitle}"`
-          : `${senderName} galeriye yeni bir fotoğraf ekledi.`;
-        notifyPartner(coupleId, userId, "Yeni Bir Anı 📸", notificationBody, {
+          ? t("photos.add.notifyBodyWithTitle", { senderName, photoTitle })
+          : t("photos.add.notifyBody", { senderName });
+        notifyPartner(coupleId, userId, t("notifications.demo.photo.title"), notificationBody, {
           type: "photo",
           route: "/(tabs)/photos",
-          actionLabel: "Fotoğrafı Gör 📸",
+          actionLabel: t("photos.add.viewPhoto"),
         });
       }
 
       // "Tamam"a bastırmak yerine süzülen bir pil; sayfa hemen kapanır, pil galeride görünmeye devam eder.
       // Kamera deklanşörü haptiği zaten verildi (playCameraClick) → pilde ayrı titreşim yok.
-      toast.success("Fotoğraf ortak arşive eklendi! 🎉", { haptic: false });
+      toast.success(t("photos.add.added"), { haptic: false });
       if (router.canGoBack()) {
         router.back();
       } else {
@@ -347,7 +349,7 @@ export default function AddPhotoScreen() {
       }
     } catch (error: any) {
       logger.error("Photo save error:", error);
-      appAlert("Hata", "Kaydetme sırasında bir sorun oluştu: " + (error?.message || ""));
+      appAlert(t("common.error"), t("photos.errors.saveFailedWithMessage", { message: error?.message || "" }));
     } finally {
       setUploading(false);
     }
@@ -400,7 +402,7 @@ export default function AddPhotoScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity 
             accessibilityRole="button"
-            accessibilityLabel="Geri"
+            accessibilityLabel={t("common.back")}
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();
@@ -415,13 +417,13 @@ export default function AddPhotoScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={styles.headerTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Fotoğraf Yükle</Text>
-            <Text style={styles.headerSubtitle} numberOfLines={1}>Ortak Galeri Anısı 📸</Text>
+            <Text style={styles.headerTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{t("menu.upload.title")}</Text>
+            <Text style={styles.headerSubtitle} numberOfLines={1}>{t("photos.add.subtitle")}</Text>
           </View>
 
           <TouchableOpacity 
             accessibilityRole="button"
-            accessibilityLabel="Menüyü aç"
+            accessibilityLabel={t("common.openMenu")}
             onPress={() => router.push("/menu")} 
             style={styles.headerBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -440,7 +442,7 @@ export default function AddPhotoScreen() {
         >
           {/* FOTOĞRAF SEÇİM ALANI */}
           <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
-            <Text style={styles.cardHeaderTitle}>Görsel</Text>
+            <Text style={styles.cardHeaderTitle}>{t("photos.add.image")}</Text>
             <TouchableOpacity 
               style={[
                 styles.imagePickerBox, 
@@ -459,7 +461,7 @@ export default function AddPhotoScreen() {
                     activeOpacity={0.8}
                   >
                     <RefreshCw size={13} color="#ffffff" />
-                    <Text style={styles.changeImageText}>Değiştir</Text>
+                    <Text style={styles.changeImageText}>{t("photos.add.change")}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -467,9 +469,9 @@ export default function AddPhotoScreen() {
                   <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
                     <ImagePlus color={theme.accent} size={28} />
                   </View>
-                  <Text style={styles.placeholderTitle}>Fotoğraf Seç</Text>
+                  <Text style={styles.placeholderTitle}>{t("photos.add.select")}</Text>
                   <Text style={styles.placeholderSubtitle}>
-                    Galerinizden ortak arşive eklemek istediğiniz fotoğrafı seçin
+                    {t("photos.add.selectHint")}
                   </Text>
                 </View>
               )}
@@ -479,7 +481,7 @@ export default function AddPhotoScreen() {
             {exifStatus === "loading" && (
               <View style={styles.exifLoadingBox}>
                 <ActivityIndicator color={theme.accent} size="small" />
-                <Text style={styles.exifLoadingText}>Çekim tarihi taranıyor...</Text>
+                <Text style={styles.exifLoadingText}>{t("photos.add.scanning")}</Text>
               </View>
             )}
 
@@ -487,7 +489,7 @@ export default function AddPhotoScreen() {
               <View style={styles.exifSuccessBox}>
                 <CheckCircle2 color={okColor} size={16} />
                 <Text style={styles.exifSuccessText}>
-                  Çekim zamanı algılandı: {dayjs(takenDate).locale("tr").format("D MMMM YYYY")}, {takenTime}
+                  {t("photos.add.captureDetected", { date: dayjs(takenDate).locale(i18n.language).format("D MMMM YYYY"), time: takenTime })}
                 </Text>
               </View>
             )}
@@ -496,7 +498,7 @@ export default function AddPhotoScreen() {
               <View style={styles.exifNoticeBox}>
                 <AlertCircle color={warnColor} size={16} />
                 <Text style={styles.exifNoticeText}>
-                  Fotoğrafta çekim zamanı bulunamadı, şimdiki zaman eklendi.
+                  {t("photos.add.captureMissing")}
                 </Text>
               </View>
             )}
@@ -504,7 +506,7 @@ export default function AddPhotoScreen() {
 
           {/* KONUM KARTI */}
           <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
-            <Text style={styles.cardHeaderTitle}>Konum Bilgisi</Text>
+            <Text style={styles.cardHeaderTitle}>{t("photos.add.locationInfo")}</Text>
 
             {photoLocation ? (
               <View style={[styles.exifSuccessBox, { backgroundColor: exifGpsFound ? "rgba(34,197,94,0.12)" : "rgba(59,130,246,0.12)", borderColor: exifGpsFound ? "rgba(34,197,94,0.3)" : "rgba(59,130,246,0.3)" }]}>
@@ -515,7 +517,7 @@ export default function AddPhotoScreen() {
                 )}
                 <View style={{ flex: 1, paddingRight: 6 }}>
                   <Text style={[styles.exifSuccessText, { color: exifGpsFound ? okColor : infoColor, fontFamily: "Inter_700Bold", fontSize: 11.5 }]}>
-                    {exifGpsFound ? "Fotoğraftan Otomatik Algılandı" : "Belirlenen Konum"}
+                    {exifGpsFound ? t("photos.add.locationAuto") : t("photos.add.locationSet")}
                   </Text>
                   <Text style={[styles.locationDetailText, { color: theme.textSecondary }]} numberOfLines={2}>
                     {photoLocation.locationName ?? `${photoLocation.latitude.toFixed(4)}, ${photoLocation.longitude.toFixed(4)}`}
@@ -525,13 +527,13 @@ export default function AddPhotoScreen() {
                   onPress={() => setShowMapPicker(true)} 
                   style={[styles.changeLocBtn, { borderColor: exifGpsFound ? "rgba(34,197,94,0.4)" : "rgba(59,130,246,0.4)", marginRight: 6 }]}
                 >
-                  <Text style={[styles.changeLocBtnText, { color: exifGpsFound ? okColor : infoColor }]}>Harita</Text>
+                  <Text style={[styles.changeLocBtnText, { color: exifGpsFound ? okColor : infoColor }]}>{t("tabs.map.label")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                   onPress={() => { setPhotoLocation(null); setExifGpsFound(false); }} 
                   style={[styles.changeLocBtn, { borderColor: "rgba(239,68,68,0.4)" }]}
                 >
-                  <Text style={[styles.changeLocBtnText, { color: dangerColor }]}>Kaldır</Text>
+                  <Text style={[styles.changeLocBtnText, { color: dangerColor }]}>{t("photos.add.remove")}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -541,7 +543,7 @@ export default function AddPhotoScreen() {
                   <Search size={15} color={theme.textMuted} style={{ marginLeft: 12 }} />
                   <TextInput
                     style={[styles.quickAddressInput, { color: theme.text }]}
-                    placeholder="İl, ilçe, mahalle veya sokak yazın..."
+                    placeholder={t("photos.add.addressPlaceholder")}
                     placeholderTextColor={theme.textMuted}
                     value={manualAddressInput}
                     onChangeText={setManualAddressInput}
@@ -552,7 +554,7 @@ export default function AddPhotoScreen() {
                     <ActivityIndicator size="small" color={theme.accent} style={{ marginRight: 10 }} />
                   ) : manualAddressInput.trim().length > 0 ? (
                     <TouchableOpacity onPress={handleQuickGeocode} style={[styles.quickFindBtn, { backgroundColor: theme.accent }]}>
-                      <Text style={styles.quickFindBtnText}>Bul</Text>
+                      <Text style={styles.quickFindBtnText}>{t("photos.add.find")}</Text>
                     </TouchableOpacity>
                   ) : null}
                 </View>
@@ -567,8 +569,8 @@ export default function AddPhotoScreen() {
                     <MapPin size={17} color={theme.accent} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.locationPickerTitle, { color: theme.text }]}>Haritadan Nokta Seç</Text>
-                    <Text style={[styles.locationPickerSub, { color: theme.textMuted }]}>Haritaya dokunarak tam konumu işaretleyin</Text>
+                    <Text style={[styles.locationPickerTitle, { color: theme.text }]}>{t("photos.add.pickOnMap")}</Text>
+                    <Text style={[styles.locationPickerSub, { color: theme.textMuted }]}>{t("photos.add.pickOnMapHint")}</Text>
                   </View>
                 </TouchableOpacity>
               </View>
@@ -577,11 +579,11 @@ export default function AddPhotoScreen() {
 
           {/* TARİH VE SAAT KARTI */}
           <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
-            <Text style={styles.cardHeaderTitle}>Zaman Bilgisi</Text>
+            <Text style={styles.cardHeaderTitle}>{t("photos.add.timeInfo")}</Text>
             <View style={styles.rowInputs}>
               {/* Tarih */}
               <View style={{ flex: 1.2 }}>
-                <Text style={styles.fieldLabel}>Çekim Tarihi *</Text>
+                <Text style={styles.fieldLabel}>{t("photos.add.dateTaken")}</Text>
                 <TouchableOpacity 
                   style={[styles.inputRowBtn, { backgroundColor: theme.unitBg }]} 
                   onPress={() => setShowDatePicker(true)}
@@ -589,14 +591,14 @@ export default function AddPhotoScreen() {
                 >
                   <CalendarIcon size={16} color={theme.accent} />
                   <Text style={styles.inputRowBtnText} numberOfLines={1}>
-                    {dayjs(takenDate).locale("tr").format("DD MMM YYYY")}
+                    {dayjs(takenDate).locale(i18n.language).format("DD MMM YYYY")}
                   </Text>
                 </TouchableOpacity>
               </View>
 
               {/* Saat */}
               <View style={{ flex: 0.8 }}>
-                <Text style={styles.fieldLabel}>Saat</Text>
+                <Text style={styles.fieldLabel}>{t("photos.add.time")}</Text>
                 <TouchableOpacity 
                   style={[styles.inputRowBtn, { backgroundColor: theme.unitBg }]} 
                   onPress={() => setShowTimePicker(true)}
@@ -604,7 +606,7 @@ export default function AddPhotoScreen() {
                 >
                   <Clock size={16} color={theme.textMuted} />
                   <Text style={styles.inputRowBtnText}>
-                    {takenTime || "Seç"}
+                    {takenTime || t("photos.add.pick")}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -613,7 +615,7 @@ export default function AddPhotoScreen() {
             <LazyDateTimePickerSheet
               visible={showDatePicker}
               mode="date"
-              title="Çekim Tarihi"
+              title={t("photos.add.dateTakenTitle")}
               value={takenDate ? dayjs(takenDate).toDate() : new Date()}
               maximumDate={new Date()}
               onCancel={() => setShowDatePicker(false)}
@@ -623,7 +625,7 @@ export default function AddPhotoScreen() {
             <LazyDateTimePickerSheet
               visible={showTimePicker}
               mode="time"
-              title="Çekim Saati"
+              title={t("photos.add.timeTakenTitle")}
               value={takenTime ? dayjs(`2000-01-01T${takenTime}:00`).toDate() : new Date()}
               onCancel={() => setShowTimePicker(false)}
               onConfirm={onTimeConfirm}
@@ -632,16 +634,16 @@ export default function AddPhotoScreen() {
 
           {/* BAŞLIK VE AÇIKLAMA KARTI */}
           <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
-            <Text style={styles.cardHeaderTitle}>Anı Detayları</Text>
+            <Text style={styles.cardHeaderTitle}>{t("photos.add.details")}</Text>
             
             {/* Başlık Input */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Fotoğraf Başlığı (İsteğe bağlı)</Text>
+              <Text style={styles.fieldLabel}>{t("photos.add.titleLabel")}</Text>
               <TextInput
                 style={[styles.textInput, { backgroundColor: theme.unitBg }]}
                 value={title}
                 onChangeText={setTitle}
-                placeholder="Örn: Kapadokya Gün Batımı ✨"
+                placeholder={t("photos.add.titlePlaceholder")}
                 placeholderTextColor={theme.textMuted}
                 maxLength={80}
               />
@@ -651,11 +653,11 @@ export default function AddPhotoScreen() {
             <View style={styles.fieldGroup}>
               <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                 <Text style={[styles.fieldLabel, errors.description && { color: "#ff5c77" }]}>
-                  Anının Hikayesi *
+                  {t("photos.add.storyLabel")}
                 </Text>
                 {errors.description && (
                   <Text style={{ fontSize: 11, color: "#ff5c77", fontFamily: "Inter_500Medium" }}>
-                    Zorunlu alan
+                    {t("photos.add.required")}
                   </Text>
                 )}
               </View>
@@ -671,7 +673,7 @@ export default function AddPhotoScreen() {
                   setDescription(text);
                   setErrors(prev => ({ ...prev, description: false }));
                 }}
-                placeholder="Bu fotoğrafa dair hatırlamak istediğin özel bir his, mekan veya anı..."
+                placeholder={t("photos.add.storyPlaceholder")}
                 placeholderTextColor={theme.textMuted}
                 multiline
                 numberOfLines={4}
@@ -688,7 +690,7 @@ export default function AddPhotoScreen() {
                 onPress={() => setShowPaywall(true)}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.saveBtnText, { color: theme.accent }]}>Premium Özellik 🔒</Text>
+                <Text style={[styles.saveBtnText, { color: theme.accent }]}>{t("photos.add.premiumFeature")}</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity 
@@ -706,7 +708,7 @@ export default function AddPhotoScreen() {
                 ) : (
                   <>
                     <UploadCloud size={20} color="#ffffff" />
-                    <Text style={styles.saveBtnText}>Ortak Arşive Ekle</Text>
+                    <Text style={styles.saveBtnText}>{t("photos.add.submit")}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -728,8 +730,8 @@ export default function AddPhotoScreen() {
               }
             }
           }}
-          featureName="Fotoğraf Yükle"
-          featureDescription="Ortak galeriye dilediğiniz kadar fotoğraf yükleyin."
+          featureName={t("menu.upload.title")}
+          featureDescription={t("photos.add.featureDescription")}
           gender={profile?.gender}
         />
 
@@ -737,7 +739,7 @@ export default function AddPhotoScreen() {
         <MapPickerModal
           visible={showMapPicker}
           onClose={() => setShowMapPicker(false)}
-          title="Fotoğraf Konumu"
+          title={t("photos.add.locationTitle")}
           initialLocation={
             photoLocation && isValidCoordinate(photoLocation.latitude, photoLocation.longitude)
               ? photoLocation

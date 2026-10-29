@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Camera, ImageIcon, Trash2, X } from "lucide-react-native";
 import { useTheme } from "@/context/ThemeContext";
 import type { AvatarSource } from "@/lib/avatar";
+import { useTranslation } from "react-i18next";
 
 interface AvatarActionSheetProps {
   visible: boolean;
@@ -15,6 +16,7 @@ interface AvatarActionSheetProps {
 }
 
 export function AvatarActionSheet({ visible, onClose, onPick, onRemove, canRemove }: AvatarActionSheetProps) {
+  const { t } = useTranslation();
   const { theme, isLight } = useTheme();
   const insets = useSafeAreaInsets();
   const cameraAvailable = Platform.OS !== "web";
@@ -29,7 +31,7 @@ export function AvatarActionSheet({ visible, onClose, onPick, onRemove, canRemov
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Kapat" />
+      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel={t("common.close")} />
       <View style={[styles.sheetWrap, { paddingBottom: insets.bottom + 16 }]}>
         <BlurView
           intensity={Platform.OS === "ios" ? 60 : 90}
@@ -46,8 +48,8 @@ export function AvatarActionSheet({ visible, onClose, onPick, onRemove, canRemov
         />
 
         <View style={[styles.handle, { backgroundColor: isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.2)" }]} />
-        <Text style={[styles.title, { color: theme.text }]}>Profil Fotoğrafı</Text>
-        <Text style={[styles.subtitle, { color: theme.textMuted }]}>Sevgilin seni bu fotoğrafla görecek 💕</Text>
+        <Text style={[styles.title, { color: theme.text }]}>{t("profile.avatar.sheetTitle")}</Text>
+        <Text style={[styles.subtitle, { color: theme.textMuted }]}>{t("profile.avatar.sheetSubtitle")}</Text>
 
         <View style={styles.rows}>
           {cameraAvailable && (
@@ -55,7 +57,7 @@ export function AvatarActionSheet({ visible, onClose, onPick, onRemove, canRemov
               <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
                 <Camera size={18} color={theme.accent} />
               </View>
-              <Text style={[styles.rowText, { color: theme.text }]}>Fotoğraf Çek</Text>
+              <Text style={[styles.rowText, { color: theme.text }]}>{t("profile.avatar.takePhoto")}</Text>
             </TouchableOpacity>
           )}
 
@@ -63,7 +65,7 @@ export function AvatarActionSheet({ visible, onClose, onPick, onRemove, canRemov
             <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
               <ImageIcon size={18} color={theme.accent} />
             </View>
-            <Text style={[styles.rowText, { color: theme.text }]}>Galeriden Seç</Text>
+            <Text style={[styles.rowText, { color: theme.text }]}>{t("memories.add.chooseFromGallery")}</Text>
           </TouchableOpacity>
 
           {canRemove && (
@@ -71,7 +73,7 @@ export function AvatarActionSheet({ visible, onClose, onPick, onRemove, canRemov
               <View style={[styles.iconCircle, { backgroundColor: "rgba(255, 77, 106, 0.15)" }]}>
                 <Trash2 size={18} color="#ff4d6a" />
               </View>
-              <Text style={[styles.rowText, { color: "#ff4d6a" }]}>Mevcut Fotoğrafı Kaldır</Text>
+              <Text style={[styles.rowText, { color: "#ff4d6a" }]}>{t("profile.avatar.removeCurrent")}</Text>
             </TouchableOpacity>
           )}
 
@@ -79,7 +81,7 @@ export function AvatarActionSheet({ visible, onClose, onPick, onRemove, canRemov
             <View style={[styles.iconCircle, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)" }]}>
               <X size={18} color={theme.textSecondary} />
             </View>
-            <Text style={[styles.rowText, { color: theme.textSecondary }]}>Vazgeç</Text>
+            <Text style={[styles.rowText, { color: theme.textSecondary }]}>{t("common.cancel")}</Text>
           </TouchableOpacity>
         </View>
       </View>

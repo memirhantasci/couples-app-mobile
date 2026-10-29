@@ -10,6 +10,7 @@ import { clearNotificationBadge } from "@/lib/notifications";
 import { markLettersSeen, requestLetterArrivalCheck } from "@/lib/letterArrival";
 import { useAuth } from "@/context/AuthContext";
 import { InAppNotificationBanner } from "@/components/notifications/InAppNotificationBanner";
+import { useTranslation } from "react-i18next";
 
 interface NotificationContextType {
   currentNotification: InAppNotificationData | null;
@@ -20,7 +21,17 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
+/**
+ * Bildirim türü, `data.type` yoksa başlık/gövdedeki anahtar sözcüklerden tahmin edilir.
+ * Bildirim göndericinin diliyle yazıldığından Türkçe ve İngilizce sözcükler birlikte aranır.
+ */
+function mentionsAny(title: string | null | undefined, body: string | null | undefined, words: string[]): boolean {
+  const haystacks = [title, body].filter((s): s is string => typeof s === "string").map((s) => s.toLowerCase());
+  return words.some((word) => haystacks.some((h) => h.includes(word)));
+}
+
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { t } = useTranslation();
   const [currentNotification, setCurrentNotification] = useState<InAppNotificationData | null>(null);
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -58,13 +69,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         case "letter":
           showNotification({
             type: "letter",
-            title: "Gelecekten Bir Mektup 💌",
-            body: "Sevgilin senin için kalpten bir mektup mühürledi. Açmak için dokun!",
-            senderName: "Sevgilin",
+            title: t("notifications.demo.letter.title"),
+            body: t("notifications.demo.letter.body"),
+            senderName: t("common.partnerFallback"),
             route: "/(tabs)/letters",
-            actionLabel: "Mektuplara Git 💌",
+            actionLabel: t("notifications.actions.goToLetters"),
             metadata: {
-              letterTitle: "Birlikte Yaşlanacağımız Günlere...",
+              letterTitle: t("notifications.demo.letter.letterTitle"),
             },
           });
           break;
@@ -72,13 +83,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         case "medicine":
           showNotification({
             type: "medicine",
-            title: "İlacını İçti! 💊✨",
-            body: "Sevgilin sabah vitaminini içti. İçin rahat olsun, sağlığına dikkat ediyor! 🌿",
-            senderName: "Sevgilin",
+            title: t("notifications.demo.medicine.title"),
+            body: t("notifications.demo.medicine.body"),
+            senderName: t("common.partnerFallback"),
             route: "/(tabs)/medicine",
-            actionLabel: "İlaç Takibine Git 💊",
+            actionLabel: t("notifications.actions.goToMedicine"),
             metadata: {
-              medicineName: "B12 & Omega Vitamini",
+              medicineName: t("notifications.demo.medicine.medicineName"),
             },
           });
           break;
@@ -86,12 +97,12 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         case "medicine_reminder":
           showNotification({
             type: "medicine_reminder",
-            title: "İlaç Vakti 💧",
-            body: "Günün sağlık dozu vakti geldi. Bir bardak suyla almayı unutma!",
+            title: t("notifications.local.medicineTitle"),
+            body: t("notifications.demo.medicineReminder.body"),
             route: "/(tabs)/medicine",
-            actionLabel: "İlaç Takibine Git 💊",
+            actionLabel: t("notifications.actions.goToMedicine"),
             metadata: {
-              medicineName: "Günlük Vitamin",
+              medicineName: t("notifications.demo.medicineReminder.medicineName"),
             },
           });
           break;
@@ -99,69 +110,69 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         case "photo":
           showNotification({
             type: "photo",
-            title: "Yeni Bir Anı 📸",
-            body: "Sevgilin albümünüze yeni bir fotoğraf ekledi. Anının detaylarına göz at!",
-            senderName: "Sevgilin",
+            title: t("notifications.demo.photo.title"),
+            body: t("notifications.demo.photo.body"),
+            senderName: t("common.partnerFallback"),
             route: "/(tabs)/memories",
-            actionLabel: "Anılara Git 📸",
+            actionLabel: t("notifications.actions.goToMemories"),
           });
           break;
 
         case "map":
           showNotification({
             type: "map",
-            title: "Haritada Yeni Bir Aşk Notu 💌",
-            body: "Sevgilin Kadıköy Sahili'ne gizli bir aşk notu bıraktı: 'Seni ilk gördüğüm yer...'",
-            senderName: "Sevgilin",
+            title: t("notifications.demo.map.title"),
+            body: t("notifications.demo.map.body"),
+            senderName: t("common.partnerFallback"),
             route: "/(tabs)/map",
-            actionLabel: "Haritaya Git 🗺️",
+            actionLabel: t("notifications.actions.goToMap"),
           });
           break;
 
         case "period":
           showNotification({
             type: "period",
-            title: "Regl Dönemi Başladı 🌸",
-            body: "Sevgilinin döngüsü başladı. Ona biraz daha özen gösterme zamanı!",
-            senderName: "Sevgilin",
+            title: t("notifications.demo.period.title"),
+            body: t("notifications.demo.period.body"),
+            senderName: t("common.partnerFallback"),
             route: "/(tabs)/period-tracker",
-            actionLabel: "Döngü Takibine Git 🌸",
+            actionLabel: t("notifications.actions.goToCycle"),
           });
           break;
 
         case "mood":
           showNotification({
             type: "mood",
-            title: "Ruh Hali Güncellendi 🥰",
-            body: "Sevgilin 'Seni Çok Özledim' modunu seçti! Günün anını birlikte paylaşın.",
-            senderName: "Sevgilin",
+            title: t("notifications.demo.mood.title"),
+            body: t("notifications.demo.mood.body"),
+            senderName: t("common.partnerFallback"),
             route: "/(tabs)/home",
-            actionLabel: "Ana Sayfaya Git ✨",
+            actionLabel: t("notifications.actions.goToHome"),
           });
           break;
 
         case "meeting":
           showNotification({
             type: "meeting",
-            title: "Yeni Bir Buluşma Planı 🗓️",
-            body: "Hafta sonu için romantik akşam yemeği planı oluşturuldu!",
-            senderName: "Sevgilin",
+            title: t("notifications.demo.meeting.title"),
+            body: t("notifications.demo.meeting.body"),
+            senderName: t("common.partnerFallback"),
             route: "/(tabs)/meetings",
-            actionLabel: "Buluşmalara Git 🗓️",
+            actionLabel: t("notifications.actions.goToMeetings"),
           });
           break;
 
         default:
           showNotification({
             type: "general",
-            title: "Seni Çok Seviyorum ❤️",
-            body: "Günün her anında aklımdasın!",
-            senderName: "Sevgilin",
+            title: t("notifications.demo.general.title"),
+            body: t("notifications.demo.general.body"),
+            senderName: t("common.partnerFallback"),
           });
           break;
       }
     },
-    [showNotification]
+    [showNotification, t]
   );
 
   // Listen to Expo Push notifications when foregrounded
@@ -174,15 +185,15 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         let deducedType: NotificationType = "general";
         if (payloadData.type) {
           deducedType = payloadData.type as NotificationType;
-        } else if (title?.toLowerCase().includes("mektup") || body?.toLowerCase().includes("mektup")) {
+        } else if (mentionsAny(title, body, ["mektup", "letter"])) {
           deducedType = "letter";
-        } else if (title?.toLowerCase().includes("ilaç") || body?.toLowerCase().includes("ilaç") || title?.toLowerCase().includes("vitamin")) {
+        } else if (mentionsAny(title, body, ["ilaç", "medicine", "medication"]) || mentionsAny(title, null, ["vitamin"])) {
           deducedType = "medicine";
-        } else if (title?.toLowerCase().includes("anı") || title?.toLowerCase().includes("fotoğraf")) {
+        } else if (mentionsAny(title, null, ["anı", "fotoğraf", "memory", "photo"])) {
           deducedType = "photo";
-        } else if (title?.toLowerCase().includes("harita")) {
+        } else if (mentionsAny(title, null, ["harita", "map"])) {
           deducedType = "map";
-        } else if (title?.toLowerCase().includes("regl")) {
+        } else if (mentionsAny(title, null, ["regl", "period"])) {
           deducedType = "period";
         }
 
@@ -191,7 +202,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         if (deducedType !== "letter") {
           showNotification({
             type: deducedType,
-            title: title || "Bildirim",
+            title: title || t("notifications.fallbackTitle"),
             body: body || "",
             senderName: payloadData.senderName,
             route: payloadData.route,
@@ -215,7 +226,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return () => {
       receivedSubscription.remove();
     };
-  }, [showNotification, userId, queryClient]);
+  }, [showNotification, userId, queryClient, t]);
 
   // Bildirime dokunma: hook hem çalışan uygulamadaki dokunuşları hem de uygulama kapalıyken
   // bildirimle açılışı (cold start) yakalar. Aynı dokunuş iki kez yönlendirmesin diye işlenenler hatırlanır.

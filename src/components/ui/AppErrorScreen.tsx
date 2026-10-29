@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { reportError } from "@/lib/errorReporting";
+import { useTranslation } from "react-i18next";
 
 interface AppErrorScreenProps {
   error: Error;
@@ -12,6 +13,7 @@ interface AppErrorScreenProps {
  * hatanın kendisi o sağlayıcılardan gelmiş olabilir.
  */
 export function AppErrorScreen({ error, retry }: AppErrorScreenProps) {
+  const { t } = useTranslation();
   useEffect(() => {
     reportError(error, "error-boundary");
   }, [error]);
@@ -19,12 +21,12 @@ export function AppErrorScreen({ error, retry }: AppErrorScreenProps) {
   return (
     <View style={styles.container}>
       <Text style={styles.emoji}>💔</Text>
-      <Text style={styles.title}>Bir şeyler ters gitti</Text>
+      <Text style={styles.title}>{t("errors.screen.title")}</Text>
       <Text style={styles.body}>
-        Beklenmedik bir hata oluştu. Verilerin güvende. Tekrar denemeyi ya da uygulamayı kapatıp açmayı dene.
+        {t("errors.screen.message")}
       </Text>
-      <TouchableOpacity style={styles.button} onPress={() => retry()} accessibilityRole="button" accessibilityLabel="Tekrar dene">
-        <Text style={styles.buttonText}>Tekrar Dene</Text>
+      <TouchableOpacity style={styles.button} onPress={() => retry()} accessibilityRole="button" accessibilityLabel={t("errors.screen.retryA11y")}>
+        <Text style={styles.buttonText}>{t("common.tryAgain")}</Text>
       </TouchableOpacity>
     </View>
   );

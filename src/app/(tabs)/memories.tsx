@@ -25,9 +25,17 @@ import { useDemoAction } from "@/hooks/useDemoAction";
 import { DEMO_PROFILE } from "@/constants/demoData";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { fetchMemoriesPage, memoriesQueryKey, MEMORIES_PAGE_SIZE } from "@/lib/screenQueries";
+import {
+  DEFAULT_MEMORY_DESCRIPTIONS,
+  DEFAULT_MEMORY_TITLES,
+  DEFAULT_MEMORY_TITLE_LIST,
+  localizeDefaultMemory,
+} from "@/lib/defaultMemories";
 import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
+import { useTranslation } from "react-i18next";
 
 export default function MemoriesScreen() {
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { profile, session, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
@@ -52,14 +60,14 @@ export default function MemoriesScreen() {
         .from("memories")
         .select("id, title, date")
         .eq("couple_id", coupleId)
-        .in("title", ["Tanışma Yıl Dönümümüz", "Sevgili Olma Yıl Dönümümüz"]);
+        .in("title", DEFAULT_MEMORY_TITLE_LIST);
 
       const existingMap = new Map((existing || []).map((e) => [e.title, e]));
       let hasUpdated = false;
 
       // Eğer mevcut kartlar varsa ve tarihleri profile ile uyuşmuyorsa senkronize et
-      if (profile?.relationshipStartDate && existingMap.has("Sevgili Olma Yıl Dönümümüz")) {
-        const mem = existingMap.get("Sevgili Olma Yıl Dönümümüz")!;
+      if (profile?.relationshipStartDate && existingMap.has(DEFAULT_MEMORY_TITLES.relationship)) {
+        const mem = existingMap.get(DEFAULT_MEMORY_TITLES.relationship)!;
         if (mem.date !== profile.relationshipStartDate) {
           await supabase
             .from("memories")
@@ -69,8 +77,8 @@ export default function MemoriesScreen() {
         }
       }
 
-      if (profile?.meetDate && existingMap.has("Tanışma Yıl Dönümümüz")) {
-        const mem = existingMap.get("Tanışma Yıl Dönümümüz")!;
+      if (profile?.meetDate && existingMap.has(DEFAULT_MEMORY_TITLES.meet)) {
+        const mem = existingMap.get(DEFAULT_MEMORY_TITLES.meet)!;
         if (mem.date !== profile.meetDate) {
           await supabase
             .from("memories")
@@ -85,22 +93,22 @@ export default function MemoriesScreen() {
       const alreadySeeded = await AsyncStorage.getItem(storageKey);
       if (!alreadySeeded) {
         const memoriesToInsert: any[] = [];
-        if (profile?.meetDate && !existingMap.has("Tanışma Yıl Dönümümüz")) {
+        if (profile?.meetDate && !existingMap.has(DEFAULT_MEMORY_TITLES.meet)) {
           memoriesToInsert.push({
             couple_id: coupleId,
-            title: "Tanışma Yıl Dönümümüz",
+            title: DEFAULT_MEMORY_TITLES.meet,
             date: profile.meetDate,
-            description: "Hikayemizin başladığı o güzel gün...",
+            description: DEFAULT_MEMORY_DESCRIPTIONS.meet,
             is_default: true,
           });
         }
 
-        if (profile?.relationshipStartDate && !existingMap.has("Sevgili Olma Yıl Dönümümüz")) {
+        if (profile?.relationshipStartDate && !existingMap.has(DEFAULT_MEMORY_TITLES.relationship)) {
           memoriesToInsert.push({
             couple_id: coupleId,
-            title: "Sevgili Olma Yıl Dönümümüz",
+            title: DEFAULT_MEMORY_TITLES.relationship,
             date: profile.relationshipStartDate,
-            description: "Aşkımızın resmi olarak başladığı gün...",
+            description: DEFAULT_MEMORY_DESCRIPTIONS.relationship,
             is_default: true,
           });
         }
@@ -146,19 +154,19 @@ export default function MemoriesScreen() {
   const handleDelete = (id: number) => {
     if (executeOrIntercept(
       () => {},
-      "Özel Günü Silmek İçin Kayıt Olun 🗑️",
-      "Kaydettiğiniz özel günleri ve anıları yönetmek için ücretsiz hesabınızı oluşturun."
+      t("memories.demo.deleteTitle"),
+      t("memories.demo.deleteDescription")
     )) {
       return;
     }
 
     appAlert(
-      "Anıyı Sil",
-      "Bu özel günü silmek istediğine emin misin?",
+      t("memories.delete.title"),
+      t("memories.delete.message"),
       [
-        { text: "İptal", style: "cancel" },
+        { text: t("common.cancelAction"), style: "cancel" },
         {
-          text: "Sil",
+          text: t("common.delete"),
           style: "destructive",
           onPress: async () => {
             setDeletingId(id);
@@ -170,9 +178,9 @@ export default function MemoriesScreen() {
                 removeStoredFiles("memories", [imagePath]).catch(() => {});
               }
               await queryClient.invalidateQueries({ queryKey: ["memories"] });
-              toast.success("Özel gün silindi 🗑️");
+              toast.success(t("memories.toasts.deleted"));
             } else {
-              appAlert("Hata", "Silinirken bir hata oluştu: " + (error?.message || ""));
+              appAlert(t("common.error"), t("memories.errors.deleteFailedWithMessage", { message: error?.message || "" }));
             }
           }
         }
@@ -184,8 +192,8 @@ export default function MemoriesScreen() {
   const goToAddMemory = () => {
     if (executeOrIntercept(
       () => router.push(openForm("/(tabs)/add-memory")),
-      "Özel Gün ve Anı Eklemek İçin Kayıt Olun 💖",
-      "İlişkinizin dönüm noktalarını kaydetmek ve yıldönümü bildirimleri almak için ücretsiz hesabınızı oluşturun."
+      t("memories.demo.addTitle"),
+      t("memories.demo.addDescription")
     )) {
       return;
     }
@@ -195,8 +203,8 @@ export default function MemoriesScreen() {
   const handleEdit = (memory: any) => {
     if (executeOrIntercept(
       () => {},
-      "Özel Günü Düzenlemek İçin Kayıt Olun ✏️",
-      "Anılarınızı ve özel günlerinizi düzenlemek için ücretsiz hesabınızı oluşturun."
+      t("memories.demo.editTitle"),
+      t("memories.demo.editDescription")
     )) {
       return;
     }
@@ -227,6 +235,8 @@ export default function MemoriesScreen() {
     const diffDays = nextAnniversary.diff(today, "day");
     const whichYear = nextAnniversary.year() - memDay.year();
     const canManage = isEditMode && !memory.is_default;
+    // Varsayılan kartların başlığı/açıklaması veritabanında Türkçe sabit olarak durur; ekranda geçerli dilde gösterilir
+    const defaultLocalized = localizeDefaultMemory(memory, t);
 
     return (
       <Animated.View 
@@ -242,21 +252,25 @@ export default function MemoriesScreen() {
         <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}>
           <View style={styles.cardHeader}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>{memory.title}</Text>
-              <Text style={[styles.cardYear, { color: theme.accent }]}>{d.locale("tr").format("D MMMM YYYY")}</Text>
+              <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>{defaultLocalized?.title ?? memory.title}</Text>
+              <Text style={[styles.cardYear, { color: theme.accent }]}>{d.locale(i18n.language).format("D MMMM YYYY")}</Text>
 
               <View style={styles.badgeRow}>
                 <View style={[styles.anniversaryBadge, { backgroundColor: isLight ? "rgba(225,29,72,0.08)" : "rgba(255, 75, 110, 0.12)", borderColor: isLight ? "rgba(225,29,72,0.25)" : "rgba(255, 75, 110, 0.25)" }]}>
                   <Text style={[styles.anniversaryBadgeText, { color: theme.accent }]}>
                     {diffDays === 0
-                      ? `🎉 Bugün ${whichYear > 0 ? `${whichYear}. ` : ""}Yıl Dönümümüz!`
-                      : `⏳ ${whichYear > 0 ? `${whichYear}. Yılımıza ` : ""}${diffDays} Gün Kaldı`}
+                      ? whichYear > 0
+                        ? t("memories.badge.todayWithYear", { year: whichYear })
+                        : t("memories.badge.today")
+                      : whichYear > 0
+                        ? t("memories.badge.daysLeftWithYear", { year: whichYear, count: diffDays })
+                        : t("memories.badge.daysLeft", { count: diffDays })}
                   </Text>
                 </View>
                 {totalDays > 0 && (
                   <View style={[styles.milestoneBadge, { backgroundColor: isLight ? "rgba(0,0,0,0.04)" : "rgba(255, 255, 255, 0.06)", borderColor: theme.cardBorder }]}>
                     <Text style={[styles.milestoneBadgeText, { color: theme.textMuted }]}>
-                      ✨ {totalDays}. Gün
+                      {t("memories.badge.dayNumber", { totalDays })}
                     </Text>
                   </View>
                 )}
@@ -279,8 +293,8 @@ export default function MemoriesScreen() {
             )}
           </View>
 
-          {memory.description ? (
-            <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>{memory.description}</Text>
+          {(defaultLocalized?.description ?? memory.description) ? (
+            <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>{defaultLocalized?.description ?? memory.description}</Text>
           ) : null}
 
           {memory.image_path && (
@@ -306,12 +320,12 @@ export default function MemoriesScreen() {
                 adjustsFontSizeToFit
                 minimumFontScale={0.7}
               >
-                Özel Günler
+                {t("memories.title")}
               </Text>
               <Text style={{ fontSize: 22 }}>❤️</Text>
             </View>
             <Text style={[styles.subtitle, { color: theme.textMuted, marginTop: 4 }]} numberOfLines={1}>
-              En tatlı anılarımızın milatları
+              {t("memories.subtitle")}
             </Text>
           </View>
 
@@ -321,7 +335,7 @@ export default function MemoriesScreen() {
               style={[styles.editBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}
               onPress={() => setIsEditMode(!isEditMode)}
             >
-              <Text style={[styles.editBtnText, { color: theme.text }]}>{isEditMode ? "Bitti" : "Düzenle"}</Text>
+              <Text style={[styles.editBtnText, { color: theme.text }]}>{isEditMode ? t("memories.done") : t("common.edit")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -352,9 +366,9 @@ export default function MemoriesScreen() {
       ) : memories?.length === 0 ? (
         <EmptyState
           emoji="🎞️"
-          title="Anı defteriniz henüz bembeyaz"
-          description="Tanıştığınız günü, ilk buluşmanızı, size özel her şeyi ekleyin; yıllar sonra ilk sayfa sizi gülümsetsin."
-          ctaLabel="İlk Özel Günü Ekle ✨"
+          title={t("memories.empty.title")}
+          description={t("memories.empty.description")}
+          ctaLabel={t("memories.empty.cta")}
           onPressCta={goToAddMemory}
           theme={theme}
           style={styles.emptyState}
@@ -395,7 +409,7 @@ export default function MemoriesScreen() {
           activeOpacity={0.8}
         >
           <PlusCircle size={20} color="#fff" />
-          <Text style={styles.addBtnText}>Yeni Özel Gün Ekle</Text>
+          <Text style={styles.addBtnText}>{t("memories.addNew")}</Text>
         </TouchableOpacity>
       </Animated.View>
       <LazyPageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />

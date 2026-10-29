@@ -18,6 +18,8 @@ import { dayjs } from "@/lib/date";
 import { AppTheme } from "@/lib/theme";
 import { UserAvatar } from "@/components/avatar/UserAvatar";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 
 export interface PendingLetter {
   id: number;
@@ -33,14 +35,15 @@ export function getUpcomingLetters(letters: PendingLetter[] | null | undefined):
   return letters.filter((letter) => letterUnlockAt(letter) > now);
 }
 
-function senderLabel(letter: PendingLetter): string {
-  return letter.sender?.display_name?.trim() || letter.sender?.username?.trim() || "Sevgilin";
+// `t` parametre olarak alınır: bileşenler render sırasında çağırır, dil değişince metin yenilenir
+function senderLabel(letter: PendingLetter, t: TFunction): string {
+  return letter.sender?.display_name?.trim() || letter.sender?.username?.trim() || t("common.partnerFallback");
 }
 
-function daysLeftLabel(daysLeft: number): string {
-  if (daysLeft <= 0) return "Bugün açılıyor";
-  if (daysLeft === 1) return "Yarın açılıyor";
-  return `${daysLeft} gün sonra`;
+function daysLeftLabel(daysLeft: number, t: TFunction): string {
+  if (daysLeft <= 0) return t("home.pending.opensToday");
+  if (daysLeft === 1) return t("home.pending.opensTomorrow");
+  return t("home.pending.opensInDays", { daysLeft });
 }
 
 // ─── ÜST ROZET ───────────────────────────────────────────────────────────────
@@ -53,6 +56,7 @@ export const PendingLettersBadge = memo(function PendingLettersBadge({
   letters: PendingLetter[] | null | undefined;
   theme: AppTheme;
 }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const reduceMotion = useReducedMotion();
   const pulse = useSharedValue(0);
@@ -88,7 +92,7 @@ export const PendingLettersBadge = memo(function PendingLettersBadge({
       activeOpacity={0.85}
       onPress={() => router.push("/(tabs)/letters" as any)}
       accessibilityRole="button"
-      accessibilityLabel={`${count} bekleyen mektup. Mektuplara git`}
+      accessibilityLabel={t("home.pending.a11y", { count })}
       style={[styles.badgeWrap, { borderColor: theme.pillAccentBorder }]}
     >
       <LinearGradient
@@ -106,10 +110,10 @@ export const PendingLettersBadge = memo(function PendingLettersBadge({
 
         <View style={styles.badgeTextBlock}>
           <Text style={[styles.badgeTitle, { color: theme.text }]} numberOfLines={1}>
-            {count === 1 ? "Sana mühürlü bir mektup var 💌" : `Sana ${count} mühürlü mektup var 💌`}
+            {count === 1 ? t("home.pending.sealedOne") : t("home.pending.sealedMany", { count })}
           </Text>
           <Text style={[styles.badgeSub, { color: theme.textSecondary }]} numberOfLines={1}>
-            {senderLabel(first)} · {daysLeftLabel(daysLeft)}
+            {senderLabel(first, t)} · {daysLeftLabel(daysLeft, t)}
           </Text>
         </View>
 
@@ -128,6 +132,7 @@ export const PendingLettersCard = memo(function PendingLettersCard({
   letters: PendingLetter[];
   theme: AppTheme;
 }) {
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { getAvatarUrl } = useCoupleAvatars();
   const pendingLetters = getUpcomingLetters(letters);
@@ -143,7 +148,7 @@ export const PendingLettersCard = memo(function PendingLettersCard({
           <View style={[styles.headerIcon, { backgroundColor: theme.pillAccentBg }]}>
             <Mail size={15} color={theme.accent} />
           </View>
-          <Text style={[styles.title, { color: theme.text }]}>Bekleyen Mektuplar</Text>
+          <Text style={[styles.title, { color: theme.text }]}>{t("home.pending.title")}</Text>
           <View style={[styles.countPill, { backgroundColor: theme.accent }]}>
             <Text style={styles.countPillText}>{pendingLetters.length}</Text>
           </View>
@@ -152,7 +157,7 @@ export const PendingLettersCard = memo(function PendingLettersCard({
           onPress={() => router.push("/(tabs)/letters" as any)}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 6 }}
         >
-          <Text style={[styles.viewAll, { color: theme.accent }]}>Tümünü Gör</Text>
+          <Text style={[styles.viewAll, { color: theme.accent }]}>{t("common.seeAll")}</Text>
         </TouchableOpacity>
       </View>
 
@@ -160,7 +165,7 @@ export const PendingLettersCard = memo(function PendingLettersCard({
         {pendingLetters.map((letter) => {
           const unlockDate = dayjs(letter.unlock_date);
           const daysLeft = unlockDate.diff(today, "day");
-          const name = senderLabel(letter);
+          const name = senderLabel(letter, t);
           const senderAvatarUrl = getAvatarUrl(letter.sender_id);
 
           return (
@@ -199,24 +204,24 @@ export const PendingLettersCard = memo(function PendingLettersCard({
               {/* İsim + önizleme + tarih */}
               <View style={styles.textBlock}>
                 <Text style={[styles.senderName, { color: theme.text }]} numberOfLines={1}>
-                  {`${name}'dan Mektup`}
+                  {t("home.pending.letterFrom", { name })}
                 </Text>
                 <Text style={[styles.previewText, { color: theme.textMuted }]} numberOfLines={1}>
-                  Gözlerini kapat ve zamanı bekle… 🔒
+                  {t("home.pending.closeEyes")}
                 </Text>
                 <Text style={[styles.dateText, { color: theme.textSecondary }]}>
-                  {unlockDate.locale("tr").format("D MMMM")} tarihinde açılacak
+                  {t("home.pending.opensOn", { date: unlockDate.locale(i18n.language).format("D MMMM") })}
                 </Text>
               </View>
 
               {/* Geri sayım */}
               <View style={[styles.daysBox, { backgroundColor: theme.pillAccentBg, borderColor: theme.pillAccentBorder }]}>
                 {daysLeft <= 0 ? (
-                  <Text style={[styles.daysToday, { color: theme.accent }]}>Bugün</Text>
+                  <Text style={[styles.daysToday, { color: theme.accent }]}>{t("common.today")}</Text>
                 ) : (
                   <>
                     <Text style={[styles.daysNumber, { color: theme.accent }]}>{daysLeft}</Text>
-                    <Text style={[styles.daysUnit, { color: theme.accent }]}>gün</Text>
+                    <Text style={[styles.daysUnit, { color: theme.accent }]}>{t("home.pending.daysUnit", { count: daysLeft })}</Text>
                   </>
                 )}
               </View>

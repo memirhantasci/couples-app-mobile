@@ -47,7 +47,6 @@ import { hapticStamp, hapticSuccess } from '@/lib/soundEffects';
 import { showPermissionDeniedDialog } from '@/lib/permissions';
 import { useRouter } from 'expo-router';
 import dayjs from 'dayjs';
-import 'dayjs/locale/tr';
 import {
   X,
   Orbit,
@@ -77,8 +76,8 @@ import type {
   PlanetType,
   CreateExoplanetDto,
 } from '../types/star.types';
-
-dayjs.locale('tr');
+import { useTranslation } from 'react-i18next';
+import type { ParseKeys, TFunction } from 'i18next';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -88,35 +87,35 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export interface PlanetTypeOption {
   readonly type: PlanetType;
-  readonly label: string;
+  readonly labelKey: ParseKeys;
   readonly palette: string[];
 }
 
 export const PLANET_TYPE_OPTIONS: readonly PlanetTypeOption[] = [
-  { type: 'terrestrial', label: 'Karasal', palette: ['#38BDF8', '#3B82F6'] },
-  { type: 'ocean_world', label: 'Okyanus', palette: ['#06B6D4', '#0284C7'] },
-  { type: 'crystal', label: 'Kristal', palette: ['#C084FC', '#9333EA'] },
-  { type: 'ice_world', label: 'Buz Dünyası', palette: ['#E0F2FE', '#7DD3FC'] },
-  { type: 'gas_giant', label: 'Gaz Devi', palette: ['#F59E0B', '#B45309'] },
-  { type: 'volcanic', label: 'Volkanik', palette: ['#EF4444', '#B91C1C'] },
-  { type: 'desert', label: 'Çöl', palette: ['#FCD34D', '#D97706'] },
-  { type: 'ringed_giant', label: 'Halkalı Dev', palette: ['#EC4899', '#8B5CF6'] },
+  { type: 'terrestrial', labelKey: 'stars.exoplanet.types.terrestrial', palette: ['#38BDF8', '#3B82F6'] },
+  { type: 'ocean_world', labelKey: 'stars.exoplanet.types.ocean_world', palette: ['#06B6D4', '#0284C7'] },
+  { type: 'crystal', labelKey: 'stars.exoplanet.types.crystal', palette: ['#C084FC', '#9333EA'] },
+  { type: 'ice_world', labelKey: 'stars.exoplanet.types.ice_world', palette: ['#E0F2FE', '#7DD3FC'] },
+  { type: 'gas_giant', labelKey: 'stars.exoplanet.types.gas_giant', palette: ['#F59E0B', '#B45309'] },
+  { type: 'volcanic', labelKey: 'stars.exoplanet.types.volcanic', palette: ['#EF4444', '#B91C1C'] },
+  { type: 'desert', labelKey: 'stars.exoplanet.types.desert', palette: ['#FCD34D', '#D97706'] },
+  { type: 'ringed_giant', labelKey: 'stars.exoplanet.types.ringed_giant', palette: ['#EC4899', '#8B5CF6'] },
 ];
 
-export function planetTypeLabel(type: PlanetType): string {
-  return PLANET_TYPE_OPTIONS.find((option) => option.type === type)?.label ?? 'Anı';
+export function planetTypeLabel(type: PlanetType, t: TFunction): string {
+  return t(PLANET_TYPE_OPTIONS.find((option) => option.type === type)?.labelKey ?? 'stars.activity.memory');
 }
 
 export const ORBIT_ZONE_OPTIONS: readonly {
   readonly zone: OrbitZone;
-  readonly label: string;
-  readonly periodDesc: string;
+  readonly labelKey: ParseKeys;
+  readonly periodDescKey: ParseKeys;
 }[] = [
-  { zone: 1, label: 'Kuşak 1', periodDesc: 'Yıldıza en yakın yörünge' },
-  { zone: 2, label: 'Kuşak 2', periodDesc: 'İç yörünge' },
-  { zone: 3, label: 'Kuşak 3', periodDesc: 'Orta yörünge' },
-  { zone: 4, label: 'Kuşak 4', periodDesc: 'Dış yörünge' },
-  { zone: 5, label: 'Kuşak 5', periodDesc: 'Yıldıza en uzak yörünge' },
+  { zone: 1, labelKey: 'stars.exoplanet.zones.z1.label', periodDescKey: 'stars.exoplanet.zones.z1.period' },
+  { zone: 2, labelKey: 'stars.exoplanet.zones.z2.label', periodDescKey: 'stars.exoplanet.zones.z2.period' },
+  { zone: 3, labelKey: 'stars.exoplanet.zones.z3.label', periodDescKey: 'stars.exoplanet.zones.z3.period' },
+  { zone: 4, labelKey: 'stars.exoplanet.zones.z4.label', periodDescKey: 'stars.exoplanet.zones.z4.period' },
+  { zone: 5, labelKey: 'stars.exoplanet.zones.z5.label', periodDescKey: 'stars.exoplanet.zones.z5.period' },
 ];
 
 // ============================================================================
@@ -162,6 +161,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
   onPremiumRequired,
   isLoadingDetails = false,
 }: ExoplanetModalProps) {
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { session } = useAuth();
   const currentUserId = session?.user?.id ?? '';
@@ -289,7 +289,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
       return;
     }
     if (totalPhotosCount >= 5) {
-      appAlert('Sınır', 'Bir anı gezegenine en fazla 5 fotoğraf ekleyebilirsiniz.');
+      appAlert(t('tabs.toasts.limitTitle'), t('stars.exoplanet.photoLimit'));
       return;
     }
 
@@ -297,8 +297,8 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
         showPermissionDeniedDialog(
-          "Galeri İzni Gerekli",
-          "Fotoğraf seçebilmek için ayarlardan galeri erişimine izin vermelisiniz."
+          t('stars.exoplanet.galleryPermTitle'),
+          t('stars.exoplanet.galleryPermBody')
         );
         return;
       }
@@ -318,7 +318,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
       const newUris = result.assets.map((asset) => asset.uri);
       setSelectedPhotos((prev) => [...prev, ...newUris].slice(0, remainingSlots));
     } catch {
-      appAlert('Hata', 'Fotoğraf seçilirken bir sorun oluştu.');
+      appAlert(t('common.error'), t('stars.exoplanet.pickFailed'));
     }
   };
 
@@ -335,12 +335,12 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
     if (!selectedPlanet) return;
 
     appAlert(
-      'Bu anıyı kalıcı olarak silmek istediğinize emin misiniz?',
-      'Bu işlem geri alınamaz ve anıya ait fotoğraflar da sistemden kaldırılır.',
+      t('stars.exoplanet.deleteTitle'),
+      t('stars.exoplanet.deleteBody'),
       [
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Evet, Sil',
+          text: t('stars.exoplanet.deleteConfirm'),
           style: 'destructive',
           onPress: async () => {
             setIsDeleting(true);
@@ -356,7 +356,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
               onPlanetDeleted?.(selectedPlanet.id);
               onClose();
             } catch (err: any) {
-              appAlert('Hata', err?.message || 'Gezegen silinirken bir sorun oluştu.');
+              appAlert(t('common.error'), err?.message || t('stars.exoplanet.deleteFailed'));
             } finally {
               setIsDeleting(false);
             }
@@ -372,7 +372,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
     if (selectedPhotos.length === 0) return uploadedPaths;
 
     for (let i = 0; i < selectedPhotos.length; i++) {
-      setUploadProgressText(`Fotoğraflar yükleniyor (${i + 1}/${selectedPhotos.length})...`);
+      setUploadProgressText(t('stars.exoplanet.uploading', { current: i + 1, total: selectedPhotos.length }));
       const photoUri = selectedPhotos[i];
 
       // 1600px %80 JPEG manipülasyonu
@@ -383,7 +383,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
       );
 
       if (!compressed.base64) {
-        throw new Error('Fotoğraf verisi işlenemedi.');
+        throw new Error(t('stars.exoplanet.photoProcessFailed'));
       }
 
       const fileName = `${Date.now()}_${i}_${Math.random().toString(36).substring(7)}.jpg`;
@@ -414,28 +414,28 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
       return;
     }
     if (isCheckingLimit) {
-      setFormError('Gezegen limiti doğrulanıyor, lütfen bekleyin...');
+      setFormError(t('stars.exoplanet.errors.verifyingLimit'));
       return;
     }
 
     if (!canAddManual) {
-      setFormError('Maksimum 10 anı gezegeni sınırına ulaşıldı.');
+      setFormError(t('stars.exoplanet.errors.limitReached'));
       return;
     }
 
     const trimmedTitle = title.trim();
     if (trimmedTitle.length < 2 || trimmedTitle.length > 60) {
-      setFormError('Başlık 2 ile 60 karakter arasında olmalıdır.');
+      setFormError(t('stars.exoplanet.errors.titleLength'));
       return;
     }
 
     const today = dayjs().format('YYYY-MM-DD');
     if (!dayjs(milestoneDate).isValid()) {
-      setFormError('Lütfen geçerli bir tarih girin (YYYY-AA-GG).');
+      setFormError(t('stars.exoplanet.errors.invalidDate'));
       return;
     }
     if (milestoneDate > today) {
-      setFormError('Anı tarihi gelecek bir zaman olamaz. Bugün veya geçmiş bir gün seçiniz.');
+      setFormError(t('stars.exoplanet.errors.futureDate'));
       return;
     }
 
@@ -447,7 +447,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
     try {
       const uploadedPaths = await uploadNewPhotos();
 
-      setUploadProgressText('Anı gezegeni yörüngeye yerleştiriliyor...');
+      setUploadProgressText(t('stars.exoplanet.placing'));
 
       const selectedTypeConfig = PLANET_TYPE_OPTIONS.find((p) => p.type === planetType);
       const palette = selectedTypeConfig ? selectedTypeConfig.palette : ['#38BDF8', '#3B82F6'];
@@ -482,13 +482,13 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
           notifyPartner(
             coupleId,
             currentUserId,
-            'Yeni Bir Anı Gezegeni ✨',
-            `Sevgilin yörüngeye yeni bir anı gezegeni yerleştirdi: "${trimmedTitle}"`,
+            t('stars.exoplanet.push.title'),
+            t('stars.exoplanet.push.body', { trimmedTitle }),
             {
               type: 'photo',
               memoryTitle: trimmedTitle,
               route: '/our-star',
-              actionLabel: 'Gezegeni Gör 🪐',
+              actionLabel: t('stars.exoplanet.push.action'),
             }
           );
         }
@@ -501,7 +501,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
     } catch (err: any) {
       setIsSubmitting(false);
       setUploadProgressText('');
-      setFormError(err?.message || 'Gezegen oluşturulurken bir hata oluştu.');
+      setFormError(err?.message || t('stars.exoplanet.errors.createFailed'));
     }
   };
 
@@ -515,17 +515,17 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
 
     const trimmedTitle = title.trim();
     if (trimmedTitle.length < 2 || trimmedTitle.length > 60) {
-      setFormError('Başlık 2 ile 60 karakter arasında olmalıdır.');
+      setFormError(t('stars.exoplanet.errors.titleLength'));
       return;
     }
 
     const today = dayjs().format('YYYY-MM-DD');
     if (!dayjs(milestoneDate).isValid()) {
-      setFormError('Lütfen geçerli bir tarih girin (YYYY-AA-GG).');
+      setFormError(t('stars.exoplanet.errors.invalidDate'));
       return;
     }
     if (milestoneDate > today) {
-      setFormError('Anı tarihi gelecek bir zaman olamaz. Bugün veya geçmiş bir gün seçiniz.');
+      setFormError(t('stars.exoplanet.errors.futureDate'));
       return;
     }
 
@@ -548,7 +548,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
         await starService.appendMediaToExoplanet(selectedPlanet.id, mediaPath);
       }
 
-      setUploadProgressText('Anı gezegeni güncelleniyor...');
+      setUploadProgressText(t('stars.exoplanet.updating'));
 
       const selectedTypeConfig = PLANET_TYPE_OPTIONS.find((p) => p.type === planetType);
       const palette = selectedTypeConfig ? selectedTypeConfig.palette : ['#38BDF8', '#3B82F6'];
@@ -581,7 +581,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
     } catch (err: any) {
       setIsSubmitting(false);
       setUploadProgressText('');
-      setFormError(err?.message || 'Gezegen güncellenirken bir hata oluştu.');
+      setFormError(err?.message || t('stars.exoplanet.errors.updateFailed'));
     }
   };
 
@@ -610,14 +610,14 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
   const eyebrow =
     activeMode === 'view'
       ? selectedPlanet?.is_auto_generated
-        ? 'OTOMATİK ANI GEZEGENİ'
-        : 'ANI GEZEGENİ'
+        ? t('stars.exoplanet.eyebrowAuto')
+        : t('stars.exoplanet.eyebrowView')
       : activeMode === 'edit'
-      ? 'ANI GEZEGENİNİ DÜZENLE'
-      : 'YENİ ANI GEZEGENİ';
+      ? t('stars.exoplanet.eyebrowEdit')
+      : t('stars.exoplanet.eyebrowNew');
   const mediaUrls = selectedPlanet?.media_urls ?? [];
   const photoCardWidth = mediaUrls.length > 1 ? Math.round(SCREEN_WIDTH * 0.74) : SCREEN_WIDTH - 40;
-  const formDateLabel = dayjs(milestoneDate).isValid() ? dayjs(milestoneDate).format('D MMMM YYYY') : 'Tarih seçin';
+  const formDateLabel = dayjs(milestoneDate).isValid() ? dayjs(milestoneDate).locale(i18n.language).format('D MMMM YYYY') : t('stars.exoplanet.selectDate');
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -650,7 +650,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
               onPress={onClose}
               style={styles.closeBtn}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityLabel="Kapat"
+              accessibilityLabel={t('common.close')}
             >
               <X size={17} color="#F8FAFC" />
             </TouchableOpacity>
@@ -670,9 +670,9 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
               <View style={styles.viewContent}>
                 <View style={styles.hero}>
                   <MiniPlanet planet={previewLook} size={76} />
-                  <Text style={styles.heroTitle}>Kilitli anı</Text>
+                  <Text style={styles.heroTitle}>{t('stars.micro.lockedMemory')}</Text>
                   <Text style={styles.heroSub}>
-                    Fotoğraflar, mektuplar ve ayrıntılar Premium üyeliğiniz yeniden aktif olduğunda açılır.
+                    {t('stars.exoplanet.lockedBody')}
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -685,7 +685,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                 >
                   <LinearGradient colors={GOLD_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtnGradient}>
                     <Crown size={16} color="#3B1D00" />
-                    <Text style={styles.primaryBtnText}>Premium ile Aç</Text>
+                    <Text style={styles.primaryBtnText}>{t('stars.exoplanet.unlockPremium')}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -699,7 +699,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                   ) : (
                     <>
                       <Trash2 size={14} color="#F87171" />
-                      <Text style={styles.ghostDangerText}>Gezegeni Sil</Text>
+                      <Text style={styles.ghostDangerText}>{t('stars.exoplanet.deletePlanet')}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -716,20 +716,20 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                       <View style={styles.metaPill}>
                         <Calendar size={12} color="#FDE68A" />
                         <Text style={styles.metaPillText}>
-                          {dayjs(selectedPlanet.milestone_date).format('D MMMM YYYY')}
+                          {dayjs(selectedPlanet.milestone_date).locale(i18n.language).format('D MMMM YYYY')}
                         </Text>
                       </View>
                     ) : null}
                     <View style={styles.metaPill}>
                       <Orbit size={12} color="#C4B5FD" />
                       <Text style={styles.metaPillText}>
-                        {selectedPlanet.orbit_distance}. kuşak · {planetTypeLabel(selectedPlanet.planet_type)}
+                        {t('stars.exoplanet.orbitLine', { orbit_distance: selectedPlanet.orbit_distance, type: planetTypeLabel(selectedPlanet.planet_type, t) })}
                       </Text>
                     </View>
                     {selectedPlanet.is_auto_generated && (
                       <View style={[styles.metaPill, styles.metaPillAuto]}>
                         <Sparkles size={12} color="#C084FC" />
-                        <Text style={[styles.metaPillText, styles.metaPillAutoText]}>Otomatik</Text>
+                        <Text style={[styles.metaPillText, styles.metaPillAutoText]}>{t('stars.exoplanet.auto')}</Text>
                       </View>
                     )}
                   </View>
@@ -739,14 +739,14 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                 {isLoadingDetails && (
                   <View style={styles.loadingCard}>
                     <ActivityIndicator size="small" color="#FDE68A" />
-                    <Text style={styles.loadingText}>Fotoğraflar ve hikâye yükleniyor…</Text>
+                    <Text style={styles.loadingText}>{t('stars.exoplanet.loadingStory')}</Text>
                   </View>
                 )}
 
                 {/* FOTOĞRAF GALERİSİ */}
                 {isLoadingDetails ? null : mediaUrls.length > 0 ? (
                   <View style={styles.section}>
-                    <Text style={styles.sectionLabel}>ANILAR · {mediaUrls.length} FOTOĞRAF</Text>
+                    <Text style={styles.sectionLabel}>{t('stars.exoplanet.photoCount', { count: mediaUrls.length })}</Text>
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}
@@ -761,7 +761,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                           activeOpacity={0.9}
                           onPress={() => setFullscreenImage(url)}
                           style={[styles.photoCard, { width: photoCardWidth }]}
-                          accessibilityLabel={`Fotoğraf ${idx + 1}, tam ekran aç`}
+                          accessibilityLabel={t('stars.exoplanet.photoOpenA11y', { number: idx + 1 })}
                         >
                           <Image source={{ uri: url }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
                           <LinearGradient
@@ -784,14 +784,14 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                 ) : (
                   <View style={styles.emptyPhotos}>
                     <ImagePlus size={20} color="rgba(203, 213, 225, 0.5)" />
-                    <Text style={styles.emptyPhotosText}>Bu gezegene henüz fotoğraf eklenmemiş.</Text>
+                    <Text style={styles.emptyPhotosText}>{t('stars.exoplanet.noPhotos')}</Text>
                   </View>
                 )}
 
                 {/* Açıklama / Aşk Hikayesi */}
                 {selectedPlanet.description ? (
                   <View style={styles.section}>
-                    <Text style={styles.sectionLabel}>HİKÂYEMİZ</Text>
+                    <Text style={styles.sectionLabel}>{t('stars.exoplanet.ourStory')}</Text>
                     <View style={styles.storyCard}>
                       <LinearGradient
                         colors={['#FDE68A', '#F59E0B']}
@@ -808,7 +808,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                 {/* İLİŞKİLİ MEKTUPLAR ALANI */}
                 {linkedLetterIds.length > 0 && (
                   <View style={styles.section}>
-                    <Text style={styles.sectionLabel}>İLİŞKİLİ MEKTUPLAR · {linkedLetterIds.length}</Text>
+                    <Text style={styles.sectionLabel}>{t('stars.exoplanet.linkedLetters', { linkedLetterIdCount: linkedLetterIds.length })}</Text>
                     <View style={styles.lettersContainer}>
                       {linkedLetterIds.map((letterId, idx) => (
                         <TouchableOpacity
@@ -829,8 +829,8 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                               <Mail size={16} color="#F9A8D4" />
                             </View>
                             <View>
-                              <Text style={styles.letterCardTitle}>Mektup #{idx + 1}</Text>
-                              <Text style={styles.letterCardSub}>Mektubu görüntüle</Text>
+                              <Text style={styles.letterCardTitle}>{t('stars.exoplanet.letterNumber', { number: idx + 1 })}</Text>
+                              <Text style={styles.letterCardSub}>{t('stars.exoplanet.viewLetter')}</Text>
                             </View>
                           </View>
                           <ChevronRight size={16} color="rgba(255, 255, 255, 0.4)" />
@@ -849,7 +849,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                     style={styles.editBtn}
                   >
                     <Edit3 size={15} color="#FDE68A" />
-                    <Text style={styles.editBtnText}>Düzenle</Text>
+                    <Text style={styles.editBtnText}>{t('common.edit')}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -857,14 +857,14 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                     onPress={handleDeletePlanet}
                     disabled={isDeleting || isLoadingDetails}
                     style={styles.deleteBtn}
-                    accessibilityLabel="Gezegeni sil"
+                    accessibilityLabel={t('stars.exoplanet.deletePlanetA11y')}
                   >
                     {isDeleting ? (
                       <ActivityIndicator size="small" color="#F87171" />
                     ) : (
                       <>
                         <Trash2 size={15} color="#F87171" />
-                        <Text style={styles.deleteBtnText}>Sil</Text>
+                        <Text style={styles.deleteBtnText}>{t('common.delete')}</Text>
                       </>
                     )}
                   </TouchableOpacity>
@@ -882,10 +882,10 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                   <MiniPlanet planet={previewLook} size={54} />
                   <View style={styles.previewText}>
                     <Text style={styles.previewTitle} numberOfLines={1}>
-                      {title.trim() || 'Yeni anı gezegeni'}
+                      {title.trim() || t('stars.exoplanet.newPlanet')}
                     </Text>
                     <Text style={styles.previewSub} numberOfLines={1}>
-                      {orbitZone}. kuşak · {planetTypeLabel(planetType)} · {formDateLabel}
+                      {t('stars.exoplanet.previewLine', { orbitZone, type: planetTypeLabel(planetType, t), formDateLabel })}
                     </Text>
                   </View>
                 </View>
@@ -895,9 +895,9 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                   <View style={styles.limitWarningCard}>
                     <AlertCircle size={20} color="#F59E0B" />
                     <View style={styles.flexOne}>
-                      <Text style={styles.limitWarningTitle}>Gezegen Limiti Dolu (10/10)</Text>
+                      <Text style={styles.limitWarningTitle}>{t('stars.exoplanet.limitFullTitle')}</Text>
                       <Text style={styles.limitWarningText}>
-                        Maksimum 10 anı gezegeni oluşturabilirsiniz. Yeni bir anı eklemek için lütfen mevcut gezegenlerden birini silin.
+                        {t('stars.exoplanet.limitFullBody')}
                       </Text>
                     </View>
                   </View>
@@ -905,10 +905,10 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
 
                 {/* 1. BAŞLIK GİRDİSİ */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>ANI BAŞLIĞI</Text>
+                  <Text style={styles.inputLabel}>{t('stars.exoplanet.titleLabel')}</Text>
                   <TextInput
                     style={styles.textInput}
-                    placeholder="Örn: İlk Tatilimiz, Kapadokya Balonları..."
+                    placeholder={t('stars.exoplanet.titlePlaceholder')}
                     placeholderTextColor={PLACEHOLDER_COLOR}
                     value={title}
                     onChangeText={setTitle}
@@ -919,7 +919,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
 
                 {/* 2. TARİH SEÇİMİ (takvim / çark; elle yazdırılmaz) */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>ANI TARİHİ</Text>
+                  <Text style={styles.inputLabel}>{t('stars.exoplanet.dateLabel')}</Text>
                   <TouchableOpacity
                     activeOpacity={0.8}
                     disabled={isSubmitting}
@@ -937,7 +937,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
 
                 {/* 3. YÖRÜNGE KUŞAĞI SEÇİMİ (1-5) */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>YÖRÜNGE KUŞAĞI</Text>
+                  <Text style={styles.inputLabel}>{t('stars.exoplanet.zoneLabel')}</Text>
                   <View style={styles.zoneSelectorRow}>
                     {ORBIT_ZONE_OPTIONS.map((item) => {
                       const isSelected = orbitZone === item.zone;
@@ -948,7 +948,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                           onPress={() => setOrbitZone(item.zone)}
                           disabled={isSubmitting}
                           style={[styles.zoneBtn, isSelected && styles.zoneBtnActive]}
-                          accessibilityLabel={`${item.label}: ${item.periodDesc}`}
+                          accessibilityLabel={`${t(item.labelKey)}: ${t(item.periodDescKey)}`}
                         >
                           <Text style={[styles.zoneBtnText, isSelected && styles.zoneBtnTextActive]}>{item.zone}</Text>
                         </TouchableOpacity>
@@ -956,13 +956,17 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                     })}
                   </View>
                   <Text style={styles.zoneHelpText}>
-                    {ORBIT_ZONE_OPTIONS.find((z) => z.zone === orbitZone)?.periodDesc} · her anı kendi halkasında döner
+                    {t('stars.exoplanet.zoneHelp', {
+                      periodDesc: t(
+                        ORBIT_ZONE_OPTIONS.find((z) => z.zone === orbitZone)?.periodDescKey ?? ORBIT_ZONE_OPTIONS[0].periodDescKey,
+                      ),
+                    })}
                   </Text>
                 </View>
 
                 {/* 4. GEZEGEN TÜRÜ SEÇİMİ */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>GEZEGEN TÜRÜ</Text>
+                  <Text style={styles.inputLabel}>{t('stars.exoplanet.typeLabel')}</Text>
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
@@ -980,7 +984,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                           style={[styles.typeChip, isSelected && styles.typeChipActive]}
                         >
                           <MiniPlanet planet={{ palette: pt.palette, planet_type: pt.type, is_locked: false }} size={20} glow={false} />
-                          <Text style={[styles.typeChipText, isSelected && styles.typeChipTextActive]}>{pt.label}</Text>
+                          <Text style={[styles.typeChipText, isSelected && styles.typeChipTextActive]}>{t(pt.labelKey)}</Text>
                         </TouchableOpacity>
                       );
                     })}
@@ -989,10 +993,10 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
 
                 {/* 5. AÇIKLAMA / NOT GİRDİSİ */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>ANI HİKÂYESİ · İSTEĞE BAĞLI</Text>
+                  <Text style={styles.inputLabel}>{t('stars.exoplanet.storyLabel')}</Text>
                   <TextInput
                     style={[styles.textInput, styles.textArea]}
-                    placeholder="Bu anıyı sevgiliniz için ölümsüzleştiren satırları yazın..."
+                    placeholder={t('stars.exoplanet.storyPlaceholder')}
                     placeholderTextColor={PLACEHOLDER_COLOR}
                     value={description}
                     onChangeText={setDescription}
@@ -1006,11 +1010,11 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                 {/* 6. FOTOĞRAF ALANI */}
                 <View style={styles.inputGroup}>
                   <View style={styles.photoHeaderRow}>
-                    <Text style={styles.inputLabel}>FOTOĞRAFLAR · {totalPhotosCount}/5</Text>
+                    <Text style={styles.inputLabel}>{t('stars.exoplanet.photosLabel', { totalPhotosCount })}</Text>
                     {totalPhotosCount < 5 && (
                       <TouchableOpacity onPress={handlePickPhotos} disabled={isSubmitting} style={styles.addPhotoBtn}>
                         <ImagePlus size={14} color="#7DD3FC" />
-                        <Text style={styles.addPhotoBtnText}>Fotoğraf Ekle</Text>
+                        <Text style={styles.addPhotoBtnText}>{t('stars.exoplanet.addPhoto')}</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -1031,7 +1035,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                             onPress={() => handleRemoveExistingPhoto(idx)}
                             disabled={isSubmitting}
                             style={styles.photoDeleteBtn}
-                            accessibilityLabel="Fotoğrafı kaldır"
+                            accessibilityLabel={t('stars.exoplanet.removePhotoA11y')}
                           >
                             <Trash2 size={12} color="#FFFFFF" />
                           </TouchableOpacity>
@@ -1049,7 +1053,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                             onPress={() => handleRemoveNewPhoto(idx)}
                             disabled={isSubmitting}
                             style={styles.photoDeleteBtn}
-                            accessibilityLabel="Fotoğrafı kaldır"
+                            accessibilityLabel={t('stars.exoplanet.removePhotoA11y')}
                           >
                             <Trash2 size={12} color="#FFFFFF" />
                           </TouchableOpacity>
@@ -1064,7 +1068,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                       style={styles.photoPlaceholderBox}
                     >
                       <ImagePlus size={22} color="rgba(203, 213, 225, 0.5)" />
-                      <Text style={styles.photoPlaceholderText}>{"Galeri'den en fazla 5 fotoğraf seçin"}</Text>
+                      <Text style={styles.photoPlaceholderText}>{t('stars.exoplanet.pickHint')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -1092,7 +1096,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                       disabled={isSubmitting}
                       style={styles.cancelBtn}
                     >
-                      <Text style={styles.cancelBtnText}>Vazgeç</Text>
+                      <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -1103,7 +1107,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                     >
                       <LinearGradient colors={GOLD_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtnGradient}>
                         <Check size={17} color="#3B1D00" />
-                        <Text style={styles.primaryBtnText}>{isSubmitting ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}</Text>
+                        <Text style={styles.primaryBtnText}>{isSubmitting ? t('stars.exoplanet.saving') : t('profile.personal.save')}</Text>
                       </LinearGradient>
                     </TouchableOpacity>
                   </View>
@@ -1128,12 +1132,12 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                         style={[styles.primaryBtnText, (!canAddManual || isCheckingLimit) && styles.primaryBtnTextDisabled]}
                       >
                         {isCheckingLimit
-                          ? 'Limit Kontrol Ediliyor...'
+                          ? t('stars.exoplanet.checkingLimit')
                           : isSubmitting
-                          ? 'Yörüngeye Yerleştiriliyor...'
+                          ? t('stars.exoplanet.placingShort')
                           : !canAddManual
-                          ? 'Gezegen Limiti Dolu (10/10)'
-                          : 'Anı Gezegenini Yörüngeye Yerleştir 🪐'}
+                          ? t('stars.exoplanet.limitFullTitle')
+                          : t('stars.exoplanet.placeBtn')}
                       </Text>
                     </LinearGradient>
                   </TouchableOpacity>
@@ -1147,7 +1151,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
         <DateTimePickerSheet
           visible={showDatePicker}
           mode="date"
-          title="Anı Tarihi"
+          title={t('memories.add.dateTitle')}
           value={dayjs(milestoneDate).isValid() ? dayjs(milestoneDate).toDate() : new Date()}
           maximumDate={new Date()}
           onCancel={() => setShowDatePicker(false)}
@@ -1162,7 +1166,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
         {fullscreenImage && (
           <Modal visible transparent animationType="fade" onRequestClose={() => setFullscreenImage(null)}>
             <View style={styles.fullscreenBackdrop}>
-              <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.fullscreenCloseBtn} accessibilityLabel="Kapat">
+              <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.fullscreenCloseBtn} accessibilityLabel={t('common.close')}>
                 <X size={20} color="#FFFFFF" />
               </TouchableOpacity>
               <Image source={{ uri: fullscreenImage }} style={styles.fullscreenImg} contentFit="contain" />

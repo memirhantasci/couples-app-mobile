@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from "rea
 import { Pill, CheckCircle2, Clock, AlertCircle } from "lucide-react-native";
 import type { AppTheme } from "@/lib/theme";
 import type { MedicineItem, MedicineTab } from "./medicineTypes";
+import { useTranslation } from "react-i18next";
 
 interface MedicineDoseCardProps {
   medicine: MedicineItem;
@@ -27,6 +28,7 @@ function MedicineDoseCardBase({
   currentHMS,
   onLog,
 }: MedicineDoseCardProps) {
+  const { t } = useTranslation();
   const times = Array.isArray(m.times) && m.times.length > 0
     ? m.times.map((t) => t.substring(0, 5))
     : [m.time ? m.time.substring(0, 5) : "08:00"];
@@ -39,7 +41,7 @@ function MedicineDoseCardBase({
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.medName, { color: theme.text }]}>{m.name}</Text>
-          <Text style={[styles.medSub, { color: theme.textMuted }]}>Günde {times.length} doz ({times.join(", ")})</Text>
+          <Text style={[styles.medSub, { color: theme.textMuted }]}>{t("medicine.dose.perDay", { count: times.length, times: times.join(", ") })}</Text>
         </View>
       </View>
 
@@ -66,7 +68,7 @@ function MedicineDoseCardBase({
             return (
               <View key={itemKey} style={[styles.slotStateBox, styles.drankStateBox]}>
                 <CheckCircle2 size={16} color={theme.isLight ? "#15803D" : "#22c55e"} />
-                <Text style={[styles.drankStateText, theme.isLight && { color: "#15803D" }]}>Alındı ({slotTime}) ✔️</Text>
+                <Text style={[styles.drankStateText, theme.isLight && { color: "#15803D" }]}>{t("medicine.dose.taken", { time: slotTime })}</Text>
               </View>
             );
           }
@@ -74,7 +76,7 @@ function MedicineDoseCardBase({
           if (isMissed) {
             return (
               <View key={itemKey} style={[styles.slotStateBox, { backgroundColor: theme.unitBg }]}>
-                <Text style={[styles.missedStateText, { color: theme.textMuted }]}>Atlandı ({slotTime})</Text>
+                <Text style={[styles.missedStateText, { color: theme.textMuted }]}>{t("medicine.dose.skipped", { time: slotTime })}</Text>
               </View>
             );
           }
@@ -83,7 +85,7 @@ function MedicineDoseCardBase({
             return (
               <View key={itemKey} style={[styles.slotStateBox, { backgroundColor: theme.unitBg }]}>
                 <Clock size={13} color={theme.textMuted} />
-                <Text style={[styles.waitingStateText, { color: theme.textSecondary }]}>Bekliyor ({slotTime})</Text>
+                <Text style={[styles.waitingStateText, { color: theme.textSecondary }]}>{t("medicine.dose.pending", { time: slotTime })}</Text>
               </View>
             );
           }
@@ -92,7 +94,7 @@ function MedicineDoseCardBase({
             return (
               <View key={itemKey} style={[styles.slotStateBox, { backgroundColor: theme.unitBg }]}>
                 <AlertCircle size={14} color={theme.isLight ? "#B45309" : "#f59e0b"} />
-                <Text style={[styles.waitingStateText, { color: theme.textSecondary }]}>Henüz Alınmadı ({slotTime})</Text>
+                <Text style={[styles.waitingStateText, { color: theme.textSecondary }]}>{t("medicine.dose.notTaken", { time: slotTime })}</Text>
               </View>
             );
           }
@@ -105,7 +107,7 @@ function MedicineDoseCardBase({
                 onPress={() => onLog(m.id, "MISSED", slotTime)}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.skipBtnText, { color: theme.textSecondary }]}>Atla ({slotTime})</Text>
+                <Text style={[styles.skipBtnText, { color: theme.textSecondary }]}>{t("medicine.dose.skip", { time: slotTime })}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -114,7 +116,7 @@ function MedicineDoseCardBase({
                 activeOpacity={0.85}
               >
                 <CheckCircle2 size={16} color="#ffffff" />
-                <Text style={styles.takeBtnText}>İçtim ({slotTime})</Text>
+                <Text style={styles.takeBtnText}>{t("medicine.dose.took", { time: slotTime })}</Text>
               </TouchableOpacity>
             </View>
           );

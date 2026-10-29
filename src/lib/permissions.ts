@@ -1,5 +1,6 @@
 import { Linking } from "react-native";
 import { appAlert } from "@/lib/dialog";
+import i18n from "@/lib/i18n";
 
 /**
  * İzin reddedildiğinde kullanıcıyı çıkmazda bırakmaz: işletim sistemi izni bir kez reddedilince
@@ -10,9 +11,9 @@ export function showPermissionDeniedDialog(title: string, message: string): void
     title,
     message,
     [
-      { text: "Şimdi Değil", style: "cancel" },
+      { text: i18n.t("permissions.notNow"), style: "cancel" },
       {
-        text: "Ayarları Aç",
+        text: i18n.t("permissions.openSettings"),
         onPress: () => {
           Linking.openSettings().catch(() => {});
         },

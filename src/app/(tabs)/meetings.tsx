@@ -44,6 +44,7 @@ import { sanitizeStrict } from "@/utils/sanitize";
 import { toast } from "@/lib/toast";
 import { fetchMeetings, meetingsQueryKey } from "@/lib/screenQueries";
 import { LazyPageTourModal, LazyDemoActionModal, LazyDateTimePickerSheet } from "@/components/ui/lazyMount";
+import { useTranslation } from "react-i18next";
 
 /** Güncelleme sorgusu hiçbir satırı değiştirmediğinde (buluşma başkasına ait / silinmiş) fırlatılır. */
 const MEETING_UPDATE_DENIED = "MEETING_UPDATE_DENIED";
@@ -51,6 +52,7 @@ const MEETING_UPDATE_DENIED = "MEETING_UPDATE_DENIED";
 const PAST_MEETINGS_PAGE_SIZE = 10;
 
 export default function MeetingsScreen() {
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { session, profile, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
@@ -107,8 +109,8 @@ export default function MeetingsScreen() {
   const handleEdit = (m: any) => {
     if (executeOrIntercept(
       () => {},
-      "Buluşmayı Düzenlemek İçin Kayıt Olun 📍",
-      "Buluşma detaylarını ve konumunu güncellemek için ücretsiz hesabınızı oluşturun."
+      t("meetings.demo.editTitle"),
+      t("meetings.demo.editDescription")
     )) {
       return;
     }
@@ -134,8 +136,8 @@ export default function MeetingsScreen() {
   const handleSave = async () => {
     if (executeOrIntercept(
       () => {},
-      "Buluşmayı Kaydetmek İçin Kayıt Olun 📅",
-      "Buluşmalarınızı kaydetmek ve partnerinizle paylaşmak için ücretsiz hesabınızı oluşturun."
+      t("meetings.demo.saveTitle"),
+      t("meetings.demo.saveDescription")
     )) {
       return;
     }
@@ -148,12 +150,12 @@ export default function MeetingsScreen() {
     const timeChanged = originalTime === null || originalTime !== meetingDate.getTime();
     const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
     if (timeChanged && meetingDate.getTime() < fiveMinutesAgo) {
-      appAlert("Hata", "Geçmiş bir zamana buluşma planlayamazsınız!");
+      appAlert(t("common.error"), t("meetings.errors.past"));
       return;
     }
 
     if (!title.trim()) {
-      appAlert("Eksik Bilgi", "Lütfen buluşma için bir başlık girin.");
+      appAlert(t("common.missingInfo"), t("meetings.errors.titleRequired"));
       return;
     }
 
@@ -161,7 +163,7 @@ export default function MeetingsScreen() {
 
     try {
       const utcDateTime = dayjs(meetingDate).toISOString();
-      const cleanTitle = sanitizeStrict(title.trim() || "Buluşma");
+      const cleanTitle = sanitizeStrict(title.trim() || t("tabs.meetings.label"));
       const cleanLocation = locationName.trim() ? sanitizeStrict(locationName.trim()) : null;
 
       let savedMeetingId: string | number | null = editingMeetingId;
@@ -186,7 +188,7 @@ export default function MeetingsScreen() {
 
         if (error) throw error;
         if (!updatedRows || updatedRows.length === 0) throw new Error(MEETING_UPDATE_DENIED);
-        successMessage = "Buluşma güncellendi 🎉";
+        successMessage = t("meetings.toasts.updated");
 
         // Partner yanlış saatte/yerde beklemesin: tarih veya yer değiştiyse haberdar edilir
         const sameCoordinate = (stored: unknown, current: number | null) =>
@@ -199,15 +201,15 @@ export default function MeetingsScreen() {
           notifyPartner(
             coupleId,
             userId,
-            "Buluşma Güncellendi 📅",
-            `${profile?.displayName || "Sevgilin"} buluşma planını güncelledi: ${cleanTitle}`,
+            t("meetings.push.updatedTitle"),
+            t("meetings.push.updatedBody", { name: profile?.displayName || t("common.partnerFallback"), title: cleanTitle }),
             {
               type: "meeting",
               meetingChange: "updated",
               meetingId: editingMeeting.id,
               meetingTitle: cleanTitle,
               route: "/(tabs)/meetings",
-              actionLabel: "Planı Gör 🗓️",
+              actionLabel: t("notifications.actions.viewPlan"),
             }
           );
         }
@@ -230,7 +232,7 @@ export default function MeetingsScreen() {
 
         // Yeni buluşma bildirimi sunucudaki tetikleyiciden (send-push) gelir; burada ayrıca göndermek çift bildirim yapıyordu.
 
-        successMessage = "Buluşma planlandı 🎉";
+        successMessage = t("meetings.toasts.planned");
       }
 
       // Buluşmaya 2 saat kala yerel hatırlatıcı kur. Zaman geçmişteyse (düzenleme buluşmayı yakına
@@ -248,10 +250,10 @@ export default function MeetingsScreen() {
       toast.success(successMessage, { delay: 350 });
     } catch (error: any) {
       appAlert(
-        "Hata",
+        t("common.error"),
         error?.message === MEETING_UPDATE_DENIED
-          ? "Bu buluşmayı yalnızca planlayan kişi güncelleyebilir."
-          : "İşlem gerçekleştirilemedi. Lütfen daha sonra tekrar deneyin."
+          ? t("meetings.errors.onlyPlanner")
+          : t("meetings.errors.actionFailed")
       );
     } finally {
       setIsSubmitting(false);
@@ -261,16 +263,16 @@ export default function MeetingsScreen() {
   const handleDelete = (m: any) => {
     if (executeOrIntercept(
       () => {},
-      "Buluşmayı Silmek İçin Kayıt Olun 🗑️",
-      "Planlanan buluşmaları yönetmek ve silmek için ücretsiz hesabınızı oluşturun."
+      t("meetings.demo.deleteTitle"),
+      t("meetings.demo.deleteDescription")
     )) {
       return;
     }
 
-    appAlert("Buluşmayı Sil", "Bu buluşmayı silmek istediğinize emin misiniz?", [
-      { text: "Vazgeç", style: "cancel" },
+    appAlert(t("meetings.delete.title"), t("meetings.delete.message"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Sil",
+        text: t("common.delete"),
         style: "destructive",
         onPress: async () => {
           // Yerel hatırlatıcıyı temizle
@@ -284,7 +286,7 @@ export default function MeetingsScreen() {
             .eq("id", m.id);
 
           if (error) {
-            appAlert("Hata", "Buluşma silinemedi.");
+            appAlert(t("common.error"), t("meetings.errors.deleteFailed"));
           } else {
             queryClient.invalidateQueries({ queryKey: ["meetings", coupleId] });
             queryClient.invalidateQueries({ queryKey: ["map_meetings", coupleId] });
@@ -306,7 +308,7 @@ export default function MeetingsScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity 
             accessibilityRole="button"
-            accessibilityLabel="Geri"
+            accessibilityLabel={t("common.back")}
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();
@@ -321,15 +323,15 @@ export default function MeetingsScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Buluşmalar</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>Randevular & Özel Anlar 📍</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{t("menu.meetups.title")}</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>{t("meetings.subtitle")}</Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <TourGuideButton onPress={openTour} />
             <TouchableOpacity 
               accessibilityRole="button"
-              accessibilityLabel="Menüyü aç"
+              accessibilityLabel={t("common.openMenu")}
               onPress={() => router.push("/menu")} 
               style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -349,8 +351,8 @@ export default function MeetingsScreen() {
             onPress={() => {
               if (executeOrIntercept(
                 () => {},
-                "Yeni Buluşma Planlamak İçin Kayıt Olun 🍷",
-                "Partnerinizle özel buluşmalar planlamak, haritada yerini görmek ve canlı geri sayım başlatmak için ücretsiz hesabınızı oluşturun."
+                t("demo.prompts.planMeetup.title"),
+                t("demo.prompts.planMeetup.description")
               )) {
                 return;
               }
@@ -363,8 +365,8 @@ export default function MeetingsScreen() {
               <Plus size={20} color={theme.accent} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.quickPlanTitle, { color: theme.text }]}>Yeni Bir Buluşma Planla</Text>
-              <Text style={[styles.quickPlanSub, { color: theme.textMuted }]}>Tarih, saat ve haritadan konum belirleyin ✨</Text>
+              <Text style={[styles.quickPlanTitle, { color: theme.text }]}>{t("meetings.plan.cta")}</Text>
+              <Text style={[styles.quickPlanSub, { color: theme.textMuted }]}>{t("meetings.plan.ctaSub")}</Text>
             </View>
             <MapPin size={18} color={theme.textMuted} />
           </TouchableOpacity>
@@ -372,9 +374,9 @@ export default function MeetingsScreen() {
           {/* AKTİF BULUŞMALAR BÖLÜMÜ */}
           <View style={styles.sectionBlock}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>YAKLAŞAN BULUŞMALAR</Text>
+              <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>{t("meetings.upcoming")}</Text>
               {activeMeetings.length > 0 && (
-                <Text style={styles.sectionBadgeText}>{activeMeetings.length} Randevu</Text>
+                <Text style={styles.sectionBadgeText}>{t("meetings.count", { count: activeMeetings.length })}</Text>
               )}
             </View>
 
@@ -386,7 +388,7 @@ export default function MeetingsScreen() {
             ) : activeMeetings.length > 0 ? (
               activeMeetings.map((m) => {
                 const isMyMeeting = m.user_id === userId;
-                const formattedDate = dayjs(m.meeting_datetime).locale("tr").format("D MMMM YYYY, dddd");
+                const formattedDate = dayjs(m.meeting_datetime).locale(i18n.language).format("D MMMM YYYY, dddd");
                 const formattedTime = dayjs(m.meeting_datetime).format("HH:mm");
 
                 return (
@@ -408,7 +410,7 @@ export default function MeetingsScreen() {
                             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                             activeOpacity={0.7}
                             accessibilityRole="button"
-                            accessibilityLabel="Buluşmayı düzenle"
+                            accessibilityLabel={t("meetings.card.editA11y")}
                           >
                             <Pencil color={theme.accent} size={15} />
                           </TouchableOpacity>
@@ -419,7 +421,7 @@ export default function MeetingsScreen() {
                             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                             activeOpacity={0.7}
                             accessibilityRole="button"
-                            accessibilityLabel="Buluşmayı sil"
+                            accessibilityLabel={t("meetings.card.deleteA11y")}
                           >
                             <Trash2 color={isLight ? "#DC2626" : "#ef4444"} size={15} />
                           </TouchableOpacity>
@@ -443,12 +445,12 @@ export default function MeetingsScreen() {
                     <View style={styles.plannerRow}>
                       <UserAvatar
                         uri={getAvatarUrl(m.user_id)}
-                        name={isMyMeeting ? profile?.displayName : "Sevgilin"}
+                        name={isMyMeeting ? profile?.displayName : t("common.partnerFallback")}
                         size={22}
                         borderWidth={1}
                       />
                       <Text style={[styles.plannerText, { color: theme.textSecondary }]} numberOfLines={1}>
-                        {isMyMeeting ? "Bu buluşmayı sen planladın ✨" : "Sevgilin bu buluşmayı planladı ✨"}
+                        {isMyMeeting ? t("meetings.card.plannedByYou") : t("meetings.card.plannedByPartner")}
                       </Text>
                     </View>
 
@@ -482,7 +484,7 @@ export default function MeetingsScreen() {
                       >
                         <Navigation size={14} color={theme.accent} />
                         <Text style={[styles.directionsBtnText, { color: theme.accent }]}>
-                          Haritada Yol Tarifi Al 🗺️
+                          {t("meetings.card.directions")}
                         </Text>
                       </TouchableOpacity>
                     ) : null}
@@ -492,18 +494,18 @@ export default function MeetingsScreen() {
             ) : (
               <EmptyState
                 emoji="🥂"
-                title={pastMeetings.length > 0 ? "Sıradaki buluşma henüz yok" : "İlk buluşmanızı planlayın"}
+                title={pastMeetings.length > 0 ? t("meetings.empty.noneTitle") : t("meetings.empty.firstTitle")}
                 description={
                   pastMeetings.length > 0
-                    ? "Yeni bir akşam yemeği, kahve molası ya da küçük bir kaçamak planlamaya ne dersiniz?"
-                    : "Romantik bir akşam yemeği ya da kahve molası planlayın; geri sayım ana sayfanızda sizi heyecanla bekler."
+                    ? t("meetings.empty.noneDescription")
+                    : t("meetings.empty.firstDescription")
                 }
-                ctaLabel={pastMeetings.length > 0 ? "Yeni Buluşma Planla 🥂" : "İlk Buluşmayı Planla 🥂"}
+                ctaLabel={pastMeetings.length > 0 ? t("meetings.empty.noneCta") : t("meetings.empty.firstCta")}
                 onPressCta={() => {
                   if (executeOrIntercept(
                     () => {},
-                    "Yeni Buluşma Planlamak İçin Kayıt Olun 🍷",
-                    "Partnerinizle özel buluşmalar planlamak, haritada yerini görmek ve canlı geri sayım başlatmak için ücretsiz hesabınızı oluşturun."
+                    t("demo.prompts.planMeetup.title"),
+                    t("demo.prompts.planMeetup.description")
                   )) {
                     return;
                   }
@@ -520,9 +522,9 @@ export default function MeetingsScreen() {
           {/* GEÇMİŞ BULUŞMALAR BÖLÜMÜ */}
           {showPastSection && pastMeetings.length > 0 && (
             <View style={styles.sectionBlock}>
-              <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>GEÇMİŞ BULUŞMALAR</Text>
+              <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>{t("meetings.past")}</Text>
               {pastMeetings.slice(0, pastVisibleCount).map((m) => {
-                const formattedDate = dayjs(m.meeting_datetime).locale("tr").format("D MMMM YYYY");
+                const formattedDate = dayjs(m.meeting_datetime).locale(i18n.language).format("D MMMM YYYY");
 
                 return (
                   <View key={m.id} style={[styles.pastMeetingCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
@@ -546,7 +548,7 @@ export default function MeetingsScreen() {
                   activeOpacity={0.8}
                 >
                   <Text style={[styles.showMorePastText, { color: theme.accent }]}>
-                    Daha eski buluşmaları göster ({pastMeetings.length - pastVisibleCount})
+                    {t("meetings.showOlder", { remaining: pastMeetings.length - pastVisibleCount })}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -564,7 +566,7 @@ export default function MeetingsScreen() {
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <MapPin size={18} color={theme.accent} />
                 <Text style={[styles.modalTitle, { color: theme.text }]}>
-                  {editingMeetingId ? "Buluşmayı Düzenle" : "Yeni Buluşma Planla"}
+                  {editingMeetingId ? t("meetings.form.editTitle") : t("meetings.form.newTitle")}
                 </Text>
               </View>
 
@@ -586,7 +588,7 @@ export default function MeetingsScreen() {
             >
               {/* Buluşma Başlığı */}
               <View style={{ gap: 6 }}>
-                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>BULUŞMA BAŞLIĞI</Text>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{t("meetings.form.titleLabel")}</Text>
                 <TextInput
                   style={[
                     styles.textInput, 
@@ -596,7 +598,7 @@ export default function MeetingsScreen() {
                       borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.08)"
                     }
                   ]}
-                  placeholder="Örn: Yıldönümü Yemeği, Kahve Randevusu..."
+                  placeholder={t("meetings.form.titlePlaceholder")}
                   placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
                   value={title}
                   onChangeText={setTitle}
@@ -607,7 +609,7 @@ export default function MeetingsScreen() {
               {/* Tarih & Saat Seçicileri */}
               <View style={{ flexDirection: "row", gap: 10 }}>
                 <View style={{ flex: 1, gap: 6 }}>
-                  <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>TARİH</Text>
+                  <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{t("meetings.form.dateLabel")}</Text>
                   <TouchableOpacity 
                     style={[
                       styles.pickerBtn, 
@@ -624,7 +626,7 @@ export default function MeetingsScreen() {
                 </View>
 
                 <View style={{ flex: 1, gap: 6 }}>
-                  <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>SAAT</Text>
+                  <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{t("meetings.form.timeLabel")}</Text>
                   <TouchableOpacity 
                     style={[
                       styles.pickerBtn, 
@@ -643,7 +645,7 @@ export default function MeetingsScreen() {
 
               {/* Konum Belirleme */}
               <View style={{ gap: 6 }}>
-                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>BULUŞMA YERİ / KONUM</Text>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{t("meetings.form.locationLabel")}</Text>
                 <View style={[styles.locationInputBox, { backgroundColor: theme.unitBg, borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.08)" }]}>
                   <TextInput
                     style={[
@@ -653,7 +655,7 @@ export default function MeetingsScreen() {
                         color: theme.text,
                       }
                     ]}
-                    placeholder="Buluşulacak mekan veya adres..."
+                    placeholder={t("meetings.form.locationPlaceholder")}
                     placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
                     value={locationName}
                     onChangeText={setLocationName}
@@ -665,7 +667,7 @@ export default function MeetingsScreen() {
                     activeOpacity={0.8}
                   >
                     <MapPin size={15} color={theme.accent} />
-                    <Text style={[styles.mapOpenBtnText, { color: theme.accent }]}>Harita</Text>
+                    <Text style={[styles.mapOpenBtnText, { color: theme.accent }]}>{t("tabs.map.label")}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -687,7 +689,7 @@ export default function MeetingsScreen() {
                   <>
                     <Check size={18} color="#ffffff" />
                     <Text style={styles.saveBtnText}>
-                      {editingMeetingId ? "Buluşmayı Güncelle" : "Randevuyu Kaydet ✨"}
+                      {editingMeetingId ? t("meetings.form.update") : t("meetings.form.save")}
                     </Text>
                   </>
                 )}
@@ -699,7 +701,7 @@ export default function MeetingsScreen() {
           <LazyDateTimePickerSheet
             visible={showDatePicker}
             mode="date"
-            title="Buluşma Tarihi"
+            title={t("meetings.form.datePickerTitle")}
             value={meetingDate}
             minimumDate={dayjs().startOf("day").toDate()}
             onCancel={() => setShowDatePicker(false)}
@@ -708,7 +710,7 @@ export default function MeetingsScreen() {
           <LazyDateTimePickerSheet
             visible={showTimePicker}
             mode="time"
-            title="Buluşma Saati"
+            title={t("meetings.form.timePickerTitle")}
             value={meetingDate}
             onCancel={() => setShowTimePicker(false)}
             onConfirm={onTimeConfirm}
@@ -719,7 +721,7 @@ export default function MeetingsScreen() {
           <MapPickerModal
             visible={showMapModal}
             onClose={() => setShowMapModal(false)}
-            title="Buluşma Noktası"
+            title={t("meetings.form.locationPickerTitle")}
             initialLocation={latitude && longitude ? { latitude, longitude } : undefined}
             onSelectLocation={(loc) => {
               setLatitude(loc.latitude);

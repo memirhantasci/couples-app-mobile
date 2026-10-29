@@ -52,12 +52,10 @@ import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/context/ThemeContext";
 import { toast } from "@/lib/toast";
 import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
-
-const DEMO_NOTE_TITLE = "Haritaya Aşk Notu Bırakmak İçin Kayıt Olun 📍";
-const DEMO_NOTE_DESC =
-  "Partnerinizle gittiğiniz özel konumlara hatıra notları bırakmak için ücretsiz hesabınızı oluşturun.";
+import { useTranslation } from "react-i18next";
 
 export default function MapScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   // Durum çubuğunu yalnızca görünür sekme yönetir (dondurulmuş sekmenin eski StatusBar kaydı kalmasın)
   const isFocused = useIsFocused();
@@ -163,30 +161,30 @@ export default function MapScreen() {
       queryClient.invalidateQueries({ queryKey: ["map_notes", coupleId] });
       setPendingCoord(null);
       // Not modalı kapanırken değil kapandıktan sonra; mühür sesi/haptiği zaten verildi
-      toast.success("Aşk notun haritaya bırakıldı 📍", { delay: 350, haptic: false });
+      toast.success(t("map.toasts.noteLeft"), { delay: 350, haptic: false });
 
       if (coupleId && userId) {
-        const senderName = profile?.displayName || "Sevgilin";
+        const senderName = profile?.displayName || t("common.partnerFallback");
         const notePreview = variables.note.trim();
         const notificationBody = notePreview
-          ? `${senderName} haritaya bir anı notu bıraktı: "${notePreview}"`
-          : `${senderName} haritaya senin için bir aşk notu bıraktı.`;
+          ? t("map.notify.memoryNote", { senderName, notePreview })
+          : t("map.notify.loveNote", { senderName });
         notifyPartner(
           coupleId,
           userId,
-          "Haritada Yeni Bir Aşk Notu 💌",
+          t("notifications.demo.map.title"),
           notificationBody,
           {
             type: "map",
             note: notePreview,
             route: "/(tabs)/map",
-            actionLabel: "Haritada Keşfet 🗺️",
+            actionLabel: t("map.notify.explore"),
           },
         );
       }
     },
     onError: (e: Error) => {
-      appAlert("Hata", "Not kaydedilemedi: " + (e?.message ?? ""));
+      appAlert(t("common.error"), t("map.errors.saveFailedWithMessage", { message: e?.message ?? "" }));
     },
   });
 
@@ -208,13 +206,13 @@ export default function MapScreen() {
       setSelectedItem(null);
     },
     onError: (e: Error) => {
-      appAlert("Hata", "Not silinemedi: " + (e?.message ?? ""));
+      appAlert(t("common.error"), t("map.errors.deleteFailedWithMessage", { message: e?.message ?? "" }));
     },
   });
 
   // ─── Haritada Not Bırakma (Uzun Basış) ────────────────────────────────────
   const handleMapLongPress = (e: LongPressEvent) => {
-    if (executeOrIntercept(() => {}, DEMO_NOTE_TITLE, DEMO_NOTE_DESC)) return;
+    if (executeOrIntercept(() => {}, t("demo.prompts.mapNote.title"), t("demo.prompts.mapNote.description"))) return;
 
     const coord = e.nativeEvent?.coordinate;
     if (coord && coord.latitude && coord.longitude) {
@@ -226,7 +224,7 @@ export default function MapScreen() {
   const closeAddNote = useCallback(() => setPendingCoord(null), []);
 
   const handleSaveNote = (text: string) => {
-    if (executeOrIntercept(() => {}, DEMO_NOTE_TITLE, DEMO_NOTE_DESC)) {
+    if (executeOrIntercept(() => {}, t("demo.prompts.mapNote.title"), t("demo.prompts.mapNote.description"))) {
       setPendingCoord(null);
       return;
     }
@@ -243,24 +241,24 @@ export default function MapScreen() {
     if (
       executeOrIntercept(
         () => {},
-        "Fotoğrafı Silmek İçin Kayıt Olun 🗑️",
-        "Haritadaki fotoğrafları yönetmek ve silmek için ücretsiz hesabınızı oluşturun.",
+        t("demo.prompts.deletePhoto.title"),
+        t("map.demo.deletePhotoDescription"),
       )
     ) {
       return;
     }
     // Sahiplik kontrolü
     if (photo.user_id && userId && photo.user_id !== userId) {
-      appAlert("Yetkisiz İşlem", "Sadece kendi yüklediğiniz fotoğrafları silebilirsiniz.");
+      appAlert(t("common.unauthorizedTitle"), t("photos.errors.ownOnly"));
       return;
     }
     appAlert(
-      "Fotoğrafı Sil",
-      "Bu fotoğrafı haritadan ve galeriden silmek istiyor musunuz?",
+      t("photos.delete.title"),
+      t("map.delete.photoMessage"),
       [
-        { text: "Vazgeç", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Sil",
+          text: t("common.delete"),
           style: "destructive",
           onPress: async () => {
             if (!userId) return;
@@ -272,7 +270,7 @@ export default function MapScreen() {
               queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
               setSelectedItem(null);
             } catch {
-              appAlert("Hata", "Fotoğraf silinirken bir hata oluştu.");
+              appAlert(t("common.error"), t("photos.errors.deleteFailedGeneric"));
             }
           },
         },
@@ -284,21 +282,21 @@ export default function MapScreen() {
     if (
       executeOrIntercept(
         () => {},
-        "Notu Silmek İçin Kayıt Olun 🗑️",
-        "Haritadaki aşk notlarını yönetmek ve silmek için ücretsiz hesabınızı oluşturun.",
+        t("calendar.demo.deleteTitle"),
+        t("map.demo.deleteNoteDescription"),
       )
     ) {
       return;
     }
     // Sahiplik kontrolü
     if (note.user_id && userId && note.user_id !== userId) {
-      appAlert("Yetkisiz İşlem", "Sadece kendi yazdığınız notları silebilirsiniz.");
+      appAlert(t("common.unauthorizedTitle"), t("map.errors.ownNotesOnly"));
       return;
     }
-    appAlert("Notu Sil", "Bu notu haritadan silmek istiyor musunuz?", [
-      { text: "Vazgeç", style: "cancel" },
+    appAlert(t("map.delete.noteTitle"), t("map.delete.noteMessage"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Sil",
+        text: t("common.delete"),
         style: "destructive",
         onPress: () => deleteNoteMutation.mutate(note.id),
       },
@@ -313,8 +311,8 @@ export default function MapScreen() {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         showPermissionDeniedDialog(
-          "Konum İzni",
-          "Konumunuza gidebilmek için ayarlardan konum iznini açmalısınız.",
+          t("map.permission.title"),
+          t("map.permission.message"),
         );
         return null;
       }
@@ -345,7 +343,7 @@ export default function MapScreen() {
   // Boş harita kartındaki eylem: konum izni istemeden yer seçme moduna geç; kullanıcı haritada
   // istediği yere dokunur, not o noktaya bırakılır (konuma gitmek isteyen sağdaki konum butonunu kullanır)
   const handleDropFirstNote = () => {
-    if (executeOrIntercept(() => {}, DEMO_NOTE_TITLE, DEMO_NOTE_DESC)) return;
+    if (executeOrIntercept(() => {}, t("demo.prompts.mapNote.title"), t("demo.prompts.mapNote.description"))) return;
     setSelectedItem(null);
     setIsPickingSpot(true);
   };
@@ -472,9 +470,9 @@ export default function MapScreen() {
           <EmptyState
             compact
             emoji="📍"
-            title="Haritanız henüz bembeyaz"
-            description="Birlikte gittiğiniz ilk yere bir aşk notu bırakın: haritada istediğiniz yere dokunmanız yeter, konum izni gerekmez."
-            ctaLabel="İlk Notu Bırak 📍"
+            title={t("map.empty.title")}
+            description={t("map.empty.description")}
+            ctaLabel={t("map.empty.cta")}
             onPressCta={handleDropFirstNote}
             theme={theme}
             style={styles.emptyCard}
@@ -489,7 +487,7 @@ export default function MapScreen() {
           onPress={() => setIsPickingSpot(false)}
           style={[styles.hintPill, { bottom: insets.bottom + 90 }]}
           accessibilityRole="button"
-          accessibilityLabel="Yer seçmeyi iptal et"
+          accessibilityLabel={t("map.pick.cancelA11y")}
         >
           <BlurView
             tint={isLight ? "light" : "dark"}
@@ -498,7 +496,7 @@ export default function MapScreen() {
           />
           <Heart size={14} color={theme.accent} fill={theme.accent} />
           <Text style={[styles.hintPillText, { color: isLight ? "#222" : "#fff" }]}>
-            Notu bırakmak istediğin yere dokun · İptal
+            {t("map.pick.hint")}
           </Text>
         </TouchableOpacity>
       )}
@@ -515,7 +513,7 @@ export default function MapScreen() {
           <Text
             style={[styles.hintPillText, { color: isLight ? "#222" : "#fff" }]}
           >
-            Not bırakmak için haritaya uzun basın
+            {t("map.longPressHint")}
           </Text>
         </View>
       )}

@@ -27,7 +27,12 @@ import {
   parseDatesChangeStatus,
   translateDatesError,
 } from "@/lib/relationshipDates";
-import { formatDateTR } from "@/lib/date";
+import { formatLongDate } from "@/lib/date";
+import {
+  DEFAULT_MEMORY_DESCRIPTIONS,
+  DEFAULT_MEMORY_TITLES,
+  DEFAULT_MEMORY_TITLE_LIST,
+} from "@/lib/defaultMemories";
 import { usePageTour } from "@/hooks/usePageTour";
 import { useDeferredReady } from "@/hooks/useDeferredReady";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
@@ -53,16 +58,16 @@ import { RelationshipDatesCard } from "@/components/profile/RelationshipDatesCar
 import { PromoCodeCard } from "@/components/profile/PromoCodeCard";
 import { SoundHapticsTestBox } from "@/components/profile/SoundHapticsTestBox";
 import { TourGuidesCard } from "@/components/profile/TourGuidesCard";
+import { LanguagePicker } from "@/components/profile/LanguagePicker";
 import { LegalDocsList } from "@/components/profile/LegalDocsList";
 import { DangerZoneCard } from "@/components/profile/DangerZoneCard";
 import { profileSharedStyles } from "@/components/profile/profileSharedStyles";
 import dayjs from "dayjs";
-import "dayjs/locale/tr";
 import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
-
-dayjs.locale("tr");
+import { useTranslation } from "react-i18next";
 
 export default function ProfileScreen() {
+  const { t, i18n } = useTranslation();
   const { session, signOut, profile, refreshProfile, isDemoMode, exitDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, themeMode, setThemeMode, isLight } = useTheme();
@@ -129,7 +134,7 @@ export default function ProfileScreen() {
   // Demo profili sunucuya gitmeden, ilk çizimde bir kez doldurulur
   React.useEffect(() => {
     if (isDemoMode && !dataLoaded) {
-      const dName = DEMO_PROFILE.displayName ?? "Misafir (Demo)";
+      const dName = DEMO_PROFILE.displayName ?? t("profile.guestName");
       setDisplayName(dName);
       setInitialDisplayName(dName);
       setGender("female");
@@ -191,30 +196,30 @@ export default function ProfileScreen() {
   async function handleUpdateProfile() {
     if (executeOrIntercept(
       () => {},
-      "Profili Güncellemek İçin Kayıt Olun 👤",
-      "Kişisel profilinizi ve tercihlerinizi kaydetmek için ücretsiz hesabınızı oluşturun."
+      t("profile.demo.updateTitle"),
+      t("profile.demo.updateDescription")
     )) {
       return;
     }
     if (!session?.user?.id) return;
 
     if (!hasProfileChanges) {
-      toast.info("Profil bilgilerinizde herhangi bir değişiklik yapmadınız.");
+      toast.info(t("profile.toasts.noChanges"));
       return;
     }
 
     if (isNameChanged && displayName.trim().length < 2) {
       setNameError(true);
-      toast.warning("Lütfen en az 2 karakterden oluşan bir isim girin.", { title: "Eksik bilgi" });
+      toast.warning(t("profile.errors.nameTooShort"), { title: t("common.missingInformation") });
       return;
     }
 
     // Cooldown engelleri
     if (isNameChanged && !nameCooldown.canChange) {
       appAlert(
-        "İsim Değişikliği Kısıtlı 🔒",
-        `Görünen isminizi 30 günde bir değiştirebilirsiniz. Bir sonraki değişiklik için ${nameCooldown.remainingDays} gün beklemeniz gerekmektedir.`,
-        [{ text: "Anladım" }],
+        t("profile.alerts.nameRestrictedTitle"),
+        t("profile.alerts.nameRestricted", { count: nameCooldown.remainingDays }),
+        [{ text: t("common.gotIt") }],
         { tone: "warning" }
       );
       return;
@@ -222,9 +227,9 @@ export default function ProfileScreen() {
 
     if (isGenderChanged && !genderCooldown.canChange) {
       appAlert(
-        "Cinsiyet Değişikliği Kısıtlı 🔒",
-        `Cinsiyet tercihinizi 90 günde bir değiştirebilirsiniz. Bir sonraki değişiklik için ${genderCooldown.remainingDays} gün beklemeniz gerekmektedir.`,
-        [{ text: "Anladım" }],
+        t("profile.alerts.genderRestrictedTitle"),
+        t("profile.alerts.genderRestricted", { count: genderCooldown.remainingDays }),
+        [{ text: t("common.gotIt") }],
         { tone: "warning" }
       );
       return;
@@ -233,11 +238,11 @@ export default function ProfileScreen() {
     // Onay diyalogları
     if (isNameChanged && isGenderChanged) {
       appAlert(
-        "Profil Değişikliği Onayı 👤",
-        "İsminizi ve cinsiyet tercihinizi değiştirmek üzeresiniz.\n\n• İsminizi güncelledikten sonra 30 gün boyunca tekrar değiştiremezsiniz.\n• Cinsiyet tercihinizi güncelledikten sonra tema paletiniz ve özel modüller doğrudan güncellenecek olup 90 gün boyunca tekrar değiştiremezsiniz.\n\nOnaylıyor musunuz?",
+        t("profile.alerts.confirmBothTitle"),
+        t("profile.alerts.confirmBothMessage"),
         [
-          { text: "Vazgeç", style: "cancel" },
-          { text: "Onayla ve Kaydet", style: "default", onPress: () => executeSaveProfile() },
+          { text: t("common.cancel"), style: "cancel" },
+          { text: t("common.confirmAndSave"), style: "default", onPress: () => executeSaveProfile() },
         ],
         { tone: "warning" }
       );
@@ -246,11 +251,11 @@ export default function ProfileScreen() {
 
     if (isNameChanged) {
       appAlert(
-        "İsim Değişikliği Onayı 👤",
-        "İsminizi değiştirmek üzeresiniz. Bu işlem sonrasında 30 gün boyunca tekrar isim değiştiremezsiniz.\n\nOnaylıyor musunuz?",
+        t("profile.alerts.confirmNameTitle"),
+        t("profile.alerts.confirmNameMessage"),
         [
-          { text: "Vazgeç", style: "cancel" },
-          { text: "Onayla ve Kaydet", style: "default", onPress: () => executeSaveProfile() },
+          { text: t("common.cancel"), style: "cancel" },
+          { text: t("common.confirmAndSave"), style: "default", onPress: () => executeSaveProfile() },
         ],
         { tone: "warning" }
       );
@@ -259,11 +264,11 @@ export default function ProfileScreen() {
 
     if (isGenderChanged) {
       appAlert(
-        "Cinsiyet Değişikliği Onayı 🌸",
-        "Cinsiyet tercihinizi değiştirmek üzeresiniz. Bu işlem tema paletinizi ve cinsiyete özel modülleri doğrudan güncelleyecektir.\n\nSonraki 90 gün boyunca tekrar cinsiyet değiştiremezsiniz. Onaylıyor musunuz?",
+        t("profile.alerts.confirmGenderTitle"),
+        t("profile.alerts.confirmGenderMessage"),
         [
-          { text: "Vazgeç", style: "cancel" },
-          { text: "Onayla ve Kaydet", style: "default", onPress: () => executeSaveProfile() },
+          { text: t("common.cancel"), style: "cancel" },
+          { text: t("common.confirmAndSave"), style: "default", onPress: () => executeSaveProfile() },
         ],
         { tone: "warning" }
       );
@@ -294,7 +299,7 @@ export default function ProfileScreen() {
     setProfileLoading(false);
 
     if (error) {
-      appAlert("Hata", error.message || "Profil güncellenemedi. Lütfen tekrar deneyin.");
+      appAlert(t("common.error"), error.message || t("profile.errors.updateFailed"));
     } else {
       if (isNameChanged) {
         setInitialDisplayName(cleanDisplayName);
@@ -310,7 +315,7 @@ export default function ProfileScreen() {
       queryClient.invalidateQueries({ queryKey: ["user_gender"] });
       queryClient.invalidateQueries({ queryKey: ["period_logs"] });
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
-      toast.success("Profil bilgilerin güncellendi ✨");
+      toast.success(t("profile.toasts.updated"));
     }
   }
 
@@ -318,20 +323,20 @@ export default function ProfileScreen() {
   async function handleUpdateDates() {
     if (executeOrIntercept(
       () => {},
-      "İlişki Tarihlerini Belirlemek İçin Kayıt Olun 💕",
-      "Tanışma ve sevgililik tarihinizi kaydetmek, sayaçları başlatmak için ücretsiz hesabınızı oluşturun."
+      t("profile.demo.datesTitle"),
+      t("profile.demo.datesDescription")
     )) {
       return;
     }
     if (!coupleId) return;
 
     if (!hasDatesChanges) {
-      toast.info("İlişki tarihlerinde herhangi bir değişiklik yapmadınız.");
+      toast.info(t("profile.toasts.noDateChanges"));
       return;
     }
 
     if (!relStartDate) {
-      toast.warning("Lütfen sevgililik tarihinizi belirleyin.", { title: "Eksik tarih" });
+      toast.warning(t("setup.errors.relationshipDateRequired"), { title: t("profile.errors.missingDate") });
       return;
     }
 
@@ -343,14 +348,14 @@ export default function ProfileScreen() {
 
     // Çift bazlı onay uyarısı
     const rightNote = !datesStatus || !datesStatus.hasDates
-      ? "İlişki tarihlerinizi ilk kez kaydediyorsunuz; bu kayıt değişiklik hakkı harcamaz."
-      : `⚠️ Bu işlem çiftinizin değişiklik haklarından birini kullanır (bu dönem kalan: ${datesStatus.remaining}). Haklar çift bazlıdır; partnerinizin yaptığı değişiklik de aynı haktan düşer.`;
+      ? t("profile.dates.firstSaveNote")
+      : t("profile.dates.allowanceNote", { remaining: datesStatus.remaining });
     appAlert(
-      "İlişki Tarihlerini Güncelle 💕",
-      `İlişki tarihlerinizi güncellemek üzeresiniz. Bu işlem ana sayfa sayaçlarınızı ve Özel Günler arşivinizi güncelleyecektir.\n\n${rightNote}\n\nOnaylıyor musunuz?`,
+      t("profile.dates.updateTitle"),
+      t("profile.dates.updateMessage", { rightNote }),
       [
-        { text: "Vazgeç", style: "cancel" },
-        { text: "Onayla ve Güncelle", style: "default", onPress: () => executeSaveDates() },
+        { text: t("common.cancel"), style: "cancel" },
+        { text: t("profile.dates.confirmUpdate"), style: "default", onPress: () => executeSaveDates() },
       ],
       { tone: "warning" }
     );
@@ -358,11 +363,13 @@ export default function ProfileScreen() {
 
   function showDatesLimitAlert(status: DatesChangeStatus) {
     const days = daysUntilPeriodEnd(status.periodEndsAt);
-    const when = status.periodEndsAt ? `${formatDateTR(status.periodEndsAt)} (${days} gün sonra)` : "bir sonraki dönemde";
+    const when = status.periodEndsAt
+      ? t("profile.dates.lockedWhenDate", { date: formatLongDate(status.periodEndsAt, i18n.language), days })
+      : t("profile.dates.lockedWhenNext");
     appAlert(
-      "İlişki Tarihleri Kilitli 🔒",
-      `Bu dönemki değişiklik hakları siz veya partneriniz tarafından kullanıldı. Yeni hakkınız ${when} açılacak.`,
-      [{ text: "Anladım" }],
+      t("profile.dates.lockedTitle"),
+      t("profile.dates.lockedMessage", { when }),
+      [{ text: t("common.gotIt") }],
       { tone: "warning" }
     );
   }
@@ -386,7 +393,7 @@ export default function ProfileScreen() {
           return;
         }
       }
-      appAlert("Hata", translateDatesError(error.message));
+      appAlert(t("common.error"), translateDatesError(error.message));
       return;
     }
 
@@ -400,9 +407,9 @@ export default function ProfileScreen() {
         .from("memories")
         .select("id, title, date")
         .eq("couple_id", coupleId)
-        .in("title", ["Tanışma Yıl Dönümümüz", "Sevgili Olma Yıl Dönümümüz"]);
+        .in("title", DEFAULT_MEMORY_TITLE_LIST);
 
-      const relMemory = existingMemories?.find((m) => m.title === "Sevgili Olma Yıl Dönümümüz");
+      const relMemory = existingMemories?.find((m) => m.title === DEFAULT_MEMORY_TITLES.relationship);
       if (relMemory) {
         if (relMemory.date !== relStartDate) {
           await supabase
@@ -413,15 +420,15 @@ export default function ProfileScreen() {
       } else {
         await supabase.from("memories").insert({
           couple_id: coupleId,
-          title: "Sevgili Olma Yıl Dönümümüz",
+          title: DEFAULT_MEMORY_TITLES.relationship,
           date: relStartDate,
-          description: "Aşkımızın resmi olarak başladığı gün...",
+          description: DEFAULT_MEMORY_DESCRIPTIONS.relationship,
           is_default: true,
         });
       }
 
       if (meetDate) {
-        const meetMemory = existingMemories?.find((m) => m.title === "Tanışma Yıl Dönümümüz");
+        const meetMemory = existingMemories?.find((m) => m.title === DEFAULT_MEMORY_TITLES.meet);
         if (meetMemory) {
           if (meetMemory.date !== meetDate) {
             await supabase
@@ -432,9 +439,9 @@ export default function ProfileScreen() {
         } else {
           await supabase.from("memories").insert({
             couple_id: coupleId,
-            title: "Tanışma Yıl Dönümümüz",
+            title: DEFAULT_MEMORY_TITLES.meet,
             date: meetDate,
-            description: "Hikayemizin başladığı o güzel gün...",
+            description: DEFAULT_MEMORY_DESCRIPTIONS.meet,
             is_default: true,
           });
         }
@@ -454,13 +461,13 @@ export default function ProfileScreen() {
       notifyPartner(
         parsedCoupleId,
         session.user.id,
-        "İlişki Tarihlerimiz Güncellendi 💕",
-        `${displayName || "Partnerin"} ilişki tarihlerimizi güncelledi.`,
+        t("profile.push.datesUpdatedTitle"),
+        t("profile.push.datesUpdatedBody", { name: displayName || t("common.yourPartner") }),
         { type: "milestone", route: "/(tabs)/home" }
       ).catch(() => {});
     }
 
-    toast.success("İlişki tarihlerin ve özel günlerin güncellendi 💕");
+    toast.success(t("profile.toasts.datesUpdated"));
   }
 
   // Çıkış Yap
@@ -470,10 +477,10 @@ export default function ProfileScreen() {
       router.replace("/(auth)/login");
       return;
     }
-    appAlert("Çıkış Yap", "Hesabınızdan çıkış yapmak istediğinize emin misiniz?", [
-      { text: "Vazgeç", style: "cancel" },
+    appAlert(t("auth.signOut"), t("profile.signOut.message"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Çıkış Yap",
+        text: t("auth.signOut"),
         style: "destructive",
         onPress: async () => {
           if (session?.user?.id) {
@@ -495,17 +502,17 @@ export default function ProfileScreen() {
   async function handleDeleteAccount() {
     if (executeOrIntercept(
       () => {},
-      "Hesap İşlemleri İçin Giriş Yapın 👤",
-      "Hesabınızı yönetmek veya silmek için geçerli bir hesabınız olmalıdır."
+      t("profile.demo.accountTitle"),
+      t("profile.demo.accountDescription")
     )) {
       return;
     }
     appAlert(
-      "⚠️ Hesabını Sil",
-      "Hesabın ve ilişkinize ait tüm fotoğraflar, mektuplar, günlükler ve anılar 7 gün sonra kalıcı olarak silinir. Partnerinin hesabı kalır ancak ortak veriler onun için de silinir.\n\nBu 7 gün içinde aynı hesapla giriş yaparak silmeyi iptal edebilirsin.\n\nAktif bir aboneliğin varsa App Store veya Google Play üzerinden ayrıca iptal etmelisin.",
+      t("profile.delete.title"),
+      t("profile.delete.message"),
       [
-        { text: "Vazgeç", style: "cancel" },
-        { text: "Evet, Hesabımı Sil", style: "destructive", onPress: confirmDeleteAccount },
+        { text: t("common.cancel"), style: "cancel" },
+        { text: t("profile.delete.confirm"), style: "destructive", onPress: confirmDeleteAccount },
       ]
     );
   }
@@ -518,7 +525,7 @@ export default function ProfileScreen() {
     const { data: scheduledFor, error } = await supabase.rpc("request_account_deletion");
     if (error || !scheduledFor) {
       setDeleteLoading(false);
-      appAlert("Hata", "Silme talebi oluşturulamadı. Lütfen bağlantını kontrol edip tekrar dene.");
+      appAlert(t("common.error"), t("profile.delete.requestFailed"));
       return;
     }
 
@@ -528,8 +535,8 @@ export default function ProfileScreen() {
       await notifyPartner(
         profile.coupleId,
         userId,
-        "Hesap silme talebi",
-        `Partnerin hesabını silme talebinde bulundu. Ortak anılarınız ${deletionDay} tarihinde kalıcı olarak silinecek.`,
+        t("profile.push.deleteTitle"),
+        t("profile.push.deleteBody", { deletionDay }),
         { type: "account_deletion" }
       );
     }
@@ -538,9 +545,9 @@ export default function ProfileScreen() {
     setDeleteLoading(false);
     router.replace("/(auth)/login");
     appAlert(
-      "Hesabın silinmek üzere",
-      `Hesabın ve tüm verilerin ${deletionDay} tarihinde kalıcı olarak silinecek. Fikrini değiştirirsen bu tarihe kadar giriş yapıp silmeyi iptal edebilirsin.`,
-      [{ text: "Tamam" }],
+      t("auth.deletion.pendingTitle"),
+      t("profile.delete.scheduledMessage", { deletionDay }),
+      [{ text: t("common.ok") }],
       { forceDialog: true }
     );
   }
@@ -556,7 +563,7 @@ export default function ProfileScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel="Geri"
+            accessibilityLabel={t("common.back")}
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();
@@ -571,15 +578,15 @@ export default function ProfileScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Ayarlar</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>Profil & Hesap Tercihleri ⚙️</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{t("tabs.profile.label")}</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>{t("profile.subtitle")}</Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <TourGuideButton onPress={openTour} />
             <TouchableOpacity
               accessibilityRole="button"
-              accessibilityLabel="Menüyü aç"
+              accessibilityLabel={t("common.openMenu")}
               onPress={() => router.push("/menu")}
               style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -600,30 +607,30 @@ export default function ProfileScreen() {
         >
           {/* ─── LÜKS PROFİL HERO KARTI ─── */}
           <View style={[styles.heroProfileCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
-            <EditableAvatar name={displayName || "Kullanıcı"} size={54} />
+            <EditableAvatar name={displayName || t("common.userFallback")} size={54} />
 
             <View style={styles.heroDetails}>
               <Text style={[styles.heroNameText, { color: theme.text }]} numberOfLines={1}>
-                {displayName || "Kullanıcı"}
+                {displayName || t("common.userFallback")}
               </Text>
 
               <View style={styles.badgesRow}>
                 {isPremium ? (
                   <View style={styles.premiumBadge}>
                     <Crown size={12} color={isLight ? "#A16207" : "#ffd700"} />
-                    <Text style={styles.premiumBadgeText}>Premium Üye</Text>
+                    <Text style={styles.premiumBadgeText}>{t("profile.membership.premium")}</Text>
                   </View>
                 ) : (
                   <View style={styles.standardBadge}>
                     <ShieldCheck size={12} color={isLight ? theme.textSecondary : "rgba(255,255,255,0.6)"} />
-                    <Text style={[styles.standardBadgeText, { color: theme.textSecondary }]}>Standart Üye</Text>
+                    <Text style={[styles.standardBadgeText, { color: theme.textSecondary }]}>{t("profile.membership.standard")}</Text>
                   </View>
                 )}
 
                 {coupleId ? (
                   <View style={[styles.pairedBadge, { backgroundColor: `${theme.accent}18` }]}>
                     <Heart size={11} color={theme.accent} fill={theme.accent} />
-                    <Text style={[styles.pairedBadgeText, { color: theme.accent }]}>Eşleşildi</Text>
+                    <Text style={[styles.pairedBadgeText, { color: theme.accent }]}>{t("profile.membership.paired")}</Text>
                   </View>
                 ) : null}
               </View>
@@ -638,8 +645,8 @@ export default function ProfileScreen() {
                   <Wallet size={18} color={theme.accent} />
                 </View>
                 <View>
-                  <Text style={[styles.walletCardTitle, { color: theme.text }]}>Cüzdan & Bakiye</Text>
-                  <Text style={[styles.walletCardSub, { color: theme.textMuted }]}>Mevcut Jetonların</Text>
+                  <Text style={[styles.walletCardTitle, { color: theme.text }]}>{t("profile.wallet.title")}</Text>
+                  <Text style={[styles.walletCardSub, { color: theme.textMuted }]}>{t("profile.wallet.current")}</Text>
                 </View>
               </View>
 
@@ -658,6 +665,9 @@ export default function ProfileScreen() {
             themeMode={themeMode}
             onSelectTheme={setThemeMode}
           />
+
+          {/* ─── DİL SEÇİMİ (Türkçe / English) ─── */}
+          <LanguagePicker theme={theme} isLight={isLight} />
 
           {/* ─── ALT BAR MENÜSÜ ÖZELLEŞTİRME ─── */}
           <TabBarCustomizer theme={theme} isLight={isLight} />
@@ -718,13 +728,13 @@ export default function ProfileScreen() {
 
               {/* ─── OTURUM & GÜVENLİK ─── */}
               <ModernSection
-                title="Oturum & Güvenlik"
+                title={t("profile.session.title")}
                 icon={<LogOut size={18} color={theme.accent} />}
                 theme={theme}
                 defaultOpen={false}
               >
                 <Text style={[profileSharedStyles.sessionHintText, { color: theme.textMuted }]}>
-                  Cihazınızdan güvenli bir şekilde çıkış yapın. Bildirim jetonlarınız temizlenecektir.
+                  {t("profile.session.description")}
                 </Text>
 
                 <TouchableOpacity
@@ -739,7 +749,7 @@ export default function ProfileScreen() {
                   activeOpacity={0.8}
                 >
                   <LogOut size={16} color={theme.text} />
-                  <Text style={[profileSharedStyles.logoutBtnText, { color: theme.text }]}>Çıkış Yap</Text>
+                  <Text style={[profileSharedStyles.logoutBtnText, { color: theme.text }]}>{t("auth.signOut")}</Text>
                 </TouchableOpacity>
               </ModernSection>
 

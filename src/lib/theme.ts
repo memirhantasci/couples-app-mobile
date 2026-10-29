@@ -4,12 +4,14 @@
 // Erkek: Şuanki Mavi Mod (Varsayılan), Gece Koyu Mod, Beyaz Mod
 
 import type { ViewStyle } from "react-native";
+import type { ParseKeys } from "i18next";
 
 export type ThemeMode = "current" | "dark" | "light";
 
 export interface AppTheme {
   id: ThemeMode;
-  name: string;
+  /** Çeviri anahtarı: ekranlar `t(theme.nameKey)` ile çevirir */
+  nameKey: ParseKeys;
   gender: "female" | "male";
   isLight: boolean;
   bgGradient: readonly [string, string, ...string[]];
@@ -34,7 +36,7 @@ export interface AppTheme {
    * koyu temalarda boştur. Kart stiline `...theme.cardShadow` ya da `style={[..., theme.cardShadow]}` ile eklenir.
    */
   cardShadow: ViewStyle;
-  description: string;
+  descriptionKey: ParseKeys;
   previewColors: [string, string, string];
 }
 
@@ -52,7 +54,7 @@ const NO_CARD_SHADOW: ViewStyle = {};
 // 1. Kadın: Şuanki Arayüz (Gül & Bordo)
 export const FEMALE_CURRENT: AppTheme = {
   id: "current",
-  name: "Gül & Bordo",
+  nameKey: "themes.femaleCurrent.name",
   gender: "female",
   isLight: false,
   bgGradient: ["#2E0F1C", "#17070E", "#2E0F1C"] as const,
@@ -73,14 +75,14 @@ export const FEMALE_CURRENT: AppTheme = {
   tabBarBorder: "rgba(255, 255, 255, 0.12)",
   blurTint: "dark",
   cardShadow: NO_CARD_SHADOW,
-  description: "Romantik bordo ve gül tonları (Varsayılan)",
+  descriptionKey: "themes.femaleCurrent.description",
   previewColors: ["#2E0F1C", "#4A152B", "#FF5C77"],
 };
 
 // 2. Kadın: Gece Modu (Derin Siyah & Pembe Işıltı)
 export const FEMALE_DARK: AppTheme = {
   id: "dark",
-  name: "Gece Modu",
+  nameKey: "themes.femaleDark.name",
   gender: "female",
   isLight: false,
   bgGradient: ["#0E0A10", "#070508", "#0E0A10"] as const,
@@ -101,14 +103,14 @@ export const FEMALE_DARK: AppTheme = {
   tabBarBorder: "rgba(255, 255, 255, 0.1)",
   blurTint: "dark",
   cardShadow: NO_CARD_SHADOW,
-  description: "Zarif, göz yormayan derin gece siyahı",
+  descriptionKey: "themes.femaleDark.description",
   previewColors: ["#070508", "#19121E", "#FF4D6D"],
 };
 
 // 3. Kadın: Açık Mod (İpeksi Pudra & Saf Beyaz)
 export const FEMALE_LIGHT: AppTheme = {
   id: "light",
-  name: "Açık Mod",
+  nameKey: "themes.femaleLight.name",
   gender: "female",
   isLight: true,
   // Zemin, beyaz kartların üzerinde net ayrıştığı pudra pembesi; kartlar belirgin kenarlık + yumuşak gölge taşır
@@ -137,7 +139,7 @@ export const FEMALE_LIGHT: AppTheme = {
     shadowRadius: 12,
     elevation: 3,
   },
-  description: "Aydınlık, ferah ve canlı pembe tonlar",
+  descriptionKey: "themes.femaleLight.description",
   previewColors: ["#FFF5F8", "#FFFFFF", "#E11D48"],
 };
 
@@ -146,7 +148,7 @@ export const FEMALE_LIGHT: AppTheme = {
 // 1. Erkek: Şuanki Mavi Mod (Gece Mavisi)
 export const MALE_CURRENT: AppTheme = {
   id: "current",
-  name: "Mavi Mod",
+  nameKey: "themes.maleCurrent.name",
   gender: "male",
   isLight: false,
   bgGradient: ["#0B111A", "#060A10", "#0B111A"] as const,
@@ -167,14 +169,14 @@ export const MALE_CURRENT: AppTheme = {
   tabBarBorder: "rgba(255, 255, 255, 0.12)",
   blurTint: "dark",
   cardShadow: NO_CARD_SHADOW,
-  description: "Mevcut derin gece mavisi (Varsayılan)",
+  descriptionKey: "themes.maleCurrent.description",
   previewColors: ["#0B111A", "#1A2235", "#4D9CFF"],
 };
 
 // 2. Erkek: Gece Modu (Obsidyen Siyah & Elektrik Mavi)
 export const MALE_DARK: AppTheme = {
   id: "dark",
-  name: "Gece Modu",
+  nameKey: "themes.maleDark.name",
   gender: "male",
   isLight: false,
   bgGradient: ["#080A0F", "#030407", "#080A0F"] as const,
@@ -195,14 +197,14 @@ export const MALE_DARK: AppTheme = {
   tabBarBorder: "rgba(255, 255, 255, 0.1)",
   blurTint: "dark",
   cardShadow: NO_CARD_SHADOW,
-  description: "Karizmatik, simsiyah obsidyen koyu mod",
+  descriptionKey: "themes.maleDark.description",
   previewColors: ["#030407", "#111622", "#38BDF8"],
 };
 
 // 3. Erkek: Beyaz Mod (Kar Beyazı & Kobalt Mavi)
 export const MALE_LIGHT: AppTheme = {
   id: "light",
-  name: "Beyaz Mod",
+  nameKey: "themes.maleLight.name",
   gender: "male",
   isLight: true,
   // Zemin, beyaz kartların üzerinde net ayrıştığı soğuk gri-mavi; kartlar belirgin kenarlık + yumuşak gölge taşır
@@ -230,7 +232,7 @@ export const MALE_LIGHT: AppTheme = {
     shadowRadius: 12,
     elevation: 3,
   },
-  description: "Aydınlık, minimalist kar beyazı ve kobalt",
+  descriptionKey: "themes.maleLight.description",
   previewColors: ["#F8FAFC", "#FFFFFF", "#2563EB"],
 };
 

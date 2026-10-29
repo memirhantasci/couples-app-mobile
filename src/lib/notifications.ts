@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { logger } from "@/utils/logger";
 import { decrypt } from "@/utils/crypto";
 import dayjs from "dayjs";
+import i18n from "@/lib/i18n";
 
 /**
  * Saves or updates a push token in Supabase for the given user.
@@ -155,7 +156,7 @@ export function configureAndroidNotificationChannel() {
   if (Platform.OS === "android") {
     // 1. Genel Kanal
     Notifications.setNotificationChannelAsync("default", {
-      name: "Genel Bildirimler ❤️",
+      name: i18n.t("notifications.channels.general"),
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: "#FF5C77",
@@ -167,7 +168,7 @@ export function configureAndroidNotificationChannel() {
 
     // 2. Partner Mesajları & Anılar Kanalı (Öncelikli - WhatsApp tarzı)
     Notifications.setNotificationChannelAsync("partner_messages", {
-      name: "Sevgilinden Mesajlar & Anılar ❤️",
+      name: i18n.t("notifications.channels.partnerMessages"),
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 150, 250],
       lightColor: "#FF4D6D",
@@ -191,7 +192,7 @@ export function configureAndroidNotificationChannel() {
 
     // 4. İlaç & Sağlık Kanalı (Zümrüt Yeşili)
     Notifications.setNotificationChannelAsync("medicine_channel", {
-      name: "İlaç & Sağlık 💊",
+      name: i18n.t("notifications.channels.medicine"),
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 200, 100, 200],
       lightColor: "#34D399",
@@ -268,13 +269,13 @@ export function formatMessagingStyleNotification(
   data?: any
 ): FormattedPushPayload {
   const type = data?.type || "";
-  const name = (senderName || "Sevgilin").trim();
+  const name = (senderName || i18n.t("common.partnerFallback")).trim();
 
   // Robotik "Sevgilin" veya "{sender}" ibarelerini gönderen adı ile değiştir ve temizle
   // (değiştirme işlevi kullanılır: ad içindeki "$&" gibi diziler özel anlam taşımasın)
   const cleanBodyText = cleanNotificationText(rawBody)
     .replace(/\{sender\}/gi, () => name)
-    .replace(/\b(Sevgilin|Partnerin)\b/g, () => name);
+    .replace(/\b(Sevgilin|Partnerin|Your love|Your partner)\b/g, () => name);
 
   // Başta "Emirhan:" veya "Emirhan " varsa temizle (başlıkta zaten adı olacağı için).
   // Ad kullanıcıdan geldiği için kaçışlanır; "Ayşe (Canım)" gibi adlar RegExp'i bozup
@@ -296,47 +297,57 @@ export function formatMessagingStyleNotification(
   switch (type) {
     case "letter": {
       title = `${name} 💌`;
-      subtitle = "Yeni Mektup";
+      subtitle = i18n.t("notifications.push.letter.subtitle");
       channelId = "letters_channel";
       const letterTitle = field(data?.letterTitle);
       body = letterTitle
-        ? `Sana mühürlü bir mektup bıraktı: "${letterTitle}" 📜`
-        : "Sana mühürlü bir mektup bıraktı 📜";
+        ? i18n.t("notifications.push.letter.bodyWithTitle", { letterTitle })
+        : i18n.t("notifications.push.letter.body");
       break;
     }
     case "letter_delete_request": {
       // Alıcının onayı olmadan mektup silinmez: bildirim bir karar ister
       title = `${name} 💌`;
-      subtitle = "Mektup Silme Onayı";
+      subtitle = i18n.t("notifications.push.letterDeleteRequest.subtitle");
       channelId = "letters_channel";
       const letterTitle = field(data?.letterTitle);
       body = letterTitle
-        ? `"${letterTitle}" mektubunun silinmesi için onayını istiyor. Sen onay vermeden silinmez.`
-        : "Bir mektubunun silinmesi için onayını istiyor. Sen onay vermeden silinmez.";
+        ? i18n.t("notifications.push.letterDeleteRequest.bodyWithTitle", { letterTitle })
+        : i18n.t("notifications.push.letterDeleteRequest.body");
       break;
     }
     case "letter_delete_response": {
       title = `${name} 💌`;
-      subtitle = "Mektup Silme İsteği";
+      subtitle = i18n.t("notifications.push.letterDeleteResponse.subtitle");
       channelId = "letters_channel";
       const letterTitle = field(data?.letterTitle);
-      const subject = letterTitle ? `"${letterTitle}" mektubunun` : "Mektubunun";
-      body = data?.approved
-        ? `${subject} silinmesine izin verdi.`
-        : `${subject} saklanmasını istedi 💛`;
+      if (data?.approved) {
+        body = letterTitle
+          ? i18n.t("notifications.push.letterDeleteResponse.approvedWithTitle", { letterTitle })
+          : i18n.t("notifications.push.letterDeleteResponse.approved");
+      } else {
+        body = letterTitle
+          ? i18n.t("notifications.push.letterDeleteResponse.keepWithTitle", { letterTitle })
+          : i18n.t("notifications.push.letterDeleteResponse.keep");
+      }
       break;
     }
     case "medicine":
     case "medicine_reminder": {
       title = `${name} 💊`;
-      subtitle = "İlaç Takibi";
+      subtitle = i18n.t("notifications.labels.medicineTracking");
       channelId = "medicine_channel";
       const medicineName = field(data?.medicineName);
-      const medName = medicineName ? `${medicineName} ilacını` : "İlacını";
       if (data?.status === "DRANK") {
-        body = `${medName} içti. İçin rahat olsun! 🌿`;
+        body = medicineName
+          ? i18n.t("notifications.push.medicine.drankWithName", { medicineName })
+          : i18n.t("notifications.push.medicine.drank");
       } else {
-        body = trimmedBody || `${medName} içme zamanı geldi! ⏰`;
+        body =
+          trimmedBody ||
+          (medicineName
+            ? i18n.t("notifications.push.medicine.dueWithName", { medicineName })
+            : i18n.t("notifications.push.medicine.due"));
       }
       break;
     }
@@ -345,17 +356,19 @@ export function formatMessagingStyleNotification(
       if (memoryTitle) {
         // Özel gün / anı kaydı (add-memory)
         title = `${name} ✨`;
-        subtitle = "Yeni Anı";
-        body = `Yeni bir anı ekledi: "${memoryTitle}" 💕`;
+        subtitle = i18n.t("notifications.push.memory.subtitle");
+        body = i18n.t("notifications.push.memory.bodyWithTitle", { memoryTitle });
       } else {
         title = `${name} 📸`;
-        subtitle = "Ortak Galeri";
+        subtitle = i18n.t("notifications.push.gallery.subtitle");
         if (trimmedBody) {
-          body = trimmedBody.toLowerCase().includes("fotoğraf") || trimmedBody.toLowerCase().includes("anı")
+          // Gövde zaten fotoğraf/anıdan söz ediyorsa (her iki dilde) olduğu gibi bırakılır
+          const lowerBody = trimmedBody.toLowerCase();
+          body = ["fotoğraf", "anı", "photo", "memory"].some((word) => lowerBody.includes(word))
             ? trimmedBody
-            : `Yeni bir anı ekledi: ${trimmedBody}`;
+            : i18n.t("notifications.push.gallery.bodyWithText", { text: trimmedBody });
         } else {
-          body = "Ortak galeriye yeni bir anı fotoğrafı ekledi ✨";
+          body = i18n.t("notifications.push.gallery.body");
         }
       }
       channelId = "partner_messages";
@@ -364,16 +377,16 @@ export function formatMessagingStyleNotification(
     case "mood": {
       const emoji = data?.moodEmoji || "🥰";
       title = `${name} ${emoji}`;
-      subtitle = "Ruh Hali";
+      subtitle = i18n.t("notifications.push.mood.subtitle");
       channelId = "partner_messages";
-      body = trimmedBody || `Bugün kendini ${emoji} hissediyor.`;
+      body = trimmedBody || i18n.t("notifications.push.mood.body", { emoji });
       break;
     }
     case "map": {
       title = `${name} 📍`;
-      subtitle = "Aşk Haritası";
+      subtitle = i18n.t("notifications.push.map.subtitle");
       channelId = "partner_messages";
-      body = trimmedBody || "Haritaya senin için yeni bir anı notu bıraktı 🗺️";
+      body = trimmedBody || i18n.t("notifications.push.map.body");
       break;
     }
     case "meeting": {
@@ -382,32 +395,32 @@ export function formatMessagingStyleNotification(
       const meetingTitle = field(data?.meetingTitle);
       // Planlayan kişi tarihi/yeri değiştirdiğinde (meetingChange: "updated") yeni plan gibi sunulmaz
       const isUpdate = data?.meetingChange === "updated";
-      subtitle = isUpdate ? "Buluşma Güncellendi" : "Buluşma Planı";
-      const action = isUpdate ? "Buluşma planını güncelledi" : "Yeni bir buluşma planladı";
+      subtitle = isUpdate ? i18n.t("notifications.push.meeting.updatedSubtitle") : i18n.t("notifications.push.meeting.planSubtitle");
+      const action = isUpdate ? i18n.t("notifications.push.meeting.updatedAction") : i18n.t("notifications.push.meeting.plannedAction");
       body = meetingTitle ? `${action}: "${meetingTitle}" 🗓️` : trimmedBody || `${action} 🗓️`;
       break;
     }
     case "period": {
       title = `${name} 🌸`;
-      subtitle = "Özel Gün";
+      subtitle = i18n.t("notifications.push.period.subtitle");
       channelId = "partner_messages";
-      body = trimmedBody || "Regl dönemi başladı. Ona biraz daha özen gösterme zamanı! 💕";
+      body = trimmedBody || i18n.t("notifications.push.period.body");
       break;
     }
     case "pairing": {
       // Sistem olayı: başlıkta uygulama adı, gönderen adı değil
       title = "Couples ❤️";
-      subtitle = "Eşleşme Tamamlandı";
+      subtitle = i18n.t("notifications.push.pairing.subtitle");
       channelId = "partner_messages";
-      body = "Partnerin katıldı! Birlikte harika anılar biriktirmeye hazırsınız ✨";
+      body = i18n.t("notifications.push.pairing.body");
       break;
     }
     case "account_deletion": {
       // Ortak verilerin silineceği haberi: kalpli başlık yakışmaz
       title = name;
-      subtitle = "Hesap Silme";
+      subtitle = i18n.t("notifications.push.accountDeletion.subtitle");
       channelId = "partner_messages";
-      body = trimmedBody || "Hesabını silme talebinde bulundu.";
+      body = trimmedBody || i18n.t("notifications.push.accountDeletion.body");
       break;
     }
     default: {
@@ -612,7 +625,7 @@ export async function notifyPartner(coupleId: number, currentUserId: string, tit
       senderName = cleanNotificationText(senderData.username);
     }
     if (!senderName) {
-      senderName = "Sevgilin";
+      senderName = i18n.t("common.partnerFallback");
     }
 
     // Mesajlaşma uygulaması tarzında (WhatsApp / iMessage) bildirim hazırla

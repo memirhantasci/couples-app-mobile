@@ -1,7 +1,9 @@
 import { useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useTranslation } from "react-i18next";
 
 export function useDemoAction() {
+  const { t } = useTranslation();
   const { isDemoMode } = useAuth();
   const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
   const [modalConfig, setModalConfig] = useState<{
@@ -17,10 +19,10 @@ export function useDemoAction() {
     ): boolean => {
       if (isDemoMode) {
         setModalConfig({
-          title: customTitle || "Bu Özelliği Kullanmak İçin Kayıt Olun 💖",
+          title: customTitle || t("demo.prompts.generic.title"),
           description:
             customDescription ||
-            "Demo modunda verilerinizi kalıcı olarak kaydetmek, aşk mektupları mühürlemek ve partnerinizle eşleşmek için ücretsiz hesabınızı oluşturun.",
+            t("demo.prompts.generic.description"),
         });
         setIsDemoModalOpen(true);
         return true; // Intercepted by demo mode

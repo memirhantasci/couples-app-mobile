@@ -11,6 +11,7 @@ import { Crown, Sparkles, X, Zap } from "lucide-react-native";
 import { useTheme } from "@/context/ThemeContext";
 import { useRouter } from "expo-router";
 import type { PremiumFeatureSource, PremiumPaywallProps as BasePremiumPaywallProps } from "./PremiumPaywall.types";
+import { Trans, useTranslation } from "react-i18next";
 
 interface PremiumPaywallProps extends BasePremiumPaywallProps {
   featureName?: string;         // "Mektup Yaz", "Fotoğraf Galerisi" vb.
@@ -34,39 +35,40 @@ export function PremiumPaywall({
   tokenOption,
   onWatchAd,
 }: PremiumPaywallProps) {
+  const { t } = useTranslation();
   const { theme, isLight } = useTheme();
   const router = useRouter();
 
   const featureCopy: Record<PremiumFeatureSource, { name: string; description: string; cta: string }> = {
     general: {
-      name: "Bu özellik",
-      description: "Premium ile birlikte tüm özel anı alanlarına erişin.",
-      cta: "Premium'a Geç",
+      name: t("paywall.copy.general.name"),
+      description: t("paywall.copy.general.description"),
+      cta: t("paywall.upgradeButton"),
     },
     star_claim: {
-      name: "Yıldız sahiplenme",
-      description: "Yıldızınızı sahiplenin ve gökyüzünde birlikte parlatın.",
-      cta: "Yıldızımızı Aç",
+      name: t("paywall.copy.starClaim.name"),
+      description: t("paywall.copy.starClaim.description"),
+      cta: t("paywall.copy.starClaim.cta"),
     },
     exoplanet_create: {
-      name: "Anı gezegeni oluşturma",
-      description: "Anılarınızı yıldızınızın yörüngesine yerleştirmek için Premium gerekli.",
-      cta: "Anı Gezegenlerini Aç",
+      name: t("paywall.copy.exoplanetCreate.name"),
+      description: t("paywall.copy.exoplanetCreate.description"),
+      cta: t("paywall.copy.exoplanetCreate.cta"),
     },
     exoplanet_view: {
-      name: "Anı gezegeni içeriği",
-      description: "Fotoğraflarınız, mektuplarınız ve anı ayrıntılarınız Premium ile korunur.",
-      cta: "Anılarımı Aç",
+      name: t("paywall.copy.exoplanetView.name"),
+      description: t("paywall.copy.exoplanetView.description"),
+      cta: t("paywall.copy.exoplanetView.cta"),
     },
     exoplanet_auto: {
-      name: "Otomatik anı gezegenleri",
-      description: "45 günlük anı döngüsünü devam ettirmek için Premium gerekli.",
-      cta: "Otomatik Anıları Aç",
+      name: t("paywall.copy.exoplanetAuto.name"),
+      description: t("paywall.copy.exoplanetAuto.description"),
+      cta: t("paywall.copy.exoplanetAuto.cta"),
     },
     avatar: {
-      name: "Özel Profil Fotoğrafı",
-      description: "👑 Sevgilinizle birbirinizin en tatlı fotoğraflarını profilinizde görmek için Premium'a geçin.",
-      cta: "Profil Fotoğrafını Aç",
+      name: t("paywall.copy.avatar.name"),
+      description: t("paywall.copy.avatar.description"),
+      cta: t("paywall.copy.avatar.cta"),
     },
   };
   const resolvedFeature = featureCopy[featureSource];
@@ -74,12 +76,12 @@ export function PremiumPaywall({
   const resolvedFeatureDescription = featureDescription ?? resolvedFeature.description;
 
   const features = [
-    "💌 Sınırsız Mektup Yaz",
-    "📸 Fotoğraf Galerisi & Yükleme",
-    "🩸 Regl Takvimi (Erkek Görünümü)",
-    "📅 Fotoğraflı Özel Günler",
-    "👑 Özel Profil Fotoğrafı",
-    "🚫 Reklamsız Deneyim",
+    t("paywall.perks.letters"),
+    t("paywall.perks.photos"),
+    t("paywall.perks.period"),
+    t("paywall.perks.specialDays"),
+    t("paywall.perks.avatar"),
+    t("paywall.perks.noAds"),
   ];
 
   return (
@@ -116,10 +118,13 @@ export function PremiumPaywall({
           </View>
 
           {/* Title */}
-          <Text style={[styles.title, { color: theme.text }]}>Premium Gerekli</Text>
+          <Text style={[styles.title, { color: theme.text }]}>{t("paywall.required")}</Text>
           <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-            <Text style={{ fontWeight: "700", color: theme.accent }}>{resolvedFeatureName}</Text>
-            {" "}özelliği Premium abonelere özeldir.
+            <Trans
+              i18nKey="paywall.featureGate"
+              values={{ feature: resolvedFeatureName }}
+              components={{ feature: <Text style={{ fontWeight: "700", color: theme.accent }} /> }}
+            />
           </Text>
 
           <Text style={[styles.description, { color: theme.textMuted }]}>{resolvedFeatureDescription}</Text>
@@ -148,7 +153,7 @@ export function PremiumPaywall({
           </TouchableOpacity>
 
           <Text style={[styles.trialText, { color: theme.textMuted }]}>
-            İstediğin zaman iptal et
+            {t("paywall.cancelAnytime")}
           </Text>
           <TouchableOpacity 
             onPress={() => {
@@ -158,7 +163,7 @@ export function PremiumPaywall({
             style={{ marginTop: 6 }}
           >
             <Text style={[styles.eulaLink, { color: theme.accent }]}>
-              Abonelik & Kullanım Koşulları (EULA)
+              {t("paywall.eulaLink")}
             </Text>
           </TouchableOpacity>
 
@@ -167,7 +172,7 @@ export function PremiumPaywall({
             <View style={styles.tokenSection}>
               <View style={styles.dividerRow}>
                 <View style={[styles.dividerLine, { backgroundColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]} />
-                <Text style={[styles.dividerText, { color: theme.textMuted }]}>veya</Text>
+                <Text style={[styles.dividerText, { color: theme.textMuted }]}>{t("common.or")}</Text>
                 <View style={[styles.dividerLine, { backgroundColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]} />
               </View>
 
@@ -186,10 +191,10 @@ export function PremiumPaywall({
               >
                 <Zap color={isLight ? "#B45309" : "#FFD700"} size={18} />
                 <Text style={[styles.tokenBtnText, { color: isLight ? "#B45309" : "#FFD700" }]}>
-                  {tokenOption.cost} Token ile Kullan
+                  {t("paywall.useTokens", { cost: tokenOption.cost })}
                 </Text>
                 <Text style={[styles.tokenBalance, { color: isLight ? "rgba(180, 83, 9, 0.7)" : "rgba(255,215,0,0.6)" }]}>
-                  ({tokenOption.currentBalance} token{`'`}ın var)
+                  {t("paywall.tokenBalance", { currentBalance: tokenOption.currentBalance })}
                 </Text>
               </TouchableOpacity>
 
@@ -205,7 +210,7 @@ export function PremiumPaywall({
                   onPress={onWatchAd}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.adBtnText, { color: theme.textSecondary }]}>🎬 Reklam İzleyerek +25 Token Kazan</Text>
+                  <Text style={[styles.adBtnText, { color: theme.textSecondary }]}>{t("paywall.watchAd")}</Text>
                 </TouchableOpacity>
               )}
             </View>

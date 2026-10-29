@@ -21,6 +21,7 @@ import { useDemoAction } from "@/hooks/useDemoAction";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { toast } from "@/lib/toast";
 import { DAILY_NOTE_MAX_CHARS } from "@/lib/dailyNote";
+import { useTranslation } from "react-i18next";
 
 interface DailyNoteCardProps {
   existingNote?: string | null;
@@ -28,6 +29,7 @@ interface DailyNoteCardProps {
 }
 
 export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }: DailyNoteCardProps) {
+  const { t } = useTranslation();
   const { session, profile } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const queryClient = useQueryClient();
@@ -49,8 +51,8 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
   async function handleSave() {
     if (executeOrIntercept(
       () => {},
-      "Günün Notunu Kaydetmek İçin Kayıt Olun 📖",
-      "Gününüzü, hislerinizi ve sadece size özel kişisel günlüğünüzü güvenle saklamak için ücretsiz hesabınızı oluşturun."
+      t("home.dailyNote.demoTitle"),
+      t("home.dailyNote.demoDescription")
     )) {
       return;
     }
@@ -69,7 +71,7 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
       encryptedContent = encrypt(cleanContent);
     } catch (err) {
       setSubmitting(false);
-      toast.error(err instanceof Error ? err.message : "Bilinmeyen hata", { title: "Not kaydedilemedi" });
+      toast.error(err instanceof Error ? err.message : t("errors.unknown"), { title: t("home.dailyNote.saveFailed") });
       return;
     }
 
@@ -86,27 +88,27 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
       // Günlüklerim ekranı da yeni notu görsün
       queryClient.invalidateQueries({ queryKey: ["daily_notes_history"] });
-      toast.success("Günlük notun kaydedildi ✨");
+      toast.success(t("home.dailyNote.saved"));
     } else {
       logger.error("Note save error:", JSON.stringify(error, null, 2));
-      toast.error(error?.message || "Bilinmeyen hata", { title: "Not kaydedilemedi" });
+      toast.error(error?.message || t("errors.unknown"), { title: t("home.dailyNote.saveFailed") });
     }
   }
 
   return (
     <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
-      <Text style={[styles.title, { color: theme.text }]}>Günlük Notum</Text>
+      <Text style={[styles.title, { color: theme.text }]}>{t("home.dailyNote.title")}</Text>
 
       {saved ? (
         <View style={[styles.savedBox, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder }]}>
           <Text style={[styles.savedContent, { color: theme.text }]}>{content}</Text>
-          <Text style={[styles.footerText, { color: theme.textMuted }]}>Yarın yeni bir not yazabilirsin 🌙</Text>
+          <Text style={[styles.footerText, { color: theme.textMuted }]}>{t("home.dailyNote.writeTomorrow")}</Text>
           <TouchableOpacity
             onPress={() => router.push("/(tabs)/daily-notes" as any)}
             style={styles.historyBtn}
           >
             <BookOpen size={12} color={theme.accent} />
-            <Text style={[styles.historyBtnText, { color: theme.accent }]}>Geçmiş Notlarımı Gör</Text>
+            <Text style={[styles.historyBtnText, { color: theme.accent }]}>{t("home.dailyNote.seePast")}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -114,7 +116,7 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
           <TextInput
             value={content}
             onChangeText={setContent}
-            placeholder="Bugün nasıldı? Ne hissediyorsun?..."
+            placeholder={t("home.dailyNote.placeholder")}
             placeholderTextColor={theme.textMuted}
             multiline
             numberOfLines={4}
@@ -141,7 +143,7 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
             {submitting ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={styles.saveBtnText}>Kaydet</Text>
+              <Text style={styles.saveBtnText}>{t("common.save")}</Text>
             )}
           </TouchableOpacity>
         </View>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import { X, PlayCircle } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 interface WatchAdModalProps {
   visible: boolean;
@@ -9,6 +10,7 @@ interface WatchAdModalProps {
 }
 
 export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps) {
+  const { t } = useTranslation();
   if (!visible) return null;
 
   return (
@@ -19,9 +21,9 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
             <X size={18} color="#FFFFFF" />
           </TouchableOpacity>
           <PlayCircle size={44} color="#38BDF8" style={{ marginBottom: 12 }} />
-          <Text style={styles.title}>Web Simülasyonu</Text>
+          <Text style={styles.title}>{t('ads.webSimulation')}</Text>
           <Text style={styles.desc}>
-            Mobil reklamlar web ortamında desteklenmemektedir. Test amaçlı ödülü doğrudan alabilirsiniz.
+            {t('ads.webDescription')}
           </Text>
           <TouchableOpacity
             onPress={() => {
@@ -30,7 +32,7 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
             }}
             style={styles.actionBtn}
           >
-            <Text style={styles.actionBtnText}>Ödülü Al ✨</Text>
+            <Text style={styles.actionBtnText}>{t('ads.claim')}</Text>
           </TouchableOpacity>
         </View>
       </View>

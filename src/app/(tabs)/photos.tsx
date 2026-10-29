@@ -38,8 +38,10 @@ import type { PhotoItem, ViewMode } from "@/components/photos/photoTypes";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { fetchPhotosPage, photosQueryKey, PHOTOS_PAGE_SIZE } from "@/lib/screenQueries";
 import { LazyPremiumPaywall, LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
+import { useTranslation } from "react-i18next";
 
 export default function PhotosScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { session, profile, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
@@ -108,8 +110,8 @@ export default function PhotosScreen() {
   const goToUpload = () => {
     if (executeOrIntercept(
       () => router.push(openForm("/(tabs)/add-photo")),
-      "Ortak Fotoğraf Eklemek İçin Kayıt Olun 📸",
-      "Sevgilinizle ortak anı albümü oluşturmak ve fotoğraflarınızın çekildiği yerleri haritada görmek için ücretsiz hesabınızı oluşturun."
+      t("demo.prompts.addPhoto.title"),
+      t("demo.prompts.addPhoto.description")
     )) {
       return;
     }
@@ -124,8 +126,8 @@ export default function PhotosScreen() {
   const handleDelete = useCallback((id: number) => {
     if (executeOrIntercept(
       () => {},
-      "Fotoğrafı Silmek İçin Kayıt Olun 🗑️",
-      "Fotoğraf arşivinizi yönetmek ve silmek için ücretsiz hesabınızı oluşturun."
+      t("demo.prompts.deletePhoto.title"),
+      t("demo.prompts.deletePhoto.description")
     )) {
       return;
     }
@@ -136,14 +138,14 @@ export default function PhotosScreen() {
 
     // Yalnızca fotoğrafı yükleyen kullanıcı silebilir
     if (photoToDelete.user_id && userId && photoToDelete.user_id !== userId) {
-      appAlert("Yetkisiz İşlem", "Sadece kendi yüklediğiniz fotoğrafları silebilirsiniz.");
+      appAlert(t("common.unauthorizedTitle"), t("photos.errors.ownOnly"));
       return;
     }
 
-    appAlert("Fotoğrafı Sil", "Bu fotoğrafı galeriden kalıcı olarak silmek istediğinize emin misiniz?", [
-      { text: "Vazgeç", style: "cancel" },
+    appAlert(t("photos.delete.title"), t("photos.delete.message"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Sil",
+        text: t("common.delete"),
         style: "destructive",
         onPress: async () => {
           if (!userId) return;
@@ -157,7 +159,7 @@ export default function PhotosScreen() {
             queryClient.invalidateQueries({ queryKey: ["map_photos", coupleId] });
             queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
           } catch {
-            appAlert("Hata", "Fotoğraf silinirken bir hata oluştu.");
+            appAlert(t("common.error"), t("photos.errors.deleteFailedGeneric"));
           }
         }
       }
@@ -209,7 +211,7 @@ export default function PhotosScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel="Geri"
+            accessibilityLabel={t("common.back")}
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();
@@ -224,9 +226,9 @@ export default function PhotosScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Ortak Galeri</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{t("notifications.push.gallery.subtitle")}</Text>
             <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>
-              {photoCount > 0 ? `${photoCount} Ortak Hatıra 📸` : "Aşk Arşivimiz 📸"}
+              {photoCount > 0 ? t("photos.count", { count: photoCount }) : t("photos.archiveTitle")}
             </Text>
           </View>
 
@@ -242,7 +244,7 @@ export default function PhotosScreen() {
 
             <TouchableOpacity
               accessibilityRole="button"
-              accessibilityLabel="Menüyü aç"
+              accessibilityLabel={t("common.openMenu")}
               onPress={() => router.push("/menu")}
               style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -264,7 +266,7 @@ export default function PhotosScreen() {
             >
               <ArrowUpDown size={14} color={theme.accent} />
               <Text style={[styles.sortBtnText, { color: theme.textSecondary }]} numberOfLines={1}>
-                {sortOrder === "desc" ? "Yeniden Eskiye" : "Eskiden Yeniye"}
+                {sortOrder === "desc" ? t("photos.sort.newest") : t("photos.sort.oldest")}
               </Text>
             </TouchableOpacity>
 
@@ -351,9 +353,9 @@ export default function PhotosScreen() {
         ) : (
           <EmptyState
             emoji="📸"
-            title="Ortak anı duvarınız henüz bembeyaz"
-            description="Birlikte çekildiğiniz en sevdiğiniz fotoğrafı ekleyerek başlayın."
-            ctaLabel="İlk Fotoğrafı Seç 📸"
+            title={t("photos.empty.title")}
+            description={t("photos.empty.description")}
+            ctaLabel={t("photos.empty.cta")}
             onPressCta={goToUpload}
             theme={theme}
             style={styles.emptyState}
@@ -377,7 +379,7 @@ export default function PhotosScreen() {
       <LazyPremiumPaywall
         visible={showPaywall}
         onClose={() => setShowPaywall(false)}
-        featureName="Fotoğraf Galerisi"
+        featureName={t("photos.premium.featureName")}
       />
       <LazyPageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
       <LazyDemoActionModal
