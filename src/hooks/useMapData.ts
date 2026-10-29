@@ -144,13 +144,18 @@ export function useMapData({ coupleId, isPremium, isDemoMode }: UseMapDataArgs) 
   const { refetch: refetchNotes } = notesQuery;
   const { refetch: refetchMeetings } = meetingsQuery;
 
-  // Sayfaya her gelindiğinde güncel verileri otomatik yenile
+  // Sayfaya her gelindiğinde güncel verileri otomatik yenile. refetch() `enabled: false` ayarını
+  // aşıp sorguyu zorla çalıştırır; bu yüzden yalnızca etkin sorgular yenilenir (ücretsiz kullanıcının
+  // fotoğraf sorgusu ve Storage imza işlemleri her sekme geçişinde boşuna çalışmasın).
   useFocusEffect(
     useCallback(() => {
-      refetchPhotos();
+      if (!coupleId && !isDemoMode) return;
+      if (isPremium || isDemoMode) {
+        refetchPhotos();
+      }
       refetchNotes();
       refetchMeetings();
-    }, [refetchPhotos, refetchNotes, refetchMeetings]),
+    }, [coupleId, isDemoMode, isPremium, refetchPhotos, refetchNotes, refetchMeetings]),
   );
 
   // MapStoryModal için: tüm pinler, en yeni en başta (modal ilk/son durağı buna göre seçer).

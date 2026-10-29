@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
@@ -8,19 +8,35 @@ import { Marker } from "react-native-maps";
 import { markerStyles } from "./mapMarkerStyles";
 import type { MapCoordinate, MapNote, MeetingPin, SelectedItem } from "./mapTypes";
 
+/** Görsel bu sürede yüklenmezse marker dondurulur (yükleme bitmişse 300 ms). */
+const TRACKING_GIVE_UP_MS = 5000;
+
 /**
  * Marker'lar performans için dondurulmuş (tracksViewChanges=false) çizilir; içinde uzak bir
  * görsel varsa yüklenene kadar yeniden çizime izin verip sonra dondurur.
  */
 export function useFreezeAfterImageLoad(imageUri: string | null | undefined) {
   const [tracksViewChanges, setTracksViewChanges] = useState(!!imageUri);
+  // Görselin yüklendiği an (0: henüz yüklenmedi)
+  const [loadedAt, setLoadedAt] = useState(0);
   // Fotoğraf değişince (ör. partner yeni PP yükledi) yeni görsel yüklenene kadar yeniden çizime izin ver
   const [trackedUri, setTrackedUri] = useState(imageUri);
   if (trackedUri !== imageUri) {
     setTrackedUri(imageUri);
+    setLoadedAt(0);
     setTracksViewChanges(!!imageUri);
   }
-  const onImageLoadEnd = () => setTimeout(() => setTracksViewChanges(false), 300);
+
+  // tracksViewChanges açıkken marker her karede yeniden çizilir. Görsel yüklenemezse (önbellek hatası,
+  // çevrimdışı) onLoadEnd hiç çalışmayabilir ve haritadaki tüm pinler sonsuza dek kasılırdı: yükleme
+  // bitince kısa, bitmezse uzun bir süre sonra kesin olarak dondurulur. Zamanlayıcı unmount'ta temizlenir.
+  useEffect(() => {
+    if (!tracksViewChanges) return;
+    const timer = setTimeout(() => setTracksViewChanges(false), loadedAt ? 300 : TRACKING_GIVE_UP_MS);
+    return () => clearTimeout(timer);
+  }, [tracksViewChanges, loadedAt, trackedUri]);
+
+  const onImageLoadEnd = useCallback(() => setLoadedAt(Date.now()), []);
   return { tracksViewChanges, onImageLoadEnd };
 }
 
