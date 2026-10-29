@@ -89,4 +89,48 @@ Yapılan özel AST ve regex tabanlı statik kod analizinde tespit edilen ve anı
   - `52389a2`: Claude tarafından gerçekleştirilen 152 dosyalık ana i18n mimarisi.
   - `c825fb7`: Eksik kalan featureGuides, demoData, legalTexts ve usePageTour entegrasyonu.
   - `06a7273`: login.tsx eksik etiketleri, dialog.ts inferTone İngilizce desteği ve sözlük güncellemeleri.
+  - `12d7f06`: Varsayılan 4 alt sekme, çift mektup kartı temizliği, Wrapped erkek teması ve Instagram paylaşım onarımları.
   - Dal GitHub uzak sunucusuna (`origin/feat/i18n-english`) başarıyla pushlanmıştır.
+
+---
+
+# 📱 BÖLÜM 8: KULLANICI DENEYİMİ, ALT BAR VE AYLIK WRAPPED DENETİMİ
+
+Bu bölüm; varsayılan alt bar sekmeleri, ana sayfa mektup kartı hiyerarşisi ve Aylık Wrapped modülünün (cinsiyet teması, Instagram paylaşımı, yerelleştirme) kapsamlı denetim ve onarım sonuçlarını içerir.
+
+### 1. 🗂️ Varsayılan Alt Sekmeler (Default Tab Bar)
+- **Talep:** Yeni hesap oluşturulduğunda alt barda varsayılan olarak yalnızca **Ana Sayfa, Takvim, Harita ve Mektuplar** yer alsın; kullanıcı isterse Profil/Ayarlar ekranından diğer sekmeleri (İlaç, Fotoğraflar, Anılar vb.) kendisi eklesin.
+- **Yapılan İyileştirme:**
+  - `src/context/TabBarContext.tsx` içindeki `DEFAULT_TABS` dizisi sadeleştirilerek tam olarak `["home", "calendar", "map", "letters"]` (4 sekme) yapıldı.
+  - Önbellek anahtarı `@couples_app_bottom_bar_tabs_v2` olarak güncellendi; böylece hem yeni kayıtlar hem de mevcut test cihazları temiz 4 sekmeli düzene otomatik olarak geçti.
+
+### 2. 💌 Ana Sayfadaki Çift Bekleyen Mektup Kartı Çakışması
+- **Talep:** Ana sayfada hem en üstte (kısayolların hemen altında) hem de en altta bekleyen mektup kartı duruyordu; alt kısımdaki gereksiz kartın kaldırılması.
+- **Yapılan İyileştirme:**
+  - Üst kısımdaki şık, kompakt ve rozetli `PendingLettersBadge` korundu.
+  - `src/app/(tabs)/home.tsx` dosyasının altındaki yinelenen `<PendingLettersCard />` tamamen kaldırıldı. Sayfa hiyerarşisi rahatlatıldı ve dikey boşluk optimize edildi.
+
+### 3. 🎁 Aylık Wrapped (Couple Wrapped) Kapsamlı İnceleme ve Düzeltmeler
+
+#### A. Erkek Kullanıcıda İstenmeyen Kırmızı / Bordo Görünüm
+- **Bulgu:** Wrapped banner'ı (`home.tsx`) ve Wrapped slayt modalı (`CoupleWrappedModal.tsx`), cinsiyetten bağımsız olarak sabit pembe/kırmızı/bordo (`#FF4D6D`, `#2A0E1F`, `#E8002D`) renkleri kullanıyordu. Erkek kullanıcı profilinde uygulama teması gece mavisi olmasına rağmen Wrapped ekranı kırmızı görünüyordu.
+- **Çözüm:** 
+  - `CoupleWrappedModal.tsx` ve `home.tsx` bileşenleri `theme.gender === "male"` durumuna duyarlı hale getirildi.
+  - Erkek kullanıcılar için arka plan gradienti `["#0A0E17", "#0D182A", "#13233D", "#0A0E17"]`, kart gradienti `["#0D1726", "#142238", "#0B111A"]`, aksan renkleri `#4D9CFF` (elektrik mavisi) ve `#93C5FD` (açık mavi), buton gradienti `[theme.accent, "#1D4ED8"]` olarak bağlandı.
+  - Kadın kullanıcılar için romantik gül kurusu ve pembe palet korunurken, erkek kullanıcılar için gece mavisi kozmik tema sağlandı.
+
+#### B. Instagram Story'de Paylaş Butonu ve Yönlendirme Hatası
+- **Bulgu:** "Instagram Story'de Paylaş" butonuna basıldığında ekranda hiçbir hareket olmuyor ve yönlendirme gerçekleşmiyordu. Sebepler:
+  1. Hata bloğundaki `console.warn` sessizce hatayı yutuyor, kullanıcıya hiçbir geri bildirim verilmiyordu.
+  2. `captureRef` çıktısı Android/iOS dosya sisteminde bazen `file://` öneki olmadan üretilip `expo-sharing`'in `isReadableFile` güvenlik denetimine takılabiliyordu.
+  3. iOS tarafında `app.json` içinde Instagram URL şemaları (`LSApplicationQueriesSchemes`) tanımlı değildi.
+  4. iPad ve geniş ekranlarda `anchor` koordinatı verilmediği için `UIActivityViewController` sunumu çökebiliyordu.
+- **Çözüm:**
+  - `app.json` dosyasına `LSApplicationQueriesSchemes: ["instagram", "instagram-stories"]` eklendi.
+  - Görüntü URI'si `fileUri.startsWith("file://") ? uri : `file://${uri}`` ile normalize edildi.
+  - Ekran merkezini hedefleyen güvenli `anchor` noktası eklendi.
+  - Olası bir platform hatasında kullanıcıyı bilgilendirmek için `appAlert(t("common.error"), t("wrapped.shareError"))` eklendi; `wrapped.shareError` hem Türkçe hem İngilizce sözlüklere işlendi.
+
+#### C. Çok Dilli / İngilizce Uyumluluk
+- **Bulgu:** Wrapped modülünün İngilizce karşılıklarının eksiksiz olup olmadığı denetlendi.
+- **Sonuç:** `wrappedCalculator.ts` içindeki dönem başlığı (`periodTitleMonth`), modlar (`wrapped.moods.*`), romantik cümle (`wrapped.statement`), öne çıkan istatistik (`wrapped.highlight`) ve slayt başlıkları (`wrapped.slides.*`) %100 oranında `i18n.t()` ile dinamik olarak çekilmektedir. İngilizce dilinde de tüm veriler akıcı ve romantik bir dille render edilmektedir.
