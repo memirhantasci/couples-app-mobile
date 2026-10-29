@@ -931,7 +931,7 @@ export default function LoginScreen() {
 
               {/* E-Posta */}
               <View style={styles.inputGroup}>
-                <Text style={styles.fieldLabel}>E-POSTA</Text>
+                <Text style={styles.fieldLabel}>{t("auth.register.emailLabel")}</Text>
                 <View style={styles.inputBox}>
                   <View style={styles.inputIconBox}>
                     <Mail size={18} color="rgba(255,255,255,0.45)" />
@@ -1107,7 +1107,7 @@ export default function LoginScreen() {
           {/* ─── Demo / Keşfet Modu Butonu ─── */}
           <View style={styles.demoDividerContainer}>
             <View style={styles.demoDividerLine} />
-            <Text style={styles.demoDividerText}>VEYA</Text>
+            <Text style={styles.demoDividerText}>{t("common.or").toUpperCase()}</Text>
             <View style={styles.demoDividerLine} />
           </View>
 

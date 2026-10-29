@@ -40,7 +40,8 @@
       "genderFemale": "Kadın ♀",
       "genderMale": "Erkek ♂",
       "pairingCodeLabel": "EŞLEŞME KODU (İSTEĞE BAĞLI)",
-      "pairingCodePlaceholder": "Örn. X7Y9Z2"
+      "pairingCodePlaceholder": "Örn. X7Y9Z2",
+      "emailLabel": "E-POSTA"
     },
     "codeSentTo": "<email>{{email}}</email> adresine kod gönderdik",
     "errors": {

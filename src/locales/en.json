@@ -40,7 +40,8 @@
       "genderFemale": "Female ♀",
       "genderMale": "Male ♂",
       "pairingCodeLabel": "PAIRING CODE (OPTIONAL)",
-      "pairingCodePlaceholder": "e.g. X7Y9Z2"
+      "pairingCodePlaceholder": "e.g. X7Y9Z2",
+      "emailLabel": "EMAIL ADDRESS"
     },
     "codeSentTo": "We sent a code to <email>{{email}}</email>",
     "errors": {

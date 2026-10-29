@@ -127,9 +127,9 @@ export function splitTrailingEmoji(text: string): { text: string; emoji?: string
 function inferTone(title: string, buttons: DialogButton[]): DialogTone {
   if (buttons.some((b) => b.style === "destructive")) return "danger";
   if (buttons.length >= 2) return "question";
-  if (/hata|başarısız|olmadı|yüklenemedi|silinemedi|kaydedilemedi|gönderilemedi|güncellenemedi/i.test(title)) return "error";
-  if (/izin|dikkat|uyarı|sınır|geçersiz|eksik|bulunamadı|gerekli|biyolojik|belirlenmedi/i.test(title)) return "warning";
-  if (/başar|tamam|kaydedildi|gönderildi|tebrik|harika/i.test(title)) return "success";
+  if (/hata|başarısız|olmadı|yüklenemedi|silinemedi|kaydedilemedi|gönderilemedi|güncellenemedi|error|failed|failure|unable|cannot/i.test(title)) return "error";
+  if (/izin|dikkat|uyarı|sınır|geçersiz|eksik|bulunamadı|gerekli|biyolojik|belirlenmedi|warning|caution|attention|notice|invalid|missing|required|limit/i.test(title)) return "warning";
+  if (/başar|tamam|kaydedildi|gönderildi|tebrik|harika|success|saved|sent|congrat|great|done/i.test(title)) return "success";
   return "info";
 }
 
