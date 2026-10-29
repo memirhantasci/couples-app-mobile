@@ -20,6 +20,8 @@ import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { navigateAfterAuth, setAuthFlowActive, releaseAuthFlow } from "@/lib/navigate";
 import { toast } from "@/lib/toast";
 
+import { applyOtpInput } from "@/lib/otp";
+
 const OTP_LENGTH = 6;
 
 export default function VerifyDeviceScreen() {
@@ -64,16 +66,11 @@ export default function VerifyDeviceScreen() {
   }, [setIsDeviceAuthorized]);
 
   function handleDigitChange(value: string, index: number) {
-    const digit = value.replace(/[^0-9]/g, "").slice(-1);
-    const newDigits = [...digits];
-    newDigits[index] = digit;
-    setDigits(newDigits);
+    const result = applyOtpInput(digits, index, value, OTP_LENGTH);
+    setDigits(result.digits);
     setErrorMsg("");
-
-    if (digit && index < OTP_LENGTH - 1) {
-      inputRefs.current[index + 1]?.focus();
-      setFocusedIndex(index + 1);
-    }
+    inputRefs.current[result.focusIndex]?.focus();
+    setFocusedIndex(result.focusIndex);
   }
 
   function handleKeyPress(key: string, index: number) {
@@ -296,7 +293,10 @@ export default function VerifyDeviceScreen() {
                 }
                 onFocus={() => setFocusedIndex(index)}
                 keyboardType="number-pad"
-                maxLength={1}
+                // Kod kutulardan birine yapıştırılabilsin diye (bkz. applyOtpInput) 1 değil OTP_LENGTH
+                maxLength={OTP_LENGTH}
+                textContentType="oneTimeCode"
+                autoComplete="sms-otp"
                 style={{
                   width: 48,
                   height: 56,

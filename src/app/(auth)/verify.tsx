@@ -23,6 +23,8 @@ import { getOrCreateDeviceId } from "@/utils/device";
 import { normalizePairingCode } from "@/lib/pairingCode";
 import { useAuth, DEVICE_AUTH_CACHE_KEY } from "@/context/AuthContext";
 
+import { applyOtpInput } from "@/lib/otp";
+
 const OTP_LENGTH = 6;
 
 export default function VerifyScreen() {
@@ -103,23 +105,12 @@ export default function VerifyScreen() {
   // ── Path A: Manual OTP input ──────────────────────────────────────────────
 
   function handleDigitChange(value: string, index: number) {
-    const digit = value.replace(/[^0-9]/g, "").slice(-1);
-    const newDigits = [...digits];
-    newDigits[index] = digit;
-    setDigits(newDigits);
+    const result = applyOtpInput(digits, index, value, OTP_LENGTH);
+    setDigits(result.digits);
     setErrorMsg("");
-
-    if (digit && index < OTP_LENGTH - 1) {
-      inputRefs.current[index + 1]?.focus();
-      setFocusedIndex(index + 1);
-    }
-
-    if (digit && index === OTP_LENGTH - 1) {
-      const code = [...newDigits.slice(0, -1), digit].join("");
-      if (code.length === OTP_LENGTH) {
-        handleManualVerify(code);
-      }
-    }
+    inputRefs.current[result.focusIndex]?.focus();
+    setFocusedIndex(result.focusIndex);
+    if (result.complete) handleManualVerify(result.digits.join(""));
   }
 
   function handleKeyPress(key: string, index: number) {
@@ -347,7 +338,10 @@ export default function VerifyScreen() {
                 }
                 onFocus={() => setFocusedIndex(index)}
                 keyboardType="number-pad"
-                maxLength={1}
+                // Kod kutulardan birine yapıştırılabilsin diye (bkz. applyOtpInput) 1 değil OTP_LENGTH
+                maxLength={OTP_LENGTH}
+                textContentType="oneTimeCode"
+                autoComplete="sms-otp"
                 style={{
                   width: 48,
                   height: 56,
