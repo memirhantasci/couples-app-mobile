@@ -10,7 +10,7 @@ import {
 import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronLeft, AlignJustify, Camera,
   Grid3X3, Grid2X2, Square, ArrowUpDown,
@@ -84,6 +84,24 @@ export default function PhotosScreen() {
   const photos = useMemo(() => {
     return data ? data.pages.flat() : [];
   }, [data]);
+
+  // Başlıktaki sayı yüklenen sayfa kadar değil, galerideki TOPLAM fotoğraf sayısıdır (ilk açılışta 12 görünüyordu).
+  // Anahtar ["photo_archive", coupleId] ile başladığı için yükleme / silme sonrası mevcut invalidate'ler bunu da yeniler.
+  const { data: totalPhotoCount } = useQuery({
+    queryKey: ["photo_archive", coupleId, "count", isDemoMode],
+    enabled: (!!coupleId && isPremium) || isDemoMode,
+    staleTime: 1000 * 60 * 5,
+    queryFn: async () => {
+      if (isDemoMode) return DEMO_PHOTOS.length;
+      const { count, error } = await supabase
+        .from("photo_archive")
+        .select("id", { count: "exact", head: true })
+        .eq("couple_id", coupleId);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+  const photoCount = Math.max(totalPhotoCount ?? 0, photos.length);
 
   const currentPhoto = selectedIndex !== null && photos[selectedIndex] ? photos[selectedIndex] : null;
 
@@ -208,7 +226,7 @@ export default function PhotosScreen() {
           <View style={styles.headerTitleBox}>
             <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Ortak Galeri</Text>
             <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>
-              {photos.length > 0 ? `${photos.length} Ortak Hatıra 📸` : "Aşk Arşivimiz 📸"}
+              {photoCount > 0 ? `${photoCount} Ortak Hatıra 📸` : "Aşk Arşivimiz 📸"}
             </Text>
           </View>
 
@@ -295,6 +313,9 @@ export default function PhotosScreen() {
             data={photos}
             keyExtractor={keyExtractor}
             numColumns={numColumns}
+            // Sütun arası boşluk burada, satır arası boşluk içerik kabının gap'inde; hücrelerde margin yoktur
+            // (hücre başına sağ/yan margin satırı 6-10 px dışarı taşırıyordu)
+            columnWrapperStyle={viewMode === "grid3" ? styles.grid3ColumnGap : viewMode === "grid2" ? styles.grid2ColumnGap : undefined}
             initialNumToRender={6}
             maxToRenderPerBatch={8}
             windowSize={5}
@@ -457,7 +478,13 @@ const createStyles = (theme: AppTheme) => {
     grid3ListGap: {
       gap: 6,
     },
+    grid3ColumnGap: {
+      gap: 6,
+    },
     grid2ListGap: {
+      gap: 10,
+    },
+    grid2ColumnGap: {
       gap: 10,
     },
     singleListGap: {
