@@ -156,3 +156,18 @@ Bu bölüm; varsayılan alt bar sekmeleri, ana sayfa mektup kartı hiyerarşisi 
   - Açılış ve kapanış geçişleri için `react-native-reanimated`'in `FadeInUp.springify().damping(18)` ve `FadeOutDown.duration(200)` animasyonları uygulandı.
   - Normal modda kullanıcılar temiz, şık ve sade bir zaman çizelgesi deneyimi yaşarken; düzenleme moduna geçtiklerinde kart silme/düzenleme aksiyonlarıyla birlikte "Yeni Özel Gün Ekle" butonu akıcı bir animasyonla ekrana gelmektedir.
 
+### 6. 🎨 Marka & İkon Mimarisi (CoupleSky ve Full-Bleed 1024x1024 Üretimi)
+- **Uygulama Adı:**
+  - Uygulamanın adı resmi olarak **"CoupleSky"** yapıldı (`app.json`, widget'lar, bildirim başlığı ve partner davet mesajları).
+- **Yeni App İkon Tasarımı:**
+  - Sıcak rose-gold ışıltılı, cam (glassmorphic) kalpli ve yörüngesinde parlayan küçük kalp uydusu bulunan konsept onaylandı.
+  - Mağazalar (App Store & Google Play) için **1024x1024 px tam kare, kenarlara sıfır (full-bleed)** formatında üretildi. Beyaz köşe boşlukları ve yapay çerçeve artifaktları temizlenerek uzay ve lavanta bulutlarının kenarlara kusursuz dağılması sağlandı.
+  - İlgili tüm varyasyonlar yüksek kaliteli bicubic filtreleme ile oluşturuldu:
+    - `assets/images/icon.png`: 1024x1024 Master Icon
+    - `assets/images/android-icon-foreground.png`: 512x512 Adaptive Foreground
+    - `assets/images/android-icon-background.png`: 512x512 Cosmic Background
+    - `assets/images/splash-icon.png`: 256x256 Splash Screen Icon (Splash genişliği 120 olarak güncellendi)
+    - `assets/images/favicon.png`: 48x48 Web Favicon
+  - `app.json` içindeki `ios.icon` artık standart `assets/images/icon.png` dosyasını referans almaktadır (önceki varsayılan Expo üçgen logosu referansı temizlendi).
+
+

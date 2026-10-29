@@ -145,7 +145,7 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
   if (family === 'accessoryInline') {
     return (
       <Text modifiers={[widgetURL(homeURL)]}>
-        {!ready ? 'Couples App ♥' : days === null ? '♥ Tarihinizi ekleyin' : '♥ ' + daysText + ' gündür birlikte'}
+        {!ready ? 'CoupleSky ♥' : days === null ? '♥ Tarihinizi ekleyin' : '♥ ' + daysText + ' gündür birlikte'}
       </Text>
     );
   }
@@ -176,7 +176,7 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
           <VStack alignment="leading" spacing={2}>
             <HStack spacing={4}>
               <Image systemName={locked ? 'lock.fill' : 'heart.fill'} size={12} />
-              <Text modifiers={[font({ size: 14, weight: 'bold' })]}>Couples App</Text>
+              <Text modifiers={[font({ size: 14, weight: 'bold' })]}>CoupleSky</Text>
             </HStack>
             <Text modifiers={[font({ size: 12 }), lineLimit(1), opacity(0.85)]}>
               {locked ? 'Premium ile kilidi aç' : 'Görmek için giriş yap'}
@@ -364,7 +364,7 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
           />
         </ZStack>
         <Text modifiers={[font({ size: isSmall ? 14 : 17, weight: 'bold', design: 'rounded' }), foregroundStyle(WHITE), lineLimit(1), minimumScaleFactor(0.8)]}>
-          {locked ? 'Premium üyelere özel' : 'Couples App'}
+          {locked ? 'Premium üyelere özel' : 'CoupleSky'}
         </Text>
         <Text modifiers={[font({ size: isSmall ? 11 : 13 }), foregroundStyle(LAVENDER), lineLimit(2), minimumScaleFactor(0.8)]}>
           {locked ? 'Sayacınızı ana ekranda görün' : 'Widget için giriş yap'}

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Couples App",
+    "name": "CoupleSky",
     "slug": "emirhan",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -17,7 +17,7 @@
       "fallbackToCacheTimeout": 0
     },
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/icon.png",
       "supportsTablet": false,
       "bundleIdentifier": "com.memirhantasci.couplesapp",
       "infoPlist": {
@@ -98,7 +98,7 @@
         {
           "backgroundColor": "#0A0A0C",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 120
         }
       ],
       [
@@ -108,7 +108,7 @@
           "color": "#E8002D",
           "defaultChannel": "default",
           "sounds": [],
-          "androidCollapsedTitle": "Couples App"
+          "androidCollapsedTitle": "CoupleSky"
         }
       ],
       "@react-native-community/datetimepicker",
