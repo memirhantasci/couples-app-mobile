@@ -1,7 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { safeStorage } from "@/lib/safeStorage";
-import { FEATURE_GUIDES, PageTourGuide } from "@/constants/featureGuides";
+import { FEATURE_GUIDE_PAGE_KEYS, getPageGuide, PageTourGuide } from "@/constants/featureGuides";
 import { resetHomeTour } from "@/hooks/useHomeSpotlightTour";
+import { useTranslation } from "react-i18next";
 
 // Eski sürümde her sayfa ilk ziyarette kendi tanıtımını otomatik açıyordu; bu anahtarlar
 // artık yalnızca temizlik için tutuluyor.
@@ -12,7 +13,7 @@ export async function resetAllPageTours(): Promise<void> {
   try {
     await Promise.all([
       resetHomeTour(),
-      ...Object.keys(FEATURE_GUIDES).map((key) =>
+      ...FEATURE_GUIDE_PAGE_KEYS.map((key) =>
         safeStorage.removeItem(`${LEGACY_TOUR_STORAGE_PREFIX}${key}`)
       ),
     ]);
@@ -24,8 +25,9 @@ export async function resetAllPageTours(): Promise<void> {
  * sayfaya girişte kendiliğinden açılmaz.
  */
 export function usePageTour(pageKey: string) {
+  const { t } = useTranslation();
   const [isTourVisible, setIsTourVisible] = useState(false);
-  const [guide] = useState<PageTourGuide | null>(FEATURE_GUIDES[pageKey] || null);
+  const guide = useMemo<PageTourGuide | null>(() => getPageGuide(pageKey, t), [pageKey, t]);
 
   const openTour = useCallback(() => {
     setIsTourVisible(true);

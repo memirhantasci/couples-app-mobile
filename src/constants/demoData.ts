@@ -1,12 +1,39 @@
 import { dayjs } from "@/lib/date";
 import { CoupleProfile } from "@/context/AuthContext";
 import type { CoupleStarDetails, StarExoplanetRecord } from "@/modules/stars/types/star.types";
+import i18n from "@/lib/i18n";
 
 export const DEMO_USER_ID = "demo-guest-user-id";
 export const DEMO_PARTNER_ID = "demo-partner-user-id";
 export const DEMO_COUPLE_ID = 999999;
 
-export const DEMO_PROFILE: CoupleProfile = {
+function createLocalizedProxy<T extends object>(trObj: T, enObj: T): T {
+  return new Proxy(trObj, {
+    get(target, prop, receiver) {
+      const active = (i18n?.language === "en") ? enObj : trObj;
+      const val = Reflect.get(active, prop, receiver);
+      if (typeof val === "function") {
+        return (val as (...args: unknown[]) => unknown).bind(active);
+      }
+      return val;
+    },
+    ownKeys() {
+      const active = (i18n?.language === "en") ? enObj : trObj;
+      return Reflect.ownKeys(active);
+    },
+    getOwnPropertyDescriptor(target, prop) {
+      const active = (i18n?.language === "en") ? enObj : trObj;
+      return Reflect.getOwnPropertyDescriptor(active, prop);
+    },
+    has(target, prop) {
+      const active = (i18n?.language === "en") ? enObj : trObj;
+      return Reflect.has(active, prop);
+    },
+  });
+}
+
+// ─── PROFILE ────────────────────────────────────────────────────────────────
+const DEMO_PROFILE_TR: CoupleProfile = {
   coupleId: DEMO_COUPLE_ID,
   meetDate: dayjs().subtract(428, "day").format("YYYY-MM-DD"), // 428 gün
   relationshipStartDate: dayjs().subtract(365, "day").format("YYYY-MM-DD"), // 365 gün
@@ -14,13 +41,21 @@ export const DEMO_PROFILE: CoupleProfile = {
   hasDates: true,
   displayName: "Misafir (Demo)",
   username: "misafir",
-  // Hedef kitle kadınlar: demo, kadın modunda (pembe tema, kişisel döngü takibi) açılır
   gender: "female",
   isPremium: true,
   tokenBalance: 350,
 };
 
-export const DEMO_SESSION = {
+const DEMO_PROFILE_EN: CoupleProfile = {
+  ...DEMO_PROFILE_TR,
+  displayName: "Guest (Demo)",
+  username: "guest",
+};
+
+export const DEMO_PROFILE: CoupleProfile = createLocalizedProxy(DEMO_PROFILE_TR, DEMO_PROFILE_EN);
+
+// ─── SESSION ────────────────────────────────────────────────────────────────
+const DEMO_SESSION_TR = {
   access_token: "demo_guest_token",
   token_type: "bearer",
   expires_in: 999999,
@@ -35,7 +70,18 @@ export const DEMO_SESSION = {
   },
 } as any;
 
-export const DEMO_HOME_DATA = {
+const DEMO_SESSION_EN = {
+  ...DEMO_SESSION_TR,
+  user: {
+    ...DEMO_SESSION_TR.user,
+    user_metadata: { display_name: "Guest" },
+  },
+} as any;
+
+export const DEMO_SESSION = createLocalizedProxy(DEMO_SESSION_TR, DEMO_SESSION_EN);
+
+// ─── HOME DATA ──────────────────────────────────────────────────────────────
+const DEMO_HOME_DATA_TR = {
   currentMood: "love",
   partnerMood: "🥰",
   currentNote: "Bugün biraz yoğun geçti ama akşam kahvemi alıp balkonda rüzgarı dinlemek zihnimi çok dinlendirdi. Bazen küçük anların kıymetini bilmek insana huzur veriyor. ☕📖✨",
@@ -63,7 +109,38 @@ export const DEMO_HOME_DATA = {
   ],
 };
 
-export const DEMO_LOVE_SCORE = {
+const DEMO_HOME_DATA_EN = {
+  currentMood: "love",
+  partnerMood: "🥰",
+  currentNote: "Today was a bit busy, but grabbing my coffee and listening to the breeze on the balcony truly rested my mind. Sometimes cherishing small moments brings deep peace. ☕📖✨",
+  meetings: [
+    {
+      id: 501,
+      title: "Nature Trail Walk & Sunday Brunch 🌿🥞",
+      location_name: "Polonezköy Nature Park",
+      meeting_datetime: dayjs().add(2, "day").hour(10).minute(30).second(0).toISOString(),
+      latitude: 41.1147,
+      longitude: 29.2085,
+    },
+  ],
+  pendingLetters: [
+    {
+      id: 201,
+      unlock_date: dayjs().add(15, "day").format("YYYY-MM-DD"),
+      sender_id: DEMO_PARTNER_ID,
+      sender: {
+        id: DEMO_PARTNER_ID,
+        username: "sweetheart",
+        display_name: "Your Sweetheart ❤️",
+      },
+    },
+  ],
+};
+
+export const DEMO_HOME_DATA = createLocalizedProxy(DEMO_HOME_DATA_TR, DEMO_HOME_DATA_EN);
+
+// ─── LOVE SCORE ─────────────────────────────────────────────────────────────
+const DEMO_LOVE_SCORE_TR = {
   percentage: 96,
   statusText: "Kusursuz Bir Uyum! 💖",
   daysTogether: 365,
@@ -74,7 +151,21 @@ export const DEMO_LOVE_SCORE = {
   },
 };
 
-export const DEMO_LETTERS = [
+const DEMO_LOVE_SCORE_EN = {
+  percentage: 96,
+  statusText: "A Flawless Connection! 💖",
+  daysTogether: 365,
+  breakdown: {
+    interaction: 98,
+    memory: 94,
+    sharedJoy: 96,
+  },
+};
+
+export const DEMO_LOVE_SCORE = createLocalizedProxy(DEMO_LOVE_SCORE_TR, DEMO_LOVE_SCORE_EN);
+
+// ─── LETTERS ────────────────────────────────────────────────────────────────
+const DEMO_LETTERS_TR = [
   {
     id: 1,
     couple_id: DEMO_COUPLE_ID,
@@ -124,10 +215,60 @@ export const DEMO_LETTERS = [
   },
 ];
 
-export const DEMO_PHOTOS = [
-  // Güncel anılar: Aşk Haritası'nın açılış görünümü (İstanbul) ve takvimin bugünkü sayfası boş kalmasın diye
-  // ilk açılışta görünen örnek fotoğraflar. En yeniden eskiye sıralıdır.
-  // storage_path burada tam URL'dir; StorageImage tam URL'leri imzalamadan gösterir.
+const DEMO_LETTERS_EN = [
+  {
+    id: 1,
+    couple_id: DEMO_COUPLE_ID,
+    sender_id: DEMO_PARTNER_ID,
+    receiver_id: DEMO_USER_ID,
+    title: "The Rainy Day We First Met ☕",
+    content: "I will never forget the spark in your eyes while ordering at that little café. I am grateful every single day that you walked into my life. I know we will make countless more wonderful memories together... I love you so much!",
+    unlock_date: dayjs().subtract(10, "day").format("YYYY-MM-DD"),
+    created_at: dayjs().subtract(40, "day").toISOString(),
+    _type: "received" as const,
+    sender: {
+      id: DEMO_PARTNER_ID,
+      username: "sweetheart",
+      display_name: "Your Sweetheart ❤️",
+    },
+  },
+  {
+    id: 2,
+    couple_id: DEMO_COUPLE_ID,
+    sender_id: DEMO_PARTNER_ID,
+    receiver_id: DEMO_USER_ID,
+    title: "🔒 Sealed Letter to Open on Our 2nd Anniversary",
+    content: "This letter has been sealed with a romantic wax seal by your love until your chosen anniversary day...",
+    unlock_date: dayjs().add(60, "day").format("YYYY-MM-DD"),
+    created_at: dayjs().subtract(5, "day").toISOString(),
+    _type: "received" as const,
+    sender: {
+      id: DEMO_PARTNER_ID,
+      username: "sweetheart",
+      display_name: "Your Sweetheart ❤️",
+    },
+  },
+  {
+    id: 3,
+    couple_id: DEMO_COUPLE_ID,
+    sender_id: DEMO_USER_ID,
+    receiver_id: DEMO_PARTNER_ID,
+    title: "Why Do I Love You So Much? 🕊️",
+    content: "Because your smile brightens even my darkest day, because I feel at home whenever I'm in your arms, and because you believe in every dream of mine...",
+    unlock_date: dayjs().subtract(2, "day").format("YYYY-MM-DD"),
+    _type: "sent" as const,
+    receiver: {
+      id: DEMO_PARTNER_ID,
+      username: "sweetheart",
+      display_name: "Your Sweetheart ❤️",
+    },
+  },
+];
+
+export const DEMO_LETTERS = createLocalizedProxy(DEMO_LETTERS_TR, DEMO_LETTERS_EN);
+
+// ─── PHOTOS ─────────────────────────────────────────────────────────────────
+const DEMO_PHOTOS_TR = [
   {
     id: 309,
     storage_path: "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=800&auto=format&fit=crop&q=80",
@@ -262,7 +403,68 @@ export const DEMO_PHOTOS = [
   },
 ];
 
-export const DEMO_MAP_LOCATIONS = [
+const DEMO_PHOTOS_EN = [
+  {
+    ...DEMO_PHOTOS_TR[0],
+    title: "Sunset at Galata Tower 🌇",
+    description: "Sharing warm bagels and watching the sunset under the tower's shadow. The whole city felt like ours alone.",
+  },
+  {
+    ...DEMO_PHOTOS_TR[1],
+    title: "Bike Ride on Moda Coast 🚲💕",
+    description: "Holding hands as we pedaled, that sweet evening when the sunset turned the sky soft pink.",
+  },
+  {
+    ...DEMO_PHOTOS_TR[2],
+    title: "Blue Hour in the Old City 💜",
+    description: "Holding you tight while the evening glow washed over the historic skyline.",
+  },
+  {
+    ...DEMO_PHOTOS_TR[3],
+    title: "Parisian Sunset 🗼✨",
+    description: "The magical moment the Eiffel Tower lit up for the first time... You, me, and the cool breeze along the Seine.",
+  },
+  {
+    ...DEMO_PHOTOS_TR[4],
+    title: "Our Trevi Fountain Wish ⛲🪙",
+    description: "Closing our eyes and tossing coins into the Trevi Fountain, knowing we both made the exact same wish.",
+  },
+  {
+    ...DEMO_PHOTOS_TR[5],
+    title: "Canal Cycling Tour 🚲🌷",
+    description: "Getting lost hand-in-hand on that serene afternoon as golden autumn leaves drifted along the canals.",
+  },
+  {
+    ...DEMO_PHOTOS_TR[6],
+    title: "Belvedere Gardens Waltz 🎻🏰",
+    description: "A fairy-tale afternoon dancing together to violin melodies echoing through the palace gardens.",
+  },
+  {
+    ...DEMO_PHOTOS_TR[7],
+    title: "Our Cappadocia Balloon Flight 🎈🌅",
+    description: "The wish we whispered as we floated up into the sky with the very first rays of dawn...",
+  },
+  {
+    ...DEMO_PHOTOS_TR[8],
+    title: "Turquoise Magic of Kaputaş 🌊🏖️",
+    description: "Descending the canyon steps to discover that endless blue sea and the wind dancing in your hair.",
+  },
+  {
+    ...DEMO_PHOTOS_TR[9],
+    title: "Misty Mountain Highlands 🌲⛰️",
+    description: "Swinging gently above the clouds with fresh brewed tea and crisp alpine air.",
+  },
+  {
+    ...DEMO_PHOTOS_TR[10],
+    title: "Cobblestone Streets of Şirince 🍇🏡",
+    description: "Sipping handmade fruit juices among olive groves and under the shade of blooming bougainvillea.",
+  },
+];
+
+export const DEMO_PHOTOS = createLocalizedProxy(DEMO_PHOTOS_TR, DEMO_PHOTOS_EN);
+
+// ─── MAP LOCATIONS ──────────────────────────────────────────────────────────
+const DEMO_MAP_LOCATIONS_TR = [
   {
     id: 401,
     latitude: 39.7615,
@@ -337,7 +539,53 @@ export const DEMO_MAP_LOCATIONS = [
   },
 ];
 
-export const DEMO_MEETINGS = [
+const DEMO_MAP_LOCATIONS_EN = [
+  {
+    ...DEMO_MAP_LOCATIONS_TR[0],
+    title: "Historic Houses of Odunpazarı 🎨",
+    description: "We wandered through colorful historical mansions, visited handmade glass studios, and sipped Turkish coffee by the river. A deeply peaceful day.",
+  },
+  {
+    ...DEMO_MAP_LOCATIONS_TR[1],
+    title: "Mardin Castle Terraces 🌙",
+    description: "Overlooking the vast Mesopotamian plains from a rooftop terrace. As evening fell, the stone homes glowed like gold under the warm lanterns.",
+  },
+  {
+    ...DEMO_MAP_LOCATIONS_TR[2],
+    title: "Cumalıkızık Village Breakfast ☕🥞",
+    description: "Exploring narrow 700-year-old cobblestone alleyways and enjoying a rich country breakfast with fresh baked bread and homemade jams.",
+  },
+  {
+    ...DEMO_MAP_LOCATIONS_TR[3],
+    title: "Azmak River Boat Cruise 🚣🌿",
+    description: "Gliding through crystal-clear cold spring waters, admiring underwater flora and swimming ducks under the clear afternoon sky.",
+  },
+  {
+    ...DEMO_MAP_LOCATIONS_TR[4],
+    title: "Autumn Trek at Seven Lakes 🍁⛺",
+    description: "A long, quiet walk around the lakes surrounded by fiery red and golden foliage. The forest silence was a breath of fresh air.",
+  },
+  {
+    ...DEMO_MAP_LOCATIONS_TR[5],
+    title: "Cape Sunset & Windmills 🌅🍷",
+    description: "Sitting side-by-side near the windmills watching the sun sink into the Aegean horizon. The sky turned into deep purple and crimson.",
+  },
+  {
+    ...DEMO_MAP_LOCATIONS_TR[6],
+    title: "Salda Lake White Sands 💎🏝️",
+    description: "Hours of heartfelt conversations on powder-white sands beside turquoise waters. Even more breathtaking than the pictures.",
+  },
+  {
+    ...DEMO_MAP_LOCATIONS_TR[7],
+    title: "Sümela Cliffside Monastery ⛰️🕊️",
+    description: "Ascending to the ancient monastery perched high on the cliff walls; the misty valley below looked straight out of a legend.",
+  },
+];
+
+export const DEMO_MAP_LOCATIONS = createLocalizedProxy(DEMO_MAP_LOCATIONS_TR, DEMO_MAP_LOCATIONS_EN);
+
+// ─── MEETINGS ───────────────────────────────────────────────────────────────
+const DEMO_MEETINGS_TR = [
   {
     id: 501,
     title: "Polonezköy Doğa Yürüyüşü & Brunch 🌿🥞",
@@ -347,6 +595,7 @@ export const DEMO_MEETINGS = [
     is_active: true,
     latitude: 41.1147,
     longitude: 29.2085,
+    user_id: DEMO_USER_ID,
   },
   {
     id: 502,
@@ -357,6 +606,7 @@ export const DEMO_MEETINGS = [
     is_active: true,
     latitude: 41.0848,
     longitude: 29.0573,
+    user_id: DEMO_USER_ID,
   },
   {
     id: 503,
@@ -367,6 +617,7 @@ export const DEMO_MEETINGS = [
     is_active: true,
     latitude: 40.8583,
     longitude: 29.1244,
+    user_id: DEMO_USER_ID,
   },
   {
     id: 504,
@@ -377,6 +628,7 @@ export const DEMO_MEETINGS = [
     is_active: true,
     latitude: 40.9723,
     longitude: 28.7912,
+    user_id: DEMO_USER_ID,
   },
   {
     id: 505,
@@ -387,12 +639,47 @@ export const DEMO_MEETINGS = [
     is_active: true,
     latitude: 41.0264,
     longitude: 29.0682,
+    user_id: DEMO_USER_ID,
   },
-  // Buluşmaları demo kullanıcısı planlamış gibi gösterilir: kartlarda düzenle / sil butonları görünür
-  // (dokununca kayıt daveti açılır).
-].map((meeting) => ({ ...meeting, user_id: DEMO_USER_ID }));
+];
 
-export const DEMO_MEDICINES = [
+const DEMO_MEETINGS_EN = [
+  {
+    ...DEMO_MEETINGS_TR[0],
+    title: "Nature Trail Walk & Sunday Brunch 🌿🥞",
+    location_name: "Polonezköy Nature Park",
+    notes: "Quiet breakfast under the forest canopies followed by a scenic walk.",
+  },
+  {
+    ...DEMO_MEETINGS_TR[1],
+    title: "Candlelit Waterfront Dinner 🍷🕯️",
+    location_name: "Rumeli Castle Terrace Restaurant",
+    notes: "Watching the bridge lights reflect on the water; dress up nicely!",
+  },
+  {
+    ...DEMO_MEETINGS_TR[2],
+    title: "Island Bicycle & Ice Cream Outing 🚲🍦",
+    location_name: "Princes' Islands Clock Tower Square",
+    notes: "Ferry ride feeding seagulls, then hiking up to the hill to make a wish.",
+  },
+  {
+    ...DEMO_MEETINGS_TR[3],
+    title: "Coastline Sunset Stroll 🌅☕",
+    location_name: "Florya Seaside Promenade",
+    notes: "Enjoying the fresh sea breeze with warm coffees as the sun sets.",
+  },
+  {
+    ...DEMO_MEETINGS_TR[4],
+    title: "Panoramic Skyline Night View 🌆✨",
+    location_name: "Çamlıca Hill Panoramic Grove",
+    notes: "Surprise date looking down at the glittering city lights from the highest hill.",
+  },
+];
+
+export const DEMO_MEETINGS = createLocalizedProxy(DEMO_MEETINGS_TR, DEMO_MEETINGS_EN);
+
+// ─── MEDICINES ──────────────────────────────────────────────────────────────
+const DEMO_MEDICINES_TR = [
   {
     id: 601,
     name: "C Vitamini & Çinko 🍊",
@@ -413,7 +700,31 @@ export const DEMO_MEDICINES = [
   },
 ];
 
-export const DEMO_DAILY_NOTES = [
+const DEMO_MEDICINES_EN = [
+  {
+    id: 601,
+    name: "Vitamin C & Zinc 🍊",
+    dosage: "1 Effervescent Tablet",
+    time: "09:00",
+    days: "Daily",
+    notes: "With plenty of water right after breakfast.",
+    taken_today: true,
+  },
+  {
+    id: 602,
+    name: "Magnesium & B6 🌙",
+    dosage: "1 Capsule",
+    time: "22:30",
+    days: "Daily",
+    notes: "Right before bed for restful sleep.",
+    taken_today: false,
+  },
+];
+
+export const DEMO_MEDICINES = createLocalizedProxy(DEMO_MEDICINES_TR, DEMO_MEDICINES_EN);
+
+// ─── DAILY NOTES ────────────────────────────────────────────────────────────
+const DEMO_DAILY_NOTES_TR = [
   {
     id: 701,
     date: dayjs().format("YYYY-MM-DD"),
@@ -431,11 +742,28 @@ export const DEMO_DAILY_NOTES = [
   },
 ];
 
-/**
- * Takvimin ORTAK not defteri (calendar_notes): iki partnerin birbirine bıraktığı küçük notlar.
- * Kişiye özel günlük kayıtları (DEMO_DAILY_NOTES) takvimde gösterilmez.
- */
-export const DEMO_CALENDAR_NOTES = [
+const DEMO_DAILY_NOTES_EN = [
+  {
+    id: 701,
+    date: dayjs().format("YYYY-MM-DD"),
+    content: "Today was quite busy, but stepping onto the balcony with an evening coffee and listening to the night breeze completely soothed my mind. Gratitude for little moments brings genuine peace. ☕📖✨",
+  },
+  {
+    id: 702,
+    date: dayjs().subtract(1, "day").format("YYYY-MM-DD"),
+    content: "Woke up early for a brisk morning walk. The crisp air and organizing my daily plans felt invigorating. A very productive, centered day. 🌿🎯",
+  },
+  {
+    id: 703,
+    date: dayjs().subtract(2, "day").format("YYYY-MM-DD"),
+    content: "Finally read a few chapters from the book I've kept putting off. I had truly missed carving out quiet, undisturbed moments just for myself. 📚🕯️",
+  },
+];
+
+export const DEMO_DAILY_NOTES = createLocalizedProxy(DEMO_DAILY_NOTES_TR, DEMO_DAILY_NOTES_EN);
+
+// ─── CALENDAR NOTES ─────────────────────────────────────────────────────────
+const DEMO_CALENDAR_NOTES_TR = [
   {
     id: 801,
     date: dayjs().format("YYYY-MM-DD"),
@@ -466,13 +794,54 @@ export const DEMO_CALENDAR_NOTES = [
   },
 ];
 
-/** Takvimdeki not / fotoğraf / ruh hali imzaları için çift üyeleri. */
-export const DEMO_CALENDAR_USERS = [
+const DEMO_CALENDAR_NOTES_EN = [
+  {
+    id: 801,
+    date: dayjs().format("YYYY-MM-DD"),
+    note: "You popped into my head while having my morning coffee; I'm still smiling. Want to meet up at Galata tonight?",
+    user_id: DEMO_PARTNER_ID,
+    created_at: dayjs().hour(8).minute(42).second(0).toISOString(),
+  },
+  {
+    id: 802,
+    date: dayjs().format("YYYY-MM-DD"),
+    note: "Of course! Every evening with you is the sweetest part of my day. I'll bring the treats 🥨",
+    user_id: DEMO_USER_ID,
+    created_at: dayjs().hour(9).minute(5).second(0).toISOString(),
+  },
+  {
+    id: 803,
+    date: dayjs().subtract(1, "day").format("YYYY-MM-DD"),
+    note: "It poured today, but under your umbrella I never felt a single drop. So grateful for you.",
+    user_id: DEMO_PARTNER_ID,
+    created_at: dayjs().subtract(1, "day").hour(21).minute(18).second(0).toISOString(),
+  },
+  {
+    id: 804,
+    date: dayjs().subtract(3, "day").format("YYYY-MM-DD"),
+    note: "Our special song came on again... Instantly took me back to the very first time I held your hand.",
+    user_id: DEMO_USER_ID,
+    created_at: dayjs().subtract(3, "day").hour(18).minute(30).second(0).toISOString(),
+  },
+];
+
+export const DEMO_CALENDAR_NOTES = createLocalizedProxy(DEMO_CALENDAR_NOTES_TR, DEMO_CALENDAR_NOTES_EN);
+
+// ─── CALENDAR USERS ─────────────────────────────────────────────────────────
+const DEMO_CALENDAR_USERS_TR = [
   { id: DEMO_USER_ID, display_name: "Sen", avatar_url: null },
   { id: DEMO_PARTNER_ID, display_name: "Sevgilin ❤️", avatar_url: null },
 ];
 
-export const DEMO_PERIOD_DATA = {
+const DEMO_CALENDAR_USERS_EN = [
+  { id: DEMO_USER_ID, display_name: "You", avatar_url: null },
+  { id: DEMO_PARTNER_ID, display_name: "Your Sweetheart ❤️", avatar_url: null },
+];
+
+export const DEMO_CALENDAR_USERS = createLocalizedProxy(DEMO_CALENDAR_USERS_TR, DEMO_CALENDAR_USERS_EN);
+
+// ─── PERIOD DATA ────────────────────────────────────────────────────────────
+const DEMO_PERIOD_DATA_TR = {
   lastPeriodDate: dayjs().subtract(18, "day").format("YYYY-MM-DD"),
   cycleLength: 28,
   periodLength: 5,
@@ -485,7 +854,16 @@ export const DEMO_PERIOD_DATA = {
   partnerTip: "Partnerin şu sıralar biraz yorgun veya duygusal olabilir. Ona sıcacık bir çikolata veya masajla sürpriz yapabilirsin! 🌸",
 };
 
-export const DEMO_STAR_DETAILS: CoupleStarDetails = {
+const DEMO_PERIOD_DATA_EN = {
+  ...DEMO_PERIOD_DATA_TR,
+  phaseName: "Luteal Phase (Calm & Reflective)",
+  partnerTip: "Your partner might be feeling a bit tired or tender right now. Surprise them with warm hot chocolate or a soothing massage! 🌸",
+};
+
+export const DEMO_PERIOD_DATA = createLocalizedProxy(DEMO_PERIOD_DATA_TR, DEMO_PERIOD_DATA_EN);
+
+// ─── STAR DETAILS ───────────────────────────────────────────────────────────
+const DEMO_STAR_DETAILS_TR: CoupleStarDetails = {
   star_id: "demo-star-sirius",
   couple_id: DEMO_COUPLE_ID,
   catalog_id: 1,
@@ -508,7 +886,15 @@ export const DEMO_STAR_DETAILS: CoupleStarDetails = {
   total_sparks_count: 142,
 };
 
-export const DEMO_STAR_EXOPLANETS: StarExoplanetRecord[] = [
+const DEMO_STAR_DETAILS_EN: CoupleStarDetails = {
+  ...DEMO_STAR_DETAILS_TR,
+  custom_name: "Our North Star ✨",
+};
+
+export const DEMO_STAR_DETAILS: CoupleStarDetails = createLocalizedProxy(DEMO_STAR_DETAILS_TR, DEMO_STAR_DETAILS_EN);
+
+// ─── STAR EXOPLANETS ────────────────────────────────────────────────────────
+const DEMO_STAR_EXOPLANETS_TR: StarExoplanetRecord[] = [
   {
     id: "demo-planet-1",
     star_id: "demo-star-sirius",
@@ -562,3 +948,22 @@ export const DEMO_STAR_EXOPLANETS: StarExoplanetRecord[] = [
   },
 ];
 
+const DEMO_STAR_EXOPLANETS_EN: StarExoplanetRecord[] = [
+  {
+    ...DEMO_STAR_EXOPLANETS_TR[0],
+    title: "The Day We Met 🌸",
+    description: "Talking for hours in a cozy café on a rainy autumn afternoon.",
+  },
+  {
+    ...DEMO_STAR_EXOPLANETS_TR[1],
+    title: "Our Cappadocia Trip 🎈",
+    description: "That breathtaking morning watching colorful hot air balloons rise with the dawn.",
+  },
+  {
+    ...DEMO_STAR_EXOPLANETS_TR[2],
+    title: "Our First Vacation Together 🌊",
+    description: "Watching the sunset over the sparkling bay, surrounded by pure serenity.",
+  },
+];
+
+export const DEMO_STAR_EXOPLANETS: StarExoplanetRecord[] = createLocalizedProxy(DEMO_STAR_EXOPLANETS_TR, DEMO_STAR_EXOPLANETS_EN);

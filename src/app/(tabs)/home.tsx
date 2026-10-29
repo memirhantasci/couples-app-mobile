@@ -47,7 +47,7 @@ import { PendingLettersCard, PendingLettersBadge } from "@/components/home/Pendi
 import { useHomeSpotlightTour } from "@/hooks/useHomeSpotlightTour";
 import { type SpotlightStep } from "@/components/tour/SpotlightTour";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
-import { HOME_SPOTLIGHT_STEPS, type HomeSpotlightTargetId } from "@/constants/featureGuides";
+import { getHomeSpotlightSteps, type HomeSpotlightTargetId } from "@/constants/featureGuides";
 import { DEMO_HOME_DATA, DEMO_LOVE_SCORE } from "@/constants/demoData";
 import { computeCoupleWrapped, CoupleWrappedData } from "@/utils/wrappedCalculator";
 import { syncCoupleWidget } from "@/utils/widgetBridge";
@@ -109,19 +109,19 @@ export default function HomeScreen() {
   const moodRef = useRef<View>(null);
   const menuRef = useRef<View>(null);
   // Tek seferlik oluşturulur: SpotlightTour'a her render'da aynı dizi gider
-  const [spotlightSteps] = useState<SpotlightStep[]>(() => {
+  const spotlightSteps = useMemo<SpotlightStep[]>(() => {
     const targets: Record<HomeSpotlightTargetId, { ref: React.RefObject<View | null>; radius: number }> = {
       counter: { ref: counterRef, radius: 24 },
       shortcuts: { ref: shortcutsRef, radius: 18 },
       mood: { ref: moodRef, radius: 20 },
       menu: { ref: menuRef, radius: 21 },
     };
-    return HOME_SPOTLIGHT_STEPS.map((s) => ({
+    return getHomeSpotlightSteps(t).map((s) => ({
       ...s,
       targetRef: targets[s.id].ref,
       radius: targets[s.id].radius,
     }));
-  });
+  }, [t]);
 
   const currentMonthKey = dayjs().format("YYYY_MM");
   const dayOfMonth = dayjs().date();

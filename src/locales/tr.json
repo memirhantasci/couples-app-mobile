@@ -2927,5 +2927,303 @@
       "Kalbim, seninle sonsuza dek.",
       "Seni seviyorum; bu kelimeler az kalsa da, his sonsuz."
     ]
+  },
+  "guides": {
+    "spotlight": {
+      "counter": {
+        "title": "Birliktelik Sayacı",
+        "description": "Birlikte geçirdiğiniz her gün burada canlı olarak sayılır. İlişki tarihlerinizi Profil'den dilediğiniz zaman güncelleyebilirsiniz."
+      },
+      "shortcuts": {
+        "title": "Hızlı Kısayollar",
+        "description": "Galeri, günlüğün, mühürlü mektuplar ve buluşma planlayıcı tek dokunuş uzağında."
+      },
+      "mood": {
+        "title": "Günün Modu",
+        "description": "Bugün nasıl hissettiğini seç; partnerin anında haberdar olsun ve birbirinize destek olun."
+      },
+      "menu": {
+        "title": "Menü ve Rehber",
+        "description": "Tüm sayfalar menüde. Bir sayfanın ne işe yaradığını merak edersen sağ üstteki ? butonuna dokunman yeterli."
+      }
+    },
+    "pages": {
+      "home": {
+        "title": "Ana Sayfa",
+        "tagline": "Aşkınızın Günlük Merkezi",
+        "summary": "İlişkinizin nabzını tuttuğunuz, ortak aşk puanınızı ve günün en tatlı özetlerini gördüğünüz ana kumanda merkeziniz.",
+        "features": {
+          "love_counter": {
+            "title": "Birliktelik Sayacı",
+            "badge": "Canlı Sayaç",
+            "description": "Birlikte geçirdiğiniz her an çok kıymetli! İlk günden bugüne geçen gün, saat ve dakikayı canlı olarak sayar ve ilişkinizin ne kadar büyüdüğünü hatırlatır.",
+            "tip": "İlişki başlangıç tarihinizi Ayarlar sekmesinden dilediğiniz zaman güncelleyebilirsiniz."
+          },
+          "love_score": {
+            "title": "Dinamik Aşk Puanı & Metre",
+            "badge": "Ortak Puan",
+            "description": "Uygulamada bıraktığınız aşk notları, paylaştığınız anılar ve günlük duygu bildirimleriniz ortak aşk puanınızı yükseltir. Her iki partner için %100 eşit ve simetriktir.",
+            "tip": "Her gün birbirinize küçük bir not bırakmak veya modunuzu seçmek aşk puanınızı zirvede tutar!"
+          },
+          "mood_selector": {
+            "title": "Duygu Durumu (Mod) Paylaşımı",
+            "badge": "Canlı Senkron",
+            "description": "Günün nasıl geçiyor? Mutlu, romantik, yorgun veya hüzünlü... Modunu tek dokunuşla seç, partnerin anında haberdar olsun ve birbirinize destek olun.",
+            "tip": "Partnerin yorgun veya üzgün hissettiğinde ona tatlı bir mesaj atmak ilişkinizi güçlendirir."
+          },
+          "daily_note": {
+            "title": "Günün Aşk Notu & Alıntısı",
+            "badge": "Her Gün Yeni",
+            "description": "Her yeni gün ikinize özel romantik bir aşk sözü, bilge bir ilişki tavsiyesi veya ilham verici bir alıntıyla başlar.",
+            "tip": "Günün notunu okuduktan sonra birbirinize ne hissettirdiğini konuşabilirsiniz."
+          },
+          "quick_cards": {
+            "title": "Geri Sayımlar ve Mektup Kartları",
+            "badge": "Hızlı Erişim",
+            "description": "Bir sonraki buluşmanıza kalan süreyi ve henüz açılma vakti gelmemiş mühürlü mektupların durumunu ana sayfa kartlarından anlık takip edebilirsiniz."
+          }
+        }
+      },
+      "calendar": {
+        "title": "Aşk Takvimi",
+        "tagline": "Zamanın İçindeki İkiniz",
+        "summary": "Birlikte paylaştığınız her özel anı, duyguyu ve planı ay ay saklayan ortak zaman kapsülünüz.",
+        "features": {
+          "calendar_view": {
+            "title": "İnteraktif Aylık Takvim",
+            "badge": "Ortak Ajanda",
+            "description": "Tüm ayları gezebilir, geçmişte veya gelecekteki günleri seçerek o tarihte yaşanan tüm notları, fotoğrafları ve modları inceleyebilirsiniz."
+          },
+          "colored_dots": {
+            "title": "Renkli Gün Noktaları",
+            "badge": "Görsel İşaretler",
+            "description": "Takvimdeki her günün altında renkli noktalar yer alır: Mor (Aşk Notu), Pembe (Partnerinin Modu), Mavi (Senin Modun) ve Yeşil (Anı Fotoğrafı).",
+            "tip": "Rengarenk bir takvim, birlikte ne kadar çok anı biriktirdiğinizin en güzel kanıtıdır!"
+          },
+          "add_note": {
+            "title": "Güne Not Düşme",
+            "badge": "Özel Planlar",
+            "description": "Herhangi bir güne dokunup 'Not Ekle' butonuna basarak o gün için randevu, sinema planı, doktor randevusu veya tatlı bir hatıra notu düşebilirsiniz."
+          },
+          "daily_summary": {
+            "title": "Günlük Detay Listesi",
+            "badge": "Kronolojik Akış",
+            "description": "Seçtiğiniz güne ait tüm olaylar (kim hangi moddaydı, hangi notlar yazıldı, hangi fotoğraflar çekildi) alt listede kronolojik olarak sıralanır."
+          }
+        }
+      },
+      "letters": {
+        "title": "Mühürlü Mektuplar",
+        "tagline": "Geleceğe Gönderilen Aşk Sözleri",
+        "summary": "Bugünden yazıp gelecekteki özel bir gün için mühürlediğiniz, zamanı gelene kadar açılamayan sürpriz aşk mektupları.",
+        "features": {
+          "time_capsule": {
+            "title": "Zaman Kilitli Mektup Yazma",
+            "badge": "Sürpriz",
+            "description": "Partnerine kalbinden geçenleri yaz ve gelecekte açılacağı tarih ve saati belirle! Mektup şifrelenerek saklanır ve zamanı gelene kadar partnerin tarafından görüntülenemez.",
+            "tip": "Yıl dönümleri, doğum günleri veya zorlu bir sınav/iş günü öncesi için motive edici mektuplar mühürleyebilirsiniz."
+          },
+          "origami_ceremony": {
+            "title": "Mühür Kırma & Origami Turna Kuşu",
+            "badge": "Özel Animasyon",
+            "description": "Mektup gönderildiğinde origami turna kuşu uçuşuyla sevgiline ulaşır. Vakti geldiğinde ise mum mührünü kırarak mektubu okumanın büyülü törenini yaşarsınız."
+          },
+          "letter_vault": {
+            "title": "Gelen ve Gönderilen Mektuplar",
+            "badge": "Sonsuz Arşiv",
+            "description": "Daha önce açılmış mektuplarınızı dilediğiniz zaman tekrar tekrar okuyabilir, kilitli bekleyen mektupların ise kalan süresini takip edebilirsiniz."
+          },
+          "tokens": {
+            "title": "Aşk Jetonları",
+            "badge": "Mektup Hakkı",
+            "description": "Mektup göndermek için jetonlarınızı kullanabilir veya Premium üyelikle sınırsız mektup yazmanın özgürlüğünü yaşayabilirsiniz."
+          }
+        }
+      },
+      "photos": {
+        "title": "Ortak Galeri",
+        "tagline": "En Güzel Kareleriniz",
+        "summary": "İkinizin birlikte yüklediği, yüksek çözünürlüklü ve güvenli ortak hatıra albümünüz.",
+        "features": {
+          "shared_archive": {
+            "title": "Bulut Fotoğraf Arşivi",
+            "badge": "Özel & Güvenli",
+            "description": "Telefon belleğinde kaybolmayan, sadece ikinizin erişebildiği ortak anı galerisi. Yüklediğiniz fotoğraflar partnerinizin ekranına anında düşer."
+          },
+          "exif_location": {
+            "title": "Akıllı EXIF ve Konum Algılama",
+            "badge": "Otomatik Bilgi",
+            "description": "Fotoğraf yüklediğinizde çekildiği tarih, saat ve GPS konumu otomatik olarak tespit edilir ve haritanızla senkronize edilir.",
+            "tip": "Eski bir tatil fotoğrafı yüklediğinizde bile orijinal çekim tarihi ve konumu korunur!"
+          },
+          "fullscreen_stories": {
+            "title": "Tam Ekran Anı İnceleme & Hikayeler",
+            "badge": "Detaylı Görünüm",
+            "description": "Fotoğrafa dokunarak tam ekran görüntüleyebilir, fotoğrafın altındaki özel açıklamayı, çekildiği şehri ve saati inceleyebilirsiniz."
+          }
+        }
+      },
+      "map": {
+        "title": "Aşk Haritası",
+        "tagline": "Ayak İzleriniz ve Gizli Notlarınız",
+        "summary": "Birlikte keşfettiğiniz şehirler, ilk buluştuğunuz kafeler ve haritaya bıraktığınız gizli aşk notları.",
+        "features": {
+          "photo_pins": {
+            "title": "Fotoğraflı Anı Pinleri",
+            "badge": "Görsel Pinler",
+            "description": "Galeriye eklediğiniz konumlu fotoğraflar, çekildikleri koordinatta kalp çerçeveli pinler olarak haritada parıldar."
+          },
+          "secret_notes": {
+            "title": "Haritaya Aşk Notu Bırakma",
+            "badge": "Gizli Notlar",
+            "description": "Haritanın dilediğiniz yerine uzun basarak veya dokunarak sevgilinize özel bir aşk notu bırakın! 'İlk burada sarılmıştık', 'Buranın kahvesi çok güzeldi' gibi.",
+            "tip": "Bir sonraki buluşacağınız yere önceden sürpriz bir not bırakabilirsiniz!"
+          },
+          "themes_filters": {
+            "title": "Romantik Temalar ve Filtreler",
+            "badge": "Kişiselleştirme",
+            "description": "Haritanızı Romantik Pembe, Gece Yarısı Koyu veya Doğa modunda görüntüleyebilir; sadece fotoğrafları veya sadece notları filtreleyebilirsiniz."
+          },
+          "fit_bounds": {
+            "title": "Tüm Anıları Tek Bakışta Gör",
+            "badge": "Odaklanma",
+            "description": "Sağ üstteki sığdır butonuna basarak dünyanın neresinde anınız varsa haritanın otomatik olarak tüm anılarınızı kapsayacak şekilde uzaklaşmasını sağlayabilirsiniz."
+          }
+        }
+      },
+      "medicine": {
+        "title": "İlaç & Sağlık Takibi",
+        "tagline": "Birbirinizin Sağlığına Emanetsiniz",
+        "summary": "Günlük vitaminler, düzenli ilaçlar ve sağlık hatırlatıcıları. Birbirinizin sağlığını sevgiyle takip edin.",
+        "features": {
+          "dose_reminders": {
+            "title": "Zamanında Alarm ve Hatırlatıcılar",
+            "badge": "Hassas Takip",
+            "description": "İlaç veya vitaminlerinizin saatlerini belirleyin. Saati geldiğinde sesli ve titreşimli yerel bildirimlerle asla doz kaçırmazsınız."
+          },
+          "partner_care": {
+            "title": "Partner Bildirimi & Takibi",
+            "badge": "Sevgiyle Takip",
+            "description": "Alarm yalnızca ilacın sahibine çalar. Partneriniz ilacını içtiğinde haberdar olursunuz; unutulan dozlar için sevgilinize bildirim gönderilmez, istediğinizde ona kendiniz tatlı bir hatırlatma yapabilirsiniz.",
+            "tip": "Aşk, birbirinin sağlığına da özen göstermektir!"
+          },
+          "history_logs": {
+            "title": "Geçmiş Doz Kayıtları",
+            "badge": "Sağlık Geçmişi",
+            "description": "Hangi gün ilacın alınıp alınmadığını geriye dönük listeleyerek düzenli kullanım alışkanlığı kazanın."
+          }
+        }
+      },
+      "period-tracker": {
+        "title": "Döngü & Regl Takibi",
+        "tagline": "Birlikte Daha Anlayışlı ve Şefkatli",
+        "summary": "Kadın döngü takvimi, regl ve yumurtlama tahminleri. Çiftlerin hassas günlerde birbirini daha iyi anlaması için tasarlandı.",
+        "features": {
+          "cycle_prediction": {
+            "title": "Akıllı Döngü ve Faz Tahminleri",
+            "badge": "Bilimsel Hesaplama",
+            "description": "Döngü uzunluğuna göre bir sonraki regl tarihi, ovülasyon (yumurtlama) dönemi ve doğurganlık günleri otomatik hesaplanır."
+          },
+          "symptoms_mood": {
+            "title": "Semptom ve Ruh Hali Kaydı",
+            "badge": "Detaylı Takip",
+            "description": "Kramp, baş ağrısı, yorgunluk veya duygu durum değişikliklerini gün be gün kaydedebilirsiniz."
+          },
+          "partner_empathy": {
+            "title": "Partner Empati ve Destek Rehberi",
+            "badge": "Erkek Partner İçin",
+            "description": "Erkek partner, sevgilisinin hangi fazda olduğunu görerek hassas günlerinde ona sıcak bir çikolata, masaj veya ekstra şefkat göstermek için bildirim alır.",
+            "tip": "Zor günlerde gösterilen küçük bir ilgi tüm dünyayı güzelleştirir."
+          }
+        }
+      },
+      "meetings": {
+        "title": "Buluşma Planlayıcı",
+        "tagline": "Kavuşma Anı İçin Geri Sayım",
+        "summary": "Bir sonraki randevunuzu heyecanla planlayın, saniyeleri geri sayın ve geçmiş buluşmalarınızı ölümsüzleştirin.",
+        "features": {
+          "live_countdown": {
+            "title": "Canlı Buluşma Geri Sayımı",
+            "badge": "Heyecanlı Bekleyiş",
+            "description": "Buluşmanıza kaç gün, kaç saat ve kaç saniye kaldığını canlı olarak gösteren kalp atışlı sayaç."
+          },
+          "meeting_details": {
+            "title": "Randevu Konumu ve Notları",
+            "badge": "Planlama",
+            "description": "Buluşacağınız mekanı, saati ve o güne özel hazırlık notlarınızı ortak listeye ekleyin.",
+            "tip": "Buluşma noktası olarak haritadan özel bir yer seçebilirsiniz."
+          },
+          "meeting_history": {
+            "title": "Geçmiş Buluşmalar Günlüğü",
+            "badge": "Hatıra Defteri",
+            "description": "Gerçekleşen tüm güzel buluşmalarınız hatıra olarak saklanır, böylece ne kadar sık bir araya geldiğinizi görebilirsiniz."
+          }
+        }
+      },
+      "memories": {
+        "title": "Özel Günler & Milatlar",
+        "tagline": "Aşkınızın Dönüm Noktaları",
+        "summary": "İlk 'seni seviyorum' dediğiniz an, ilk seyahatiniz, tanışma ve yıl dönümü gibi ilişkinizin altın anları.",
+        "features": {
+          "milestone_cards": {
+            "title": "İlişki Kilometre Taşları",
+            "badge": "Unutulmaz Anlar",
+            "description": "İlişkinizdeki tüm önemli olayları fotoğraflı ve açıklamalı olarak ekleyin. Her milat için geçen süre otomatik hesaplanır."
+          },
+          "anniversary_reminders": {
+            "title": "Yıl Dönümü Hatırlatıcıları",
+            "badge": "Önceden Bildirim",
+            "description": "Özel günler yaklaşırken partnerinize sürpriz hazırlayabilmeniz için vaktinde bildirimler alırsınız.",
+            "tip": "Asla bir yıl dönümünü unutma stresi yaşamayın!"
+          }
+        }
+      },
+      "daily-notes": {
+        "title": "Kişisel Günlük",
+        "tagline": "Kalbinden Geçen Gizli Cümleler",
+        "summary": "Sadece senin görebildiğin, şifrelenerek saklanan özel günlük defterin.",
+        "features": {
+          "encrypted_vault": {
+            "title": "Şifreli Notlar",
+            "badge": "Gizli Günlük",
+            "description": "Bu günlüğe yazdığın hisler ve notlar şifrelenerek saklanır ve uygulamada yalnızca sen görürsün.",
+            "tip": "Kendine zaman ayırıp içini dökmek ruhuna çok iyi gelecektir."
+          },
+          "daily_reflection": {
+            "title": "Günün Muhasebesi ve Duyguları",
+            "badge": "Kişisel Gelişim",
+            "description": "Günün nasıl geçtiğini, hedeflerini ve ilişkine dair kişisel farkındalıklarını güvenle kaydet."
+          }
+        }
+      },
+      "profile": {
+        "title": "Profil & Yapılandırma",
+        "tagline": "Uygulamayı Kendinize Göre Şekillendirin",
+        "summary": "Temanızı, alt menü sekmelerinizi, güvenlik ayarlarınızı ve çift bağlantınızı yönettiğiniz kontrol paneli.",
+        "features": {
+          "tabbar_customizer": {
+            "title": "Alt Barı (Sekmeleri) Özelleştirme",
+            "badge": "Kişiselleştirme",
+            "description": "En sık kullandığınız 5 sekmeyi seçin! İlaç, Takvim, Harita, Mektuplar gibi sekmeleri dilediğiniz sırayla alt menünüze yerleştirin.",
+            "tip": "Menü ekranından kullanmadığınız sekmeleri alt bardan kaldırıp yerlerine yenilerini koyabilirsiniz."
+          },
+          "theme_options": {
+            "title": "Açık / Koyu & Pastel Renk Temaları",
+            "badge": "Görsel Uyum",
+            "description": "Gözü yormayan koyu mod veya romantik açık tema seçenekleriyle uygulamanın görünümünü kişiselleştirin."
+          },
+          "couple_connection": {
+            "title": "Çift Eşleşmesi ve Hesap Güvenliği",
+            "badge": "Güvenlik",
+            "description": "Partnerinizin e-postası, ilişki başlangıç tarihiniz, şifre değiştirme ve cihaz yetkilendirme ayarlarınızı bu ekrandan yönetin."
+          },
+          "reset_tours": {
+            "title": "Tanıtımları ve Rehberleri İnceleme",
+            "badge": "Rehber",
+            "description": "İstediğiniz zaman sayfa tanıtımlarını sıfırlayabilir veya tüm özelliklerin açıklamalarını baştan gözden geçirebilirsiniz."
+          }
+        }
+      }
+    }
   }
 }

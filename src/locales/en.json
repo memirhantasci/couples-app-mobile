@@ -2927,5 +2927,303 @@
       "My heart is with you, forever.",
       "I love you — even if these words fall short, the feeling is infinite."
     ]
+  },
+  "guides": {
+    "spotlight": {
+      "counter": {
+        "title": "Together Counter",
+        "description": "Every day you spend together is counted live right here. You can update your relationship dates from your Profile anytime."
+      },
+      "shortcuts": {
+        "title": "Quick Shortcuts",
+        "description": "The gallery, your journal, sealed letters and the meetup planner are all one tap away."
+      },
+      "mood": {
+        "title": "Mood of the Day",
+        "description": "Choose how you feel today; let your partner know instantly and support each other."
+      },
+      "menu": {
+        "title": "Menu & Guide",
+        "description": "All pages are in the menu. If you ever wonder what a page is for, just tap the ? button at the top right."
+      }
+    },
+    "pages": {
+      "home": {
+        "title": "Home",
+        "tagline": "Your Love's Daily Hub",
+        "summary": "Your main control center where you keep a finger on your relationship's pulse, see your shared love score and enjoy the sweetest highlights of the day.",
+        "features": {
+          "love_counter": {
+            "title": "Together Counter",
+            "badge": "Live Counter",
+            "description": "Every moment you spend together is precious! It counts the days, hours and minutes from your very first day until today, live, reminding you how much your relationship has grown.",
+            "tip": "You can update your relationship start date from the Settings tab anytime."
+          },
+          "love_score": {
+            "title": "Dynamic Love Score & Meter",
+            "badge": "Shared Score",
+            "description": "The love notes you leave in the app, the memories you share and your daily mood updates raise your shared love score. It is 100% equal and symmetrical for both partners.",
+            "tip": "Leaving each other a little note or choosing your mood every day keeps your love score at its peak!"
+          },
+          "mood_selector": {
+            "title": "Mood Sharing",
+            "badge": "Live Sync",
+            "description": "How is your day going? Happy, romantic, tired or blue... Pick your mood with one tap, let your partner know right away and support each other.",
+            "tip": "When your partner feels tired or sad, sending a sweet message strengthens your relationship."
+          },
+          "daily_note": {
+            "title": "Love Note & Quote of the Day",
+            "badge": "New Every Day",
+            "description": "Every new day begins with a romantic love quote, a piece of wise relationship advice or an inspiring saying made just for the two of you.",
+            "tip": "After reading the note of the day, you can talk about how it made each of you feel."
+          },
+          "quick_cards": {
+            "title": "Countdowns & Letter Cards",
+            "badge": "Quick Access",
+            "description": "From the home page cards you can instantly follow the time left until your next meetup and the status of sealed letters that aren't ready to open yet."
+          }
+        }
+      },
+      "calendar": {
+        "title": "Love Calendar",
+        "tagline": "The Two of You Within Time",
+        "summary": "Your shared time capsule that keeps every special moment, feeling and plan you share, month by month.",
+        "features": {
+          "calendar_view": {
+            "title": "Interactive Monthly Calendar",
+            "badge": "Shared Agenda",
+            "description": "Browse all months and pick any day in the past or future to look through every note, photo and mood from that date."
+          },
+          "colored_dots": {
+            "title": "Colored Day Dots",
+            "badge": "Visual Markers",
+            "description": "Colored dots appear under each day on the calendar: Purple (Love Note), Pink (Your Partner's Mood), Blue (Your Mood) and Green (Memory Photo).",
+            "tip": "A colorful calendar is the loveliest proof of how many memories you've collected together!"
+          },
+          "add_note": {
+            "title": "Leaving a Note on a Day",
+            "badge": "Special Plans",
+            "description": "Tap any day and press the 'Add Note' button to jot down an appointment, a movie plan, a doctor's visit or a sweet keepsake note for that day."
+          },
+          "daily_summary": {
+            "title": "Daily Detail List",
+            "badge": "Chronological Flow",
+            "description": "All events for the day you pick (who was in which mood, which notes were written, which photos were taken) are listed chronologically below."
+          }
+        }
+      },
+      "letters": {
+        "title": "Sealed Letters",
+        "tagline": "Words of Love Sent to the Future",
+        "summary": "Surprise love letters you write today and seal for a special day in the future, which can't be opened until the time comes.",
+        "features": {
+          "time_capsule": {
+            "title": "Time-Locked Letter Writing",
+            "badge": "Surprise",
+            "description": "Write what's in your heart to your partner and set the date and time it will open in the future! The letter is stored encrypted and can't be viewed by your partner until the time comes.",
+            "tip": "You can seal motivating letters for anniversaries, birthdays, or the day before a tough exam or workday."
+          },
+          "origami_ceremony": {
+            "title": "Seal Breaking & Origami Crane",
+            "badge": "Special Animation",
+            "description": "When a letter is sent, it reaches your love on the flight of an origami crane. When the time comes, you experience the magical ceremony of breaking the wax seal to read the letter."
+          },
+          "letter_vault": {
+            "title": "Received & Sent Letters",
+            "badge": "Endless Archive",
+            "description": "You can re-read the letters you've already opened as often as you like, and keep track of the time left on letters that are still locked."
+          },
+          "tokens": {
+            "title": "Love Tokens",
+            "badge": "Letter Allowance",
+            "description": "Use your tokens to send letters, or enjoy the freedom of writing unlimited letters with Premium membership."
+          }
+        }
+      },
+      "photos": {
+        "title": "Shared Gallery",
+        "tagline": "Your Most Beautiful Frames",
+        "summary": "Your high-resolution, secure shared memory album that the two of you fill together.",
+        "features": {
+          "shared_archive": {
+            "title": "Cloud Photo Archive",
+            "badge": "Private & Secure",
+            "description": "A shared memory gallery that never gets lost in your phone's storage and that only the two of you can access. The photos you upload appear on your partner's screen instantly."
+          },
+          "exif_location": {
+            "title": "Smart EXIF & Location Detection",
+            "badge": "Automatic Info",
+            "description": "When you upload a photo, the date, time and GPS location it was taken are detected automatically and synced with your map.",
+            "tip": "Even when you upload an old vacation photo, its original date and location are preserved!"
+          },
+          "fullscreen_stories": {
+            "title": "Full-Screen Memories & Stories",
+            "badge": "Detailed View",
+            "description": "Tap a photo to view it full screen and see the special caption below it, the city and the time it was taken."
+          }
+        }
+      },
+      "map": {
+        "title": "Love Map",
+        "tagline": "Your Footprints and Secret Notes",
+        "summary": "The cities you've explored together, the cafés where you first met, and the secret love notes you leave on the map.",
+        "features": {
+          "photo_pins": {
+            "title": "Photo Memory Pins",
+            "badge": "Visual Pins",
+            "description": "Geotagged photos you add to the gallery shine on the map as heart-framed pins at the coordinates where they were taken."
+          },
+          "secret_notes": {
+            "title": "Leaving a Love Note on the Map",
+            "badge": "Secret Notes",
+            "description": "Long-press or tap anywhere on the map to leave a special love note for your love! Like 'We first hugged here' or 'The coffee here was so good'.",
+            "tip": "You can leave a surprise note in advance at the place you'll meet next!"
+          },
+          "themes_filters": {
+            "title": "Romantic Themes & Filters",
+            "badge": "Personalization",
+            "description": "You can view your map in Romantic Pink, Midnight Dark or Nature mode, and filter to show only photos or only notes."
+          },
+          "fit_bounds": {
+            "title": "See All Memories at a Glance",
+            "badge": "Focus",
+            "description": "Press the fit button at the top right and the map automatically zooms out to cover all your memories, wherever in the world they are."
+          }
+        }
+      },
+      "medicine": {
+        "title": "Medicine & Health Tracking",
+        "tagline": "You're Entrusted to Each Other's Health",
+        "summary": "Daily vitamins, regular medication and health reminders. Look after each other's health with love.",
+        "features": {
+          "dose_reminders": {
+            "title": "Timely Alarms & Reminders",
+            "badge": "Precise Tracking",
+            "description": "Set the times for your medicine or vitamins. When the time comes, sound and vibration local notifications make sure you never miss a dose."
+          },
+          "partner_care": {
+            "title": "Partner Notifications & Tracking",
+            "badge": "Tracking with Love",
+            "description": "The alarm rings only for the owner of the medicine. You're notified when your partner takes their medicine; no notification is sent to your love about forgotten doses, but you can send them a sweet reminder yourself whenever you like.",
+            "tip": "Love also means caring for each other's health!"
+          },
+          "history_logs": {
+            "title": "Past Dose Records",
+            "badge": "Health History",
+            "description": "Build a regular habit by looking back at which days your medicine was taken and which days it wasn't."
+          }
+        }
+      },
+      "period-tracker": {
+        "title": "Cycle & Period Tracking",
+        "tagline": "More Understanding and Caring Together",
+        "summary": "A women's cycle calendar with period and ovulation predictions. Designed so couples can understand each other better on sensitive days.",
+        "features": {
+          "cycle_prediction": {
+            "title": "Smart Cycle & Phase Predictions",
+            "badge": "Scientific Calculation",
+            "description": "Based on your cycle length, your next period date, ovulation window and fertile days are calculated automatically."
+          },
+          "symptoms_mood": {
+            "title": "Symptom & Mood Log",
+            "badge": "Detailed Tracking",
+            "description": "You can log cramps, headaches, fatigue or mood changes day by day."
+          },
+          "partner_empathy": {
+            "title": "Partner Empathy & Support Guide",
+            "badge": "For Male Partners",
+            "description": "Male partners see which phase their love is in and get notifications to offer a warm chocolate, a massage or extra tenderness on sensitive days.",
+            "tip": "A small gesture of care on hard days makes the whole world brighter."
+          }
+        }
+      },
+      "meetings": {
+        "title": "Meetup Planner",
+        "tagline": "Countdown to the Moment You Reunite",
+        "summary": "Plan your next date with excitement, count down the seconds and immortalize your past meetups.",
+        "features": {
+          "live_countdown": {
+            "title": "Live Meetup Countdown",
+            "badge": "Thrilling Wait",
+            "description": "A heartbeat counter that shows live how many days, hours and seconds are left until your meetup."
+          },
+          "meeting_details": {
+            "title": "Meetup Location & Notes",
+            "badge": "Planning",
+            "description": "Add the venue, the time and your preparation notes for that day to the shared list.",
+            "tip": "You can pick a special spot on the map as your meeting point."
+          },
+          "meeting_history": {
+            "title": "Past Meetups Journal",
+            "badge": "Keepsake Book",
+            "description": "All your lovely meetups are kept as keepsakes, so you can see how often you get together."
+          }
+        }
+      },
+      "memories": {
+        "title": "Special Days & Milestones",
+        "tagline": "The Turning Points of Your Love",
+        "summary": "The golden moments of your relationship, like the first time you said 'I love you', your first trip, the day you met and your anniversary.",
+        "features": {
+          "milestone_cards": {
+            "title": "Relationship Milestones",
+            "badge": "Unforgettable Moments",
+            "description": "Add all the important events in your relationship with photos and descriptions. The time elapsed for each milestone is calculated automatically."
+          },
+          "anniversary_reminders": {
+            "title": "Anniversary Reminders",
+            "badge": "Advance Notice",
+            "description": "As special days approach, you get notifications in good time so you can prepare a surprise for your partner.",
+            "tip": "Never feel the stress of forgetting an anniversary!"
+          }
+        }
+      },
+      "daily-notes": {
+        "title": "Personal Journal",
+        "tagline": "The Secret Sentences of Your Heart",
+        "summary": "Your private journal that only you can see, stored encrypted.",
+        "features": {
+          "encrypted_vault": {
+            "title": "Encrypted Notes",
+            "badge": "Secret Journal",
+            "description": "The feelings and notes you write in this journal are stored encrypted, and only you can see them in the app.",
+            "tip": "Taking time for yourself and pouring your heart out will do your soul a world of good."
+          },
+          "daily_reflection": {
+            "title": "Daily Reflection & Feelings",
+            "badge": "Personal Growth",
+            "description": "Safely record how your day went, your goals and your personal reflections about your relationship."
+          }
+        }
+      },
+      "profile": {
+        "title": "Profile & Settings",
+        "tagline": "Shape the App to Suit You",
+        "summary": "The control panel where you manage your theme, bottom menu tabs, security settings and couple connection.",
+        "features": {
+          "tabbar_customizer": {
+            "title": "Customizing the Bottom Bar (Tabs)",
+            "badge": "Personalization",
+            "description": "Choose the 5 tabs you use most! Place tabs like Medicine, Calendar, Map and Letters in your bottom menu in any order you like.",
+            "tip": "From the menu screen you can remove tabs you don't use from the bottom bar and put new ones in their place."
+          },
+          "theme_options": {
+            "title": "Light / Dark & Pastel Color Themes",
+            "badge": "Visual Harmony",
+            "description": "Personalize the look of the app with an easy-on-the-eyes dark mode or romantic light theme options."
+          },
+          "couple_connection": {
+            "title": "Couple Pairing & Account Security",
+            "badge": "Security",
+            "description": "Manage your partner's email, your relationship start date, password changes and device authorization settings from this screen."
+          },
+          "reset_tours": {
+            "title": "Reviewing Tours & Guides",
+            "badge": "Guide",
+            "description": "You can reset the page tours anytime, or go back through the explanations of all the features from the start."
+          }
+        }
+      }
+    }
   }
 }

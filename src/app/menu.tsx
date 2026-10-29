@@ -26,7 +26,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LegalModal } from "@/components/legal/LegalModal";
-import { FEATURE_GUIDES } from "@/constants/featureGuides";
+import { getAllPageGuides, getPageGuide } from "@/constants/featureGuides";
 import { resetAllPageTours } from "@/hooks/usePageTour";
 import { useDeferredReady } from "@/hooks/useDeferredReady";
 import { useDemoAction } from "@/hooks/useDemoAction";
@@ -42,6 +42,7 @@ export default function MenuScreen() {
   const { theme, isLight } = useTheme();
   const styles = React.useMemo(() => getMenuStyles(theme, isLight), [theme, isLight]);
   const insets = useSafeAreaInsets();
+  const guides = React.useMemo(() => getAllPageGuides(t), [t]);
   const [legalVisible, setLegalVisible] = React.useState(false);
   const [selectedTourPage, setSelectedTourPage] = useState<string | null>(null);
   const [showGuideCatalog, setShowGuideCatalog] = useState(false);
@@ -508,7 +509,7 @@ export default function MenuScreen() {
               </View>
 
               <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 16 }}>
-                {Object.values(FEATURE_GUIDES).map((g) => (
+                {guides.map((g) => (
                   <TouchableOpacity
                     key={g.pageKey}
                     onPress={() => {
@@ -545,7 +546,7 @@ export default function MenuScreen() {
       {selectedTourPage && (
         <LazyPageTourModal
           visible={!!selectedTourPage}
-          guide={FEATURE_GUIDES[selectedTourPage]}
+          guide={selectedTourPage ? getPageGuide(selectedTourPage, t) : null}
           onClose={() => setSelectedTourPage(null)}
         />
       )}

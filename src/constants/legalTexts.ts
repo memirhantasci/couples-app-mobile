@@ -1,3 +1,5 @@
+import i18n from "@/lib/i18n";
+
 /**
  * Couples App Yasal & Mevzuat Metinleri
  * 6698 Sayılı KVKK, GDPR, Apple App Store Review Guidelines (3.1.2, 5.1.1) ve Google Play Politikalarına Uygun Metinler
@@ -14,7 +16,7 @@ export interface LegalDocument {
   content: string[];
 }
 
-export const LEGAL_DOCS: Record<LegalDocType, LegalDocument> = {
+export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
   kvkk: {
     id: "kvkk",
     title: "KVKK Aydınlatma Metni",
@@ -206,3 +208,236 @@ export const LEGAL_DOCS: Record<LegalDocType, LegalDocument> = {
     ]
   }
 };
+
+export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
+  kvkk: {
+    id: "kvkk",
+    title: "Personal Data Protection & GDPR Clarification Text",
+    badge: "GDPR & KVKK Compliant",
+    lastUpdated: "October 2026",
+    summary: "Information on the processing purposes, collection methods, legal grounds of your personal data, and your rights under GDPR and Article 11 of Turkish Law No. 6698 (KVKK).",
+    content: [
+      "1. DATA CONTROLLER",
+      "Data Controller: Couples App · Contact: legal@couplesapp.net · Support: destek@couplesapp.net. As Couples App (\"App\" or \"Data Controller\"), under the relevant data protection legislations (GDPR and Turkish Law No. 6698), we place the highest priority on the security and privacy of our users' personal data. This Clarification Text explains the purposes for which your data collected via our mobile app is processed and outlines your statutory rights.",
+
+      "2. CATEGORIES OF PROCESSED PERSONAL DATA AND DATA TYPES",
+      "Within the scope of our shared couple journal, time-capsule sealed letters, location-based date planner, and health/menstrual cycle tracking features, the following personal data is processed:\n" +
+      "• Identity and Contact Information: Full name, username, email address, gender selection.\n" +
+      "• Couple and Relationship Information: Pairing code, first meeting date, relationship anniversary dates.\n" +
+      "• Visual and Audio Records: Photos uploaded to the shared gallery or private journals, memory pictures, and profile avatars.\n" +
+      "• Location Information: Meeting point coordinates and optional GPS pins attached to memory photos.\n" +
+      "• Special Category Personal Data (Health Information): Menstrual cycle start dates, predicted cycle intervals, daily medication/vitamin hours and adherence logs.\n" +
+      "• Messaging and Memory Content: Time-capsule letters, private daily notes, and mood selections (stored encrypted on device and on servers).\n" +
+      "• Transaction and Financial Information: Anonymous transaction identifiers, subscription status, package type, and token balance processed via RevenueCat and app stores (App Store / Google Play).\n" +
+      "• Device and Operation Security: Device model, OS version, push notification tokens, unique device identifier (UUID), last login timestamp, and security logs.\n" +
+      "• Advertising Data: Non-personalized advertising identifiers processed by Google AdMob for displayed in-app banners.",
+
+      "3. PURPOSES OF PROCESSING PERSONAL DATA",
+      "Your personal data is processed in accordance with applicable data protection principles for the following purposes:\n" +
+      "• Account creation, secure authentication, and prevention of unauthorized access,\n" +
+      "• Connecting two partners via a unique private pairing code to enable real-time synchronized memory and calendar sharing,\n" +
+      "• Cryptographic encryption of time-locked letters and preserving their confidentiality until the chosen unlock date,\n" +
+      "• Displaying shared date locations on map with convenient routing,\n" +
+      "• Delivering timely push notifications for medicine schedules, cycle updates, anniversaries, and unlocked letters,\n" +
+      "• Provisioning Couples Premium entitlements so that a single subscription covers both partners,\n" +
+      "• Maintaining network and information security against cyber attacks and brute-force attempts.",
+
+      "4. PARTIES TO WHOM PERSONAL DATA IS TRANSFERRED",
+      "Your personal data is never sold to third parties for advertising or commercial purposes. Data is shared strictly to perform our services with the following vetted providers, some of which are located internationally:\n" +
+      "• Supabase Inc.: Secure PostgreSQL database, encrypted cloud storage, and authentication infrastructure,\n" +
+      "• RevenueCat Inc.: In-app purchases, subscription entitlement verification, and receipt validation,\n" +
+      "• Google Cloud / Firebase & Expo Notifications: Reliable delivery of push notifications to your device,\n" +
+      "• Google LLC (AdMob & Google Maps): Map services and non-personalized advertising,\n" +
+      "• Apple Inc. & Google LLC: Sign in with Apple and Sign in with Google authentication services,\n" +
+      "• Competent Public Authorities: In response to lawful court orders or binding legal obligations.",
+
+      "5. DATA COLLECTION METHODS AND LEGAL GROUNDS",
+      "Your data is collected electronically via app UI inputs, camera/gallery permissions, device sensors, and notification permissions. Legal grounds include:\n" +
+      "• Contractual Necessity: Performance of the User Agreement and core service delivery,\n" +
+      "• Legitimate Interests: Enhancing app security, preventing fraud, and optimizing stability without overriding fundamental user rights,\n" +
+      "• Explicit Consent: For health-related cycle/medicine logs, sensitive location pins, and marketing communications.",
+
+      "6. DATA SECURITY AND ENCRYPTION (AES-256)",
+      "Couples App uses state-of-the-art cryptographic standards to protect user privacy. Private notes, time-capsule letters, and sensitive attributes are encrypted in the database using symmetric AES standards. Database access is strictly governed by Row-Level Security (RLS) policies scoped exclusively to authenticated members of each couple.",
+
+      "7. DATA RETENTION AND DELETION (RIGHT TO BE FORGOTTEN)",
+      "You can request permanent account deletion anytime from Profile > Account Management & Danger Zone. Deletion requests enter a 7-day safety grace period during which you can cancel by logging back in. After 7 days, all profile records, private journals, letters, and storage files are permanently and irreversibly purged from our servers. Shared memories are wiped for both sides, uncoupling your partner. Backup copies are purged within 30 days.",
+
+      "8. YOUR RIGHTS UNDER GDPR AND DATA PROTECTION LAWS",
+      "You have the right at any time to:\n" +
+      "a) Inquire whether your personal data is being processed,\n" +
+      "b) Request information regarding the processing of your data,\n" +
+      "c) Understand the purpose of processing and verify compliance,\n" +
+      "d) Know third parties to whom data has been transferred domestically or abroad,\n" +
+      "e) Request correction of inaccurate or incomplete data,\n" +
+      "f) Request deletion or erasure of your personal data under statutory conditions,\n" +
+      "g) Request notification of corrections and deletions to third-party recipients,\n" +
+      "h) Object to decisions made solely by automated systems that cause an adverse legal effect,\n" +
+      "i) Seek compensation if you suffer damages due to unlawful processing.\n\n" +
+      "To exercise your rights, you can reach us through in-app support or directly via email at legal@couplesapp.net."
+    ]
+  },
+
+  privacy: {
+    id: "privacy",
+    title: "Privacy Policy",
+    badge: "Privacy Policy",
+    lastUpdated: "October 2026",
+    summary: "Detailed guidelines on our data collection, processing, and protection principles, and how your couple privacy is strictly preserved.",
+    content: [
+      "1. INTRODUCTION AND OUR COMMITMENT",
+      "Couples App is designed for partners to cherish their most precious memories, letters, and daily moments within a protected private digital space. User privacy is our core foundation. Your personal data is never sold to third parties or traded with advertising brokers.",
+
+      "2. COLLECTED INFORMATION AND USAGE SCOPE",
+      "• Account Data: Name, username, email address, and securely hashed passwords provided during sign up.\n" +
+      "• Relationship Content: Photos, captions, time-capsule letters, and calendar notes. This content is exclusively accessible to you and your paired partner.\n" +
+      "• Cycle and Health Data: Menstrual start dates and medication hours. Used solely to provide cycle predictions and timely reminders for you and your partner.\n" +
+      "• Location Coordinates: Obtained only when you explicitly select a meeting point on the map or geotag a photo; no persistent background tracking is ever conducted.\n" +
+      "• Third-Party Infrastructure: Google AdMob, Google Maps, Apple/Google Sign-In, Supabase, RevenueCat, and Expo. For details, refer to Section 4 of our Clarification Text.",
+
+      "3. SECURITY AND CRYPTOGRAPHIC ENCRYPTION",
+      "All network traffic is encrypted via TLS/SSL protocols. Private letters and journal entries are encrypted before persistent storage. Session tokens reside in secure device storage; securing your device with biometric or passcode locks is strongly advised.",
+
+      "4. COOKIES AND UNIQUE DEVICE IDENTIFIER",
+      "To prevent brute-force attacks and unauthorized multi-device logins, a randomly generated UUID device identifier is utilized. When logging in from an unrecognized device, one-time verification is prompted to safeguard your account.",
+
+      "5. ACCOUNT ERASURE AND DATA PURGE (GDPR & CCPA COMPLIANT)",
+      "You may request account deletion at any time under Profile > Account Management & Danger Zone. Requests are subject to a 7-day cancellation window. Following the 7-day period, all account data, photos, and linked memories are irreversibly removed from active servers.",
+
+      "6. AGE RESTRICTION",
+      "Couples App is not intended for individuals under 16 years of age. If we learn that personal data of a minor under 16 has been collected without parental consent, we will promptly delete that information.",
+
+      "7. POLICY UPDATES",
+      "We may update our Privacy Policy periodically to reflect technological or legal requirements. Material updates will be highlighted via in-app notifications."
+    ]
+  },
+
+  terms: {
+    id: "terms",
+    title: "Terms of Use (EULA)",
+    badge: "User Agreement",
+    lastUpdated: "October 2026",
+    summary: "General rules, account safety, couple pairing mechanisms, intellectual property, and limitations of liability.",
+    content: [
+      "1. ACCEPTANCE OF TERMS",
+      "By downloading, installing, registering, or using Couples App, you agree to be bound by these Terms of Use (\"Agreement\"). If you do not accept all terms contained herein, do not use the application.",
+
+      "2. SERVICE SCOPE AND COUPLE PAIRING",
+      "Couples App provides a private platform enabling two partners to connect via a unique pairing code to share memories, calendars, photographs, health tracking, and time-capsule letters. You must only share your pairing code with your trusted partner.",
+
+      "3. ACCOUNT CREDENTIALS AND SECURITY",
+      "You are solely responsible for maintaining the confidentiality of your login credentials. You accept responsibility for all activities that occur under your account. If you suspect unauthorized access, reset your password immediately or contact our support team.",
+
+      "4. PROHIBITED USES AND CONDUCT",
+      "When using the application, you agree not to:\n" +
+      "• Upload unlawful, threatening, abusive, defamatory, or invasive content,\n" +
+      "• Upload or share private photographs of your partner without their explicit consent,\n" +
+      "• Attempt to reverse-engineer, decompile, or tamper with the application's source code or backend servers,\n" +
+      "• Deploy automated scrapers, crawlers, or bots to harvest data.",
+
+      "5. INTELLECTUAL PROPERTY RIGHTS",
+      "The application UI, designs, logos, artwork, and software code are owned exclusively by the Data Controller. You retain ownership of all photographs and text memories you upload, while granting the necessary technical license required to render the service.",
+
+      "6. SERVICE AVAILABILITY AND DISCLAIMER OF WARRANTIES",
+      "Couples App is provided on an \"AS IS\" and \"AS AVAILABLE\" basis. We cannot guarantee uninterrupted uptime due to maintenance, force majeure events, or network provider disruptions, and disclaim liability for indirect or consequential damages to the extent permitted by law.",
+
+      "7. TERMINATION AND SUSPENSION",
+      "We reserve the right to suspend or terminate accounts that violate these Terms or present safety risks to other users without prior liability."
+    ]
+  },
+
+  consent: {
+    id: "consent",
+    title: "Explicit Consent Statement",
+    badge: "Special Category Data",
+    lastUpdated: "October 2026",
+    summary: "Declaration of explicit consent regarding health (menstrual cycle / medication) data, sensitive location data, and push notification flows.",
+    content: [
+      "1. NATURE AND SCOPE OF EXPLICIT CONSENT",
+      "Under applicable data protection laws, I freely and knowingly provide my explicit consent for the processing and couple-synchronized sharing of my personal and special-category personal data as detailed below, in full accordance with the principles set forth in the Clarification Text.",
+
+      "2. DATA CATEGORIES SUBJECT TO EXPLICIT CONSENT AND PURPOSES",
+      "• Special Category Data (Health Information): Dates, cycle lengths, symptom notes, and medication schedules entered into the cycle and medicine tracker modules, processed to forecast menstrual cycles, generate reminders, and display synchronizations on my paired partner's screen,\n" +
+      "• Geolocation Data: Coordinates selected for meeting points and GPS locations tagged onto photos, processed to display shared map markers and facilitate route planning,\n" +
+      "• Shared Couple Content: Memory photos, love letters, and mood statuses stored in encrypted form strictly for sharing with my paired partner,\n" +
+      "• Push Notifications: Receiving instant notifications for approaching anniversaries, delivered letters, and medication schedules.",
+
+      "3. WITHDRAWAL OF CONSENT",
+      "I understand and agree that I may withdraw this consent at any time by disabling health or location permissions within the app settings, or by requesting account deletion."
+    ]
+  },
+
+  subscription: {
+    id: "subscription",
+    title: "Subscription & Refund Terms",
+    badge: "App Store & Google Play",
+    lastUpdated: "October 2026",
+    summary: "Couples Premium subscription features, free trial duration (if defined), auto-renewal rules, cancellation steps, and statutory refund policies.",
+    content: [
+      "1. COUPLES PREMIUM SUBSCRIPTION & SHARED COVERAGE",
+      "Couples App Premium operates on a shared subscription model: when one partner subscribes, both partners unlock all Premium features instantly. Premium benefits include:\n" +
+      "• Unlimited high-resolution photo uploads and shared cloud archive,\n" +
+      "• Advanced cycle tracking and synchronized health notifications,\n" +
+      "• Unlimited time-capsule letters with future scheduled unlocks,\n" +
+      "• 100% ad-free experience across the entire application,\n" +
+      "• Memory timeline with interactive anniversary countdowns.",
+
+      "2. FREE TRIAL PERIOD",
+      "First-time subscribers may be eligible for a promotional free trial as displayed in the store paywall. No charges are billed during the trial. If the subscription is not canceled at least 24 hours prior to the end of the trial period, it will automatically convert into a paid recurring subscription.",
+
+      "3. AUTOMATIC RENEWAL AND BILLING (STANDARD STORE EULA)",
+      "• Payment is charged to your Apple ID / Google Play Account upon confirmation of purchase.\n" +
+      "• Subscriptions automatically renew unless auto-renew is turned off at least 24 hours before the end of the current billing cycle (monthly or annual plan).\n" +
+      "• Your account will be charged for renewal within 24 hours prior to the end of the current period at the then-applicable renewal rate.",
+
+      "4. SUBSCRIPTION CANCELLATION PROCEDURE",
+      "You can cancel your subscription at any time without cancellation fees. Cancellations must be performed through your store account settings rather than within the mobile app:\n" +
+      "• iOS (Apple App Store): Go to iPhone Settings > [Your Name] > Subscriptions > Couples App > Cancel Subscription.\n" +
+      "• Android (Google Play Store): Open Google Play Store > Profile Icon > Payments & Subscriptions > Subscriptions > Couples App > Cancel Subscription.\n" +
+      "Upon cancellation, you will retain access to all Premium features until the conclusion of your active billing period.",
+
+      "5. RIGHT OF WITHDRAWAL AND REFUND POLICY",
+      "Under applicable digital consumer regulations, statutory withdrawal rights do not apply once digital content or services have commenced with the consumer's consent. Refund requests for accidental or duplicate charges are administered directly by Apple Support (reportaproblem.apple.com) or Google Play Customer Support in accordance with store refund policies."
+    ]
+  }
+};
+
+/**
+ * Belirtilen dil için yasal metinleri döndürür ('en' veya 'tr').
+ */
+export function getLegalDocs(language?: string): Record<LegalDocType, LegalDocument> {
+  const isEn = language === "en" || (!language && i18n?.language === "en");
+  return isEn ? LEGAL_DOCS_EN : LEGAL_DOCS_TR;
+}
+
+/**
+ * Tek bir yasal metni belirtilen dilde döndürür.
+ */
+export function getLegalDoc(id: LegalDocType, language?: string): LegalDocument {
+  const docs = getLegalDocs(language);
+  return docs[id] || docs.kvkk;
+}
+
+/**
+ * Mevcut dille senkronize dinamik LEGAL_DOCS nesnesi.
+ * Mevcut kod tabanıyla %100 geriye dönük uyumludur: LEGAL_DOCS.kvkk veya LEGAL_DOCS[tab] dili izler.
+ */
+export const LEGAL_DOCS: Record<LegalDocType, LegalDocument> = new Proxy(LEGAL_DOCS_TR, {
+  get(target, prop, receiver) {
+    const active = getLegalDocs();
+    const val = Reflect.get(active, prop, receiver);
+    if (typeof val === "function") {
+      return (val as (...args: unknown[]) => unknown).bind(active);
+    }
+    return val;
+  },
+  ownKeys() {
+    return Reflect.ownKeys(getLegalDocs());
+  },
+  getOwnPropertyDescriptor(target, prop) {
+    return Reflect.getOwnPropertyDescriptor(getLegalDocs(), prop);
+  },
+  has(target, prop) {
+    return Reflect.has(getLegalDocs(), prop);
+  },
+});
