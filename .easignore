@@ -36,3 +36,8 @@ example
 # generated native folders
 /ios
 /android
+
+# Environment variables and secrets
+.env*
+!.env.example
+google-service-account.json

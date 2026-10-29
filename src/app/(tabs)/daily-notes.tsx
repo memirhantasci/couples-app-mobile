@@ -337,7 +337,16 @@ export default function DailyNotesScreen() {
                 title="Günlüğünün ilk sayfası seni bekliyor"
                 description="Bugün hissettiklerini, sevgilinle yaşadığın güzel bir anı ya da sadece aklından geçenleri yaz; sadece sen okuyabilirsin."
                 ctaLabel="İlk Sayfayı Yaz ✍️"
-                onPressCta={() => router.push(openForm("/(tabs)/add-daily-note"))}
+                onPressCta={() => {
+                  if (executeOrIntercept(
+                    () => router.push(openForm("/(tabs)/add-daily-note")),
+                    "Günlük Not Yazmak İçin Kayıt Olun 📖",
+                    "Günün hislerini ve sevgi notlarını şifreli olarak kaydetmek için ücretsiz hesabınızı oluşturun."
+                  )) {
+                    return;
+                  }
+                  router.push(openForm("/(tabs)/add-daily-note"));
+                }}
                 theme={theme}
               />
             }

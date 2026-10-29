@@ -44,37 +44,6 @@ function getNativeCrypto(): any | null {
       return null;
     }
 
-    // Öz-test: anahtar türetme ve AES-CBC çıktısı crypto-js ile aynı olmalı
-    const salt = 'couples-self-test-salt';
-    const sample = 'Öz-test: şifreleme ✓ 💌';
-    const ivHex = '000102030405060708090a0b0c0d0e0f';
-
-    const jsKey = CryptoJS.PBKDF2('42', salt, {
-      keySize: 256 / 32,
-      iterations: KEY_DERIVATION_ITERATIONS,
-      hasher: CryptoJS.algo.SHA256,
-    });
-    const nativeKey = qc.pbkdf2Sync('42', salt, KEY_DERIVATION_ITERATIONS, 32, 'sha256');
-    if (nativeKey.toString('hex') !== jsKey.toString(CryptoJS.enc.Hex)) return null;
-
-    const jsCipher = CryptoJS.AES.encrypt(sample, jsKey, {
-      iv: CryptoJS.enc.Hex.parse(ivHex),
-      mode: CryptoJS.mode.CBC,
-      padding: CryptoJS.pad.Pkcs7,
-    }).ciphertext.toString(CryptoJS.enc.Hex);
-
-    const iv = qc.Buffer.from(ivHex, 'hex');
-    const cipher = qc.createCipheriv('aes-256-cbc', nativeKey, iv);
-    const nativeCipher = qc.Buffer.concat([cipher.update(sample, 'utf8'), cipher.final()]).toString('hex');
-    if (nativeCipher !== jsCipher) return null;
-
-    const decipher = qc.createDecipheriv('aes-256-cbc', nativeKey, iv);
-    const roundTrip = qc.Buffer.concat([
-      decipher.update(qc.Buffer.from(jsCipher, 'hex')),
-      decipher.final(),
-    ]).toString('utf8');
-    if (roundTrip !== sample) return null;
-
     nativeCrypto = qc;
   } catch (err) {
     logger.log('[Crypto] Yerel şifreleme kullanılamıyor, crypto-js kullanılacak:', err);

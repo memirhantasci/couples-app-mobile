@@ -29,6 +29,7 @@ export function MapThemePicker({ accent, isLight, mapTheme, onSelect }: MapTheme
             key={t.id}
             style={[
               styles.themeOptionBtn,
+              { borderColor: isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.12)" },
               mapTheme === t.id && {
                 borderColor: accent,
                 backgroundColor: `${accent}15`,
@@ -36,10 +37,23 @@ export function MapThemePicker({ accent, isLight, mapTheme, onSelect }: MapTheme
             ]}
             onPress={() => onSelect(t.id)}
           >
-            <Text style={[styles.themeOptionTitle, mapTheme === t.id && { color: accent }]}>
+            <Text
+              style={[
+                styles.themeOptionTitle,
+                { color: isLight ? "#444" : "#FFFFFF" },
+                mapTheme === t.id && { color: accent },
+              ]}
+            >
               {t.label}
             </Text>
-            <Text style={styles.themeOptionDesc}>{t.desc}</Text>
+            <Text
+              style={[
+                styles.themeOptionDesc,
+                { color: isLight ? "#888" : "rgba(255,255,255,0.7)" },
+              ]}
+            >
+              {t.desc}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>

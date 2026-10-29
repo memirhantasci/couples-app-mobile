@@ -20,9 +20,9 @@ dayjs.tz.setDefault("Europe/Istanbul");
 
 export { dayjs };
 
-// Fixed dates
-export const MEETING_DATE = dayjs("2026-01-19"); // Tanışma
-export const TOGETHER_DATE = dayjs("2026-01-26"); // Sevgili olma
+// Generic fallback dates (gerçek tarihler çift profili veya demo verisinden gelir)
+export const MEETING_DATE = dayjs().subtract(100, "day");
+export const TOGETHER_DATE = dayjs().subtract(90, "day");
 
 /**
  * Returns the number of days since a given date (0 if in the future)
@@ -91,19 +91,20 @@ export function getLoveMeter(): number {
  */
 export function getTodayHitap(): string {
   const hitaplar = [
-    "Güzelim",
     "Aşkım",
+    "Sevgilim",
     "Bebeğim",
     "Bir Tanem",
     "Balım",
     "Tatlım",
-    "Hanımefendi",
+    "Canım",
     "Ömrüm",
     "Hayatım",
-    "Prensesim",
+    "Gözbebeğim",
     "Ay Yüzlüm",
     "En Sevdiğim",
     "En Güzel Tesadüfüm",
+    "Kalbim",
     "Cennetim",
   ];
   const doy = dayOfYear();

@@ -500,6 +500,13 @@ export default function MeetingsScreen() {
                 }
                 ctaLabel={pastMeetings.length > 0 ? "Yeni Buluşma Planla 🥂" : "İlk Buluşmayı Planla 🥂"}
                 onPressCta={() => {
+                  if (executeOrIntercept(
+                    () => {},
+                    "Yeni Buluşma Planlamak İçin Kayıt Olun 🍷",
+                    "Partnerinizle özel buluşmalar planlamak, haritada yerini görmek ve canlı geri sayım başlatmak için ücretsiz hesabınızı oluşturun."
+                  )) {
+                    return;
+                  }
                   handleCancelEdit();
                   setShowFormModal(true);
                 }}

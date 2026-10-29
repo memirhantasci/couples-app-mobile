@@ -210,7 +210,7 @@ export default function HomeScreen() {
         coupleId && userId
           ? supabase
             .from("moods")
-            .select("mood_type")
+            .select("mood_type, date")
             .eq("couple_id", coupleId)
             .eq("date", today)
             .neq("user_id", userId)
@@ -234,6 +234,7 @@ export default function HomeScreen() {
       return {
         currentMood: moodRes.data?.mood_type || null,
         partnerMood: (partnerMoodRes.data?.[0] as { mood_type?: string } | undefined)?.mood_type || null,
+        partnerMoodDate: (partnerMoodRes.data?.[0] as { date?: string } | undefined)?.date || null,
         currentNote: noteRes.data?.content ? decrypt(noteRes.data.content) : null,
         // Hangi buluşmanın kartta görüneceği render anında seçilir (zaman geçtikçe değişebilir)
         meetings: (meetingRes.data ?? []) as any[],
@@ -396,6 +397,7 @@ export default function HomeScreen() {
         startDate: relDate || meetDate || null,
         partnerMoodEmoji,
         partnerMoodLabel,
+        partnerMoodDate: dashboardData?.partnerMoodDate ?? (partnerMoodEmoji ? today : null),
         myAvatarUrl,
         partnerAvatarUrl,
         unreadCount: unread?.unreadCount ?? 0,

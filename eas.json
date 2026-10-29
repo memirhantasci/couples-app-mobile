@@ -25,6 +25,7 @@
     },
     "production": {
       "autoIncrement": true,
+      "environment": "production",
       "channel": "production"
     }
   },

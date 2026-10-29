@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Couples App",
-    "slug": "emirhan",
+    "slug": "couples-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -25,7 +25,7 @@
         "NSCameraUsageDescription": "Anılarına fotoğraf ekleyebilmek için kameraya erişmemiz gerekiyor.",
         "NSPhotoLibraryUsageDescription": "Anılarına fotoğraf ekleyebilmek için fotoğraf kütüphanesine erişmemiz gerekiyor.",
         "NSLocationWhenInUseUsageDescription": "Buluşma noktası seçerken mevcut konumunuzu haritada gösterebilmek için konum erişimi gereklidir.",
-        "ITSAppUsesNonExemptEncryption": true
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

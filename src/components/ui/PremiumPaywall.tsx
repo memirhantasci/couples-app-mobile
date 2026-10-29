@@ -205,7 +205,7 @@ export function PremiumPaywall({
                   onPress={onWatchAd}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.adBtnText, { color: theme.textSecondary }]}>🎬 Reklam İzleyerek +50 Token Kazan</Text>
+                  <Text style={[styles.adBtnText, { color: theme.textSecondary }]}>🎬 Reklam İzleyerek +25 Token Kazan</Text>
                 </TouchableOpacity>
               )}
             </View>

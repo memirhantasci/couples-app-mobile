@@ -70,7 +70,7 @@ export function PremiumSuccessModal({ visible, onClose, subtitle }: PremiumSucce
             style={[styles.actionBtn, { backgroundColor: theme.accent }]} 
             onPress={onClose}
           >
-            <Text style={[styles.actionBtnText, isLight && { color: "#FFFFFF" }]}>Harika! Başla</Text>
+            <Text style={[styles.actionBtnText, { color: "#FFFFFF" }]}>Harika! Başla</Text>
           </TouchableOpacity>
 
         </View>

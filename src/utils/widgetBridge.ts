@@ -43,6 +43,7 @@ export interface CoupleWidgetInput {
   startDate?: string | null;
   partnerMoodEmoji?: string | null;
   partnerMoodLabel?: string | null;
+  partnerMoodDate?: string | null;
   myAvatarUrl?: string | null;
   partnerAvatarUrl?: string | null;
   unreadCount?: number;
@@ -236,7 +237,7 @@ export function syncCoupleWidget(input: CoupleWidgetInput): Promise<boolean> {
       premiumUntilMs: Number.isFinite(premiumUntilMs) ? premiumUntilMs : null,
       partnerMoodEmoji: hasMood ? input.partnerMoodEmoji! : null,
       partnerMoodLabel: hasMood ? input.partnerMoodLabel ?? null : null,
-      moodDate: hasMood ? dayjs().format("YYYY-MM-DD") : null,
+      moodDate: hasMood ? (input.partnerMoodDate || dayjs().format("YYYY-MM-DD")) : null,
       myAvatarPath,
       partnerAvatarPath,
       unreadCount: Math.max(0, input.unreadCount ?? 0),
