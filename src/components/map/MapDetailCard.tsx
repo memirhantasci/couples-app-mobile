@@ -37,13 +37,14 @@ interface MapDetailCardProps {
 function getMeetingCountdown(meetingDateStr: string): string {
   const now = dayjs();
   const target = dayjs(meetingDateStr);
-  const diffHours = target.diff(now, "hour");
-  const diffDays = target.diff(now, "day");
+  const diffMinutes = target.diff(now, "minute");
 
-  if (diffHours < 0) return "Gerçekleşti";
-  if (diffDays === 0) return "🎉 Bugün Buluşma Günü!";
-  if (diffDays === 1) return "⏳ Yarın!";
-  return `⏳ ${diffDays} gün kaldı`;
+  if (diffMinutes < 0) return "Gerçekleşti";
+
+  const calendarDays = target.startOf("day").diff(now.startOf("day"), "day");
+  if (calendarDays === 0) return "🎉 Bugün Buluşma Günü!";
+  if (calendarDays === 1) return "⏳ Yarın!";
+  return `⏳ ${calendarDays} gün kaldı`;
 }
 
 // ─── ORTAK BAŞLIK (Rozet + Kapat) ─────────────────────────────────────────────

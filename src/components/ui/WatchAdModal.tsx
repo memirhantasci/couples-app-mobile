@@ -26,7 +26,7 @@ if (hasAdsModule && !isExpoGo) {
   }
 }
 
-const adUnitId = __DEV__ ? (TestIds?.REWARDED || "") : "ca-app-pub-xxxxxxxxxxxxxxxx/yyyyyyyyyy";
+const adUnitId = __DEV__ ? (TestIds?.REWARDED || "") : (process.env.EXPO_PUBLIC_ADMOB_REWARDED_ID || TestIds?.REWARDED || "");
 
 // Mock hook for Expo Go where native ads binary is absent
 function useRewardedAdMock() {

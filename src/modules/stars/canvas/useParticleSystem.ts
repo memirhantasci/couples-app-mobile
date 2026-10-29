@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useSharedValue, useFrameCallback } from 'react-native-reanimated';
 import { vec, Vector } from '@shopify/react-native-skia';
 
@@ -20,6 +21,19 @@ export interface UseParticleSystemProps {
 }
 
 export function useParticleSystem(props: UseParticleSystemProps) {
+  // Props'ları SharedValue'ya senkronize ederek useFrameCallback worklet closure bayatlamasını önlüyoruz
+  const centerXVal = useSharedValue(props.centerX);
+  const centerYVal = useSharedValue(props.centerY);
+  const starBaseRadiusVal = useSharedValue(props.starBaseRadius);
+  const isResonanceActiveVal = useSharedValue(props.isResonanceActive);
+
+  useEffect(() => {
+    centerXVal.value = props.centerX;
+    centerYVal.value = props.centerY;
+    starBaseRadiusVal.value = props.starBaseRadius;
+    isResonanceActiveVal.value = props.isResonanceActive;
+  }, [props.centerX, props.centerY, props.starBaseRadius, props.isResonanceActive, centerXVal, centerYVal, starBaseRadiusVal, isResonanceActiveVal]);
+
   // We use standard React refs/shared values for managing the particles.
   // We will maintain the physics array inside a SharedValue to be mutable in worklets.
   const particles = useSharedValue<ParticleState[]>([]);
@@ -66,12 +80,12 @@ export function useParticleSystem(props: UseParticleSystemProps) {
     if (t - lastDustEmitRef.value > 0.18) {
       lastDustEmitRef.value = t;
       const angle = Math.random() * Math.PI * 2;
-      const spawnDist = props.starBaseRadius + Math.random() * 10;
-      const spawnX = props.centerX + Math.cos(angle) * spawnDist;
-      const spawnY = props.centerY + Math.sin(angle) * spawnDist;
+      const spawnDist = starBaseRadiusVal.value + Math.random() * 10;
+      const spawnX = centerXVal.value + Math.cos(angle) * spawnDist;
+      const spawnY = centerYVal.value + Math.sin(angle) * spawnDist;
 
       let colorType: ParticleState['colorType'] = 'base';
-      if (props.isResonanceActive) {
+      if (isResonanceActiveVal.value) {
         colorType = Math.random() > 0.5 ? 'resonance1' : 'resonance2';
       }
 

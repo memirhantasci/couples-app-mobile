@@ -12,8 +12,13 @@ const BLOCKED_WORDS = [
   'fuck', 'shit', 'bitch', 'asshole', 'cunt', 'dick', 'pussy', 'whore', 'slut', 'fag'
 ];
 
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
  * Verilen yıldız isminin yasaklı kelimeler içerip içermediğini kontrol eder.
+ * Türkçe karakter duyarlı sınır eşleme (Turkish-aware boundary regex) kullanır.
  * @param name Kullanıcının girdiği yıldız ismi
  * @returns { isValid: boolean; message?: string }
  */
@@ -22,11 +27,12 @@ export function moderateStarName(name: string): { isValid: boolean; message?: st
     return { isValid: false, message: 'İsim boş olamaz.' };
   }
 
-  const normalized = name.toLowerCase().trim();
+  const normalized = name.toLocaleLowerCase('tr-TR').trim();
 
   for (const word of BLOCKED_WORDS) {
-    // JavaScript RegExp word boundary (\b) kullanarak eşleşme
-    const regex = new RegExp(`\\b${word}\\b`, 'i');
+    const escaped = escapeRegex(word.toLocaleLowerCase('tr-TR'));
+    // Standart \b Türkçe karakterleri (ç, ğ, ı, ö, ş, ü) word character saymadığı için özel sınır kullanıyoruz
+    const regex = new RegExp(`(?:^|[^a-z0-9çğıöşü])${escaped}(?:$|[^a-z0-9çğıöşü])`, 'iu');
     if (regex.test(normalized)) {
       return { 
         isValid: false, 

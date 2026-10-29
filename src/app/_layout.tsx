@@ -3,7 +3,8 @@ import "../global.css";
 // Çok büyük sistem yazı boyutunda ekranlar bozulmasın: tüm metinlere büyüme sınırı koyar
 import "@/lib/fontScaleCap";
 import React, { useEffect, useEffectEvent, useRef } from "react";
-import { LogBox } from "react-native";
+import { LogBox, TurboModuleRegistry } from "react-native";
+import Constants from "expo-constants";
 import { Stack, router } from "expo-router";
 import * as Linking from "expo-linking";
 import * as SplashScreen from "expo-splash-screen";
@@ -55,6 +56,20 @@ installGlobalErrorReporting();
 configureAndroidNotificationChannel();
 
 bindQueryOnlineManager();
+
+const isExpoGo = Constants.appOwnership === "expo";
+const hasAdsModule =
+  typeof TurboModuleRegistry?.get === "function" &&
+  !!TurboModuleRegistry.get("RNGoogleMobileAdsModule");
+
+if (hasAdsModule && !isExpoGo) {
+  try {
+    const mobileAds = require("react-native-google-mobile-ads").default;
+    mobileAds()
+      .initialize()
+      .catch(() => {});
+  } catch {}
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {

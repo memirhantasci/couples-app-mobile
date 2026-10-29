@@ -159,9 +159,24 @@ export default function PairingScreen() {
     const code = status?.pairingCode;
     if (!code) return;
     const inviteLink = `couplesapp://invite?code=${code}`;
+    const shareMessage = [
+      "Sevgilim, ikimize özel küçük bir evren kurdum! 💌✨",
+      "",
+      "Eşleşme Kodumuz:",
+      code,
+      "",
+      "Nasıl bağlanacağız?",
+      "1. Couples App'i aç",
+      "2. 'Eşleşme Kodu' alanına yukarıdaki kodu yapıştır",
+      "3. Veya doğrudan şu bağlantıya dokun:",
+      inviteLink,
+      "",
+      "Seni çok seviyorum ❤️",
+    ].join("\n");
+
     await Share.share({
       title: "Couples App Daveti 💕",
-      message: `Sevgilim, ikimize özel küçük bir evren kurdum! 💌✨\n\nAramıza katılmak ve kilitleri açmak için hemen dokun:\n👉 ${inviteLink}\n\n(Eşleşme Kodumuz: ${code})\n\nSeni çok seviyorum ❤️`,
+      message: shareMessage,
       url: inviteLink,
     });
     // Davet gönderildi: partner katılınca haber alabilmek için bildirim iznini nazikçe iste

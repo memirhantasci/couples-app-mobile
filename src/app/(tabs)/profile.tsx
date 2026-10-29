@@ -127,18 +127,20 @@ export default function ProfileScreen() {
   const hasDatesChanges = isMeetDateChanged || isRelDateChanged;
 
   // Demo profili sunucuya gitmeden, ilk çizimde bir kez doldurulur
-  if (isDemoMode && !dataLoaded) {
-    const dName = DEMO_PROFILE.displayName ?? "Misafir (Demo)";
-    setDisplayName(dName);
-    setInitialDisplayName(dName);
-    setGender("female");
-    setInitialGender("female");
-    setMeetDate(DEMO_PROFILE.meetDate ?? "");
-    setInitialMeetDate(DEMO_PROFILE.meetDate ?? "");
-    setRelStartDate(DEMO_PROFILE.relationshipStartDate ?? "");
-    setInitialRelStartDate(DEMO_PROFILE.relationshipStartDate ?? "");
-    setDataLoaded(true);
-  }
+  React.useEffect(() => {
+    if (isDemoMode && !dataLoaded) {
+      const dName = DEMO_PROFILE.displayName ?? "Misafir (Demo)";
+      setDisplayName(dName);
+      setInitialDisplayName(dName);
+      setGender("female");
+      setInitialGender("female");
+      setMeetDate(DEMO_PROFILE.meetDate ?? "");
+      setInitialMeetDate(DEMO_PROFILE.meetDate ?? "");
+      setRelStartDate(DEMO_PROFILE.relationshipStartDate ?? "");
+      setInitialRelStartDate(DEMO_PROFILE.relationshipStartDate ?? "");
+      setDataLoaded(true);
+    }
+  }, [isDemoMode, dataLoaded]);
 
   // Verileri yükle
   React.useEffect(() => {
@@ -679,7 +681,6 @@ export default function ProfileScreen() {
                 }}
                 onSelectGender={(g) => {
                   setGender(g);
-                  setGlobalActiveTheme(g, themeMode);
                 }}
                 onSave={handleUpdateProfile}
               />

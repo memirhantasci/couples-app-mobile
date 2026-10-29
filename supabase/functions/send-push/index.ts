@@ -317,7 +317,7 @@ serve(async (req) => {
         partnerIntId = partner?.id ?? null;
       }
     }
-    else if (table === "couples" && type === "UPDATE" && record.is_paired === true) {
+    else if (table === "couples" && type === "UPDATE" && record.is_paired === true && oldRecord?.is_paired !== true) {
       const { data: coupleUsers } = await supabase.from("users").select("id").eq("couple_id", record.id);
       if (coupleUsers) {
         const allMsgs: any[] = [];

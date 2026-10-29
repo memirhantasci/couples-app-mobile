@@ -43,6 +43,10 @@ const fail = (status: number, error: string, extra: Record<string, unknown> = {}
   reply(status, { error, ...extra });
 
 function clientIp(req: Request): string {
+  const cf = req.headers.get("cf-connecting-ip");
+  if (cf && cf.trim()) return cf.trim();
+  const realIp = req.headers.get("x-real-ip");
+  if (realIp && realIp.trim()) return realIp.trim();
   return (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "unknown";
 }
 

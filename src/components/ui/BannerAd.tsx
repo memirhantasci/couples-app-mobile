@@ -22,7 +22,7 @@ if (hasAdsModule && !isExpoGo) {
   }
 }
 
-const adUnitId = __DEV__ ? (TestIds?.BANNER || "") : "ca-app-pub-xxxxxxxxxxxxxxxx/yyyyyyyyyy";
+const adUnitId = __DEV__ ? (TestIds?.BANNER || "") : (process.env.EXPO_PUBLIC_ADMOB_BANNER_ID || TestIds?.BANNER || "");
 
 export function BannerAd() {
   const { profile, session, isLoading } = useAuth();

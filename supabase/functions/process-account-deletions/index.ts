@@ -1,7 +1,7 @@
 // Süresi dolan hesap silme taleplerini işler (bkz. migrations/20261022000000_account_deletion.sql).
 //
 // Saatlik pg_cron işi bu fonksiyonu çağırır. Yalnızca `scheduled_for` zamanı geçmiş talepler
-// işlendiği için erken ya da tekrar çağrılması zararsızdır; JWT doğrulaması kapalı dağıtılır:
+// işlendiği için erken ya da tekrar çağrılması zararsızdır; yetkilendirme service_role veya webhook secret ile yapılır:
 //   supabase functions deploy process-account-deletions --no-verify-jwt
 //
 // Her talep için sıra:
@@ -84,6 +84,18 @@ async function deleteAccount(admin: SupabaseClient, userId: string): Promise<voi
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405 });
+  }
+
+  // Yetkilendirme kontrolü: Yalnızca service_role anahtarı ya da webhook secret kabul edilir
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const deletionSecret = Deno.env.get("DELETION_WEBHOOK_SECRET") ?? Deno.env.get("PUSH_WEBHOOK_SECRET");
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const webhookHeader = req.headers.get("x-webhook-secret");
+  const authorized =
+    (!!serviceKey && authHeader === `Bearer ${serviceKey}`) ||
+    (!!deletionSecret && webhookHeader === deletionSecret);
+  if (!authorized) {
+    return new Response("Unauthorized", { status: 401 });
   }
 
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {

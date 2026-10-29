@@ -5,19 +5,8 @@
  *
  * Tüm canvas bileşenleri ve tip tanımlamaları bu dosya üzerinden tüketilir.
  * Kullanım:
- *   import { MacroSkyCanvas, MicroSystemCanvas, createParticlePool } from '@/modules/stars/canvas';
+ *   import { MacroSkyCanvas, MicroSystemCanvas } from '@/modules/stars/canvas';
  */
-
-// ── Parçacık Havuzu (Zero-Allocation Particle Engine) ──────────────────────
-export {
-  ParticlePool,
-  createParticlePool,
-} from './ParticlePool';
-
-export type {
-  SpawnParticleOptions,
-  IExtendedParticlePool,
-} from './ParticlePool';
 
 // ── Makro Gökyüzü Canvas (Macro Sky Renderer) ──────────────────────────────
 export { MacroSkyCanvas } from './MacroSkyCanvas';

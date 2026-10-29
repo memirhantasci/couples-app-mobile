@@ -19,7 +19,7 @@ if (hasAdsModule && !isExpoGo) {
     AdEventType = ads.AdEventType;
     TestIds = ads.TestIds;
 
-    const adUnitId = __DEV__ ? TestIds.INTERSTITIAL : "ca-app-pub-xxxxxxxxxxxxxxxx/yyyyyyyyyy";
+    const adUnitId = __DEV__ ? (TestIds?.INTERSTITIAL || "") : (process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID || TestIds?.INTERSTITIAL || "");
     interstitial = InterstitialAd.createForAdRequest(adUnitId, {
       requestNonPersonalizedAdsOnly: true,
     });
