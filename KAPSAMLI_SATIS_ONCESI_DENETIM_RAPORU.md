@@ -19,6 +19,7 @@ Aşağıdaki liste, raporun geri kalanındaki açık maddelerin hepsini tek yerd
 - [ ] Auth panelinde minimum şifre uzunluğunu 8 yap; Site URL ve `couplesky` yönlendirmelerini (`couplesapp://`) kontrol et.
 - [ ] Pro plana geç (günlük yedek, proje duraklamaz, özel SMTP, sızdırılmış-şifre koruması); özel SMTP + e-posta şablonlarında `{{ .Token }}`.
 - [ ] `supabase db dump --schema public` ile taban şema migration'ını repoya ekle (O-6).
+- [ ] **3-2:** Push tetikleyicilerini ve 6 cron işini canlıda doğrula (bölüm 0.2'deki SQL), eksikleri migration'a dök.
 
 ### B. Güvenlik kararları (yayından önce)
 - [ ] **K-1:** `set_premium_status` şu an giriş yapan herkese açık ve `FREEMIRHAN`/`DELETEMIRHAN` korunuyor (test için bilinçli). Yayından önce: RPC'yi `service_role`'e kapat, `FREEMIRHAN` kodunu pasifleştir, arka kapı dallarını `PromoCodeCard.tsx`'ten sil.
@@ -42,12 +43,43 @@ Aşağıdaki liste, raporun geri kalanındaki açık maddelerin hepsini tek yerd
 - [ ] Tüm akışlarda gerçek cihaz testi: oturum, harita, bildirim, yıldız açılışı.
 
 ### F. Küçük ve bilinçli açık kalanlar
+- [ ] **3-1 Reklam yerleşimi:** banner/geçiş reklamları hiçbir ekranda yok; yerleşim ekle ya da paywall'daki "Reklamsız Deneyim" maddesini kaldır.
 - [ ] `icon.png` sol üstündeki silik çerçeve hayaleti (elle temizlenmeli); 22 ikon düğmesinde belirsiz erişilebilirlik etiketi (O-8).
 - [ ] Sentry / native çökme izleme (hesap gerekir, O-4).
 - [ ] 62 lint uyarısı (çoğu bilinçli: yerel modüller için `require`, kasıtlı hook bağımlılıkları).
 - [ ] Büyük dosyalar (`OurStarScreen.tsx` 2519 satır vb.) bölünmedi.
 - [ ] Repo geçmişindeki `.env` / `google-services.json` (repo gizli olduğundan bilinçli olarak atlandı).
 - [ ] Hesap silinince partnerin onayı istenmiyor (karar: bilgilendirme var, onay yok).
+
+---
+
+## 0.2 Üçüncü tur tarama (30 Ekim 2026)
+
+Bu tur daha önce bakılmamış hata sınıflarına bakıldı: saat dilimi kayması, önbellek anahtarı uyuşmazlığı, sahipsiz modüller, migration'ların elle gözden geçirilmesi, CI uyumu. `tsc` 0 hata, **20 birim test** geçiyor (yeni: `premiumSync`, `joinCouple`), `npm ci` kilit dosyası uyumlu.
+
+| # | Bulgu | Önem | Durum |
+| :-: | :--- | :-: | :--- |
+| 3-1 | **Banner ve geçiş reklamları hiçbir ekrana bağlı değil.** `BannerAd` bileşeni ve `useInterstitialAd` kancası hiçbir yerden içe aktarılmıyor; tek reklam akışı ödüllü reklam (`WatchAdModal`). Paywall ise "Reklamsız Deneyim" vaat ediyor | **P1** | **Açık, karar gerekli:** ya yerleşim eklenir (ana sayfa/liste altına banner, belirli eylemler sonrası geçiş reklamı; kod ve rıza akışı hazır) ya da paywall'dan "reklamsız" maddesi kaldırılır. Aksi halde var olmayan bir özellik satılıyor |
+| 3-2 | **Push tetikleyicileri ve 6 push cron işi repoda yok.** `send-push` şu tablolar için DB webhook'u bekliyor: `letters, medicine_logs, moods, period_logs, meetings, memories, calendar_notes`; ayrıca cron işleri `medicine_reminder, period_reminder, letter_unlock, meeting_reminder, anniversary_reminder, inactivity_reminder`. Hiçbirinin `CREATE TRIGGER` / `cron.schedule` kaydı migration'larda yok (yalnızca `invoke_push_webhook` ve `invoke_cron_edge_function` fonksiyonları ve `account_deletion`/yıldız cron'ları var). Panelden elle kurulduysa çalışır, ama yeniden kurulamaz ve yanlış/eksik olabilir | **P1** | **Açık.** Canlıda doğrula (aşağıdaki sorgu); eksik olanları ve gerçek saatleri bir migration'a dök |
+| 3-3 | Mektup açılışı `unlock_date` gününün **00:00 UTC**'sinde (Türkiye'de 03:00). Ana sayfa ve push "bugün açıldı" hesabı da UTC'ye göre, yani tutarlı ama kullanıcı gece yarısı bekler | P3 | Belgelenmiş bilinçli karar; ürün notu. İstenirse alıcının saat dilimine göre açılış eklenebilir |
+| 3-4 | Sahipsiz dosyalar: `PageHeader.tsx`, `NotificationShowcaseModal.tsx`, `StarConnectionsModal.tsx` (yalnızca bir barrel dosyasında geçiyor), `BannerAd*`, `useInterstitialAd*` | P3 | Bundle'a girmez; temizlik ya da 3-1 ile bağlanır |
+| 3-5 | Bildirim sonrası yenilenen `daily_notes` anahtarı gerçek sorgu anahtarı `daily_notes_history` ile eşleşmiyor | P3 | Etkisiz (günlük için bilerek bildirim yok) |
+
+**3-2 için canlı veritabanında doğrulama (Supabase → SQL Editor):**
+```sql
+-- Push webhook tetikleyicileri
+select event_object_table, trigger_name, event_manipulation
+from information_schema.triggers
+where action_statement ilike '%invoke_push_webhook%'
+order by 1, 2;
+
+-- Zamanlanmış işler
+select jobid, jobname, schedule, active, left(command, 90) as command
+from cron.job order by jobname;
+```
+Beklenen: yukarıdaki yedi tabloda birer tetikleyici ve altı push işi (`CRON` gövdeli `invoke_cron_edge_function` çağrıları). Eksik olan her şey o özelliğin bildirimi hiç gitmediği anlamına gelir. Sonucu paylaşırsan eksikleri migration olarak yazarım.
+
+**Doğrulanan ve sorun çıkmayanlar:** çıkış akışı (önbellek, widget, yerel hatırlatıcılar ve push kaydı temizleniyor), parola yöneticisi öznitelikleri, istemci metin uzunlukları ile DB kısıtları uyumlu (şifreli içerik üst sınırı 30 bin karakter), CI kilit dosyası uyumu, yeni migration'ların elle gözden geçirilmesi.
 
 ---
 
