@@ -18,7 +18,7 @@ import {
 } from './meteorSchedule';
 import type { SkyOverlay } from './skyOverlay';
 import { pxPerDegree, shortestRaDelta, type SkyCamera } from './skyProjection';
-import { colorOf, STAR_FADE_MS, type StarField, type StarRender } from './starField';
+import { colorOf, glowShader, STAR_FADE_MS, type StarField, type StarRender } from './starField';
 import {
   MAGNITUDE_FADE,
   MAX_STAR_BASE_RADIUS_PX,
@@ -71,6 +71,10 @@ const FIREBALL_TINT = '#FFE2B3';
 export interface StarPaints {
   readonly fill: SkPaint;
   readonly stroke: SkPaint;
+  /** Soft star glows: a palette glow shader drawn scaled to the glow's reach. */
+  readonly glow: SkPaint;
+  /** White glow for the hot centre of active stars. */
+  readonly whiteGlow: SkShader;
   readonly white: Float32Array;
   readonly gold: Float32Array;
   readonly purple: Float32Array;
@@ -129,6 +133,9 @@ export function createStarPaints(): StarPaints {
   stroke.setAntiAlias(true);
   stroke.setStyle(1);
   stroke.setStrokeWidth(1.25);
+  const glow = Skia.Paint();
+  glow.setAntiAlias(true);
+  glow.setDither(true);
   const paleGold = colorOf('#FDE68A', 1);
 
   const connectionLine = Skia.Paint();
@@ -163,6 +170,8 @@ export function createStarPaints(): StarPaints {
   return {
     fill,
     stroke,
+    glow,
+    whiteGlow: glowShader('#FFFFFF'),
     white: colorOf('#FFFFFF', 1),
     gold: colorOf('#F59E0B', 1),
     purple: colorOf('#A855F7', 1),
@@ -242,6 +251,30 @@ interface StarFrameStyle {
 }
 
 /**
+ * A soft round glow centred on x/y that fades out at `reach` pixels. Glows
+ * used to be flat discs stacked at a few alphas, whose edges read as rings.
+ */
+function drawGlow(
+  canvas: SkCanvas,
+  paint: SkPaint,
+  shader: SkShader,
+  x: number,
+  y: number,
+  reach: number,
+  alpha: number,
+) {
+  'worklet';
+  if (alpha <= 0.005 || reach <= 0) return;
+  paint.setShader(shader);
+  paint.setAlphaf(Math.min(1, alpha));
+  canvas.save();
+  canvas.translate(x, y);
+  canvas.scale(reach, reach);
+  canvas.drawCircle(0, 0, 1, paint);
+  canvas.restore();
+}
+
+/**
  * One star at screen position x/y. The look follows the previous renderer's
  * low/medium/high styles, but blends them with zoom instead of switching.
  */
@@ -249,6 +282,7 @@ function drawStar(
   canvas: SkCanvas,
   paints: StarPaints,
   rgb: Float32Array,
+  glowShader: SkShader | undefined,
   star: StarRender,
   x: number,
   y: number,
@@ -264,37 +298,33 @@ function drawStar(
   // faint baseline glow that fades in from medium zoom; close in, the halo
   // below takes over.
   const glow = star.luminosity * (star.claimed ? 1 : style.glow * 0.6) * (1 - detail);
-  fill.setColor(rgb);
 
-  if (detail > 0.01 && star.claimed && !star.resonance) {
-    fill.setAlphaf(0.4 * star.luminosity * detail * opacity);
-    canvas.drawCircle(x, y, r + 14, fill);
-  }
-  if (glow > 0.01) {
-    const outerHaloR = star.claimed ? r * 2.5 : r * 1.4;
-    const innerHaloR = star.claimed ? r * 1.6 : r * 1.2;
-    fill.setAlphaf((star.claimed ? 0.25 : 0.12) * glow * opacity);
-    canvas.drawCircle(x, y, outerHaloR, fill);
-    fill.setAlphaf((star.claimed ? 0.45 : 0.25) * glow * opacity);
-    canvas.drawCircle(x, y, innerHaloR, fill);
-  }
-  if (detail > 0.01) {
-    const detailHaloR = star.claimed ? r * 2.2 : r * 1.3;
-    fill.setAlphaf(star.alpha * (star.claimed ? 0.45 : 0.18) * detail * opacity);
-    canvas.drawCircle(x, y, detailHaloR, fill);
+  if (glowShader) {
+    if (detail > 0.01 && star.claimed && !star.resonance) {
+      drawGlow(canvas, paints.glow, glowShader, x, y, r + 18, 0.4 * star.luminosity * detail * opacity);
+    }
+    if (glow > 0.01) {
+      const reach = star.claimed ? r * 2.8 : r * 1.9;
+      drawGlow(canvas, paints.glow, glowShader, x, y, reach, (star.claimed ? 0.6 : 0.35) * glow * opacity);
+    }
+    if (detail > 0.01) {
+      const reach = star.claimed ? r * 2.6 : r * 1.7;
+      const alpha = star.alpha * (star.claimed ? 0.5 : 0.22) * detail * opacity;
+      drawGlow(canvas, paints.glow, glowShader, x, y, reach, alpha);
+    }
   }
   // Far out, resonating stars show only their rings (as before).
   const core = star.resonance ? style.glow : 1;
   if (core > 0.01) {
+    fill.setColor(rgb);
     fill.setAlphaf(star.alpha * core * opacity);
     canvas.drawCircle(x, y, r, fill);
   }
   // Only activity heats a star's centre white; unclaimed stars have none.
   const heat = starActivity(star.luminosity);
   if (detail > 0.01 && heat > 0.01) {
-    fill.setColor(paints.white);
-    fill.setAlphaf(Math.min(1, star.alpha * 1.2) * heat * detail * opacity);
-    canvas.drawCircle(x, y, Math.max(1, r * 0.35), fill);
+    const alpha = Math.min(1, star.alpha * 1.2) * heat * detail * opacity;
+    drawGlow(canvas, paints.glow, paints.whiteGlow, x, y, Math.max(1.5, r * 0.7), alpha);
   }
   if (star.resonance) {
     stroke.setColor(paints.gold);
@@ -349,7 +379,7 @@ function drawStars(
       const y = height / 2 - (star.dec - camera.dec) * scale;
       const reach = star.radius * style.zoomBonus * 2.5 + STAR_REACH_PX;
       if (x < -reach || x > width + reach || y < -reach || y > height + reach) continue;
-      drawStar(canvas, paints, field.palette[star.color], star, x, y, opacity, style);
+      drawStar(canvas, paints, field.palette[star.color], field.glows[star.color], star, x, y, opacity, style);
     }
   }
 }

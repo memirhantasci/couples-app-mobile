@@ -142,6 +142,8 @@ function strokePaint(color: string, width: number) {
 function glowPaint(color: string, radius: number, stops: readonly number[], alphas: readonly number[]) {
   const paint = Skia.Paint();
   paint.setAntiAlias(true);
+  // Faint glows span few 8-bit steps; dithering keeps them from banding into rings.
+  paint.setDither(true);
   const shader = Skia.Shader.MakeRadialGradient(
     Skia.Point(0, 0),
     radius,
@@ -350,6 +352,7 @@ export function createStaticOverlayAssets(width: number, height: number): Static
   const sunMarker = record((canvas) => {
     const corona = Skia.Paint();
     corona.setAntiAlias(true);
+    corona.setDither(true);
     const shader = Skia.Shader.MakeRadialGradient(
       Skia.Point(0, 0),
       2.8,

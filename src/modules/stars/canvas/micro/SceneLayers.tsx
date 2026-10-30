@@ -97,7 +97,7 @@ export const SpaceBackdrop = React.memo(function SpaceBackdrop({
 
       {/* Bulutsular: mor (sol üst), gül (sağ alt), buz mavisi (sağ üst) */}
       <Group opacity={nebulaBreath}>
-        <Circle cx={w * 0.06} cy={h * 0.2} r={w * 0.78}>
+        <Circle cx={w * 0.06} cy={h * 0.2} r={w * 0.78} dither>
           <RadialGradient
             c={vec(w * 0.06, h * 0.2)}
             r={w * 0.78}
@@ -105,7 +105,7 @@ export const SpaceBackdrop = React.memo(function SpaceBackdrop({
             positions={[0, 0.45, 1]}
           />
         </Circle>
-        <Circle cx={w * 0.98} cy={h * 0.82} r={w * 0.8}>
+        <Circle cx={w * 0.98} cy={h * 0.82} r={w * 0.8} dither>
           <RadialGradient
             c={vec(w * 0.98, h * 0.82)}
             r={w * 0.8}
@@ -113,7 +113,7 @@ export const SpaceBackdrop = React.memo(function SpaceBackdrop({
             positions={[0, 0.45, 1]}
           />
         </Circle>
-        <Circle cx={w * 0.9} cy={h * 0.08} r={w * 0.56}>
+        <Circle cx={w * 0.9} cy={h * 0.08} r={w * 0.56} dither>
           <RadialGradient
             c={vec(w * 0.9, h * 0.08)}
             r={w * 0.56}
@@ -169,7 +169,7 @@ export const OrbitPlane = React.memo(function OrbitPlane({ layout, zones, tilt, 
 
   return (
     <Group transform={transform} opacity={opacity}>
-      <Circle cx={0} cy={0} r={discRadius}>
+      <Circle cx={0} cy={0} r={discRadius} dither>
         <RadialGradient
           c={vec(0, 0)}
           r={discRadius}
@@ -284,7 +284,7 @@ export const SoulBody = React.memo(function SoulBody({ index, souls, color, laye
 
   return (
     <Group transform={transform} opacity={opacity}>
-      <Circle cx={0} cy={0} r={glow}>
+      <Circle cx={0} cy={0} r={glow} dither>
         <RadialGradient
           c={vec(0, 0)}
           r={glow}
@@ -360,7 +360,7 @@ export const StarCore = React.memo(function StarCore({
   return (
     <Group transform={transform}>
       {/* Geniş ışıma */}
-      <Circle cx={0} cy={0} r={R * 6}>
+      <Circle cx={0} cy={0} r={R * 6} dither>
         <RadialGradient
           c={vec(0, 0)}
           r={R * 6}
@@ -371,7 +371,7 @@ export const StarCore = React.memo(function StarCore({
 
       {/* Kırınım hüzmeleri */}
       <Group transform={spikeTransform}>
-        <Path path={spikes}>
+        <Path path={spikes} dither>
           <RadialGradient
             c={vec(0, 0)}
             r={spikeLength}
@@ -379,7 +379,7 @@ export const StarCore = React.memo(function StarCore({
             positions={[0, 0.22, 1]}
           />
         </Path>
-        <Path path={minorSpikes}>
+        <Path path={minorSpikes} dither>
           <RadialGradient
             c={vec(0, 0)}
             r={minorSpikeLength}
@@ -390,7 +390,7 @@ export const StarCore = React.memo(function StarCore({
       </Group>
 
       {/* Korona */}
-      <Circle cx={0} cy={0} r={R * 2.6}>
+      <Circle cx={0} cy={0} r={R * 2.6} dither>
         <RadialGradient
           c={vec(0, 0)}
           r={R * 2.6}
@@ -400,7 +400,7 @@ export const StarCore = React.memo(function StarCore({
       </Circle>
 
       {/* Çekirdek */}
-      <Circle cx={0} cy={0} r={R}>
+      <Circle cx={0} cy={0} r={R} dither>
         <RadialGradient
           c={vec(-R * 0.18, -R * 0.22)}
           r={R * 1.25}
@@ -433,7 +433,7 @@ export const StarCore = React.memo(function StarCore({
       </Circle>
 
       {/* Kıvılcım anındaki parlama */}
-      <Circle cx={0} cy={0} r={R * 3.4} opacity={flash}>
+      <Circle cx={0} cy={0} r={R * 3.4} opacity={flash} dither>
         <RadialGradient
           c={vec(0, 0)}
           r={R * 3.4}

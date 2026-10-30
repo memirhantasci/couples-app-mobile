@@ -1,5 +1,7 @@
+import type { SkShader } from '@shopify/react-native-skia';
 import { Easing, withTiming, type SharedValue } from 'react-native-reanimated';
 import type { ViewportStarItem } from '../../types/star.types';
+import { isSkiaAvailable, Skia } from '../skiaBridge';
 import { normalizeRa } from './skyProjection';
 import { starBaseRadius, starCoreAlpha, starLight, UNCLAIMED_STAR_BRIGHTNESS } from './starStyle';
 
@@ -48,9 +50,11 @@ export interface StarField {
   readonly cells: readonly StarCell[];
   /** Opaque RGB colours (alpha is set per circle while drawing). */
   readonly palette: readonly Float32Array[];
+  /** Soft glow of each palette colour (see glowShader); empty without Skia. */
+  readonly glows: readonly SkShader[];
 }
 
-export const EMPTY_STAR_FIELD: StarField = { cells: [], palette: [] };
+export const EMPTY_STAR_FIELD: StarField = { cells: [], palette: [], glows: [] };
 
 // ─── Colours ───────────────────────────────────────────────────────────────
 
@@ -70,6 +74,24 @@ export function colorOf(hex: string, alpha: number): Float32Array {
   'worklet';
   const [r, g, b] = rgbOf(hex);
   return Float32Array.of(r, g, b, Math.max(0, Math.min(1, alpha)));
+}
+
+/** Gaussian-like falloff of a glow, from its centre (0) to its edge (1). */
+const GLOW_STOPS = [0, 0.25, 0.5, 0.75, 1];
+const GLOW_ALPHAS = [1, 0.7, 0.32, 0.1, 0];
+
+/**
+ * A unit-radius glow in a colour, drawn scaled to each star's reach. It fades
+ * smoothly to nothing; stacked flat discs left hard edges that read as rings.
+ */
+export function glowShader(hex: string): SkShader {
+  return Skia.Shader.MakeRadialGradient(
+    Skia.Point(0, 0),
+    1,
+    GLOW_ALPHAS.map((alpha) => colorOf(hex, alpha)),
+    GLOW_STOPS,
+    0,
+  );
 }
 
 // ─── Builder ───────────────────────────────────────────────────────────────
@@ -94,11 +116,22 @@ export class StarFieldBuilder {
   private readonly fadeClock: SharedValue<number>;
   private bornAt = new Map<number, number>();
   private stars: readonly ViewportStarItem[] = [];
+  /** Glow shaders are native objects: one per colour, kept across rebuilds. */
+  private readonly glowByHex = new Map<string, SkShader>();
   readonly stats: StarFieldStats = { stars: 0, lastBuildMs: 0 };
 
   constructor(field: SharedValue<StarField>, fadeClock: SharedValue<number>) {
     this.field = field;
     this.fadeClock = fadeClock;
+  }
+
+  private glowFor(hex: string): SkShader {
+    let shader = this.glowByHex.get(hex);
+    if (!shader) {
+      shader = glowShader(hex);
+      this.glowByHex.set(hex, shader);
+    }
+    return shader;
   }
 
   setStars(stars: readonly ViewportStarItem[]) {
@@ -107,6 +140,7 @@ export class StarFieldBuilder {
     const startedAt = performance.now();
     const now = Date.now();
     const palette: Float32Array[] = [];
+    const glows: SkShader[] = [];
     const paletteIndex = new Map<string, number>();
     const cells = new Map<number, StarRender[]>();
     const nextBornAt = new Map<number, number>();
@@ -119,6 +153,7 @@ export class StarFieldBuilder {
       if (color === undefined) {
         color = palette.length;
         palette.push(colorOf(hex, 1));
+        if (isSkiaAvailable) glows.push(this.glowFor(hex));
         paletteIndex.set(hex, color);
       }
 
@@ -163,7 +198,7 @@ export class StarFieldBuilder {
       });
     }
 
-    this.field.set({ cells: published, palette });
+    this.field.set({ cells: published, palette, glows });
     if (fading) {
       // One shared clock drives every fade; it only ticks while stars fade in.
       this.fadeClock.set(now);
