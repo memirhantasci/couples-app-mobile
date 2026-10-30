@@ -32,6 +32,7 @@
   "submit": {
     "production": {
       "ios": {
+        "ascAppId": "6829036716",
         "ascApiKeyPath": "./AuthKey_C4MPCWN52W.p8",
         "ascApiKeyId": "C4MPCWN52W",
         "ascApiKeyIssuerId": "0cd27195-96af-484a-af0b-c65300ea196b"
