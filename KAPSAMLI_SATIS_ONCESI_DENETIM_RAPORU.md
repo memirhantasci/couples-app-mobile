@@ -14,12 +14,12 @@
 Aşağıdaki liste, raporun geri kalanındaki açık maddelerin hepsini tek yerde toplar. Kodla biten her şey commit'lendi; burada yalnızca **senin yapman gerekenler** ve **bilinçli açık bırakılanlar** var.
 
 ### A. Supabase (canlı veritabanı ve function'lar)
-- [ ] Migration'ları sırayla SQL Editor'de çalıştır: `20261029000000_star_wishes` (daha önce bekliyordu), `20261030000000_audit_hardening`, `20261030000001_pairing_rate_limit`, `20261030000002_partner_notices`. Daha önce teyit edilmemiş olanlar: `20261024000000`, `20261024000001`.
+- [ ] Migration'ları sırayla SQL Editor'de çalıştır: `20261029000000_star_wishes` (daha önce bekliyordu), `20261030000000_audit_hardening`, `20261030000001_pairing_rate_limit`, `20261030000002_partner_notices`, `20261030000003_letters_istanbul_midnight`, `20261030000004_push_triggers_and_crons`. Daha önce teyit edilmemiş olanlar: `20261024000000`, `20261024000001`.
 - [ ] Function'ları deploy et: `revenuecat-webhook` (yeni, `--no-verify-jwt`, `REVENUECAT_WEBHOOK_SECRET` tanımla), `auth-gateway` (min şifre 8), `send-push` (ölü token temizliği + partner bildirimleri).
 - [ ] Auth panelinde minimum şifre uzunluğunu 8 yap; Site URL ve `couplesky` yönlendirmelerini (`couplesapp://`) kontrol et.
 - [ ] Pro plana geç (günlük yedek, proje duraklamaz, özel SMTP, sızdırılmış-şifre koruması); özel SMTP + e-posta şablonlarında `{{ .Token }}`.
 - [ ] `supabase db dump --schema public` ile taban şema migration'ını repoya ekle (O-6).
-- [ ] **3-2:** Push tetikleyicilerini ve 6 cron işini canlıda doğrula (bölüm 0.2'deki SQL), eksikleri migration'a dök.
+- [ ] **3-2:** `20261030000004` mevcut push tetikleyicilerini ve send-push cron işlerini silip yeniden kurar; çalıştırmadan önce canlıdaki iş saatlerini not al (yeni saatler: ilaç her dakika, mektup 00:01 TR, regl/yıldönümü 09:00 TR, buluşma 10 dk, hareketsizlik 18:00 TR). **Altı `get_*_reminders` RPC'sinin canlıda var olduğunu doğrula** (bölüm 0.2'deki sorgu) ve tanımlarını repoya al.
 
 ### B. Güvenlik kararları (yayından önce)
 - [ ] **K-1:** `set_premium_status` şu an giriş yapan herkese açık ve `FREEMIRHAN`/`DELETEMIRHAN` korunuyor (test için bilinçli). Yayından önce: RPC'yi `service_role`'e kapat, `FREEMIRHAN` kodunu pasifleştir, arka kapı dallarını `PromoCodeCard.tsx`'ten sil.
@@ -28,7 +28,7 @@ Aşağıdaki liste, raporun geri kalanındaki açık maddelerin hepsini tek yerd
 
 ### C. Hesaplar, kimlikler, ortam
 - [ ] Yeni paket adı `app.couplesky.mobile`: Firebase'de yeni Android uygulaması + `google-services.json` (EAS'te `GOOGLE_SERVICES_JSON`), Maps anahtarı paket/SHA-1 kısıtları, Supabase/Google/Apple OAuth, RevenueCat uygulama kaydı, Sign in with Apple servis kimliği.
-- [ ] EAS production ortamı: `EXPO_PUBLIC_ADMOB_BANNER_ID`, `..._INTERSTITIAL_ID`, `..._REWARDED_ID` (yoksa reklam gösterilmez), RevenueCat anahtarları (Apple + Google), isteğe bağlı `EXPO_PUBLIC_GEOCODE_URL` / `_KEY`. AdMob panelinde UMP rıza mesajını yayınla.
+- [ ] EAS production ortamı: `EXPO_PUBLIC_ADMOB_REWARDED_ID` (banner/geçiş reklamı kaldırıldı; birim kimliği yoksa ödüllü reklam da gösterilmez), RevenueCat anahtarları (Apple + Google), isteğe bağlı `EXPO_PUBLIC_GEOCODE_URL` / `_KEY`. AdMob panelinde UMP rıza mesajını yayınla.
 - [ ] RevenueCat → Integrations → Webhooks: adres + Authorization değeri.
 - [ ] Apple Developer, Google Play Console (kapalı test 12 tester / 14 gün, mağaza ilanı, Data safety, reklam beyanı, içerik derecelendirme, hesap silme URL'si, test hesabı), abonelik ürünleri.
 
@@ -43,7 +43,9 @@ Aşağıdaki liste, raporun geri kalanındaki açık maddelerin hepsini tek yerd
 - [ ] Tüm akışlarda gerçek cihaz testi: oturum, harita, bildirim, yıldız açılışı.
 
 ### F. Küçük ve bilinçli açık kalanlar
-- [ ] **3-1 Reklam yerleşimi:** banner/geçiş reklamları hiçbir ekranda yok; yerleşim ekle ya da paywall'daki "Reklamsız Deneyim" maddesini kaldır.
+- [x] ~~3-1 Reklam yerleşimi~~: banner/geçiş reklamı olmayacak; kod ve "reklamsız" vaadi kaldırıldı.
+- [ ] **Sahipsiz dosyalar (3-4):** `src/components/ui/PageHeader.tsx`, `src/components/notifications/NotificationShowcaseModal.tsx`, `src/modules/stars/components/StarConnectionsModal.tsx` (yalnızca barrel `index.ts`'te geçiyor). Silinebilir, hiçbir yerde kullanılmıyor.
+- [ ] **Önbellek anahtarı (3-5):** `src/lib/notificationQueries.ts` içindeki `daily_notes` anahtarı gerçek sorgu anahtarı `daily_notes_history` ile eşleşmiyor. Etkisiz (günlük için bilerek bildirim yok); ileride günlük bildirimi eklenirse anahtarı düzelt.
 - [ ] `icon.png` sol üstündeki silik çerçeve hayaleti (elle temizlenmeli); 22 ikon düğmesinde belirsiz erişilebilirlik etiketi (O-8).
 - [ ] Sentry / native çökme izleme (hesap gerekir, O-4).
 - [ ] 62 lint uyarısı (çoğu bilinçli: yerel modüller için `require`, kasıtlı hook bağımlılıkları).
@@ -59,9 +61,9 @@ Bu tur daha önce bakılmamış hata sınıflarına bakıldı: saat dilimi kayma
 
 | # | Bulgu | Önem | Durum |
 | :-: | :--- | :-: | :--- |
-| 3-1 | **Banner ve geçiş reklamları hiçbir ekrana bağlı değil.** `BannerAd` bileşeni ve `useInterstitialAd` kancası hiçbir yerden içe aktarılmıyor; tek reklam akışı ödüllü reklam (`WatchAdModal`). Paywall ise "Reklamsız Deneyim" vaat ediyor | **P1** | **Açık, karar gerekli:** ya yerleşim eklenir (ana sayfa/liste altına banner, belirli eylemler sonrası geçiş reklamı; kod ve rıza akışı hazır) ya da paywall'dan "reklamsız" maddesi kaldırılır. Aksi halde var olmayan bir özellik satılıyor |
-| 3-2 | **Push tetikleyicileri ve 6 push cron işi repoda yok.** `send-push` şu tablolar için DB webhook'u bekliyor: `letters, medicine_logs, moods, period_logs, meetings, memories, calendar_notes`; ayrıca cron işleri `medicine_reminder, period_reminder, letter_unlock, meeting_reminder, anniversary_reminder, inactivity_reminder`. Hiçbirinin `CREATE TRIGGER` / `cron.schedule` kaydı migration'larda yok (yalnızca `invoke_push_webhook` ve `invoke_cron_edge_function` fonksiyonları ve `account_deletion`/yıldız cron'ları var). Panelden elle kurulduysa çalışır, ama yeniden kurulamaz ve yanlış/eksik olabilir | **P1** | **Açık.** Canlıda doğrula (aşağıdaki sorgu); eksik olanları ve gerçek saatleri bir migration'a dök |
-| 3-3 | Mektup açılışı `unlock_date` gününün **00:00 UTC**'sinde (Türkiye'de 03:00). Ana sayfa ve push "bugün açıldı" hesabı da UTC'ye göre, yani tutarlı ama kullanıcı gece yarısı bekler | P3 | Belgelenmiş bilinçli karar; ürün notu. İstenirse alıcının saat dilimine göre açılış eklenebilir |
+| 3-1 | **Banner ve geçiş reklamları hiçbir ekrana bağlı değil.** `BannerAd` bileşeni ve `useInterstitialAd` kancası hiçbir yerden içe aktarılmıyor; tek reklam akışı ödüllü reklam (`WatchAdModal`). Paywall ise "Reklamsız Deneyim" vaat ediyor | **P1** | **Kapandı (karar: banner/geçiş reklamı olmayacak).** `BannerAd` ve `useInterstitialAd` (+ `adFlags`) silindi; paywall'dan, `PremiumPaywall`'dan, yasal abonelik metninden (TR/EN) ve çeviri dosyalarından "reklamsız" vaadi kaldırıldı. Ödüllü reklam (token) kalıyor |
+| 3-2 | **Push tetikleyicileri ve 6 push cron işi repoda yok.** `send-push` şu tablolar için DB webhook'u bekliyor: `letters, medicine_logs, moods, period_logs, meetings, memories, calendar_notes`; ayrıca cron işleri `medicine_reminder, period_reminder, letter_unlock, meeting_reminder, anniversary_reminder, inactivity_reminder`. Hiçbirinin `CREATE TRIGGER` / `cron.schedule` kaydı migration'larda yok (yalnızca `invoke_push_webhook` ve `invoke_cron_edge_function` fonksiyonları ve `account_deletion`/yıldız cron'ları var). Panelden elle kurulduysa çalışır, ama yeniden kurulamaz ve yanlış/eksik olabilir | **P1** | **Migration yazıldı:** `20261030000004_push_triggers_and_crons.sql` yedi tablo için tetikleyicileri ve altı cron işini kurar (mevcut push tetikleyici/cron kayıtlarını silip tek sürümle yeniden kurar, çift bildirim olmaz). `send-push` tekrar gönderimi `push_dedupe` ile önler. **Hâlâ açık:** altı hatırlatıcı RPC'si (`get_*_reminders`) repoda yok, canlıda varlığı doğrulanmalı ve repoya dökülmeli (aşağıdaki sorgu) |
+| 3-3 | Mektup açılışı `unlock_date` gününün **00:00 UTC**'sinde (Türkiye'de 03:00) idi; karar: **Türkiye saatiyle 00:00** olacak | P2 | **Kapandı:** migration `20261030000003_letters_istanbul_midnight.sql` (`public.app_today()`, `letter_unlock_at`, mektup RLS politikası, `set_letter_hidden`, `request/respond_letter_deletion`, `get_my_pending_letter_unlocks`). İstemci (`letterPolicy`, `letterArrival`, ana sayfa) ve `send-push` aynı kurala çekildi, 4 birim test. Açılış her yıl aynı saattir (Türkiye'de yaz saati yok) |
 | 3-4 | Sahipsiz dosyalar: `PageHeader.tsx`, `NotificationShowcaseModal.tsx`, `StarConnectionsModal.tsx` (yalnızca bir barrel dosyasında geçiyor), `BannerAd*`, `useInterstitialAd*` | P3 | Bundle'a girmez; temizlik ya da 3-1 ile bağlanır |
 | 3-5 | Bildirim sonrası yenilenen `daily_notes` anahtarı gerçek sorgu anahtarı `daily_notes_history` ile eşleşmiyor | P3 | Etkisiz (günlük için bilerek bildirim yok) |
 
@@ -77,7 +79,16 @@ order by 1, 2;
 select jobid, jobname, schedule, active, left(command, 90) as command
 from cron.job order by jobname;
 ```
-Beklenen: yukarıdaki yedi tabloda birer tetikleyici ve altı push işi (`CRON` gövdeli `invoke_cron_edge_function` çağrıları). Eksik olan her şey o özelliğin bildirimi hiç gitmediği anlamına gelir. Sonucu paylaşırsan eksikleri migration olarak yazarım.
+Beklenen: yukarıdaki yedi tabloda birer tetikleyici ve altı push işi. Yeni migration bunları zaten (yeniden) kurar; asıl doğrulanacak şey **hatırlatıcı RPC'lerinin canlıda var olması**:
+
+```sql
+select proname, pg_get_function_arguments(oid) as args
+from pg_proc
+where pronamespace = 'public'::regnamespace
+  and proname in ('get_active_medicine_reminders','get_active_period_reminders','get_letter_unlock_reminders',
+                  'get_upcoming_meeting_reminders','get_anniversary_reminders','get_inactivity_reminders');
+```
+Altı satır gelmelidir. Gelmeyen RPC'nin bildirimi sessizce hiç gitmez. Varsa tanımlarını (`select pg_get_functiondef(oid) ...`) paylaş ya da `supabase db dump` ile repoya al; yoksa yazarım (tablo şemaları repoda olmadığından canlı şema gerekir).
 
 **Doğrulanan ve sorun çıkmayanlar:** çıkış akışı (önbellek, widget, yerel hatırlatıcılar ve push kaydı temizleniyor), parola yöneticisi öznitelikleri, istemci metin uzunlukları ile DB kısıtları uyumlu (şifreli içerik üst sınırı 30 bin karakter), CI kilit dosyası uyumu, yeni migration'ların elle gözden geçirilmesi.
 

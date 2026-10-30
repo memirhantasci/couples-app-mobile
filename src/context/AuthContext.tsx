@@ -9,7 +9,6 @@ import { clearSharedSkyTiles } from "@/modules/stars/hooks/useSkyTileStream";
 import React, { createContext, useCallback, useContext, useEffect, useEffectEvent, useState, useMemo, useRef } from "react";
 import { clearEncryptionKey, hasEncryptionKey, onEncryptionKeyChange, setCoupleEncryptionKey } from "@/utils/crypto";
 import { clearStorageImages } from "@/lib/storageImages";
-import { setAdLoggingOut } from "../utils/adFlags";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { getOrCreateDeviceId } from "@/utils/device";
 import { isDatesSkipped } from "@/lib/datesSkip";
@@ -475,7 +474,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (profileFetchedForUser.current !== newSession.user.id && !hasProfileRef.current) {
           setIsLoading(true);
         }
-        setAdLoggingOut(false);
         // For TOKEN_REFRESHED events, don't re-run device auth check
         if (event === 'TOKEN_REFRESHED') return;
         // Check device auth for new sign-in or session recovery
@@ -702,7 +700,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       exitDemoMode();
       return;
     }
-    setAdLoggingOut(true);
     profileFetchedForUser.current = null;
 
     // Çift özelindeki önbellekleri ve hassas yerel verileri sıfırla

@@ -53,6 +53,7 @@ import { CoupleAvatarRing } from "@/components/home/CoupleAvatarRing";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 import { LazySpotlightTour, LazyCoupleWrappedModal } from "@/components/ui/lazyMount";
 import { useTranslation } from "react-i18next";
+import { istanbulToday } from "@/lib/letterPolicy";
 
 export default function HomeScreen() {
   const { t, i18n } = useTranslation();
@@ -195,9 +196,9 @@ export default function HomeScreen() {
             .select("id, unlock_date, sender_id")
             .eq("couple_id", coupleId)
             .eq("receiver_id", userId)
-            // Sunucu mektubu unlock_date gününün 00:00 UTC'sinde açar (bkz. letterUnlockAt); "bugün" UTC gününe göre
-            // alınır. Yerel gün kullanılsaydı 00:00–03:00 (TR) arasında mektup burada kaybolur, Mektuplar'da hâlâ kilitli kalırdı.
-            .gt("unlock_date", new Date().toISOString().substring(0, 10))
+            // Sunucu mektubu unlock_date gününün 00:00'ında (Türkiye saati) açar (bkz. letterUnlockAt); "bugün" de
+            // sunucudaki public.app_today() gibi Türkiye gününe göre alınır, cihaz saat diliminden etkilenmez.
+            .gt("unlock_date", istanbulToday())
             .order("unlock_date", { ascending: true })
           : Promise.resolve({ data: [] }),
         coupleId

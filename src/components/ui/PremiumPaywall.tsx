@@ -74,7 +74,6 @@ export function PremiumPaywall({
     t("paywall.perks.period"),
     t("paywall.perks.specialDays"),
     t("paywall.perks.avatar"),
-    t("paywall.perks.noAds"),
   ];
 
   return (

@@ -150,7 +150,6 @@ export default function PaywallScreen() {
     t("paywall.features.periodMen"),
     t("paywall.features.pastPhotos"),
     t("paywall.features.letters"),
-    t("paywall.features.noAds"),
   ];
 
   return (

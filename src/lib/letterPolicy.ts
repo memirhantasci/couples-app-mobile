@@ -4,11 +4,22 @@
 //
 //  • Gönderilen mektup açılış gününe kadar silinemez; iki taraf da yalnızca kendi listesinden gizleyebilir.
 //  • Açılıştan 72 saat sonra gönderen silme isteyebilir; alıcı onay vermeden mektup silinmez.
-//    Açılış anı: mektubun alıcıya fiilen ulaştığı an (açılış günü 00:00 UTC ile yazıldığı an, hangisi sonraysa).
+//    Açılış anı: mektubun alıcıya fiilen ulaştığı an (açılış günü 00:00 Türkiye saati ile yazıldığı an, hangisi sonraysa).
 //  • Onaylanan mektup en erken açılıştan 72 saat sonra silinir.
 //  • Reddedilen istek 72 saat sonra yeniden gönderilebilir.
 
 const HOUR_MS = 60 * 60 * 1000;
+
+/**
+ * Mektuplar unlock_date gününün 00:00'ında, Türkiye saatiyle (Europe/Istanbul, UTC+3) açılır; sunucudaki
+ * public.app_today() / letter_unlock_at ile aynı kural (bkz. migration 20261030000003). Türkiye'de yaz saati yoktur.
+ */
+export const LETTER_TZ_OFFSET = "+03:00";
+
+/** Şu anki Türkiye tarihi (YYYY-MM-DD): sunucudaki public.app_today() ile aynı gün. */
+export function istanbulToday(now: number = Date.now()): string {
+  return new Date(now + 3 * HOUR_MS).toISOString().substring(0, 10);
+}
 
 /** Açılıştan sonra gönderenin silme isteyebilmesi için geçmesi gereken süre. */
 export const DELETION_REQUEST_DELAY_MS = 72 * HOUR_MS;
@@ -29,12 +40,12 @@ export interface LetterPolicyFields {
 
 export type LetterDeletionState = "none" | "pending" | "approved" | "rejected";
 
-/** Açılış anı: unlock_date günü 00:00 UTC, alıcının mektubu görmeye başladığı an. */
+/** Açılış anı: unlock_date günü 00:00 Türkiye saati, alıcının mektubu görmeye başladığı an. */
 export function letterUnlockAt(letter: LetterPolicyFields): number {
   if (!letter || typeof letter.unlock_date !== "string" || letter.unlock_date.length < 10) {
     return Number.POSITIVE_INFINITY;
   }
-  const parsed = Date.parse(`${letter.unlock_date.substring(0, 10)}T00:00:00Z`);
+  const parsed = Date.parse(`${letter.unlock_date.substring(0, 10)}T00:00:00${LETTER_TZ_OFFSET}`);
   return Number.isNaN(parsed) ? Number.POSITIVE_INFINITY : parsed;
 }
 

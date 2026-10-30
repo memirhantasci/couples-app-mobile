@@ -17,6 +17,42 @@ async function pruneDeadTokens(admin: any, messages: { to: string }[], expoResul
   if (error) console.error("Dead push token cleanup failed:", error.message);
 }
 
+/**
+ * Zamanlanmış işlerin aynı bildirimi tekrar göndermesini önler (cron sıklığı ne olursa olsun; bkz. push_dedupe tablosu,
+ * migration 20261030000004). Anahtar: iş + (mektup/buluşma kimliği) + token. Tablo yoksa ya da okunamazsa göndermeye devam edilir.
+ */
+const DEDUPE_TTL_HOURS: Record<string, number> = {
+  letter_unlock: 72,
+  period_reminder: 20,
+  anniversary_reminder: 20,
+  meeting_reminder: 24,
+  inactivity_reminder: 168,
+};
+
+async function dropAlreadySent(admin: any, job: string, messages: any[]): Promise<any[]> {
+  const ttl = DEDUPE_TTL_HOURS[job];
+  if (!ttl || messages.length === 0) return messages;
+  const keyOf = (m: any) => `${job}:${m.data?.letterId ?? m.data?.meetingId ?? ""}:${m.to}`;
+  const keys = [...new Set(messages.map(keyOf))];
+  const since = new Date(Date.now() - ttl * 60 * 60 * 1000).toISOString();
+  const already = new Set<string>();
+  for (let i = 0; i < keys.length; i += 200) {
+    const { data, error } = await admin.from("push_dedupe").select("key").in("key", keys.slice(i, i + 200)).gte("sent_at", since);
+    if (error) {
+      console.error("push_dedupe okunamadı, tekrar önleme atlandı:", error.message);
+      return messages;
+    }
+    for (const row of data ?? []) already.add(row.key);
+  }
+  const fresh = messages.filter((m) => !already.has(keyOf(m)));
+  const rows = [...new Set(fresh.map(keyOf))].map((key) => ({ key, sent_at: new Date().toISOString() }));
+  if (rows.length > 0) {
+    const { error } = await admin.from("push_dedupe").upsert(rows, { onConflict: "key" });
+    if (error) console.error("push_dedupe yazılamadı:", error.message);
+  }
+  return fresh;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Dil: istemci, push token'ını kaydederken uygulamanın seçili dilini `push_tokens.language`
 // sütununa yazar (tr | en; bkz. migration 025_push_token_language.sql). Sütun henüz yoksa ya da
@@ -222,9 +258,10 @@ serve(async (req) => {
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
       const { job } = body;
-      const pushMessages: any[] = [];
-      const todayDateStr = new Date().toISOString().split("T")[0];
+      let pushMessages: any[] = [];
       const now = new Date();
+      // Mektuplar Türkiye saatiyle gece yarısı açılır (public.app_today()); "bugün" Türkiye tarihidir
+      const todayDateStr = new Date(now.getTime() + 3 * 60 * 60 * 1000).toISOString().split("T")[0];
 
       if (job === "medicine_reminder") {
         const trHourStr = ((now.getUTCHours() + 3) % 24).toString().padStart(2, "0");
@@ -360,6 +397,8 @@ serve(async (req) => {
         }
       }
 
+      pushMessages = await dropAlreadySent(supabase, job, pushMessages);
+
       if (pushMessages.length > 0) {
         // Expo Push API accepts max 100 messages per request
         const CHUNK_SIZE = 100;
@@ -418,7 +457,7 @@ serve(async (req) => {
       partnerIntId = record.receiver_id;
       const { data: sender } = await supabase.from("users").select("display_name").eq("id", senderIntId).single();
       if (sender) {
-        const isToday = record.unlock_date === new Date().toISOString().split("T")[0];
+        const isToday = record.unlock_date === new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString().split("T")[0];
         message = (lang) => {
           const s = S(lang);
           const unlockDate = record.unlock_date && !isToday

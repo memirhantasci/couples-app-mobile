@@ -1,6 +1,7 @@
 import { safeStorage } from "@/lib/safeStorage";
 import { supabase } from "@/lib/supabase";
 import { logger } from "@/utils/logger";
+import { LETTER_TZ_OFFSET } from "@/lib/letterPolicy";
 
 // ─── Yeni Gelen Mektup Algılama ──────────────────────────────────────────────
 // Kullanıcı uygulamaya girdiğinde, partnerinden kendisi görmeden gelmiş mektup varsa
@@ -126,8 +127,8 @@ export async function fetchArrivedLetters(
       hasMore: data.length >= MAX_ARRIVALS,
       senderName,
       unlockDate,
-      // Sunucu açılış gününün 00:00 UTC'sinde açar; yerel gün karşılaştırması gece 00:00–03:00 (TR) arasında yanlıştı
-      locked: !!unlockDate && Date.parse(`${unlockDate}T00:00:00Z`) > Date.now(),
+      // Sunucu açılış gününün 00:00'ında (Türkiye saati) açar; cihaz saat diliminden bağımsız aynı an
+      locked: !!unlockDate && Date.parse(`${unlockDate}T00:00:00${LETTER_TZ_OFFSET}`) > Date.now(),
       newestCreatedAt: newest.created_at,
     };
   } catch (err) {

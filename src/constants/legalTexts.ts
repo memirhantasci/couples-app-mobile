@@ -186,7 +186,6 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "• Sınırsız fotoğraf yükleme ve ortak yüksek çözünürlüklü galeri,\n" +
       "• Döngü takibi ve ilgili hatırlatıcı bildirimleri,\n" +
       "• Zaman kilitli sınırsız mektup yazma ve ileri tarihli teslimatlar,\n" +
-      "• Tüm banner ve geçiş reklamlarından tamamen arındırılmış deneyim,\n" +
       "• Fotoğraflı geçmiş takvim günleri ve özel gün sayaçları.",
 
       "2. ÜCRETSİZ DENEME SÜRESİ",
@@ -379,7 +378,6 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "• Unlimited high-resolution photo uploads and shared cloud archive,\n" +
       "• Advanced cycle tracking and synchronized health notifications,\n" +
       "• Unlimited time-capsule letters with future scheduled unlocks,\n" +
-      "• 100% ad-free experience across the entire application,\n" +
       "• Memory timeline with interactive anniversary countdowns.",
 
       "2. FREE TRIAL PERIOD",
