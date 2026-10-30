@@ -52,6 +52,7 @@ import type { CoupleStarDetails, ViewportStarItem } from '../types/star.types';
 import { SKY_SECTORS, type SectorConfig } from '../config/skySectors.data';
 import { UNCLAIMED_STAR_BRIGHTNESS } from '../canvas/macro/starStyle';
 import { useTranslation } from 'react-i18next';
+import { localizeServerError } from '@/lib/serverErrors';
 
 // ============================================================================
 // TİPLER VE SABİTLER
@@ -309,7 +310,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
         setRenameLockedUntil(err.availableAt);
         setIsRenaming(false);
       } else {
-        setRenameError(err?.message || t('stars.claim.errors.renameFailed'));
+        setRenameError(localizeServerError(err, t('stars.claim.errors.renameFailed')));
       }
       await hapticError();
     } finally {

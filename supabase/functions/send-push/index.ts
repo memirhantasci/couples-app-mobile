@@ -4,15 +4,128 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// push_tokens.user_id = int4 (users.id) — direct lookup, no UUID conversion
+// Dil: istemci, push token'ını kaydederken uygulamanın seçili dilini `push_tokens.language`
+// sütununa yazar (tr | en; bkz. migration 025_push_token_language.sql). Sütun henüz yoksa ya da
+// değer boşsa Türkçe (varsayılan) kullanılır; bildirimler asla dil yüzünden gönderilmez olmaz.
 // ─────────────────────────────────────────────────────────────────────────────
-async function getTokensByUserId(supabase: any, intUserId: number | string): Promise<string[]> {
-  const { data: tokens } = await supabase
-    .from("push_tokens")
-    .select("token")
-    .eq("user_id", intUserId);
+type Lang = "tr" | "en";
+const toLang = (value: unknown): Lang => (value === "en" ? "en" : "tr");
+const localeOf = (lang: Lang) => (lang === "en" ? "en-US" : "tr-TR");
 
-  return tokens?.map((t: any) => t.token) ?? [];
+interface TokenRow {
+  token: string;
+  lang: Lang;
+}
+
+// push_tokens.user_id = int4 (users.id) — direct lookup, no UUID conversion
+async function getTokensByUserId(supabase: any, intUserId: number | string): Promise<TokenRow[]> {
+  let { data: rows, error } = await supabase.from("push_tokens").select("token, language").eq("user_id", intUserId);
+  if (error) {
+    // `language` sütunu henüz eklenmemişse yalnızca token okunur (Türkçe varsayılan)
+    ({ data: rows } = await supabase.from("push_tokens").select("token").eq("user_id", intUserId));
+  }
+  return (rows ?? []).map((row: any) => ({ token: row.token, lang: toLang(row.language) }));
+}
+
+/** Cron işlerinde RPC yalnızca token döndürür; her token'ın dili ayrıca okunur. */
+async function languagesByToken(supabase: any, tokens: (string | null | undefined)[]): Promise<Map<string, Lang>> {
+  const map = new Map<string, Lang>();
+  const unique = [...new Set(tokens.filter((token): token is string => !!token))];
+  for (let i = 0; i < unique.length; i += 200) {
+    const { data, error } = await supabase.from("push_tokens").select("token, language").in("token", unique.slice(i, i + 200));
+    if (error) return map; // sütun yok → hepsi Türkçe
+    for (const row of data ?? []) map.set(row.token, toLang(row.language));
+  }
+  return map;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bildirim metinleri (Türkçe metinler eskisiyle birebir aynıdır)
+// ─────────────────────────────────────────────────────────────────────────────
+function S(lang: Lang) {
+  const en = lang === "en";
+  return {
+    // Cron
+    medicineDueTitle: en ? "💊 Time for Medicine!" : "💊 İlaç Vakti!",
+    medicineDueBody: (name: string) =>
+      en
+        ? `It's time to take ${name ? `your ${name}` : "your medicine"}. Please mark it as taken.`
+        : `${name || "Hatırlatıcı"} ilacını içme vaktin geldi. Lütfen içtiğini işaretle.`,
+    periodReminderTitle: en ? "🩸 Period Reminder" : "🩸 Regl Hatırlatıcısı",
+    periodReminderOwnBody: en ? "Your period is expected in 2 days." : "Tahmini regl tarihine 2 gün kaldı.",
+    periodReminderPartnerBody: (name: string) =>
+      en
+        ? `${name}'s period is expected in 2 days. Get ready to support her 💕`
+        : `${name}'in tahmini regl tarihine 2 gün kaldı. Ona destek olmaya hazırlan 💕`,
+    letterUnlockTitle: en ? "💌 Your Letter Is Unlocked!" : "💌 Mektubun Kilidi Açıldı!",
+    letterUnlockBody: (sender: string, title: string) =>
+      en
+        ? title
+          ? `The letter "${title}" that ${sender} wrote you is unlocked today! Read it now.`
+          : `The surprise letter ${sender} wrote you is unlocked today! Read it now.`
+        : title
+          ? `${sender}'in sana yazdığı "${title}" mektubunun kilidi bugün açıldı! Hemen oku.`
+          : `${sender}'in sana yazdığı sürpriz mektubun kilidi bugün açıldı! Hemen oku.`,
+    meetingSoonTitle: en ? "⏳ Upcoming Meetup" : "⏳ Yaklaşan Buluşma",
+    meetingSoonBody: (title: string) =>
+      en
+        ? `"${title || "Meetup"}" is almost here! Time to get ready.`
+        : `"${title || "Buluşma"}" etkinliğine çok az kaldı! Hazırlanmaya başla.`,
+    anniversaryTitle: en ? "🎉 Happy Anniversary!" : "🎉 Mutlu Yıllar!",
+    // anniversary_type sunucuda Türkçe (ör. "yıl dönümü") tutulur; İngilizcede genel ifade kullanılır
+    anniversaryBody: (years: number | string, type: string) =>
+      en
+        ? `Today is your ${years}-year anniversary! Here's to many more happy years together...`
+        : `Bugün ${years}. ${type}nüz! Birlikte nice mutlu yıllara...`,
+    inactivityTitle: en ? "🥺 We Miss You" : "🥺 Seni Özledik",
+    inactivityBody: en
+      ? "It's been a while since you opened the app. Would you like to leave your partner a little note today?"
+      : "Uygulamaya girmeyeli biraz zaman oldu, bugün partnerine küçük bir not bırakmak ister misin?",
+
+    // Anlık (webhook)
+    medicineTakenTitle: en ? "💊 Medicine Tracking" : "💊 İlaç Takibi",
+    medicineTakenBody: (sender: string, medicine: string) =>
+      en ? `${sender} took ${medicine ? `their ${medicine}` : "their daily medicine"} ✅` : `${sender} ${medicine || "günlük"} ilacını içti ✅`,
+    medicineTakenAction: en ? "Go to Medicine Tracking 💊" : "İlaç Takibine Git 💊",
+    letterNewTitle: en ? "💌 New Letter" : "💌 Yeni Mektup",
+    letterNewBody: (sender: string, unlockDate: string | null) =>
+      en
+        ? unlockDate
+          ? `${sender} wrote you a letter for the future! (Opens on ${unlockDate})`
+          : `${sender} wrote you a letter!`
+        : unlockDate
+          ? `${sender} sana geleceğe bir mektup yazdı! (${unlockDate} tarihinde açılacak)`
+          : `${sender} sana bir mektup yazdı!`,
+    letterNewAction: en ? "Go to Letters 💌" : "Mektuplara Git 💌",
+    periodStartedTitle: en ? "🩸 Period Calendar" : "🩸 Regl Takvimi",
+    periodStartedBody: (sender: string) =>
+      en ? `${sender}'s period has started. Don't forget to support her 💕` : `${sender}'in regl dönemi başladı. Ona destek olmayı unutma 💕`,
+    periodStartedAction: en ? "Go to Cycle Tracking 🌸" : "Döngü Takibine Git 🌸",
+    moodTitle: en ? "💭 Mood Update" : "💭 Mod Güncellemesi",
+    moodBody: (sender: string, mood: string) => (en ? `${sender} is feeling ${mood} today` : `${sender} bugün kendini ${mood} hissediyor`),
+    moodAction: en ? "Reply with a Hug 🫂" : "Sarılarak Yanıtla 🫂",
+    meetingNewTitle: en ? "🍽️ New Meetup" : "🍽️ Yeni Buluşma",
+    meetingNewBody: (sender: string, date: string | null) =>
+      en
+        ? date
+          ? `${sender} planned a meetup for ${date}!`
+          : `${sender} planned a new meetup!`
+        : date
+          ? `${sender} ${date} için bir buluşma planladı!`
+          : `${sender} yeni bir buluşma planladı!`,
+    meetingNewAction: en ? "View Plan 🗓️" : "Planı Gör 🗓️",
+    memoryNewTitle: en ? "🖼️ New Memory" : "🖼️ Yeni Anı",
+    memoryNewBody: (sender: string) =>
+      en ? `${sender} added a new memory to the shared album!` : `${sender} ortak albüme yeni bir anı ekledi!`,
+    memoryNewAction: en ? "View Memory ✨" : "Anıyı Gör ✨",
+    calendarNoteTitle: en ? "📅 Calendar Note" : "📅 Takvim Notu",
+    calendarNoteBody: (sender: string) => (en ? `${sender} left a new note on the calendar.` : `${sender} takvime yeni bir not bıraktı.`),
+    calendarNoteAction: en ? "Go to Calendar 📅" : "Takvime Git 📅",
+    pairingTitle: en ? "💍 Pairing Complete!" : "💍 Eşleşme Başarılı!",
+    pairingBody: en
+      ? "Wonderful! You've been paired with your partner and can start using the app together."
+      : "Harika! Partnerinle başarıyla eşleştiniz, uygulamayı birlikte kullanmaya başlayabilirsiniz.",
+  };
 }
 
 // Bildirime dokununca uygulamanın hangi ekranı açacağı (route), uygulama içi kartın türü ve
@@ -34,22 +147,28 @@ interface PushMessage {
   extra?: Record<string, unknown>;
 }
 
-async function sendToUser(supabase: any, intUserId: number | string, message: PushMessage, data: any = {}): Promise<any[]> {
-  const tokens = await getTokensByUserId(supabase, intUserId);
-  return tokens.map((token) => ({
-    to: token,
-    sound: "default",
-    title: message.title,
-    body: message.body,
-    channelId: message.channelId ?? "partner_messages",
-    data: {
-      ...data,
-      ...(message.extra ?? {}),
-      ...(message.type ? { type: message.type } : {}),
-      ...(message.route ? { route: message.route } : {}),
-      ...(message.actionLabel ? { actionLabel: message.actionLabel } : {}),
-    },
-  }));
+/** Alıcının diline göre mesaj kuran işlev (her token kendi dilinde alır). */
+type MessageBuilder = (lang: Lang) => PushMessage;
+
+async function sendToUser(supabase: any, intUserId: number | string, build: MessageBuilder, data: any = {}): Promise<any[]> {
+  const rows = await getTokensByUserId(supabase, intUserId);
+  return rows.map(({ token, lang }) => {
+    const message = build(lang);
+    return {
+      to: token,
+      sound: "default",
+      title: message.title,
+      body: message.body,
+      channelId: message.channelId ?? "partner_messages",
+      data: {
+        ...data,
+        ...(message.extra ?? {}),
+        ...(message.type ? { type: message.type } : {}),
+        ...(message.route ? { route: message.route } : {}),
+        ...(message.actionLabel ? { actionLabel: message.actionLabel } : {}),
+      },
+    };
+  });
 }
 
 serve(async (req) => {
@@ -89,12 +208,14 @@ serve(async (req) => {
 
         const { data: reminders, error } = await supabase.rpc("get_active_medicine_reminders", { current_time_str: currentTimeStr });
         if (reminders && !error) {
+          const langs = await languagesByToken(supabase, reminders.map((r: any) => r.push_token));
           for (const r of reminders) {
+            const s = S(langs.get(r.push_token) ?? "tr");
             pushMessages.push({
               to: r.push_token,
               sound: "default",
-              title: "💊 İlaç Vakti!",
-              body: `${safePlaintextLabel(r.medicine_name, "Hatırlatıcı")} ilacını içme vaktin geldi. Lütfen içtiğini işaretle.`,
+              title: s.medicineDueTitle,
+              body: s.medicineDueBody(safePlaintextLabel(r.medicine_name, "")),
               data: { type: "medicine_reminder", medicineId: r.medicine_id, route: "/(tabs)/medicine" }
             });
           }
@@ -107,22 +228,28 @@ serve(async (req) => {
 
         const { data: reminders, error } = await supabase.rpc("get_active_period_reminders", { target_date_str: targetDateStr });
         if (reminders && !error) {
+          const langs = await languagesByToken(
+            supabase,
+            reminders.flatMap((r: any) => [r.user_push_token, r.partner_push_token])
+          );
           for (const r of reminders) {
             if (r.user_push_token) {
+              const s = S(langs.get(r.user_push_token) ?? "tr");
               pushMessages.push({
                 to: r.user_push_token,
                 sound: "default",
-                title: "🩸 Regl Hatırlatıcısı",
-                body: "Tahmini regl tarihine 2 gün kaldı.",
+                title: s.periodReminderTitle,
+                body: s.periodReminderOwnBody,
                 data: { type: "period_reminder", route: "/(tabs)/period-tracker" }
               });
             }
             if (r.partner_push_token) {
+              const s = S(langs.get(r.partner_push_token) ?? "tr");
               pushMessages.push({
                 to: r.partner_push_token,
                 sound: "default",
-                title: "🩸 Regl Hatırlatıcısı",
-                body: `${r.display_name}'in tahmini regl tarihine 2 gün kaldı. Ona destek olmaya hazırlan 💕`,
+                title: s.periodReminderTitle,
+                body: s.periodReminderPartnerBody(r.display_name),
                 data: { type: "period_reminder", route: "/(tabs)/period-tracker" }
               });
             }
@@ -132,12 +259,14 @@ serve(async (req) => {
       else if (job === "letter_unlock") {
         const { data: reminders, error } = await supabase.rpc("get_letter_unlock_reminders", { today_date_str: todayDateStr });
         if (reminders && !error) {
+          const langs = await languagesByToken(supabase, reminders.map((r: any) => r.push_token));
           for (const r of reminders) {
+            const s = S(langs.get(r.push_token) ?? "tr");
             pushMessages.push({
               to: r.push_token,
               sound: "default",
-              title: "💌 Mektubun Kilidi Açıldı!",
-              body: safePlaintextLabel(r.letter_title, "") ? `${r.sender_display_name}'in sana yazdığı "${safePlaintextLabel(r.letter_title, "")}" mektubunun kilidi bugün açıldı! Hemen oku.` : `${r.sender_display_name}'in sana yazdığı sürpriz mektubun kilidi bugün açıldı! Hemen oku.`,
+              title: s.letterUnlockTitle,
+              body: s.letterUnlockBody(r.sender_display_name, safePlaintextLabel(r.letter_title, "")),
               data: { type: "letter_unlock", letterId: r.letter_id, route: "/(tabs)/letters" }
             });
           }
@@ -145,17 +274,19 @@ serve(async (req) => {
       }
       else if (job === "meeting_reminder") {
         const targetTime = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-        const { data: reminders, error } = await supabase.rpc("get_upcoming_meeting_reminders", { 
-          now_str: now.toISOString(), 
-          target_time_str: targetTime.toISOString() 
+        const { data: reminders, error } = await supabase.rpc("get_upcoming_meeting_reminders", {
+          now_str: now.toISOString(),
+          target_time_str: targetTime.toISOString()
         });
         if (reminders && !error) {
+          const langs = await languagesByToken(supabase, reminders.map((r: any) => r.push_token));
           for (const r of reminders) {
+            const s = S(langs.get(r.push_token) ?? "tr");
             pushMessages.push({
               to: r.push_token,
               sound: "default",
-              title: "⏳ Yaklaşan Buluşma",
-              body: `"${safePlaintextLabel(r.meeting_title, "Buluşma")}" etkinliğine çok az kaldı! Hazırlanmaya başla.`,
+              title: s.meetingSoonTitle,
+              body: s.meetingSoonBody(safePlaintextLabel(r.meeting_title, "")),
               data: { type: "meeting_reminder", meetingId: r.meeting_id, route: "/(tabs)/meetings" }
             });
           }
@@ -165,18 +296,20 @@ serve(async (req) => {
         const currentMonth = (now.getUTCMonth() + 1).toString().padStart(2, "0");
         const currentDay = now.getUTCDate().toString().padStart(2, "0");
         const matchStr = `-${currentMonth}-${currentDay}`;
-        
-        const { data: reminders, error } = await supabase.rpc("get_anniversary_reminders", { 
-          match_str: matchStr, 
-          current_year: now.getUTCFullYear() 
+
+        const { data: reminders, error } = await supabase.rpc("get_anniversary_reminders", {
+          match_str: matchStr,
+          current_year: now.getUTCFullYear()
         });
         if (reminders && !error) {
+          const langs = await languagesByToken(supabase, reminders.map((r: any) => r.push_token));
           for (const r of reminders) {
+            const s = S(langs.get(r.push_token) ?? "tr");
             pushMessages.push({
               to: r.push_token,
               sound: "default",
-              title: "🎉 Mutlu Yıllar!",
-              body: `Bugün ${r.years}. ${r.anniversary_type}nüz! Birlikte nice mutlu yıllara...`,
+              title: s.anniversaryTitle,
+              body: s.anniversaryBody(r.years, r.anniversary_type),
               data: { type: "anniversary_reminder", route: "/(tabs)/home" }
             });
           }
@@ -184,16 +317,18 @@ serve(async (req) => {
       }
       else if (job === "inactivity_reminder") {
         const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
-        const { data: reminders, error } = await supabase.rpc("get_inactivity_reminders", { 
-          three_days_ago_str: threeDaysAgo.toISOString() 
+        const { data: reminders, error } = await supabase.rpc("get_inactivity_reminders", {
+          three_days_ago_str: threeDaysAgo.toISOString()
         });
         if (reminders && !error) {
+          const langs = await languagesByToken(supabase, reminders.map((r: any) => r.push_token));
           for (const r of reminders) {
+            const s = S(langs.get(r.push_token) ?? "tr");
             pushMessages.push({
               to: r.push_token,
               sound: "default",
-              title: "🥺 Seni Özledik",
-              body: "Uygulamaya girmeyeli biraz zaman oldu, bugün partnerine küçük bir not bırakmak ister misin?",
+              title: s.inactivityTitle,
+              body: s.inactivityBody,
               data: { type: "inactivity_reminder", route: "/(tabs)/home" }
             });
           }
@@ -230,7 +365,8 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    let message: PushMessage | null = null;
+    // Mesaj, alıcının (partnerin) diline göre kurulur
+    let message: MessageBuilder | null = null;
     let partnerIntId: number | string | null = null;
     let senderIntId: number | string | null = null;
     const oldRecord = body.old_record || {};
@@ -240,7 +376,11 @@ serve(async (req) => {
       const { data: medicine } = await supabase.from("medicines").select("name").eq("id", record.medicine_id).single();
       const { data: sender } = await supabase.from("users").select("display_name, couple_id").eq("id", senderIntId).single();
       if (sender && medicine) {
-        message = { title: "💊 İlaç Takibi", body: `${sender.display_name} ${safePlaintextLabel(medicine.name, "günlük")} ilacını içti ✅`, type: "medicine", route: "/(tabs)/medicine", actionLabel: "İlaç Takibine Git 💊", channelId: "medicine_channel" };
+        const medicineName = safePlaintextLabel(medicine.name, "");
+        message = (lang) => {
+          const s = S(lang);
+          return { title: s.medicineTakenTitle, body: s.medicineTakenBody(sender.display_name, medicineName), type: "medicine", route: "/(tabs)/medicine", actionLabel: s.medicineTakenAction, channelId: "medicine_channel" };
+        };
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;
       }
@@ -252,19 +392,20 @@ serve(async (req) => {
       partnerIntId = record.receiver_id;
       const { data: sender } = await supabase.from("users").select("display_name").eq("id", senderIntId).single();
       if (sender) {
-        const unlockDate = record.unlock_date
-          ? new Date(record.unlock_date).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })
-          : null;
         const isToday = record.unlock_date === new Date().toISOString().split("T")[0];
-        message = {
-          title: "💌 Yeni Mektup",
-          body: unlockDate && !isToday
-            ? `${sender.display_name} sana geleceğe bir mektup yazdı! (${unlockDate} tarihinde açılacak)`
-            : `${sender.display_name} sana bir mektup yazdı!`,
-          type: "letter",
-          route: "/(tabs)/letters",
-          actionLabel: "Mektuplara Git 💌",
-          channelId: "letters_channel",
+        message = (lang) => {
+          const s = S(lang);
+          const unlockDate = record.unlock_date && !isToday
+            ? new Date(record.unlock_date).toLocaleDateString(localeOf(lang), { day: "numeric", month: "long", year: "numeric" })
+            : null;
+          return {
+            title: s.letterNewTitle,
+            body: s.letterNewBody(sender.display_name, unlockDate),
+            type: "letter",
+            route: "/(tabs)/letters",
+            actionLabel: s.letterNewAction,
+            channelId: "letters_channel",
+          };
         };
       }
     }
@@ -272,7 +413,10 @@ serve(async (req) => {
       senderIntId = record.user_id;
       const { data: sender } = await supabase.from("users").select("display_name, couple_id").eq("id", senderIntId).single();
       if (sender) {
-        message = { title: "🩸 Regl Takvimi", body: `${sender.display_name}'in regl dönemi başladı. Ona destek olmayı unutma 💕`, type: "period", route: "/(tabs)/period-tracker", actionLabel: "Döngü Takibine Git 🌸" };
+        message = (lang) => {
+          const s = S(lang);
+          return { title: s.periodStartedTitle, body: s.periodStartedBody(sender.display_name), type: "period", route: "/(tabs)/period-tracker", actionLabel: s.periodStartedAction };
+        };
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;
       }
@@ -281,7 +425,10 @@ serve(async (req) => {
       senderIntId = record.user_id;
       const { data: sender } = await supabase.from("users").select("display_name, couple_id").eq("id", senderIntId).single();
       if (sender) {
-        message = { title: "💭 Mod Güncellemesi", body: `${sender.display_name} bugün kendini ${record.mood_type} hissediyor`, type: "mood", route: "/(tabs)/home", actionLabel: "Sarılarak Yanıtla 🫂", extra: { moodEmoji: record.mood_type } };
+        message = (lang) => {
+          const s = S(lang);
+          return { title: s.moodTitle, body: s.moodBody(sender.display_name, record.mood_type), type: "mood", route: "/(tabs)/home", actionLabel: s.moodAction, extra: { moodEmoji: record.mood_type } };
+        };
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;
       }
@@ -290,17 +437,18 @@ serve(async (req) => {
       senderIntId = record.user_id;
       const { data: sender } = await supabase.from("users").select("display_name, couple_id").eq("id", senderIntId).single();
       if (sender) {
-        const meetingDate = record.meeting_datetime
-          ? new Date(record.meeting_datetime).toLocaleDateString("tr-TR", { day: "numeric", month: "long" })
-          : null;
-        message = {
-          title: "🍽️ Yeni Buluşma",
-          body: meetingDate
-            ? `${sender.display_name} ${meetingDate} için bir buluşma planladı!`
-            : `${sender.display_name} yeni bir buluşma planladı!`,
-          type: "meeting",
-          route: "/(tabs)/meetings",
-          actionLabel: "Planı Gör 🗓️",
+        message = (lang) => {
+          const s = S(lang);
+          const meetingDate = record.meeting_datetime
+            ? new Date(record.meeting_datetime).toLocaleDateString(localeOf(lang), { day: "numeric", month: "long" })
+            : null;
+          return {
+            title: s.meetingNewTitle,
+            body: s.meetingNewBody(sender.display_name, meetingDate),
+            type: "meeting",
+            route: "/(tabs)/meetings",
+            actionLabel: s.meetingNewAction,
+          };
         };
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;
@@ -310,7 +458,10 @@ serve(async (req) => {
       senderIntId = record.user_id;
       const { data: sender } = await supabase.from("users").select("display_name, couple_id").eq("id", senderIntId).single();
       if (sender) {
-        message = { title: "🖼️ Yeni Anı", body: `${sender.display_name} ortak albüme yeni bir anı ekledi!`, type: "photo", route: "/(tabs)/memories", actionLabel: "Anıyı Gör ✨" };
+        message = (lang) => {
+          const s = S(lang);
+          return { title: s.memoryNewTitle, body: s.memoryNewBody(sender.display_name), type: "photo", route: "/(tabs)/memories", actionLabel: s.memoryNewAction };
+        };
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;
       }
@@ -319,7 +470,10 @@ serve(async (req) => {
       senderIntId = record.user_id;
       const { data: sender } = await supabase.from("users").select("display_name, couple_id").eq("id", senderIntId).single();
       if (sender) {
-        message = { title: "📅 Takvim Notu", body: `${sender.display_name} takvime yeni bir not bıraktı.`, route: "/(tabs)/calendar", actionLabel: "Takvime Git 📅" };
+        message = (lang) => {
+          const s = S(lang);
+          return { title: s.calendarNoteTitle, body: s.calendarNoteBody(sender.display_name), route: "/(tabs)/calendar", actionLabel: s.calendarNoteAction };
+        };
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;
       }
@@ -330,7 +484,10 @@ serve(async (req) => {
         const allMsgs: any[] = [];
         for (const u of coupleUsers) {
           const msgs = await sendToUser(supabase, u.id,
-            { title: "💍 Eşleşme Başarılı!", body: "Harika! Partnerinle başarıyla eşleştiniz, uygulamayı birlikte kullanmaya başlayabilirsiniz.", route: "/(tabs)/home" },
+            (lang) => {
+              const s = S(lang);
+              return { title: s.pairingTitle, body: s.pairingBody, route: "/(tabs)/home" };
+            },
             { type: "pairing_success" }
           );
           allMsgs.push(...msgs);

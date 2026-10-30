@@ -1,0 +1,8 @@
+{
+  "ios": {
+    "NSUserNotificationsUsageDescription": "Partnerinden mektup geldiğinde veya özel bir günün yaklaştığında seni haberdar etmek için bildirim göndermek istiyoruz.",
+    "NSCameraUsageDescription": "Anılarına fotoğraf ekleyebilmek için kameraya erişmemiz gerekiyor.",
+    "NSPhotoLibraryUsageDescription": "Anılarına fotoğraf ekleyebilmek için fotoğraf kütüphanesine erişmemiz gerekiyor.",
+    "NSLocationWhenInUseUsageDescription": "Buluşma noktası seçerken mevcut konumunuzu haritada gösterebilmek için konum erişimi gereklidir."
+  }
+}

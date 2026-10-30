@@ -61,6 +61,7 @@ import {
   letterUnlockAt,
 } from "@/lib/letterPolicy";
 import { useTranslation } from "react-i18next";
+import { localizeServerError } from "@/lib/serverErrors";
 
 const formatPolicyMoment = (ms: number, language: string) => dayjs(ms).locale(language).format("D MMMM HH:mm");
 const formatPolicyDay = (ms: number, language: string) => dayjs(ms).locale(language).format("D MMMM");
@@ -299,7 +300,7 @@ export default function LettersScreen() {
           ]
         );
       } else {
-        appAlert(t("common.error"), t("letters.errors.sealFailedWithMessage", { message: error?.message || "" }));
+        appAlert(t("common.error"), t("letters.errors.sealFailedWithMessage", { message: localizeServerError(error, "") }));
       }
     } finally {
       setLoadingForm(false);
@@ -334,7 +335,7 @@ export default function LettersScreen() {
       await action();
     } catch (error: any) {
       logger.error("Letter action error:", error);
-      appAlert(t("letters.errors.actionFailedTitle"), error?.message || t("letters.errors.tryAgainLater"));
+      appAlert(t("letters.errors.actionFailedTitle"), localizeServerError(error, t("letters.errors.tryAgainLater")));
     } finally {
       setBusyLetterId(null);
       queryClient.invalidateQueries({ queryKey: ["letters_data"] });

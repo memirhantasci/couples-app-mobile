@@ -210,7 +210,7 @@ export async function geocodeAddressString(address: string): Promise<{
     const osmUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleanQuery)}&limit=1&addressdetails=1`;
     const resp = await fetch(osmUrl, {
       headers: {
-        "User-Agent": "CouplesApp/1.0",
+        "User-Agent": "CoupleSky/1.0",
         "Accept-Language": "tr,en",
       },
     });

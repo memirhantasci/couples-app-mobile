@@ -27,6 +27,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { starService } from '../api/starService';
 import type { PendingConnectionDetail } from '../types/star.types';
 import { useTranslation } from 'react-i18next';
+import { localizeServerError } from '@/lib/serverErrors';
 
 export interface ConnectionRequestBadgeProps {
   readonly pendingRequests: PendingConnectionDetail[];
@@ -100,13 +101,13 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
         }
         setFeedbackMessage({
           type: 'error',
-          text: err?.message || t('errors.actionFailed'),
+          text: localizeServerError(err, t('errors.actionFailed')),
         });
       } finally {
         setActionLoadingId(null);
       }
     },
-    [onConnectionChanged]
+    [onConnectionChanged, t]
   );
 
   // Bekleyen gelen istek yoksa rozeti gösterme

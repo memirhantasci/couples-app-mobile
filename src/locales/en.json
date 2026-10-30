@@ -243,7 +243,8 @@
     "channels": {
       "general": "General Notifications ❤️",
       "partnerMessages": "Messages & Memories from Your Love ❤️",
-      "medicine": "Medicine & Health 💊"
+      "medicine": "Medicine & Health 💊",
+      "letters": "Letters 💌"
     },
     "types": {
       "letter": {
@@ -482,7 +483,8 @@
     "yesterday": "Yesterday",
     "next": "Next",
     "forward": "Next",
-    "partner": "Partner"
+    "partner": "Partner",
+    "madeWith": "Made with CoupleSky"
   },
   "permissions": {
     "notNow": "Not Now",
@@ -3227,5 +3229,75 @@
         }
       }
     }
+  },
+  "serverErrors": {
+    "unauthorized": "You're not authorized to do this.",
+    "notFoundOrDenied": "Not found, or you don't have access.",
+    "invalidInput": "The information you entered is invalid or incomplete.",
+    "directUpdateBlocked": "This field can't be changed directly.",
+    "premiumRequired": "An active Premium membership is required for this action.",
+    "tokensOrPremium": "Sealing a letter requires at least 100 Tokens or an active Premium membership.",
+    "tokensInsufficient": "Insufficient token balance.",
+    "promoUsed": "You've already used this code",
+    "promoLimit": "This code has reached its usage limit",
+    "promoExpired": "This code has expired",
+    "promoInvalid": "Invalid or expired code",
+    "promoNeedPartner": "You need to be paired with a partner to use a Premium code.",
+    "periodMonthlyLimit": "You can log at most 2 period starts within a month.",
+    "periodMinGap": "There must be at least 16 days between two period starts.",
+    "periodFuture": "You can't mark a future day as a period start.",
+    "periodFemaleOnly": "Only the female partner can update the period calendar.",
+    "genderCooldown": "Your gender preference can be changed once every 90 days. You can't change it again until the waiting period ends.",
+    "nameCooldown": "Your name can be changed once every 30 days. You can't change it again until the waiting period ends.",
+    "datesCooldown": "Relationship dates can be updated once every 30 days. Your couple's waiting period hasn't ended yet.",
+    "letterDeleteLocked": "A letter can't be deleted until its opening day; you can hide it from your list if you like.",
+    "letterDeleteTooEarly": "A deletion request can be sent 72 hours after the letter is opened.",
+    "letterDeletePending": "Your deletion request is already waiting for your partner's approval.",
+    "letterKeepCooldown": "Your partner wanted to keep this letter. A new request can be sent after 72 hours.",
+    "letterAlreadyApproved": "You've already approved the deletion.",
+    "letterPartnerApproved": "Your partner has already approved the deletion.",
+    "letterOnlyOwn": "You can only request deletion of a letter you wrote yourself.",
+    "letterNoPending": "There's no pending deletion request for this letter.",
+    "letterOnlyPartner": "A letter can only be sent to the partner you're paired with.",
+    "letterNotFound": "Letter not found.",
+    "starNotFound": "Star not found.",
+    "coupleNoStar": "Your couple doesn't have a star yet.",
+    "starNoFree": "No free star of this brightness is left.",
+    "starSelfConnect": "You can't connect to your own star.",
+    "starAlreadyOwned": "Your couple already has a registered star.",
+    "starNameLength": "A star name must be between 2 and 40 characters.",
+    "planetLimit": "You can create at most 10 manual planets.",
+    "adLimit": "You've reached the daily ad limit. Please try again later.",
+    "partnerLimitFull": "One of the two sides has reached the maximum limit of 3 connections."
+  },
+  "widget": {
+    "title": "OUR LOVE JOURNEY",
+    "addDate": "Add your date",
+    "addDateFromApp": "Add your date in the app",
+    "daysUnit": "days",
+    "daysUnitUpper": "DAYS",
+    "togetherShort": "days together ♥",
+    "togetherNames": "together ♥ {{names}}",
+    "together_one": "{{days}} day together",
+    "together_other": "{{days}} days together",
+    "unread": "{{n}} unread",
+    "moodTitle": "{{name}} today",
+    "moodFallback": "shared their mood",
+    "premiumOnly": "Premium members only",
+    "premiumSub": "See your counter on your home screen",
+    "premiumSubLong": "See your counter on your home and lock screens",
+    "premiumCta": "Go Premium",
+    "premiumUnlock": "Unlock with Premium",
+    "signInSub": "Sign in to use the widget",
+    "signInView": "Sign in to view",
+    "openApp": "Open the app",
+    "tapToOpen": "Tap to open",
+    "milestoneAnniversary": "🎉 Happy {{years}}-year anniversary!",
+    "milestoneDay100": "🎉 Today is your day {{days}} together",
+    "milestoneToAnniversary_one": "🎂 {{days}} day until your {{years}}-year anniversary",
+    "milestoneToAnniversary_other": "🎂 {{days}} days until your {{years}}-year anniversary",
+    "milestoneToDay_one": "✨ {{days}} day until day {{target}}",
+    "milestoneToDay_other": "✨ {{days}} days until day {{target}}",
+    "thousandsSeparator": ","
   }
 }

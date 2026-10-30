@@ -2,7 +2,7 @@ import { NativeModules, Platform } from "react-native";
 import { Directory, File, Paths } from "expo-file-system";
 import { dayjs } from "@/lib/date";
 import { logger } from "@/utils/logger";
-import i18n from "@/lib/i18n";
+import i18n, { getCurrentLanguage, type AppLanguage } from "@/lib/i18n";
 
 /**
  * Ana ekran widget'ı köprüsü (iOS: expo-widgets / WidgetKit, Android: yerel AppWidget).
@@ -33,6 +33,10 @@ export interface CoupleWidgetPayload {
   unreadCount: number;
   /** Alıcısı olunan kilitli mektupların açılış anları (epoch ms); widget geçenleri rozete kendisi ekler */
   letterUnlocksMs: number[];
+  /** Uygulama dili: widget baş harf büyütme ve sayı biçimi için okur */
+  language: AppLanguage;
+  /** Uygulama dilinde çözülmüş widget metinleri; {days}, {n} gibi yer tutucuları widget doldurur */
+  strings: Record<string, string>;
 }
 
 export interface CoupleWidgetInput {
@@ -51,7 +55,52 @@ export interface CoupleWidgetInput {
   letterUnlocksMs?: number[];
 }
 
-const EMPTY_PAYLOAD: CoupleWidgetPayload = {
+/** Widget metinleri uygulamanın seçili dilinde çözülür; yer tutucular ({days} vb.) widget içinde doldurulur. */
+function buildWidgetStrings(): Record<string, string> {
+  const t = i18n.t.bind(i18n);
+  const marker = (name: string) => `{${name}}`;
+  return {
+    title: t("widget.title"),
+    addDate: t("widget.addDate"),
+    addDateFromApp: t("widget.addDateFromApp"),
+    daysUnit: t("widget.daysUnit"),
+    daysUnitUpper: t("widget.daysUnitUpper"),
+    togetherShort: t("widget.togetherShort"),
+    togetherNames: t("widget.togetherNames", { names: marker("names") }),
+    togetherOne: t("widget.together", { count: 1, days: marker("days") }),
+    togetherOther: t("widget.together", { count: 2, days: marker("days") }),
+    unread: t("widget.unread", { n: marker("n") }),
+    moodTitle: t("widget.moodTitle", { name: marker("name") }),
+    moodFallback: t("widget.moodFallback"),
+    premiumOnly: t("widget.premiumOnly"),
+    premiumSub: t("widget.premiumSub"),
+    premiumSubLong: t("widget.premiumSubLong"),
+    premiumCta: t("widget.premiumCta"),
+    premiumUnlock: t("widget.premiumUnlock"),
+    signInSub: t("widget.signInSub"),
+    signInView: t("widget.signInView"),
+    openApp: t("widget.openApp"),
+    tapToOpen: t("widget.tapToOpen"),
+    milestoneAnniversary: t("widget.milestoneAnniversary", { years: marker("years") }),
+    milestoneDay100: t("widget.milestoneDay100", { days: marker("days") }),
+    milestoneToAnniversaryOne: t("widget.milestoneToAnniversary", { count: 1, years: marker("years"), days: marker("days") }),
+    milestoneToAnniversaryOther: t("widget.milestoneToAnniversary", { count: 2, years: marker("years"), days: marker("days") }),
+    milestoneToDayOne: t("widget.milestoneToDay", { count: 1, target: marker("target"), days: marker("days") }),
+    milestoneToDayOther: t("widget.milestoneToDay", { count: 2, target: marker("target"), days: marker("days") }),
+    thousandsSeparator: t("widget.thousandsSeparator"),
+  };
+}
+
+/** Giriş yapılmamış / kilitli görünümler için boş veri (metinler yine güncel dilde gider). */
+function emptyPayload(): CoupleWidgetPayload {
+  return {
+    ...EMPTY_PAYLOAD_BASE,
+    language: getCurrentLanguage(),
+    strings: buildWidgetStrings(),
+  };
+}
+
+const EMPTY_PAYLOAD_BASE: Omit<CoupleWidgetPayload, "language" | "strings"> = {
   state: "signedOut",
   myName: "",
   partnerName: "",
@@ -220,7 +269,7 @@ export function syncCoupleWidget(input: CoupleWidgetInput): Promise<boolean> {
     if (!input.isPremium) {
       lastReadyPayload = null;
       await removeAllAvatarFiles();
-      return pushPayload({ ...EMPTY_PAYLOAD, state: "locked" });
+      return pushPayload({ ...emptyPayload(), state: "locked" });
     }
 
     const [myAvatarPath, partnerAvatarPath] = await Promise.all([
@@ -243,6 +292,8 @@ export function syncCoupleWidget(input: CoupleWidgetInput): Promise<boolean> {
       partnerAvatarPath,
       unreadCount: Math.max(0, input.unreadCount ?? 0),
       letterUnlocksMs: upcomingUnlocks(input.letterUnlocksMs),
+      language: getCurrentLanguage(),
+      strings: buildWidgetStrings(),
     };
     lastReadyPayload = payload;
     return pushPayload(payload);
@@ -260,6 +311,8 @@ export function setCoupleWidgetUnread(unreadCount: number): Promise<boolean> {
       ...lastReadyPayload,
       unreadCount: Math.max(0, unreadCount),
       letterUnlocksMs: upcomingUnlocks(lastReadyPayload.letterUnlocksMs),
+      language: getCurrentLanguage(),
+      strings: buildWidgetStrings(),
     };
     lastReadyPayload = payload;
     return pushPayload(payload);
@@ -271,6 +324,6 @@ export function clearCoupleWidget(): Promise<boolean> {
   return enqueue(async () => {
     lastReadyPayload = null;
     await removeAllAvatarFiles();
-    return pushPayload({ ...EMPTY_PAYLOAD });
+    return pushPayload(emptyPayload());
   });
 }

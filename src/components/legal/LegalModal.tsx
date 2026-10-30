@@ -21,7 +21,7 @@ import {
   Check,
   Calendar,
 } from "lucide-react-native";
-import { LEGAL_DOCS, LegalDocType } from "@/constants/legalTexts";
+import { getLegalDoc, LegalDocType } from "@/constants/legalTexts";
 import { getTheme } from "@/lib/theme";
 import { useTranslation } from "react-i18next";
 import type { ParseKeys } from "i18next";
@@ -47,7 +47,7 @@ export function LegalModal({
   initialDoc = "kvkk",
   accentColor = "#FF4D6D",
 }: LegalModalProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   // Demo modunda insets.top 0'a çekilir; tam ekran pencere ekranın tepesinden başladığı için gerçek değer alınır
   const topInset = useRealTopInset();
@@ -61,7 +61,7 @@ export function LegalModal({
     if (openKey) setActiveTab(openKey);
   }
 
-  const currentDoc = LEGAL_DOCS[activeTab] || LEGAL_DOCS.kvkk;
+  const currentDoc = getLegalDoc(activeTab, i18n.language);
 
   return (
     <Modal

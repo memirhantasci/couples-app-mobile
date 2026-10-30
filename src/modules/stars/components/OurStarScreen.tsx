@@ -115,6 +115,7 @@ import type {
   SkyCameraState,
 } from '../types/star.types';
 import { useTranslation } from 'react-i18next';
+import { localizeServerError } from '@/lib/serverErrors';
 import type { ParseKeys, TFunction } from 'i18next';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -598,7 +599,7 @@ export const OurStarScreen: React.FC = () => {
         }
       }
     },
-    [coupleId, isDemoMode, showToast, queueStarIntro, refreshMyBrightness]
+    [coupleId, isDemoMode, showToast, queueStarIntro, refreshMyBrightness, t]
   );
 
   const isInitialMountRef = useRef(true);
@@ -654,7 +655,7 @@ export const OurStarScreen: React.FC = () => {
       .then(setExoplanets)
       .catch(() => showToast(t('stars.screen.toasts.refreshLockedFailed')));
     return () => clearTimeout(disposeTimer);
-  }, [isAuthLoading, isDemoMode, isPremium, showToast, starDetails]);
+  }, [isAuthLoading, isDemoMode, isPremium, showToast, starDetails, t]);
 
   const currentStarId = starDetails?.star_id;
   const currentStarLum = starDetails?.luminosity_level;
@@ -784,11 +785,11 @@ export const OurStarScreen: React.FC = () => {
               setPremiumPaywallSource('exoplanet_view');
               return;
             }
-            showToast(error?.message || t('stars.screen.toasts.planetDetailFailed'));
+            showToast(localizeServerError(error, t('stars.screen.toasts.planetDetailFailed')));
           });
       });
     },
-    [clearPlanetHighlightTimer, demoPlanetDetails, handlePremiumAction, isDemoMode, showToast, starDetails]
+    [clearPlanetHighlightTimer, demoPlanetDetails, handlePremiumAction, isDemoMode, showToast, starDetails, t]
   );
 
   const handleCreatePlanet = useCallback(() => {
@@ -850,7 +851,7 @@ export const OurStarScreen: React.FC = () => {
       setSelectedMacroStar(myStarItem);
     }
     showToast(t('stars.screen.toasts.glidingHome'));
-  }, [myStarRa, myStarDec, starDetails, showToast, prefetchSkyTiles]);
+  }, [myStarRa, myStarDec, starDetails, showToast, prefetchSkyTiles, t]);
 
   // Makro (Gök Kubbe) / Mikro (yıldızın içi) geçişi
   const handleToggleViewMode = useCallback(() => {
@@ -866,7 +867,7 @@ export const OurStarScreen: React.FC = () => {
     if (nextMode === 'macro') {
       showToast(t('stars.screen.toasts.ascendedDome'));
     }
-  }, [viewMode, starDetails, showToast]);
+  }, [viewMode, starDetails, showToast, t]);
 
   // Ortam sesini aç/kapat (Kalıcı tercih + Genel ses ayarı denetimi)
   const handleToggleAmbient = useCallback(async () => {
@@ -885,7 +886,7 @@ export const OurStarScreen: React.FC = () => {
         showToast(t('stars.screen.toasts.soundsOff'));
       }
     }
-  }, [showToast]);
+  }, [showToast, t]);
 
   // Kamera değiştiğinde koordinatları sadece anlamlı değişimlerde güncelle (re-render döngüsünü önler)
   const handleCameraChange = useCallback((cam: SkyCameraState) => {
@@ -945,7 +946,7 @@ export const OurStarScreen: React.FC = () => {
     // Gök kubbedeki kendi yıldız adı etiketi yeni isimle gelsin
     refreshSkyTiles();
     showToast(t('stars.screen.toasts.renamed'));
-  }, [coupleId, refreshSkyTiles, showToast]);
+  }, [coupleId, refreshSkyTiles, showToast, t]);
 
   // ─── TESCİL BAŞARISI (Claim Callback) ──────────────────────────────
   const handleClaimSuccess = (claimed: CoupleStarDetails) => {
@@ -967,7 +968,7 @@ export const OurStarScreen: React.FC = () => {
     setExoplanets((prev) => [toMapPlanet(newPlanet), ...prev]);
     showToast(t('stars.screen.toasts.planetAdded', { title: newPlanet.title }));
     refreshMyBrightness();
-  }, [isDemoMode, showToast, refreshMyBrightness]);
+  }, [isDemoMode, showToast, refreshMyBrightness, t]);
 
   const handlePlanetUpdated = useCallback((updatedPlanet: StarExoplanetRecord) => {
     if (isDemoMode) {
@@ -978,7 +979,7 @@ export const OurStarScreen: React.FC = () => {
     );
     setSelectedPlanet(updatedPlanet);
     showToast(t('stars.screen.toasts.planetUpdated', { title: updatedPlanet.title }));
-  }, [isDemoMode, showToast]);
+  }, [isDemoMode, showToast, t]);
 
   const handlePlanetDeleted = useCallback((planetId: string) => {
     if (isDemoMode) {
@@ -989,7 +990,7 @@ export const OurStarScreen: React.FC = () => {
     showToast(t('stars.screen.toasts.planetRemoved'));
     // Silinen gezegenin puanı geri alınır; ışık buna göre güncellenir.
     refreshMyBrightness();
-  }, [isDemoMode, showToast, refreshMyBrightness]);
+  }, [isDemoMode, showToast, refreshMyBrightness, t]);
 
   const handleExoplanetPremiumRequired = useCallback(() => {
     handlePremiumAction('exoplanet_view', () => {});
@@ -1050,7 +1051,7 @@ export const OurStarScreen: React.FC = () => {
       if (Platform.OS !== 'web') {
         hapticError();
       }
-      showToast(err?.message || t('stars.screen.toasts.requestFailed'));
+      showToast(localizeServerError(err, t('stars.screen.toasts.requestFailed')));
     } finally {
       setIsConnectingStar(false);
     }

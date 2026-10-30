@@ -71,7 +71,7 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
       logger.error("Ad error:", error);
       appAlert(t("common.error"), t("ads.loadFailed"));
     }
-  }, [error]);
+  }, [error, t]);
 
   // Yalnızca reklam kapandığında effect'ten çağrılır; güncel refreshProfile / onSuccess'i görür.
   // Durum güncellemeleri istek zincirinin içinde yapılır (effect gövdesinde senkron değil).

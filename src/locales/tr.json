@@ -243,7 +243,8 @@
     "channels": {
       "general": "Genel Bildirimler ❤️",
       "partnerMessages": "Sevgilinden Mesajlar & Anılar ❤️",
-      "medicine": "İlaç & Sağlık 💊"
+      "medicine": "İlaç & Sağlık 💊",
+      "letters": "Mektuplar 💌"
     },
     "types": {
       "letter": {
@@ -482,7 +483,8 @@
     "yesterday": "Dün",
     "next": "Sonraki",
     "forward": "İleri",
-    "partner": "Partner"
+    "partner": "Partner",
+    "madeWith": "CoupleSky ile yapıldı"
   },
   "permissions": {
     "notNow": "Şimdi Değil",
@@ -3227,5 +3229,75 @@
         }
       }
     }
+  },
+  "serverErrors": {
+    "unauthorized": "Bu işlem için yetkiniz yok.",
+    "notFoundOrDenied": "Kayıt bulunamadı veya erişim yetkiniz yok.",
+    "invalidInput": "Geçersiz veya eksik bilgi girdiniz.",
+    "directUpdateBlocked": "Bu alan doğrudan değiştirilemez.",
+    "premiumRequired": "Bu işlem için aktif Premium üyelik gereklidir.",
+    "tokensOrPremium": "Mektup mühürlemek için en az 100 Token veya aktif Premium üyelik gereklidir.",
+    "tokensInsufficient": "Yetersiz token bakiyesi.",
+    "promoUsed": "Bu kodu zaten kullandınız",
+    "promoLimit": "Bu kodun kullanım limiti dolmuş",
+    "promoExpired": "Bu kodun süresi dolmuş",
+    "promoInvalid": "Geçersiz veya süresi dolmuş kod",
+    "promoNeedPartner": "Premium kodunu kullanmak için bir partnerle eşleşmiş olmalısınız.",
+    "periodMonthlyLimit": "Bir ay içerisinde en fazla 2 regl başlangıcı kaydedebilirsiniz.",
+    "periodMinGap": "İki regl başlangıcı arasında en az 16 gün ara bulunmalıdır.",
+    "periodFuture": "Gelecekteki bir günü regl başlangıcı olarak işaretleyemezsiniz.",
+    "periodFemaleOnly": "Regl takvimini yalnızca kadın partner güncelleyebilir.",
+    "genderCooldown": "Cinsiyet tercihi 90 günde bir değiştirilebilir. Kalan süreniz dolmadan tekrar değiştiremezsiniz.",
+    "nameCooldown": "İsim değişikliği 30 günde bir yapılabilir. Kalan süreniz dolmadan tekrar değiştiremezsiniz.",
+    "datesCooldown": "İlişki tarihleri 30 günde bir güncellenebilir. Çift olarak bekleme süreniz henüz dolmamıştır.",
+    "letterDeleteLocked": "Mektup açılış gününe kadar silinemez; dilersen listenden gizleyebilirsin.",
+    "letterDeleteTooEarly": "Silme isteği, mektup açıldıktan 72 saat sonra gönderilebilir.",
+    "letterDeletePending": "Silme isteğin zaten partnerinin onayını bekliyor.",
+    "letterKeepCooldown": "Partnerin bu mektubu saklamak istedi. Yeni bir istek 72 saat sonra gönderilebilir.",
+    "letterAlreadyApproved": "Silmeyi zaten onayladın.",
+    "letterPartnerApproved": "Partnerin silmeyi zaten onayladı.",
+    "letterOnlyOwn": "Yalnızca kendi yazdığın mektubun silinmesini isteyebilirsin.",
+    "letterNoPending": "Bu mektup için bekleyen bir silme isteği yok.",
+    "letterOnlyPartner": "Mektup yalnızca eşleştiğiniz partnere gönderilebilir.",
+    "letterNotFound": "Mektup bulunamadı.",
+    "starNotFound": "Yıldız bulunamadı.",
+    "coupleNoStar": "Çiftin henüz bir yıldızı yok.",
+    "starNoFree": "Bu parlaklıkta uygun boşta yıldız kalmadı.",
+    "starSelfConnect": "Kendi yıldızınıza bağlantı kuramazsınız.",
+    "starAlreadyOwned": "Çiftinizin zaten tescilli bir yıldızı bulunmaktadır.",
+    "starNameLength": "Yıldız ismi 2 ile 40 karakter arasında olmalıdır.",
+    "planetLimit": "Maksimum 10 manuel gezegen oluşturabilirsiniz.",
+    "adLimit": "Günlük reklam izleme sınırına ulaştınız. Lütfen daha sonra tekrar deneyin.",
+    "partnerLimitFull": "Taraflardan birinin maksimum 3 bağlantı sınırı dolu."
+  },
+  "widget": {
+    "title": "AŞKIMIZIN YOLCULUĞU",
+    "addDate": "Tarihinizi ekleyin",
+    "addDateFromApp": "Tarihinizi uygulamadan ekleyin",
+    "daysUnit": "gün",
+    "daysUnitUpper": "GÜN",
+    "togetherShort": "gündür birlikte ♥",
+    "togetherNames": "birlikte ♥ {{names}}",
+    "together_one": "{{days}} gündür birlikte",
+    "together_other": "{{days}} gündür birlikte",
+    "unread": "{{n}} okunmamış",
+    "moodTitle": "{{name}} bugün",
+    "moodFallback": "ruh halini paylaştı",
+    "premiumOnly": "Premium üyelere özel",
+    "premiumSub": "Sayacınızı ana ekranda görün",
+    "premiumSubLong": "Sayacınızı ana ekranda ve kilit ekranında görün",
+    "premiumCta": "Premium'a geç",
+    "premiumUnlock": "Premium ile kilidi aç",
+    "signInSub": "Widget için giriş yap",
+    "signInView": "Görmek için giriş yap",
+    "openApp": "Uygulamayı aç",
+    "tapToOpen": "Açmak için dokun",
+    "milestoneAnniversary": "🎉 {{years}}. yıl dönümünüz kutlu olsun",
+    "milestoneDay100": "🎉 Bugün {{days}}. gününüz",
+    "milestoneToAnniversary_one": "🎂 {{years}}. yıl dönümüne {{days}} gün",
+    "milestoneToAnniversary_other": "🎂 {{years}}. yıl dönümüne {{days}} gün",
+    "milestoneToDay_one": "✨ {{target}}. güne {{days}} gün",
+    "milestoneToDay_other": "✨ {{target}}. güne {{days}} gün",
+    "thousandsSeparator": "."
   }
 }

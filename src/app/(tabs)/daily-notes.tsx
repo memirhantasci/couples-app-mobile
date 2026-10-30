@@ -124,7 +124,7 @@ export default function DailyNotesScreen() {
         }
       }
     ]);
-  }, [queryClient, userId]);
+  }, [queryClient, userId, executeOrIntercept, t]);
 
   const handleUpdate = async () => {
     if (executeOrIntercept(
@@ -218,7 +218,7 @@ export default function DailyNotesScreen() {
         <Text style={[styles.noteBodyText, { color: theme.textSecondary }]}>{displayContent}</Text>
       </View>
     );
-  }, [theme, styles, executeOrIntercept, handleDelete, i18n.language]);
+  }, [theme, styles, executeOrIntercept, handleDelete, i18n.language, t]);
 
   const keyExtractor = useCallback((item: DailyNote) => item.id.toString(), []);
 

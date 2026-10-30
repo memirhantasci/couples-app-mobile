@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArrowRight, Heart, Sparkles } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
+import { APP_NAME } from "@/constants/brand";
 
 const ACCENT = "#FF4D6D";
 
@@ -49,7 +50,7 @@ export default function WelcomeScreen() {
               <Heart color={ACCENT} size={34} fill={ACCENT} />
             </LinearGradient>
           </View>
-          <Text style={styles.title}>Couples App</Text>
+          <Text style={styles.title}>{APP_NAME}</Text>
           <Text style={styles.subtitle}>
             {t("auth.welcome.subtitle")}
           </Text>

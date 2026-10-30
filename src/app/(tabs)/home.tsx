@@ -435,6 +435,8 @@ export default function HomeScreen() {
     partnerMoodLabel,
     myAvatarUrl,
     partnerAvatarUrl,
+    // Dil değişince widget metinleri yeni dilde yeniden gönderilir
+    i18n.language,
   ]);
 
   // ─── SPOTLIGHT TURU ───

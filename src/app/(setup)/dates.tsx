@@ -20,6 +20,7 @@ import { toast } from "@/lib/toast";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Calendar, Check, ChevronRight, Heart, Sparkles } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
+import { localizeServerError } from "@/lib/serverErrors";
 import i18n from "@/lib/i18n";
 
 // İlk kaydeden kazanır: partner tarihleri bizden önce kaydettiyse sayaçlar onun tarihinden başlar
@@ -219,7 +220,7 @@ export default function DatesScreen() {
       router.replace("/(tabs)/home");
     } catch (err: any) {
       savingRef.current = false;
-      setError(t("errors.unexpectedWithMessage", { message: err?.message || "" }));
+      setError(t("errors.unexpectedWithMessage", { message: localizeServerError(err, "") }));
     } finally {
       setIsLoading(false);
     }
@@ -235,7 +236,7 @@ export default function DatesScreen() {
       await refreshProfile();
       router.replace("/(tabs)/home");
     } catch (err: any) {
-      setError(t("errors.genericWithMessage", { message: err?.message || "" }));
+      setError(t("errors.genericWithMessage", { message: localizeServerError(err, "") }));
     } finally {
       setIsLoading(false);
     }

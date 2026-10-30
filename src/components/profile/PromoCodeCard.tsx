@@ -18,6 +18,7 @@ import { toast } from "@/lib/toast";
 import { suppressPremiumCelebration } from "@/lib/premiumCelebration";
 import { ModernSection } from "./ModernSection";
 import { useTranslation } from "react-i18next";
+import { localizeServerError } from "@/lib/serverErrors";
 
 interface PromoCodeCardProps {
   theme: AppTheme;
@@ -74,9 +75,9 @@ export function PromoCodeCard({
           return;
         }
 
-        appAlert(t("common.error"), rpcError?.message || promoError?.message || t("profile.promo.activateFailed"));
+        appAlert(t("common.error"), localizeServerError(rpcError ?? promoError, t("profile.promo.activateFailed")));
       } catch (err: any) {
-        appAlert(t("common.error"), err?.message || t("profile.promo.actionFailed"));
+        appAlert(t("common.error"), localizeServerError(err, t("profile.promo.actionFailed")));
       } finally {
         setPromoLoading(false);
       }
@@ -98,9 +99,9 @@ export function PromoCodeCard({
           return;
         }
 
-        appAlert(t("common.error"), rpcError?.message || t("profile.promo.cancelFailed"));
+        appAlert(t("common.error"), localizeServerError(rpcError, t("profile.promo.cancelFailed")));
       } catch (err: any) {
-        appAlert(t("common.error"), err?.message || t("profile.promo.actionFailed"));
+        appAlert(t("common.error"), localizeServerError(err, t("profile.promo.actionFailed")));
       } finally {
         setPromoLoading(false);
       }
@@ -125,7 +126,7 @@ export function PromoCodeCard({
 
       setPromoCode("");
     } catch (err: any) {
-      appAlert(t("common.error"), err.message || t("profile.promo.redeemFailed"));
+      appAlert(t("common.error"), localizeServerError(err, t("profile.promo.redeemFailed")));
     } finally {
       setPromoLoading(false);
     }

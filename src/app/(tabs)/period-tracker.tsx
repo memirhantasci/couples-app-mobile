@@ -37,6 +37,7 @@ import {
   estimateCycleLength, getPeriodStarts, getPeriodDays,
 } from "@/lib/periodCycle";
 import { useTranslation } from "react-i18next";
+import { localizeServerError } from "@/lib/serverErrors";
 
 export default function PeriodTrackerScreen() {
   const { t, i18n } = useTranslation();
@@ -243,7 +244,7 @@ export default function PeriodTrackerScreen() {
       await savePeriodStart(today);
     } catch (error: any) {
       logger.error("Period quick start error:", error);
-      appAlert(t("common.error"), error?.message || t("errors.actionFailed"));
+      appAlert(t("common.error"), localizeServerError(error, t("errors.actionFailed")));
     } finally {
       setLoading(false);
     }
@@ -277,7 +278,7 @@ export default function PeriodTrackerScreen() {
       setSelectedDate(null);
     } catch (error: any) {
       logger.error("Period save error:", error);
-      appAlert(t("common.error"), error?.message || t("errors.actionFailed"));
+      appAlert(t("common.error"), localizeServerError(error, t("errors.actionFailed")));
     } finally {
       setLoading(false);
     }

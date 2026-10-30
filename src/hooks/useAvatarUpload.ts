@@ -53,7 +53,7 @@ export function useAvatarUpload() {
       return;
     }
     setIsSheetOpen(true);
-  }, [executeOrIntercept, isPremium]);
+  }, [executeOrIntercept, isPremium, t]);
 
   const uploadAvatar = useCallback(async (source: AvatarSource) => {
     setIsSheetOpen(false);
@@ -91,7 +91,7 @@ export function useAvatarUpload() {
     } finally {
       setIsUploading(false);
     }
-  }, [isDemoMode, userId, isPremium, refreshAvatars]);
+  }, [isDemoMode, userId, isPremium, refreshAvatars, t]);
 
   const removeAvatar = useCallback(async () => {
     setIsSheetOpen(false);
@@ -108,7 +108,7 @@ export function useAvatarUpload() {
     } finally {
       setIsUploading(false);
     }
-  }, [isDemoMode, userId, refreshAvatars]);
+  }, [isDemoMode, userId, refreshAvatars, t]);
 
   return {
     openAvatarMenu,

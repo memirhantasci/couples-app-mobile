@@ -17,6 +17,7 @@ import { AlertCircle, ArrowRight, Sparkles, User as UserIcon } from "lucide-reac
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
+import { localizeServerError } from "@/lib/serverErrors";
 
 type Gender = "male" | "female";
 
@@ -83,7 +84,7 @@ export default function CompleteProfileScreen() {
       await refreshProfile();
       router.replace("/(setup)/pairing");
     } catch (err: any) {
-      setError(t("auth.completeProfile.saveFailed", { message: err?.message || t("errors.tryAgain") }));
+      setError(t("auth.completeProfile.saveFailed", { message: localizeServerError(err, t("errors.tryAgain")) }));
     } finally {
       setIsSaving(false);
     }

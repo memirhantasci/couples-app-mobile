@@ -46,7 +46,7 @@ module.exports = function withAndroidWidget(config) {
       $: {
         "android:name": RECEIVER_NAME,
         "android:exported": "true",
-        "android:label": "Aşkımızın Yolculuğu",
+        "android:label": "@string/couple_widget_label",
       },
       "intent-filter": [
         {

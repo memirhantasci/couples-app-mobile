@@ -53,6 +53,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { toast } from "@/lib/toast";
 import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
 import { useTranslation } from "react-i18next";
+import { localizeServerError } from "@/lib/serverErrors";
 
 export default function MapScreen() {
   const { t } = useTranslation();
@@ -184,7 +185,7 @@ export default function MapScreen() {
       }
     },
     onError: (e: Error) => {
-      appAlert(t("common.error"), t("map.errors.saveFailedWithMessage", { message: e?.message ?? "" }));
+      appAlert(t("common.error"), t("map.errors.saveFailedWithMessage", { message: localizeServerError(e, "") }));
     },
   });
 
@@ -206,7 +207,7 @@ export default function MapScreen() {
       setSelectedItem(null);
     },
     onError: (e: Error) => {
-      appAlert(t("common.error"), t("map.errors.deleteFailedWithMessage", { message: e?.message ?? "" }));
+      appAlert(t("common.error"), t("map.errors.deleteFailedWithMessage", { message: localizeServerError(e, "") }));
     },
   });
 

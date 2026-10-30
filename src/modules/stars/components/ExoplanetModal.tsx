@@ -77,6 +77,7 @@ import type {
   CreateExoplanetDto,
 } from '../types/star.types';
 import { useTranslation } from 'react-i18next';
+import { localizeServerError } from '@/lib/serverErrors';
 import type { ParseKeys, TFunction } from 'i18next';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -356,7 +357,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
               onPlanetDeleted?.(selectedPlanet.id);
               onClose();
             } catch (err: any) {
-              appAlert(t('common.error'), err?.message || t('stars.exoplanet.deleteFailed'));
+              appAlert(t('common.error'), localizeServerError(err, t('stars.exoplanet.deleteFailed')));
             } finally {
               setIsDeleting(false);
             }
@@ -501,7 +502,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
     } catch (err: any) {
       setIsSubmitting(false);
       setUploadProgressText('');
-      setFormError(err?.message || t('stars.exoplanet.errors.createFailed'));
+      setFormError(localizeServerError(err, t('stars.exoplanet.errors.createFailed')));
     }
   };
 
@@ -581,7 +582,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
     } catch (err: any) {
       setIsSubmitting(false);
       setUploadProgressText('');
-      setFormError(err?.message || t('stars.exoplanet.errors.updateFailed'));
+      setFormError(localizeServerError(err, t('stars.exoplanet.errors.updateFailed')));
     }
   };
 

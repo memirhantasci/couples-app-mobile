@@ -41,6 +41,7 @@ import { playCameraClick } from "@/lib/soundEffects";
 import { toast } from "@/lib/toast";
 import { LazyPremiumPaywall, LazyDemoActionModal, LazyDateTimePickerSheet } from "@/components/ui/lazyMount";
 import { useTranslation } from "react-i18next";
+import { localizeServerError } from "@/lib/serverErrors";
 
 interface LocationData {
   latitude: number;
@@ -349,7 +350,7 @@ export default function AddPhotoScreen() {
       }
     } catch (error: any) {
       logger.error("Photo save error:", error);
-      appAlert(t("common.error"), t("photos.errors.saveFailedWithMessage", { message: error?.message || "" }));
+      appAlert(t("common.error"), t("photos.errors.saveFailedWithMessage", { message: localizeServerError(error, "") }));
     } finally {
       setUploading(false);
     }

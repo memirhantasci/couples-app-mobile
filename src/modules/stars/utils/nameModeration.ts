@@ -28,13 +28,14 @@ export function moderateStarName(name: string): { isValid: boolean; message?: st
     return { isValid: false, message: i18n.t("stars.errors.nameEmpty") };
   }
 
-  const normalized = name.toLocaleLowerCase('tr-TR').trim();
+  // tr-TR 'I' harfini 'ı' yapar; İngilizce sözcükler kaçmasın diye iki dönüşüm de denenir
+  const candidates = Array.from(new Set([name.toLocaleLowerCase('tr-TR').trim(), name.toLocaleLowerCase('en-US').trim()]));
 
   for (const word of BLOCKED_WORDS) {
     const escaped = escapeRegex(word.toLocaleLowerCase('tr-TR'));
     // Standart \b Türkçe karakterleri (ç, ğ, ı, ö, ş, ü) word character saymadığı için özel sınır kullanıyoruz
     const regex = new RegExp(`(?:^|[^a-z0-9çğıöşü])${escaped}(?:$|[^a-z0-9çğıöşü])`, 'iu');
-    if (regex.test(normalized)) {
+    if (candidates.some((candidate) => regex.test(candidate))) {
       return { 
         isValid: false, 
         message: i18n.t("stars.errors.nameBlocked") 

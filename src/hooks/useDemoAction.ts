@@ -30,7 +30,7 @@ export function useDemoAction() {
       action();
       return false;
     },
-    [isDemoMode]
+    [isDemoMode, t]
   );
 
   return {

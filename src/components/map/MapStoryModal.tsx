@@ -143,7 +143,7 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
       } else {
         await Share.share({
           url: uri,
-          message: `${stats.headline} · Made with Couples App`,
+          message: `${stats.headline} · ${t("common.madeWith")}`,
         });
       }
     } catch (error) {
@@ -243,7 +243,7 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
             {/* Minimalist Watermark */}
             <View style={styles.watermarkWrapper}>
               <View style={styles.watermarkDot} />
-              <Text style={styles.watermarkText}>Made with Couples App</Text>
+              <Text style={styles.watermarkText}>{t("common.madeWith")}</Text>
             </View>
           </View>
 

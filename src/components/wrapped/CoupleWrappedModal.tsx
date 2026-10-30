@@ -152,7 +152,7 @@ export function CoupleWrappedModal({
       } else {
         await Share.share({
           url: fileUri,
-          message: `${data?.romanticStatement} · Made with Couples App`,
+          message: `${data?.romanticStatement} · ${t("common.madeWith")}`,
         });
       }
     } catch (error) {
@@ -316,7 +316,7 @@ export function CoupleWrappedModal({
                   {/* Minimalist, Zarif ve Göze Sokulmayan İmza */}
                   <View style={styles.subtleWatermarkContainer}>
                     <View style={styles.watermarkDot} />
-                    <Text style={styles.subtleWatermarkText}>Made with Couples App</Text>
+                    <Text style={styles.subtleWatermarkText}>{t("common.madeWith")}</Text>
                   </View>
                 </View>
 

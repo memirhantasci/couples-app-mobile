@@ -22,6 +22,7 @@ import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { toast } from "@/lib/toast";
 import { DAILY_NOTE_MAX_CHARS } from "@/lib/dailyNote";
 import { useTranslation } from "react-i18next";
+import { localizeServerError } from "@/lib/serverErrors";
 
 interface DailyNoteCardProps {
   existingNote?: string | null;
@@ -71,7 +72,7 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
       encryptedContent = encrypt(cleanContent);
     } catch (err) {
       setSubmitting(false);
-      toast.error(err instanceof Error ? err.message : t("errors.unknown"), { title: t("home.dailyNote.saveFailed") });
+      toast.error(localizeServerError(err, t("errors.unknown")), { title: t("home.dailyNote.saveFailed") });
       return;
     }
 
@@ -91,7 +92,7 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
       toast.success(t("home.dailyNote.saved"));
     } else {
       logger.error("Note save error:", JSON.stringify(error, null, 2));
-      toast.error(error?.message || t("errors.unknown"), { title: t("home.dailyNote.saveFailed") });
+      toast.error(localizeServerError(error, t("errors.unknown")), { title: t("home.dailyNote.saveFailed") });
     }
   }
 

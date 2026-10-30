@@ -48,6 +48,7 @@ import type {
   WeeklyComplianceDay,
 } from "@/components/medicine/medicineTypes";
 import { useTranslation } from "react-i18next";
+import { localizeServerError } from "@/lib/serverErrors";
 
 export default function MedicineScreen() {
   const { t, i18n } = useTranslation();
@@ -337,7 +338,7 @@ export default function MedicineScreen() {
       primeAfterCloseRef.current = true;
       return "success";
     } catch (err: any) {
-      appAlert(t("common.error"), err?.message || t("medicine.errors.unexpected"));
+      appAlert(t("common.error"), localizeServerError(err, t("medicine.errors.unexpected")));
       return "error";
     }
   };
@@ -540,7 +541,7 @@ export default function MedicineScreen() {
     }
 
     return { weeklyCompliance: days, streakCount: streak };
-  }, [filteredMedicines, statusMap, historyGrouped]);
+  }, [filteredMedicines, statusMap, historyGrouped, i18n.language]);
 
   return (
     <ScreenBackground>

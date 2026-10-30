@@ -29,7 +29,8 @@
         "LSApplicationQueriesSchemes": [
           "instagram",
           "instagram-stories"
-        ]
+        ],
+        "CFBundleAllowMixedLocalizations": true
       }
     },
     "android": {
@@ -60,6 +61,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-localization",
       "expo-apple-authentication",
       "expo-sharing",
       [
@@ -75,8 +77,8 @@
           "widgets": [
             {
               "name": "CoupleWidget",
-              "displayName": "Aşkımızın Yolculuğu",
-              "description": "Kaç gündür birlikte olduğunuzu, çift fotoğrafınızı, sevgilinin ruh halini ve yaklaşan yıl dönümünüzü ana ekranda ve kilit ekranında görün.",
+              "displayName": "CoupleSky",
+              "description": "Kaç gündür birlikte olduğunuzu, çift fotoğrafınızı, sevgilinin ruh halini ve yaklaşan yıl dönümünüzü ana ekranda ve kilit ekranında görün. · See how many days you've been together, your couple photo, your love's mood and your upcoming anniversary on your home and lock screen.",
               "ios": {
                 "supportedFamilies": [
                   "systemSmall",
@@ -143,6 +145,10 @@
         "projectId": "41ae72c5-4b30-4fd6-92f5-4191dd8c0b4c"
       }
     },
-    "owner": "memirhantascis-team"
+    "owner": "memirhantascis-team",
+    "locales": {
+      "tr": "./locales/native/tr.json",
+      "en": "./locales/native/en.json"
+    }
   }
 }

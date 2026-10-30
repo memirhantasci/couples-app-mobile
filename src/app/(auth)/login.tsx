@@ -16,6 +16,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { navigateAfterAuth, setAuthFlowActive, releaseAuthFlow } from "@/lib/navigate";
 import { registerForPushNotifications } from "@/lib/notifications";
+import { APP_NAME } from "@/constants/brand";
 import { useAuth, DEVICE_AUTH_CACHE_KEY } from "@/context/AuthContext";
 import { signInWithUsername } from "@/lib/authGateway";
 import { isValidUsername, normalizeUsername, USERNAME_MAX_LENGTH } from "@/lib/username";
@@ -731,7 +732,7 @@ export default function LoginScreen() {
               </LinearGradient>
             </View>
 
-            <Text style={styles.heroTitle}>Couples App</Text>
+            <Text style={styles.heroTitle}>{APP_NAME}</Text>
             <Text style={styles.heroSubtitle}>
               {mode === "login"
                 ? t("auth.login.tagline")

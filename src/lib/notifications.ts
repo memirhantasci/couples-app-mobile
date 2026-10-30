@@ -7,7 +7,8 @@ import { supabase } from "@/lib/supabase";
 import { logger } from "@/utils/logger";
 import { decrypt } from "@/utils/crypto";
 import dayjs from "dayjs";
-import i18n from "@/lib/i18n";
+import i18n, { getCurrentLanguage } from "@/lib/i18n";
+import { APP_NAME } from "@/constants/brand";
 
 /**
  * Saves or updates a push token in Supabase for the given user.
@@ -16,15 +17,36 @@ import i18n from "@/lib/i18n";
 async function savePushToken(userId: string, token: string): Promise<void> {
   const platform = Platform.OS === "ios" ? "ios" : "android";
 
-  await supabase.from("push_tokens").upsert(
-    {
-      user_id: userId,
-      token,
-      platform,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id,platform" }
-  );
+  const row = {
+    user_id: userId,
+    token,
+    platform,
+    updated_at: new Date().toISOString(),
+  };
+
+  // Sunucu bildirimleri token sahibinin dilinde gider (push_tokens.language, migration 025)
+  const { error } = await supabase
+    .from("push_tokens")
+    .upsert({ ...row, language: getCurrentLanguage() }, { onConflict: "user_id,platform" });
+
+  if (error) {
+    // `language` sütunu henüz eklenmemişse token yine de kaydedilir (bildirimler Türkçe varsayılanıyla gider)
+    await supabase.from("push_tokens").upsert(row, { onConflict: "user_id,platform" });
+  }
+}
+
+/**
+ * Uygulama dili değiştiğinde (ve açılışta) kullanıcının token kayıtlarındaki dili günceller;
+ * sunucu bildirimleri (ilaç/mektup/buluşma hatırlatıcıları vb.) bu dilde gönderilir.
+ * Hata verirse (ör. sütun henüz yoksa) sessiz kalınır.
+ */
+export async function syncPushTokenLanguage(userId: string): Promise<void> {
+  if (!userId || userId === "demo-guest-user-id") return;
+  try {
+    await supabase.from("push_tokens").update({ language: getCurrentLanguage() }).eq("user_id", userId);
+  } catch {
+    // push dili senkronu asla akışı bozmaz
+  }
 }
 
 /**
@@ -180,7 +202,7 @@ export function configureAndroidNotificationChannel() {
 
     // 3. Mektuplar Kanalı (Altın Işıltı)
     Notifications.setNotificationChannelAsync("letters_channel", {
-      name: "Mektuplar 💌",
+      name: i18n.t("notifications.channels.letters"),
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 150, 250],
       lightColor: "#F5C563",
@@ -290,7 +312,7 @@ export function formatMessagingStyleNotification(
     typeof value === "string" ? truncate(cleanNotificationText(value), max) : "";
 
   let title = `${name} ❤️`;
-  let subtitle = "Couples";
+  let subtitle: string = APP_NAME;
   let body = trimmedBody || cleanBodyText;
   let channelId = "partner_messages";
 
@@ -409,7 +431,7 @@ export function formatMessagingStyleNotification(
     }
     case "pairing": {
       // Sistem olayı: başlıkta uygulama adı, gönderen adı değil
-      title = "Couples ❤️";
+      title = `${APP_NAME} ❤️`;
       subtitle = i18n.t("notifications.push.pairing.subtitle");
       channelId = "partner_messages";
       body = i18n.t("notifications.push.pairing.body");
@@ -426,7 +448,7 @@ export function formatMessagingStyleNotification(
     default: {
       const cleanT = cleanNotificationText(rawTitle);
       title = `${name} ❤️`;
-      subtitle = cleanT || "Couples";
+      subtitle = cleanT || APP_NAME;
       body = trimmedBody || cleanBodyText;
       channelId = "partner_messages";
       break;

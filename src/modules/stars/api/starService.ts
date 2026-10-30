@@ -137,7 +137,7 @@ function handleSupabaseError(error: any): never {
   // P0010 is also used by the older star-connection flow. Only turn the
   // entitlement variant into PremiumRequiredError.
   if (error?.code === 'P0010') {
-    if (String(error.message || '').toLocaleLowerCase('tr-TR').includes('premium')) {
+    if (String(error.message || '').toLowerCase().includes('premium')) {
       throw new PremiumRequiredError(i18n.t('stars.errors.premiumRequired'));
     }
     throw codedError('P0010', i18n.t('stars.errors.needStar'));

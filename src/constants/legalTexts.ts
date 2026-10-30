@@ -1,7 +1,7 @@
 import i18n from "@/lib/i18n";
 
 /**
- * Couples App Yasal & Mevzuat Metinleri
+ * CoupleSky Yasal & Mevzuat Metinleri
  * 6698 Sayılı KVKK, GDPR, Apple App Store Review Guidelines (3.1.2, 5.1.1) ve Google Play Politikalarına Uygun Metinler
  */
 
@@ -25,7 +25,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
     summary: "Kişisel verilerinizin işlenme amaçları, toplanma yöntemleri, hukuki sebepleri ve 6698 Sayılı KVKK 11. madde kapsamındaki haklarınız hakkında bilgilendirme.",
     content: [
       "1. VERİ SORUMLUSU",
-      "Veri sorumlusu: CoupleSky · İletişim: support@couplesky.app · Destek: destek@couplesky.app. CoupleSky (\"Uygulama\" veya \"Veri Sorumlusu\") olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu (\"KVKK\") ve ilgili mevzuat uyarınca, kullanıcılarımızın kişisel verilerinin güvenliğine ve gizliliğine azami hassasiyet göstermekteyiz. İşbu Aydınlatma Metni, mobil uygulamamız üzerinden toplanan kişisel verilerinizin hangi amaçlarla işlendiğini ve haklarınızı açıklamaktadır.",
+      "Veri sorumlusu: CoupleSky · İletişim ve destek: destek@couplesky.app. CoupleSky (\"Uygulama\" veya \"Veri Sorumlusu\") olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu (\"KVKK\") ve ilgili mevzuat uyarınca, kullanıcılarımızın kişisel verilerinin güvenliğine ve gizliliğine azami hassasiyet göstermekteyiz. İşbu Aydınlatma Metni, mobil uygulamamız üzerinden toplanan kişisel verilerinizin hangi amaçlarla işlendiğini ve haklarınızı açıklamaktadır.",
 
       "2. İŞLENEN KİŞİSEL VERİ KATEGORİLERİ VE VERİ TÜRLERİ",
       "Uygulamamızın sunduğu çift anı defteri, zaman kilitli mektuplar, konum tabanlı buluşma planları ve sağlık/döngü takip fonksiyonları kapsamında aşağıdaki kişisel verileriniz işlenmektedir:\n" +
@@ -65,7 +65,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "• KVKK md. 5/1 ve md. 6/2: Sağlık verileri (regl/ilaç takibi), hassas konum verileri ve pazarlama/bildirim süreçleri için vermiş olduğunuz Açık Rıza.",
 
       "6. VERİLERİN GÜVENLİĞİ VE ŞİFRELEME (AES-256)",
-      "Couples App, kullanıcıların özel hayatının gizliliğini korumak adına gelişmiş kriptografik yöntemler kullanır. Günlük notlarınız, mektuplarınız ve hassas kullanıcı bilgileriniz veritabanında simetrik ve deterministik şifreleme (AES standartları) ile korunmaktadır. Şifreleme anahtarı uygulamanın içinde bulunur; bu nedenle şifreleme, veritabanına erişimi olan birine karşı tek başına tam bir koruma sağlamaz. Veritabanı erişimi, oturum açmış ve ilgili çifte ait kullanıcılarla sınırlandırılmıştır.",
+      "CoupleSky, kullanıcıların özel hayatının gizliliğini korumak adına gelişmiş kriptografik yöntemler kullanır. Günlük notlarınız, mektuplarınız ve hassas kullanıcı bilgileriniz veritabanında simetrik ve deterministik şifreleme (AES standartları) ile korunmaktadır. Şifreleme anahtarı uygulamanın içinde bulunur; bu nedenle şifreleme, veritabanına erişimi olan birine karşı tek başına tam bir koruma sağlamaz. Veritabanı erişimi, oturum açmış ve ilgili çifte ait kullanıcılarla sınırlandırılmıştır.",
 
       "7. VERİ SAKLAMA VE SİLME (UNUTULMA HAKKI)",
       "Profil > Hesap Yönetimi & Tehlike Bölgesi bölümünden hesabınızı silme talebinde bulunabilirsiniz. Talep 7 gün beklemeye alınır; bu süre içinde aynı hesapla giriş yaparak talebi iptal edebilirsiniz. 7 gün sonunda hesabınıza ait profil bilgileri, dosyalar, günlükler ve mektuplar sunuculardan geri döndürülemez biçimde silinir. Partneriniz kendi hesabıyla kullanmaya devam eder; ortak anılar ise her iki taraftan da silinir ve partneriniz çiftten ayrılmış olur. Yedek kopyalar en geç 30 gün içinde otomatik olarak imha edilir.",
@@ -93,7 +93,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
     summary: "Uygulamamızın veri toplama, işleme, koruma prensipleri ve gizliliğinizi nasıl koruduğumuzun detayları.",
     content: [
       "1. GİRİŞ VE TAAHHÜDÜMÜZ",
-      "Couples App, çiftler arasındaki en özel anları, mektupları ve günlükleri güvenli bir dijital alanda paylaşmaları için tasarlanmıştır. Bu sebeple kullanıcı gizliliği en temel önceliğimizdir. Bilgileriniz asla üçüncü şahıslara satılmaz, pazarlama veritabanlarına devredilmez.",
+      "CoupleSky, çiftler arasındaki en özel anları, mektupları ve günlükleri güvenli bir dijital alanda paylaşmaları için tasarlanmıştır. Bu sebeple kullanıcı gizliliği en temel önceliğimizdir. Bilgileriniz asla üçüncü şahıslara satılmaz, pazarlama veritabanlarına devredilmez.",
 
       "2. TOPLANAN BİLGİLER VE KULLANIM ALANLARI",
       "• Hesap Bilgileri: Kayıt sırasında belirttiğiniz ad, kullanıcı adı, e-posta adresi ve şifreniz (güvenli hash olarak).\n" +
@@ -112,7 +112,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "Hesabınızı istediğiniz zaman Profil > Hesap Yönetimi & Tehlike Bölgesi bölümünden silebilirsiniz. Talep 7 gün beklemeye alınır; bu süre içinde yalnızca hesabın sahibi aynı hesapla giriş yaparak talebi iptal edebilir. 7 gün sonunda hesabınıza ait kayıtlar, dosyalar ve ortak anılar sunuculardan kalıcı olarak silinir ve geri getirilemez.",
 
       "6. YAŞ SINIRI",
-      "Couples App, 16 yaşından küçüklerin kullanımına yönelik değildir. 16 yaşın altındaki bir kullanıcının veri sağladığı tespit edilirse veriler derhal silinir.",
+      "CoupleSky, 16 yaşından küçüklerin kullanımına yönelik değildir. 16 yaşın altındaki bir kullanıcının veri sağladığı tespit edilirse veriler derhal silinir.",
 
       "7. POLİTİKA GÜNCELLEMELERİ",
       "Gizlilik politikamız zaman zaman mevzuat veya uygulama özellikleri gereği güncellenebilir. Önemli değişiklikler uygulama içerisinden bildirim ile duyurulacaktır."
@@ -127,10 +127,10 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
     summary: "Uygulamayı kullanırken uyulması gereken genel kurallar, hesap güvenliği, çift eşleşmesi ve sorumluluk sınırları.",
     content: [
       "1. SÖZLEŞMENİN KABULÜ",
-      "Couples App mobil uygulamasını indirerek, hesap oluşturarak veya kullanarak işbu Kullanım Koşulları'nı (\"Sözleşme\") kabul etmiş sayılırsınız. Bu koşulları kabul etmiyorsanız lütfen uygulamayı kullanmayınız.",
+      "CoupleSky mobil uygulamasını indirerek, hesap oluşturarak veya kullanarak işbu Kullanım Koşulları'nı (\"Sözleşme\") kabul etmiş sayılırsınız. Bu koşulları kabul etmiyorsanız lütfen uygulamayı kullanmayınız.",
 
       "2. HİZMETİN KAPSAMI VE ÇİFT EŞLEŞMESİ",
-      "Couples App, iki kullanıcının özel bir kod (\"Eşleşme Kodu\") aracılığıyla birbirine bağlanarak ortak anı, takvim, fotoğraf, döngü takibi ve zaman kilitli mektuplar paylaşmasını sağlayan bir platformdur. Eşleşme kodunuzu yalnızca güvendiğiniz partnerinizle paylaşmalısınız.",
+      "CoupleSky, iki kullanıcının özel bir kod (\"Eşleşme Kodu\") aracılığıyla birbirine bağlanarak ortak anı, takvim, fotoğraf, döngü takibi ve zaman kilitli mektuplar paylaşmasını sağlayan bir platformdur. Eşleşme kodunuzu yalnızca güvendiğiniz partnerinizle paylaşmalısınız.",
 
       "3. HESAP GÜVENLİĞİ VE ŞİFRELER",
       "Kullanıcı, hesap şifresinin gizliliğini korumaktan bizzat sorumludur. Hesabınız altında gerçekleşen tüm faaliyetler sizin sorumluluğunuzdadır. Yetkisiz bir giriş fark ettiğinizde derhal şifrenizi sıfırlamalı veya bizimle iletişime geçmelisiniz.",
@@ -182,7 +182,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
     summary: "Premium abonelik, ücretsiz deneme (tanımlıysa), otomatik yenileme, iptal prosedürü ve iade şartları.",
     content: [
       "1. COUPLES PREMIUM ABONELİĞİ VE KAPSAMI",
-      "Couples App Premium, çiftlerden birinin abone olması halinde her iki partner için de geçerli olan ortak bir abonelik modelidir. Premium avantajları:\n" +
+      "CoupleSky Premium, çiftlerden birinin abone olması halinde her iki partner için de geçerli olan ortak bir abonelik modelidir. Premium avantajları:\n" +
       "• Sınırsız fotoğraf yükleme ve ortak yüksek çözünürlüklü galeri,\n" +
       "• Döngü takibi ve ilgili hatırlatıcı bildirimleri,\n" +
       "• Zaman kilitli sınırsız mektup yazma ve ileri tarihli teslimatlar,\n" +
@@ -199,8 +199,8 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
 
       "4. ABONELİĞİ İPTAL ETME PROSEDÜRÜ",
       "Aboneliğinizi istediğiniz an hiçbir cezai şart olmaksızın iptal edebilirsiniz. İptal işlemi mobil uygulama üzerinden değil, mağaza hesap ayarlarınızdan yapılmalıdır:\n" +
-      "• iOS (Apple App Store): iPhone Ayarlar > [Adınız] > Abonelikler > Couples App > Aboneliği İptal Et adımlarını takip ediniz.\n" +
-      "• Android (Google Play Store): Google Play Uygulaması > Profil Simgesi > Ödemeler ve Abonelikler > Abonelikler > Couples App > İptal Et adımlarını takip ediniz.\n" +
+      "• iOS (Apple App Store): iPhone Ayarlar > [Adınız] > Abonelikler > CoupleSky > Aboneliği İptal Et adımlarını takip ediniz.\n" +
+      "• Android (Google Play Store): Google Play Uygulaması > Profil Simgesi > Ödemeler ve Abonelikler > Abonelikler > CoupleSky > İptal Et adımlarını takip ediniz.\n" +
       "Aboneliğinizi iptal ettiğinizde, mevcut fatura döneminin sonuna kadar Premium haklarınızdan faydalanmaya devam edersiniz.",
 
       "5. CAYMA HAKKI VE İADE POLİTİKASI",
@@ -218,7 +218,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
     summary: "Information on the processing purposes, collection methods, legal grounds of your personal data, and your rights under GDPR and Article 11 of Turkish Law No. 6698 (KVKK).",
     content: [
       "1. DATA CONTROLLER",
-      "Data Controller: CoupleSky · Contact: support@couplesky.app · Support: support@couplesky.app. As CoupleSky (\"App\" or \"Data Controller\"), under the relevant data protection legislations (GDPR and Turkish Law No. 6698), we place the highest priority on the security and privacy of our users' personal data. This Clarification Text explains the purposes for which your data collected via our mobile app is processed and outlines your statutory rights.",
+      "Data Controller: CoupleSky · Contact & support: support@couplesky.app. As CoupleSky (\"App\" or \"Data Controller\"), under the relevant data protection legislations (GDPR and Turkish Law No. 6698), we place the highest priority on the security and privacy of our users' personal data. This Clarification Text explains the purposes for which your data collected via our mobile app is processed and outlines your statutory rights.",
 
       "2. CATEGORIES OF PROCESSED PERSONAL DATA AND DATA TYPES",
       "Within the scope of our shared couple journal, time-capsule sealed letters, location-based date planner, and health/menstrual cycle tracking features, the following personal data is processed:\n" +
@@ -239,7 +239,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "• Cryptographic encryption of time-locked letters and preserving their confidentiality until the chosen unlock date,\n" +
       "• Displaying shared date locations on map with convenient routing,\n" +
       "• Delivering timely push notifications for medicine schedules, cycle updates, anniversaries, and unlocked letters,\n" +
-      "• Provisioning Couples Premium entitlements so that a single subscription covers both partners,\n" +
+      "• Provisioning CoupleSky Premium entitlements so that a single subscription covers both partners,\n" +
       "• Maintaining network and information security against cyber attacks and brute-force attempts.",
 
       "4. PARTIES TO WHOM PERSONAL DATA IS TRANSFERRED",
@@ -258,7 +258,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "• Explicit Consent: For health-related cycle/medicine logs, sensitive location pins, and marketing communications.",
 
       "6. DATA SECURITY AND ENCRYPTION (AES-256)",
-      "Couples App uses state-of-the-art cryptographic standards to protect user privacy. Private notes, time-capsule letters, and sensitive attributes are encrypted in the database using symmetric AES standards. Database access is strictly governed by Row-Level Security (RLS) policies scoped exclusively to authenticated members of each couple.",
+      "CoupleSky uses state-of-the-art cryptographic standards to protect user privacy. Private notes, time-capsule letters, and sensitive attributes are encrypted in the database using symmetric AES standards. Database access is strictly governed by Row-Level Security (RLS) policies scoped exclusively to authenticated members of each couple.",
 
       "7. DATA RETENTION AND DELETION (RIGHT TO BE FORGOTTEN)",
       "You can request permanent account deletion anytime from Profile > Account Management & Danger Zone. Deletion requests enter a 7-day safety grace period during which you can cancel by logging back in. After 7 days, all profile records, private journals, letters, and storage files are permanently and irreversibly purged from our servers. Shared memories are wiped for both sides, uncoupling your partner. Backup copies are purged within 30 days.",
@@ -286,7 +286,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
     summary: "Detailed guidelines on our data collection, processing, and protection principles, and how your couple privacy is strictly preserved.",
     content: [
       "1. INTRODUCTION AND OUR COMMITMENT",
-      "Couples App is designed for partners to cherish their most precious memories, letters, and daily moments within a protected private digital space. User privacy is our core foundation. Your personal data is never sold to third parties or traded with advertising brokers.",
+      "CoupleSky is designed for partners to cherish their most precious memories, letters, and daily moments within a protected private digital space. User privacy is our core foundation. Your personal data is never sold to third parties or traded with advertising brokers.",
 
       "2. COLLECTED INFORMATION AND USAGE SCOPE",
       "• Account Data: Name, username, email address, and securely hashed passwords provided during sign up.\n" +
@@ -305,7 +305,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "You may request account deletion at any time under Profile > Account Management & Danger Zone. Requests are subject to a 7-day cancellation window. Following the 7-day period, all account data, photos, and linked memories are irreversibly removed from active servers.",
 
       "6. AGE RESTRICTION",
-      "Couples App is not intended for individuals under 16 years of age. If we learn that personal data of a minor under 16 has been collected without parental consent, we will promptly delete that information.",
+      "CoupleSky is not intended for individuals under 16 years of age. If we learn that personal data of a minor under 16 has been collected without parental consent, we will promptly delete that information.",
 
       "7. POLICY UPDATES",
       "We may update our Privacy Policy periodically to reflect technological or legal requirements. Material updates will be highlighted via in-app notifications."
@@ -320,10 +320,10 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
     summary: "General rules, account safety, couple pairing mechanisms, intellectual property, and limitations of liability.",
     content: [
       "1. ACCEPTANCE OF TERMS",
-      "By downloading, installing, registering, or using Couples App, you agree to be bound by these Terms of Use (\"Agreement\"). If you do not accept all terms contained herein, do not use the application.",
+      "By downloading, installing, registering, or using CoupleSky, you agree to be bound by these Terms of Use (\"Agreement\"). If you do not accept all terms contained herein, do not use the application.",
 
       "2. SERVICE SCOPE AND COUPLE PAIRING",
-      "Couples App provides a private platform enabling two partners to connect via a unique pairing code to share memories, calendars, photographs, health tracking, and time-capsule letters. You must only share your pairing code with your trusted partner.",
+      "CoupleSky provides a private platform enabling two partners to connect via a unique pairing code to share memories, calendars, photographs, health tracking, and time-capsule letters. You must only share your pairing code with your trusted partner.",
 
       "3. ACCOUNT CREDENTIALS AND SECURITY",
       "You are solely responsible for maintaining the confidentiality of your login credentials. You accept responsibility for all activities that occur under your account. If you suspect unauthorized access, reset your password immediately or contact our support team.",
@@ -339,7 +339,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "The application UI, designs, logos, artwork, and software code are owned exclusively by the Data Controller. You retain ownership of all photographs and text memories you upload, while granting the necessary technical license required to render the service.",
 
       "6. SERVICE AVAILABILITY AND DISCLAIMER OF WARRANTIES",
-      "Couples App is provided on an \"AS IS\" and \"AS AVAILABLE\" basis. We cannot guarantee uninterrupted uptime due to maintenance, force majeure events, or network provider disruptions, and disclaim liability for indirect or consequential damages to the extent permitted by law.",
+      "CoupleSky is provided on an \"AS IS\" and \"AS AVAILABLE\" basis. We cannot guarantee uninterrupted uptime due to maintenance, force majeure events, or network provider disruptions, and disclaim liability for indirect or consequential damages to the extent permitted by law.",
 
       "7. TERMINATION AND SUSPENSION",
       "We reserve the right to suspend or terminate accounts that violate these Terms or present safety risks to other users without prior liability."
@@ -372,10 +372,10 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
     title: "Subscription & Refund Terms",
     badge: "App Store & Google Play",
     lastUpdated: "October 2026",
-    summary: "Couples Premium subscription features, free trial duration (if defined), auto-renewal rules, cancellation steps, and statutory refund policies.",
+    summary: "CoupleSky Premium subscription features, free trial duration (if defined), auto-renewal rules, cancellation steps, and statutory refund policies.",
     content: [
       "1. COUPLES PREMIUM SUBSCRIPTION & SHARED COVERAGE",
-      "Couples App Premium operates on a shared subscription model: when one partner subscribes, both partners unlock all Premium features instantly. Premium benefits include:\n" +
+      "CoupleSky Premium operates on a shared subscription model: when one partner subscribes, both partners unlock all Premium features instantly. Premium benefits include:\n" +
       "• Unlimited high-resolution photo uploads and shared cloud archive,\n" +
       "• Advanced cycle tracking and synchronized health notifications,\n" +
       "• Unlimited time-capsule letters with future scheduled unlocks,\n" +
@@ -392,8 +392,8 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
 
       "4. SUBSCRIPTION CANCELLATION PROCEDURE",
       "You can cancel your subscription at any time without cancellation fees. Cancellations must be performed through your store account settings rather than within the mobile app:\n" +
-      "• iOS (Apple App Store): Go to iPhone Settings > [Your Name] > Subscriptions > Couples App > Cancel Subscription.\n" +
-      "• Android (Google Play Store): Open Google Play Store > Profile Icon > Payments & Subscriptions > Subscriptions > Couples App > Cancel Subscription.\n" +
+      "• iOS (Apple App Store): Go to iPhone Settings > [Your Name] > Subscriptions > CoupleSky > Cancel Subscription.\n" +
+      "• Android (Google Play Store): Open Google Play Store > Profile Icon > Payments & Subscriptions > Subscriptions > CoupleSky > Cancel Subscription.\n" +
       "Upon cancellation, you will retain access to all Premium features until the conclusion of your active billing period.",
 
       "5. RIGHT OF WITHDRAWAL AND REFUND POLICY",

@@ -15,6 +15,7 @@ import { toast } from "@/lib/toast";
 import { suppressPremiumCelebration } from "@/lib/premiumCelebration";
 import { purchaseButtonLabel } from "@/lib/trialLabel";
 import type { TFunction } from "i18next";
+import { APP_NAME } from "@/constants/brand";
 import { LazyDemoActionModal } from "@/components/ui/lazyMount";
 import { useTranslation } from "react-i18next";
 
@@ -179,7 +180,7 @@ export default function PaywallScreen() {
           <View style={[styles.crownCircle, { backgroundColor: `${theme.accent}18` }]}>
             <Crown color={theme.accent} size={48} />
           </View>
-          <Text style={[styles.title, { color: theme.text }]}>Couples Premium</Text>
+          <Text style={[styles.title, { color: theme.text }]}>{APP_NAME} Premium</Text>
           <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{t("paywall.subtitle")}</Text>
         </View>
 
@@ -249,7 +250,7 @@ export default function PaywallScreen() {
                   >
                     <View style={styles.packageInfo}>
                       <Text style={[styles.packageTitle, { color: theme.text }]}>
-                        {pkg.product.title.replace("(Couples App)", "")}
+                        {pkg.product.title.replace(/\s*\((?:Couples App|CoupleSky)\)/, "")}
                       </Text>
                       <Text style={[styles.packagePrice, { color: isSelected ? theme.accent : theme.textSecondary }]}>
                         {pkg.product.priceString}{(() => {

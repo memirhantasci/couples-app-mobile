@@ -134,7 +134,9 @@ class CoupleWidgetProvider : AppWidgetProvider() {
             val myAvatar: String?,
             val partnerAvatar: String?,
             val unreadCount: Int,
-            val letterUnlocksMs: List<Long>
+            val letterUnlocksMs: List<Long>,
+            val language: String,
+            val strings: JSONObject?
         )
 
         private fun str(obj: JSONObject, key: String): String? {
@@ -143,8 +145,22 @@ class CoupleWidgetProvider : AppWidgetProvider() {
             return if (value.isEmpty()) null else value
         }
 
+        /** Uygulamanın seçili dilinde çözülmüş widget metni; veri eskiyse Türkçe varsayılana düşer. */
+        private fun text(data: WidgetData, key: String, fallback: String): String =
+            data.strings?.optString(key, "")?.takeIf { it.isNotEmpty() } ?: fallback
+
+        /** {ad} yer tutucularını doldurur. */
+        private fun fill(template: String, vararg values: Pair<String, Any>): String {
+            var result = template
+            for ((name, value) in values) result = result.replace("{" + name + "}", value.toString())
+            return result
+        }
+
+        /** Baş harf büyütme uygulama diline göre: Türkçede i → İ, diğer dillerde i → I. */
+        private fun textLocale(data: WidgetData): Locale = if (data.language == "tr") TURKISH else Locale.ENGLISH
+
         private fun readData(context: Context): WidgetData {
-            val signedOut = WidgetData("signedOut", "", "", null, null, null, null, null, null, null, 0, emptyList())
+            val signedOut = WidgetData("signedOut", "", "", null, null, null, null, null, null, null, 0, emptyList(), "tr", null)
             val raw = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(DATA_KEY, null)
             if (raw.isNullOrEmpty()) return signedOut
             return try {
@@ -163,7 +179,9 @@ class CoupleWidgetProvider : AppWidgetProvider() {
                     unreadCount = max(0, obj.optInt("unreadCount", 0)),
                     letterUnlocksMs = obj.optJSONArray("letterUnlocksMs")?.let { array ->
                         (0 until array.length()).map { array.optLong(it) }.filter { it > 0L }
-                    } ?: emptyList()
+                    } ?: emptyList(),
+                    language = str(obj, "language") ?: "tr",
+                    strings = obj.optJSONObject("strings")
                 )
             } catch (ignored: Throwable) {
                 signedOut
@@ -221,10 +239,11 @@ class CoupleWidgetProvider : AppWidgetProvider() {
         /** Uygulamadaki sayaçla aynı: bugünün başlangıcı - başlangıç günü, negatif olamaz. */
         private fun daysSince(start: Calendar?): Long? = start?.let { max(0L, daysBetween(it, startOfToday())) }
 
-        private fun group(n: Long): String = String.format(TURKISH, "%,d", n)
+        private fun group(data: WidgetData, n: Long): String =
+            String.format(Locale.US, "%,d", n).replace(",", text(data, "thousandsSeparator", "."))
 
         /** Sıradaki dönüm noktası: yıl dönümü ya da bir sonraki 100'ün katı gün (hangisi yakınsa). */
-        private fun milestoneText(start: Calendar?, days: Long?): String? {
+        private fun milestoneText(data: WidgetData, start: Calendar?, days: Long?): String? {
             if (start == null || days == null) return null
             val today = startOfToday()
             val month = start.get(Calendar.MONTH)
@@ -248,10 +267,28 @@ class CoupleWidgetProvider : AppWidgetProvider() {
             val toNext100 = next100 - days
 
             return when {
-                years >= 1 && toAnniversary == 0L -> "🎉 $years. yıl dönümünüz kutlu olsun"
-                days > 0 && days % 100 == 0L -> "🎉 Bugün ${group(days)}. gününüz"
-                years >= 1 && toAnniversary <= toNext100 -> "🎂 $years. yıl dönümüne $toAnniversary gün"
-                else -> "✨ ${group(next100)}. güne $toNext100 gün"
+                years >= 1 && toAnniversary == 0L ->
+                    fill(text(data, "milestoneAnniversary", "🎉 {years}. yıl dönümünüz kutlu olsun"), "years" to years)
+                days > 0 && days % 100 == 0L ->
+                    fill(text(data, "milestoneDay100", "🎉 Bugün {days}. gününüz"), "days" to group(data, days))
+                years >= 1 && toAnniversary <= toNext100 -> fill(
+                    text(
+                        data,
+                        if (toAnniversary == 1L) "milestoneToAnniversaryOne" else "milestoneToAnniversaryOther",
+                        "🎂 {years}. yıl dönümüne {days} gün"
+                    ),
+                    "years" to years,
+                    "days" to toAnniversary
+                )
+                else -> fill(
+                    text(
+                        data,
+                        if (toNext100 == 1L) "milestoneToDayOne" else "milestoneToDayOther",
+                        "✨ {target}. güne {days} gün"
+                    ),
+                    "target" to group(data, next100),
+                    "days" to toNext100
+                )
             }
         }
 
@@ -312,8 +349,8 @@ class CoupleWidgetProvider : AppWidgetProvider() {
             }
         }
 
-        private fun bindAvatar(views: RemoteViews, imageId: Int, initialId: Int, bitmap: Bitmap?, name: String) {
-            views.setTextViewText(initialId, name.trim().take(1).uppercase(TURKISH).ifEmpty { "♥" })
+        private fun bindAvatar(views: RemoteViews, imageId: Int, initialId: Int, bitmap: Bitmap?, name: String, locale: Locale) {
+            views.setTextViewText(initialId, name.trim().take(1).uppercase(locale).ifEmpty { "♥" })
             if (bitmap != null) {
                 views.setImageViewBitmap(imageId, bitmap)
                 views.setViewVisibility(imageId, View.VISIBLE)
@@ -346,21 +383,24 @@ class CoupleWidgetProvider : AppWidgetProvider() {
             }
         }
 
-        private fun bindMessage(context: Context, views: RemoteViews, size: SizeClass, locked: Boolean) {
+        private fun bindMessage(context: Context, views: RemoteViews, size: SizeClass, locked: Boolean, data: WidgetData) {
             views.setViewVisibility(R.id.content_group, View.GONE)
             views.setViewVisibility(R.id.message_group, View.VISIBLE)
             val small = size == SizeClass.SMALL
             if (locked) {
                 views.setTextViewText(R.id.message_emoji, "👑")
-                views.setTextViewText(R.id.message_title, "Premium üyelere özel")
-                views.setTextViewText(R.id.message_sub, if (small) "Premium’a geç" else "Sayacınızı ana ekranda ve kilit ekranında görün")
-                setOptionalText(views, R.id.message_cta, if (small) null else "Premium’a geç 👑")
+                views.setTextViewText(R.id.message_title, text(data, "premiumOnly", "Premium üyelere özel"))
+                views.setTextViewText(
+                    R.id.message_sub,
+                    if (small) text(data, "premiumCta", "Premium’a geç") else text(data, "premiumSubLong", "Sayacınızı ana ekranda ve kilit ekranında görün")
+                )
+                setOptionalText(views, R.id.message_cta, if (small) null else text(data, "premiumCta", "Premium’a geç") + " 👑")
                 views.setOnClickPendingIntent(android.R.id.background, clickIntent(context, PAYWALL_URL, 1))
             } else {
                 views.setTextViewText(R.id.message_emoji, "♥")
-                views.setTextViewText(R.id.message_title, "Couples App")
-                views.setTextViewText(R.id.message_sub, "Widget için giriş yap")
-                setOptionalText(views, R.id.message_cta, if (small) null else "Uygulamayı aç")
+                views.setTextViewText(R.id.message_title, "CoupleSky")
+                views.setTextViewText(R.id.message_sub, text(data, "signInSub", "Widget için giriş yap"))
+                setOptionalText(views, R.id.message_cta, if (small) null else text(data, "openApp", "Uygulamayı aç"))
                 views.setOnClickPendingIntent(android.R.id.background, clickIntent(context, HOME_URL, 0))
             }
         }
@@ -376,7 +416,7 @@ class CoupleWidgetProvider : AppWidgetProvider() {
 
             val locked = isLocked(data)
             if (data.state != "ready" || locked) {
-                bindMessage(context, views, size, locked)
+                bindMessage(context, views, size, locked, data)
                 return views
             }
 
@@ -384,10 +424,10 @@ class CoupleWidgetProvider : AppWidgetProvider() {
             views.setViewVisibility(R.id.message_group, View.GONE)
 
             val avatarPx = (size.avatarDp * density).toInt()
-            bindAvatar(views, R.id.avatar_me_img, R.id.avatar_me_initial, photos.circle(data.myAvatar, avatarPx), data.myName)
+            bindAvatar(views, R.id.avatar_me_img, R.id.avatar_me_initial, photos.circle(data.myAvatar, avatarPx), data.myName, textLocale(data))
             bindAvatar(
                 views, R.id.avatar_partner_img, R.id.avatar_partner_initial,
-                photos.circle(data.partnerAvatar, avatarPx), data.partnerName
+                photos.circle(data.partnerAvatar, avatarPx), data.partnerName, textLocale(data)
             )
 
             val start = parseStart(data.startDate)
@@ -395,15 +435,18 @@ class CoupleWidgetProvider : AppWidgetProvider() {
             val names = if (data.myName.isNotEmpty()) "${data.myName} & ${data.partnerName}" else data.partnerName
             val small = size == SizeClass.SMALL
 
-            views.setTextViewText(R.id.widget_days, days?.let { group(it) } ?: "—")
+            // Başlık metni yalnızca orta ve büyük yerleşimde var
+            if (!small) views.setTextViewText(R.id.widget_eyebrow, text(data, "title", "AŞKIMIZIN YOLCULUĞU"))
+            views.setTextViewText(R.id.widget_days, days?.let { group(data, it) } ?: "—")
+            views.setTextViewText(R.id.widget_days_unit, text(data, "daysUnit", "gün"))
             views.setViewVisibility(R.id.widget_days_unit, if (days != null && !small) View.VISIBLE else View.GONE)
             views.setTextViewText(
                 R.id.widget_days_label,
                 when {
-                    days == null && small -> "Tarihinizi ekleyin"
-                    days == null -> "Tarihinizi uygulamadan ekleyin"
-                    small -> "gündür birlikte ♥"
-                    else -> "birlikte ♥ $names"
+                    days == null && small -> text(data, "addDate", "Tarihinizi ekleyin")
+                    days == null -> text(data, "addDateFromApp", "Tarihinizi uygulamadan ekleyin")
+                    small -> text(data, "togetherShort", "gündür birlikte ♥")
+                    else -> fill(text(data, "togetherNames", "birlikte ♥ {names}"), "names" to names)
                 }
             )
 
@@ -416,7 +459,7 @@ class CoupleWidgetProvider : AppWidgetProvider() {
             } else {
                 null
             }
-            val milestone = milestoneText(start, days)
+            val milestone = milestoneText(data, start, days)
 
             when (size) {
                 SizeClass.SMALL -> {
@@ -437,8 +480,8 @@ class CoupleWidgetProvider : AppWidgetProvider() {
                     setOptionalText(views, R.id.chip_milestone, milestone)
                     if (mood != null) {
                         views.setTextViewText(R.id.mood_card_emoji, data.moodEmoji)
-                        views.setTextViewText(R.id.mood_card_title, "${data.partnerName} bugün")
-                        views.setTextViewText(R.id.mood_card_label, data.moodLabel ?: "ruh halini paylaştı")
+                        views.setTextViewText(R.id.mood_card_title, fill(text(data, "moodTitle", "{name} bugün"), "name" to data.partnerName))
+                        views.setTextViewText(R.id.mood_card_label, data.moodLabel ?: text(data, "moodFallback", "ruh halini paylaştı"))
                         views.setViewVisibility(R.id.mood_card, View.VISIBLE)
                     } else {
                         views.setViewVisibility(R.id.mood_card, View.GONE)
@@ -502,8 +545,9 @@ class CoupleWidgetProvider : AppWidgetProvider() {
             views.setViewVisibility(R.id.content_group, View.GONE)
             views.setViewVisibility(R.id.message_group, View.VISIBLE)
             views.setTextViewText(R.id.message_emoji, "♥")
-            views.setTextViewText(R.id.message_title, "Couples App")
-            views.setTextViewText(R.id.message_sub, "Açmak için dokun")
+            views.setTextViewText(R.id.message_title, "CoupleSky")
+            // Veri okunamadığında uygulama dili bilinmez; cihaz diline göre
+            views.setTextViewText(R.id.message_sub, if (Locale.getDefault().language == "tr") "Açmak için dokun" else "Tap to open")
             views.setOnClickPendingIntent(android.R.id.background, clickIntent(context, HOME_URL, 0))
             return views
         }

@@ -164,7 +164,7 @@ export default function PhotosScreen() {
         }
       }
     ]);
-  }, [executeOrIntercept, photos, currentPhoto, queryClient, coupleId, userId]);
+  }, [executeOrIntercept, photos, currentPhoto, queryClient, coupleId, userId, t]);
 
   // Tam ekranda sonraki / önceki fotoğrafa geç
   const handleNextPhoto = () => {

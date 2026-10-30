@@ -30,6 +30,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:letterSpacing="0.14"
                 android:maxLines="1"
+                android:id="@+id/widget_eyebrow"
                 android:text="AŞKIMIZIN YOLCULUĞU"
                 android:textColor="#FFC2D4"
                 android:textSize="9sp" />
@@ -229,7 +230,7 @@
             android:fontFamily="sans-serif-black"
             android:gravity="center"
             android:maxLines="1"
-            android:text="Couples App"
+            android:text="CoupleSky"
             android:textColor="#FFFFFF"
             android:textSize="16sp" />
 

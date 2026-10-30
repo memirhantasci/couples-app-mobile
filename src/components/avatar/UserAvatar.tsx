@@ -2,6 +2,8 @@ import React from "react";
 import { View, Text, StyleSheet, ActivityIndicator, type StyleProp, type ViewStyle } from "react-native";
 import { Image } from "expo-image";
 import { useTheme } from "@/context/ThemeContext";
+import { useTranslation } from "react-i18next";
+import { upperInitial } from "@/lib/textCase";
 
 interface UserAvatarProps {
   /** Profil fotoğrafı; yoksa baş harf gösterilir */
@@ -29,7 +31,8 @@ export function UserAvatar({
   style,
 }: UserAvatarProps) {
   const { theme } = useTheme();
-  const initial = (name?.trim().charAt(0) || "?").toLocaleUpperCase("tr-TR");
+  const { i18n } = useTranslation();
+  const initial = name?.trim() ? upperInitial(name.trim(), i18n.language) : "?";
   const radius = size / 2;
 
   return (

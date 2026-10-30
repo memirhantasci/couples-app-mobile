@@ -33,6 +33,7 @@ import {
 } from "@/lib/defaultMemories";
 import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
 import { useTranslation } from "react-i18next";
+import { localizeServerError } from "@/lib/serverErrors";
 
 export default function MemoriesScreen() {
   const { t, i18n } = useTranslation();
@@ -180,7 +181,7 @@ export default function MemoriesScreen() {
               await queryClient.invalidateQueries({ queryKey: ["memories"] });
               toast.success(t("memories.toasts.deleted"));
             } else {
-              appAlert(t("common.error"), t("memories.errors.deleteFailedWithMessage", { message: error?.message || "" }));
+              appAlert(t("common.error"), t("memories.errors.deleteFailedWithMessage", { message: localizeServerError(error, "") }));
             }
           }
         }
@@ -217,10 +218,6 @@ export default function MemoriesScreen() {
       image_path: memory.image_path || "",
     }));
   };
-
-  if (!session && !isDemoMode) return <View style={{ flex: 1, backgroundColor: "#080811" }} />;
-
-
 
   const renderMemory = useCallback(({ item: memory, index }: { item: any, index: number }) => {
     const d = dayjs(memory.date);
@@ -305,7 +302,10 @@ export default function MemoriesScreen() {
         </View>
       </Animated.View>
     );
-  }, [theme, isLight, styles, isEditMode, executeOrIntercept, handleEdit, handleDelete, deletingId]);
+  }, [theme, isLight, styles, isEditMode, executeOrIntercept, handleEdit, handleDelete, deletingId, t, i18n.language]);
+
+  // Oturum yokken boş zemin; hook sırası bozulmasın diye tüm hook'lardan sonra kontrol edilir
+  if (!session && !isDemoMode) return <View style={{ flex: 1, backgroundColor: "#080811" }} />;
 
   return (
     <ScreenBackground>

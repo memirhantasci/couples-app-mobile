@@ -138,10 +138,12 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 
 import { DemoModeBanner } from "@/components/demo/DemoModeBanner";
 import { useReminderSync } from "@/hooks/useReminderSync";
+import { usePushLanguageSync } from "@/hooks/usePushLanguageSync";
 
 export default function TabsLayout() {
   // İlaç / buluşma / mektup-kilidi yerel hatırlatıcılarını bu cihazda güncel tut
   useReminderSync();
+  usePushLanguageSync();
 
   const { isDemoMode } = useAuth();
   const { theme } = useTheme();

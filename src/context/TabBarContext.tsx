@@ -214,7 +214,7 @@ export function TabBarProvider({ children }: { children: React.ReactNode }) {
         return true;
       }
     },
-    [enabledTabs, persistTabs]
+    [enabledTabs, persistTabs, t]
   );
 
   const setTabs = useCallback(

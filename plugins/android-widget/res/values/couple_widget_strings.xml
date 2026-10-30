@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="couple_widget_label">Aşkımızın Yolculuğu</string>
     <string name="couple_widget_description">Kaç gündür birlikte olduğunuzu, çift fotoğrafınızı, sevgilinin ruh halini ve yaklaşan yıl dönümünüzü ana ekranda ve kilit ekranında görün.</string>
 </resources>

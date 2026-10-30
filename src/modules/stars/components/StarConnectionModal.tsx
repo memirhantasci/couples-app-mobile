@@ -73,6 +73,7 @@ import type {
   StarSearchResult,
 } from '../types/star.types';
 import { Trans, useTranslation } from 'react-i18next';
+import { localizeServerError } from '@/lib/serverErrors';
 import type { ParseKeys } from 'i18next';
 
 export interface StarConnectionModalProps {
@@ -154,7 +155,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
           setHasLoaded(true);
         })
         .catch((err: any) => {
-          setErrorMessage(err?.message || t('stars.connect.errors.loadFailed'));
+          setErrorMessage(localizeServerError(err, t('stars.connect.errors.loadFailed')));
         })
         .finally(() => {
           setIsLoading(false);
@@ -224,7 +225,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
       const results = await starService.searchStarByName(trimmed);
       setSearchResults(results);
     } catch (err: any) {
-      setErrorMessage(err?.message || t('stars.connect.errors.searchFailed'));
+      setErrorMessage(localizeServerError(err, t('stars.connect.errors.searchFailed')));
     } finally {
       setIsSearching(false);
     }
@@ -270,7 +271,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
         if (Platform.OS !== 'web') {
           hapticError();
         }
-        setErrorMessage(err?.message || t('stars.connect.errors.requestFailed'));
+        setErrorMessage(localizeServerError(err, t('stars.connect.errors.requestFailed')));
         return false;
       } finally {
         setActionLoadingId(null);
@@ -355,7 +356,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
       if (Platform.OS !== 'web') {
         hapticError();
       }
-      setErrorMessage(err?.message || t('stars.connect.errors.codeSearchFailed'));
+      setErrorMessage(localizeServerError(err, t('stars.connect.errors.codeSearchFailed')));
     } finally {
       setIsConnectingByCode(false);
     }
@@ -389,7 +390,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
           await loadData();
           onConnectionChanged?.();
         } catch (err: any) {
-          setErrorMessage(err?.message || t('stars.connect.errors.actionFailed'));
+          setErrorMessage(localizeServerError(err, t('stars.connect.errors.actionFailed')));
         } finally {
           setActionLoadingId(null);
         }

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { AppState } from "react-native";
 import { useAuth } from "@/context/AuthContext";
+import { useTranslation } from "react-i18next";
 import { syncLocalReminders } from "@/lib/reminderSync";
 
 /**
@@ -10,6 +11,7 @@ import { syncLocalReminders } from "@/lib/reminderSync";
  */
 export function useReminderSync() {
   const { session, profile, isDemoMode } = useAuth();
+  const { i18n } = useTranslation();
   const userId = session?.user?.id;
   const coupleId = profile?.coupleId;
 
@@ -22,5 +24,6 @@ export function useReminderSync() {
       if (state === "active") syncLocalReminders(userId, coupleId);
     });
     return () => subscription.remove();
-  }, [userId, coupleId, isDemoMode]);
+  // Dil değişince zorla eşitlenir: yerel hatırlatıcı metinleri yeni dilde yeniden kurulur
+  }, [userId, coupleId, isDemoMode, i18n.language]);
 }

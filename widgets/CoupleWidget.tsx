@@ -54,10 +54,20 @@ export interface CoupleWidgetProps {
   partnerAvatarPath?: string | null;
   unreadCount?: number;
   letterUnlocksMs?: number[] | null;
+  /** Uygulama dili ('tr' | 'en') */
+  language?: string;
+  /** Uygulama dilinde çözülmüş metinler; {days}, {n} gibi yer tutucuları widget doldurur */
+  strings?: Record<string, string> | null;
 }
 
 export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironment) {
   'widget';
+
+  // ─── Metinler: uygulamanın seçili dilinde gelir; eski veride yoksa Türkçe varsayılana düşer ───
+  const strings = props.strings || {};
+  const L = (key: string, fallback: string) => (strings[key] ? strings[key] : fallback);
+  const fill = (template: string, vars: { [name: string]: string | number }) =>
+    template.replace(/\{(\w+)\}/g, (match: string, name: string) => (vars[name] !== undefined ? String(vars[name]) : match));
 
   // ─── Renkler ───
   const BASE = '#170A20';
@@ -83,7 +93,7 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
   const pad2 = (n: number) => (n < 10 ? '0' + n : '' + n);
   const todayKey = now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate());
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const group = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  const group = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, L('thousandsSeparator', '.'));
 
   let start: Date | null = null;
   let days: number | null = null;
@@ -114,10 +124,21 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
     const next100 = (Math.floor(days / 100) + 1) * 100;
     const toNext100 = next100 - days;
 
-    if (years >= 1 && toAnniversary === 0) milestone = '🎉 ' + years + '. yıl dönümünüz kutlu olsun';
-    else if (days > 0 && days % 100 === 0) milestone = '🎉 Bugün ' + group(days) + '. gününüz';
-    else if (years >= 1 && toAnniversary <= toNext100) milestone = '🎂 ' + years + '. yıl dönümüne ' + toAnniversary + ' gün';
-    else milestone = '✨ ' + group(next100) + '. güne ' + toNext100 + ' gün';
+    if (years >= 1 && toAnniversary === 0) {
+      milestone = fill(L('milestoneAnniversary', '🎉 {years}. yıl dönümünüz kutlu olsun'), { years });
+    } else if (days > 0 && days % 100 === 0) {
+      milestone = fill(L('milestoneDay100', '🎉 Bugün {days}. gününüz'), { days: group(days) });
+    } else if (years >= 1 && toAnniversary <= toNext100) {
+      milestone = fill(L(toAnniversary === 1 ? 'milestoneToAnniversaryOne' : 'milestoneToAnniversaryOther', '🎂 {years}. yıl dönümüne {days} gün'), {
+        years,
+        days: toAnniversary,
+      });
+    } else {
+      milestone = fill(L(toNext100 === 1 ? 'milestoneToDayOne' : 'milestoneToDayOther', '✨ {target}. güne {days} gün'), {
+        target: group(next100),
+        days: toNext100,
+      });
+    }
   }
 
   const partner = props.partnerName || 'Sevgilin';
@@ -128,7 +149,9 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
     ? props.partnerMoodEmoji + ' ' + partner + (props.partnerMoodLabel ? ' · ' + props.partnerMoodLabel : '')
     : null;
   const daysText = days === null ? '—' : group(days);
-  const initial = (name: string) => (name ? name.trim().charAt(0).toLocaleUpperCase('tr-TR') : '♥');
+  const togetherText = fill(L(days === 1 ? 'togetherOne' : 'togetherOther', '{days} gündür birlikte'), { days: daysText });
+  const initial = (name: string) =>
+    name ? name.trim().charAt(0).toLocaleUpperCase(props.language === 'en' ? 'en-US' : 'tr-TR') : '♥';
   const homeURL = 'couplesapp:///home';
   const lettersURL = 'couplesapp:///letters';
 
@@ -140,12 +163,13 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
     if (unlocks[i] <= now.getTime()) unread += 1;
   }
   const unreadText = unread > 9 ? '9+' : String(unread);
+  const unreadLabel = fill(L('unread', '{n} okunmamış'), { n: unreadText });
 
   // ─── Kilit ekranı (accessory) aileleri: tek renkli, sistem tonuyla çizilir ───
   if (family === 'accessoryInline') {
     return (
       <Text modifiers={[widgetURL(homeURL)]}>
-        {!ready ? 'CoupleSky ♥' : days === null ? '♥ Tarihinizi ekleyin' : '♥ ' + daysText + ' gündür birlikte'}
+        {!ready ? 'CoupleSky ♥' : days === null ? '♥ ' + L('addDate', 'Tarihinizi ekleyin') : '♥ ' + togetherText}
       </Text>
     );
   }
@@ -160,7 +184,7 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
             <Text modifiers={[font({ size: 17, weight: 'bold', design: 'rounded' }), minimumScaleFactor(0.45), lineLimit(1)]}>
               {daysText}
             </Text>
-            <Text modifiers={[font({ size: 8, weight: 'semibold' }), kerning(0.6)]}>GÜN</Text>
+            <Text modifiers={[font({ size: 8, weight: 'semibold' }), kerning(0.6)]}>{L('daysUnitUpper', 'GÜN')}</Text>
           </VStack>
         ) : (
           <Image systemName={locked ? 'lock.fill' : 'heart.fill'} size={18} />
@@ -179,7 +203,7 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
               <Text modifiers={[font({ size: 14, weight: 'bold' })]}>CoupleSky</Text>
             </HStack>
             <Text modifiers={[font({ size: 12 }), lineLimit(1), opacity(0.85)]}>
-              {locked ? 'Premium ile kilidi aç' : 'Görmek için giriş yap'}
+              {locked ? L('premiumUnlock', 'Premium ile kilidi aç') : L('signInView', 'Görmek için giriş yap')}
             </Text>
           </VStack>
           <Spacer />
@@ -192,7 +216,7 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
           <HStack spacing={4}>
             <Image systemName="heart.fill" size={12} />
             <Text modifiers={[font({ size: 15, weight: 'bold', design: 'rounded' }), lineLimit(1), minimumScaleFactor(0.7)]}>
-              {days === null ? 'Tarihinizi ekleyin' : daysText + ' gündür birlikte'}
+              {days === null ? L('addDate', 'Tarihinizi ekleyin') : togetherText}
             </Text>
           </HStack>
           <Text modifiers={[font({ size: 12, weight: 'medium' }), lineLimit(1), minimumScaleFactor(0.8)]}>
@@ -200,7 +224,7 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
           </Text>
           {unread > 0 ? (
             <Text modifiers={[font({ size: 11, weight: 'semibold' }), lineLimit(1), minimumScaleFactor(0.8)]}>
-              {'✉ ' + unreadText + ' okunmamış'}
+              {'✉ ' + unreadLabel}
             </Text>
           ) : milestone ? (
             <Text modifiers={[font({ size: 11 }), lineLimit(1), minimumScaleFactor(0.8), opacity(0.8)]}>{milestone}</Text>
@@ -336,7 +360,7 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
 
   const eyebrow = (size: number) => (
     <Text modifiers={[font({ size, weight: 'bold' }), kerning(1.4), foregroundStyle(BLUSH), lineLimit(1), minimumScaleFactor(0.7)]}>
-      AŞKIMIZIN YOLCULUĞU
+      {L('title', 'AŞKIMIZIN YOLCULUĞU')}
     </Text>
   );
 
@@ -364,12 +388,12 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
           />
         </ZStack>
         <Text modifiers={[font({ size: isSmall ? 14 : 17, weight: 'bold', design: 'rounded' }), foregroundStyle(WHITE), lineLimit(1), minimumScaleFactor(0.8)]}>
-          {locked ? 'Premium üyelere özel' : 'CoupleSky'}
+          {locked ? L('premiumOnly', 'Premium üyelere özel') : 'CoupleSky'}
         </Text>
         <Text modifiers={[font({ size: isSmall ? 11 : 13 }), foregroundStyle(LAVENDER), lineLimit(2), minimumScaleFactor(0.8)]}>
-          {locked ? 'Sayacınızı ana ekranda görün' : 'Widget için giriş yap'}
+          {locked ? L('premiumSub', 'Sayacınızı ana ekranda görün') : L('signInSub', 'Widget için giriş yap')}
         </Text>
-        {isSmall ? null : chip(locked ? "Premium'a geç 👑" : 'Uygulamayı aç', 12)}
+        {isSmall ? null : chip(locked ? L('premiumCta', "Premium'a geç") + ' 👑' : L('openApp', 'Uygulamayı aç'), 12)}
       </VStack>
     );
   }
@@ -387,14 +411,14 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
         {daysText}
       </Text>
       {days === null ? null : (
-        <Text modifiers={[font({ size: unitSize, weight: 'bold', design: 'rounded' }), foregroundStyle(BLUSH)]}>gün</Text>
+        <Text modifiers={[font({ size: unitSize, weight: 'bold', design: 'rounded' }), foregroundStyle(BLUSH)]}>{L('daysUnit', 'gün')}</Text>
       )}
     </HStack>
   );
 
   const subtitle = (size: number) => (
     <Text modifiers={[font({ size, weight: 'medium' }), foregroundStyle(LAVENDER), lineLimit(1), minimumScaleFactor(0.8)]}>
-      {days === null ? 'Tarihinizi uygulamadan ekleyin' : 'birlikte ♥ ' + names}
+      {days === null ? L('addDateFromApp', 'Tarihinizi uygulamadan ekleyin') : fill(L('togetherNames', 'birlikte ♥ {names}'), { names })}
     </Text>
   );
 
@@ -412,7 +436,7 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
         <Spacer />
         {counter(34, 14)}
         <Text modifiers={[font({ size: 11, weight: 'medium' }), foregroundStyle(LAVENDER), lineLimit(1), minimumScaleFactor(0.8)]}>
-          {days === null ? 'Tarihinizi ekleyin' : 'gündür birlikte ♥'}
+          {days === null ? L('addDate', 'Tarihinizi ekleyin') : L('togetherShort', 'gündür birlikte ♥')}
         </Text>
         {moodText || milestone ? (
           <Text modifiers={[font({ size: 10, weight: 'semibold' }), foregroundStyle(BLUSH), lineLimit(1), minimumScaleFactor(0.7), padding({ top: 4 })]}>
@@ -435,7 +459,7 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
       <Text modifiers={[font({ size: 28 })]}>{props.partnerMoodEmoji ?? ''}</Text>
       <VStack alignment="leading" spacing={1}>
         <Text modifiers={[font({ size: 11, weight: 'semibold' }), foregroundStyle(BLUSH), lineLimit(1)]}>
-          {partner + ' bugün'}
+          {fill(L('moodTitle', '{name} bugün'), { name: partner })}
         </Text>
         <Text
           modifiers={[
@@ -445,7 +469,7 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
             minimumScaleFactor(0.8),
           ]}
         >
-          {props.partnerMoodLabel || 'ruh halini paylaştı'}
+          {props.partnerMoodLabel || L('moodFallback', 'ruh halini paylaştı')}
         </Text>
       </VStack>
       <Spacer />

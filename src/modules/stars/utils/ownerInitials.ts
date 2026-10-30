@@ -10,6 +10,7 @@
  */
 
 import { supabase } from '@/lib/supabase';
+import { upperInitial } from '@/lib/textCase';
 
 interface CoupleUserRow {
   readonly id: string;
@@ -21,7 +22,7 @@ interface CoupleUserRow {
 function initialOf(name: string | null | undefined): string | null {
   const trimmed = (name || '').trim();
   if (!trimmed) return null;
-  return trimmed.charAt(0).toLocaleUpperCase('tr-TR');
+  return upperInitial(trimmed);
 }
 
 /**

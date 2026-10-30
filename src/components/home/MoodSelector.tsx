@@ -19,6 +19,7 @@ import { DemoActionModal } from "@/components/demo/DemoActionModal";
 import { playBubblePop } from "@/lib/soundEffects";
 import { toast } from "@/lib/toast";
 import { useTranslation } from "react-i18next";
+import { localizeServerError } from "@/lib/serverErrors";
 
 // emoji, veritabanına yazılan ruh hali değeridir (moods.mood_type) ve değişmez; yalnızca etiket çevrilir
 export const MOODS = [
@@ -196,7 +197,7 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, theme }: M
       // Partner bildirimi sunucudaki moods tetikleyicisinden (send-push) gider; burada ayrıca göndermek çift bildirim yapıyordu.
     } else {
       logger.error("Mood error:", JSON.stringify(error, null, 2));
-      toast.error(error?.message || t("errors.unknown"), { title: t("home.mood.saveFailed") });
+      toast.error(localizeServerError(error, t("errors.unknown")), { title: t("home.mood.saveFailed") });
     }
   }
 

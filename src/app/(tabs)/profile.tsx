@@ -65,6 +65,7 @@ import { profileSharedStyles } from "@/components/profile/profileSharedStyles";
 import dayjs from "dayjs";
 import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
 import { useTranslation } from "react-i18next";
+import { localizeServerError } from "@/lib/serverErrors";
 
 export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
@@ -299,7 +300,7 @@ export default function ProfileScreen() {
     setProfileLoading(false);
 
     if (error) {
-      appAlert(t("common.error"), error.message || t("profile.errors.updateFailed"));
+      appAlert(t("common.error"), localizeServerError(error, t("profile.errors.updateFailed")));
     } else {
       if (isNameChanged) {
         setInitialDisplayName(cleanDisplayName);
