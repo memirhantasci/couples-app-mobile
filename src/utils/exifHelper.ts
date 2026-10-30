@@ -170,6 +170,29 @@ function localCountryContext(): string | null {
   return null;
 }
 
+// Yedek arama servisi. Varsayılan herkese açık Nominatim: kullanım politikası saniyede en fazla 1 istek,
+// kimlik belirten User-Agent ve sonuçların önbelleğe alınmasını ister. Kullanıcı sayısı artınca Nominatim uyumlu
+// bir sağlayıcıya (ör. LocationIQ) geçmek için EXPO_PUBLIC_GEOCODE_URL (+ isteğe bağlı EXPO_PUBLIC_GEOCODE_KEY) tanımlanır.
+const GEOCODE_URL = process.env.EXPO_PUBLIC_GEOCODE_URL || "https://nominatim.openstreetmap.org/search";
+const GEOCODE_KEY = process.env.EXPO_PUBLIC_GEOCODE_KEY;
+const GEOCODE_MIN_INTERVAL_MS = 1100;
+const GEOCODE_CACHE_LIMIT = 100;
+const geocodeCache = new Map<string, { latitude: number; longitude: number; locationName: string } | null>();
+let geocodeQueue: Promise<unknown> = Promise.resolve();
+let lastGeocodeAt = 0;
+
+/** İstekler sıraya girer ve aralarında en az GEOCODE_MIN_INTERVAL_MS bırakılır. */
+function throttledGeocodeFetch(url: string, init: RequestInit): Promise<Response> {
+  const run = geocodeQueue.then(async () => {
+    const wait = lastGeocodeAt + GEOCODE_MIN_INTERVAL_MS - Date.now();
+    if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+    lastGeocodeAt = Date.now();
+    return fetch(url, init);
+  });
+  geocodeQueue = run.catch(() => undefined);
+  return run;
+}
+
 /**
  * Metin olarak girilen adresi (İl, ilçe, mahalle, sokak, mekan adı)
  * haritada gösterilebilir GPS koordinatlarına (enlem/boylam) çevirir (Forward Geocoding).
@@ -221,9 +244,13 @@ export async function geocodeAddressString(address: string): Promise<{
   // 2. ADIM: OpenStreetMap (Nominatim) Yedek Arama Servisi
   // Native geocoder'ın (Android Play Services hatası, iOS rate-limit vb.) bulamadığı
   // veya hata verdiği durumlarda il, ilçe, mahalle ve sokakları %100 doğrulukla çözer
+  const cacheKey = `${i18n.language}|${cleanQuery.toLowerCase()}`;
+  if (geocodeCache.has(cacheKey)) return geocodeCache.get(cacheKey) ?? null;
+
   try {
-    const osmUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleanQuery)}&limit=1&addressdetails=1`;
-    const resp = await fetch(osmUrl, {
+    const keyParam = GEOCODE_KEY ? `&key=${encodeURIComponent(GEOCODE_KEY)}` : "";
+    const osmUrl = `${GEOCODE_URL}?format=json&q=${encodeURIComponent(cleanQuery)}&limit=1&addressdetails=1${keyParam}`;
+    const resp = await throttledGeocodeFetch(osmUrl, {
       headers: {
         "User-Agent": "CoupleSky/1.0",
         "Accept-Language": i18n.language === "tr" ? "tr,en" : "en,tr",
@@ -243,11 +270,10 @@ export async function geocodeAddressString(address: string): Promise<{
           const cityPart = addr.city || addr.province || addr.state || "";
           const resolvedName = [mainPart, cityPart].filter(Boolean).join(", ") || cleanQuery;
 
-          return {
-            latitude: lat,
-            longitude: lon,
-            locationName: resolvedName,
-          };
+          const found = { latitude: lat, longitude: lon, locationName: resolvedName };
+          if (geocodeCache.size >= GEOCODE_CACHE_LIMIT) geocodeCache.delete(geocodeCache.keys().next().value as string);
+          geocodeCache.set(cacheKey, found);
+          return found;
         }
       }
     }

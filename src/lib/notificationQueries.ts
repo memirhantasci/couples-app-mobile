@@ -28,10 +28,11 @@ const KEYS_BY_TYPE: Record<string, readonly string[]> = {
 };
 
 /** Türü bilinmeyen ya da genel bildirimlerde yalnızca ana sayfa yenilenir. */
-const DEFAULT_KEYS: readonly string[] = ["home_dashboard", "letters_data"];
+const DEFAULT_KEYS: readonly string[] = ["home_dashboard", "letters_data", "partner_notices"];
 
 /** Uygulama uzun süre arka plandaydı: partnerin değişikliklerinin en sık göründüğü sorgular yenilenir. */
 const RESUME_KEYS: readonly string[] = [
+  "partner_notices",
   "home_dashboard",
   "letters_data",
   "medicine_data",

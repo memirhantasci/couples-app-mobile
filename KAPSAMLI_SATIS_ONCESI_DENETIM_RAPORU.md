@@ -77,6 +77,14 @@ Aynı gün ikinci kez baştan tarandı. Android ve iOS paketleri `expo export` i
 | 2-10 | Harita yedeği herkese açık Nominatim kullanıyor (saniyede 1 istek sınırı, yoğun kullanım yasak) | P3 | Kullanıcı artınca ücretli geocoding (Google/MapTiler) |
 | 2-11 | `couplesky.app` e-postası için SPF/DKIM/DMARC kayıtları (OTP ve destek postaları spama düşmesin) | P1 | Alan adı DNS ayarı, SMTP sağlayıcısı verdiği kayıtları ekle |
 
+**Güncelleme (2-7 … 2-10 ve ses dosyası kapatıldı):**
+
+- **2-7 Partner bilgilendirmesi:** yeni `partner_notices` tablosu ve migration `20261030000002`. Silme talebinde, vazgeçildiğinde ve hesap silinip çift dağıldığında partner **push bildirimi** alır ve uygulamada, ortak verilere ne olduğunu anlatan bir **açıklama diyaloğu** görür (`PartnerNoticeHost`, TR/EN). Silme onay metni ve KVKK/Gizlilik metinleri partnerin bilgilendirileceğini söyleyecek şekilde güncellendi. Partnerin onayı istenmiyor; karar ürün kararı olarak olduğu gibi bırakıldı.
+- **2-8 Avatar:** KVKK ve Gizlilik metinlerine (TR/EN) profil fotoğrafının herkese açık depolamada, tahmin edilemez adreste tutulduğu cümlesi eklendi.
+- **2-9 Demo görselleri:** Unsplash zaten hotlink'i şart koştuğu için görseller pakete gömülmedi (App Review'un kullandığı demo yolunu bozma riski); demoya girilirken diske önceden indiriliyor, ilk açılıştan sonra çevrimdışı da çalışır.
+- **2-10 Harita yedeği:** Nominatim istekleri sıraya alınıp saniyede en fazla 1 istekle sınırlandı, sonuçlar önbelleğe alınıyor. Kullanıcı artınca `EXPO_PUBLIC_GEOCODE_URL` / `EXPO_PUBLIC_GEOCODE_KEY` ile Nominatim uyumlu ücretli bir sağlayıcıya (ör. LocationIQ) kodsuz geçilebilir.
+- **`cosmic_ambient.wav`:** 3,2 MB → 0,8 MB (22,05 kHz mono).
+
 **Gerçek cihazda mutlaka denenecekler (kodla doğrulanamaz):** Doze modunda ilaç hatırlatıcılarının saatinde çalışması (Android tam alarm izni), Android 15'te 16 KB sayfa boyutu uyumu (Play ön-yayın raporuna bak), widget'lar, UMP rıza formu, satın alma sandbox'ı, push bildirimi (ön plan/arka plan/kapalı).
 
 ---

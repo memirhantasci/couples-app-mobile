@@ -12,6 +12,21 @@
     "myLocation": "My location",
     "refresh": "Refresh"
   },
+  "partnerNotice": {
+    "requested": {
+      "title": "Your partner wants to delete their account",
+      "body": "Your partner has requested to delete their account; it will be deleted on {{date}}.\n\nIf it is deleted, the memories, letters, photos, diary entries and star you created together will be permanently deleted. Your own account and profile are not deleted, and you can pair again any time.\n\nYour partner can still change their mind until then. If there is anything you want to keep, you may want to save a copy to your device now."
+    },
+    "cancelled": {
+      "title": "Your partner changed their mind",
+      "body": "Your partner cancelled the account deletion request. Your shared memories, letters and photos are still here."
+    },
+    "dissolved": {
+      "title": "Your partner deleted their account",
+      "body": "Your partner deleted their account. For privacy reasons, the data you created together (memories, letters, photos, diary entries, star) has been permanently deleted and cannot be recovered.\n\nYour own account and profile are untouched. You can pair again with a new pairing code whenever you like."
+    },
+    "ok": "Got it"
+  },
   "auth": {
     "welcome": {
       "subtitle": "The most romantic way to capture your love and watch it grow. Your memories, your letters and your star belong to the two of you alone.",
@@ -644,7 +659,7 @@
     "danger": {
       "title": "Account Management & Danger Zone",
       "noticeTitle": "⚠️ Data Destruction under KVKK Art. 11",
-      "noticeText": "Under your right to be forgotten, when you delete your account, your account, profile photo and all shared photos, encrypted letters, journals and data belonging to your relationship are permanently destroyed from our servers at the end of the 7-day cooling-off period. You can change your mind by signing in with the same account during this period.",
+      "noticeText": "Under your right to be forgotten, when you delete your account, your account, profile photo and all shared photos, encrypted letters, journals and data belonging to your relationship are permanently destroyed from our servers at the end of the 7-day cooling-off period. You can change your mind by signing in with the same account during this period. Your partner is also told that your account is being deleted and that your shared data will be erased.",
       "delete": "Delete My Account and All Data"
     },
     "legal": {

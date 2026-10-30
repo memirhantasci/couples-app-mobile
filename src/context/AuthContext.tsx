@@ -20,7 +20,7 @@ import { toast } from "@/lib/toast";
 import { dayjs } from "@/lib/date";
 
 import { Platform, AppState } from "react-native"; // 24 hours
-import { DEMO_PROFILE, DEMO_SESSION } from "@/constants/demoData";
+import { DEMO_PROFILE, DEMO_SESSION, prefetchDemoImages } from "@/constants/demoData";
 import i18n from "@/lib/i18n";
 
 const CACHED_PROFILE_KEY = "@couples_app_cached_profile";
@@ -234,6 +234,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const enterDemoMode = useCallback(() => {
     isDemoModeRef.current = true;
+    prefetchDemoImages();
     setIsDemoMode(true);
     setSession(DEMO_SESSION);
     setProfile(DEMO_PROFILE);

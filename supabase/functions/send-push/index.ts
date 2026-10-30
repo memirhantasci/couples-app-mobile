@@ -139,6 +139,17 @@ function S(lang: Lang) {
     pairingBody: en
       ? "Wonderful! You've been paired with your partner and can start using the app together."
       : "Harika! Partnerinle başarıyla eşleştiniz, uygulamayı birlikte kullanmaya başlayabilirsiniz.",
+    noticeRequestedTitle: en ? "💔 Your partner wants to delete their account" : "💔 Partnerin hesabını silmek istiyor",
+    noticeRequestedBody: (date: string) =>
+      en
+        ? `Their account is scheduled for deletion on ${date}. If it is deleted, the memories, letters, photos and diary entries you share will be permanently deleted too. They can still change their mind until then.`
+        : `Hesabı ${date} tarihinde silinecek. Silinirse birlikte oluşturduğunuz anılar, mektuplar, fotoğraflar ve günlükler de kalıcı olarak silinir. O zamana kadar partnerin vazgeçebilir.`,
+    noticeCancelledTitle: en ? "💞 Your partner changed their mind" : "💞 Partnerin vazgeçti",
+    noticeCancelledBody: en ? "They cancelled the account deletion. Your shared memories are safe." : "Hesabını silmekten vazgeçti. Ortak anılarınız yerinde duruyor.",
+    noticeDissolvedTitle: en ? "Your partner deleted their account" : "Partnerin hesabını sildi",
+    noticeDissolvedBody: en
+      ? "The data you shared (memories, letters, photos, diary entries) has been permanently deleted. Your own account is untouched and you can pair again any time."
+      : "Birlikte oluşturduğunuz veriler (anılar, mektuplar, fotoğraflar, günlükler) kalıcı olarak silindi. Hesabın duruyor; istediğinde yeniden eşleşebilirsin.",
   };
 }
 
@@ -492,6 +503,24 @@ serve(async (req) => {
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;
       }
+    }
+    // Partnerin hesap silme talebi / vazgeçmesi / çiftin dağılması (bkz. migration 20261030000002_partner_notices)
+    else if (table === "partner_notices" && type === "INSERT") {
+      partnerIntId = record.user_id;
+      message = (lang) => {
+        const s = S(lang);
+        const extra = { partnerNotice: true };
+        if (record.kind === "deletion_requested") {
+          const date = record.scheduled_for
+            ? new Date(record.scheduled_for).toLocaleDateString(localeOf(lang), { day: "numeric", month: "long", year: "numeric" })
+            : "";
+          return { title: s.noticeRequestedTitle, body: s.noticeRequestedBody(date), type: "general", route: "/(tabs)/home", extra };
+        }
+        if (record.kind === "deletion_cancelled") {
+          return { title: s.noticeCancelledTitle, body: s.noticeCancelledBody, type: "general", route: "/(tabs)/home", extra };
+        }
+        return { title: s.noticeDissolvedTitle, body: s.noticeDissolvedBody, type: "general", route: "/(tabs)/home", extra };
+      };
     }
     else if (table === "couples" && type === "UPDATE" && record.is_paired === true && oldRecord?.is_paired !== true) {
       const { data: coupleUsers } = await supabase.from("users").select("id").eq("couple_id", record.id);

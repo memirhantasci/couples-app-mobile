@@ -65,10 +65,10 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "• KVKK md. 5/1 ve md. 6/2: Sağlık verileri (regl/ilaç takibi), hassas konum verileri ve pazarlama/bildirim süreçleri için vermiş olduğunuz Açık Rıza.",
 
       "6. VERİLERİN GÜVENLİĞİ VE ŞİFRELEME (AES-256)",
-      "CoupleSky, günlük notlarınızı ve mektuplarınızı veritabanına AES-256 ile şifrelenmiş olarak yazar. Şifreleme anahtarı, çiftinize özel ve sunucuda tutulan rastgele bir değerden uygulama içinde türetilir. Bu nedenle sistem uçtan uca şifreleme değildir: hizmeti işleten taraf olarak teknik olarak bu içeriklere erişebilecek konumdayız; içeriklerinizi pazarlama dahil hiçbir başka amaçla kullanmayız. Verilere erişim, Satır Düzeyi Güvenlik (RLS) kurallarıyla yalnızca oturum açmış ve ilgili çifte ait kullanıcılarla sınırlandırılmıştır. Fotoğraflarınız özel depolama alanında tutulur ve yalnızca süreli, imzalı bağlantılarla gösterilir. Tüm iletişim TLS ile şifrelidir.",
+      "CoupleSky, günlük notlarınızı ve mektuplarınızı veritabanına AES-256 ile şifrelenmiş olarak yazar. Şifreleme anahtarı, çiftinize özel ve sunucuda tutulan rastgele bir değerden uygulama içinde türetilir. Bu nedenle sistem uçtan uca şifreleme değildir: hizmeti işleten taraf olarak teknik olarak bu içeriklere erişebilecek konumdayız; içeriklerinizi pazarlama dahil hiçbir başka amaçla kullanmayız. Verilere erişim, Satır Düzeyi Güvenlik (RLS) kurallarıyla yalnızca oturum açmış ve ilgili çifte ait kullanıcılarla sınırlandırılmıştır. Ortak fotoğraflarınız özel depolama alanında tutulur ve yalnızca süreli, imzalı bağlantılarla gösterilir; profil fotoğrafınız (avatar) ise tahmin edilemez bir adreste herkese açık bir depolama alanında tutulur ve bu adresi bilen herkes tarafından görüntülenebilir. Tüm iletişim TLS ile şifrelidir.",
 
       "7. VERİ SAKLAMA VE SİLME (UNUTULMA HAKKI)",
-      "Profil > Hesap Yönetimi & Tehlike Bölgesi bölümünden hesabınızı silme talebinde bulunabilirsiniz. Talep 7 gün beklemeye alınır; bu süre içinde aynı hesapla giriş yaparak talebi iptal edebilirsiniz. 7 gün sonunda hesabınıza ait profil bilgileri, dosyalar, günlükler ve mektuplar sunuculardan geri döndürülemez biçimde silinir. Partneriniz kendi hesabıyla kullanmaya devam eder; ortak anılar ise her iki taraftan da silinir ve partneriniz çiftten ayrılmış olur. Yedek kopyalar en geç 30 gün içinde otomatik olarak imha edilir.",
+      "Profil > Hesap Yönetimi & Tehlike Bölgesi bölümünden hesabınızı silme talebinde bulunabilirsiniz. Talep 7 gün beklemeye alınır; bu süre içinde aynı hesapla giriş yaparak talebi iptal edebilirsiniz. 7 gün sonunda hesabınıza ait profil bilgileri, dosyalar, günlükler ve mektuplar sunuculardan geri döndürülemez biçimde silinir. Partneriniz kendi hesabıyla kullanmaya devam eder; ortak anılar ise her iki taraftan da silinir ve partneriniz çiftten ayrılmış olur. Partnerinize silme talebi, vazgeçilmesi ve silinme durumunda uygulama içi açıklama ve bildirimle bilgi verilir. Yedek kopyalar en geç 30 gün içinde otomatik olarak imha edilir.",
 
       "8. KVKK'NIN 11. MADDESİ KAPSAMINDAKİ HAKLARINIZ",
       "KVKK 11. maddesi uyarınca dilediğiniz zaman Veri Sorumlumuza başvurarak:\n" +
@@ -103,13 +103,13 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "• Üçüncü taraf hizmetler: Google AdMob (reklam), Google Haritalar (harita), Apple/Google ile giriş, Supabase (veritabanı), RevenueCat (abonelik) ve Expo (bildirim). Ayrıntılar için KVKK Aydınlatma Metni, 4. bölüm.",
 
       "3. GÜVENLİK VE VERİ ŞİFRELEMESİ",
-      "Tüm veri iletişimi SSL/TLS protokolleri ile şifreli olarak gerçekleşir. Özel günlükler ve mektuplar şifrelenmiş olarak depolanır. Oturum bilgileri cihazınızda uygulamanın yerel depolama alanında tutulur; cihazınızı kilit ekranıyla korumanız önerilir.",
+      "Tüm veri iletişimi SSL/TLS protokolleri ile şifreli olarak gerçekleşir. Özel günlükler ve mektuplar şifrelenmiş olarak depolanır. Ortak fotoğraflarınız özel depolamada tutulur; profil fotoğrafınız (avatar) ise tahmin edilemez bir adreste herkese açık depolamada tutulur ve adresi bilen herkes görüntüleyebilir. Oturum bilgileri cihazınızda uygulamanın yerel depolama alanında tutulur; cihazınızı kilit ekranıyla korumanız önerilir.",
 
       "4. ÇEREZLER VE CİHAZ KİMLİĞİ",
       "Uygulama içinde yetkisiz cihaz girişlerini tespit etmek ve brute-force saldırılarını önlemek amacıyla rastgele üretilmiş bir 'Cihaz Kimliği' (UUID) kullanılır. Bu kimlik kişisel profilinizle ilişkilendirilerek başka bir cihazdan giriş yapıldığında e-posta onayı (OTP) istememizi sağlar.",
 
       "5. HESAP SİLME VE VERİLERİN İMHASI (GDPR & KVKK UYUMLU)",
-      "Hesabınızı istediğiniz zaman Profil > Hesap Yönetimi & Tehlike Bölgesi bölümünden silebilirsiniz. Talep 7 gün beklemeye alınır; bu süre içinde yalnızca hesabın sahibi aynı hesapla giriş yaparak talebi iptal edebilir. 7 gün sonunda hesabınıza ait kayıtlar, dosyalar ve ortak anılar sunuculardan kalıcı olarak silinir ve geri getirilemez.",
+      "Hesabınızı istediğiniz zaman Profil > Hesap Yönetimi & Tehlike Bölgesi bölümünden silebilirsiniz. Talep 7 gün beklemeye alınır; bu süre içinde yalnızca hesabın sahibi aynı hesapla giriş yaparak talebi iptal edebilir. 7 gün sonunda hesabınıza ait kayıtlar, dosyalar ve ortak anılar sunuculardan kalıcı olarak silinir ve geri getirilemez. Eşleştiğiniz partnere silme talebi, vazgeçilmesi ve silinme durumunda uygulama içi açıklama ve bildirimle bilgi verilir; ortak veriler her iki taraf için silinir.",
 
       "6. YAŞ SINIRI",
       "CoupleSky, 16 yaşından küçüklerin kullanımına yönelik değildir. 16 yaşın altındaki bir kullanıcının veri sağladığı tespit edilirse veriler derhal silinir.",
@@ -258,10 +258,10 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "• Explicit Consent: For health-related cycle/medicine logs, sensitive location pins, and marketing communications.",
 
       "6. DATA SECURITY AND ENCRYPTION (AES-256)",
-      "CoupleSky writes your daily notes and letters to the database encrypted with AES-256. The encryption key is derived inside the app from a random, couple-specific value kept on the server. This is therefore not end-to-end encryption: as the party operating the service we are technically able to access this content, and we do not use it for any other purpose, including marketing. Access is limited by Row-Level Security (RLS) rules to authenticated members of the relevant couple. Your photos are kept in private storage and displayed only through time-limited, signed links. All traffic is encrypted with TLS.",
+      "CoupleSky writes your daily notes and letters to the database encrypted with AES-256. The encryption key is derived inside the app from a random, couple-specific value kept on the server. This is therefore not end-to-end encryption: as the party operating the service we are technically able to access this content, and we do not use it for any other purpose, including marketing. Access is limited by Row-Level Security (RLS) rules to authenticated members of the relevant couple. Your shared photos are kept in private storage and displayed only through time-limited, signed links; your profile photo (avatar), however, is kept in public storage at an unguessable address and can be viewed by anyone who has that address. All traffic is encrypted with TLS.",
 
       "7. DATA RETENTION AND DELETION (RIGHT TO BE FORGOTTEN)",
-      "You can request permanent account deletion anytime from Profile > Account Management & Danger Zone. Deletion requests enter a 7-day safety grace period during which you can cancel by logging back in. After 7 days, all profile records, private journals, letters, and storage files are permanently and irreversibly purged from our servers. Shared memories are wiped for both sides, uncoupling your partner. Backup copies are purged within 30 days.",
+      "You can request permanent account deletion anytime from Profile > Account Management & Danger Zone. Deletion requests enter a 7-day safety grace period during which you can cancel by logging back in. After 7 days, all profile records, private journals, letters, and storage files are permanently and irreversibly purged from our servers. Shared memories are wiped for both sides, uncoupling your partner. Your partner is informed through an in-app explanation and a notification when you request deletion, when you cancel it, and when it is carried out. Backup copies are purged within 30 days.",
 
       "8. YOUR RIGHTS UNDER GDPR AND DATA PROTECTION LAWS",
       "You have the right at any time to:\n" +
@@ -296,13 +296,13 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "• Third-Party Infrastructure: Google AdMob, Google Maps, Apple/Google Sign-In, Supabase, RevenueCat, and Expo. For details, refer to Section 4 of our Clarification Text.",
 
       "3. SECURITY AND CRYPTOGRAPHIC ENCRYPTION",
-      "All network traffic is encrypted via TLS/SSL protocols. Private letters and journal entries are encrypted before persistent storage. Session tokens reside in secure device storage; securing your device with biometric or passcode locks is strongly advised.",
+      "All network traffic is encrypted via TLS/SSL protocols. Private letters and journal entries are encrypted before persistent storage. Shared photos are kept in private storage; your profile photo (avatar) is kept in public storage at an unguessable address and can be viewed by anyone who has that address. Session tokens reside in secure device storage; securing your device with biometric or passcode locks is strongly advised.",
 
       "4. COOKIES AND UNIQUE DEVICE IDENTIFIER",
       "To prevent brute-force attacks and unauthorized multi-device logins, a randomly generated UUID device identifier is utilized. When logging in from an unrecognized device, one-time verification is prompted to safeguard your account.",
 
       "5. ACCOUNT ERASURE AND DATA PURGE (GDPR & CCPA COMPLIANT)",
-      "You may request account deletion at any time under Profile > Account Management & Danger Zone. Requests are subject to a 7-day cancellation window. Following the 7-day period, all account data, photos, and linked memories are irreversibly removed from active servers.",
+      "You may request account deletion at any time under Profile > Account Management & Danger Zone. Requests are subject to a 7-day cancellation window. Following the 7-day period, all account data, photos, and linked memories are irreversibly removed from active servers. Your paired partner is informed through an in-app explanation and a notification when you request deletion, cancel it, or it is carried out, and shared data is deleted for both sides.",
 
       "6. AGE RESTRICTION",
       "CoupleSky is not intended for individuals under 16 years of age. If we learn that personal data of a minor under 16 has been collected without parental consent, we will promptly delete that information.",

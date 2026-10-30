@@ -12,6 +12,21 @@
     "myLocation": "Konumum",
     "refresh": "Yenile"
   },
+  "partnerNotice": {
+    "requested": {
+      "title": "Partnerin hesabını silmek istiyor",
+      "body": "Partnerin hesabını silmek için talepte bulundu; hesabı {{date}} tarihinde silinecek.\n\nSilinirse birlikte oluşturduğunuz anılar, mektuplar, fotoğraflar, günlükler ve yıldızınız kalıcı olarak silinir. Kendi hesabın ve profilin silinmez, istediğinde yeniden eşleşebilirsin.\n\nO zamana kadar partnerin vazgeçebilir. Saklamak istediğin bir şey varsa şimdiden bir kopyasını cihazına kaydetmeyi düşünebilirsin."
+    },
+    "cancelled": {
+      "title": "Partnerin vazgeçti",
+      "body": "Partnerin hesabını silme talebinden vazgeçti. Ortak anılarınız, mektuplarınız ve fotoğraflarınız yerinde duruyor."
+    },
+    "dissolved": {
+      "title": "Partnerin hesabını sildi",
+      "body": "Partnerin hesabını sildi. Gizlilik gereği birlikte oluşturduğunuz veriler (anılar, mektuplar, fotoğraflar, günlükler, yıldız) kalıcı olarak silindi ve geri getirilemez.\n\nSenin hesabın ve profilin duruyor. İstediğinde yeni bir eşleşme koduyla yeniden eşleşebilirsin."
+    },
+    "ok": "Anladım"
+  },
   "auth": {
     "welcome": {
       "subtitle": "Aşkınızı belgelemenin ve büyütmenin en romantik yolu. Anılarınız, mektuplarınız ve yıldızınız yalnızca ikinize ait.",
@@ -644,7 +659,7 @@
     "danger": {
       "title": "Hesap Yönetimi & Tehlike Bölgesi",
       "noticeTitle": "⚠️ KVKK md. 11 Kapsamında Veri İmhası",
-      "noticeText": "Unutulma hakkınız uyarınca hesabınızı sildiğinizde hesabınız, profil fotoğrafınız ve ilişkinize ait tüm ortak fotoğraflar, şifreli mektuplar, günlükler ve veriler 7 günlük cayma süresi sonunda sunucularımızdan kalıcı olarak imha edilir. Bu süre içinde aynı hesapla giriş yaparak vazgeçebilirsiniz.",
+      "noticeText": "Unutulma hakkınız uyarınca hesabınızı sildiğinizde hesabınız, profil fotoğrafınız ve ilişkinize ait tüm ortak fotoğraflar, şifreli mektuplar, günlükler ve veriler 7 günlük cayma süresi sonunda sunucularımızdan kalıcı olarak imha edilir. Bu süre içinde aynı hesapla giriş yaparak vazgeçebilirsiniz. Partnerinize de hesabınızın silinmek üzere olduğu ve ortak verilerin silineceği bildirilir.",
       "delete": "Hesabımı ve Tüm Verileri Sil"
     },
     "legal": {

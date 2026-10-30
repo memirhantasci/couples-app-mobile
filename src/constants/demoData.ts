@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import { dayjs } from "@/lib/date";
 import { CoupleProfile } from "@/context/AuthContext";
 import type { CoupleStarDetails, StarExoplanetRecord } from "@/modules/stars/types/star.types";
@@ -967,3 +968,14 @@ const DEMO_STAR_EXOPLANETS_EN: StarExoplanetRecord[] = [
 ];
 
 export const DEMO_STAR_EXOPLANETS: StarExoplanetRecord[] = createLocalizedProxy(DEMO_STAR_EXOPLANETS_TR, DEMO_STAR_EXOPLANETS_EN);
+
+/**
+ * Demo görselleri Unsplash'tan çekilir (Unsplash hotlink'i şart koşar). Demoya girerken hepsi diske indirilir
+ * (expo-image önbelleği); ilk açılıştan sonra demo çevrimdışı da görselleriyle çalışır.
+ */
+export function prefetchDemoImages(): void {
+  const urls = new Set<string>(
+    JSON.stringify([DEMO_PHOTOS_TR, DEMO_STAR_EXOPLANETS_TR]).match(/https:\/\/images\.unsplash\.com\/[^"]+/g) ?? []
+  );
+  Image.prefetch([...urls], "disk").catch(() => {});
+}

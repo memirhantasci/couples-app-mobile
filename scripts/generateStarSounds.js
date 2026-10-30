@@ -160,5 +160,6 @@ function generateCosmicAmbient() {
 }
 
 fs.writeFileSync(path.join(SOUNDS_DIR, 'celestial_chime.wav'), generateCelestialChime());
+// Not: yayınlanan cosmic_ambient.wav bu çıktının 22,05 kHz mono'ya indirilmiş halidir (3,2 MB → 0,8 MB)
 fs.writeFileSync(path.join(SOUNDS_DIR, 'cosmic_ambient.wav'), generateCosmicAmbient());
 console.log('Yazıldı: celestial_chime.wav, cosmic_ambient.wav');

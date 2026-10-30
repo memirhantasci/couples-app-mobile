@@ -35,6 +35,7 @@ import { bindQueryOnlineManager } from "@/hooks/useIsOffline";
 import { DialogHost } from "@/components/ui/DialogHost";
 import { LetterArrivalHost } from "@/components/letters/LetterArrivalHost";
 import { NotificationPermissionHost } from "@/components/common/NotificationPermissionHost";
+import { PartnerNoticeHost } from "@/components/common/PartnerNoticeHost";
 import { PremiumCelebrationHost } from "@/components/ui/PremiumCelebrationHost";
 import { StarPointsToastHost } from "@/modules/stars/components/StarPointsToastHost";
 
@@ -277,6 +278,8 @@ export default function RootLayout() {
                 <LetterArrivalHost />
                 {/* Bildirim izni verilmediyse arada bir (bezdirmeden) nazik ön-onay kartı */}
                 <NotificationPermissionHost />
+                {/* Partner hesabını silmek istediğinde / vazgeçtiğinde / çift dağıldığında açıklama diyaloğu */}
+                <PartnerNoticeHost />
                 {/* Partner Premium aldığında (uygulama açıkken anında) "Tebrikler" ekranı */}
                 <PremiumCelebrationHost />
                 {/* Yıldızı parlatan aktivitelerde "+N puan 🌟" bildirimi */}
