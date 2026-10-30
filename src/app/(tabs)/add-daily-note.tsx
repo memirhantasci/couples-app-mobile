@@ -1,13 +1,6 @@
-import React, { useState, useMemo } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Platform,
-  ActivityIndicator,
-  StyleSheet,
-} from "react-native";
+import { useState, useMemo } from "react";
+import { logger } from "@/utils/logger";
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useAuth } from "@/context/AuthContext";
@@ -127,7 +120,7 @@ export default function AddDailyNoteScreen() {
       setContent("");
       router.replace("/(tabs)/daily-notes");
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       appAlert(t("common.error"), t("dailyNotes.add.saveFailed"));
     } finally {
       setIsSubmitting(false);

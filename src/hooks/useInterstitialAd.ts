@@ -3,6 +3,9 @@ import { TurboModuleRegistry } from 'react-native';
 import Constants from 'expo-constants';
 import { useAuth } from '@/context/AuthContext';
 import { logger } from '@/utils/logger';
+import { resolveAdUnitId, useAdsReady } from '@/lib/adsConsent'; // 2 minutes cooldown between interstitial ads
+
+import { setAdLoggingOut, getIsAdLoggingOut } from '../utils/adFlags';
 
 const isExpoGo = Constants.appOwnership === 'expo';
 const hasAdsModule = typeof TurboModuleRegistry?.get === 'function' && !!TurboModuleRegistry.get('RNGoogleMobileAdsModule');
@@ -19,10 +22,13 @@ if (hasAdsModule && !isExpoGo) {
     AdEventType = ads.AdEventType;
     TestIds = ads.TestIds;
 
-    const adUnitId = __DEV__ ? (TestIds?.INTERSTITIAL || "") : (process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID || TestIds?.INTERSTITIAL || "");
-    interstitial = InterstitialAd.createForAdRequest(adUnitId, {
-      requestNonPersonalizedAdsOnly: true,
-    });
+    // Üretimde birim kimliği tanımlı değilse reklam hiç oluşturulmaz (test reklamına düşülmez)
+    const adUnitId = resolveAdUnitId(process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID, TestIds?.INTERSTITIAL);
+    if (adUnitId) {
+      interstitial = InterstitialAd.createForAdRequest(adUnitId, {
+        requestNonPersonalizedAdsOnly: true,
+      });
+    }
   } catch {
     interstitial = null;
   }
@@ -30,24 +36,23 @@ if (hasAdsModule && !isExpoGo) {
 
 // A simple global state to track the last time an ad was shown to prevent spamming the user
 let lastAdShowTime = 0;
-const AD_COOLDOWN_MS = 60 * 1000 * 2; // 2 minutes cooldown between interstitial ads
-
-import { setAdLoggingOut, getIsAdLoggingOut } from '../utils/adFlags';
+const AD_COOLDOWN_MS = 60 * 1000 * 2;
 export { setAdLoggingOut, getIsAdLoggingOut };
 
 export function useInterstitialAd() {
   const { session, profile, isLoading } = useAuth();
   const isPremium = profile?.isPremium === true;
-  
+  const adsReady = useAdsReady();
+
   const [adLoaded, setLoaded] = useState(false);
-  // Uygunluk bitince (premium, çıkış, oturum yok) reklam hazır sayılmaz
-  const canShowAds = !!session && !isLoading && !!profile && !isPremium;
+  // Uygunluk bitince (premium, çıkış, oturum yok, rıza alınmadı) reklam hazır sayılmaz
+  const canShowAds = adsReady && !!session && !isLoading && !!profile && !isPremium;
   const loaded = adLoaded && canShowAds;
 
   useEffect(() => {
     if (isExpoGo || !interstitial) return;
     // If logging out, unauthenticated, loading, or premium: never load ads
-    if (getIsAdLoggingOut() || !session || isLoading || !profile || isPremium) {
+    if (!adsReady || getIsAdLoggingOut() || !session || isLoading || !profile || isPremium) {
       return;
     }
 
@@ -97,11 +102,11 @@ export function useInterstitialAd() {
       if (unsubscribeClosed) unsubscribeClosed();
       if (unsubscribeError) unsubscribeError();
     };
-  }, [session, isLoading, profile, isPremium]);
+  }, [adsReady, session, isLoading, profile, isPremium]);
 
   const showAdIfReady = () => {
     // If user is logging out, unauthenticated, profile is loading, or user is premium: NEVER show ad
-    if (getIsAdLoggingOut() || !session || isLoading || !profile || isPremium) {
+    if (!adsReady || getIsAdLoggingOut() || !session || isLoading || !profile || isPremium) {
       return false;
     }
 

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { logger } from "@/utils/logger";
 import {
   View,
   Text,
@@ -447,7 +448,7 @@ export default function ProfileScreen() {
         }
       }
     } catch (e) {
-      console.warn("Özel günler senkronizasyonunda hata:", e);
+      logger.warn("Özel günler senkronizasyonunda hata:", e);
     }
 
     setDatesLoading(false);

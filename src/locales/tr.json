@@ -1,4 +1,17 @@
 {
+  "a11y": {
+    "close": "Kapat",
+    "back": "Geri",
+    "delete": "Sil",
+    "add": "Ekle",
+    "edit": "Düzenle",
+    "share": "Paylaş",
+    "togglePassword": "Şifreyi göster veya gizle",
+    "settings": "Ayarlar",
+    "camera": "Kamera",
+    "myLocation": "Konumum",
+    "refresh": "Yenile"
+  },
   "auth": {
     "welcome": {
       "subtitle": "Aşkınızı belgelemenin ve büyütmenin en romantik yolu. Anılarınız, mektuplarınız ve yıldızınız yalnızca ikinize ait.",
@@ -35,7 +48,7 @@
       "nameLabel": "AD SOYAD",
       "namePlaceholder": "Örn. Selin Yılmaz",
       "usernameLabel": "KULLANICI ADI",
-      "passwordPlaceholder": "En az 6 karakter",
+      "passwordPlaceholder": "En az 8 karakter",
       "genderLabel": "CİNSİYETİNİZ",
       "genderFemale": "Kadın ♀",
       "genderMale": "Erkek ♂",
@@ -62,7 +75,7 @@
       "usernameTooShort": "Kullanıcı adı en az 3 karakter olmalı.",
       "usernameInvalidChars": "Kullanıcı adı yalnızca a-z harfleri, rakam ve _ içerebilir.",
       "emailInvalid": "Geçerli bir e-posta girin.",
-      "passwordTooShort": "Şifre en az 6 karakter olmalı.",
+      "passwordTooShort": "Şifre en az 8 karakter olmalı.",
       "usernameCheckFailed": "Kullanıcı adı kontrol edilemedi. Lütfen tekrar dene.",
       "usernameTaken": "Bu kullanıcı adı zaten alınmış.",
       "emailTaken": "Bu e-posta zaten kayıtlı.",
@@ -133,7 +146,7 @@
     },
     "reset": {
       "codeRequired": "Lütfen doğrulama kodunu girin.",
-      "passwordTooShort": "Şifreniz en az 6 karakter olmalı.",
+      "passwordTooShort": "Şifreniz en az 8 karakter olmalı.",
       "mismatch": "Şifreler eşleşmiyor.",
       "restart": "Lütfen şifre sıfırlamayı baştan başlat.",
       "codeInvalid": "Kod geçersiz ya da süresi dolmuş.",
@@ -3242,6 +3255,7 @@
     "promoLimit": "Bu kodun kullanım limiti dolmuş",
     "promoExpired": "Bu kodun süresi dolmuş",
     "promoInvalid": "Geçersiz veya süresi dolmuş kod",
+    "promoRateLimited": "Çok fazla deneme yaptınız. Lütfen biraz sonra tekrar deneyin.",
     "promoNeedPartner": "Premium kodunu kullanmak için bir partnerle eşleşmiş olmalısınız.",
     "periodMonthlyLimit": "Bir ay içerisinde en fazla 2 regl başlangıcı kaydedebilirsiniz.",
     "periodMinGap": "İki regl başlangıcı arasında en az 16 gün ara bulunmalıdır.",

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   Modal,
   Platform,
@@ -160,7 +160,7 @@ function CalendarPane({
   maximumDate?: Date;
 }) {
   const { theme } = useTheme();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { months, weekdays } = getCalendarNames(i18n.language);
   const { width: screenWidth } = useWindowDimensions();
   const [view, setView] = useState(() => new Date(value.getFullYear(), value.getMonth(), 1));
@@ -214,7 +214,7 @@ function CalendarPane({
   return (
     <View style={styles.calendar}>
       <View style={styles.calendarHeader}>
-        <TouchableOpacity
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.back")}
           onPress={() => shiftMonth(-1)}
           disabled={!canGoPrev || yearMode}
           style={[styles.navBtn, { backgroundColor: theme.unitBg, borderWidth: 1, borderColor: theme.cardBorder, opacity: canGoPrev && !yearMode ? 1 : 0.3 }]}

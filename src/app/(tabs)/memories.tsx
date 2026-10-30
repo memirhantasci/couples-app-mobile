@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { toast } from "@/lib/toast";
@@ -9,9 +9,9 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { removeStoredFiles } from "@/lib/storageImages";
-import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs } from "@/lib/date";
-import { Plus, Trash2, Pencil, Menu, ChevronLeft, PlusCircle, AlignJustify } from "lucide-react-native";
+import { Trash2, Pencil, PlusCircle, AlignJustify } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { openForm } from "@/lib/formEntry";
 import Animated, { FadeInDown, FadeInUp, FadeOutDown } from "react-native-reanimated";
@@ -276,10 +276,10 @@ export default function MemoriesScreen() {
 
             {canManage && (
               <Animated.View entering={FadeInUp.duration(150)} style={styles.actionsBox}>
-                <TouchableOpacity onPress={() => handleEdit(memory)}>
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.edit")} onPress={() => handleEdit(memory)}>
                   <Pencil size={18} color={theme.textMuted} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleDelete(memory.id)} disabled={deletingId === memory.id}>
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.delete")} onPress={() => handleDelete(memory.id)} disabled={deletingId === memory.id}>
                   {deletingId === memory.id ? (
                     <ActivityIndicator size="small" color={theme.accent} />
                   ) : (

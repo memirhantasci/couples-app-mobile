@@ -1,17 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useFocusEffect } from "expo-router";
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  TextInput,
-  KeyboardAvoidingView,
-  Modal,
-  ScrollView,
-} from "react-native";
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, Modal } from "react-native";
 import { appAlert, type DialogButton } from "@/lib/dialog";
 import { DialogHost } from "@/components/ui/DialogHost";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
@@ -23,12 +12,7 @@ import { notifyPartner } from "@/lib/notifications";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
 import { encrypt, decrypt } from "@/utils/crypto";
-import { 
-  Lock, ChevronRight, LockKeyhole, Calendar as CalendarIcon, 
-  X, AlignJustify, PenLine, Send, ChevronLeft, 
-  Clock, Mail, Sparkles, Unlock, UserCheck, ChevronDown,
-  Eye, EyeOff, MoreHorizontal, Hourglass, HeartHandshake
-} from "lucide-react-native";
+import { ChevronRight, LockKeyhole, Calendar as CalendarIcon, X, AlignJustify, PenLine, Send, ChevronLeft, Clock, Unlock, UserCheck, ChevronDown, Eye, EyeOff, MoreHorizontal, Hourglass, HeartHandshake } from "lucide-react-native";
 import { sanitize, sanitizeStrict } from "@/utils/sanitize";
 import { logger } from "@/utils/logger";
 import type { AppTheme } from "@/lib/theme";
@@ -51,15 +35,7 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { fetchLetters, lettersQueryKey, LETTERS_PAGE_SIZE } from "@/lib/screenQueries";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { LazyPremiumPaywall, LazyPageTourModal, LazyDemoActionModal, LazyWatchAdModal, LazyPermissionPrimingModal, LazyDateTimePickerSheet, LazyOrigamiBirdAnimation } from "@/components/ui/lazyMount";
-import {
-  deletionRequestOpensAt,
-  deletionRetryAt,
-  isAwaitingPurge,
-  isHiddenBy,
-  letterDeletableAt,
-  letterDeletionState,
-  letterUnlockAt,
-} from "@/lib/letterPolicy";
+import { deletionRequestOpensAt, deletionRetryAt, isHiddenBy, letterDeletableAt, letterDeletionState, letterUnlockAt } from "@/lib/letterPolicy";
 import { useTranslation } from "react-i18next";
 import { localizeServerError } from "@/lib/serverErrors";
 
@@ -777,7 +753,7 @@ export default function LettersScreen() {
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <TourGuideButton onPress={openTour} />
-            <TouchableOpacity 
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.edit")} 
               onPress={handleOpenWriteModal} 
               style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : theme.cardBg, borderColor: theme.cardBorder }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -983,7 +959,7 @@ export default function LettersScreen() {
                 <Text style={[styles.modalHeaderTitle, { color: theme.text }]}>{t("letters.compose.title")}</Text>
               </View>
 
-              <TouchableOpacity 
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} 
                 onPress={() => setShowWriteModal(false)}
                 style={[styles.modalCloseBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

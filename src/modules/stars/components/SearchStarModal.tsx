@@ -287,7 +287,7 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
             {/* Header */}
             <View style={styles.header}>
               <Text style={[styles.title, { color: theme.text }]}>{t('stars.search.title')}</Text>
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")}
                 onPress={onClose}
                 style={[
                   styles.closeBtn,

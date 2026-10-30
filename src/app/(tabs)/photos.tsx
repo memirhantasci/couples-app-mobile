@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -234,7 +234,7 @@ export default function PhotosScreen() {
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <TourGuideButton onPress={openTour} />
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.camera")}
               onPress={goToUpload}
               style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : theme.cardBg, borderColor: theme.cardBorder }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

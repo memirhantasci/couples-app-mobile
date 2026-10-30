@@ -1,23 +1,10 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Platform,
-  Modal,
-} from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { 
-  X, Heart, Settings, Home, Pill, CalendarHeart, 
-  Droplet, MapPin, LogOut, ChevronRight, User, 
-  BookOpen, Mail, Images, Camera, Sparkles, ShieldCheck,
-  Calendar, Clock, ImagePlus, HelpCircle, Check, Orbit
-} from "lucide-react-native";
+import { X, Heart, Settings, Home, Pill, CalendarHeart, Droplet, MapPin, LogOut, ChevronRight, BookOpen, Mail, Images, Sparkles, ShieldCheck, Clock, ImagePlus, HelpCircle, Orbit } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 
 import { dayjs, daysSince } from "@/lib/date";
@@ -149,7 +136,7 @@ export default function MenuScreen() {
         {/* HEADER */}
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
           <Text style={[styles.headerTitle, { color: theme.text }]}>{t("menu.title")}</Text>
-          <TouchableOpacity 
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} 
             onPress={handleClose} 
             style={[styles.closeBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : theme.cardBg, borderColor: theme.cardBorder }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -503,7 +490,7 @@ export default function MenuScreen() {
                   <Text style={{ fontSize: 18, fontWeight: "700", color: theme.text }}>{t("menu.guides.title")}</Text>
                   <Text style={{ fontSize: 12, color: theme.textMuted }}>{t("menu.guides.subtitle")}</Text>
                 </View>
-                <TouchableOpacity onPress={() => setShowGuideCatalog(false)} style={{ padding: 6 }}>
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} onPress={() => setShowGuideCatalog(false)} style={{ padding: 6 }}>
                   <X color={theme.text} size={20} />
                 </TouchableOpacity>
               </View>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -238,7 +238,7 @@ function MedicineManagerForm({
             </Text>
           </View>
 
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")}
             onPress={onClose}
             style={[styles.modalCloseBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -270,10 +270,10 @@ function MedicineManagerForm({
                     </Text>
                   </View>
                   <View style={{ flexDirection: "row", gap: 10 }}>
-                    <TouchableOpacity onPress={() => handleEditRegistered(m)} style={[styles.medActionBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)" }]}>
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.edit")} onPress={() => handleEditRegistered(m)} style={[styles.medActionBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)" }]}>
                       <Edit2 size={16} color={theme.textSecondary} />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => onDelete(m.id)} style={[styles.medActionBtn, { backgroundColor: "rgba(239,68,68,0.15)" }]}>
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.delete")} onPress={() => onDelete(m.id)} style={[styles.medActionBtn, { backgroundColor: "rgba(239,68,68,0.15)" }]}>
                       {deletingId === m.id ? (
                         <ActivityIndicator size="small" color="#ef4444" />
                       ) : (

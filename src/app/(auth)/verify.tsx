@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
+import { logger } from "@/utils/logger";
 import {
   View,
   Text,
@@ -95,7 +96,7 @@ export default function VerifyScreen() {
             is_authorized: true,
           });
         } catch (devErr) {
-          console.warn("[verify] device auth error:", devErr);
+          logger.warn("[verify] device auth error:", devErr);
         }
 
         await registerForPushNotifications(data.user.id).catch(() => {});
@@ -175,7 +176,7 @@ export default function VerifyScreen() {
             is_authorized: true,
           });
         } catch (devErr) {
-          console.warn("[verify] device auth error:", devErr);
+          logger.warn("[verify] device auth error:", devErr);
         }
 
         await registerForPushNotifications(data.user.id).catch(() => {});
@@ -248,7 +249,7 @@ export default function VerifyScreen() {
       >
         <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 40 }} keyboardShouldPersistTaps="handled">
           
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.back")}
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();

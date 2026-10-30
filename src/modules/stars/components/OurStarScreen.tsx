@@ -44,22 +44,7 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import {
-  Orbit,
-  Globe,
-  Share2,
-  Clock,
-  ArrowLeft,
-  Sparkles,
-  X,
-  AlertCircle,
-  Radio,
-  Search,
-  Award,
-  Sun,
-  Volume2,
-  VolumeX,
-} from 'lucide-react-native';
+import { Orbit, Globe, Share2, Clock, ArrowLeft, Sparkles, X, AlertCircle, Search, Award, Sun, Volume2, VolumeX } from 'lucide-react-native';
 
 import {
   startCosmicAmbient,
@@ -1458,7 +1443,7 @@ export const OurStarScreen: React.FC = () => {
                 </View>
               )}
             </View>
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")}
               onPress={() => setSelectedMacroStar(null)}
               style={[
                 styles.macroStarCloseBtn,

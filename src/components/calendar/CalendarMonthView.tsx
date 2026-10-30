@@ -115,7 +115,7 @@ function CalendarMonthViewComponent({
     <>
       {/* AY SEÇİCİ ÇUBUĞU */}
       <View style={[styles.monthNavCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
-        <TouchableOpacity onPress={onPrevMonth} style={[styles.monthArrowBtn, { backgroundColor: isLight ? theme.unitBg : "rgba(255,255,255,0.06)" }]} activeOpacity={0.75}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.back")} onPress={onPrevMonth} style={[styles.monthArrowBtn, { backgroundColor: isLight ? theme.unitBg : "rgba(255,255,255,0.06)" }]} activeOpacity={0.75}>
           <ChevronLeft color={theme.text} size={20} />
         </TouchableOpacity>
 

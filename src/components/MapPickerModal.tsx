@@ -1,16 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-  Dimensions,
-  Platform,
-  ActivityIndicator,
-  StatusBar,
-  TextInput,
-} from "react-native";
+import { useState, useRef, useEffect } from "react";
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions, ActivityIndicator, StatusBar, TextInput } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { showPermissionDeniedDialog } from "@/lib/permissions";
 import { DialogHost } from "@/components/ui/DialogHost";
@@ -19,17 +8,7 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRealTopInset } from "@/hooks/useRealTopInset";
-import {
-  X,
-  MapPin,
-  Check,
-  Navigation,
-  Sparkles,
-  Layers,
-  Heart,
-  Maximize2,
-  Search,
-} from "lucide-react-native";
+import { X, MapPin, Check, Navigation, Layers, Heart, Search } from "lucide-react-native";
 import * as Location from "expo-location";
 import { useTheme } from "@/context/ThemeContext";
 import { isValidCoordinate, geocodeAddressString, formatGeocodedAddress } from "@/utils/exifHelper";
@@ -402,7 +381,7 @@ export function MapPickerModal({
 
           <View style={styles.topBarMainRow}>
             {/* Kapat Butonu */}
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")}
               style={[
                 styles.topActionBtn,
                 {
@@ -448,7 +427,7 @@ export function MapPickerModal({
                 <Layers size={16} color={theme.accent} />
               </TouchableOpacity>
 
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.myLocation")}
                 style={[
                   styles.topActionBtn,
                   {
@@ -493,7 +472,7 @@ export function MapPickerModal({
               <ActivityIndicator size="small" color={theme.accent} style={{ marginRight: 10 }} />
             ) : searchQuery.length > 0 ? (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginRight: 6 }}>
-                <TouchableOpacity
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")}
                   onPress={() => setSearchQuery("")}
                   style={styles.searchClearBtn}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -605,7 +584,7 @@ export function MapPickerModal({
                   <Text style={[styles.detailBadgeText, { color: theme.accent }]}>{t("map.picker.selected")}</Text>
                 </View>
 
-                <TouchableOpacity
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")}
                   onPress={() => setSelectedCoord(null)}
                   style={[
                     styles.detailCloseBtn,

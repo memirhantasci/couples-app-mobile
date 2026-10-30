@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { logger } from "@/utils/logger";
 import { useRouter, useSegments, useRootNavigationState } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { getOrCreateDeviceId } from "@/utils/device";
@@ -80,7 +81,7 @@ export function useProtectedRoute() {
               })
               .catch((err) => {
                 // deviceId'siz doğrulama ekranı cihazı kaydedemez; bir sonraki tetiklemede yeniden denenir
-                console.warn("[useProtectedRoute] device id unavailable:", err);
+                logger.warn("[useProtectedRoute] device id unavailable:", err);
               });
           }
           return;

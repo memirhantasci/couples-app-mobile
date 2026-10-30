@@ -62,13 +62,14 @@ function DetailHeader({
   badgeColor?: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.detailCardHeader}>
       <View style={[styles.detailBadge, badgeColor ? { backgroundColor: badgeColor } : null]}>
         {icon}
         <Text style={styles.detailBadgeText}>{label}</Text>
       </View>
-      <TouchableOpacity
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")}
         onPress={onClose}
         style={styles.detailCloseBtn}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -80,8 +81,9 @@ function DetailHeader({
 }
 
 function DeleteButton({ onPress }: { onPress: () => void }) {
+  const { t } = useTranslation();
   return (
-    <TouchableOpacity style={styles.deleteActionBtn} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.delete")} style={styles.deleteActionBtn} onPress={onPress} activeOpacity={0.8}>
       <Trash2 size={15} color="#FF4D6D" />
     </TouchableOpacity>
   );

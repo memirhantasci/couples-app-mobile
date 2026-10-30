@@ -7,7 +7,7 @@
  * dizilerinden okunur; dokunmaları engellemez (pointerEvents="none").
  */
 
-import React, { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import { Image } from 'expo-image';

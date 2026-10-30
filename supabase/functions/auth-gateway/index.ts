@@ -17,7 +17,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const USERNAME_PATTERN = /^[a-z0-9_]{3,30}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MIN_PASSWORD_LENGTH = 6;
+const MIN_PASSWORD_LENGTH = 8;
 const WINDOW_15_MIN = 15 * 60;
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;

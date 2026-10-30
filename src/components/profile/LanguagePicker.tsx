@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Languages, Check } from "lucide-react-native";
 import { useTranslation } from "react-i18next";

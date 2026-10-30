@@ -16,6 +16,7 @@ const RULES: readonly (readonly [readonly string[], ParseKeys])[] = [
   [["Bu kodun kullanım limiti dolmuş"], "serverErrors.promoLimit"],
   [["Bu kodun süresi dolmuş"], "serverErrors.promoExpired"],
   [["Geçersiz veya süresi dolmuş kod"], "serverErrors.promoInvalid"],
+  [["Çok fazla deneme yaptınız"], "serverErrors.promoRateLimited"],
   [["Premium kodunu kullanmak için bir partnerle eşleşmiş"], "serverErrors.promoNeedPartner"],
   // Döngü takibi
   [["Bir ay içerisinde en fazla 2 regl"], "serverErrors.periodMonthlyLimit"],

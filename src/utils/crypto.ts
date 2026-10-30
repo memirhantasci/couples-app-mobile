@@ -1,7 +1,7 @@
-const CryptoJS = require('crypto-js');
 import * as ExpoCrypto from 'expo-crypto';
 import { logger } from '@/utils/logger';
 import i18n from '@/lib/i18n';
+const CryptoJS = require('crypto-js');
 
 /**
  * Çifte özel içeriklerin (mektup içeriği, günlük notu) simetrik şifrelenmesi.

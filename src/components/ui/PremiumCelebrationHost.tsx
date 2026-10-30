@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { PremiumSuccessModal } from "@/components/ui/PremiumSuccessModal";
 import { isPremiumCelebrationSuppressed, premiumSeenKey } from "@/lib/premiumCelebration";

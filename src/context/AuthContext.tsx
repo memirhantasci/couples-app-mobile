@@ -1,5 +1,6 @@
 import * as Notifications from "expo-notifications";
-import { registerForPushNotifications, syncPushTokenIfPermitted } from "@/lib/notifications";
+import { logger } from "@/utils/logger";
+import { syncPushTokenIfPermitted } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { RevenueCatService } from "@/lib/revenuecat";
@@ -18,13 +19,13 @@ import { appAlert } from "@/lib/dialog";
 import { toast } from "@/lib/toast";
 import { dayjs } from "@/lib/date";
 
-import { Platform, AppState } from "react-native";
+import { Platform, AppState } from "react-native"; // 24 hours
+import { DEMO_PROFILE, DEMO_SESSION } from "@/constants/demoData";
+import i18n from "@/lib/i18n";
 
 const CACHED_PROFILE_KEY = "@couples_app_cached_profile";
 export const DEVICE_AUTH_CACHE_KEY = "@device_auth_cache";
-const DEVICE_AUTH_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-import { DEMO_PROFILE, DEMO_SESSION } from "@/constants/demoData";
-import i18n from "@/lib/i18n";
+const DEVICE_AUTH_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 // Maximum time (ms) to wait for auth initialization before forcing loading=false
 const AUTH_INIT_TIMEOUT_MS = 8000;
@@ -364,7 +365,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (mounted) {
         setIsLoading((prev) => {
           if (prev) {
-            console.warn("[AuthProvider] Safety timeout reached — forcing isLoading=false");
+            logger.warn("[AuthProvider] Safety timeout reached — forcing isLoading=false");
           }
           return false;
         });
@@ -401,7 +402,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const [, freshProfile] = await Promise.all([
           withTimeout(checkDeviceAuth(userId), DEVICE_AUTH_TIMEOUT_MS, false),
           loadProfile(userId).catch((err) => {
-            console.error("[AuthProvider] initial fetchProfile error:", err);
+            logger.error("[AuthProvider] initial fetchProfile error:", err);
             return null;
           }),
         ]);
@@ -416,7 +417,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
       }
     }).catch((err) => {
-      console.error("[AuthProvider] getSession error:", err);
+      logger.error("[AuthProvider] getSession error:", err);
       if (mounted) {
         setIsLoading(false);
       }
@@ -523,7 +524,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         syncPushTokenIfPermitted(userId).catch(() => {});
       })
       .catch((err) => {
-        console.error("fetchProfile error:", err);
+        logger.error("fetchProfile error:", err);
         // Even on error, we must stop loading. Use cached profile if available.
         setIsLoading(false);
       });
@@ -546,7 +547,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return await loadProfile(userId);
     } catch (err) {
       // Geçici okuma hatası: state ve önbellek olduğu gibi kalır, çağırana bilinen son profil döner
-      console.warn("[AuthProvider] refreshProfile failed, keeping last known profile:", err);
+      logger.warn("[AuthProvider] refreshProfile failed, keeping last known profile:", err);
       return latestProfileRef.current;
     }
   }, [loadProfile]);
@@ -684,7 +685,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       void refreshProfile()
         .catch((error) => {
-          console.warn('Premium profile refresh failed on foreground', { error });
+          logger.warn('Premium profile refresh failed on foreground', { error });
         })
         .finally(() => {
           foregroundRefreshInFlightRef.current = false;

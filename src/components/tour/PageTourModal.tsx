@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -166,7 +166,7 @@ export function PageTourModal({ visible, guide, onClose }: PageTourModalProps) {
               </View>
             </View>
 
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")}
               onPress={onClose}
               style={[
                 styles.closeButton,

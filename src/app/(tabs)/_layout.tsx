@@ -1,13 +1,17 @@
 import { Tabs } from "expo-router";
 import { StyleSheet, View, Text, Platform, TouchableOpacity } from "react-native";
 import { BlurView } from "expo-blur";
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
 import { SafeAreaInsetsContext, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/context/ThemeContext";
 import { useTabBar } from "@/context/TabBarContext";
 import { getTabBarBottomOffset } from "@/constants/tabBar";
+
+import { DemoModeBanner } from "@/components/demo/DemoModeBanner";
+import { useReminderSync } from "@/hooks/useReminderSync";
+import { usePushLanguageSync } from "@/hooks/usePushLanguageSync";
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const { theme, isLight } = useTheme();
@@ -135,10 +139,6 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
     </View>
   );
 }
-
-import { DemoModeBanner } from "@/components/demo/DemoModeBanner";
-import { useReminderSync } from "@/hooks/useReminderSync";
-import { usePushLanguageSync } from "@/hooks/usePushLanguageSync";
 
 export default function TabsLayout() {
   // İlaç / buluşma / mektup-kilidi yerel hatırlatıcılarını bu cihazda güncel tut

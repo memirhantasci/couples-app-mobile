@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useEffectEvent, useRef, useCallback } from "react";
+import { useState, useEffect, useEffectEvent, useRef, useCallback } from "react";
+import { logger } from "@/utils/logger";
 import {
   View,
   Text,
@@ -587,7 +588,7 @@ export default function PairingScreen() {
               try {
                 await signOut();
               } catch (e) {
-                console.error(e);
+                logger.error(e);
               }
             }}
             style={{

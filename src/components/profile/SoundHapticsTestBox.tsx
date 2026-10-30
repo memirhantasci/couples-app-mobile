@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, Switch, StyleSheet } from "react-native";
 import { Volume2, VolumeX, Vibrate } from "lucide-react-native";
 import type { AppTheme } from "@/lib/theme";

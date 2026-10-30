@@ -34,7 +34,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "• Görsel ve İşitsel Kayıtlar: Ortak galeriye veya günlüklere yüklediğiniz fotoğraflar, anı görselleri ve profil avatarları.\n" +
       "• Lokasyon (Konum) Bilgileri: Buluşma noktası seçimi ve anılarınıza isteğe bağlı eklenen GPS koordinatları ve harita pinleri.\n" +
       "• Özel Nitelikli Kişisel Veriler (Sağlık Bilgileri): Kadın kullanıcılar ve çiftleri için döngü/regl başlangıç ve tahmin tarihleri, günlük ilaç/vitamin saatleri ve takip kayıtları.\n" +
-      "• Mesajlaşma ve Anı Verileri: Zaman kilitli mektuplar, günlük notları ve ruh hali (mood) seçimleri. (Bu veriler yerel olarak ve sunucuda şifreli olarak saklanmaktadır).\n" +
+      "• Mesajlaşma ve Anı Verileri: Zaman kilitli mektuplar, günlük notları ve ruh hali (mood) seçimleri. (Bu veriler sunucuda şifreli olarak saklanmaktadır).\n" +
       "• Müşteri İşlem ve Finansal Bilgiler: RevenueCat ve uygulama mağazası (App Store / Google Play) üzerinden sağlanan anonim işlem tokenları, abonelik durumu, paket türü ve token bakiyesi.\n" +
       "• Cihaz ve İşlem Güvenliği: Cihaz modeli, işletim sistemi versiyonu, push bildirim tokenları, benzersiz cihaz kimliği (UUID), son oturum açma zamanı ve güvenlik logları.\n" +
       "• Reklam Verileri: Uygulamada gösterilen reklamlar için Google AdMob tarafından işlenen reklam kimliği ve reklam etkileşim verileri (yalnızca kişiselleştirilmemiş reklam talebi ile sınırlı).",
@@ -65,7 +65,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "• KVKK md. 5/1 ve md. 6/2: Sağlık verileri (regl/ilaç takibi), hassas konum verileri ve pazarlama/bildirim süreçleri için vermiş olduğunuz Açık Rıza.",
 
       "6. VERİLERİN GÜVENLİĞİ VE ŞİFRELEME (AES-256)",
-      "CoupleSky, kullanıcıların özel hayatının gizliliğini korumak adına gelişmiş kriptografik yöntemler kullanır. Günlük notlarınız, mektuplarınız ve hassas kullanıcı bilgileriniz veritabanında simetrik ve deterministik şifreleme (AES standartları) ile korunmaktadır. Şifreleme anahtarı uygulamanın içinde bulunur; bu nedenle şifreleme, veritabanına erişimi olan birine karşı tek başına tam bir koruma sağlamaz. Veritabanı erişimi, oturum açmış ve ilgili çifte ait kullanıcılarla sınırlandırılmıştır.",
+      "CoupleSky, günlük notlarınızı ve mektuplarınızı veritabanına AES-256 ile şifrelenmiş olarak yazar. Şifreleme anahtarı, çiftinize özel ve sunucuda tutulan rastgele bir değerden uygulama içinde türetilir. Bu nedenle sistem uçtan uca şifreleme değildir: hizmeti işleten taraf olarak teknik olarak bu içeriklere erişebilecek konumdayız; içeriklerinizi pazarlama dahil hiçbir başka amaçla kullanmayız. Verilere erişim, Satır Düzeyi Güvenlik (RLS) kurallarıyla yalnızca oturum açmış ve ilgili çifte ait kullanıcılarla sınırlandırılmıştır. Fotoğraflarınız özel depolama alanında tutulur ve yalnızca süreli, imzalı bağlantılarla gösterilir. Tüm iletişim TLS ile şifrelidir.",
 
       "7. VERİ SAKLAMA VE SİLME (UNUTULMA HAKKI)",
       "Profil > Hesap Yönetimi & Tehlike Bölgesi bölümünden hesabınızı silme talebinde bulunabilirsiniz. Talep 7 gün beklemeye alınır; bu süre içinde aynı hesapla giriş yaparak talebi iptal edebilirsiniz. 7 gün sonunda hesabınıza ait profil bilgileri, dosyalar, günlükler ve mektuplar sunuculardan geri döndürülemez biçimde silinir. Partneriniz kendi hesabıyla kullanmaya devam eder; ortak anılar ise her iki taraftan da silinir ve partneriniz çiftten ayrılmış olur. Yedek kopyalar en geç 30 gün içinde otomatik olarak imha edilir.",
@@ -227,7 +227,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "• Visual and Audio Records: Photos uploaded to the shared gallery or private journals, memory pictures, and profile avatars.\n" +
       "• Location Information: Meeting point coordinates and optional GPS pins attached to memory photos.\n" +
       "• Special Category Personal Data (Health Information): Menstrual cycle start dates, predicted cycle intervals, daily medication/vitamin hours and adherence logs.\n" +
-      "• Messaging and Memory Content: Time-capsule letters, private daily notes, and mood selections (stored encrypted on device and on servers).\n" +
+      "• Messaging and Memory Content: Time-capsule letters, private daily notes, and mood selections (stored encrypted on our servers).\n" +
       "• Transaction and Financial Information: Anonymous transaction identifiers, subscription status, package type, and token balance processed via RevenueCat and app stores (App Store / Google Play).\n" +
       "• Device and Operation Security: Device model, OS version, push notification tokens, unique device identifier (UUID), last login timestamp, and security logs.\n" +
       "• Advertising Data: Non-personalized advertising identifiers processed by Google AdMob for displayed in-app banners.",
@@ -258,7 +258,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "• Explicit Consent: For health-related cycle/medicine logs, sensitive location pins, and marketing communications.",
 
       "6. DATA SECURITY AND ENCRYPTION (AES-256)",
-      "CoupleSky uses state-of-the-art cryptographic standards to protect user privacy. Private notes, time-capsule letters, and sensitive attributes are encrypted in the database using symmetric AES standards. Database access is strictly governed by Row-Level Security (RLS) policies scoped exclusively to authenticated members of each couple.",
+      "CoupleSky writes your daily notes and letters to the database encrypted with AES-256. The encryption key is derived inside the app from a random, couple-specific value kept on the server. This is therefore not end-to-end encryption: as the party operating the service we are technically able to access this content, and we do not use it for any other purpose, including marketing. Access is limited by Row-Level Security (RLS) rules to authenticated members of the relevant couple. Your photos are kept in private storage and displayed only through time-limited, signed links. All traffic is encrypted with TLS.",
 
       "7. DATA RETENTION AND DELETION (RIGHT TO BE FORGOTTEN)",
       "You can request permanent account deletion anytime from Profile > Account Management & Danger Zone. Deletion requests enter a 7-day safety grace period during which you can cancel by logging back in. After 7 days, all profile records, private journals, letters, and storage files are permanently and irreversibly purged from our servers. Shared memories are wiped for both sides, uncoupling your partner. Backup copies are purged within 30 days.",

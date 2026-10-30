@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "couplesapp",
     "userInterfaceStyle": "dark",
-    "jsEngine": "hermes",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -19,7 +18,7 @@
     "ios": {
       "icon": "./assets/images/icon.png",
       "supportsTablet": false,
-      "bundleIdentifier": "com.memirhantasci.couplesapp",
+      "bundleIdentifier": "app.couplesky.mobile",
       "infoPlist": {
         "NSUserNotificationsUsageDescription": "Partnerinden mektup geldiğinde veya özel bir günün yaklaştığında seni haberdar etmek için bildirim göndermek istiyoruz.",
         "NSCameraUsageDescription": "Anılarına fotoğraf ekleyebilmek için kameraya erişmemiz gerekiyor.",
@@ -52,7 +51,7 @@
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.memirhantasci.couplesapp",
+      "package": "app.couplesky.mobile",
       "googleServicesFile": "./google-services.json"
     },
     "web": {
@@ -62,6 +61,9 @@
     "plugins": [
       "expo-router",
       "expo-localization",
+      "expo-web-browser",
+      "expo-image",
+      "expo-asset",
       "expo-apple-authentication",
       "expo-sharing",
       [
@@ -100,7 +102,7 @@
         {
           "backgroundColor": "#0A0A0C",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 120
+          "imageWidth": 220
         }
       ],
       [

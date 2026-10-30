@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Modal,
   View,
@@ -89,7 +89,7 @@ export function LegalModal({
             </View>
           </View>
 
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")}
             onPress={onClose}
             style={styles.closeBtn}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}

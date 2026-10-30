@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -21,10 +21,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Trash2, MapPin, AlignJustify, Pencil, ChevronLeft,
-  Plus, Calendar, Clock, Navigation, Check, X, Sparkles, Heart
-} from "lucide-react-native";
+import { Trash2, MapPin, AlignJustify, Pencil, ChevronLeft, Plus, Calendar, Clock, Navigation, Check, X, Heart } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { supabase } from "@/lib/supabase";
@@ -570,7 +567,7 @@ export default function MeetingsScreen() {
                 </Text>
               </View>
 
-              <TouchableOpacity 
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} 
                 onPress={handleCancelEdit}
                 style={[styles.modalCloseBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

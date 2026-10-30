@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -58,7 +58,7 @@ function MapAddNoteForm({ accent, isSaving, onSave, onClose }: NoteFormProps) {
               {t("map.addNote.subtitle")}
             </Text>
           </View>
-          <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} style={styles.closeBtn} onPress={onClose}>
             <X size={18} color="rgba(255,255,255,0.7)" />
           </TouchableOpacity>
         </View>

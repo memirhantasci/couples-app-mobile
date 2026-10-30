@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
-import { dayjs, daysSince, todayString } from "@/lib/date";
-import { DEMO_HOME_DATA, DEMO_MAP_LOCATIONS, DEMO_PHOTOS } from "@/constants/demoData";
+import { dayjs, daysSince } from "@/lib/date";
+import { DEMO_MAP_LOCATIONS, DEMO_PHOTOS } from "@/constants/demoData";
 import i18n from "@/lib/i18n";
 import type { ParseKeys } from "i18next";
 

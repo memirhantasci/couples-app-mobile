@@ -8,27 +8,11 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-  Modal,
-  Platform,
-} from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  interpolate,
-  Easing,
-  runOnJS,
-} from 'react-native-reanimated';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Modal } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, interpolate, Easing } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { hapticStamp, hapticTap, hapticSuccess } from '@/lib/soundEffects';
-import { Radio, Crosshair, Sparkles, Navigation, X, Orbit } from 'lucide-react-native';
+import { Radio, Crosshair, Navigation, X } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { getSectorByCoords } from '../config/skySectors.data';
 import type { CoupleStarDetails } from '../types/star.types';
@@ -187,7 +171,7 @@ export const HomeRadarOverlay: React.FC<HomeRadarOverlayProps> = ({
             <Text style={styles.radarStatusText}>{t('stars.radar.active')}</Text>
           </View>
           {onClose && (
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")}
               onPress={onClose}
               style={[
                 styles.closeBtn,

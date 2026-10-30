@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { AppState } from "react-native";
 import { usePathname } from "expo-router";
 import { useAuth } from "@/context/AuthContext";

@@ -541,7 +541,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
               </Text>
             </View>
 
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")}
               onPress={onClose}
               style={[
                 styles.closeButton,
@@ -829,7 +829,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                       autoCapitalize="none"
                     />
                     {searchQuery.length > 0 && (
-                      <TouchableOpacity onPress={() => setSearchQuery('')}>
+                      <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} onPress={() => setSearchQuery('')}>
                         <X size={14} color={theme.textMuted} />
                       </TouchableOpacity>
                     )}
@@ -983,7 +983,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                         </Text>
                       </View>
 
-                      <TouchableOpacity
+                      <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.delete")}
                         activeOpacity={0.7}
                         disabled={isActionLoading}
                         onPress={() => handleRemove(conn.connection_id, conn.other_star_name, false)}

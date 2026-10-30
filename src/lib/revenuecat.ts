@@ -1,14 +1,17 @@
-import Purchases, { PurchasesPackage, CustomerInfo, LOG_LEVEL } from 'react-native-purchases';
+import Purchases, { PurchasesPackage, LOG_LEVEL } from 'react-native-purchases';
 import { Platform } from 'react-native';
-import { supabase } from './supabase';
 import { logger } from '@/utils/logger';
 
-// TODO: Replace with your actual RevenueCat Public API Keys
+// RevenueCat genel (public) API anahtarları EAS ortam değişkenlerinden gelir (bkz. .env.example)
 const API_KEYS = {
   apple: process.env.EXPO_PUBLIC_REVENUECAT_APPLE_KEY || "appl_xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
   google: process.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY || "goog_xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 };
 
+/**
+ * Premium durumu yalnızca sunucuda yazılır: RevenueCat webhook'u (supabase/functions/revenuecat-webhook)
+ * çiftin Premium'unu günceller. İstemci durumu sunucuya bildirmez; yalnızca profili yeniler.
+ */
 export class RevenueCatService {
   static isInitialized = false;
   private static initPromise: Promise<void> | null = null;
@@ -53,7 +56,6 @@ export class RevenueCatService {
     if (!this.isInitialized) return null;
     try {
       const { customerInfo } = await Purchases.logIn(userId);
-      await this.syncPremiumStatus(customerInfo);
       return customerInfo;
     } catch (e) {
       logger.error("Error logging in RevenueCat", e);
@@ -102,7 +104,6 @@ export class RevenueCatService {
     if (!this.isInitialized) return null;
     try {
       const { customerInfo } = await Purchases.purchasePackage(rcPackage);
-      await this.syncPremiumStatus(customerInfo);
       return customerInfo;
     } catch (e: any) {
       if (!e.userCancelled) {
@@ -118,7 +119,6 @@ export class RevenueCatService {
     if (!this.isInitialized) return null;
     try {
       const customerInfo = await Purchases.restorePurchases();
-      await this.syncPremiumStatus(customerInfo);
       return customerInfo;
     } catch (e) {
       logger.error("Error restoring purchases", e);
@@ -135,31 +135,6 @@ export class RevenueCatService {
     } catch (e) {
       logger.error("Error getting customer info", e);
       return null;
-    }
-  }
-
-  /**
-   * Reads the customerInfo from RevenueCat, checks if "Premium" entitlement is active,
-   * and updates Supabase `couples.is_premium` accordingly.
-   */
-  static async syncPremiumStatus(customerInfo: CustomerInfo) {
-    try {
-      // Assuming you named your entitlement "Premium" in RevenueCat
-      const isPremium = typeof customerInfo.entitlements.active['Premium'] !== "undefined";
-      const expirationDateStr = isPremium 
-        ? customerInfo.entitlements.active['Premium'].expirationDate 
-        : null;
-      
-      const { error } = await supabase.rpc("set_premium_status", {
-        p_is_premium: isPremium,
-        p_expires_at: expirationDateStr || null
-      });
-
-      if (error) {
-        logger.error("Error syncing premium status to Supabase", error);
-      }
-    } catch (e) {
-      logger.error("Error processing syncPremiumStatus", e);
     }
   }
 }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
 import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
 import { CalendarHeart, Calendar, Heart, ChevronRight, Lock, Clock, Sparkles } from "lucide-react-native";

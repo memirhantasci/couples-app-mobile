@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useEffectEvent } from "react";
+import { useState, useRef, useEffect, useEffectEvent } from "react";
 import {
   View,
   Text,
@@ -16,7 +16,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useAuth, DEVICE_AUTH_CACHE_KEY } from "@/context/AuthContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ArrowLeft, ShieldAlert, RefreshCw } from "lucide-react-native";
+import { ArrowLeft, ShieldAlert } from "lucide-react-native";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { navigateAfterAuth, setAuthFlowActive, releaseAuthFlow } from "@/lib/navigate";
 import { toast } from "@/lib/toast";
@@ -209,7 +209,7 @@ export default function VerifyDeviceScreen() {
       >
         <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 40 }} keyboardShouldPersistTaps="handled">
           
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.back")}
             onPress={handleBack}
             style={{
               width: 42,

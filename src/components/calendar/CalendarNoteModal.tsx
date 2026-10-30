@@ -48,7 +48,7 @@ export function CalendarNoteModal({
               </Text>
             </View>
 
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")}
               onPress={onClose}
               style={[styles.modalCloseBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -91,7 +91,7 @@ export function CalendarNoteModal({
 
             <View style={styles.modalActionsRow}>
               {hasExistingNote && (
-                <TouchableOpacity
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.delete")}
                   onPress={onDelete}
                   disabled={saving}
                   style={styles.modalDeleteBtn}

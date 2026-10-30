@@ -14,6 +14,7 @@
  */
 
 import { hapticTap } from '@/lib/soundEffects';
+import { logger } from "@/utils/logger";
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { starService, SparkCooldownException } from '../api/starService';
@@ -238,14 +239,14 @@ export class StarSparkManager {
         })
         .catch((sendErr) => {
           if (__DEV__) {
-            console.warn(
+            logger.warn(
               `[StarSparkManager] queueLovePing: Broadcast iletilemedi (starId: ${this.starId}):`,
               sendErr,
             );
           }
         });
     } else if (__DEV__) {
-      console.warn(
+      logger.warn(
         `[StarSparkManager] queueLovePing: Kanal henüz bağlı değil veya kapatılmış (starId: ${this.starId}). Broadcast atlandı.`,
       );
     }
@@ -292,7 +293,7 @@ export class StarSparkManager {
 
       // Geliştirme ortamında RLS yetki sorunu, network çökmesi veya DB hatalarını görünür kıl
       if (__DEV__) {
-        console.error(
+        logger.error(
           `[StarSparkManager] flushLovePingToDb DB yazım hatası (starId: ${this.starId}):`,
           error,
         );

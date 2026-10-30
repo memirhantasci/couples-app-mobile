@@ -1,28 +1,7 @@
 import React from "react";
-import {
-  Modal,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Platform,
-} from "react-native";
+import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import {
-  X,
-  Sparkles,
-  Mail,
-  Pill,
-  Clock,
-  Camera,
-  MapPin,
-  Flower,
-  Smile,
-  Bell,
-  Play,
-  CheckCircle,
-} from "lucide-react-native";
+import { X, Mail, Pill, Clock, Camera, MapPin, Flower, Smile, Bell, Play } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCustomNotification } from "@/context/NotificationContext";
 import { NotificationType, NOTIFICATION_THEMES } from "@/types/notification";
@@ -140,7 +119,7 @@ export const NotificationShowcaseModal: React.FC<NotificationShowcaseModalProps>
                 </Text>
               </View>
 
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")}
                 onPress={onClose}
                 style={styles.closeBtn}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}

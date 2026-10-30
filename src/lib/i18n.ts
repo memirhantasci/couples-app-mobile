@@ -18,7 +18,7 @@ export const DEFAULT_LANGUAGE: AppLanguage = "tr";
 export const LANGUAGE_STORAGE_KEY = "@app_language";
 
 /** Dil seçicide gösterilen seçenekler; adlar kendi dillerinde yazılır, çevrilmez */
-export const LANGUAGE_OPTIONS: ReadonlyArray<{ code: AppLanguage; label: string; flag: string }> = [
+export const LANGUAGE_OPTIONS: readonly { code: AppLanguage; label: string; flag: string }[] = [
   { code: "tr", label: "Türkçe", flag: "🇹🇷" },
   { code: "en", label: "English", flag: "🇺🇸" },
 ];

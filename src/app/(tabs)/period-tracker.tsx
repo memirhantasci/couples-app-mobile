@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -19,10 +19,7 @@ import { dayjs, todayString } from "@/lib/date";
 import { logger } from "@/utils/logger";
 import { Calendar } from "react-native-calendars";
 import "@/lib/calendarLocale";
-import { 
-  X, Check, ChevronLeft, AlignJustify, Lock, Crown, 
-  Heart, Sparkles, Droplet, Coffee, MessageCircleHeart, Info, Gift
-} from "lucide-react-native";
+import { Check, ChevronLeft, AlignJustify, Crown, Sparkles, Droplet, MessageCircleHeart } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { AppTheme } from "@/lib/theme";

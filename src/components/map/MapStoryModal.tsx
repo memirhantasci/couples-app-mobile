@@ -1,4 +1,5 @@
-import React, { useRef, useState, useMemo } from "react";
+import { useRef, useState, useMemo } from "react";
+import { logger } from "@/utils/logger";
 import {
   View,
   Text,
@@ -147,7 +148,7 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
         });
       }
     } catch (error) {
-      console.warn("Map story share error:", error);
+      logger.warn("Map story share error:", error);
     } finally {
       setIsSharing(false);
     }
@@ -165,7 +166,7 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
               <Sparkles size={14} color="#FF6B8B" />
               <Text style={styles.badgeText}>{t("map.story.title")}</Text>
             </View>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={styles.closeBtn}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={styles.closeBtn}>
               <X size={20} color="#FFFFFF" />
             </TouchableOpacity>
           </View>

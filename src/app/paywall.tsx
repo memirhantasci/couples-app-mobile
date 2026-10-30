@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { useRouter } from "expo-router";
@@ -14,6 +14,7 @@ import { LegalDocType } from "@/constants/legalTexts";
 import { toast } from "@/lib/toast";
 import { suppressPremiumCelebration } from "@/lib/premiumCelebration";
 import { purchaseButtonLabel } from "@/lib/trialLabel";
+import { waitForServerPremium } from "@/lib/premiumSync";
 import type { TFunction } from "i18next";
 import { APP_NAME } from "@/constants/brand";
 import { LazyDemoActionModal } from "@/components/ui/lazyMount";
@@ -109,7 +110,7 @@ export default function PaywallScreen() {
     try {
       const customerInfo = await RevenueCatService.purchasePackage(selectedPackage);
       if (customerInfo && typeof customerInfo.entitlements.active['Premium'] !== "undefined") {
-        await refreshProfile();
+        await waitForServerPremium(refreshProfile);
         toast.success(t("paywall.activated"), { title: t("common.congratulations"), emoji: "👑", duration: 3400 });
         handleBack();
       }
@@ -130,7 +131,7 @@ export default function PaywallScreen() {
       suppressPremiumCelebration();
       const customerInfo = await RevenueCatService.restorePurchases();
       if (customerInfo && typeof customerInfo.entitlements.active['Premium'] !== "undefined") {
-        await refreshProfile();
+        await waitForServerPremium(refreshProfile);
         toast.success(t("paywall.restored"));
         handleBack();
       } else {
@@ -162,7 +163,7 @@ export default function PaywallScreen() {
         showsVerticalScrollIndicator={false}
       >
         
-        <TouchableOpacity style={styles.closeBtn} onPress={handleBack} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} style={styles.closeBtn} onPress={handleBack} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <View
             style={[
               styles.closeBtnCircle,

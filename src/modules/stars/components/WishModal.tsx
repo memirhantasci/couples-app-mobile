@@ -12,7 +12,7 @@
  * Ebeveyn bileşen ekranı yalnızca açıkken bağlar; her açılış temiz bir durumla başlar.
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
   ActivityIndicator,

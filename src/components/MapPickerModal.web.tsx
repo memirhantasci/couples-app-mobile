@@ -31,7 +31,7 @@ export function MapPickerModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <View style={styles.card}>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} onPress={onClose} style={styles.closeBtn}>
             <X size={18} color="#FFFFFF" />
           </TouchableOpacity>
           <MapPin size={40} color="#38BDF8" style={{ marginBottom: 12 }} />

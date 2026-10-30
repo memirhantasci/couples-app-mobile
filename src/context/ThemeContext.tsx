@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from "react";
+import { logger } from "@/utils/logger";
 import { Platform } from "react-native";
 import * as SystemUI from "expo-system-ui";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
@@ -106,7 +107,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
       // 2. Persist to storage in background (fire-and-forget, never blocks JS thread)
       AsyncStorage.setItem(THEME_STORAGE_KEY, mode).catch((err) => {
-        console.error("Failed to save theme mode:", err);
+        logger.error("Failed to save theme mode:", err);
       });
     },
     [gender, isDemoMode]

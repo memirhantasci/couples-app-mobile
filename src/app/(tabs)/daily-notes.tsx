@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -20,10 +20,7 @@ import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { encrypt, decrypt } from "@/utils/crypto";
 import dayjs from "dayjs";
-import { 
-  ChevronLeft, Edit3, Trash2, AlignJustify, 
-  PenLine, BookOpen, Calendar, Clock, X, Check, Sparkles 
-} from "lucide-react-native";
+import { ChevronLeft, Edit3, Trash2, AlignJustify, PenLine, BookOpen, X, Check } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { openForm } from "@/lib/formEntry";
@@ -186,7 +183,7 @@ export default function DailyNotesScreen() {
           </View>
 
           <View style={styles.actionBtnsRow}>
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.edit")}
               onPress={() => {
                 if (executeOrIntercept(
                   () => {},
@@ -205,7 +202,7 @@ export default function DailyNotesScreen() {
               <Edit3 size={15} color={theme.textMuted} />
             </TouchableOpacity>
 
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.delete")}
               onPress={() => handleDelete(note.id)}
               style={[styles.actionIconBtn, { backgroundColor: "rgba(239, 68, 68, 0.12)" }]}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
@@ -250,7 +247,7 @@ export default function DailyNotesScreen() {
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <TourGuideButton onPress={openTour} />
-            <TouchableOpacity 
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.edit")} 
               onPress={() => {
                 if (executeOrIntercept(
                   () => router.push(openForm("/(tabs)/add-daily-note")),
@@ -365,7 +362,7 @@ export default function DailyNotesScreen() {
                 <Text style={[styles.modalTitle, { color: theme.text }]}>{t("dailyNotes.edit.title")}</Text>
               </View>
 
-              <TouchableOpacity 
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} 
                 onPress={() => setEditingNote(null)}
                 style={[styles.modalCloseBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

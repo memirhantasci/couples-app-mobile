@@ -165,7 +165,7 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
                 <Sparkles size={18} color="#FBBF24" />
                 <Text style={[styles.modalTitle, { color: theme.text }]}>{t('stars.connectionBadge.title')}</Text>
               </View>
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")}
                 onPress={handleClose}
                 style={[
                   styles.closeBtn,

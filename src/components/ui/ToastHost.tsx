@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { AccessibilityInfo, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import Animated, {
   Easing,

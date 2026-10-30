@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo } from "react";
+import { useState, useEffect, memo } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Linking } from "react-native";
 import { getCountdown, dayjs } from "@/lib/date";
 import { MapPin, X, Navigation } from "lucide-react-native";
@@ -158,7 +158,7 @@ function MeetingModal({
         <View style={[styles.modalContent, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
           <View style={styles.modalHeader}>
             <Text style={[styles.modalTitle, { color: theme.text }]}>{t("home.meeting.details")}</Text>
-            <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} onPress={onClose} style={{ padding: 4 }}>
               <X color={theme.textSecondary} size={24} />
             </TouchableOpacity>
           </View>

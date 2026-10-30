@@ -97,7 +97,7 @@ export async function registerForPushNotifications(
       Constants.easConfig?.projectId;
 
     if (!projectId) {
-      console.warn("[Push] No EAS projectId found.");
+      logger.warn("[Push] No EAS projectId found.");
       return false;
     }
 

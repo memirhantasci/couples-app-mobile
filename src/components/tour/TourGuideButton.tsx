@@ -1,5 +1,5 @@
 import React from "react";
-import { TouchableOpacity, StyleSheet, View } from "react-native";
+import { TouchableOpacity, StyleSheet } from "react-native";
 import { HelpCircle, Lightbulb } from "lucide-react-native";
 import { useTheme } from "@/context/ThemeContext";
 import { useTranslation } from "react-i18next";

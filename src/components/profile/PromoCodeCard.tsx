@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -67,8 +67,8 @@ export function PromoCodeCard({
           return;
         }
 
-        const { error: promoError } = await supabase.rpc("redeem_promo_code", { p_code: code });
-        if (!promoError) {
+        const { data: promoData, error: promoError } = await supabase.rpc("redeem_promo_code", { p_code: code });
+        if (!promoError && promoData?.success !== false) {
           await refreshProfile();
           setPromoCode("");
           onPremiumSuccess();
@@ -115,10 +115,11 @@ export function PromoCodeCard({
         p_code: code,
       });
       if (error) throw error;
+      if (data?.success === false) throw new Error(data.error);
 
       await refreshProfile();
 
-      if (data?.reward_type === "premium") {
+      if (typeof data?.reward_type === "string" && data.reward_type.startsWith("premium")) {
         onPremiumSuccess();
       } else {
         toast.success(t("profile.promo.tokensAdded", { amount: data?.reward_amount }), { title: t("common.congratulations"), emoji: "🎉" });

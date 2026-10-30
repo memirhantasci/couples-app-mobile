@@ -8,7 +8,7 @@
  * Yıldızın ışığı artık çiftin uygulamadaki aktivitesinden gelir; günlük ışık ritüeli yoktur.
  */
 
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';

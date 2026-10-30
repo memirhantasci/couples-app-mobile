@@ -1,14 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Platform,
-  ActivityIndicator,
-  Modal,
-  StyleSheet,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Platform, ActivityIndicator, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
@@ -423,7 +414,7 @@ export default function LoginScreen() {
       setErrorMsg(t("auth.errors.emailInvalid"));
       return;
     }
-    if (!regPassword.trim() || regPassword.length < 6) {
+    if (!regPassword.trim() || regPassword.length < 8) {
       setErrorMsg(t("auth.errors.passwordTooShort"));
       return;
     }
@@ -831,7 +822,7 @@ export default function LoginScreen() {
                     selectionColor={activeAccent}
                     style={styles.textInputField}
                   />
-                  <TouchableOpacity
+                  <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.togglePassword")}
                     onPress={() => setShowLoginPass(!showLoginPass)}
                     style={styles.eyeBtn}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -973,7 +964,7 @@ export default function LoginScreen() {
                     selectionColor={activeAccent}
                     style={styles.textInputField}
                   />
-                  <TouchableOpacity
+                  <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.togglePassword")}
                     onPress={() => setShowRegPass(!showRegPass)}
                     style={styles.eyeBtn}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

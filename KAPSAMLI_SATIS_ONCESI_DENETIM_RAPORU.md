@@ -1,32 +1,266 @@
-# 🔍 COUPLES APP MOBILE — YAYIN ÖNCESİ SON BÜYÜK KOD, GÜVENLİK VE MAĞAZA DENETİM RAPORU
+# CoupleSky — Satış Öncesi Kapsamlı Denetim Raporu
 
-**Tarih:** 29 Ekim 2026  
-**Denetlenen Dallar (Branches):** `develop` (Temel/Yayın Öncesi), `feat/i18n-english` (Çok Dilli / İngilizce Altyapısı)  
-**Teknoloji Yığını:** React Native 0.86.2, Expo SDK 57, React 19.2.3, Reanimated 4.5.1, Shopify React Native Skia 2.6.2, Supabase (PostgreSQL, RLS, Edge Functions, pg_cron), TanStack Query v5, i18next v26, react-i18next v17, expo-localization  
-**Kapsam:** `src/` (tüm ekranlar, bileşenler, hook'lar, context'ler, servisler, yerelleştirme sözlükleri ve yıldız modülü), `supabase/migrations/`, `supabase/functions/`, `plugins/`, `docs/legal/`, `app.json` ve `eas.json` dosyalarının satır satır incelenmesi.
+**Tarih:** 30 Ekim 2026
+**Dal / commit:** `feat/i18n-english` @ `4bf5a15`
+**Kapsam:** `src/` (262 dosya, ~71 bin satır), `supabase/` (64 migration, 3 edge function), `plugins/`, `widgets/`, `assets/`, `app.json`, `eas.json`, `docs/legal`, bağımlılıklar ve git geçmişi.
+**Kapsam dışı (senin bildiğin eksikler):** Apple/Google geliştirici hesapları, AdMob hesabı ve birimleri, RevenueCat ürünleri/anahtarları. Bunlarla ilgili yalnızca **kodda şimdiden görülen tuzaklar** yazıldı.
 
----
-
-## 📊 ÖZET TABLO (KRİTİKLİK DAĞILIMI)
-
-| Kategori | P0-Kritik | P1-Yüksek | P2-Orta | P3-Düşük | Toplam Kalan |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **1. 🎨 Arayüz (UI/UX), Çentik & Tema** | 0 | 0 | 0 | 0 | **0** |
-| **2. ⚡ Bellek, State & Performans** | 0 | 0 | 0 | 0 | **0** |
-| **3. 🛡️ TypeScript, Çökme & Tip Güvenliği** | 0 | 0 | 0 | 0 | **0** |
-| **4. 🍎 Mağaza Ret & İzinler** | 0 | 0 | 0 | 0 | **0** |
-| **5. 🔄 Veri Bütünlüğü, Önbellek & Eşzamanlama** | 0 | 0 | 0 | 0 | **0** |
-| **6. 🔒 Supabase Güvenlik, RLS & Edge Functions** | 0 | 0 | 0 | 0 | **0** |
-| **7. 🌐 Çok Dilli Altyapı (i18n & Yerelleştirme)** | 0 | 0 | 0 | 0 | **0** |
-| **TOPLAM KALAN İŞ** | **0** | **0** | **0** | **0** | **0** |
+> Bu rapor, repodaki eski "0 açık madde" raporunun yerine geçer. Eski rapor `Ek A`'da arşiv olarak duruyor; "sıfır sorun" sonucu bu taramayla doğrulanamadı.
 
 ---
 
-# 🤖 BÖLÜM: KALAN İŞLER
+## 0. Düzeltme durumu (aynı gün güncellemesi)
 
-Raporda çözülmeyi bekleyen açık bir madde kalmamıştır. Tüm denetim maddeleri, güvenlik kontrolleri ve çok dilli yerelleştirme altyapısı eksiksiz tamamlanmıştır.
+Rapordaki maddelerin çoğu aynı gün kodlandı. `tsc` 0 hata, `expo lint` 0 hata / **62 uyarı** (133'ten), **14 birim test** geçiyor, `expo-doctor` **21/21**, TR/EN çeviri paritesi 2405/2405.
+
+| Madde | Durum | Not |
+| :--- | :---: | :--- |
+| K-1 Premium RPC açığı | **Açık (bilinçli)** | `set_premium_status` test için açık bırakıldı; `FREEMIRHAN`/`DELETEMIRHAN` korunuyor. **Yayından önce kapatılmalı** |
+| K-2 Satın alma senkronu | Kodlandı | `revenuecat-webhook` edge function eklendi, istemci senkronu kaldırıldı. **Deploy + RevenueCat'te webhook tanımı gerekli** (aşağıya bak) |
+| Y-1 Paket adı | Kodlandı | `app.couplesky.mobile` (iOS + Android). Firebase/Maps/OAuth/RevenueCat tarafını yeni kimliğe göre kurman gerekir |
+| Y-2 Reklam rızası ve test reklamı | Kodlandı | UMP rıza akışı, içerik sınırı (PG), üretimde birim kimliği yoksa reklam yok |
+| Y-3 Ödüllü reklam SSV | Ertelendi | AdMob hazır olunca |
+| Y-4 Android temalı ikon | Kodlandı | Kalp + yörünge siluetinden üretildi |
+| Y-5 Playfair fontu | Kodlandı | `_layout.tsx`'te yükleniyor |
+| Y-6 Sürüm / OTA, widget derlemesi | Kısmen | `version` artırılmadı (henüz mağaza ikilisi yok). Kotlin/iOS widget'ı hâlâ derlenmedi, ilk build'de test et |
+| Y-7 Bağımlılıklar | Kodlandı | `expo install --fix`, peer'lar, `jsEngine` silindi, AsyncStorage 2.2.0'a döndü |
+| Y-8 Git geçmişi | Atlandı | Repo gizli; senin kararın |
+| Y-9 Supabase hazırlığı | Kısmen | Şifre en az 8 (istemci + gateway), `client_errors` 30 gün saklama. **Plan, SMTP ve Supabase Auth panelindeki minimum şifre uzunluğu (8) sende** |
+| O-1 Yasal metin / şifreleme | Kodlandı | TR+EN eşitlendi, `docs/legal` yeniden üretildi. KDF/GCM güçlendirmesi yapılmadı (anahtar zaten sunucudaki tuzdan türüyor) |
+| O-2 Veri sorumlusu kimliği | Bekliyor | Ad/unvan ve adres bilgisi gelince eklenecek |
+| O-3 Görseller | Kodlandı | Splash yumuşak kenarlı, `icon.png` alfasız. İkondaki silik çerçeve hayaleti elle temizlenmeli |
+| O-4 Sentry / native çökme izleme | Açık | Hesap gerekir |
+| O-5 Promosyon deneme sınırı | Kodlandı | 15 dk'da 10 deneme (migration `20261030000000`) |
+| O-6 Taban şema | Kısmen | Eski `run_me_in_supabase.sql` silindi. `supabase db dump` ile taban migration canlı veritabanından alınmalı |
+| O-7 search_path | Kodlandı | Aynı migration |
+| O-8 Erişilebilirlik | Kısmen | 55 ikon düğmesine rol+etiket; 22 belirsiz ikon kaldı |
+| O-9 Test / CI | Kodlandı | jest-expo, 14 test, `.github/workflows/ci.yml` |
+| D-1 Lint | Kısmen | 133 → 62 uyarı |
+| D-2 `console.*` | Kodlandı | `logger` kullanılıyor |
+| D-3 LICENSE / README | Kodlandı | |
+| D-4 Yetim varlıklar | Kısmen | `assets/expo.icon` silindi; 3 MB wav durdu (dönüştürücü yok) |
+| D-5 Token yenileme | Kodlandı | AppState ile start/stopAutoRefresh |
+| D-6, D-7, D-8 | Atlandı | Bilgi amaçlı / büyük refaktör |
+
+**Senin yapman gerekenler (kodla bitmeyenler):**
+1. Migration `20261030000000_audit_hardening.sql`'i Supabase SQL Editor'de çalıştır.
+2. `supabase secrets set REVENUECAT_WEBHOOK_SECRET=<uzun rastgele değer>` ve `supabase functions deploy revenuecat-webhook --no-verify-jwt`; RevenueCat → Integrations → Webhooks: URL `<proje>/functions/v1/revenuecat-webhook`, Authorization header = aynı değer.
+3. `auth-gateway`'i yeniden deploy et (min şifre 8) ve Supabase Auth panelinde minimum şifre uzunluğunu 8 yap.
+4. Yeni paket adı için Firebase'de Android uygulaması + yeni `google-services.json` (EAS'te `GOOGLE_SERVICES_JSON`), Maps anahtarı kısıtları, Supabase/Google/Apple OAuth ayarları.
+5. EAS production ortamına `EXPO_PUBLIC_ADMOB_BANNER_ID`, `..._INTERSTITIAL_ID`, `..._REWARDED_ID` (birim kimlikleri yoksa artık reklam gösterilmez); AdMob panelinde UMP rıza mesajı yayınla.
+6. Native değişiklik çok (paket adı, eklentiler, widget, izinler): yeni bir tam EAS build al ve widget'ı cihazda dene.
 
 ---
+
+## 1. Yönetici özeti
+
+Uygulamanın temeli sağlam: TypeScript 0 hata, lint 0 hata, i18n 2094/2094 anahtar paritesi, tüm tablolarda RLS, oturum şifreli saklanıyor, hesap silme akışı var, paywall mağaza kurallarına uygun, listeler sanallaştırılmış.
+
+**Ama bugünkü haliyle satışa çıkarsan para kaybettirecek iki sorun var** ve ikisi de Premium'la ilgili:
+
+1. **Giriş yapmış herhangi bir kullanıcı kendine ücretsiz, süresiz Premium verebilir.** (K-1)
+2. **Ödeme yapan bir kullanıcının Premium'u, partneri uygulamayı açınca silinebilir.** (K-2)
+
+Bunların dışında 9 yüksek öncelikli, 9 orta, 8 düşük öncelikli madde var. Toplam **28 bulgu**.
+
+| Öncelik | Adet | Anlamı |
+| :--- | :---: | :--- |
+| **P0 — Kritik** | 2 | Satıştan önce mutlaka düzelmeli (gelir / güvenlik) |
+| **P1 — Yüksek** | 9 | İlk mağaza gönderiminden önce düzelmeli |
+| **P2 — Orta** | 9 | İlk sürümden sonraki 2–4 hafta içinde |
+| **P3 — Düşük** | 8 | Fırsat buldukça |
+
+### Bu taramada neyi nasıl doğruladım
+
+| Kontrol | Sonuç |
+| :--- | :--- |
+| `tsc --noEmit` | 0 hata |
+| `expo lint` | 0 hata, 133 uyarı (95'i kullanılmayan değişken) |
+| `expo-doctor` | **4/21 kontrol başarısız** (bkz. Y-7) |
+| `expo install --check` | **29 paket sürüm uyumsuz** |
+| `npm audit` | 1 kritik, 12 yüksek — hepsi geliştirme/CLI zincirinde (bkz. D-6) |
+| Migration'lar | 64 dosya sırayla oynatılıp her fonksiyonun nihai `EXECUTE` yetkisi çıkarıldı (otomatik analiz, el ile doğrulandı) |
+| Git geçmişi | Hassas dosyalar için tarandı |
+
+### Doğrulayamadıklarım (dürüst sınır)
+
+- **Canlı Supabase veritabanının gerçek durumu.** Bulgular migration dosyalarına dayanıyor; canlıda elle değişiklik yapıldıysa farklı olabilir. K-1 için aşağıda tek satırlık doğrulama sorgusu var.
+- **Cihazda görsel/UI testi.** Kodu ve görselleri (ikon, splash) inceledim; uygulamayı bir cihazda çalıştırmadım.
+- **Android/iOS widget'ları, edge function'ların deploy durumu, EAS ortam değişkenleri, GitHub reposunun gizli/herkese açık olması.** Bunlara bu ortamdan erişemiyorum.
+
+---
+
+## 2. P0 — KRİTİK
+
+### K-1 · Herkes kendine ücretsiz süresiz Premium verebilir
+**Kanıt**
+- `supabase/migrations/024_enable_freemirhan_and_solo_premium.sql:46` — `GRANT EXECUTE ON FUNCTION public.set_premium_status(...) TO authenticated;` Bir önceki migration (023) bu fonksiyonu bilerek yalnızca `service_role`'e kapatmıştı; 024 geri açıyor ve sonrasında kapatan migration yok.
+- Fonksiyon çağıranın çiftini bulup `is_premium = true, premium_expires_at = NULL` yazıyor. Çifti yoksa **kendisi çift bile oluşturuyor** (024, satır 25–31).
+- `src/components/profile/PromoCodeCard.tsx:54` ve `:87` — uygulamanın içinde `FREEMIRHAN` (Premium ver) ve `DELETEMIRHAN` (Premium al) arka kapıları var. Uygulama paketinden metin olarak okunabilir.
+- `024:49-51` — `FREEMIRHAN` kodu veritabanında **3650 gün Premium** veren, aktif bir promosyon kodu olarak da duruyor.
+
+**Etki:** Premium'un tüm kilitleri (fotoğraf arşivi, erkek partnerin döngü görünümü, mektup ücreti, reklamsızlık) aşılır. Telefondaki uygulamayı hiç açmadan, yalnızca bir REST çağrısıyla yapılabilir.
+
+**Canlıda doğrula (Supabase → SQL Editor):**
+```sql
+select has_function_privilege('authenticated', 'public.set_premium_status(boolean, timestamptz)', 'execute');
+-- true dönerse açık
+```
+
+**Çözüm**
+1. Yeni migration: `REVOKE ALL ON FUNCTION public.set_premium_status(boolean, timestamptz) FROM PUBLIC, anon, authenticated; GRANT EXECUTE ... TO service_role;`
+2. `update public.promo_codes set is_active = false where code = 'FREEMIRHAN';`
+3. `PromoCodeCard.tsx` içindeki `FREEMIRHAN` / `DELETEMIRHAN` dallarını sil. Test Premium'u için sunucu tarafındaki normal `redeem_promo_code` yeterli (süreli, kullanım limitli kod üret).
+4. Premium'u **yalnızca RevenueCat webhook'u** yazsın (bkz. K-2).
+
+### K-2 · Satın alma senkronu, ödeme yapılmış Premium'u silebilir
+**Kanıt**
+- `src/lib/revenuecat.ts:145-164` — `syncPremiumStatus`, RevenueCat'te `Premium` hakkı yoksa **`set_premium_status(false, null)`** çağırıyor.
+- `src/context/AuthContext.tsx:413` ve `:522` — bu senkron **her uygulama açılışında ve her girişte**, o anki kullanıcı için çalışıyor.
+- Premium **çifte** ait, RevenueCat müşterisi ise **kullanıcıya** ait.
+
+**Senaryo:** A kişisi Premium alır → çift Premium olur. B kişisi uygulamayı açar → RevenueCat "B'nin hakkı yok" der → istemci çiftin Premium'unu `false` yapar. A uygulamayı yeniden açana kadar iki kişi de Premium'suz kalır. Aynı şekilde promosyonla verilen 3650 günlük Premium da ilk girişte silinir.
+
+RevenueCat anahtarları (Apple + Google) tanımlanınca bu hata canlıya geçer; **K-1 kapatılınca ise senkron sessizce hata verip hiçbir şey yazmayacağı için Premium hiç aktifleşmez.** İkisi birlikte çözülmeli.
+
+**Çözüm (tek doğru mimari):**
+- Supabase'de bir `revenuecat-webhook` edge function: RevenueCat olaylarını (`INITIAL_PURCHASE`, `RENEWAL`, `CANCELLATION`, `EXPIRATION` …) dinler, `app_user_id` (Supabase kullanıcı UUID'si) → çift → `couples.is_premium / premium_expires_at` günceller. Yetki: `service_role` + webhook gizli anahtarı (mevcut `send-push` ile aynı Vault modeli).
+- `syncPremiumStatus` istemciden kalksın; satın alma / geri yükleme sonrası istemci yalnızca `refreshProfile()` çağırsın.
+- Promosyonla verilen Premium ile mağaza aboneliği ayrı alanlarda tutulsun ya da webhook yalnızca "mağaza kaynaklı" süreyi yönetsin; aksi halde promosyon bitiş tarihini ezer.
+
+---
+
+## 3. P1 — YÜKSEK
+
+### Y-1 · Paket adı kişisel isim taşıyor — mağazadan sonra değiştirilemez
+`app.json`: `com.memirhantasci.couplesapp` (iOS ve Android), `slug: "emirhan"`. Marka CoupleSky, alan adı couplesky.app. **Henüz hiçbir mağaza hesabı açılmadığı için şu an değiştirmek ucuz, yayınlandıktan sonra imkânsız.** Değişirse etkilenenler: `google-services.json` (Firebase), Google Maps SHA-1/paket kısıtı, Supabase OAuth yönlendirmeleri, RevenueCat uygulama kaydı, Sign in with Apple servis kimliği. Öneri: `app.couplesky.mobile` gibi tek seferlik bir karar ver, hesapları ona göre aç.
+
+### Y-2 · Reklamlar: üretimde sessizce test reklamı, rıza ekranı yok
+- `src/hooks/useInterstitialAd.ts:22`, `src/components/ui/BannerAd.tsx:25`, `src/components/ui/WatchAdModal.tsx:30` — `EXPO_PUBLIC_ADMOB_*_ID` ortam değişkeni yoksa **üretim sürümü Google test reklam birimine düşüyor**; hata vermiyor, hiç gelir getirmiyor. Hafızandaki not: EAS production ortamında yalnızca AdMob *uygulama* kimlikleri var, *birim* kimlikleri yok.
+- Hiçbir yerde AdMob'un kullanıcı rıza formu (UMP / `AdsConsent`) yok. AB/UK kullanıcıları için Google bunu zorunlu tutuyor; reklam yayını kısıtlanabilir. Türkiye'de de GDPR kapsamındaki kullanıcılar olacak.
+- Çözüm: üretimde birim kimliği yoksa **reklamı hiç gösterme** (test'e düşme); UMP rıza akışını ekle; reklam içerik derecelendirmesini (`maxAdContentRating`) ayarla. Apple "App Privacy" ve Play "Data safety" formlarında reklam kimliği beyanı gerekecek.
+
+### Y-3 · Ödüllü reklam token'ı istemci beyanına güveniyor
+`src/components/ui/WatchAdModal.tsx:82` istemci `earn_tokens('ad_reward')` çağırıyor; sunucu reklamın izlenip izlenmediğini **bilmiyor** (`023_premium_and_security_tightening.sql:83-92`: yalnızca günde 25 sınırı). Uygulamayı açmadan doğrudan çağrılarak günde 625 token (≈6 mektup) toplanabilir. Çözüm: AdMob **Server-Side Verification (SSV)** — ödüllü reklam birimi için geri çağrı adresi tanımla, token'ı yalnızca bu doğrulanmış çağrı versin; `earn_tokens`'ı istemciden kapat.
+
+### Y-4 · Android "temalı ikon" Expo şablonunun gri ok işareti
+`assets/images/android-icon-monochrome.png` (432×432) hâlâ **Expo'nun varsayılan "^" simgesi**. Android 13+ cihazlarda kullanıcı temalı ikonu açtığında CoupleSky yerine bu çıkar. Çözüm: kalp siluetinden tek renkli (saydam zemin) bir monochrome ikon üret.
+
+### Y-5 · Playfair Display fontu hiç yüklenmiyor
+`MapStoryModal.tsx:399` ve `CoupleWrappedModal.tsx:459,482,492,592` `PlayfairDisplay_700Bold` / `_400Regular_Italic` kullanıyor; ancak `@expo-google-fonts/playfair-display` paketi **hiçbir yerde içe aktarılmıyor**, `_layout.tsx` yalnızca Inter'i yüklüyor. Sonuç: Wrapped ve harita hikâyesi paylaşım kartlarının serif başlıkları sistem fontuyla çıkıyor. Bunlar uygulamanın **Instagram'daki vitrini**. Çözüm: `useFonts`'a `PlayfairDisplay_700Bold` ve `PlayfairDisplay_400Regular_Italic` ekle (paket zaten bağımlılıklarda).
+
+### Y-6 · Native değişiklikler + sabit sürüm = OTA kazası riski; Kotlin widget derlenmedi
+- Bu dal native tarafı değiştiriyor: `expo-localization` eklentisi, `locales/native/*`, iOS izin metinleri, Android widget kaynakları, AdMob kimlikleri. Ancak `version` hâlâ `1.0.0`, `runtimeVersion` politikası `appVersion` ve `production` kanalı açık. Eski `1.0.0` bir binary'ye OTA ile bu JS gönderilirse (`expo-localization` yerel modülü yok) açılışta çökme olur. Hafızandaki "production Android build başarısız (runtime mismatch)" notu aynı kök sebep.
+- Çözüm: yeni binary çıkarken `version`'ı artır (örn. `1.0.1`) ya da OTA'yı yalnızca yeni binary'lerin kanalına bağla; mağazaya gidecek ilk sürümde `production` kanalına dokunulmadığını doğrula.
+- Yazdığım **Kotlin widget kodu ve iOS widget bir kez bile derlenmedi** (yalnızca kod incelemesi). İlk EAS build'de ve gerçek cihazda widget'ı ayrıca test et.
+
+### Y-7 · Bağımlılık sağlığı: `expo-doctor` 4 hata
+| Sorun | Ayrıntı | Çözüm |
+| :--- | :--- | :--- |
+| Şema hatası | `app.json:10` `"jsEngine": "hermes"` — SDK 57'de geçersiz alan | Satırı sil (Hermes zaten varsayılan) |
+| Eksik peer | `react-native-svg` (lucide'in 107 dosyada kullanılan ikonları), `expo-asset` (expo-audio) — şu an başka paketin geçişli bağımlılığıyla çalışıyor, kırılgan | `npx expo install react-native-svg expo-asset` |
+| Çift native paket | `@expo/ui` 57.0.9 + `expo-widgets` içinde 57.0.16 | `@expo/ui`'yi `~57.0.26`'ya çek |
+| Sürüm uyumsuzluğu | 29 paket eski (`expo 57.0.14` → `57.0.31`, `expo-notifications .8 → .24`, `expo-router .10 → .29`, `react-native 0.86.2 → .3` …). **`async-storage` 3.1.1, SDK'nın beklediği 2.2.0'dan major farklı** | `npx expo install --fix`, sonra tam build + cihaz testi. AsyncStorage 3'ün bilinçli seçim olup olmadığını teyit et |
+
+### Y-8 · Git geçmişinde hassas veri
+- `.env` dosyası geçmişte **3 commit'te içerikli** duruyor (`6920e2c`, `b5ab514`, `a206f80`; `4cf9ed1` ile silindi): Supabase anon anahtarı, **Google Maps API anahtarları** ve eski `EXPO_PUBLIC_ENCRYPTION_KEY`. `google-services.json` da geçmişte (`b5ab514`). Hafızandaki "geçmiş temizliği" maddesi sadece `google-services.json`'ı kapsıyordu; **`.env` de eklenmeli.**
+- Anon anahtarı zaten uygulamaya gömülü (halka açık sayılır). Asıl risk: **Maps anahtarları** (kota/fatura kötüye kullanımı) — Google Cloud'da paket adı + SHA-1 kısıtı olduğunu doğrula. Eski şifreleme anahtarı artık kullanılmıyor (migration 021 ile çift başına anahtar); eski verinin o anahtarla şifreli kalıp kalmadığını kontrol et.
+- `gh` bu makinede yok; **GitHub deposunun gizli (private) olduğunu elle doğrula.** Herkese açıksa geçmiş temizliği öncelik kazanır.
+
+### Y-9 · Supabase üretim hazırlığı
+- **Plan:** Ücretsiz planda proje 1 hafta kullanılmazsa duraklar ve otomatik yedek yoktur. Para kazanan bir uygulama için Pro plan (günlük yedek, duraklama yok, özel SMTP, sızdırılmış-şifre koruması).
+- **Özel SMTP** (listende var): varsayılan Supabase e-postası saatte birkaç mesajla sınırlı; doğrulama/şifre-sıfırlama kodları yeni kullanıcıları boğar.
+- **Şifre politikası:** `auth-gateway` ve Auth ayarı en az **6** karakter kabul ediyor (`index.ts:20`). 8+ öner.
+- **Veri temizliği:** `client_errors` tablosunda saklama/silme işi yok; zamanla büyür. `login_attempts`/`otp_codes` kısmen temizleniyor.
+
+---
+
+## 4. P2 — ORTA
+
+**O-1 · Yasal metin gerçek şifreleme modeliyle uyuşmuyor.** `legalTexts.ts:68` (TR) hâlâ "şifreleme anahtarı uygulamanın içinde bulunur" ve "deterministik şifreleme" diyor; gerçekte anahtar, sunucudaki çift tuzundan türetiliyor (`src/utils/crypto.ts`) ve IV rastgele. EN metin (`:261`) bu açıklamayı hiç içermiyor. Ayrıca arayüz metinleri "yalnızca sen görürsün / şifreli kasa" diyor; teknik olarak veritabanı yöneticisi (sen) çözebilir. Şifreleme AES-256-**CBC**, kimlik doğrulamasız ve PBKDF2 yalnızca **1000** tur. KVKK/GDPR açısından yanıltıcı beyan riski: metinleri "içerik sunucuda şifreli saklanır, erişim RLS ile çiftle sınırlıdır; uçtan uca şifreleme değildir" çizgisinde TR/EN eşitle. İleride anahtar türetimini güçlendir (en az 100 bin tur ya da Argon2).
+
+**O-2 · Veri sorumlusu kimliği eksik.** KVKK metnindeki "Veri sorumlusu: CoupleSky" bir tüzel kişi/şahıs adı, adres ve iletişim içermiyor; KVKK 10. madde ve Play/App Store geliştirici bilgileri bunu ister. (Listende "KVKK placeholder'ları" olarak var.)
+
+**O-3 · Görsel varlıklar.**
+- `splash-icon.png` kendi arka planı olan **kare** bir görsel; koyu `#0A0A0C` zeminde 120 pt'lik net kenarlı bir kutu olarak görünecek, kenarları da %86 opak (yarı saydam). Çözüm: kalbi saydam zeminli olarak çıkar ya da splash zeminini görselin tonuna eşitle.
+- `icon.png`'nin sol üst bölgesinde silik, **yuvarlak köşeli bir çerçeve hayaleti** görünüyor (önceki "yapay çerçeve temizliğinden" kalma). Mağaza ikonunda fark edilir.
+- `android-icon-foreground.png` ile `android-icon-background.png` **bayt bayt aynı dosya**. Kalp merkezde olduğu için kırpılmıyor ama iki katman aynı; foreground'u saydam kalp, background'u düz bulut/gökyüzü yap.
+- `icon.png` RGBA (alfa kanallı ama %100 opak). Expo iOS build'inde alfa temizleniyor; yine de App Store için alfasız (RGB) dışa aktarmak en güvenlisi.
+
+**O-4 · Gözlemlenebilirlik.** Yalnızca JS hataları `client_errors`'a yazılıyor; **native çökmeler, ANR, widget hataları görünmez.** Sentry (source map'li) ya da Firebase Crashlytics ekle. En azından Play Console "Android vitals" ve App Store Connect çökme raporlarını izlemeye al.
+
+**O-5 · Promosyon kodunda deneme sınırı yok.** `redeem_promo_code` yanlış denemeleri saymıyor; kısa kodlar kaba kuvvetle bulunabilir. `consume_auth_rate_limit` zaten var; bunu kullan.
+
+**O-6 · Veritabanı taban şeması repoda yok.** `users`, `couples`, `letters`, `memories`, `daily_notes`, `medicines`, `device_authorizations` … tabloları için `CREATE TABLE` migration'ı yok; bunlar panelden oluşturulmuş. Yeni bir ortam (staging, felaket kurtarma) repodan kurulamaz. `supabase db dump --schema public` ile bir taban migration'ı çıkar. Kök dizindeki `run_me_in_supabase.sql` (781 satır), `20260914_*` migration'ının eski kopyası; sil ya da `docs/` altına taşı.
+
+**O-7 · 4 `SECURITY DEFINER` fonksiyonda `search_path` yok:** `save_daily_note`, `log_medicine_dose`, `toggle_period_log` (003), `check_period_log_rules`. Supabase'de `public` şemasına yazma yetkisi kapalı olduğu için pratik risk düşük, ama `SET search_path = ''` ekleyip kapat.
+
+**O-8 · Erişilebilirlik.** ~400 dokunulabilir öğeye karşı 134 `accessibilityLabel/Role`. Kalp/ikon düğmeleri ekran okuyucuda "düğme" olarak okunur. Mağaza reddi nedeni değil ama kalite ve bazı ülke düzenlemeleri için önemli; önce ana sekmeler ve paywall.
+
+**O-9 · Otomatik test ve CI yok.** Hiç test dosyası ve `.github/` yok. Premium/şifreleme/tarih hesapları gibi saf fonksiyonlar (`crypto.ts`, `loveScore.ts`, `periodCycle.ts`, `serverErrors.ts`) için birkaç birim test ve `tsc + lint` yapan bir CI iş akışı yeterli bir başlangıç.
+
+---
+
+## 5. P3 — DÜŞÜK
+
+| # | Konu | Not |
+| :-: | :--- | :--- |
+| D-1 | Lint uyarıları | 133 uyarı: 95 kullanılmayan değişken/import, 14 `exhaustive-deps`, 9 `import/first`, 9 `require` kullanımı. `expo lint --fix` 11'ini kendisi düzeltir |
+| D-2 | Üretimde `console.*` | 21 yerde (`AuthContext.tsx:367,404,419,526,549,687`, `verify.tsx`, `TabBarContext.tsx` …) `logger` yerine doğrudan `console` kullanılıyor; hassas veri yok ama gürültü ve cihaz günlüğüne sızıntı |
+| D-3 | `LICENSE` ve `README` | `LICENSE` Expo'nun MIT lisansı ("650 Industries") — şablondan kalma; ticari/kapalı kaynak uygulamada kaldır ya da kendi lisansınla değiştir. `README.md` varsayılan Expo şablonu |
+| D-4 | Yetim/ağır varlıklar | `assets/expo.icon/` kullanılmıyor (`ios.icon` artık `icon.png`); `cosmic_ambient.wav` 3,1 MB (m4a/mp3 ile ~10× küçülür) |
+| D-5 | Token yenileme | `supabase.ts`'te `AppState` ile `startAutoRefresh/stopAutoRefresh` yok (Supabase'in RN önerisi). Uzun arka plandan dönüşte ilk istek 401 görebilir |
+| D-6 | `npm audit` | 1 kritik (`shell-quote`) + 12 yüksek; hepsi `@expo/cli` / `expo-router` geliştirme zincirinde, uygulama paketine girmiyor. Önerilen "düzeltmeler" (örn. `expo@51`) **sürüm düşürme** — uygulama; `expo install --fix` sonrası yeniden bak |
+| D-7 | Dışa aktarım uyumu | `ITSAppUsesNonExemptEncryption: false` (`app.json:28`) — uygulama kendi AES şifrelemesini kullanıyor. Çoğu uygulama gibi muaf sayılabilir ama App Store Connect anketinde bilinçli yanıtla (Fransa için ayrı beyan gerekebilir) |
+| D-8 | Çok büyük dosyalar | `OurStarScreen.tsx` 2519, `ExoplanetModal.tsx` 1850, `letters.tsx` 1740, `login.tsx` 1517 satır; bakımı zorlaştırıyor, performans sorunu değil |
+
+---
+
+## 6. Mağaza formları için kod kaynaklı dikkat noktaları
+
+Hesapları açınca formları doldururken bunları beyan etmen gerekecek (kodda gördüklerim):
+
+- **Hassas veri:** döngü/regl kayıtları, ilaç-vitamin saatleri (sağlık verisi) → Play "Data safety" + sağlık beyanı, Apple "App Privacy → Health & Fitness". Periyot ekranına "tıbbi tavsiye değildir" notu eklemek iyi olur.
+- **Konum:** yaklaşık/kesin konum (buluşma noktası, anı pinleri, fotoğraf EXIF'i); `ACCESS_MEDIA_LOCATION` izni de var.
+- **Fotoğraf/video, cihaz kimliği (push token, UUID), satın alma geçmişi, reklam kimliği.**
+- **Hesap silme:** uygulama içi var (Profil → Hesap Yönetimi, 7 gün bekleme) — Apple koşulunu sağlıyor. Play için **web'de erişilebilir silme talimatı URL'si** gerekli: `docs/legal/support.html` bu metni içeriyor, yeter ki yayınlansın.
+- **Sign in with Apple:** Google girişi olduğu için zorunlu; kodda hazır (`login.tsx`). Apple hesabı açılınca servis kimliğini Supabase'e tanıt.
+- **App Review için test erişimi:** misafir/demo modu var; yine de çiftli akışı gösteren **iki test hesabı** hazırla (eşleşmiş, Premium'lu biri dahil — bunun için K-1 kapandıktan sonra sunucu taraflı bir test promosyon kodu kullan).
+
+---
+
+## 7. Güçlü yanlar (korunmalı)
+
+- **Veritabanı:** ~86 `SECURITY DEFINER` fonksiyonun yetkileri tek tek çıkarıldı; hesap silme, rate-limit, push, cron fonksiyonları istemciye kapalı. RLS tüm tablolarda açık, storage bucket'ları özel + imzalı URL. `get_partner_push_tokens` sızıntısı daha önce kapatılmış.
+- **Kimlik doğrulama:** kullanıcı adı girişi/şifre sıfırlama sunucuda (`auth-gateway`), IP + hesap başına deneme sınırı, hesap varlığı sızdırılmıyor, şifre değişince tüm oturumlar kapanıyor.
+- **Oturum saklama:** AES anahtarı Keychain/Keystore'da, oturum şifreli; anahtar geçici okunamazsa düz yazılmıyor.
+- **Paywall:** geri yükleme her zaman görünür, fiyat/periyot mağazadan, Şartlar/Gizlilik/Abonelik bağlantıları var.
+- **Dayanıklılık:** kök hata sınırı, çevrimdışı bandı, global hata raporlama, parça parça sayfalama, FlatList sanallaştırma, `staleTime` ayarı, şifre çözme önbelleği.
+- **Dil:** TR/EN 2094/2094 anahtar paritesi, tip güvenli anahtarlar, sunucu hata kodları korunmuş.
+- **Hesap silme** akışı (7 gün bekleme + iptal + edge function ile dosya/veri/hesap temizliği).
+
+---
+
+## 8. Önerilen sıra
+
+| Aşama | İş | Neden önce |
+| :--- | :--- | :--- |
+| **Şimdi (kod)** | K-1 REVOKE + `FREEMIRHAN` temizliği + arka kapıları sil | Para kaybı + güvenlik |
+| | K-2 RevenueCat webhook edge function + `syncPremiumStatus` kaldırma | RevenueCat'i bağlamadan önce hazır olmalı |
+| | Y-5 Playfair fontu, Y-4 monochrome ikon, Y-7 `jsEngine`/peer/`--fix` | Küçük, hızlı, görünür |
+| **Hesapları açmadan** | **Y-1 paket adı kararı** | Sonradan değişmez |
+| **Hesaplar + build** | Y-2 reklam birimleri + UMP, Y-3 SSV, Y-6 sürüm artırma ve cihaz testi (widget dahil) | Mağaza gönderimi |
+| **Gönderimden önce** | Y-8 repo gizliliği + Maps anahtar kısıtı, Y-9 Supabase Pro/SMTP, O-1/O-2 yasal metinler, mağaza formları (bölüm 6) | Red ve hukuki risk |
+| **Yayından sonra 2–4 hafta** | O-4 Sentry, O-9 test/CI, O-6 taban şema, O-8 erişilebilirlik | Kalite ve ölçek |
+
+### Listende zaten olup unutulmaması gerekenler (hafızadan)
+Migration 20261029000000 (yıldız dilekleri) ve 20261024000000/1'in canlıya uygulandığını teyit et · bildirim tetikleyici testi (gerçek mod/mektup) · gerçek cihazda oturum/harita/bildirim/satın alma sandbox/yıldız testi · Play kapalı test (12 tester / 14 gün) · Play abonelik ürünleri + RevenueCat'e servis hesabı · site + `docs/legal` yayını (TR ve `en/`) · destek@ ve support@couplesky.app posta kutularının gerçekten açık olması · Supabase URL Configuration (`couplesapp://` yönlendirmeleri) · Apple Developer + Sign in with Apple.
+
+---
+
+# Ek A — Önceki tur denetim kayıtları (arşiv)
+
+> Aşağıdaki bölümler önceki denetim turundan kalmadır ve **tarihsel kayıt** olarak tutulmuştur. Bu raporun başındaki "0 açık madde" sonucu geçersizdir; güncel durum yukarıdaki bölümlerdedir. Bazı ayrıntılar o günden bu yana değişti (örn. çeviri anahtarı sayısı artık 2094, Nominatim `User-Agent` artık `CoupleSky/1.0`, ülke eki yalnızca Türkçe/TR bölgesinde ekleniyor).
 
 # 🌐 BÖLÜM 7: ÇOK DİLLİ ALTYAPI (i18n) VE İNGİLİZCE YERELLEŞTİRME DENETİMİ
 

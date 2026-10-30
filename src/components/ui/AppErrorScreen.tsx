@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { reportError } from "@/lib/errorReporting";
 import { useTranslation } from "react-i18next";

@@ -45,7 +45,7 @@ export function MapPhotoLightbox({ photo, accent, onClose }: MapPhotoLightboxPro
         >
         <View style={styles.lightboxContainer}>
           <View style={[styles.lightboxHeader, { paddingTop: topInset + 10 }]}>
-            <TouchableOpacity style={styles.lightboxCloseBtn} onPress={onClose}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} style={styles.lightboxCloseBtn} onPress={onClose}>
               <X size={22} color="#fff" />
             </TouchableOpacity>
             <Text style={styles.lightboxTitle} numberOfLines={1}>

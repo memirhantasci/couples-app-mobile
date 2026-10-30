@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -23,21 +23,18 @@ import {
 import { getQuoteForDay } from "@/lib/quotes";
 import { MEETING_CELEBRATION_MINUTES, pickActiveMeeting, nextMeetingBoundary } from "@/lib/activeMeeting";
 import { decrypt } from "@/utils/crypto";
-import { computeLoveScore, getCachedLoveScore, getCachedLoveScoreSync, LoveScoreResult } from "@/lib/loveScore";
-import { scheduleDateLocalNotification, cancelLocalNotification } from "@/lib/notifications";
-import { useRouter, useFocusEffect } from "expo-router";
+import { computeLoveScore, getCachedLoveScore, getCachedLoveScoreSync, LoveScoreResult , getLoveScoreSubtitle } from "@/lib/loveScore";
+import { scheduleDateLocalNotification } from "@/lib/notifications";
+import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { 
-  AlignJustify, Sparkles, Heart, Images, 
-  BookOpen, Mail, MapPin, Calendar, Flame, Clock, ChevronRight, X
-} from "lucide-react-native";
+import { AlignJustify, Sparkles, Heart, Images, BookOpen, Mail, MapPin, Calendar, ChevronRight, X } from "lucide-react-native";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/context/ThemeContext";
 
 import { useClockBucket } from "@/hooks/useClockBucket";
 import { getGreeting, getSpecialDayState } from "@/lib/specialDays";
-import { getLoveScoreSubtitle } from "@/lib/loveScore";
+
 import { AnniversaryGlow } from "@/components/home/AnniversaryGlow";
 import { LoveMeter } from "@/components/home/LoveMeter";
 import { MoodSelector, MOODS } from "@/components/home/MoodSelector";

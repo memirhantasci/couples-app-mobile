@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { Calendar, Camera, Sparkles, StickyNote } from "lucide-react-native";
 import type { LucideIcon } from "lucide-react-native";

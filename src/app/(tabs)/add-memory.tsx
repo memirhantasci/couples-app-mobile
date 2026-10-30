@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { Image } from "expo-image";
@@ -15,7 +15,7 @@ import { StorageImage } from "@/components/common/StorageImage";
 import { useQueryClient } from "@tanstack/react-query";
 import { logger } from "@/utils/logger";
 import { decode } from "base64-arraybuffer";
-import { Image as ImageIcon, X, Save, Menu, ImagePlus, ChevronLeft , AlignJustify} from "lucide-react-native";
+import { Save, ImagePlus, ChevronLeft, AlignJustify } from "lucide-react-native";
 import { dayjs, todayString, formatLongDate } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
@@ -247,7 +247,7 @@ export default function AddMemoryScreen() {
 
       <View style={{ flex: 1 }}>
         <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
-          <TouchableOpacity onPress={() => router.replace("/(tabs)/memories")} style={{ padding: 8, marginLeft: -8 }}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.back")} onPress={() => router.replace("/(tabs)/memories")} style={{ padding: 8, marginLeft: -8 }}>
             <ChevronLeft color={theme.text} size={28} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{isEditing ? t("memories.add.editTitle") : t("memories.add.newTitle")}</Text>

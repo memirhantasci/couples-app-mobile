@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from "react";
+import { logger } from "@/utils/logger";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { 
   Home, CalendarHeart, Mail, Images, MapPin, 
@@ -162,7 +163,7 @@ export function TabBarProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch (err) {
-        console.error("Failed to load tab bar preferences:", err);
+        logger.error("Failed to load tab bar preferences:", err);
       } finally {
         setIsLoaded(true);
       }
@@ -171,7 +172,7 @@ export function TabBarProvider({ children }: { children: React.ReactNode }) {
 
   const persistTabs = useCallback((tabs: TabKey[]) => {
     AsyncStorage.setItem(TAB_STORAGE_KEY, JSON.stringify(tabs)).catch((err) => {
-      console.error("Failed to save tab bar preferences:", err);
+      logger.error("Failed to save tab bar preferences:", err);
     });
   }, []);
 

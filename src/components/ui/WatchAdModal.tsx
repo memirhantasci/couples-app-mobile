@@ -1,4 +1,4 @@
-import React, { useEffect, useEffectEvent, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { View, Text, TouchableOpacity, Modal, StyleSheet, ActivityIndicator, TurboModuleRegistry } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { DialogHost } from "@/components/ui/DialogHost";
@@ -10,6 +10,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { logger } from "@/utils/logger";
 import { toast } from "@/lib/toast";
 import { useTranslation } from "react-i18next";
+import { resolveAdUnitId, useAdsReady } from "@/lib/adsConsent";
 
 const isExpoGo = Constants.appOwnership === 'expo';
 const hasAdsModule = typeof TurboModuleRegistry?.get === 'function' && !!TurboModuleRegistry.get('RNGoogleMobileAdsModule');
@@ -27,7 +28,8 @@ if (hasAdsModule && !isExpoGo) {
   }
 }
 
-const adUnitId = __DEV__ ? (TestIds?.REWARDED || "") : (process.env.EXPO_PUBLIC_ADMOB_REWARDED_ID || TestIds?.REWARDED || "");
+// Üretimde birim kimliği tanımlı değilse ödüllü reklam yüklenmez (test reklamına düşülmez)
+const adUnitId = resolveAdUnitId(process.env.EXPO_PUBLIC_ADMOB_REWARDED_ID, TestIds?.REWARDED);
 
 // Mock hook for Expo Go where native ads binary is absent
 function useRewardedAdMock() {
@@ -41,7 +43,7 @@ function useRewardedAdMock() {
   };
 }
 
-const useRewardedAd = useRewardedAdReal || useRewardedAdMock;
+const useRewardedAd = useRewardedAdReal && adUnitId ? useRewardedAdReal : useRewardedAdMock;
 
 interface WatchAdModalProps {
   visible: boolean;
@@ -55,16 +57,17 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
   // useTheme: seçili açık/koyu modu da yakalar
   const { theme, isLight } = useTheme();
   const [rewarding, setRewarding] = useState(false);
-  
+  const adsReady = useAdsReady();
+
   const { isLoaded, isClosed, load, show, error, isEarnedReward } = useRewardedAd(adUnitId, {
     requestNonPersonalizedAdsOnly: true,
   });
 
   useEffect(() => {
-    if (visible && !isLoaded) {
+    if (visible && adsReady && !isLoaded) {
       load();
     }
-  }, [visible, isLoaded, load]);
+  }, [visible, adsReady, isLoaded, load]);
 
   useEffect(() => {
     if (error) {
@@ -120,7 +123,7 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderWidth: 1, borderColor: theme.cardBorder }]}>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} onPress={onClose} style={styles.closeBtn}>
             <X color={theme.textSecondary} size={20} />
           </TouchableOpacity>
 

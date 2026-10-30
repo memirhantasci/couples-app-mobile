@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -33,7 +33,7 @@ export default function ResetPasswordScreen() {
       setError(t("auth.reset.codeRequired"));
       return;
     }
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8) {
       setError(t("auth.reset.passwordTooShort"));
       return;
     }
@@ -148,7 +148,7 @@ export default function ResetPasswordScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.back")}
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();

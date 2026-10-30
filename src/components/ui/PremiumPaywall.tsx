@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Modal,
-  StyleSheet,
-  Platform,
-} from "react-native";
+import { View, Text, TouchableOpacity, Modal, StyleSheet } from "react-native";
 import { Crown, Sparkles, X, Zap } from "lucide-react-native";
 import { useTheme } from "@/context/ThemeContext";
 import { useRouter } from "expo-router";
@@ -98,7 +91,7 @@ export function PremiumPaywall({
           ]}
         >
           {/* Close Button */}
-          <TouchableOpacity style={styles.closeBtn} onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} style={styles.closeBtn} onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <View
               style={[
                 styles.closeBtnCircle,

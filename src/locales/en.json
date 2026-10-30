@@ -1,4 +1,17 @@
 {
+  "a11y": {
+    "close": "Close",
+    "back": "Back",
+    "delete": "Delete",
+    "add": "Add",
+    "edit": "Edit",
+    "share": "Share",
+    "togglePassword": "Show or hide password",
+    "settings": "Settings",
+    "camera": "Camera",
+    "myLocation": "My location",
+    "refresh": "Refresh"
+  },
   "auth": {
     "welcome": {
       "subtitle": "The most romantic way to capture your love and watch it grow. Your memories, your letters and your star belong to the two of you alone.",
@@ -35,7 +48,7 @@
       "nameLabel": "FULL NAME",
       "namePlaceholder": "e.g. Emma Carter",
       "usernameLabel": "USERNAME",
-      "passwordPlaceholder": "At least 6 characters",
+      "passwordPlaceholder": "At least 8 characters",
       "genderLabel": "YOUR GENDER",
       "genderFemale": "Female ♀",
       "genderMale": "Male ♂",
@@ -62,7 +75,7 @@
       "usernameTooShort": "Username must be at least 3 characters.",
       "usernameInvalidChars": "Username can only contain letters a–z, numbers and _.",
       "emailInvalid": "Enter a valid email address.",
-      "passwordTooShort": "Password must be at least 6 characters.",
+      "passwordTooShort": "Password must be at least 8 characters.",
       "usernameCheckFailed": "We couldn't check the username. Please try again.",
       "usernameTaken": "This username is already taken.",
       "emailTaken": "This email is already registered.",
@@ -133,7 +146,7 @@
     },
     "reset": {
       "codeRequired": "Please enter the verification code.",
-      "passwordTooShort": "Your password must be at least 6 characters.",
+      "passwordTooShort": "Your password must be at least 8 characters.",
       "mismatch": "Passwords don't match.",
       "restart": "Please start the password reset again.",
       "codeInvalid": "The code is invalid or has expired.",
@@ -3242,6 +3255,7 @@
     "promoLimit": "This code has reached its usage limit",
     "promoExpired": "This code has expired",
     "promoInvalid": "Invalid or expired code",
+    "promoRateLimited": "Too many attempts. Please try again in a little while.",
     "promoNeedPartner": "You need to be paired with a partner to use a Premium code.",
     "periodMonthlyLimit": "You can log at most 2 period starts within a month.",
     "periodMinGap": "There must be at least 16 days between two period starts.",

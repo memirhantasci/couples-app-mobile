@@ -3,6 +3,7 @@ import { View, StyleSheet, TurboModuleRegistry } from 'react-native';
 import Constants from 'expo-constants';
 import { useAuth } from '@/context/AuthContext';
 import { logger } from '@/utils/logger';
+import { resolveAdUnitId, useAdsReady } from '@/lib/adsConsent';
 
 const isExpoGo = Constants.appOwnership === 'expo';
 const hasAdsModule = typeof TurboModuleRegistry?.get === 'function' && !!TurboModuleRegistry.get('RNGoogleMobileAdsModule');
@@ -22,13 +23,15 @@ if (hasAdsModule && !isExpoGo) {
   }
 }
 
-const adUnitId = __DEV__ ? (TestIds?.BANNER || "") : (process.env.EXPO_PUBLIC_ADMOB_BANNER_ID || TestIds?.BANNER || "");
+// Üretimde birim kimliği tanımlı değilse banner gösterilmez (test reklamına düşülmez)
+const adUnitId = resolveAdUnitId(process.env.EXPO_PUBLIC_ADMOB_BANNER_ID, TestIds?.BANNER);
 
 export function BannerAd() {
   const { profile, session, isLoading } = useAuth();
-  
-  // Expo Go veya native reklam modülü yoksa reklam render etme
-  if (isExpoGo || !hasAdsModule || !GoogleBannerAd) {
+  const adsReady = useAdsReady();
+
+  // Expo Go, native reklam modülü ya da birim kimliği yoksa, rıza alınmadıysa reklam render etme
+  if (isExpoGo || !hasAdsModule || !GoogleBannerAd || !adUnitId || !adsReady) {
     return null;
   }
 

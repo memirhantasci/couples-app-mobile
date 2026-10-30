@@ -77,7 +77,7 @@ export function DemoActionModal({
           ]}
         >
           {/* Kapat Butonu */}
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")}
             onPress={onClose}
             style={[
               styles.closeBtn,

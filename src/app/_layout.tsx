@@ -4,9 +4,8 @@ import "../global.css";
 import "@/lib/fontScaleCap";
 // Çok dilli altyapı: cihaz dili / kayıtlı tercih algılanır, dayjs locale'i ayarlanır
 import "@/lib/i18n";
-import React, { useEffect, useEffectEvent, useRef } from "react";
-import { LogBox, TurboModuleRegistry } from "react-native";
-import Constants from "expo-constants";
+import { useEffect, useEffectEvent, useRef } from "react";
+import { AppState, LogBox } from "react-native";
 import { Stack, router } from "expo-router";
 import * as Linking from "expo-linking";
 import * as SplashScreen from "expo-splash-screen";
@@ -30,6 +29,7 @@ import { ToastHost } from "@/components/ui/ToastHost";
 import { OfflineBanner } from "@/components/ui/OfflineBanner";
 import { AppErrorScreen } from "@/components/ui/AppErrorScreen";
 import { installGlobalErrorReporting } from "@/lib/errorReporting";
+import { initializeAds } from "@/lib/adsConsent";
 import { bindQueryOnlineManager } from "@/hooks/useIsOffline";
 import { DialogHost } from "@/components/ui/DialogHost";
 import { LetterArrivalHost } from "@/components/letters/LetterArrivalHost";
@@ -45,6 +45,7 @@ import {
   Inter_700Bold,
   Inter_800ExtraBold,
 } from '@expo-google-fonts/inter';
+import { PlayfairDisplay_400Regular_Italic, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -60,20 +61,6 @@ installGlobalErrorReporting();
 configureAndroidNotificationChannel();
 
 bindQueryOnlineManager();
-
-const isExpoGo = Constants.appOwnership === "expo";
-const hasAdsModule =
-  typeof TurboModuleRegistry?.get === "function" &&
-  !!TurboModuleRegistry.get("RNGoogleMobileAdsModule");
-
-if (hasAdsModule && !isExpoGo) {
-  try {
-    const mobileAds = require("react-native-google-mobile-ads").default;
-    mobileAds()
-      .initialize()
-      .catch(() => {});
-  } catch {}
-}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -105,6 +92,8 @@ function RootLayoutNav() {
     Inter_600SemiBold,
     Inter_700Bold,
     Inter_800ExtraBold,
+    PlayfairDisplay_700Bold,
+    PlayfairDisplay_400Regular_Italic,
   });
 
   // Hide splash as soon as auth state and the saved language are resolved — don't wait for fonts
@@ -114,6 +103,25 @@ function RootLayoutNav() {
       SplashScreen.hideAsync().catch(() => {});
     }
   }, [isLoading, languageReady]);
+
+  // Supabase önerisi (React Native): oturum belirteci yalnızca uygulama öndeyken yenilenir; arka plandan
+  // dönünce yenileme hemen sürer, böylece ilk istek süresi dolmuş belirteçle gitmez
+  useEffect(() => {
+    if (AppState.currentState === "active") supabase.auth.startAutoRefresh();
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") supabase.auth.startAutoRefresh();
+      else supabase.auth.stopAutoRefresh();
+    });
+    return () => {
+      subscription.remove();
+      supabase.auth.stopAutoRefresh();
+    };
+  }, []);
+
+  // Reklam rızası (UMP) + SDK başlatma: oturum çözüldükten sonra, ekran görünürken (rıza formu üstte açılabilir)
+  useEffect(() => {
+    if (!isLoading) initializeAds();
+  }, [isLoading]);
 
   // Android bildirim kanallarının adları sistem ayarlarında görünür: dil değişince yeniden yazılır
   useEffect(() => {

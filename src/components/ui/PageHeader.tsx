@@ -60,7 +60,7 @@ export function PageHeader({ title = "", showBack = true, showMenu = true }: Pag
     <View style={[styles.headerContainer, { paddingTop: insets.top + 12 }]}>
       <View style={styles.side}>
         {showBack && (
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.back")}
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();

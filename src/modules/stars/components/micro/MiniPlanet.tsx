@@ -6,7 +6,7 @@
  * aynı ışık yönünü (sol üst) ve halkalı tiplerde aynı eğik halkayı kullanır.
  */
 
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Lock } from 'lucide-react-native';

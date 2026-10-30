@@ -138,7 +138,7 @@ export const SectorAtlasModal: React.FC<SectorAtlasModalProps> = ({
           >
             <Text style={[styles.headerTitle, { color: theme.text }]}>{t('stars.atlas.title')}</Text>
             <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>{t('stars.atlas.subtitle')}</Text>
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")}
               onPress={onClose}
               style={[
                 styles.closeButton,

@@ -1,31 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-  Dimensions,
-  ActivityIndicator,
-  Share,
-  Platform,
-} from "react-native";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { logger } from "@/utils/logger";
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions, ActivityIndicator, Share } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
-import {
-  X,
-  Share2,
-  Heart,
-  Calendar,
-  Sparkles,
-  MapPin,
-  Mail,
-  BookOpen,
-  ChevronRight,
-  ChevronLeft,
-} from "lucide-react-native";
+import { X, Share2, Heart, Sparkles, Mail } from "lucide-react-native";
 import Animated, {
   Easing,
   cancelAnimation,
@@ -156,7 +136,7 @@ export function CoupleWrappedModal({
         });
       }
     } catch (error) {
-      console.warn("Share error:", error);
+      logger.warn("Share error:", error);
       appAlert(t("common.error"), t("wrapped.shareError"));
     } finally {
       setIsSharing(false);
@@ -190,7 +170,7 @@ export function CoupleWrappedModal({
                 <Sparkles size={13} color={theme.accent} />
                 <Text style={styles.periodText}>{data.periodTitle}</Text>
               </View>
-              <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} style={styles.closeBtn}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} style={styles.closeBtn}>
                 <X size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
