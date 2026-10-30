@@ -113,6 +113,13 @@ export default function MapScreen() {
   // Doluysa "not ekle" modalı açıktır ve bu konumda bekleyen pin gösterilir.
   const [pendingCoord, setPendingCoord] = useState<MapCoordinate | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [hasLocationPermission, setHasLocationPermission] = useState(false);
+
+  useEffect(() => {
+    Location.getForegroundPermissionsAsync()
+      .then(({ status }) => setHasLocationPermission(status === "granted"))
+      .catch(() => {});
+  }, []);
   // "İlk notu bırak": konum izni istemeden, haritada dokunulan yere not bırakma modu
   const [isPickingSpot, setIsPickingSpot] = useState(false);
   const [fullScreenPhoto, setFullScreenPhoto] = useState<PhotoPin | null>(null);
@@ -310,6 +317,7 @@ export default function MapScreen() {
     try {
       setIsLocating(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
+      setHasLocationPermission(status === "granted");
       if (status !== "granted") {
         showPermissionDeniedDialog(
           t("map.permission.title"),
@@ -398,7 +406,7 @@ export default function MapScreen() {
         }}
         onLongPress={handleMapLongPress}
         onPress={handleMapPress}
-        showsUserLocation
+        showsUserLocation={hasLocationPermission}
         showsMyLocationButton={false}
         showsCompass={false}
         toolbarEnabled={false}

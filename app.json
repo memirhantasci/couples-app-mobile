@@ -52,7 +52,12 @@
         "android.permission.RECORD_AUDIO"
       ],
       "package": "app.couplesky.mobile",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyD0x9bja7CzbqjIAbLqbsl-7TlqbOi_sL0"
+        }
+      }
     },
     "web": {
       "output": "static",

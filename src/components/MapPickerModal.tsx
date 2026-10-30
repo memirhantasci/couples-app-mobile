@@ -133,6 +133,13 @@ export function MapPickerModal({
       : ""
   );
   const [isLocating, setIsLocating] = useState(false);
+  const [hasLocationPermission, setHasLocationPermission] = useState(false);
+
+  useEffect(() => {
+    Location.getForegroundPermissionsAsync()
+      .then(({ status }) => setHasLocationPermission(status === "granted"))
+      .catch(() => {});
+  }, []);
   const [isResolvingAddress, setIsResolvingAddress] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -197,6 +204,7 @@ export function MapPickerModal({
   const locateUser = async (silent: boolean) => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
+      setHasLocationPermission(status === "granted");
       if (status !== "granted") {
         if (!silent) {
           showPermissionDeniedDialog(t("map.picker.permissionTitle"), t("map.picker.permissionMessage"));
@@ -335,7 +343,7 @@ export function MapPickerModal({
               : defaultRegion
           }
           onPress={handleMapPress}
-          showsUserLocation
+          showsUserLocation={hasLocationPermission}
           showsMyLocationButton={false}
           showsCompass={false}
           toolbarEnabled={false}
