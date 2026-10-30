@@ -9,6 +9,48 @@
 
 ---
 
+## KALAN İŞLER — tek liste (30 Ekim 2026, son durum)
+
+Aşağıdaki liste, raporun geri kalanındaki açık maddelerin hepsini tek yerde toplar. Kodla biten her şey commit'lendi; burada yalnızca **senin yapman gerekenler** ve **bilinçli açık bırakılanlar** var.
+
+### A. Supabase (canlı veritabanı ve function'lar)
+- [ ] Migration'ları sırayla SQL Editor'de çalıştır: `20261029000000_star_wishes` (daha önce bekliyordu), `20261030000000_audit_hardening`, `20261030000001_pairing_rate_limit`, `20261030000002_partner_notices`. Daha önce teyit edilmemiş olanlar: `20261024000000`, `20261024000001`.
+- [ ] Function'ları deploy et: `revenuecat-webhook` (yeni, `--no-verify-jwt`, `REVENUECAT_WEBHOOK_SECRET` tanımla), `auth-gateway` (min şifre 8), `send-push` (ölü token temizliği + partner bildirimleri).
+- [ ] Auth panelinde minimum şifre uzunluğunu 8 yap; Site URL ve `couplesky` yönlendirmelerini (`couplesapp://`) kontrol et.
+- [ ] Pro plana geç (günlük yedek, proje duraklamaz, özel SMTP, sızdırılmış-şifre koruması); özel SMTP + e-posta şablonlarında `{{ .Token }}`.
+- [ ] `supabase db dump --schema public` ile taban şema migration'ını repoya ekle (O-6).
+
+### B. Güvenlik kararları (yayından önce)
+- [ ] **K-1:** `set_premium_status` şu an giriş yapan herkese açık ve `FREEMIRHAN`/`DELETEMIRHAN` korunuyor (test için bilinçli). Yayından önce: RPC'yi `service_role`'e kapat, `FREEMIRHAN` kodunu pasifleştir, arka kapı dallarını `PromoCodeCard.tsx`'ten sil.
+- [ ] **Y-3:** Ödüllü reklam token'ı için AdMob Server-Side Verification (AdMob hazır olunca; şimdilik günde 25 sınırı var).
+- [ ] **2-5:** Sign in with Apple token iptali (`process-account-deletions`'a Apple REST çağrısı; `.p8` anahtarı ve Services ID gerekir).
+
+### C. Hesaplar, kimlikler, ortam
+- [ ] Yeni paket adı `app.couplesky.mobile`: Firebase'de yeni Android uygulaması + `google-services.json` (EAS'te `GOOGLE_SERVICES_JSON`), Maps anahtarı paket/SHA-1 kısıtları, Supabase/Google/Apple OAuth, RevenueCat uygulama kaydı, Sign in with Apple servis kimliği.
+- [ ] EAS production ortamı: `EXPO_PUBLIC_ADMOB_BANNER_ID`, `..._INTERSTITIAL_ID`, `..._REWARDED_ID` (yoksa reklam gösterilmez), RevenueCat anahtarları (Apple + Google), isteğe bağlı `EXPO_PUBLIC_GEOCODE_URL` / `_KEY`. AdMob panelinde UMP rıza mesajını yayınla.
+- [ ] RevenueCat → Integrations → Webhooks: adres + Authorization değeri.
+- [ ] Apple Developer, Google Play Console (kapalı test 12 tester / 14 gün, mağaza ilanı, Data safety, reklam beyanı, içerik derecelendirme, hesap silme URL'si, test hesabı), abonelik ürünleri.
+
+### D. Yasal ve alan adı
+- [ ] **Veri sorumlusu:** ad-soyad eklendi (Necati Taşcı). **Adres eklenmedi:** ev adresi yerine sanal ofis/şahıs şirketi adresi kararı (O-2); mağaza formlarıyla aynı adres kullanılmalı.
+- [ ] **Yasal sayfaların yayını (2-6):** `docs/legal` klasörünü herkese açık bir adrese koy (GitHub Pages özel repoda ücretsiz çalışmaz; couplesky.app üzerinde Cloudflare Pages/Netlify uygun). `docs/legal/en` dahil. Mağaza formlarına bu adresleri yaz.
+- [ ] destek@ ve support@couplesky.app posta kutularını aç; alan adına **SPF, DKIM, DMARC** kayıtlarını ekle (2-11).
+
+### E. Yeni build ve gerçek cihaz testi
+- [ ] Yeni tam EAS build (paket adı, eklentiler, widget, izinler, AdMob değişti). `version` henüz artırılmadı; native değişiklik sonrası ilk mağaza gönderiminden önce bilinçli karar ver (OTA riski, Y-6).
+- [ ] **Widget'lar** (Kotlin ve iOS hiç derlenmedi), UMP rıza formu, satın alma sandbox'ı, push (ön plan/arka plan/kapalı), partner bildirim diyaloğu (silme talebi → vazgeçme → silinme), eşleşme kodu deneme sınırı, ilaç hatırlatıcıları (Doze/tam alarm), Android 15 16 KB sayfa uyumu (Play ön-yayın raporu), ses dosyası (22 kHz mono, `cosmic_ambient`).
+- [ ] Tüm akışlarda gerçek cihaz testi: oturum, harita, bildirim, yıldız açılışı.
+
+### F. Küçük ve bilinçli açık kalanlar
+- [ ] `icon.png` sol üstündeki silik çerçeve hayaleti (elle temizlenmeli); 22 ikon düğmesinde belirsiz erişilebilirlik etiketi (O-8).
+- [ ] Sentry / native çökme izleme (hesap gerekir, O-4).
+- [ ] 62 lint uyarısı (çoğu bilinçli: yerel modüller için `require`, kasıtlı hook bağımlılıkları).
+- [ ] Büyük dosyalar (`OurStarScreen.tsx` 2519 satır vb.) bölünmedi.
+- [ ] Repo geçmişindeki `.env` / `google-services.json` (repo gizli olduğundan bilinçli olarak atlandı).
+- [ ] Hesap silinince partnerin onayı istenmiyor (karar: bilgilendirme var, onay yok).
+
+---
+
 ## 0. Düzeltme durumu (aynı gün güncellemesi)
 
 Rapordaki maddelerin çoğu aynı gün kodlandı. `tsc` 0 hata, `expo lint` 0 hata / **62 uyarı** (133'ten), **14 birim test** geçiyor, `expo-doctor` **21/21**, TR/EN çeviri paritesi 2405/2405.
