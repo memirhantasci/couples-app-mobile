@@ -11,6 +11,7 @@ import { clearEncryptionKey, hasEncryptionKey, onEncryptionKeyChange, setCoupleE
 import { clearStorageImages } from "@/lib/storageImages";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { getOrCreateDeviceId } from "@/utils/device";
+import { isDemoOrReviewerAccount } from "@/utils/demo";
 import { isDatesSkipped } from "@/lib/datesSkip";
 import { useQueryClient } from "@tanstack/react-query";
 import { clearCoupleWidget } from "@/utils/widgetBridge";
@@ -284,6 +285,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const checkDeviceAuth = useCallback(async (userId: string): Promise<boolean> => {
+    if (isDemoOrReviewerAccount(userId)) {
+      deviceAuthUserRef.current = userId;
+      setIsDeviceAuthorized(true);
+      return true;
+    }
     try {
       const deviceId = await getOrCreateDeviceId();
 

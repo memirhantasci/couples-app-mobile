@@ -20,6 +20,7 @@ import {
   Sparkles
 } from "lucide-react-native";
 import { getOrCreateDeviceId } from "@/utils/device";
+import { isDemoOrReviewerAccount } from "@/utils/demo";
 import { normalizePairingCode } from "@/lib/pairingCode";
 import { LegalModal } from "@/components/legal/LegalModal";
 import { LegalDocType } from "@/constants/legalTexts";
@@ -73,6 +74,7 @@ async function createSessionFromOAuthUrl(url: string): Promise<SupabaseUser> {
  * aksi halde false (e-posta OTP doğrulaması gerekir).
  */
 async function ensureDeviceAuthorized(userId: string, deviceId: string): Promise<boolean> {
+  if (isDemoOrReviewerAccount(userId)) return true;
   const { data: auths, error: authError } = await supabase
     .from("device_authorizations")
     .select("is_authorized")
@@ -318,7 +320,8 @@ export default function LoginScreen() {
         .eq("device_id", deviceId)
         .maybeSingle();
 
-      let isAuthorized = !authError && !!auths?.is_authorized;
+      const isReviewer = isDemoOrReviewerAccount(emailToUse) || isDemoOrReviewerAccount(userId);
+      let isAuthorized = isReviewer || (!authError && !!auths?.is_authorized);
 
       // If this device is not recorded yet, check if the user has ANY authorized devices at all
       if (!isAuthorized && !authError && !auths) {

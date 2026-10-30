@@ -3,6 +3,7 @@ import { logger } from "@/utils/logger";
 import { useRouter, useSegments, useRootNavigationState } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { getOrCreateDeviceId } from "@/utils/device";
+import { isDemoOrReviewerAccount } from "@/utils/demo";
 import { isAuthFlowActive } from "@/lib/navigate";
 
 export function useProtectedRoute() {
@@ -58,7 +59,7 @@ export function useProtectedRoute() {
         }
 
         // If the device is not authorized for this user, force them to verify-device screen
-        if (isDeviceAuthorized === false) {
+        if (isDeviceAuthorized === false && !isDemoOrReviewerAccount(session?.user?.id) && !isDemoOrReviewerAccount(session?.user?.email)) {
           // Doğrulama ekranları yukarıda bırakıldı; giriş ekranı cihaz doğrulamasına kendisi geçer
           if (!currentRoute.includes("login")) {
             // verify-device.tsx cihazı yetkilendirmek için deviceId parametresine ihtiyaç duyar
