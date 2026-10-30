@@ -30,6 +30,7 @@ import { OfflineBanner } from "@/components/ui/OfflineBanner";
 import { AppErrorScreen } from "@/components/ui/AppErrorScreen";
 import { installGlobalErrorReporting } from "@/lib/errorReporting";
 import { initializeAds } from "@/lib/adsConsent";
+import { joinCoupleByCode } from "@/lib/joinCouple";
 import { bindQueryOnlineManager } from "@/hooks/useIsOffline";
 import { DialogHost } from "@/components/ui/DialogHost";
 import { LetterArrivalHost } from "@/components/letters/LetterArrivalHost";
@@ -37,15 +38,15 @@ import { NotificationPermissionHost } from "@/components/common/NotificationPerm
 import { PremiumCelebrationHost } from "@/components/ui/PremiumCelebrationHost";
 import { StarPointsToastHost } from "@/modules/stars/components/StarPointsToastHost";
 
-import {
-  useFonts,
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-  Inter_800ExtraBold,
-} from '@expo-google-fonts/inter';
-import { PlayfairDisplay_400Regular_Italic, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
+import { useFonts } from 'expo-font';
+// Paket kökünden içe aktarmak tüm ağırlık/italik varyantları uygulamaya sokar (~10 MB); yalnızca kullanılanlar alınır
+import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
+import { Inter_500Medium } from '@expo-google-fonts/inter/500Medium';
+import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
+import { Inter_700Bold } from '@expo-google-fonts/inter/700Bold';
+import { Inter_800ExtraBold } from '@expo-google-fonts/inter/800ExtraBold';
+import { PlayfairDisplay_400Regular_Italic } from '@expo-google-fonts/playfair-display/400Regular_Italic';
+import { PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display/700Bold';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -175,7 +176,7 @@ function RootLayoutNav() {
       // Katılım kendi yönlendirmesini yapar; koruyucu aynı anda ikinci bir yönlendirme yapmasın
       setAuthFlowActive(true);
       try {
-        const { error } = await supabase.rpc("join_couple_by_code_uuid", { p_code: code });
+        const { error } = await joinCoupleByCode(code);
         if (!error) {
           // Bekleme ekranındaki partnere "eşleşme başarılı" bildirimini sunucu (couples tetikleyicisi) gönderir
           await AsyncStorage.removeItem("@pending_invite_code");

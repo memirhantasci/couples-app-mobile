@@ -52,6 +52,35 @@ Rapordaki maddelerin çoğu aynı gün kodlandı. `tsc` 0 hata, `expo lint` 0 ha
 
 ---
 
+## 0.1 İkinci tur tarama (aynı gün)
+
+Aynı gün ikinci kez baştan tarandı. Android ve iOS paketleri `expo export` ile gerçekten derlendi (her biri 13 MB Hermes bytecode), `tsc` 0 hata, 14 test geçiyor.
+
+**Bu turda bulunup düzeltilenler**
+
+| # | Bulgu | Önem | Düzeltme |
+| :-: | :--- | :-: | :--- |
+| 2-1 | `join_couple_by_code_uuid` deneme sınırı yoktu: 6 haneli kod (≈887 milyon) otomatik denenip kimsenin beklediği bir çifte katılınabilirdi | **P1** | Kullanıcı başına 10 dk'da 20 deneme. Başarısız denemeler hata fırlatıp sayaçla birlikte geri alınacağından sonuç `result_error` ile döndürülüyor (migration `20261030000001`, istemci `src/lib/joinCouple.ts`) |
+| 2-2 | Bütün Inter ve Playfair font varyantları (30 dosya, ~9 MB) uygulamaya giriyordu; yalnızca 7'si kullanılıyor | P2 | Alt yoldan içe aktarma; pakette 7 font kaldı |
+| 2-3 | `send-push` ölü push token'larını (`DeviceNotRegistered`) hiç silmiyordu; token'lar birikir, her seferinde boşa gönderim denenirdi | P2 | Üç gönderim noktasında temizlik eklendi |
+| 2-4 | RevenueCat webhook'u `SUBSCRIPTION_EXTENDED` ve `REFUND_REVERSED` olaylarını tanımıyordu | P3 | Eklendi |
+
+**Açık kalanlar (senin kararın ya da hesabın gerekir)**
+
+| # | Bulgu | Önem | Not |
+| :-: | :--- | :-: | :--- |
+| 2-5 | **Sign in with Apple token iptali yok.** Apple, hesap silinince Apple'a "token revoke" çağrısı yapılmasını şart koşar; `process-account-deletions` yapmıyor | **P1 (iOS)** | Apple Developer anahtarı (`.p8`) ve Services ID gerekir; hesap açılınca eklenecek |
+| 2-6 | **Yasal sayfalar nerede yayınlanacak?** GitHub Pages özel (private) repoda ücretsiz planda çalışmaz. Mağaza formları herkese açık bir URL ister | **P1** | Seçenekler: couplesky.app alan adında statik barındırma (Cloudflare Pages / Netlify ücretsiz) ya da ayrı herkese açık bir repo. `docs/legal` klasörünü olduğu gibi yükleyebilirsin |
+| 2-7 | **Bir hesap silinince çiftin tüm verisi silinir** (partnerin kendi fotoğrafları, günlükleri dahil), partnere bildirim gitmez; partner bir anda eşleşmemiş görünür | P2 | Ürün/hukuk kararı. Arayüz metni bunu söylüyor ama partnerin onayı yok. En azından partnere push + açıklayıcı bir ekran önerilir |
+| 2-8 | `avatars` bucket'ı herkese açık (UUID yollu URL); gizlilik metni "özel depolama" derken bunu belirtmiyor | P3 | Metne tek cümle ekle ya da imzalı URL'ye geç |
+| 2-9 | Demo verileri Unsplash'tan canlı çekiliyor (çevrimdışı demo görselsiz kalır, Unsplash koşulları) | P3 | Görselleri pakete al ya da kendi depolamana taşı |
+| 2-10 | Harita yedeği herkese açık Nominatim kullanıyor (saniyede 1 istek sınırı, yoğun kullanım yasak) | P3 | Kullanıcı artınca ücretli geocoding (Google/MapTiler) |
+| 2-11 | `couplesky.app` e-postası için SPF/DKIM/DMARC kayıtları (OTP ve destek postaları spama düşmesin) | P1 | Alan adı DNS ayarı, SMTP sağlayıcısı verdiği kayıtları ekle |
+
+**Gerçek cihazda mutlaka denenecekler (kodla doğrulanamaz):** Doze modunda ilaç hatırlatıcılarının saatinde çalışması (Android tam alarm izni), Android 15'te 16 KB sayfa boyutu uyumu (Play ön-yayın raporuna bak), widget'lar, UMP rıza formu, satın alma sandbox'ı, push bildirimi (ön plan/arka plan/kapalı).
+
+---
+
 ## 1. Yönetici özeti
 
 Uygulamanın temeli sağlam: TypeScript 0 hata, lint 0 hata, i18n 2094/2094 anahtar paritesi, tüm tablolarda RLS, oturum şifreli saklanıyor, hesap silme akışı var, paywall mağaza kurallarına uygun, listeler sanallaştırılmış.

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { logger } from "@/utils/logger";
+import { joinCoupleByCode } from "@/lib/joinCouple";
 import {
   View,
   Text,
@@ -193,9 +194,7 @@ export default function VerifyScreen() {
     const pendingCode = normalizePairingCode(params.inviteCode || (await AsyncStorage.getItem("@pending_invite_code")));
     if (pendingCode.length >= 4) {
       try {
-        const { error: joinError } = await supabase.rpc("join_couple_by_code_uuid", {
-          p_code: pendingCode,
-        });
+        const { error: joinError } = await joinCoupleByCode(pendingCode);
         if (!joinError) {
           await AsyncStorage.removeItem("@pending_invite_code");
           // Bekleme ekranındaki partnere "eşleşme başarılı" bildirimini sunucu (couples tetikleyicisi) gönderir

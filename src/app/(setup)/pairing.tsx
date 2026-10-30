@@ -1,5 +1,6 @@
 import { useState, useEffect, useEffectEvent, useRef, useCallback } from "react";
 import { logger } from "@/utils/logger";
+import { joinCoupleByCode } from "@/lib/joinCouple";
 import {
   View,
   Text,
@@ -107,9 +108,7 @@ export default function PairingScreen() {
   }, [status?.coupleId, profile?.coupleId, refreshProfile]);
 
   async function joinWithCode(code: string) {
-    const { data, error } = await supabase.rpc("join_couple_by_code_uuid", {
-      p_code: code,
-    });
+    const { data, error } = await joinCoupleByCode(code);
 
     if (error) {
       // Zaten eşleşmiş (ör. iki taraf aynı anda birbirinin kodunu girdi): hata değil, devam et
@@ -125,8 +124,7 @@ export default function PairingScreen() {
       return;
     }
 
-    const result = Array.isArray(data) ? data[0] : data;
-    if (result?.result_is_paired) {
+    if (data?.isPaired) {
       // Partner A'nın telefonuna "Eşleşme başarılı" bildirimini sunucu (couples tetikleyicisi) gönderir
       await finishPairing();
     } else {

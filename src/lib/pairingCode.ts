@@ -30,6 +30,7 @@ export function translatePairingError(msg: string | undefined): string {
   if (msg.includes("CODE_ALREADY_USED") || msg.includes("COUPLE_FULL")) return i18n.t("setup.errors.codeUnavailable");
   if (msg.includes("SELF_CODE")) return i18n.t("setup.errors.selfCode");
   if (msg.includes("ALREADY_PAIRED")) return i18n.t("setup.errors.alreadyPaired");
+  if (msg.includes("TOO_MANY_REQUESTS")) return i18n.t("auth.errors.tooManyAttempts");
   if (msg.includes("doğrudan değiştirilemez")) return i18n.t("setup.errors.pairingFailed");
   return msg;
 }

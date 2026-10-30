@@ -3,6 +3,20 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 
+/** Expo "DeviceNotRegistered" dönen (uygulama silinmiş / token geçersiz) token'ları siler; yanıt sırası mesaj sırasıyla aynıdır. */
+async function pruneDeadTokens(admin: any, messages: { to: string }[], expoResult: any): Promise<void> {
+  const tickets = expoResult?.data;
+  if (!Array.isArray(tickets)) return;
+  const dead = tickets
+    .map((ticket: any, i: number) =>
+      ticket?.status === "error" && ticket?.details?.error === "DeviceNotRegistered" ? messages[i]?.to : null
+    )
+    .filter((token: unknown): token is string => typeof token === "string");
+  if (dead.length === 0) return;
+  const { error } = await admin.from("push_tokens").delete().in("token", dead);
+  if (error) console.error("Dead push token cleanup failed:", error.message);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Dil: istemci, push token'ını kaydederken uygulamanın seçili dilini `push_tokens.language`
 // sütununa yazar (tr | en; bkz. migration 025_push_token_language.sql). Sütun henüz yoksa ya da
@@ -347,6 +361,7 @@ serve(async (req) => {
           });
           const expoResult = await expoResponse.json();
           console.log(`Cron Push Result (Chunk ${Math.floor(i/CHUNK_SIZE) + 1}):`, JSON.stringify(expoResult));
+          await pruneDeadTokens(supabase, chunk, expoResult);
         }
       }
       return new Response(`Cron ${job} processed. Messages: ${pushMessages.length}`, { status: 200 });
@@ -493,11 +508,12 @@ serve(async (req) => {
           allMsgs.push(...msgs);
         }
         if (allMsgs.length > 0) {
-          await fetch(EXPO_PUSH_URL, {
+          const pairingResponse = await fetch(EXPO_PUSH_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json", Accept: "application/json", "Accept-Encoding": "gzip, deflate" },
             body: JSON.stringify(allMsgs),
           });
+          await pruneDeadTokens(supabase, allMsgs, await pairingResponse.json().catch(() => null));
         }
       }
       return new Response("Pairing notifications sent.", { status: 200 });
@@ -521,6 +537,7 @@ serve(async (req) => {
 
     const expoResult = await expoResponse.json();
     console.log("Expo Push Result:", JSON.stringify(expoResult));
+    await pruneDeadTokens(supabase, pushMessages, expoResult);
     return new Response(JSON.stringify({ success: true, sent: pushMessages.length, expoResult }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
