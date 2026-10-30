@@ -882,20 +882,34 @@ export const OurStarScreen: React.FC = () => {
   // ─── KAYAN YILDIZ DİLEĞİ ───────────────────────────────────────────
   // Yakalanan meteor dilek ekranını açar; hak kişi başı günde birdir. Hak bugün kullanıldıysa
   // ekran açılmaz, yalnızca sıcak bir not gösterilir. Dilek metni hiçbir yere gönderilmez.
-  const dailyWish = useDailyWish(isDemoMode || !session ? 'local' : 'server');
+  const dailyWish = useDailyWish(isDemoMode || !session ? 'local' : 'server', currentUserId);
   const [isWishOpen, setIsWishOpen] = useState(false);
   const wishOpenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Hak kontrolü sürerken (durum henüz gelmemişse) ikinci bir yakalama yok sayılır
+  const isCheckingWishRef = useRef(false);
+  const isUnmountedRef = useRef(false);
   const clearWishOpenTimer = useCallback(() => {
     if (wishOpenTimerRef.current) {
       clearTimeout(wishOpenTimerRef.current);
       wishOpenTimerRef.current = null;
     }
   }, []);
-  useEffect(() => clearWishOpenTimer, [clearWishOpenTimer]);
+  useEffect(() => {
+    isUnmountedRef.current = false;
+    return () => {
+      isUnmountedRef.current = true;
+      clearWishOpenTimer();
+    };
+  }, [clearWishOpenTimer]);
 
-  const handleMeteorCaught = () => {
-    if (isWishOpen || wishOpenTimerRef.current) return;
-    if (dailyWish.isUsedToday()) {
+  const handleMeteorCaught = async () => {
+    if (isWishOpen || wishOpenTimerRef.current || isCheckingWishRef.current) return;
+    // Ekrandan çıkıp geri gelince hak sıfırlanmasın: durum yüklenmediyse önce sunucuya sorulur
+    isCheckingWishRef.current = true;
+    const usedToday = await dailyWish.checkUsedToday();
+    isCheckingWishRef.current = false;
+    if (isUnmountedRef.current) return;
+    if (usedToday) {
       showToast(t('stars.screen.toasts.wishDone'));
       return;
     }

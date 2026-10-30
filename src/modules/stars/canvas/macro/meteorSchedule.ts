@@ -14,29 +14,30 @@
  * Meteors live in world space (RA/Dec degrees), so they stay among the stars
  * while the camera pans or zooms.
  *
- * Speed and rate: a meteor falls at a steady ~3 °/s, about 130 px/s at the
- * star screen's resting zoom (3), where it stays on screen for ~7 s. Measured
- * over simulated hours, a viewer at the resting zoom sees one about every
- * ~11 s; zoomed out only the brighter ones show (see meteorZoomVisibility).
+ * Speed and rate: a meteor falls at a steady ~6 °/s, about 265 px/s at the
+ * star screen's resting zoom (3), where it stays on screen for ~3.5 s.
+ * Measured over simulated hours, a viewer sees one about every ~45 s at the
+ * resting and overview (1.2) zooms, rarely two at once; zoomed out only the
+ * brighter ones show (see meteorZoomVisibility).
  */
 
 import { pxPerDegree, shortestRaDelta, type SkyCamera } from './skyProjection';
 import { smoothstep } from './starStyle';
 
 export const METEOR_SLOT_MS = 500;
-/** Chance that a slot launches a meteor (≈ 2 launches per second over the whole map). */
-export const METEOR_CHANCE = 1;
+/** Chance that a slot launches a meteor (≈ 0.6 launches per second over the whole map). */
+export const METEOR_CHANCE = 0.3;
 /** Top-to-bottom flight time; the path is ~180°, so this sets the speed. */
-const MIN_DURATION_MS = 52_000;
-const MAX_DURATION_MS = 64_000;
+const MIN_DURATION_MS = 26_000;
+const MAX_DURATION_MS = 32_000;
 const MAP_TOP_DEC = 90;
 const MAP_BOTTOM_DEC = -90;
 /** Sideways RA drift over the whole fall, so streaks lean a little. */
 const MIN_DRIFT_DEG = 10;
 const MAX_DRIFT_DEG = 45;
-/** Streak length behind the head. */
-const MIN_TAIL_DEG = 7;
-const MAX_TAIL_DEG = 11;
+/** Streak length behind the head; kept close so every meteor looks alike. */
+const MIN_TAIL_DEG = 8;
+const MAX_TAIL_DEG = 10;
 const FIREBALL_CHANCE = 0.06;
 const MIN_BRIGHTNESS = 0.6;
 /** Share of the flight spent fading in at the top edge and out at the bottom edge. */

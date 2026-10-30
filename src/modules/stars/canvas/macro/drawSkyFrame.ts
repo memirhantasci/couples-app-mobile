@@ -486,11 +486,11 @@ function drawConnectionLines(
 /** Length of the burst drawn where a meteor was caught. */
 export const METEOR_CATCH_BURST_MS = 900;
 
-/** Stroke width of a meteor's core at a zoom: finer far out, bolder up close. */
-function meteorWidth(event: MeteorEvent, zoom: number): number {
-  'worklet';
-  return Math.min(2.6, Math.max(1.5, 1.3 + 0.2 * zoom)) * (event.fireball ? 1.4 : 1);
-}
+/**
+ * Stroke width of every meteor's core, at any zoom: heads and streaks all
+ * look the same size; only fireballs differ, by their warmer tint.
+ */
+const METEOR_WIDTH_PX = 1.5;
 
 /** A meteor's streak: blurred tinted halo, bright tapering core and a glowing head. */
 function drawMeteorStreak(
@@ -498,14 +498,13 @@ function drawMeteorStreak(
   paints: StarPaints,
   segment: MeteorSegment,
   event: MeteorEvent,
-  zoom: number,
   alphaScale: number,
 ) {
   'worklet';
   const alpha = segment.alpha * alphaScale;
   if (alpha <= 0.01) return;
   const { headX, headY, tailX, tailY } = segment;
-  const width = meteorWidth(event, zoom);
+  const width = METEOR_WIDTH_PX;
 
   // Right after launch the streak has no length yet; only the head shows.
   const length = Math.hypot(headX - tailX, headY - tailY);
@@ -529,8 +528,8 @@ function drawMeteorStreak(
   }
 
   paints.meteorHalo.setColor(event.fireball ? paints.fireballTint : paints.meteorTint);
-  paints.meteorHalo.setAlphaf(alpha * (event.fireball ? 0.75 : 0.65));
-  canvas.drawCircle(headX, headY, width * (event.fireball ? 6.5 : 4.5), paints.meteorHalo);
+  paints.meteorHalo.setAlphaf(alpha * 0.65);
+  canvas.drawCircle(headX, headY, width * 4.5, paints.meteorHalo);
   paints.fill.setColor(paints.white);
   paints.fill.setAlphaf(alpha);
   canvas.drawCircle(headX, headY, width * 1.25, paints.fill);
@@ -550,7 +549,7 @@ function drawMeteors(canvas: SkCanvas, view: FrameView, paints: StarPaints, mete
   for (const event of activeMeteorsInView(nowMs, camera, width, height)) {
     if (caught && caught.event.id === event.id) continue;
     const segment = meteorSegment(event, nowMs, camera, width, height);
-    if (segment) drawMeteorStreak(canvas, paints, segment, event, camera.zoom, 1);
+    if (segment) drawMeteorStreak(canvas, paints, segment, event, 1);
   }
 
   if (!caught) return;
@@ -559,7 +558,7 @@ function drawMeteors(canvas: SkCanvas, view: FrameView, paints: StarPaints, mete
   const t = elapsed / METEOR_CATCH_BURST_MS;
 
   const frozen = meteorSegment(caught.event, caught.atMs, camera, width, height);
-  if (frozen) drawMeteorStreak(canvas, paints, frozen, caught.event, camera.zoom, 1 - smoothstep(0, 0.3, t));
+  if (frozen) drawMeteorStreak(canvas, paints, frozen, caught.event, 1 - smoothstep(0, 0.3, t));
 
   const head = meteorHead(caught.event, caught.atMs);
   const x = screenX(view, head.ra);
