@@ -22,6 +22,26 @@ export interface CoupleWrappedData {
   highlightStat: string;
 }
 
+/** Aylık özet, hesap en az bu kadar günlükse hazırlanır: yeni bir hesabın "ayı" yoktur. */
+export const WRAPPED_MIN_ACCOUNT_DAYS = 30;
+
+/**
+ * Hesap, özetin gösterilmesi için yeterince eski mi? Oluşturulma tarihi bilinmiyorsa
+ * (ya da geçersizse) özet gösterilmez.
+ */
+export function isAccountOldEnoughForWrapped(createdAt?: string | null): boolean {
+  if (!createdAt) return false;
+  const created = dayjs(createdAt);
+  return created.isValid() && daysSince(created) >= WRAPPED_MIN_ACCOUNT_DAYS;
+}
+
+/** Dönemde özetlenecek hiçbir şey yoksa özet boş bir kart olurdu. */
+export function hasWrappedActivity(data: CoupleWrappedData): boolean {
+  return (
+    data.lettersCount + data.dailyNotesCount + data.meetingsCount + data.photosCount + data.topMood.count > 0
+  );
+}
+
 // moods.mood_type, ruh hali seçicideki emojinin kendisidir (bkz. MoodSelector MOODS)
 const MOOD_EMOJIS: Record<string, { emoji: string; labelKey: ParseKeys }> = {
   "😍": { emoji: "😍", labelKey: "wrapped.moods.loveStruck" },
@@ -40,9 +60,11 @@ export async function computeCoupleWrapped(
   coupleId: number | null,
   startDateStr?: string | null,
   isDemoMode: boolean = false,
-  period: "month" | "year" = "month"
+  period: "month" | "year" = "month",
+  /** Özetlenecek dönemin içindeki bir an; verilmezse şimdi (ayın başında biten ayı özetlemek için). */
+  reference: dayjs.Dayjs = dayjs()
 ): Promise<CoupleWrappedData> {
-  const now = dayjs();
+  const now = reference;
   const periodStart = period === "month" 
     ? now.startOf("month").toISOString() 
     : now.startOf("year").toISOString();
@@ -147,7 +169,11 @@ export async function computeCoupleWrapped(
   const topLocation = locations.length > 0 ? locations[0] : i18n.t("wrapped.anywhereTogether");
   const totalLocationsCount = locations.length;
 
-  const daysCountInPeriod = period === "month" ? now.date() : now.dayOfYear();
+  // Biten ayın tamamı, süren ayın şimdiye kadarki günleri sayılır
+  const isCurrentPeriod = now.isSame(dayjs(), period);
+  const daysCountInPeriod = isCurrentPeriod
+    ? period === "month" ? now.date() : now.dayOfYear()
+    : period === "month" ? now.daysInMonth() : now.endOf("year").dayOfYear();
 
   return {
     periodTitle,

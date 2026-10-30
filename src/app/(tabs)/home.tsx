@@ -46,7 +46,12 @@ import { type SpotlightStep } from "@/components/tour/SpotlightTour";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { getHomeSpotlightSteps, type HomeSpotlightTargetId } from "@/constants/featureGuides";
 import { DEMO_HOME_DATA, DEMO_LOVE_SCORE } from "@/constants/demoData";
-import { computeCoupleWrapped, CoupleWrappedData } from "@/utils/wrappedCalculator";
+import {
+  computeCoupleWrapped,
+  CoupleWrappedData,
+  hasWrappedActivity,
+  isAccountOldEnoughForWrapped,
+} from "@/utils/wrappedCalculator";
 import { syncCoupleWidget } from "@/utils/widgetBridge";
 import { fetchWidgetUnread } from "@/lib/widgetUnread";
 import { CoupleAvatarRing } from "@/components/home/CoupleAvatarRing";
@@ -121,9 +126,11 @@ export default function HomeScreen() {
     }));
   }, [t]);
 
-  const currentMonthKey = dayjs().format("YYYY_MM");
   const dayOfMonth = dayjs().date();
   const isWrappedPeriod = dayOfMonth >= 27 || dayOfMonth <= 5;
+  // Ayın 1–5'inde özet, yeni başlayan ayı değil biten ayı anlatır; kapatma bilgisi de o aya aittir
+  const wrappedMonthsBack = dayOfMonth <= 5 ? 1 : 0;
+  const currentMonthKey = dayjs().subtract(wrappedMonthsBack, "month").format("YYYY_MM");
 
   useEffect(() => {
     if (coupleId && !isDemoMode) {
@@ -135,25 +142,49 @@ export default function HomeScreen() {
 
   // Aylık Couple Wrapped: Sadece ayda bir kez (ayın 27'si ile takip eden ayın 5'i arası) ve kullanıcı kapatmadıysa göster
   // Dönem dışında banner render'da gizlenir (isWrappedPeriod); burada yalnızca dönemdeki durum okunur
+  // Yeni hesaplara (misafir demo hariç) ve özetlenecek hiçbir şeyi olmayan aya gösterilmez
+  const isWrappedAccountEligible = isDemoMode || isAccountOldEnoughForWrapped(session?.user?.created_at);
   useEffect(() => {
-    if (!isWrappedPeriod) return;
+    // Dönem dışında ya da uygun olmayan hesapta banner render'da gizlenir
+    if (!isWrappedPeriod || !isWrappedAccountEligible) return;
 
+    let cancelled = false;
     AsyncStorage.getItem(`@wrapped_dismissed_${currentMonthKey}`).then((val) => {
-      if (!val) {
-        setShowWrappedBanner(true);
-        computeCoupleWrapped(
-          coupleId,
-          profile?.relationshipStartDate || profile?.meetDate,
-          isDemoMode
-        )
-          .then((data) => setWrappedData(data))
-          // Hesaplanamadıysa uydurma sayılar gösterilmez: kart bu ay gizlenir
-          .catch(() => setShowWrappedBanner(false));
-      } else {
+      if (cancelled) return;
+      if (val) {
         setShowWrappedBanner(false);
+        return;
       }
+      computeCoupleWrapped(
+        coupleId,
+        profile?.relationshipStartDate || profile?.meetDate,
+        isDemoMode,
+        "month",
+        dayjs().subtract(wrappedMonthsBack, "month")
+      )
+        .then((data) => {
+          if (cancelled) return;
+          setWrappedData(data);
+          setShowWrappedBanner(hasWrappedActivity(data));
+        })
+        // Hesaplanamadıysa uydurma sayılar gösterilmez: kart bu ay gizlenir
+        .catch(() => {
+          if (!cancelled) setShowWrappedBanner(false);
+        });
     });
-  }, [coupleId, profile?.relationshipStartDate, profile?.meetDate, isDemoMode, currentMonthKey, isWrappedPeriod]);
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    coupleId,
+    profile?.relationshipStartDate,
+    profile?.meetDate,
+    isDemoMode,
+    currentMonthKey,
+    wrappedMonthsBack,
+    isWrappedPeriod,
+    isWrappedAccountEligible,
+  ]);
 
   const dismissWrappedBanner = async () => {
     setShowWrappedBanner(false);
@@ -681,7 +712,7 @@ export default function HomeScreen() {
           />
 
           {/* ─── COUPLE WRAPPED BANNER (Ayda 1 Kez Dönemsel) ─── */}
-          {showWrappedBanner && isWrappedPeriod && (
+          {showWrappedBanner && isWrappedPeriod && isWrappedAccountEligible && (
             <TouchableOpacity
               style={[
                 styles.wrappedBanner,

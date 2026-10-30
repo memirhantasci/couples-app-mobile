@@ -183,7 +183,12 @@ export function CoupleWrappedModal({
           </View>
 
           {/* Slayt İçerikleri */}
-          <View style={styles.slideContainer}>
+          {/* Son slaytta içerik, sol/sağ dokunma alanlarının ÜSTÜNE çıkar: aksi hâlde o alanlar paylaş
+              butonuna gelen dokunuşu yutar. Kartın dışındaki boş yerler hâlâ alta (geri/ileri) geçer. */}
+          <View
+            style={[styles.slideContainer, currentSlide === TOTAL_SLIDES - 1 && styles.slideContainerInteractive]}
+            pointerEvents={currentSlide === TOTAL_SLIDES - 1 ? "box-none" : "auto"}
+          >
             {/* SLIDE 0: Birlikte Geçen Günler */}
             {currentSlide === 0 && (
               <View style={styles.slideContent}>
@@ -410,6 +415,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 24,
     zIndex: 5,
+  },
+  slideContainerInteractive: {
+    zIndex: 15,
   },
   slideContent: {
     alignItems: "center",
