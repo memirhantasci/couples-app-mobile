@@ -2,6 +2,7 @@ import * as Location from "expo-location";
 import { dayjs } from "@/lib/date";
 import { logger } from "@/utils/logger";
 import i18n from "@/lib/i18n";
+import { getLocales } from "expo-localization";
 
 export interface ExtractedExifResult {
   takenDate: string | null;
@@ -157,6 +158,19 @@ export async function reverseGeocodeLocation(lat: number, lng: number): Promise<
 }
 
 /**
+ * Tek kelimelik aramalarda eklenecek ülke bağlamı. Yalnızca Türkçe arayüzde ya da cihaz bölgesi
+ * Türkiye ise "Türkiye" eklenir; başka yerdeki kullanıcıların aramaları yanlış ülkeye yönlendirilmez.
+ */
+function localCountryContext(): string | null {
+  try {
+    if (i18n.language === "tr" || getLocales()[0]?.regionCode === "TR") return "Türkiye";
+  } catch {
+    // expo-localization yoksa ek yapılmaz
+  }
+  return null;
+}
+
+/**
  * Metin olarak girilen adresi (İl, ilçe, mahalle, sokak, mekan adı)
  * haritada gösterilebilir GPS koordinatlarına (enlem/boylam) çevirir (Forward Geocoding).
  */
@@ -172,8 +186,9 @@ export async function geocodeAddressString(address: string): Promise<{
   try {
     let results = await Location.geocodeAsync(cleanQuery);
     if (!results || results.length === 0) {
-      // Tek kelimelik ilçe/semt isimlerinde (örn: "maltepe", "kadıköy") Türkiye bağlamıyla dene
-      results = await Location.geocodeAsync(`${cleanQuery}, Türkiye`);
+      // Tek kelimelik ilçe/semt isimlerinde (örn: "maltepe", "kadıköy") yerel ülke bağlamıyla dene
+      const country = localCountryContext();
+      if (country) results = await Location.geocodeAsync(`${cleanQuery}, ${country}`);
     }
 
     if (results && results.length > 0) {
@@ -211,7 +226,7 @@ export async function geocodeAddressString(address: string): Promise<{
     const resp = await fetch(osmUrl, {
       headers: {
         "User-Agent": "CoupleSky/1.0",
-        "Accept-Language": "tr,en",
+        "Accept-Language": i18n.language === "tr" ? "tr,en" : "en,tr",
       },
     });
 

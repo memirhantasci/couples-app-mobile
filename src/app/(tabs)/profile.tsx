@@ -132,21 +132,20 @@ export default function ProfileScreen() {
   const isRelDateChanged = (relStartDate || "") !== (initialRelStartDate || "");
   const hasDatesChanges = isMeetDateChanged || isRelDateChanged;
 
-  // Demo profili sunucuya gitmeden, ilk çizimde bir kez doldurulur
-  React.useEffect(() => {
-    if (isDemoMode && !dataLoaded) {
-      const dName = DEMO_PROFILE.displayName ?? t("profile.guestName");
-      setDisplayName(dName);
-      setInitialDisplayName(dName);
-      setGender("female");
-      setInitialGender("female");
-      setMeetDate(DEMO_PROFILE.meetDate ?? "");
-      setInitialMeetDate(DEMO_PROFILE.meetDate ?? "");
-      setRelStartDate(DEMO_PROFILE.relationshipStartDate ?? "");
-      setInitialRelStartDate(DEMO_PROFILE.relationshipStartDate ?? "");
-      setDataLoaded(true);
-    }
-  }, [isDemoMode, dataLoaded]);
+  // Demo profili sunucuya gitmeden, ilk çizimde bir kez doldurulur. Koşullu ve tek seferlik olduğundan
+  // render sırasında durum ayarlanır (React'in önerdiği kalıp): efekt içinde setState ek bir yeniden çizim doğurur.
+  if (isDemoMode && !dataLoaded) {
+    const dName = DEMO_PROFILE.displayName ?? t("profile.guestName");
+    setDisplayName(dName);
+    setInitialDisplayName(dName);
+    setGender("female");
+    setInitialGender("female");
+    setMeetDate(DEMO_PROFILE.meetDate ?? "");
+    setInitialMeetDate(DEMO_PROFILE.meetDate ?? "");
+    setRelStartDate(DEMO_PROFILE.relationshipStartDate ?? "");
+    setInitialRelStartDate(DEMO_PROFILE.relationshipStartDate ?? "");
+    setDataLoaded(true);
+  }
 
   // Verileri yükle
   React.useEffect(() => {
