@@ -25,7 +25,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
     summary: "Kişisel verilerinizin işlenme amaçları, toplanma yöntemleri, hukuki sebepleri ve 6698 Sayılı KVKK 11. madde kapsamındaki haklarınız hakkında bilgilendirme.",
     content: [
       "1. VERİ SORUMLUSU",
-      "Veri sorumlusu: Couples App · İletişim: legal@couplesapp.net · Destek: destek@couplesapp.net. Couples App (\"Uygulama\" veya \"Veri Sorumlusu\") olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu (\"KVKK\") ve ilgili mevzuat uyarınca, kullanıcılarımızın kişisel verilerinin güvenliğine ve gizliliğine azami hassasiyet göstermekteyiz. İşbu Aydınlatma Metni, mobil uygulamamız üzerinden toplanan kişisel verilerinizin hangi amaçlarla işlendiğini ve haklarınızı açıklamaktadır.",
+      "Veri sorumlusu: CoupleSky · İletişim: support@couplesky.app · Destek: destek@couplesky.app. CoupleSky (\"Uygulama\" veya \"Veri Sorumlusu\") olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu (\"KVKK\") ve ilgili mevzuat uyarınca, kullanıcılarımızın kişisel verilerinin güvenliğine ve gizliliğine azami hassasiyet göstermekteyiz. İşbu Aydınlatma Metni, mobil uygulamamız üzerinden toplanan kişisel verilerinizin hangi amaçlarla işlendiğini ve haklarınızı açıklamaktadır.",
 
       "2. İŞLENEN KİŞİSEL VERİ KATEGORİLERİ VE VERİ TÜRLERİ",
       "Uygulamamızın sunduğu çift anı defteri, zaman kilitli mektuplar, konum tabanlı buluşma planları ve sağlık/döngü takip fonksiyonları kapsamında aşağıdaki kişisel verileriniz işlenmektedir:\n" +
@@ -81,7 +81,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "g) Yapılan işlemlerin aktarılan üçüncü kişilere bildirilmesini isteme,\n" +
       "h) İşlenen verilerin münhasıran otomatik sistemler vasıtasıyla analiz edilmesi suretiyle aleyhinize bir sonucun ortaya çıkmasına itiraz etme,\n" +
       "i) Kanuna aykırı olarak işlenmesi sebebiyle zarara uğramanız hâlinde zararın giderilmesini talep etme haklarına sahipsiniz.\n\n" +
-      "Haklarınızı kullanmak için uygulama içi destek alanından veya emirhanekin94@gmail.com adresinden bizimle iletişime geçebilirsiniz."
+      "Haklarınızı kullanmak için uygulama içi destek alanından veya destek@couplesky.app adresinden bizimle iletişime geçebilirsiniz."
     ]
   },
 
@@ -218,7 +218,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
     summary: "Information on the processing purposes, collection methods, legal grounds of your personal data, and your rights under GDPR and Article 11 of Turkish Law No. 6698 (KVKK).",
     content: [
       "1. DATA CONTROLLER",
-      "Data Controller: Couples App · Contact: legal@couplesapp.net · Support: destek@couplesapp.net. As Couples App (\"App\" or \"Data Controller\"), under the relevant data protection legislations (GDPR and Turkish Law No. 6698), we place the highest priority on the security and privacy of our users' personal data. This Clarification Text explains the purposes for which your data collected via our mobile app is processed and outlines your statutory rights.",
+      "Data Controller: CoupleSky · Contact: support@couplesky.app · Support: support@couplesky.app. As CoupleSky (\"App\" or \"Data Controller\"), under the relevant data protection legislations (GDPR and Turkish Law No. 6698), we place the highest priority on the security and privacy of our users' personal data. This Clarification Text explains the purposes for which your data collected via our mobile app is processed and outlines your statutory rights.",
 
       "2. CATEGORIES OF PROCESSED PERSONAL DATA AND DATA TYPES",
       "Within the scope of our shared couple journal, time-capsule sealed letters, location-based date planner, and health/menstrual cycle tracking features, the following personal data is processed:\n" +
@@ -274,7 +274,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "g) Request notification of corrections and deletions to third-party recipients,\n" +
       "h) Object to decisions made solely by automated systems that cause an adverse legal effect,\n" +
       "i) Seek compensation if you suffer damages due to unlawful processing.\n\n" +
-      "To exercise your rights, you can reach us through in-app support or directly via email at legal@couplesapp.net."
+      "To exercise your rights, you can reach us through in-app support or directly via email at support@couplesky.app."
     ]
   },
 
