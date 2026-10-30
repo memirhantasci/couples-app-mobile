@@ -301,6 +301,9 @@ interface StaticOverlayAssets {
 export function createStaticOverlayAssets(width: number, height: number): StaticOverlayAssets {
   const background = record((canvas) => {
     const paint = Skia.Paint();
+    // The two colours are only a few 8-bit steps apart; without dithering the
+    // gradient shows as faint concentric rings around the screen centre.
+    paint.setDither(true);
     const shader = Skia.Shader.MakeRadialGradient(
       Skia.Point(width / 2, height / 2),
       Math.max(width, height) * 1.2,

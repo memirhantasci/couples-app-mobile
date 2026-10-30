@@ -16,31 +16,34 @@
  * Rate: the map is flat (equirectangular), so meteors are spread uniformly
  * over RA×Dec degrees rather than true sky area; every part of the map, polar
  * regions included, gets the same rate. Measured over simulated hours, a
- * viewer sees about one meteor per ~1.5 min at the star screen's resting zoom
- * (3), ~1.2 min at the overview zoom (1.2) and ~45 s at the widest view, where
- * only the brighter ones show (see meteorZoomVisibility). Zoomed far in the
- * visible patch is small and meteors are rare, as with a telescope.
+ * viewer sees about one meteor per ~11 s at the star screen's resting zoom
+ * (3) and ~6 s at the overview zoom (1.2), where only the brighter ones show
+ * (see meteorZoomVisibility). Zoomed far in the visible patch is small and
+ * meteors are rarer (~30 s at zoom 6), as with a telescope.
+ *
+ * Meteors are slow and short enough to be tapped: at the resting zoom the
+ * head moves ~140 px/s (median).
  */
 
 import { pxPerDegree, shortestRaDelta, type SkyCamera } from './skyProjection';
 import { smoothstep } from './starStyle';
 
 export const METEOR_SLOT_MS = 10_000;
-export const METEOR_CELL_DEG = 30;
+export const METEOR_CELL_DEG = 20;
 const RA_CELLS = 360 / METEOR_CELL_DEG;
 const DEC_CELLS = 180 / METEOR_CELL_DEG;
-/** Chance that a cell gets a meteor in a slot (≈ 2.7e-5 meteors per deg² per second). */
-export const METEOR_CHANCE = 0.24;
-const MIN_DURATION_MS = 900;
-const MAX_DURATION_MS = 1600;
-const MIN_LENGTH_DEG = 8;
+/** Chance that a cell gets a meteor in a slot (≈ 2.1e-4 meteors per deg² per second). */
+export const METEOR_CHANCE = 0.85;
+const MIN_DURATION_MS = 2200;
+const MAX_DURATION_MS = 3200;
+const MIN_LENGTH_DEG = 5;
 /** Longest path; cells this far outside the view can still send a meteor into it. */
-const MAX_LENGTH_DEG = 22;
+const MAX_LENGTH_DEG = 12;
 /** Path angle below the horizontal: meteors fall, mostly sideways. */
 const MIN_FALL_ANGLE_DEG = 10;
 const MAX_FALL_ANGLE_DEG = 65;
 const FIREBALL_CHANCE = 0.06;
-const MIN_BRIGHTNESS = 0.35;
+const MIN_BRIGHTNESS = 0.6;
 /** Meteors start this far from the poles at most and never travel past MAX_ABS_DEC. */
 const MAX_START_DEC = 80;
 const MAX_ABS_DEC = 86;
@@ -128,7 +131,7 @@ export function meteorForCell(slot: number, raCell: number, decCell: number): Me
   let deltaDec = -Math.sin(angle) * length;
   // Near the south pole a falling meteor would leave the map: it rises instead.
   if (startDec + deltaDec < -MAX_ABS_DEC) deltaDec = -deltaDec;
-  const tail = 0.2 + next() * 0.12;
+  const tail = 0.3 + next() * 0.15;
   const shade = next();
   const fireball = next() < FIREBALL_CHANCE;
   const brightness = fireball ? 1 : MIN_BRIGHTNESS + (1 - MIN_BRIGHTNESS) * shade * shade;
@@ -189,7 +192,7 @@ export function meteorSegment(
   const tailY = headY + event.deltaDec * (head - tail) * scale;
 
   const fade = smoothstep(0, 0.12, progress) * (1 - smoothstep(0.72, 1, progress));
-  const alpha = fade * (0.45 + 0.55 * event.brightness) * meteorZoomVisibility(event.brightness, camera.zoom);
+  const alpha = fade * (0.75 + 0.25 * event.brightness) * meteorZoomVisibility(event.brightness, camera.zoom);
   return { headX, headY, tailX, tailY, alpha };
 }
 

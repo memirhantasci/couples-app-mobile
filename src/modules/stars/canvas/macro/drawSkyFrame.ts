@@ -57,8 +57,8 @@ const STAR_REACH_PX = 24;
 const CONNECTION_DASH = [4, 6];
 const CONNECTION_DASH_PERIOD_PX = 10;
 const CONNECTION_FLOW_PX_PER_SEC = 24;
-/** Meteor streak tints: icy for ordinary meteors, warm for fireballs. */
-const METEOR_TINT = '#CFE6FF';
+/** Meteor streak tints: near-white for ordinary meteors, warm for fireballs. */
+const METEOR_TINT = '#F2F8FF';
 const FIREBALL_TINT = '#FFE2B3';
 
 /**
@@ -175,9 +175,9 @@ export function createStarPaints(): StarPaints {
     meteorCore,
     meteorHalo,
     meteorRing,
-    meteorGlowShader: streakShader(METEOR_TINT, [0, 0.55], [0, 1]),
-    fireballGlowShader: streakShader(FIREBALL_TINT, [0, 0.55], [0, 1]),
-    meteorCoreShader: streakShader('#FFFFFF', [0, 0.55, 1], [0, 0.7, 1]),
+    meteorGlowShader: streakShader(METEOR_TINT, [0, 0.75], [0, 1]),
+    fireballGlowShader: streakShader(FIREBALL_TINT, [0, 0.75], [0, 1]),
+    meteorCoreShader: streakShader('#FFFFFF', [0, 0.85, 1], [0, 0.5, 1]),
     meteorTint: colorOf(METEOR_TINT, 1),
     fireballTint: colorOf(FIREBALL_TINT, 1),
     orbitRect: Skia.XYWHRect(0, 0, 0, 0),
@@ -456,10 +456,10 @@ function drawConnectionLines(
 /** Length of the burst drawn where a meteor was caught. */
 export const METEOR_CATCH_BURST_MS = 900;
 
-/** Stroke width of a meteor's core at a zoom: thin far out, a little bolder up close. */
+/** Stroke width of a meteor's core at a zoom: finer far out, bolder up close. */
 function meteorWidth(event: MeteorEvent, zoom: number): number {
   'worklet';
-  return Math.min(1.7, Math.max(0.9, 0.85 + 0.12 * zoom)) * (event.fireball ? 1.5 : 1);
+  return Math.min(2.6, Math.max(1.5, 1.3 + 0.2 * zoom)) * (event.fireball ? 1.4 : 1);
 }
 
 /** A meteor's streak: blurred tinted halo, bright tapering core and a glowing head. */
@@ -499,8 +499,8 @@ function drawMeteorStreak(
   }
 
   paints.meteorHalo.setColor(event.fireball ? paints.fireballTint : paints.meteorTint);
-  paints.meteorHalo.setAlphaf(alpha * (event.fireball ? 0.6 : 0.45));
-  canvas.drawCircle(headX, headY, width * (event.fireball ? 6.5 : 4), paints.meteorHalo);
+  paints.meteorHalo.setAlphaf(alpha * (event.fireball ? 0.75 : 0.65));
+  canvas.drawCircle(headX, headY, width * (event.fireball ? 6.5 : 4.5), paints.meteorHalo);
   paints.fill.setColor(paints.white);
   paints.fill.setAlphaf(alpha);
   canvas.drawCircle(headX, headY, width * 1.25, paints.fill);

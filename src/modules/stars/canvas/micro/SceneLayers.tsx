@@ -85,7 +85,8 @@ export const SpaceBackdrop = React.memo(function SpaceBackdrop({
 
   return (
     <Group>
-      <Rect x={0} y={0} width={w} height={h}>
+      {/* Koyu, birbirine yakın renkler: dither olmadan merkez etrafında halka halka bantlaşır */}
+      <Rect x={0} y={0} width={w} height={h} dither>
         <RadialGradient
           c={vec(layout.cx, layout.cy)}
           r={reach * 0.9}
@@ -123,7 +124,7 @@ export const SpaceBackdrop = React.memo(function SpaceBackdrop({
       </Group>
 
       {/* Yıldızın renginde hafif bir pus */}
-      <Circle cx={layout.cx} cy={layout.cy} r={w * 0.95}>
+      <Circle cx={layout.cx} cy={layout.cy} r={w * 0.95} dither>
         <RadialGradient
           c={vec(layout.cx, layout.cy)}
           r={w * 0.95}
