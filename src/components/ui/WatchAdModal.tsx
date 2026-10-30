@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, useState } from "react";
-import { View, Text, TouchableOpacity, Modal, StyleSheet, ActivityIndicator, TurboModuleRegistry } from "react-native";
+import { View, Text, TouchableOpacity, Modal, StyleSheet, ActivityIndicator, TurboModuleRegistry, Platform } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { DialogHost } from "@/components/ui/DialogHost";
 import { X, PlayCircle, Coins } from "lucide-react-native";
@@ -29,7 +29,13 @@ if (hasAdsModule && !isExpoGo) {
 }
 
 // Üretimde birim kimliği tanımlı değilse ödüllü reklam yüklenmez (test reklamına düşülmez)
-const adUnitId = resolveAdUnitId(process.env.EXPO_PUBLIC_ADMOB_REWARDED_ID, TestIds?.REWARDED);
+const productionRewardedId = Platform.select({
+  ios: process.env.EXPO_PUBLIC_ADMOB_REWARDED_ID_IOS || process.env.EXPO_PUBLIC_ADMOB_REWARDED_ID,
+  android: process.env.EXPO_PUBLIC_ADMOB_REWARDED_ID_ANDROID || process.env.EXPO_PUBLIC_ADMOB_REWARDED_ID,
+  default: process.env.EXPO_PUBLIC_ADMOB_REWARDED_ID,
+});
+
+const adUnitId = resolveAdUnitId(productionRewardedId, TestIds?.REWARDED);
 
 // Mock hook for Expo Go where native ads binary is absent
 function useRewardedAdMock() {

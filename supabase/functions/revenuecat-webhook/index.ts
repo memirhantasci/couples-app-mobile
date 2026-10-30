@@ -16,7 +16,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const ENTITLEMENT = "Premium";
+const ENTITLEMENTS = new Set(["Premium", "couples_app_pro"]);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const GRANT_EVENTS = new Set([
   "INITIAL_PURCHASE",
@@ -71,7 +71,7 @@ async function applyEvent(event: RevenueCatEvent): Promise<string> {
   if (type === "TEST") return "test";
 
   // Başka bir hakka ait olay (varsa) yok sayılır
-  if (event.entitlement_ids && !event.entitlement_ids.includes(ENTITLEMENT)) return "other_entitlement";
+  if (event.entitlement_ids && !event.entitlement_ids.some(id => ENTITLEMENTS.has(id))) return "other_entitlement";
 
   const userId = resolveUserId(event);
   if (!userId) return "no_user";

@@ -109,7 +109,8 @@ export default function PaywallScreen() {
 
     try {
       const customerInfo = await RevenueCatService.purchasePackage(selectedPackage);
-      if (customerInfo && typeof customerInfo.entitlements.active['Premium'] !== "undefined") {
+      const isEntitled = customerInfo && (typeof customerInfo.entitlements.active['Premium'] !== 'undefined' || typeof customerInfo.entitlements.active['couples_app_pro'] !== 'undefined');
+      if (isEntitled) {
         await waitForServerPremium(refreshProfile);
         toast.success(t("paywall.activated"), { title: t("common.congratulations"), emoji: "👑", duration: 3400 });
         handleBack();
@@ -130,7 +131,8 @@ export default function PaywallScreen() {
     try {
       suppressPremiumCelebration();
       const customerInfo = await RevenueCatService.restorePurchases();
-      if (customerInfo && typeof customerInfo.entitlements.active['Premium'] !== "undefined") {
+      const isEntitled = customerInfo && (typeof customerInfo.entitlements.active['Premium'] !== 'undefined' || typeof customerInfo.entitlements.active['couples_app_pro'] !== 'undefined');
+      if (isEntitled) {
         await waitForServerPremium(refreshProfile);
         toast.success(t("paywall.restored"));
         handleBack();
