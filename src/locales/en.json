@@ -1740,6 +1740,7 @@
     }
   },
   "calendar": {
+    "loadFailed": "The calendar couldn't be loaded: {{message}}",
     "demo": {
       "deleteTitle": "Sign Up to Delete a Note 🗑️",
       "deleteDescription": "Create your free account to manage and delete the notes in your calendar."

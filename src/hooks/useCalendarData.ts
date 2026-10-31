@@ -139,9 +139,18 @@ export async function fetchCalendarData(params: CalendarFetchParams) {
 
   // Ağ hatasında boş takvim "başarılı veri" olarak 5 dakika önbelleğe alınmasın: hata sorguya iletilir,
   // ekranda önceki veri (placeholderData) kalır ve TanStack Query yeniden dener
-  const firstError =
-    notesRes.error || moodsRes.error || photosRes.error || meetingsRes.error || periodsRes.error || usersRes.error;
-  if (firstError) throw firstError;
+  // Hangi tablonun sorgusu başarısız olduğu mesajda yazar (aksi halde "takvim boş" nedensiz görünür)
+  const failed = (
+    [
+      ["calendar_notes", notesRes.error],
+      ["moods", moodsRes.error],
+      ["photo_archive", photosRes.error],
+      ["meetings", meetingsRes.error],
+      ["period_logs", periodsRes.error],
+      ["users", usersRes.error],
+    ] as const
+  ).find(([, error]) => error);
+  if (failed) throw new Error(`${failed[0]}: ${failed[1]?.message ?? "unknown error"}`);
 
   const userMap = (usersRes.data || []).reduce((acc: any, u: any) => {
     acc[u.id] = u;

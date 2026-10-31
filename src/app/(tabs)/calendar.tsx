@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
 } from "react-native";
@@ -103,7 +103,7 @@ export default function CalendarScreen() {
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("calendar");
 
   // 🚀 Optimize Edilmiş Veri Çekme Hook'u (3 ay aralığı, cache optimizasyonu, 0ms geçiş)
-  const { data, isLoading } = useCalendarData({
+  const { data, isLoading, error: loadError } = useCalendarData({
     coupleId,
     userId,
     isPremium,
@@ -111,6 +111,17 @@ export default function CalendarScreen() {
     isDemoMode,
     anchorMonth: dataAnchor,
   });
+
+  // Veri yüklenemezse takvim sessizce boş kalmasın: sebep loglanır ve bir kez gösterilir
+  const reportedLoadError = useRef<unknown>(null);
+  useEffect(() => {
+    if (!loadError || reportedLoadError.current === loadError) return;
+    reportedLoadError.current = loadError;
+    logger.error("[Calendar] Calendar data could not be loaded:", loadError);
+    dialog.alert(t("common.error"), t("calendar.loadFailed", { message: errorMessage(loadError) }), undefined, {
+      tone: "error",
+    });
+  }, [loadError, t]);
 
   // Kullanıcı başına regl başlangıçları (kayıtlar yalnızca başlangıç gününü tutar; 5 günlük süreç buradan türetilir)
   const periodStartsByUser = useMemo(() => {

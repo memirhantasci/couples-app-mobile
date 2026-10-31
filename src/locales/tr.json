@@ -1740,6 +1740,7 @@
     }
   },
   "calendar": {
+    "loadFailed": "Takvim verisi yüklenemedi: {{message}}",
     "demo": {
       "deleteTitle": "Notu Silmek İçin Kayıt Olun 🗑️",
       "deleteDescription": "Takvimdeki notlarınızı yönetmek ve silmek için ücretsiz hesabınızı oluşturun."
