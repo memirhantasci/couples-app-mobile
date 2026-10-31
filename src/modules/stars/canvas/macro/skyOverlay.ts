@@ -78,7 +78,6 @@ export interface SkyOverlay {
   readonly sectorLabels: readonly SectorLabelItem[];
   readonly hero: HeroItem | null;
   readonly connections: readonly ConnectionItem[];
-  readonly connectionNode: SkPicture;
   readonly solar: readonly SolarItem[];
   readonly claimedLabels: readonly ClaimedLabelItem[];
 }
@@ -302,7 +301,6 @@ interface StaticOverlayAssets {
   readonly constellations: readonly number[];
   readonly constellationPaint: SkPaint;
   readonly orbitPaint: SkPaint;
-  readonly connectionNode: SkPicture;
   readonly heroMarker: SkPicture;
   readonly sunMarker: SkPicture;
   readonly earthMarker: SkPicture;
@@ -452,10 +450,6 @@ export function createStaticOverlayAssets(width: number, height: number): Static
     canvas.drawCircle(0, 0, 2.0, fillPaint('#C084FC'));
   });
 
-  const connectionNode = record((canvas) => {
-    canvas.drawCircle(0, 0, 7, strokePaint('rgba(244, 114, 182, 0.8)', 1.2));
-  });
-
   return {
     background,
     milkyWay,
@@ -464,7 +458,6 @@ export function createStaticOverlayAssets(width: number, height: number): Static
     constellationPaint: strokePaint('rgba(255, 255, 255, 0.18)', 1),
     // Göze batmayan, soğuk tonlu ince halka: gezegenleri bir arada tutar ama dikkati çekmez
     orbitPaint: strokePaint('rgba(165, 180, 252, 0.13)', 1),
-    connectionNode,
     heroMarker,
     sunMarker,
     earthMarker,
@@ -647,7 +640,6 @@ export function buildSkyOverlay({
     sectorLabels,
     hero,
     connections: connectionItems,
-    connectionNode: assets.connectionNode,
     solar,
     claimedLabels,
   };

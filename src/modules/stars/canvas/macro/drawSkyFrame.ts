@@ -2,7 +2,6 @@ import type {
   SkCanvas,
   SkHostRect,
   SkPaint,
-  SkPathEffect,
   SkPicture,
   SkPictureRecorder,
   SkShader,
@@ -16,6 +15,7 @@ import {
   type MeteorEvent,
   type MeteorSegment,
 } from './meteorSchedule';
+import { drawConnectionMist, MIST_COLORS, MIST_FALLOFF_ALPHAS, MIST_FALLOFF_STOPS } from './connectionMist';
 import type { SkyOverlay } from './skyOverlay';
 import { pxPerDegree, shortestRaDelta, type SkyCamera } from './skyProjection';
 import { colorOf, glowShader, STAR_FADE_MS, type StarField, type StarRender } from './starField';
@@ -59,10 +59,6 @@ const GLOW_BLEND = [1.3, 1.7] as const;
 const DETAIL_BLEND = [3.6, 4.4] as const;
 /** Furthest a star's glow or halo reaches past its radius, in pixels. */
 const STAR_REACH_PX = 24;
-/** Connection lines: 4 px dashes with 6 px gaps, flowing away from our star. */
-const CONNECTION_DASH = [4, 6];
-const CONNECTION_DASH_PERIOD_PX = 10;
-const CONNECTION_FLOW_PX_PER_SEC = 24;
 /** Meteor streak tints: near-white for ordinary meteors, warm for fireballs. */
 const METEOR_TINT = '#F2F8FF';
 const FIREBALL_TINT = '#FFE2B3';
@@ -87,15 +83,10 @@ export interface StarPaints {
   readonly paleGold: Float32Array;
   /** Opacity of a fading group of labels (see beginAlphaLayer). */
   readonly layer: SkPaint;
-  /** Dashed line from our star to each connected star. */
-  readonly connectionLine: SkPaint;
-  /**
-   * The dash pattern at every offset the flow can take: react-native-skia
-   * hands Skia the offset as a whole number of pixels.
-   */
-  readonly connectionDashes: readonly SkPathEffect[];
-  /** Bright particle travelling along each connection line. */
-  readonly connectionParticle: SkPaint;
+  /** Screen-blended paint for the mist between connected stars (see connectionMist). */
+  readonly connectionMist: SkPaint;
+  /** One soft puff shader per mist colour, from our star's end to the connected star's end. */
+  readonly connectionMistShaders: readonly SkShader[];
   /** Soft, blurred halo along a meteor's streak. */
   readonly meteorGlow: SkPaint;
   /** Thin bright core of a meteor's streak. */
@@ -144,18 +135,20 @@ export function createStarPaints(): StarPaints {
   glow.setDither(true);
   const paleGold = colorOf('#FDE68A', 1);
 
-  const connectionLine = Skia.Paint();
-  connectionLine.setAntiAlias(true);
-  connectionLine.setStyle(1);
-  connectionLine.setStrokeWidth(1.6);
-  connectionLine.setColor(colorOf('#FBBF24', 0.55));
-  const connectionDashes: SkPathEffect[] = [];
-  for (let offset = 0; offset < CONNECTION_DASH_PERIOD_PX; offset++) {
-    connectionDashes.push(Skia.PathEffect.MakeDash(CONNECTION_DASH, -offset));
-  }
-  const connectionParticle = Skia.Paint();
-  connectionParticle.setAntiAlias(true);
-  connectionParticle.setColor(paleGold);
+  // Many faint puffs add up to vapour: Screen blending brightens like light would and never overexposes
+  const connectionMist = Skia.Paint();
+  connectionMist.setAntiAlias(true);
+  connectionMist.setDither(true);
+  connectionMist.setBlendMode(14); // BlendMode.Screen
+  const connectionMistShaders = MIST_COLORS.map((hex) =>
+    Skia.Shader.MakeRadialGradient(
+      Skia.Point(0, 0),
+      1,
+      MIST_FALLOFF_ALPHAS.map((alpha) => colorOf(hex, alpha)),
+      [...MIST_FALLOFF_STOPS],
+      0,
+    ),
+  );
 
   const meteorGlow = Skia.Paint();
   meteorGlow.setAntiAlias(true);
@@ -183,9 +176,8 @@ export function createStarPaints(): StarPaints {
     purple: colorOf('#A855F7', 1),
     paleGold,
     layer: Skia.Paint(),
-    connectionLine,
-    connectionDashes,
-    connectionParticle,
+    connectionMist,
+    connectionMistShaders,
     meteorGlow,
     meteorCore,
     meteorHalo,
@@ -465,7 +457,7 @@ function connectionPhase(ra: number, dec: number): number {
   return seed - Math.floor(seed);
 }
 
-/** Flowing dashed stroke plus a travelling bright particle, for a "living" bond. */
+/** A soft, curved band of drifting mist from our star to each connected star (see connectionMist). */
 function drawConnectionLines(
   canvas: SkCanvas,
   view: FrameView,
@@ -480,25 +472,22 @@ function drawConnectionLines(
   const x1 = screenX(view, hero.ra);
   const y1 = screenY(view, hero.dec);
 
-  const { connectionLine: flowPaint, connectionParticle: particle } = paints;
-  const dashOffset = Math.floor((animSeconds * CONNECTION_FLOW_PX_PER_SEC) % CONNECTION_DASH_PERIOD_PX);
-  flowPaint.setPathEffect(paints.connectionDashes[dashOffset]);
-
   for (const connection of overlay.connections) {
     const x2 = x1 + shortestRaDelta(hero.ra, connection.ra) * scale;
     const y2 = y1 - (connection.dec - hero.dec) * scale;
     if ((x1 < 0 && x2 < 0) || (x1 > width && x2 > width) || (y1 < 0 && y2 < 0) || (y1 > height && y2 > height)) continue;
-    canvas.drawLine(x1, y1, x2, y2, flowPaint);
-    if (isOnScreen(view, x2, y2, 40)) drawAt(canvas, overlay.connectionNode, x2, y2);
-
-    const t = (animSeconds * 0.35 + connectionPhase(connection.ra, connection.dec)) % 1;
-    const px = x1 + (x2 - x1) * t;
-    const py = y1 + (y2 - y1) * t;
-    if (!isOnScreen(view, px, py, 12)) continue;
-    particle.setAlphaf(0.35);
-    canvas.drawCircle(px, py, 6, particle);
-    particle.setAlphaf(0.9);
-    canvas.drawCircle(px, py, 2.4, particle);
+    drawConnectionMist(
+      canvas,
+      paints.connectionMist,
+      paints.connectionMistShaders,
+      view,
+      x1,
+      y1,
+      x2,
+      y2,
+      connectionPhase(connection.ra, connection.dec),
+      animSeconds,
+    );
   }
 }
 
