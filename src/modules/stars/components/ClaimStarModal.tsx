@@ -10,7 +10,7 @@
  * 4. 'certificate': Altın mühürlü dijital tescil sertifikası ve sisteme geçiş.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Modal,
   View,
@@ -20,6 +20,7 @@ import {
   StyleSheet,
   Platform,
   Dimensions,
+  Keyboard,
   KeyboardAvoidingView,
   ScrollView,
 } from 'react-native';
@@ -270,6 +271,41 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
   const [renameValue, setRenameValue] = useState('');
   const [renameError, setRenameError] = useState('');
   const [renameBusy, setRenameBusy] = useState(false);
+
+  // ─── Android klavye payı ──────────────────────────────────────────
+  // KeyboardAvoidingView('height') Android'de, pencere klavyeyle zaten küçülen cihazlarda payı ikinci kez
+  // düşüyor: kart klavyenin üstünde dar bir şeride sıkışıp üstten kesiliyordu. Pencerenin klavyeyle GERÇEKTEN
+  // çakışan kısmı ölçülür ve yalnızca o kadar boşluk bırakılır: pencere küçüldüyse 0, küçülmediyse klavye boyu.
+  const rootRef = useRef<View>(null);
+  const keyboardTopRef = useRef<number | null>(null);
+  const [keyboardInset, setKeyboardInset] = useState(0);
+  const updateKeyboardInset = useCallback(() => {
+    const keyboardTop = keyboardTopRef.current;
+    if (keyboardTop === null) {
+      setKeyboardInset(0);
+      return;
+    }
+    rootRef.current?.measureInWindow((_x, y, _w, height) => {
+      // Klavye hâlâ açıksa sonucu uygula (ölçüm asenkron döner)
+      if (keyboardTopRef.current === null) return;
+      setKeyboardInset(Math.max(0, Math.round(y + height - keyboardTopRef.current)));
+    });
+  }, []);
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const show = Keyboard.addListener('keyboardDidShow', (event) => {
+      keyboardTopRef.current = event.endCoordinates.screenY;
+      updateKeyboardInset();
+    });
+    const hide = Keyboard.addListener('keyboardDidHide', () => {
+      keyboardTopRef.current = null;
+      setKeyboardInset(0);
+    });
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, [updateKeyboardInset]);
   const [renameLockedUntil, setRenameLockedUntil] = useState<string | null>(null);
 
   const nameLockedUntil = renameLockedUntil ?? claimedStar?.name_change_available_at ?? null;
@@ -472,7 +508,12 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
       animationType="fade"
       onRequestClose={modalState === 'scanning' ? undefined : onClose}
     >
-      <View style={[styles.modalBackdrop, { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.55)' : 'rgba(3, 2, 7, 0.88)' }]}>
+      <View
+        ref={rootRef}
+        collapsable={false}
+        onLayout={Platform.OS === 'android' ? updateKeyboardInset : undefined}
+        style={[styles.modalBackdrop, { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.55)' : 'rgba(3, 2, 7, 0.88)' }]}
+      >
         <BlurView
           intensity={Platform.OS === 'ios' ? 70 : 100}
           tint={isLight ? 'light' : 'dark'}
@@ -480,9 +521,11 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
           pointerEvents="none"
         />
 
+        {/* iOS: KeyboardAvoidingView; Android: ölçülen klavye payı (yukarıya bakın) */}
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardContainer}
+          enabled={Platform.OS === 'ios'}
+          behavior="padding"
+          style={[styles.keyboardContainer, Platform.OS === 'android' && { paddingBottom: keyboardInset }]}
         >
           <ScrollView
             contentContainerStyle={[
