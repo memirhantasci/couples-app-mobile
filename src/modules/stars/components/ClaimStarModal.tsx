@@ -85,6 +85,11 @@ export interface ClaimStarModalProps {
   readonly isPremium?: boolean;
   readonly onPremiumRequired?: () => void;
   readonly onClose?: () => void;
+  /**
+   * Tescil sunucuda tamamlandığı AN çağrılır (sertifika henüz açıkken): ekran yıldızı hemen tanısın.
+   * `onSuccess` ise sertifikadaki son düğmeye basılınca çağrılır; sertifika X / geri tuşuyla kapatılırsa hiç çağrılmaz.
+   */
+  readonly onClaimed?: (star: CoupleStarDetails) => void;
   readonly onSuccess?: (star: CoupleStarDetails) => void;
   /** Sertifika görünümünde "İsmi düzenle" gösterilsin mi (demo hesapta kapalı). */
   readonly canRename?: boolean;
@@ -240,6 +245,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
   isPremium = false,
   onPremiumRequired,
   onClose,
+  onClaimed,
   onSuccess,
   canRename = false,
   onRenamed,
@@ -490,6 +496,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
     } else if (resultStar) {
       setClaimedStar(resultStar);
       setModalState('certificate');
+      onClaimed?.(resultStar);
       await hapticSuccess();
     }
   };

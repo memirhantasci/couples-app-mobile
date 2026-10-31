@@ -461,8 +461,12 @@ export const OurStarScreen: React.FC = () => {
   }, [isDemoMode, coupleId]);
 
   // ─── VERİ YÜKLEME VE RECONCILIATION ────────────────────────────────
+  // Son tescilin zamanı: bu andan ÖNCE başlamış bir "yıldız yok" yanıtı yeni tescili ezemez
+  const lastClaimAtRef = useRef(0);
+
   const loadStarData = useCallback(
     async (isSilent: boolean = false) => {
+      const loadStartedAt = Date.now();
       // 0. Demo Modu: Misafir kullanıcı için zengin örnek yıldız verisi
       if (isDemoMode) {
         setStarDetails(DEMO_STAR_DETAILS);
@@ -510,6 +514,8 @@ export const OurStarScreen: React.FC = () => {
 
         const details = await starService.getMyStarDetails(coupleId);
         if (!details) {
+          // Bu istek tescilden önce başladıysa yanıtı eskidir (ör. ödeme ekranından dönüşteki yenileme)
+          if (lastClaimAtRef.current > loadStartedAt) return;
           setStarDetails(null);
           setViewMode('macro');
           return;
@@ -948,14 +954,30 @@ export const OurStarScreen: React.FC = () => {
     showToast(t('stars.screen.toasts.renamed'));
   }, [coupleId, refreshSkyTiles, showToast, t]);
 
-  // ─── TESCİL BAŞARISI (Claim Callback) ──────────────────────────────
+  // ─── TESCİL TAMAMLANDI (sertifika açıkken) ─────────────────────────
+  // Yıldız sunucuda alındığı anda ekran onu tanır: sertifika X / geri tuşuyla kapatılsa bile gök kubbede
+  // yıldız görünür. (Eskiden ekran yıldızı yalnızca sertifikadaki son düğmede öğreniyordu; kapatan
+  // kullanıcıya "yıldızını seç" yönlendirmesi kalıyor, ekran yeniden açılana dek yıldız görünmüyordu.)
+  const handleStarClaimed = (claimed: CoupleStarDetails) => {
+    lastClaimAtRef.current = Date.now();
+    setStarDetails(claimed);
+    setLuminosityOverride(claimed.luminosity_level);
+    setIsResonanceActive(claimed.resonance_active);
+    setSelectedMacroStar(null);
+    if (coupleId) writeStarCache(coupleId, { details: claimed, planets: [] });
+    // Gök kubbe karoları yeni sahibi (kendi yıldızımız) taşısın; kamera yıldıza süzülsün
+    refreshSkyTiles();
+    queueStarIntro(Number(claimed.ra), Number(claimed.dec));
+    refreshMyBrightness();
+    loadStarData(true);
+  };
+
+  // ─── TESCİL SERTİFİKASI KAPANDI (son düğme: "Mikro Evrenimize Adım At") ──
   const handleClaimSuccess = (claimed: CoupleStarDetails) => {
     setStarDetails(claimed);
     setLuminosityOverride(claimed.luminosity_level);
     setIsClaimModalOpen(false);
     setViewMode('micro');
-    // Anı gezegenlerini sıfırdan çek
-    loadStarData(true);
     showToast(t('stars.screen.toasts.registered'));
   };
 
@@ -1887,6 +1909,7 @@ export const OurStarScreen: React.FC = () => {
             setClaimTargetStar(null);
             setClaimSectorId(null);
           }}
+          onClaimed={handleStarClaimed}
           onSuccess={handleClaimSuccess}
           isPremium={isPremium}
           onPremiumRequired={() => handlePremiumAction('star_claim', () => {})}
