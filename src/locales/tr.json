@@ -51,7 +51,6 @@
       "identifierLabel": "E-POSTA VEYA KULLANICI ADI",
       "identifierPlaceholder": "ornek@gmail.com veya kullanıcı adı",
       "forgotPassword": "Şifremi Unuttum?",
-      "appleContinue": "Apple ile devam et",
       "googleContinue": "Google ile devam et"
     },
     "register": {

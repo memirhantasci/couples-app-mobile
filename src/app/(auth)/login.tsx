@@ -28,7 +28,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import * as AppleAuthentication from "expo-apple-authentication";
-import { AppleLogo, GoogleLogo } from "@/components/ui/SocialLogos";
+import { GoogleLogo } from "@/components/ui/SocialLogos";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { Trans, useTranslation } from "react-i18next";
 import i18n from "@/lib/i18n";
@@ -1112,22 +1112,17 @@ export default function LoginScreen() {
               halden gerçek native view'a döner; çocukları aynı karede başka ebeveyne taşınınca Android Fabric
               "addViewAt: child already has a parent" ile çöküyordu. Hep native view kalsın. */}
           <View collapsable={false} style={[styles.socialGroup, isLoading && { opacity: 0.6 }]} pointerEvents={isLoading ? "none" : "auto"}>
-            {/* Apple ve Google: aynı açık gri düğme; logo solda, yazı düğmenin tam ortasında */}
+            {/* Apple: Apple'ın onaylı native butonu (HIG / App Store 4.8 uyumlu). Özel çizilmiş Apple
+                düğmesi (gri zemin, logo solda vb.) incelemede takılma riski taşıdığı için kullanılmaz;
+                yazısını sistem dilinde Apple kendisi basar. Google düğmesiyle aynı yükseklik ve köşe. */}
             {Platform.OS === "ios" && isAppleAvailable && (
-              <TouchableOpacity
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+                cornerRadius={14}
+                style={styles.appleButton}
                 onPress={handleAppleAuth}
-                disabled={isLoading}
-                activeOpacity={0.85}
-                accessibilityRole="button"
-                style={styles.socialBtn}
-              >
-                <View style={styles.socialLogo}>
-                  <AppleLogo size={24} />
-                </View>
-                <Text style={styles.socialBtnText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
-                  {t("auth.login.appleContinue")}
-                </Text>
-              </TouchableOpacity>
+              />
             )}
 
             <TouchableOpacity
@@ -1138,7 +1133,7 @@ export default function LoginScreen() {
               style={styles.socialBtn}
             >
               <View style={styles.socialLogo}>
-                <GoogleLogo size={24} />
+                <GoogleLogo size={22} />
               </View>
               <Text style={styles.socialBtnText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
                 {t("auth.login.googleContinue")}
@@ -1412,10 +1407,17 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 14,
   },
+  appleButton: {
+    width: "100%",
+    height: 52,
+  },
+  // Google'ın açık tema düğmesi (beyaz zemin, gri çerçeve) — yanındaki beyaz Apple düğmesiyle uyumlu
   socialBtn: {
     height: 52,
     borderRadius: 14,
-    backgroundColor: "#F2F2F2",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#747775",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -1430,7 +1432,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   socialBtnText: {
-    color: "#111111",
+    color: "#1F1F1F",
     fontSize: 16,
     fontFamily: "Inter_600SemiBold",
     textAlign: "center",
