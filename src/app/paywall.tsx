@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, Platform } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
@@ -7,7 +7,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { RevenueCatService } from "@/lib/revenuecat";
 import { PurchasesPackage } from "react-native-purchases";
-import { X, Crown, Check, ShieldCheck } from "lucide-react-native";
+import { X, Crown, Check, ShieldCheck, Gift } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LegalModal } from "@/components/legal/LegalModal";
 import { LegalDocType } from "@/constants/legalTexts";
@@ -300,6 +300,20 @@ export default function PaywallScreen() {
               <ShieldCheck color={theme.textMuted} size={16} />
               <Text style={[styles.restoreText, { color: theme.textMuted }]}>{t("paywall.restore")}</Text>
             </TouchableOpacity>
+
+            {Platform.OS === "ios" && (
+              <TouchableOpacity
+                style={[styles.restoreBtn, { marginTop: 6 }]}
+                onPress={() => RevenueCatService.presentCodeRedemptionSheet()}
+                disabled={purchasing}
+                activeOpacity={0.7}
+              >
+                <Gift color={theme.accent} size={16} />
+                <Text style={[styles.restoreText, { color: theme.accent, fontWeight: "600" }]}>
+                  {t("paywall.redeemCode")}
+                </Text>
+              </TouchableOpacity>
+            )}
 
             {/* Yasal Abonelik ve İade Bilgilendirmesi */}
             <View
