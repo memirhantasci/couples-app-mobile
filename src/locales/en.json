@@ -1024,6 +1024,7 @@
     "storeUnavailable": "We can't connect to the store right now, or the plans couldn't be loaded. Please check your internet connection and try again.",
     "goBack": "Go Back",
     "restore": "Restore Purchases",
+    "redeemCodeTitle": "Discount / Gift Code",
     "redeemCode": "Have a promo code? Redeem",
     "legalNotice": "Payment is charged to your store account when your subscription is confirmed. Your subscription renews automatically unless it is canceled at least 24 hours before the end of the current period. After purchase, you can cancel anytime from your account settings.",
     "links": {

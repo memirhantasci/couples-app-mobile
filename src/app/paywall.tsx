@@ -18,6 +18,7 @@ import { waitForServerPremium } from "@/lib/premiumSync";
 import type { TFunction } from "i18next";
 import { APP_NAME } from "@/constants/brand";
 import { LazyDemoActionModal } from "@/components/ui/lazyMount";
+import { PromoCodeModal } from "@/components/ui/PromoCodeModal";
 import { useTranslation } from "react-i18next";
 
 
@@ -57,6 +58,7 @@ export default function PaywallScreen() {
   const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null);
 
   const [demoPromptVisible, setDemoPromptVisible] = useState(false);
+  const [codeModalVisible, setCodeModalVisible] = useState(false);
   const [legalModalVisible, setLegalModalVisible] = useState(false);
   const [selectedLegalDoc, setSelectedLegalDoc] = useState<LegalDocType>("subscription");
 
@@ -144,6 +146,26 @@ export default function PaywallScreen() {
     } finally {
       setPurchasing(false);
     }
+  };
+
+  // "İndirim Kodun mu Var?": iOS'ta Apple'ın kendi teklif kodu sayfası (App Store 3.1.1 uyumlu yol; abonelik
+  // açılınca sunucu premium'u yazar, global kutlama gösterilir). Android'de uygulama içi kod penceresi.
+  const handleUseCode = () => {
+    if (isDemoMode) {
+      setDemoPromptVisible(true);
+      return;
+    }
+    if (Platform.OS === "ios") {
+      RevenueCatService.presentCodeRedemptionSheet();
+      return;
+    }
+    setCodeModalVisible(true);
+  };
+
+  const handleCodePremium = () => {
+    setCodeModalVisible(false);
+    toast.success(t("paywall.activated"), { title: t("common.congratulations"), emoji: "👑", duration: 3400 });
+    handleBack();
   };
 
   const features = [
@@ -301,19 +323,24 @@ export default function PaywallScreen() {
               <Text style={[styles.restoreText, { color: theme.textMuted }]}>{t("paywall.restore")}</Text>
             </TouchableOpacity>
 
-            {Platform.OS === "ios" && (
-              <TouchableOpacity
-                style={[styles.restoreBtn, { marginTop: 6 }]}
-                onPress={() => RevenueCatService.presentCodeRedemptionSheet()}
-                disabled={purchasing}
-                activeOpacity={0.7}
+            {/* Geri yüklemenin hemen altında tek satır; her platformda ve paketler yüklenmese de görünür */}
+            <TouchableOpacity
+              style={[styles.restoreBtn, { marginTop: 6 }]}
+              onPress={handleUseCode}
+              disabled={purchasing}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+            >
+              <Gift color={theme.accent} size={16} />
+              <Text
+                style={[styles.restoreText, { color: theme.accent, flexShrink: 1 }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
               >
-                <Gift color={theme.accent} size={16} />
-                <Text style={[styles.restoreText, { color: theme.accent, fontWeight: "600" }]}>
-                  {t("paywall.redeemCode")}
-                </Text>
-              </TouchableOpacity>
-            )}
+                {t("paywall.redeemCode")}
+              </Text>
+            </TouchableOpacity>
 
             {/* Yasal Abonelik ve İade Bilgilendirmesi */}
             <View
@@ -349,6 +376,12 @@ export default function PaywallScreen() {
         onClose={() => setDemoPromptVisible(false)}
         title={t("paywall.accountRequiredTitle")}
         description={t("paywall.accountRequiredDescription")}
+      />
+      <PromoCodeModal
+        visible={codeModalVisible}
+        onClose={() => setCodeModalVisible(false)}
+        refreshProfile={refreshProfile}
+        onPremiumSuccess={handleCodePremium}
       />
       <LegalModal
         visible={legalModalVisible}

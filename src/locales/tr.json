@@ -1024,6 +1024,7 @@
     "storeUnavailable": "Şu anda mağazaya bağlanılamıyor veya paketler yüklenemedi. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.",
     "goBack": "Geri Dön",
     "restore": "Satın Alımları Geri Yükle",
+    "redeemCodeTitle": "İndirim / Hediye Kodu",
     "redeemCode": "İndirim Kodun mu Var? Kodu Kullan",
     "legalNotice": "Aboneliğiniz onaylandığında ödeme mağaza hesabınızdan tahsil edilir. Cari dönemin bitiminden en az 24 saat önce iptal edilmediği sürece abonelik otomatik olarak yenilenir. Satın alımdan sonra hesap ayarlarınızdan dilediğiniz an iptal edebilirsiniz.",
     "links": {
