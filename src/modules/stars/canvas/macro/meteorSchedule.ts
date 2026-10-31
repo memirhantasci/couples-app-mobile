@@ -14,22 +14,32 @@
  * Meteors live in world space (RA/Dec degrees), so they stay among the stars
  * while the camera pans or zooms.
  *
- * Speed and rate: a meteor falls at a steady ~6 °/s, about 265 px/s at the
- * star screen's resting zoom (3), where it stays on screen for ~3.5 s.
- * Measured over simulated hours, a viewer sees one about every ~45 s at the
- * resting and overview (1.2) zooms, rarely two at once; zoomed out only the
- * brighter ones show (see meteorZoomVisibility).
+ * Speed and rate: a meteor falls at a steady ~7.5 °/s, about 330 px/s at the
+ * star screen's resting zoom (3), where it stays on screen for ~2.8 s. One
+ * launches every METEOR_SLOT_MS (~0.42 per second over the whole map); zoomed
+ * out only the brighter ones show (see meteorZoomVisibility).
+ *
+ * Spread: launches are not random picks. Slot n starts at RA n × golden angle
+ * (± a little jitter), so consecutive meteors are always far apart in RA and,
+ * over time, every part of the map gets the same share. Independent random
+ * starts bunched up now and then, so a viewer saw two or three side by side
+ * or one right after another.
  */
 
 import { pxPerDegree, shortestRaDelta, type SkyCamera } from './skyProjection';
 import { smoothstep } from './starStyle';
 
-export const METEOR_SLOT_MS = 500;
-/** Chance that a slot launches a meteor (≈ 0.6 launches per second over the whole map). */
-export const METEOR_CHANCE = 0.3;
+/** One meteor launches per slot: 1000 / 2381 ≈ 0.42 launches per second over the whole map. */
+export const METEOR_SLOT_MS = 2381;
 /** Top-to-bottom flight time; the path is ~180°, so this sets the speed. */
-const MIN_DURATION_MS = 26_000;
-const MAX_DURATION_MS = 32_000;
+const MIN_DURATION_MS = 20_800;
+const MAX_DURATION_MS = 25_600;
+/** Golden-angle step (as a fraction of 360°): the most even RA spread any sequence can give. */
+const GOLDEN_FRACTION = 0.6180339887498949;
+/** Random RA offset around each slot's golden-angle position, so the pattern is not a visible lattice. */
+const RA_JITTER_DEG = 14;
+/** A launch happens within this share of its slot, keeping launches from bunching in time. */
+const LAUNCH_JITTER = 0.6;
 const MAP_TOP_DEC = 90;
 const MAP_BOTTOM_DEC = -90;
 /** Sideways RA drift over the whole fall, so streaks lean a little. */
@@ -92,7 +102,7 @@ function hash32(a: number): number {
   return h >>> 0;
 }
 
-/** The meteor launched in a slot, if any. */
+/** The meteor launched in a slot (every slot launches one). */
 export function meteorForSlot(slot: number): MeteorEvent | null {
   'worklet';
   // mulberry32 seeded by the slot
@@ -105,11 +115,10 @@ export function meteorForSlot(slot: number): MeteorEvent | null {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 
-  if (next() >= METEOR_CHANCE) return null;
-
   const durationMs = MIN_DURATION_MS + next() * (MAX_DURATION_MS - MIN_DURATION_MS);
-  const startMs = slot * METEOR_SLOT_MS + next() * METEOR_SLOT_MS;
-  const startRa = next() * 360;
+  const startMs = slot * METEOR_SLOT_MS + next() * LAUNCH_JITTER * METEOR_SLOT_MS;
+  const goldenRa = ((slot * GOLDEN_FRACTION) % 1) * 360;
+  const startRa = (goldenRa + (next() * 2 - 1) * RA_JITTER_DEG + 360) % 360;
   const drift = MIN_DRIFT_DEG + next() * (MAX_DRIFT_DEG - MIN_DRIFT_DEG);
   const deltaRa = next() < 0.5 ? -drift : drift;
   const deltaDec = MAP_BOTTOM_DEC - MAP_TOP_DEC;
@@ -191,7 +200,7 @@ function segmentOnScreen(segment: MeteorSegment, width: number, height: number, 
 
 /**
  * Meteors in flight at `nowMs` whose streak may be on screen. Every slot
- * whose meteor can still be falling is checked (~130 cheap hashes a frame).
+ * whose meteor can still be falling is checked (~11 cheap hashes a frame).
  */
 export function activeMeteorsInView(
   nowMs: number,
