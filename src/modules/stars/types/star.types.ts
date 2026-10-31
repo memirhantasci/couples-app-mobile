@@ -276,10 +276,10 @@ export interface ViewportStarItem {
   readonly is_claimed: boolean;
   readonly is_mine: boolean;
   /**
-   * Yıldızın kullanıcıya özel görüntüleme adı:
-   * - `null`: Boşta duran katalog yıldızları (`is_claimed === false`).
-   * - `'Tescilli Yıldız'`: Başka bir çiftin tescilli yıldızı (`is_claimed === true && is_mine === false`, mahremiyet maskelemesi).
-   * - `string` (gerçek isim): Kullanıcının kendi çiftine ait yıldız (`is_mine === true`).
+   * Çiftin yıldıza koyduğu ad:
+   * - `null`: Boştaki yıldız; ya da adı görünmeyen tescilli yıldız (oturumsuz demo, bildirdiğiniz
+   *   yıldız, yeterli bildirimle gizlenmiş yıldız). Arayüz bu durumda "Tescilli Yıldız" yazar.
+   * - `string`: Gerçek ad (kendi yıldızınız ve oturum açmış kullanıcıya diğer tescilli yıldızlar).
    */
   readonly custom_name: string | null;
   /**
@@ -291,10 +291,11 @@ export interface ViewportStarItem {
   readonly luminosity_level: number;
   readonly resonance_active: boolean;
   /**
-   * Tescilli ve başkasına ait bir yıldızın sahibi çiftin baş harfleri
-   * (ör. "A 💕 M"). Kendi yıldızınız veya boştaki yıldızlar için `null`.
+   * Tescilli yıldızın sahip çifti, sunucuda hesaplanır (boştaki yıldızda `null`):
+   * - kendi yıldızınız ve bağlı (arkadaş) yıldızlar: ilk adlar, ör. "Ahmet 💕 Elif"
+   * - diğerleri: baş harfler "A 💕 E"; adını herkese açan üyenin yalnızca ilk adı, ör. "Ahmet 💕 E"
    */
-  readonly owner_initials?: string | null;
+  readonly owner_label?: string | null;
   /** Kabul edilmiş bir yıldız bağlantınız var: `luminosity_level` gerçek değerdir. */
   readonly is_connected?: boolean;
 }
@@ -612,6 +613,10 @@ export interface ActiveStarConnection {
   readonly other_star_name: string;
   readonly other_star_ra: number;
   readonly other_star_dec: number;
+  /** Diğer yıldızın katalog kimliği (`ViewportStarItem.catalog_id` ile eşleşir). */
+  readonly other_catalog_id?: number | null;
+  /** Bağ kurulduğu için diğer çiftin ilk adları, ör. "Ahmet 💕 Elif". */
+  readonly other_owner_label?: string | null;
 }
 
 export interface PendingConnectionDetail {
@@ -620,6 +625,18 @@ export interface PendingConnectionDetail {
   readonly other_star_name: string;
   readonly is_incoming: boolean;
   readonly created_at: string;
+  /** Diğer yıldızın katalog kimliği (`ViewportStarItem.catalog_id` ile eşleşir). */
+  readonly other_catalog_id?: number | null;
+  /** Henüz bağ yok: baş harfler; adını herkese açan üyenin ilk adı. */
+  readonly other_owner_label?: string | null;
+}
+
+/** Çiftin bir üyesinin yıldızda ad görünürlüğü (kendi çiftinin satırları okunabilir). */
+export interface StarNameVisibilityMember {
+  readonly id: string;
+  readonly display_name: string | null;
+  readonly username: string | null;
+  readonly show_name_on_star: boolean;
 }
 
 

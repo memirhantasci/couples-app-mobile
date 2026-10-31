@@ -98,6 +98,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "2. TOPLANAN BİLGİLER VE KULLANIM ALANLARI",
       "• Hesap Bilgileri: Kayıt sırasında belirttiğiniz ad, kullanıcı adı, e-posta adresi ve şifreniz (güvenli hash olarak).\n" +
       "• İlişki ve Anı İçeriği: Eklediğiniz fotoğraflar, anı açıklamaları, mektuplar ve takvim notları. Bu içerikler yalnızca siz ve eşleştiğiniz partneriniz tarafından görüntülenebilir.\n" +
+      "• Yıldız (Gökyüzü): Yıldızınıza verdiğiniz ad ve çiftinizin baş harfleri diğer kullanıcılara görünür. İlk adınız yalnızca yıldız bağı kurduğunuz çiftlere ve siz Sertifika > İsimlerimiz bölümünden açıkça izin verirseniz tüm kullanıcılara gösterilir; bu izni istediğiniz an kapatabilirsiniz. Soyadınız, kullanıcı adınız ve e-posta adresiniz gösterilmez. Uygunsuz yıldız adları uygulama içinden bildirilebilir.\n" +
       "• Döngü ve Sağlık Verileri: Regl başlangıç tarihleri ve ilaç saatleri. Bu veriler yalnızca döngü tahmini ve size zamanında hatırlatıcı bildirim göndermek için işlenir.\n" +
       "• Konum Bilgileri: Yalnızca siz harita üzerinde bir buluşma noktası seçtiğinizde veya fotoğraflarınıza isteğe bağlı konum eklediğinizde alınır; arka planda sürekli konum takibi yapılmaz.\n" +
       "• Üçüncü taraf hizmetler: Google AdMob (reklam), Google Haritalar (harita), Apple/Google ile giriş, Supabase (veritabanı), RevenueCat (abonelik) ve Expo (bildirim). Ayrıntılar için KVKK Aydınlatma Metni, 4. bölüm.",
@@ -138,6 +139,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "4. KABUL EDİLEMEZ KULLANIM VE YASAKLI İÇERİKLER",
       "Uygulamayı kullanırken aşağıdaki eylemlerde bulunmak kesinlikle yasaktır:\n" +
       "• Yasadışı, tehditkar, taciz edici, hakaret içeren veya üçüncü şahısların mahremiyetini ihlal eden içerik yüklemek,\n" +
+      "• Yıldız adlarında veya görünen isimlerde hakaret, nefret söylemi ya da uygunsuz ifadeler kullanmak (bildirilen adlar gizlenebilir),\n" +
       "• Partnerinizin rızası olmaksızın özel görüntülerini yüklemek veya paylaşmak,\n" +
       "• Uygulama altyapısına, sunucularına veya tersine mühendislik yöntemleriyle kaynak koduna müdahale etmeye çalışmak,\n" +
       "• Otomatik botlar veya scriptler ile veri çekmek (scraping).",
@@ -290,6 +292,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "2. COLLECTED INFORMATION AND USAGE SCOPE",
       "• Account Data: Name, username, email address, and securely hashed passwords provided during sign up.\n" +
       "• Relationship Content: Photos, captions, time-capsule letters, and calendar notes. This content is exclusively accessible to you and your paired partner.\n" +
+      "• Stars (Sky): Your star's name and your couple's initials are visible to other users. Your first name is shown only to couples you have a star bond with and, if you explicitly allow it under Certificate > Our Names, to all users; you can turn this off at any time. Your last name, username, and email address are never shown. Inappropriate star names can be reported in the app.\n" +
       "• Cycle and Health Data: Menstrual start dates and medication hours. Used solely to provide cycle predictions and timely reminders for you and your partner.\n" +
       "• Location Coordinates: Obtained only when you explicitly select a meeting point on the map or geotag a photo; no persistent background tracking is ever conducted.\n" +
       "• Third-Party Infrastructure: Google AdMob, Google Maps, Apple/Google Sign-In, Supabase, RevenueCat, and Expo. For details, refer to Section 4 of our Clarification Text.",
@@ -330,6 +333,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "4. PROHIBITED USES AND CONDUCT",
       "When using the application, you agree not to:\n" +
       "• Upload unlawful, threatening, abusive, defamatory, or invasive content,\n" +
+      "• Use offensive, hateful, or inappropriate wording in star names or display names (reported names may be hidden),\n" +
       "• Upload or share private photographs of your partner without their explicit consent,\n" +
       "• Attempt to reverse-engineer, decompile, or tamper with the application's source code or backend servers,\n" +
       "• Deploy automated scrapers, crawlers, or bots to harvest data.",

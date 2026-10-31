@@ -859,6 +859,11 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                   )}
 
                   {searchResults.map(renderStarResultCard)}
+                  {searchResults.length > 0 && (
+                    <Text style={[styles.connectNote, { color: theme.textMuted }]}>
+                      {t('stars.connect.connectNote')}
+                    </Text>
+                  )}
                 </View>
               </View>
             ) : (
@@ -978,6 +983,12 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                           <Sparkles size={14} color={theme.accent} />
                           <Text style={[styles.activeStarName, { color: theme.text }]}>{conn.other_star_name}</Text>
                         </View>
+                        {/* Bağlı çiftin ilk adları (bağ kurulunca iki taraf da birbirini görür) */}
+                        {conn.other_owner_label ? (
+                          <Text style={[styles.activeOwnerText, { color: theme.textSecondary }]} numberOfLines={1}>
+                            {conn.other_owner_label}
+                          </Text>
+                        ) : null}
                         <Text style={[styles.activeCoordsText, { color: theme.textMuted }]}>
                           RA: {conn.other_star_ra.toFixed(1)}° • Dec: {conn.other_star_dec.toFixed(1)}°
                         </Text>
@@ -1574,6 +1585,10 @@ const styles = StyleSheet.create({
   },
   activeStarName: {
     fontSize: 13,
+    fontWeight: '600',
+  },
+  activeOwnerText: {
+    fontSize: 12,
     fontWeight: '600',
   },
   activeCoordsText: {

@@ -2189,7 +2189,8 @@
       "allAnswered": "All pending requests have been answered ✨",
       "wantsToConnect": "wants to connect with your star",
       "accept": "Accept ✨",
-      "decline": "Decline"
+      "decline": "Decline",
+      "namesNote": "If you accept, both couples will see each other’s first names."
     },
     "radar": {
       "scanning": "Scanning cosmic coordinates...",
@@ -2419,7 +2420,7 @@
       "paste": "Paste",
       "connectA11y": "Connect",
       "connectBtn": "Connect ✨",
-      "connectNote": "When the other couple approves your request, your stars become connected.",
+      "connectNote": "When the other couple approves your request, your stars become connected and both couples see each other’s first names.",
       "searchPlaceholder": "Enter a star name...",
       "search": "Search",
       "noResults": "No other couple's registered star named “{{searchQuery}}” was found.",
@@ -2492,7 +2493,8 @@
       "spectralClass": "SPECTRAL CLASS",
       "certBody": "Your star is in the sky! Every moment you share together will make it shine even brighter.",
       "closeCert": "Close Certificate ✨",
-      "enterMicro": "Step into Our Micro Universe 🚀"
+      "enterMicro": "Step into Our Micro Universe 🚀",
+      "publicNameNote": "* Your star’s name is visible to other users in the sky; only your couple’s initials are shown."
     },
     "exoplanet": {
       "zoneHelp": "{{periodDesc}} · each memory circles in its own ring",
@@ -2636,7 +2638,9 @@
       "backToStarA11y": "Return to Our Star",
       "backToStar": "Return to Our Star ✨",
       "ascendA11y": "Ascend to the Sky Dome",
-      "enterStarA11y": "Enter the Star"
+      "enterStarA11y": "Enter the Star",
+      "registeredStar": "Registered Star",
+      "connectNamesNote": "Once the bond is accepted, both couples see each other’s first names."
     },
     "screen": {
       "toasts": {
@@ -2667,6 +2671,27 @@
       "soundOnA11y": "Turn Sound On",
       "soundOffA11y": "Turn Sound Off",
       "searchA11y": "Search Stars"
+    },
+    "report": {
+      "title": "Report This Star",
+      "message": "Let us know if the star’s name or the names shown are inappropriate. You won’t see this star’s name or names anymore; if several couples report it, the name is hidden from everyone.",
+      "confirm": "Report",
+      "done": "Thanks, your report was received. You won’t see this star’s name anymore.",
+      "failed": "The report couldn’t be sent. Please try again.",
+      "a11y": "Report star"
+    },
+    "nameVisibility": {
+      "title": "Our Names",
+      "description": "Couples you have a bond with see your first names. Other couples only see your initials.",
+      "toggle": "Show my name to all couples",
+      "consentTitle": "Show your name to everyone?",
+      "consentMessage": "Your first name ({{name}}) will be visible on your star card to all CoupleSky users. Your last name, username and email are never shown. You can turn this off here at any time.",
+      "consentConfirm": "Yes, Show",
+      "saveFailed": "The setting couldn’t be saved. Please try again.",
+      "partnerShown": "{{name}} shows their name to all couples (their own setting).",
+      "partnerHidden": "{{name}} shows their name only to couples you have a bond with (their own setting).",
+      "preview": "Other couples see:",
+      "loadFailed": "The setting couldn’t be loaded. Try closing and reopening the certificate."
     }
   },
   "quotes": {

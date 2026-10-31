@@ -229,9 +229,14 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
                           <Sparkles size={14} color="#F59E0B" />
                         </View>
                         <Text style={[styles.requestPromptText, { color: theme.text }]}>
-                          <Text style={styles.starNameBold}>“{req.other_star_name}”</Text> {t('stars.connectionBadge.wantsToConnect')}
+                          <Text style={styles.starNameBold}>“{req.other_star_name}”</Text>
+                          {req.other_owner_label ? ` (${req.other_owner_label})` : ''} {t('stars.connectionBadge.wantsToConnect')}
                         </Text>
                       </View>
+                      {/* Kabul edilince iki çift birbirinin ilk adlarını görür: kabulden önce söylenir */}
+                      <Text style={[styles.namesNote, { color: theme.textMuted }]}>
+                        {t('stars.connectionBadge.namesNote')}
+                      </Text>
 
                       {/* Aksiyon Butonları: [Kabul Et ✨] [Reddet] */}
                       <View style={styles.actionsRow}>
@@ -427,6 +432,10 @@ const styles = StyleSheet.create({
   starNameBold: {
     color: '#FBBF24',
     fontWeight: '700',
+  },
+  namesNote: {
+    fontSize: 11.5,
+    lineHeight: 16,
   },
   actionsRow: {
     flexDirection: 'row',

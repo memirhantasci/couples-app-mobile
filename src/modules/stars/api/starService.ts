@@ -32,6 +32,7 @@ import type {
   StarBrightnessInfo,
   StarConnectionRecord,
   StarExoplanetRecord,
+  StarNameVisibilityMember,
   StarSystemMapPlanet,
   StarSearchResult,
   CelestialSearchResult,
@@ -803,6 +804,63 @@ export async function removeStarConnection(connectionId: string): Promise<void> 
 }
 
 /**
+ * Başka bir çiftin tescilli yıldızını (adı ya da görünen isimler uygunsuz) bildirir. Bildiren kişi o
+ * yıldızın adını ve isimlerini artık görmez; 3 farklı çiftin bildirimiyle ad herkes için gizlenir.
+ * Aynı yıldızı tekrar bildirmek hata vermez.
+ */
+export async function reportStar(catalogId: number): Promise<void> {
+  return withSmartRetry(async () => {
+    const { error } = await supabase.rpc('report_star', { p_catalog_id: catalogId });
+
+    if (error) {
+      handleSupabaseError(error);
+    }
+  });
+}
+
+/**
+ * Çift üyelerinin yıldızda ad görünürlüğü, katılım sırasıyla (RLS yalnızca kendi çiftinin
+ * satırlarını döndürür). Sahip etiketi de sunucuda bu sırayla dizilir.
+ */
+export async function getStarNameVisibility(coupleId: number): Promise<StarNameVisibilityMember[]> {
+  return withSmartRetry(async () => {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, display_name, username, show_name_on_star')
+      .eq('couple_id', coupleId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      handleSupabaseError(error);
+    }
+
+    return (data ?? []) as StarNameVisibilityMember[];
+  });
+}
+
+/**
+ * Kullanıcının kendi ilk adını, bağ kurmadığı çiftlere de yıldız kartında gösterme rızası
+ * (varsayılan kapalı). Yalnızca kendi satırı değişir; partnerin adı onun kendi rızasına bağlıdır.
+ */
+export async function setMyStarNameVisibility(userId: string, visible: boolean): Promise<void> {
+  return withSmartRetry(async () => {
+    const { data, error } = await supabase
+      .from('users')
+      .update({ show_name_on_star: visible })
+      .eq('id', userId)
+      .select('id');
+
+    if (error) {
+      handleSupabaseError(error);
+    }
+    // RLS satırı eşleştirmezse hata dönmez; hiçbir satır güncellenmediyse ayar kaydedilmemiştir
+    if (!data || data.length === 0) {
+      throw codedError('42501', i18n.t('stars.nameVisibility.saveFailed'));
+    }
+  });
+}
+
+/**
  * Çiftin kabul edilmiş aktif bağlantılarını (diğer yıldızın ad ve koordinatlarıyla) getirir.
  */
 export async function getMyStarConnections(): Promise<ActiveStarConnection[]> {
@@ -1007,6 +1065,9 @@ export const starService = {
   requestStarConnection,
   respondToConnection,
   removeStarConnection,
+  reportStar,
+  getStarNameVisibility,
+  setMyStarNameVisibility,
   getMyStarConnections,
   getPendingConnections,
   checkConnectionLimit,

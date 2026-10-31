@@ -2189,7 +2189,8 @@
       "allAnswered": "Bekleyen tüm istekler yanıtlandı ✨",
       "wantsToConnect": "yıldızı bağlantı kurmak istiyor",
       "accept": "Kabul Et ✨",
-      "decline": "Reddet"
+      "decline": "Reddet",
+      "namesNote": "Kabul ederseniz iki çift birbirinin ilk adını görür."
     },
     "radar": {
       "scanning": "Kozmik koordinatlar taranıyor...",
@@ -2419,7 +2420,7 @@
       "paste": "Yapıştır",
       "connectA11y": "Bağlantı Kur",
       "connectBtn": "Bağlantı Kur ✨",
-      "connectNote": "Karşı çift isteğinizi onayladığında yıldızlarınız birbirine bağlanır.",
+      "connectNote": "Karşı çift isteğinizi onayladığında yıldızlarınız birbirine bağlanır ve iki çift birbirinin ilk adını görür.",
       "searchPlaceholder": "Yıldız adı girin...",
       "search": "Ara",
       "noResults": "“{{searchQuery}}” adında tescilli başka bir çift yıldızı bulunamadı.",
@@ -2492,7 +2493,8 @@
       "spectralClass": "TAYF SINIFI",
       "certBody": "Yıldızınız gökyüzünde! Birlikte paylaştığınız her anı onu daha da parlatacak.",
       "closeCert": "Sertifikayı Kapat ✨",
-      "enterMicro": "Mikro Evrenimize Adım At 🚀"
+      "enterMicro": "Mikro Evrenimize Adım At 🚀",
+      "publicNameNote": "* Yıldızınızın adı gökyüzünde diğer kullanıcılara görünür; çiftinizin yalnızca baş harfleri gösterilir."
     },
     "exoplanet": {
       "zoneHelp": "{{periodDesc}} · her anı kendi halkasında döner",
@@ -2636,7 +2638,9 @@
       "backToStarA11y": "Yıldızımıza Dön",
       "backToStar": "Yıldızımıza Dön ✨",
       "ascendA11y": "Gök Kubbeye Çık",
-      "enterStarA11y": "Yıldızın İçine Gir"
+      "enterStarA11y": "Yıldızın İçine Gir",
+      "registeredStar": "Tescilli Yıldız",
+      "connectNamesNote": "Bağ kabul edilince iki çift birbirinin ilk adını görür."
     },
     "screen": {
       "toasts": {
@@ -2667,6 +2671,27 @@
       "soundOnA11y": "Sesi Aç",
       "soundOffA11y": "Sesi Kapat",
       "searchA11y": "Yıldız Ara"
+    },
+    "report": {
+      "title": "Bu Yıldızı Bildir",
+      "message": "Yıldızın adı ya da görünen isimler uygunsuzsa bize bildir. Bu yıldızın adını ve isimlerini artık görmeyeceksin; birden fazla çift bildirirse ad herkesten gizlenir.",
+      "confirm": "Bildir",
+      "done": "Teşekkürler, bildirimin alındı. Bu yıldızın adı artık sana gösterilmeyecek.",
+      "failed": "Bildirim gönderilemedi. Lütfen tekrar dene.",
+      "a11y": "Yıldızı bildir"
+    },
+    "nameVisibility": {
+      "title": "İsimlerimiz",
+      "description": "Bağ kurduğunuz çiftler ilk adlarınızı görür. Diğer çiftler yalnızca baş harflerinizi görür.",
+      "toggle": "Adımı tüm çiftlere göster",
+      "consentTitle": "Adın herkese görünsün mü?",
+      "consentMessage": "İlk adın ({{name}}) yıldız kartınızda CoupleSky’daki tüm kullanıcılara görünecek. Soyadın, kullanıcı adın ve e-postan asla gösterilmez. Bu izni istediğin an buradan kapatabilirsin.",
+      "consentConfirm": "Evet, Göster",
+      "saveFailed": "Ayar kaydedilemedi. Lütfen tekrar dene.",
+      "partnerShown": "{{name}} adını tüm çiftlere açtı (kendi ayarı).",
+      "partnerHidden": "{{name}} adını yalnızca bağ kurduğunuz çiftlere gösteriyor (kendi ayarı).",
+      "preview": "Diğer çiftler şöyle görür:",
+      "loadFailed": "Ayar yüklenemedi. Sertifikayı kapatıp yeniden açmayı dene."
     }
   },
   "quotes": {

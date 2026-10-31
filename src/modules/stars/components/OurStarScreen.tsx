@@ -44,7 +44,7 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { Orbit, Globe, Share2, Clock, ArrowLeft, Sparkles, X, AlertCircle, Search, Award, Sun, Volume2, VolumeX } from 'lucide-react-native';
+import { Orbit, Globe, Share2, Clock, ArrowLeft, Sparkles, X, AlertCircle, Search, Award, Sun, Volume2, VolumeX, Flag } from 'lucide-react-native';
 
 import {
   startCosmicAmbient,
@@ -101,6 +101,7 @@ import type {
 } from '../types/star.types';
 import { useTranslation } from 'react-i18next';
 import { localizeServerError } from '@/lib/serverErrors';
+import { confirmDialog } from '@/lib/dialog';
 import type { ParseKeys, TFunction } from 'i18next';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -1037,7 +1038,7 @@ export const OurStarScreen: React.FC = () => {
         hapticSuccess();
       }
       showToast(
-        t('stars.connect.success.requestSent', { custom_name: selectedMacroStar.custom_name || selectedMacroStar.catalog_code })
+        t('stars.connect.success.requestSent', { custom_name: selectedMacroStar.custom_name || t('stars.card.registeredStar') })
       );
       const [connections, pending] = await Promise.all([
         starService.getMyStarConnections(),
@@ -1055,6 +1056,74 @@ export const OurStarScreen: React.FC = () => {
       setIsConnectingStar(false);
     }
   };
+
+  // Başka çiftin yıldızını bildir (uygunsuz ad / isim): bildiren kişi bu yıldızın adını ve isimlerini
+  // hemen görmez olur; yeterli bildirimle sunucu adı herkes için gizler.
+  const handleReportSelectedMacroStar = async () => {
+    const star = selectedMacroStar;
+    if (!star || star.is_mine || !star.is_claimed || isDemoMode) return;
+    const confirmed = await confirmDialog({
+      title: t('stars.report.title'),
+      message: t('stars.report.message'),
+      confirmText: t('stars.report.confirm'),
+      destructive: true,
+      tone: 'warning',
+    });
+    if (!confirmed) return;
+    try {
+      await starService.reportStar(star.catalog_id);
+      setSelectedMacroStar(null);
+      refreshSkyTiles();
+      showToast(t('stars.report.done'));
+    } catch (err) {
+      showToast(localizeServerError(err, t('stars.report.failed')));
+    }
+  };
+
+  // Kart başlığı: yıldızın adı en üstte, altında sahip çiftin adları / baş harfleri, en küçük satırda kod
+  const selectedStarTitle = !selectedMacroStar
+    ? ''
+    : selectedMacroStar.is_mine
+    ? `⭐ ${selectedMacroStar.custom_name || starDetails?.custom_name || t('stars.defaultName')}`
+    : selectedMacroStar.is_claimed
+    ? selectedMacroStar.custom_name || t('stars.card.registeredStar')
+    : selectedMacroStar.common_name || selectedMacroStar.catalog_code;
+  const selectedStarCodeLine = (() => {
+    if (!selectedMacroStar) return null;
+    // Boştaki yıldızın yaygın adı yoksa kod zaten başlıktadır
+    if (!selectedMacroStar.is_claimed && !selectedMacroStar.common_name) return null;
+    // Kendi yıldızımız harita yüklenmeden "OUR-STAR" koduyla sentezlenebilir: kod yıldız detayından alınır
+    const code = selectedMacroStar.is_mine
+      ? starDetails?.catalog_code ?? (selectedMacroStar.catalog_code === 'OUR-STAR' ? null : selectedMacroStar.catalog_code)
+      : selectedMacroStar.catalog_code;
+    if (!code || code.startsWith('SOL-')) return null;
+    // Tescilli yıldızın gerçek astronomi adı (Sirius vb.) koda eşlik eder; boştakinde zaten başlıktadır
+    const commonName = selectedMacroStar.is_mine ? starDetails?.common_name : selectedMacroStar.common_name;
+    return selectedMacroStar.is_claimed && commonName ? `${commonName} · ${code}` : code;
+  })();
+  const selectedStarOwnerLabel = selectedMacroStar?.is_claimed ? selectedMacroStar.owner_label ?? null : null;
+  const canReportSelectedStar =
+    !!selectedMacroStar &&
+    selectedMacroStar.is_claimed &&
+    !selectedMacroStar.is_mine &&
+    !isDemoMode &&
+    !selectedMacroStar.catalog_code?.startsWith('SOL-');
+  const isSelectedStarBonded =
+    !!selectedMacroStar &&
+    (selectedMacroStar.is_connected === true ||
+      starConnections.some(
+        (c) =>
+          (c.other_catalog_id != null && c.other_catalog_id === selectedMacroStar.catalog_id) ||
+          (Math.abs(c.other_star_ra - Number(selectedMacroStar.ra)) < 0.001 &&
+            Math.abs(c.other_star_dec - Number(selectedMacroStar.dec)) < 0.001)
+      ));
+  const isSelectedStarPending =
+    !!selectedMacroStar &&
+    pendingRequests.some((p) =>
+      p.other_catalog_id != null
+        ? p.other_catalog_id === selectedMacroStar.catalog_id
+        : p.other_star_name === selectedMacroStar.custom_name
+    );
 
   // Yıldızın ışığı aktivite puanından gelir (gök kubbede başkalarının gördüğü değerle aynı).
   // Kıvılcım ışıma dalgası ve rezonansla hissedilir; yüklenene kadar ve demoda eski değer kullanılır.
@@ -1427,46 +1496,78 @@ export const OurStarScreen: React.FC = () => {
                   },
                 ]}
               />
-              <Text
-                style={[
-                  styles.macroStarTitle,
-                  { color: theme.text },
-                  selectedMacroStar.is_mine && [styles.macroStarTitleMine, isLight && { color: '#B45309' }],
-                ]}
-              >
-                {selectedMacroStar.is_mine
-                  ? `⭐ ${selectedMacroStar.custom_name || starDetails?.custom_name || t('stars.defaultName')}`
-                  : (selectedMacroStar.custom_name ||
-                    (selectedMacroStar.common_name
-                      ? `${selectedMacroStar.common_name} (${selectedMacroStar.catalog_code})`
-                      : selectedMacroStar.catalog_code))}
-              </Text>
-              {selectedMacroStar.is_mine ? (
-                <View style={styles.myStarBadge}>
-                  <Text style={styles.myStarBadgeText}>{t('stars.card.ourStar')}</Text>
-                </View>
-              ) : selectedMacroStar.is_claimed ? (
-                <View style={styles.claimedBadge}>
-                  <Text style={styles.claimedBadgeText}>
-                    {t('stars.card.registered')}{selectedMacroStar.owner_initials ? ` • (${selectedMacroStar.owner_initials})` : ''}
+              <View style={styles.macroStarTitleBlock}>
+                {/* 1. Yıldızın adı (en büyük) + durum rozeti */}
+                <View style={styles.macroStarNameRow}>
+                  <Text
+                    style={[
+                      styles.macroStarTitle,
+                      { color: theme.text },
+                      selectedMacroStar.is_mine && [styles.macroStarTitleMine, isLight && { color: '#B45309' }],
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {selectedStarTitle}
                   </Text>
+                  {selectedMacroStar.is_mine ? (
+                    <View style={styles.myStarBadge}>
+                      <Text style={styles.myStarBadgeText}>{t('stars.card.ourStar')}</Text>
+                    </View>
+                  ) : selectedMacroStar.is_claimed ? (
+                    <View style={[styles.claimedBadge, isSelectedStarBonded && styles.bondedBadge]}>
+                      <Text style={[styles.claimedBadgeText, isSelectedStarBonded && styles.bondedBadgeText]}>
+                        {isSelectedStarBonded ? t('stars.connect.connected') : t('stars.card.registered')}
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={styles.availableBadge}>
+                      <Text style={styles.availableBadgeText}>{t('stars.card.available')}</Text>
+                    </View>
+                  )}
                 </View>
-              ) : (
-                <View style={styles.availableBadge}>
-                  <Text style={styles.availableBadgeText}>{t('stars.card.available')}</Text>
-                </View>
-              )}
+                {/* 2. Sahip çift: kendi çiftimizde ve bağlı çiftlerde ilk adlar, diğerlerinde baş harfler */}
+                {selectedStarOwnerLabel ? (
+                  <Text
+                    style={[styles.macroStarOwner, { color: isLight ? theme.textSecondary : 'rgba(255, 255, 255, 0.82)' }]}
+                    numberOfLines={1}
+                  >
+                    {selectedStarOwnerLabel}
+                  </Text>
+                ) : null}
+                {/* 3. Katalog kodu (en küçük) */}
+                {selectedStarCodeLine ? (
+                  <Text style={[styles.macroStarCode, { color: theme.textMuted }]} numberOfLines={1}>
+                    {selectedStarCodeLine}
+                  </Text>
+                ) : null}
+              </View>
             </View>
-            <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")}
-              onPress={() => setSelectedMacroStar(null)}
-              style={[
-                styles.macroStarCloseBtn,
-                { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)' },
-              ]}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <X size={16} color={theme.textSecondary} />
-            </TouchableOpacity>
+            <View style={styles.macroStarHeaderActions}>
+              {canReportSelectedStar ? (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={t('stars.report.a11y')}
+                  onPress={handleReportSelectedMacroStar}
+                  style={[
+                    styles.macroStarCloseBtn,
+                    { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)' },
+                  ]}
+                  hitSlop={{ top: 8, bottom: 8, left: 6, right: 4 }}
+                >
+                  <Flag size={14} color={theme.textMuted} />
+                </TouchableOpacity>
+              ) : null}
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")}
+                onPress={() => setSelectedMacroStar(null)}
+                style={[
+                  styles.macroStarCloseBtn,
+                  { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)' },
+                ]}
+                hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
+              >
+                <X size={16} color={theme.textSecondary} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View
@@ -1597,12 +1698,7 @@ export const OurStarScreen: React.FC = () => {
                 {t('stars.card.needStarFirst')}
               </Text>
             </View>
-          ) : starConnections.some(
-              (c) =>
-                c.other_star_name === selectedMacroStar.custom_name ||
-                (Math.abs(c.other_star_ra - Number(selectedMacroStar.ra)) < 0.001 &&
-                  Math.abs(c.other_star_dec - Number(selectedMacroStar.dec)) < 0.001)
-            ) ? (
+          ) : isSelectedStarBonded ? (
             // Zaten bağlı yıldız
             <View style={styles.alreadyConnectedBanner}>
               <Sparkles size={13} color="#EC4899" />
@@ -1610,9 +1706,7 @@ export const OurStarScreen: React.FC = () => {
                 {t('stars.card.alreadyBonded')}
               </Text>
             </View>
-          ) : pendingRequests.some(
-              (p) => p.other_star_name === selectedMacroStar.custom_name
-            ) ? (
+          ) : isSelectedStarPending ? (
             // Onay bekleyen istek
             <View
               style={[
@@ -1667,26 +1761,32 @@ export const OurStarScreen: React.FC = () => {
             </View>
           ) : (
             // Tescilli yıldıza doğrudan bağlantı kur
-            <TouchableOpacity
-              activeOpacity={0.85}
-              disabled={isConnectingStar}
-              onPress={handleConnectSelectedMacroStar}
-              style={styles.connectStarBtn}
-            >
-              {isConnectingStar ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <LinearGradient
-                  colors={['#EC4899', '#8B5CF6']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.connectStarBtnGradient}
-                >
-                  <Sparkles size={14} color="#FFFFFF" />
-                  <Text style={styles.connectStarBtnText}>{t('stars.card.connectStar')}</Text>
-                </LinearGradient>
-              )}
-            </TouchableOpacity>
+            <View style={styles.connectStarBlock}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                disabled={isConnectingStar}
+                onPress={handleConnectSelectedMacroStar}
+                style={styles.connectStarBtn}
+              >
+                {isConnectingStar ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <LinearGradient
+                    colors={['#EC4899', '#8B5CF6']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.connectStarBtnGradient}
+                  >
+                    <Sparkles size={14} color="#FFFFFF" />
+                    <Text style={styles.connectStarBtnText}>{t('stars.card.connectStar')}</Text>
+                  </LinearGradient>
+                )}
+              </TouchableOpacity>
+              {/* Bağ kabul edilince iki çift birbirinin ilk adlarını görür: istek göndermeden önce bilinir */}
+              <Text style={[styles.connectNamesNote, { color: theme.textMuted }]}>
+                {t('stars.card.connectNamesNote')}
+              </Text>
+            </View>
           )}
         </View>
       )}
@@ -2203,7 +2303,7 @@ const styles = StyleSheet.create({
   },
   macroStarHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
   macroStarTitleRow: {
@@ -2211,13 +2311,53 @@ const styles = StyleSheet.create({
     minWidth: 0,
     marginRight: 8,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 8,
   },
   macroStarColorDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
+    // Başlığın ilk satırıyla aynı hizada
+    marginTop: 5,
+  },
+  macroStarTitleBlock: {
+    flex: 1,
+    minWidth: 0,
+    gap: 3,
+  },
+  macroStarNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  macroStarOwner: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  macroStarCode: {
+    fontSize: 10.5,
+    letterSpacing: 0.3,
+  },
+  macroStarHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bondedBadge: {
+    backgroundColor: 'rgba(236, 72, 153, 0.18)',
+    borderColor: 'rgba(236, 72, 153, 0.45)',
+  },
+  bondedBadgeText: {
+    color: '#F472B6',
+  },
+  connectStarBlock: {
+    gap: 6,
+  },
+  connectNamesNote: {
+    fontSize: 11,
+    textAlign: 'center',
   },
   macroStarTitle: {
     flexShrink: 1,

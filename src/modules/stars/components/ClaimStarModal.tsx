@@ -48,6 +48,8 @@ import { useTheme } from '@/context/ThemeContext';
 import { starService, StarRenameCooldownError } from '../api/starService';
 import { moderateStarName } from '../utils/nameModeration';
 import { computeOwnCoupleInitials } from '../utils/ownerInitials';
+import { StarNameVisibilityCard } from './StarNameVisibilityCard';
+import { DialogHost } from '@/components/ui/DialogHost';
 import type { CoupleStarDetails, ViewportStarItem } from '../types/star.types';
 import { SKY_SECTORS, type SectorConfig } from '../config/skySectors.data';
 import { UNCLAIMED_STAR_BRIGHTNESS } from '../canvas/macro/starStyle';
@@ -656,6 +658,10 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                 <Text style={[styles.footnoteText, { color: theme.textMuted }]}>
                   {t('stars.claim.footnote')}
                 </Text>
+                {/* Yıldız adı herkese görünür: ad konmadan önce bilinsin */}
+                <Text style={[styles.footnoteText, { color: theme.textMuted }]}>
+                  {t('stars.claim.publicNameNote')}
+                </Text>
               </View>
             )}
 
@@ -835,6 +841,9 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                   {t('stars.claim.certSubtitle')}
                 </Text>
 
+                {/* İSİMLERİMİZ: yalnızca kendi tescilli yıldızımızın sertifikasında (demo hariç) */}
+                {canRename && initialStar ? <StarNameVisibilityCard /> : null}
+
                 {/* ASTRONOMİK KÜNYE TABLOSU */}
                 <View style={styles.certInfoGrid}>
                   <View style={[styles.gridItem, { backgroundColor: isLight ? theme.unitBg : 'rgba(255, 255, 255, 0.05)', borderColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.1)' }]}>
@@ -887,6 +896,8 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
           </ScrollView>
         </KeyboardAvoidingView>
       </View>
+      {/* Modal açıkken diyaloglar (ör. isim görünürlüğü onayı) kök host'un değil bu modalın içinde çizilir */}
+      <DialogHost embedded visible={visible} />
     </Modal>
   );
 };
