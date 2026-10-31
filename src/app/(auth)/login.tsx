@@ -1132,9 +1132,7 @@ export default function LoginScreen() {
               accessibilityRole="button"
               style={styles.socialBtn}
             >
-              <View style={styles.socialLogo}>
-                <GoogleLogo size={22} />
-              </View>
+              <GoogleLogo size={19} />
               <Text style={styles.socialBtnText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
                 {t("auth.login.googleContinue")}
               </Text>
@@ -1421,19 +1419,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    // Logo için iki yanda eşit pay: yazı, logodan bağımsız olarak düğmenin tam ortasında durur
-    paddingHorizontal: 52,
-  },
-  socialLogo: {
-    position: "absolute",
-    left: 16,
-    top: 0,
-    bottom: 0,
-    justifyContent: "center",
+    // Apple'ın native butonuyla aynı düzen: logo + yazı birlikte, düğmenin ortasında
+    gap: 8,
+    paddingHorizontal: 12,
   },
   socialBtnText: {
+    flexShrink: 1,
     color: "#1F1F1F",
-    fontSize: 16,
+    fontSize: 19,
     fontFamily: "Inter_600SemiBold",
     textAlign: "center",
   },
