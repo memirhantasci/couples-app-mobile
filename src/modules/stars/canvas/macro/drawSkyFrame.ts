@@ -15,7 +15,14 @@ import {
   type MeteorEvent,
   type MeteorSegment,
 } from './meteorSchedule';
-import { drawConnectionMist, MIST_COLORS, MIST_FALLOFF_ALPHAS, MIST_FALLOFF_STOPS } from './connectionMist';
+import {
+  drawConnectionStrands,
+  STRAND_GRADIENT_ALPHAS,
+  STRAND_GRADIENT_COLORS,
+  STRAND_GRADIENT_POSITIONS,
+  STRAND_TINT,
+  type StrandResources,
+} from './connectionStrands';
 import type { SkyOverlay } from './skyOverlay';
 import { pxPerDegree, shortestRaDelta, type SkyCamera } from './skyProjection';
 import { colorOf, glowShader, STAR_FADE_MS, type StarField, type StarRender } from './starField';
@@ -83,10 +90,8 @@ export interface StarPaints {
   readonly paleGold: Float32Array;
   /** Opacity of a fading group of labels (see beginAlphaLayer). */
   readonly layer: SkPaint;
-  /** Screen-blended paint for the mist between connected stars (see connectionMist). */
-  readonly connectionMist: SkPaint;
-  /** One soft puff shader per mist colour, from our star's end to the connected star's end. */
-  readonly connectionMistShaders: readonly SkShader[];
+  /** Paints and shaders of the strand ribbon between connected stars (see connectionStrands). */
+  readonly connectionStrands: StrandResources;
   /** Soft, blurred halo along a meteor's streak. */
   readonly meteorGlow: SkPaint;
   /** Thin bright core of a meteor's streak. */
@@ -135,20 +140,43 @@ export function createStarPaints(): StarPaints {
   glow.setDither(true);
   const paleGold = colorOf('#FDE68A', 1);
 
-  // Many faint puffs add up to vapour: Screen blending brightens like light would and never overexposes
-  const connectionMist = Skia.Paint();
-  connectionMist.setAntiAlias(true);
-  connectionMist.setDither(true);
-  connectionMist.setBlendMode(14); // BlendMode.Screen
-  const connectionMistShaders = MIST_COLORS.map((hex) =>
-    Skia.Shader.MakeRadialGradient(
-      Skia.Point(0, 0),
-      1,
-      MIST_FALLOFF_ALPHAS.map((alpha) => colorOf(hex, alpha)),
-      [...MIST_FALLOFF_STOPS],
-      0,
+  // The ribbon between connected stars: Screen blending brightens where strands and specks cross, like
+  // light would, and never overexposes. Every paint is made once; a frame only changes their alpha / width.
+  const strandTint = colorOf(STRAND_TINT, 1);
+  const strandLine = Skia.Paint();
+  strandLine.setAntiAlias(true);
+  strandLine.setStyle(1);
+  strandLine.setBlendMode(14); // BlendMode.Screen
+  const strandSpark = Skia.Paint();
+  strandSpark.setAntiAlias(true);
+  strandSpark.setStyle(1);
+  strandSpark.setStrokeWidth(1);
+  strandSpark.setColor(strandTint);
+  strandSpark.setBlendMode(14);
+  const strandGlow = Skia.Paint();
+  strandGlow.setAntiAlias(true);
+  strandGlow.setDither(true);
+  strandGlow.setBlendMode(14);
+  const strandCore = Skia.Paint();
+  strandCore.setAntiAlias(true);
+  strandCore.setColor(strandTint);
+  strandCore.setBlendMode(14);
+  const connectionStrands: StrandResources = {
+    line: strandLine,
+    spark: strandSpark,
+    glow: strandGlow,
+    core: strandCore,
+    gradients: STRAND_GRADIENT_COLORS.map((colors) =>
+      Skia.Shader.MakeLinearGradient(
+        Skia.Point(0, 0),
+        Skia.Point(1, 0),
+        colors.map((hex, i) => colorOf(hex, STRAND_GRADIENT_ALPHAS[i])),
+        [...STRAND_GRADIENT_POSITIONS],
+        0,
+      ),
     ),
-  );
+    glowShader: glowShader(STRAND_TINT),
+  };
 
   const meteorGlow = Skia.Paint();
   meteorGlow.setAntiAlias(true);
@@ -176,8 +204,7 @@ export function createStarPaints(): StarPaints {
     purple: colorOf('#A855F7', 1),
     paleGold,
     layer: Skia.Paint(),
-    connectionMist,
-    connectionMistShaders,
+    connectionStrands,
     meteorGlow,
     meteorCore,
     meteorHalo,
@@ -457,7 +484,7 @@ function connectionPhase(ra: number, dec: number): number {
   return seed - Math.floor(seed);
 }
 
-/** A soft, curved band of drifting mist from our star to each connected star (see connectionMist). */
+/** A silk-like ribbon of hairline strands from our star to each connected star (see connectionStrands). */
 function drawConnectionLines(
   canvas: SkCanvas,
   view: FrameView,
@@ -476,10 +503,9 @@ function drawConnectionLines(
     const x2 = x1 + shortestRaDelta(hero.ra, connection.ra) * scale;
     const y2 = y1 - (connection.dec - hero.dec) * scale;
     if ((x1 < 0 && x2 < 0) || (x1 > width && x2 > width) || (y1 < 0 && y2 < 0) || (y1 > height && y2 > height)) continue;
-    drawConnectionMist(
+    drawConnectionStrands(
       canvas,
-      paints.connectionMist,
-      paints.connectionMistShaders,
+      paints.connectionStrands,
       view,
       x1,
       y1,
