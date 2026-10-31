@@ -12,6 +12,8 @@ import { supabase } from "@/lib/supabase";
 import { useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
 import { sanitize } from "@/utils/sanitize";
+import { logger } from "@/utils/logger";
+import { dialog } from "@/lib/dialog";
 import {
   ChevronLeft, AlignJustify,
   Plus, Calendar as CalendarIcon, Clock, Maximize2,
@@ -59,6 +61,14 @@ function getMoodDisplay(moodType: string | null | undefined, t: TFunction): { em
   const byEmoji = MOODS.find((mood) => mood.emoji === moodType);
   if (byEmoji) return { emoji: byEmoji.emoji, label: t(byEmoji.labelKey) };
   return { emoji: moodType, label: "" };
+}
+
+// Supabase hataları `Error` değil düz nesnedir ({ message, code }); mesajı güvenle çıkarır
+function errorMessage(error: unknown): string {
+  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
+    return error.message;
+  }
+  return String(error);
 }
 
 export { CALENDAR_COLORS };
@@ -254,34 +264,36 @@ export default function CalendarScreen() {
       return;
     }
 
-    if (!coupleId || !userId) return;
+    if (!coupleId || !userId || saving) return;
     setSaving(true);
 
-    const cleanNote = sanitize(noteText.trim());
+    try {
+      const cleanNote = sanitize(noteText.trim());
+      if (!cleanNote) return;
 
-    let error;
-    if (userNoteForSelectedDay?.id) {
-      const res = await supabase
-        .from("calendar_notes")
-        .update({ note: cleanNote })
-        .eq("id", userNoteForSelectedDay.id);
-      error = res.error;
-    } else {
-      const res = await supabase
-        .from("calendar_notes")
-        .insert({
-          couple_id: coupleId,
-          user_id: userId,
-          date: selectedDate,
-          note: cleanNote,
-        });
-      error = res.error;
-    }
+      const { error } = userNoteForSelectedDay?.id
+        ? await supabase.from("calendar_notes").update({ note: cleanNote }).eq("id", userNoteForSelectedDay.id)
+        : await supabase.from("calendar_notes").insert({
+            couple_id: coupleId,
+            user_id: userId,
+            date: selectedDate,
+            note: cleanNote,
+          });
+      if (error) throw error;
 
-    setSaving(false);
-    if (!error) {
       setShowNoteModal(false);
       queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
+    } catch (error) {
+      // Sessizce yutulursa kullanıcı notun neden kaydedilmediğini hiç göremez
+      logger.error("[Calendar] Note could not be saved:", error);
+      dialog.alert(
+        t("common.error"),
+        t("calendar.noteModal.saveFailed", { message: errorMessage(error) }),
+        undefined,
+        { tone: "error" },
+      );
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -295,17 +307,24 @@ export default function CalendarScreen() {
       return;
     }
 
-    if (!userNoteForSelectedDay?.id) return;
+    if (!userNoteForSelectedDay?.id || saving) return;
     setSaving(true);
-    const { error } = await supabase
-      .from("calendar_notes")
-      .delete()
-      .eq("id", userNoteForSelectedDay.id);
+    try {
+      const { error } = await supabase.from("calendar_notes").delete().eq("id", userNoteForSelectedDay.id);
+      if (error) throw error;
 
-    setSaving(false);
-    if (!error) {
       setShowNoteModal(false);
       queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
+    } catch (error) {
+      logger.error("[Calendar] Note could not be deleted:", error);
+      dialog.alert(
+        t("common.error"),
+        t("calendar.noteModal.deleteFailed", { message: errorMessage(error) }),
+        undefined,
+        { tone: "error" },
+      );
+    } finally {
+      setSaving(false);
     }
   };
 

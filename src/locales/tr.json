@@ -1774,7 +1774,9 @@
       "editTitle": "Günün Notunu Düzenle",
       "addTitle": "Güne Not Ekle",
       "placeholder": "Bugünle ilgili küçük bir hatıra veya not bırak...",
-      "counter": "{{chars}} / 1000 karakter"
+      "counter": "{{chars}} / 1000 karakter",
+      "saveFailed": "Not kaydedilemedi: {{message}}",
+      "deleteFailed": "Not silinemedi: {{message}}"
     },
     "sections": {
       "photos": "FOTOĞRAF ARŞİVİ",

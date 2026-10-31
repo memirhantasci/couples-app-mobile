@@ -5,6 +5,7 @@ import { FileText, X, Check, Trash2 } from "lucide-react-native";
 import { dayjs } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
 import { useTranslation } from "react-i18next";
+import { DialogHost } from "@/components/ui/DialogHost";
 
 interface CalendarNoteModalProps {
   visible: boolean;
@@ -126,6 +127,8 @@ export function CalendarNoteModal({
             </View>
           </KeyboardAwareScrollView>
         </View>
+        {/* Modal açıkken hata kartı modalın arkasında kalmasın */}
+        <DialogHost embedded visible={visible} />
       </View>
     </Modal>
   );

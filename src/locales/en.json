@@ -1774,7 +1774,9 @@
       "editTitle": "Edit the Day's Note",
       "addTitle": "Add a Note to the Day",
       "placeholder": "Leave a little memory or note about today...",
-      "counter": "{{chars}} / 1000 characters"
+      "counter": "{{chars}} / 1000 characters",
+      "saveFailed": "The note couldn't be saved: {{message}}",
+      "deleteFailed": "The note couldn't be deleted: {{message}}"
     },
     "sections": {
       "photos": "PHOTO ARCHIVE",
