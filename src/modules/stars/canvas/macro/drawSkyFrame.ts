@@ -147,12 +147,6 @@ export function createStarPaints(): StarPaints {
   strandLine.setAntiAlias(true);
   strandLine.setStyle(1);
   strandLine.setBlendMode(14); // BlendMode.Screen
-  const strandSpark = Skia.Paint();
-  strandSpark.setAntiAlias(true);
-  strandSpark.setStyle(1);
-  strandSpark.setStrokeWidth(1);
-  strandSpark.setColor(strandTint);
-  strandSpark.setBlendMode(14);
   const strandGlow = Skia.Paint();
   strandGlow.setAntiAlias(true);
   strandGlow.setDither(true);
@@ -163,7 +157,6 @@ export function createStarPaints(): StarPaints {
   strandCore.setBlendMode(14);
   const connectionStrands: StrandResources = {
     line: strandLine,
-    spark: strandSpark,
     glow: strandGlow,
     core: strandCore,
     gradients: STRAND_GRADIENT_COLORS.map((colors) =>

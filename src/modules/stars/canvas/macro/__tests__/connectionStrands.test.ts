@@ -104,7 +104,6 @@ function render(
 
   const resources = {
     line: fakePaint('line'),
-    spark: fakePaint('spark'),
     glow: fakePaint('glow'),
     core: fakePaint('core'),
     gradients: [{}, {}, {}],
@@ -247,12 +246,22 @@ describe('connectionStrands', () => {
     expect(lean(0.1) * lean(0.9)).toBeLessThan(0);
   });
 
-  it('puts a glint on each star', () => {
-    expect(frame.sparks).toHaveLength(2); // the other star's four-point sparkle
-    const glowAtStar = (p: [number, number]) =>
-      frame.dots.some((d) => d.kind === 'glow' && Math.hypot(d.x - p[0], d.y - p[1]) < 0.5);
-    expect(glowAtStar(FROM)).toBe(true);
-    expect(glowAtStar(TO)).toBe(true);
+  it('never brightens the stars: no glow, glint or speck is drawn on or right next to them', () => {
+    for (const seconds of [0, 1.3, 2, 4.7, 9, 20]) {
+      const f = render(VIEW, FROM, TO, 0.7, seconds);
+      expect(f.sparks).toHaveLength(0);
+      for (const dot of f.dots) {
+        for (const star of [FROM, TO]) {
+          expect(Math.hypot(dot.x - star[0], dot.y - star[1])).toBeGreaterThanOrEqual(25);
+        }
+      }
+    }
+    // short bonds too
+    for (const [a, b] of [[[100, 100], [160, 130]], [[100, 100], [100, 200]]] as [[number, number], [number, number]][]) {
+      for (const dot of render(VIEW, a, b, 0.4, 3).dots) {
+        for (const star of [a, b]) expect(Math.hypot(dot.x - star[0], dot.y - star[1])).toBeGreaterThanOrEqual(25);
+      }
+    }
   });
 
   it('draws nothing off screen and stays bounded for a very long bond', () => {

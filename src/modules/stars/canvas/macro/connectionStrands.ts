@@ -10,6 +10,8 @@
  *    is 30–60 % opaque; a very faint glow of soft lights sits under the bundle.
  *  • Stardust – a handful of tiny glowing specks drift slowly along the strands, from our star
  *    toward the other one.
+ *  • The stars themselves are never touched: no glow, glint or sparkle is added on them, so they
+ *    keep exactly the brightness the sky gives them. Specks and the faint glow keep clear of them.
  *  • Motion – the S slides and breathes slowly, and a faint ripple runs along every strand.
  *
  * Drawn only with calls the sky renderer already uses on the UI thread (lines, circles, one canvas
@@ -40,7 +42,7 @@ export const STRAND_GRADIENT_COLORS = [
   ['#CFFAFE', '#A5E9FF', '#7DD3FC', '#93A8FF', '#C4B5FD', '#D3E4FF', '#BAE6FD'],
   ['#BAE6FD', '#9DCBFF', '#8FB8FF', '#C4A1FF', '#F9A8D4', '#E4D4FF', '#D6ECFF'],
 ] as const;
-/** Stardust and star glints: a cold white. */
+/** Stardust: a cold white. */
 export const STRAND_TINT = '#E6F6FF';
 
 /** The S has one wave over a bond up to this long; longer bonds repeat it. */
@@ -73,6 +75,8 @@ const WIDTH_RANGE_PX = 0.35;
 /** The faint glow under the bundle: soft round lights along its middle, this far apart (px). */
 const GLOW_SPACING_PX = 34;
 const GLOW_ALPHA = 0.05;
+/** Nothing but the strands themselves is drawn closer than this to a star (px). */
+const STAR_CLEARANCE_PX = 26;
 /** Dust: size and drift speed (share of the bond per second). */
 const DUST_MIN_SPEED = 0.012;
 const DUST_SPEED_RANGE = 0.02;
@@ -88,9 +92,7 @@ export type StrandCanvas = Pick<
 export interface StrandResources {
   /** Strand stroke, gradient shader set per strand. */
   readonly line: SkPaint;
-  /** Solid-colour stroke for the star glints. */
-  readonly spark: SkPaint;
-  /** Fill whose shader is the soft glow: dust halos and glints. */
+  /** Fill whose shader is the soft glow: dust halos and the glow under the bundle. */
   readonly glow: SkPaint;
   /** Solid-colour fill: dust cores. */
   readonly core: SkPaint;
@@ -315,6 +317,7 @@ export function drawConnectionStrands(
   const glowStep = GLOW_SPACING_PX / len;
   for (let k = Math.ceil(ta / glowStep); k <= Math.floor(tb / glowStep); k++) {
     const u = k * glowStep;
+    if (Math.min(u, 1 - u) * len < STAR_CLEARANCE_PX) continue;
     const open = openness(Math.min(u, 1 - u) * len, taper);
     if (open <= 0) continue;
     const v = strandOffset(0, 50, u, len, wavelength, amplitude, taper, twist, slide, spread, animSeconds);
@@ -332,7 +335,10 @@ export function drawConnectionStrands(
   for (let i = 0; i < DUST_COUNT; i++) {
     const h = hash01(i * 7.3 + seed * 31);
     const speed = DUST_MIN_SPEED + DUST_SPEED_RANGE * hash01(i * 2.9 + 5);
-    const p = (((i + h) / DUST_COUNT + speed * animSeconds) % 1 + 1) % 1;
+    // Progress along its run (0…1); the run itself starts and ends STAR_CLEARANCE_PX away from the stars
+    const run = (((i + h) / DUST_COUNT + speed * animSeconds) % 1 + 1) % 1;
+    const clear = Math.min(0.45, STAR_CLEARANCE_PX / len);
+    const p = clear + run * (1 - 2 * clear);
     if (p < ta || p > tb) continue;
     const strand = Math.floor(hash01(i * 4.1 + 9) * STRAND_COUNT);
     const open = openness(Math.min(p, 1 - p) * len, taper);
@@ -341,25 +347,12 @@ export function drawConnectionStrands(
       (hash01(i * 6.1 + 3) - 0.5) * 9 * open;
     const x = x1 + p * len * ca - v * sa;
     const y = y1 + p * len * sa + v * ca;
-    // Fades in out of our star and out into the other one, and twinkles
-    const fade = smoothstep(0, 0.1, p) * smoothstep(0, 0.1, 1 - p);
+    // Fades in near our star and out near the other one, and twinkles
+    const fade = smoothstep(0, 0.12, run) * smoothstep(0, 0.12, 1 - run);
     const twinkle = 0.65 + 0.35 * Math.sin(animSeconds * (1.1 + 1.5 * h) + i * 2.1);
     const size = 0.6 + 0.7 * hash01(i * 8.3 + 4);
     glowAt(canvas, res, x, y, 3 + size * 2.4, 0.3 * fade * twinkle);
     res.core.setAlphaf(0.9 * fade * twinkle);
     canvas.drawCircle(x, y, size, res.core);
-  }
-
-  // ── A glint on each star; the other star's pulses slowly ──
-  const pulse = 0.8 + 0.2 * Math.sin(animSeconds * 0.9 + seed * TAU);
-  if (x1 >= -40 && x1 <= view.width + 40 && y1 >= -40 && y1 <= view.height + 40) {
-    glowAt(canvas, res, x1, y1, 14, 0.3);
-  }
-  if (x2 >= -40 && x2 <= view.width + 40 && y2 >= -40 && y2 <= view.height + 40) {
-    glowAt(canvas, res, x2, y2, 20, 0.45 * pulse);
-    const spark = 4 + 2.5 * pulse;
-    res.spark.setAlphaf(0.55 * pulse);
-    canvas.drawLine(x2 - spark, y2, x2 + spark, y2, res.spark);
-    canvas.drawLine(x2, y2 - spark, x2, y2 + spark, res.spark);
   }
 }
