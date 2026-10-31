@@ -104,17 +104,22 @@ function SheetBody({
       >
         <View style={[styles.grabber, { backgroundColor: isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.22)" }]} />
 
+        {/* Yan alanlar eşit genişlikte: "Vazgeç" ve "Seç" farklı uzunlukta olsa da başlık sayfanın tam ortasında kalır */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={onCancel} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text style={[styles.headerAction, { color: theme.textSecondary }]}>{t("common.cancel")}</Text>
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>{heading}</Text>
-          <TouchableOpacity
-            onPress={() => onConfirm(draft)}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text style={[styles.headerAction, { color: theme.accent, fontFamily: "Inter_700Bold" }]}>{t("photos.add.pick")}</Text>
-          </TouchableOpacity>
+          <View style={styles.headerSide}>
+            <TouchableOpacity onPress={onCancel} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={[styles.headerAction, { color: theme.textSecondary }]}>{t("common.cancel")}</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>{heading}</Text>
+          <View style={[styles.headerSide, styles.headerSideEnd]}>
+            <TouchableOpacity
+              onPress={() => onConfirm(draft)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={[styles.headerAction, { color: theme.accent, fontFamily: "Inter_700Bold" }]}>{t("photos.add.pick")}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {Platform.OS === "ios" ? (
@@ -170,12 +175,15 @@ function CalendarPane({
   const { t, i18n } = useTranslation();
   const { months, weekdays } = getCalendarNames(i18n.language);
   const { width: screenWidth } = useWindowDimensions();
+  // Takvimin gerçek genişliği (yerleşimden): katlanabilir / bölünmüş ekran / yatay / çentik kenar boşluğu
+  // gibi durumlarda ekran genişliğinden hesaplanan değer sapar ve ızgara kayardı. Ölçülene kadar tahmin kullanılır.
+  const [measuredWidth, setMeasuredWidth] = useState(0);
   const [view, setView] = useState(() => new Date(value.getFullYear(), value.getMonth(), 1));
   const [yearMode, setYearMode] = useState(false);
   const yearScrollRef = useRef<ScrollView>(null);
 
   // Yüzde genişlik yerine tam piksel: yuvarlama farkı yüzünden 7. hücre alt satıra düşmesin
-  const innerWidth = Math.min(screenWidth, MAX_SHEET_WIDTH) - 34; // sheet yatay boşluk (16*2) + kenarlık (1*2)
+  const innerWidth = measuredWidth > 0 ? measuredWidth : Math.min(screenWidth, MAX_SHEET_WIDTH) - 34; // tahmin: sheet yatay boşluk (16*2) + kenarlık (1*2)
   const dayWidth = Math.floor(innerWidth / 7);
   const yearWidth = Math.floor(innerWidth / YEAR_COLUMNS);
 
@@ -219,7 +227,10 @@ function CalendarPane({
   };
 
   return (
-    <View style={styles.calendar}>
+    <View
+      style={styles.calendar}
+      onLayout={(e) => setMeasuredWidth(Math.floor(e.nativeEvent.layout.width))}
+    >
       <View style={styles.calendarHeader}>
         <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.back")}
           onPress={() => shiftMonth(-1)}
@@ -341,6 +352,7 @@ function CalendarPane({
 
 const WHEEL_ITEM = 46;
 const WHEEL_VISIBLE = 5;
+const WHEEL_WIDTH = 96;
 /** Çarkın üstünde/altında bırakılan boşluk: ilk ve son öğe de seçim bandının ortasına gelebilsin. */
 const WHEEL_PAD = WHEEL_ITEM * Math.floor(WHEEL_VISIBLE / 2);
 
@@ -356,13 +368,14 @@ function TimePane({ value, onChange }: { value: Date; onChange: (date: Date) => 
 
   return (
     <View style={styles.timePane}>
-      <View
-        pointerEvents="none"
-        style={[
-          styles.wheelBand,
-          { backgroundColor: theme.pillAccentBg, borderColor: theme.pillAccentBorder },
-        ]}
-      />
+      <View pointerEvents="none" style={styles.wheelBandRow}>
+        <View
+          style={[
+            styles.wheelBand,
+            { backgroundColor: theme.pillAccentBg, borderColor: theme.pillAccentBorder },
+          ]}
+        />
+      </View>
       <Wheel count={24} value={value.getHours()} onChange={(n) => setPart("h", n)} />
       <Text style={[styles.timeColon, { color: theme.text }]}>:</Text>
       <Wheel count={60} value={value.getMinutes()} onChange={(n) => setPart("m", n)} />
@@ -474,7 +487,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingBottom: 6,
   },
+  headerSide: {
+    flexGrow: 1,
+    flexBasis: 0,
+    minWidth: 64,
+    alignItems: "flex-start",
+  },
+  headerSideEnd: {
+    alignItems: "flex-end",
+  },
   headerTitle: {
+    flexShrink: 1,
+    textAlign: "center",
     fontSize: 14.5,
     fontFamily: "Inter_600SemiBold",
   },
@@ -583,17 +607,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 4,
   },
-  wheelBand: {
+  // Seçim bandı iki çarkın (ve aradaki iki noktanın) genişliğinde, satırın tam ortasında
+  wheelBandRow: {
     position: "absolute",
-    left: 24,
-    right: 24,
+    left: 0,
+    right: 0,
     top: WHEEL_ITEM * Math.floor(WHEEL_VISIBLE / 2),
+    height: WHEEL_ITEM,
+    alignItems: "center",
+  },
+  wheelBand: {
+    width: WHEEL_WIDTH * 2 + 48,
     height: WHEEL_ITEM,
     borderRadius: 14,
     borderWidth: 1,
   },
   wheel: {
-    width: 96,
+    width: WHEEL_WIDTH,
     height: WHEEL_ITEM * WHEEL_VISIBLE,
   },
   wheelItem: {
