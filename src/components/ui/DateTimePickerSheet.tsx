@@ -23,6 +23,8 @@ import "@/lib/calendarLocale";
  * Uygulamanın TEK tarih / saat seçicisi. Hiçbir ekran DateTimePicker'ı doğrudan kullanmaz.
  *
  * - iOS: alt sayfada sistem çarkı; seçim "Seç" ile onaylanır (iOS 14+ "compact" hapı yok).
+ *   Native çark kendi doğal genişliğinde (~320 pt) ölçülür ve sola yaslı yerleşirdi; bu yüzden her
+ *   cihazda (iPhone / iPad) sayfanın yatay ortasına alınır.
  * - Android: aynı alt sayfa başlığıyla (Vazgeç / Başlık / Seç) özel aylık takvim (yıl seçimli)
  *   ve saat çarkı. Sistem iletişim kutusu kullanılmaz; böylece her ekranda aynı görünür.
  *
@@ -40,6 +42,9 @@ export interface DateTimePickerSheetProps {
   onConfirm: (date: Date) => boolean | void;
   onCancel: () => void;
 }
+
+/** Sayfanın en geniş hâli (pt): iPad / tablette tam ekran genişliğine yayılmaz, altta ortalanır. */
+const MAX_SHEET_WIDTH = 520;
 
 export function DateTimePickerSheet({ visible, onCancel, ...body }: DateTimePickerSheetProps) {
   return (
@@ -113,20 +118,22 @@ function SheetBody({
         </View>
 
         {Platform.OS === "ios" ? (
-          <DateTimePicker
-            value={draft}
-            mode={mode}
-            display="spinner"
-            locale={i18n.language === "tr" ? "tr-TR" : "en-US"}
-            themeVariant={isLight ? "light" : "dark"}
-            textColor={theme.text}
-            minimumDate={minimumDate}
-            maximumDate={maximumDate}
-            onChange={(_, date) => {
-              if (date) setDraft(date);
-            }}
-            style={styles.iosWheel}
-          />
+          <View style={styles.iosWheelWrap}>
+            <DateTimePicker
+              value={draft}
+              mode={mode}
+              display="spinner"
+              locale={i18n.language === "tr" ? "tr-TR" : "en-US"}
+              themeVariant={isLight ? "light" : "dark"}
+              textColor={theme.text}
+              minimumDate={minimumDate}
+              maximumDate={maximumDate}
+              onChange={(_, date) => {
+                if (date) setDraft(date);
+              }}
+              style={styles.iosWheel}
+            />
+          </View>
         ) : mode === "date" ? (
           <CalendarPane
             value={draft}
@@ -168,7 +175,7 @@ function CalendarPane({
   const yearScrollRef = useRef<ScrollView>(null);
 
   // Yüzde genişlik yerine tam piksel: yuvarlama farkı yüzünden 7. hücre alt satıra düşmesin
-  const innerWidth = screenWidth - 34; // sheet yatay boşluk (16*2) + kenarlık (1*2)
+  const innerWidth = Math.min(screenWidth, MAX_SHEET_WIDTH) - 34; // sheet yatay boşluk (16*2) + kenarlık (1*2)
   const dayWidth = Math.floor(innerWidth / 7);
   const yearWidth = Math.floor(innerWidth / YEAR_COLUMNS);
 
@@ -441,9 +448,12 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: "flex-end",
+    alignItems: "center",
     backgroundColor: "rgba(0,0,0,0.45)",
   },
   sheet: {
+    width: "100%",
+    maxWidth: MAX_SHEET_WIDTH,
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
     borderWidth: 1,
@@ -472,8 +482,15 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: "Inter_500Medium",
   },
+  // Çark satırın tam genişliğini kaplar; çarkın kendisi (doğal genişlikte) bu satırın ortasında durur
+  iosWheelWrap: {
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   iosWheel: {
     height: 200,
+    alignSelf: "center",
   },
 
   // Takvim

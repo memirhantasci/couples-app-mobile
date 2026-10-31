@@ -28,6 +28,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import * as AppleAuthentication from "expo-apple-authentication";
+import { AppleLogo, GoogleLogo } from "@/components/ui/SocialLogos";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { Trans, useTranslation } from "react-i18next";
 import i18n from "@/lib/i18n";
@@ -1111,32 +1112,36 @@ export default function LoginScreen() {
               halden gerçek native view'a döner; çocukları aynı karede başka ebeveyne taşınınca Android Fabric
               "addViewAt: child already has a parent" ile çöküyordu. Hep native view kalsın. */}
           <View collapsable={false} style={[styles.socialGroup, isLoading && { opacity: 0.6 }]} pointerEvents={isLoading ? "none" : "auto"}>
-            {/* Apple: Apple'ın onaylı native butonu (HIG / App Store uyumlu) */}
+            {/* Apple ve Google: aynı açık gri düğme; logo solda, yazı düğmenin tam ortasında */}
             {Platform.OS === "ios" && isAppleAvailable && (
-              <AppleAuthentication.AppleAuthenticationButton
-                buttonType={
-                  mode === "login"
-                    ? AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN
-                    : AppleAuthentication.AppleAuthenticationButtonType.CONTINUE
-                }
-                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
-                cornerRadius={16}
-                style={styles.appleButton}
+              <TouchableOpacity
                 onPress={handleAppleAuth}
-              />
+                disabled={isLoading}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                style={styles.socialBtn}
+              >
+                <View style={styles.socialLogo}>
+                  <AppleLogo size={24} />
+                </View>
+                <Text style={styles.socialBtnText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+                  {t("auth.login.appleContinue")}
+                </Text>
+              </TouchableOpacity>
             )}
 
             <TouchableOpacity
               onPress={handleGoogleAuth}
               disabled={isLoading}
               activeOpacity={0.85}
+              accessibilityRole="button"
               style={styles.socialBtn}
             >
-              <View style={styles.googleBadge}>
-                <Text style={styles.googleBadgeText}>G</Text>
+              <View style={styles.socialLogo}>
+                <GoogleLogo size={24} />
               </View>
-              <Text style={styles.socialBtnText}>
-                {mode === "login" ? t("auth.login.googleSignIn") : t("auth.login.googleContinue")}
+              <Text style={styles.socialBtnText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+                {t("auth.login.googleContinue")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -1407,38 +1412,28 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 14,
   },
-  appleButton: {
-    width: "100%",
-    height: 50,
-  },
   socialBtn: {
-    height: 50,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: "#F2F2F2",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
+    // Logo için iki yanda eşit pay: yazı, logodan bağımsız olarak düğmenin tam ortasında durur
+    paddingHorizontal: 52,
   },
-  socialBtnText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontFamily: "Inter_600SemiBold",
-  },
-  googleBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
+  socialLogo: {
+    position: "absolute",
+    left: 16,
+    top: 0,
+    bottom: 0,
     justifyContent: "center",
   },
-  googleBadgeText: {
-    color: "#4285F4",
-    fontSize: 14,
-    fontWeight: "900",
+  socialBtnText: {
+    color: "#111111",
+    fontSize: 16,
+    fontFamily: "Inter_600SemiBold",
+    textAlign: "center",
   },
   legalLink: {
     fontFamily: "Inter_700Bold",

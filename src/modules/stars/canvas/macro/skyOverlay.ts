@@ -54,8 +54,15 @@ export interface ConnectionItem {
   readonly label: SkPicture | null;
 }
 
+export interface SectorLabelItem extends PositionedPicture {
+  /** Half the label's width in px, so the frame can tell whether it runs into the hero star. */
+  readonly halfWidth: number;
+}
+
 export interface HeroItem extends PositionedPicture {
   readonly label: SkPicture | null;
+  /** Half the width of the label pill in px (0 without a label). */
+  readonly labelHalfWidth: number;
 }
 
 export interface SkyOverlay {
@@ -68,7 +75,7 @@ export interface SkyOverlay {
   /** Güneş sistemi yörünge halkaları (derece cinsinden yarı eksenler) ve silik çizgi boyası. */
   readonly orbits: typeof ORRERY_ORBITS;
   readonly orbitPaint: SkPaint;
-  readonly sectorLabels: readonly PositionedPicture[];
+  readonly sectorLabels: readonly SectorLabelItem[];
   readonly hero: HeroItem | null;
   readonly connections: readonly ConnectionItem[];
   readonly connectionNode: SkPicture;
@@ -260,6 +267,17 @@ function recordText(text: string, provider: SkTypefaceFontProvider, spec: TextSp
 /** Caches label pictures by style and text across overlay rebuilds. */
 export class LabelPictureCache {
   private readonly pictures = new Map<string, SkPicture>();
+  private readonly widths = new Map<string, number>();
+
+  /** Measured text widths are tiny and stable per style + text, so they are kept for good. */
+  width(key: string, measure: () => number) {
+    let width = this.widths.get(key);
+    if (width === undefined) {
+      width = measure();
+      this.widths.set(key, width);
+    }
+    return width;
+  }
 
   get(key: string, create: () => SkPicture) {
     let picture = this.pictures.get(key);
@@ -519,22 +537,33 @@ export function buildSkyOverlay({
       ? labels.get(`text|${spec.size}|${spec.weight}|${spec.color}|${text}`, () => recordText(text, fontProvider, spec))
       : null;
 
-  const sectorLabels: PositionedPicture[] = [];
+  const textWidth = (text: string, spec: TextSpec) =>
+    fontProvider
+      ? labels.width(`${spec.size}|${spec.weight}|${text}`, () => layoutParagraph(text, fontProvider, spec).getLongestLine())
+      : 0;
+
+  const sectorLabels: SectorLabelItem[] = [];
   for (const sector of SKY_SECTORS_LIST) {
-    const picture = plain(`${sector.symbol} ${i18n.t(sector.nameKey)}`, {
+    const text = `${sector.symbol} ${i18n.t(sector.nameKey)}`;
+    const spec: TextSpec = {
       size: 14,
       weight: 'semibold',
       color: sector.themeColor || 'rgba(255,255,255,0.6)',
-    });
-    if (picture) sectorLabels.push({ ra: sector.center.ra, dec: sector.center.dec, picture });
+    };
+    const picture = plain(text, spec);
+    if (picture) {
+      sectorLabels.push({ ra: sector.center.ra, dec: sector.center.dec, picture, halfWidth: textWidth(text, spec) / 2 });
+    }
   }
 
+  const heroText = `⭐ ${myStar?.name || i18n.t('stars.defaultNameSparkle')}`;
   const hero: HeroItem | null = myStar
     ? {
         ra: myStar.ra,
         dec: myStar.dec,
         picture: recordHeroGlow(labels, myStar.luminosity, myStar.color) ?? assets.heroMarker,
-        label: pill(`⭐ ${myStar.name || i18n.t('stars.defaultNameSparkle')}`, HERO_PILL, 'hero'),
+        label: pill(heroText, HERO_PILL, 'hero'),
+        labelHalfWidth: textWidth(heroText, HERO_PILL.text) / 2 + HERO_PILL.paddingX,
       }
     : null;
 

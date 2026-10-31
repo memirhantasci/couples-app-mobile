@@ -128,6 +128,10 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                     }
                   ]}
                   numberOfLines={1}
+                  // Etiket, sığabildiği her yerde tam yazılır; yalnızca gerçekten sığmayacaksa (dar ekran,
+                  // 6 sekme) yazı hafifçe küçülür. "…" ile kesilme yalnızca bu da yetmezse olur.
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.75}
                 >
                   {label}
                 </Text>
@@ -244,6 +248,9 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   tabText: {
+    // Kapsülün tam genişliği: metin kutusu ölçülen (iOS'ta bazen dar kalan) genişliğe değil, kapsüle
+    // bağlı olur; "Takvim" gibi kısa etiketler boş yer varken "Takv…" diye kesilmez
+    width: "100%",
     fontSize: 9.5,
     textAlign: "center",
     letterSpacing: -0.2,

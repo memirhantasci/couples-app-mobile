@@ -51,7 +51,7 @@
       "identifierLabel": "EMAIL OR USERNAME",
       "identifierPlaceholder": "example@gmail.com or username",
       "forgotPassword": "Forgot Password?",
-      "googleSignIn": "Sign In with Google",
+      "appleContinue": "Continue with Apple",
       "googleContinue": "Continue with Google"
     },
     "register": {

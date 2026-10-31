@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { logger } from "@/utils/logger";
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions, ActivityIndicator, Share } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRealTopInset } from "@/hooks/useRealTopInset";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
@@ -50,6 +51,10 @@ export function CoupleWrappedModal({
   theme,
 }: CoupleWrappedModalProps) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  // Tam ekran modal ekranın tepesinden başlar; durum çubuğu / Dynamic Island boşluğu gerçek üst güvenli
+  // alandan alınır (demo modunda insets.top 0'a çekilir; SafeAreaView ise modal içinde 0 dönebiliyordu)
+  const topInset = useRealTopInset();
   const isMale = theme?.gender === "male";
   const modalGradientColors = isMale
     ? (["#0A0E17", "#0D182A", "#13233D", "#0A0E17"] as const)
@@ -146,7 +151,7 @@ export function CoupleWrappedModal({
   if (!visible || !data) return null;
 
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="fade" transparent statusBarTranslucent onRequestClose={onClose}>
       <View style={styles.backdrop}>
         {/* Arka Plan Gradient */}
         <LinearGradient
@@ -154,7 +159,7 @@ export function CoupleWrappedModal({
           style={StyleSheet.absoluteFill}
         />
 
-        <SafeAreaView style={styles.safeArea}>
+        <View style={[styles.safeArea, { paddingTop: topInset, paddingBottom: insets.bottom }]}>
           {/* Üst Bar: İlerleme Çubukları & Kapat Butonu */}
           <View style={styles.header}>
             <View style={styles.progressContainer}>
@@ -177,7 +182,7 @@ export function CoupleWrappedModal({
           </View>
 
           {/* Dokunmatik Sol/Sağ Alanları */}
-          <View style={styles.touchAreaContainer}>
+          <View style={[styles.touchAreaContainer, { top: topInset + 70 }]}>
             <TouchableOpacity activeOpacity={1} onPress={handlePrev} style={styles.leftTouch} />
             <TouchableOpacity activeOpacity={1} onPress={handleNext} style={styles.rightTouch} />
           </View>
@@ -331,7 +336,7 @@ export function CoupleWrappedModal({
               </View>
             )}
           </View>
-        </SafeAreaView>
+        </View>
       </View>
     </Modal>
   );
@@ -396,7 +401,6 @@ const styles = StyleSheet.create({
   },
   touchAreaContainer: {
     position: "absolute",
-    top: 70,
     bottom: 90,
     left: 0,
     right: 0,

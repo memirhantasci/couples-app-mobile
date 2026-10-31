@@ -45,6 +45,12 @@ export interface MeteorFrame {
 
 /** Sector names show below this zoom and fade out towards it. */
 const SECTOR_LABEL_FADE = [1.7, 2.0] as const;
+/** Sector name text spans this far above / below the sector centre (px; it is drawn 12 px lower). */
+const SECTOR_LABEL_TOP = -2;
+const SECTOR_LABEL_BOTTOM = 16;
+/** Space around our own star the sector names keep clear: marker ring above/beside it, name pill below it. */
+const HERO_MARKER_CLEARANCE = 30;
+const HERO_LABEL_BOTTOM = 36;
 /** Claimed-star name pills fade in across this zoom range. */
 const CLAIMED_LABEL_FADE = [3.6, 4.0] as const;
 /** Medium-zoom glows blend in across this zoom range (was a hard switch at 1.5). */
@@ -413,10 +419,25 @@ function drawSectorLabels(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay
   const alpha = 1 - smoothstep(SECTOR_LABEL_FADE[0], SECTOR_LABEL_FADE[1], view.camera.zoom);
   if (alpha <= 0.002 || overlay.sectorLabels.length === 0) return;
   if (alpha < 0.998) beginAlphaLayer(canvas, paints, alpha);
+  const hero = overlay.hero;
+  const heroX = hero ? screenX(view, hero.ra) : 0;
+  const heroY = hero ? screenY(view, hero.dec) : 0;
   for (const label of overlay.sectorLabels) {
     const x = screenX(view, label.ra);
     const y = screenY(view, label.dec);
     if (!isOnScreen(view, x, y, 80)) continue;
+    // A sector name that would run into the couple's own star (marker ring or name pill) is hidden:
+    // the star can sit right on a sector centre (e.g. Sirius in Canis Major), and the two overlapped.
+    if (hero) {
+      const clearX = Math.max(HERO_MARKER_CLEARANCE, hero.labelHalfWidth) + label.halfWidth;
+      if (
+        Math.abs(x - heroX) < clearX &&
+        y + SECTOR_LABEL_BOTTOM > heroY - HERO_MARKER_CLEARANCE &&
+        y + SECTOR_LABEL_TOP < heroY + HERO_LABEL_BOTTOM
+      ) {
+        continue;
+      }
+    }
     drawAt(canvas, label.picture, x, y + 12);
   }
   if (alpha < 0.998) canvas.restore();
