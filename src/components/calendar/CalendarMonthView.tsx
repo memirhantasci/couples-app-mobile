@@ -86,16 +86,15 @@ function CalendarMonthViewComponent({
             height: 36,
             alignItems: "center",
             paddingTop: 4,
-            borderRadius: 12,
+            borderRadius: 18,
           },
           today: {
-            borderColor: theme.accent,
-            borderWidth: 1.5,
-            borderRadius: 12,
+            backgroundColor: `${theme.accent}26`,
+            borderRadius: 18,
           },
           selected: {
             backgroundColor: theme.accent,
-            borderRadius: 12,
+            borderRadius: 18,
           },
           dot: {
             width: 5,
@@ -114,7 +113,7 @@ function CalendarMonthViewComponent({
   return (
     <>
       {/* AY SEÇİCİ ÇUBUĞU */}
-      <View style={[styles.monthNavCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
+      <View style={[styles.monthNavCard, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}>
         <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.back")} onPress={onPrevMonth} style={[styles.monthArrowBtn, { backgroundColor: isLight ? theme.unitBg : "rgba(255,255,255,0.06)" }]} activeOpacity={0.75}>
           <ChevronLeft color={theme.text} size={20} />
         </TouchableOpacity>
@@ -132,7 +131,7 @@ function CalendarMonthViewComponent({
       </View>
 
       {/* TAKVİM BİLEŞENİ */}
-      <View style={[styles.calendarCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
+      <View style={[styles.calendarCard, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}>
         <Calendar
           current={currentMonth}
           // Ay anahtarda OLMALI: react-native-calendars `current` değişince gösterdiği ayı kendiliğinden
@@ -147,15 +146,14 @@ function CalendarMonthViewComponent({
         />
 
         {/* LEJANT (RENK KILAVUZU) */}
-        <View style={[styles.legendRow, { borderTopColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
+        <View style={[styles.legendRow, { borderTopColor: isLight ? "rgba(0,0,0,0.07)" : "rgba(255,255,255,0.08)" }]}>
           {legendEntries.map((entry) => (
             <View
               key={entry.labelKey}
               style={[
                 styles.legendItem,
                 {
-                  backgroundColor: `rgba(${entry.rgb},${isLight ? 0.08 : 0.14})`,
-                  borderColor: `rgba(${entry.rgb},0.3)`,
+                  backgroundColor: `rgba(${entry.rgb},${isLight ? 0.1 : 0.16})`,
                 },
               ]}
             >
@@ -181,12 +179,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 22,
+    borderRadius: 26,
   },
   monthArrowBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "rgba(255,255,255,0.06)",
     alignItems: "center",
     justifyContent: "center",
@@ -197,24 +195,24 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   monthText: {
-    fontSize: 16,
+    fontSize: 17,
     fontFamily: "Inter_700Bold",
     color: "#ffffff",
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
   },
 
   /* TAKVİM KARTI */
   calendarCard: {
-    borderRadius: 22,
-    padding: 14,
+    borderRadius: 28,
+    padding: 16,
   },
   legendRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 12,
+    paddingTop: 14,
     marginTop: 10,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
     flexWrap: "wrap",
     gap: 6,
   },
@@ -223,9 +221,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 10,
-    borderWidth: 1,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
   legendDot: {
     width: 8,

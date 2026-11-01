@@ -110,8 +110,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 10,
     paddingVertical: 4.5,
-    borderRadius: 10,
-    borderWidth: 1,
+    borderRadius: 12,
     marginBottom: 4,
   },
   sectionHeaderText: {
