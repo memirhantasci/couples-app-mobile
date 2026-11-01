@@ -138,7 +138,7 @@ export default function MenuScreen() {
           <Text style={[styles.headerTitle, { color: theme.text }]}>{t("menu.title")}</Text>
           <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} 
             onPress={handleClose} 
-            style={[styles.closeBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : theme.cardBg, borderColor: theme.cardBorder }]}
+            style={[styles.closeBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.07)" }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <X color={theme.text} size={18} />
@@ -178,8 +178,15 @@ export default function MenuScreen() {
           )}
 
           {/* ─── LÜKS ÇİFT PROFİL KARTI ─── */}
-          <View style={[styles.profileCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
-            <EditableAvatar name={displayName} size={50} />
+          <View style={[styles.profileCard, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}>
+            <LinearGradient
+              pointerEvents="none"
+              colors={[`${theme.accent}33`, `${theme.accent}00`]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <EditableAvatar name={displayName} size={56} />
             <View style={styles.profileInfo}>
               <Text style={[styles.profileName, { color: theme.text }]} numberOfLines={1}>{displayName}</Text>
               <View style={styles.profileSubtitleRow}>
@@ -194,9 +201,10 @@ export default function MenuScreen() {
           {/* ─── KATEGORİ 1: AŞK & ANILAR (ANA BÖLÜMLER) ─── */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionHeaderLabel}>{t("menu.sections.love")}</Text>
+            <View style={[styles.sectionGroup, { backgroundColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]}>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg }]} 
               onPress={() => handleRoute("/our-star")}
               activeOpacity={0.8}
             >
@@ -211,7 +219,7 @@ export default function MenuScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg }]} 
               onPress={() => handleRoute("/(tabs)/home")}
               activeOpacity={0.8}
             >
@@ -226,7 +234,7 @@ export default function MenuScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg }]} 
               onPress={() => handleRoute("/(tabs)/photos")}
               activeOpacity={0.8}
             >
@@ -241,7 +249,7 @@ export default function MenuScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg }]} 
               onPress={() => {
                 if (executeOrIntercept(
                   () => handleRoute("/(tabs)/add-photo"),
@@ -269,7 +277,7 @@ export default function MenuScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg }]} 
               onPress={() => handleRoute("/(tabs)/daily-notes")}
               activeOpacity={0.8}
             >
@@ -285,7 +293,7 @@ export default function MenuScreen() {
 
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg }]} 
               onPress={() => handleRoute("/(tabs)/letters")}
               activeOpacity={0.8}
             >
@@ -300,7 +308,7 @@ export default function MenuScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg }]} 
               onPress={() => handleRoute("/(tabs)/memories")}
               activeOpacity={0.8}
             >
@@ -315,7 +323,7 @@ export default function MenuScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg }]} 
               onPress={() => handleRoute("/(tabs)/calendar")}
               activeOpacity={0.8}
             >
@@ -330,7 +338,7 @@ export default function MenuScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg }]} 
               onPress={() => handleRoute("/(tabs)/map")}
               activeOpacity={0.8}
             >
@@ -345,7 +353,7 @@ export default function MenuScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg }]} 
               onPress={() => handleRoute("/(tabs)/meetings")}
               activeOpacity={0.8}
             >
@@ -358,16 +366,18 @@ export default function MenuScreen() {
               </View>
               <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
-          </View>
+                      </View>
+</View>
 
           {showLowerSections && (
             <>
               {/* ─── KATEGORİ 2: SAĞLIK & ÖZEL TAKİP ─── */}
               <View style={styles.sectionContainer}>
                 <Text style={styles.sectionHeaderLabel}>{t("menu.sections.health")}</Text>
+            <View style={[styles.sectionGroup, { backgroundColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]}>
 
                 <TouchableOpacity 
-                  style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
+                  style={[styles.menuItem, { backgroundColor: theme.cardBg }]} 
                   onPress={() => handleRoute("/(tabs)/medicine")}
                   activeOpacity={0.8}
                 >
@@ -382,7 +392,7 @@ export default function MenuScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity 
-                  style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
+                  style={[styles.menuItem, { backgroundColor: theme.cardBg }]} 
                   onPress={() => handleRoute("/(tabs)/period-tracker")}
                   activeOpacity={0.8}
                 >
@@ -395,15 +405,17 @@ export default function MenuScreen() {
                   </View>
                   <ChevronRight color={theme.textMuted} size={18} />
                 </TouchableOpacity>
-              </View>
+                          </View>
+</View>
 
               {/* ─── KATEGORİ 3: AYARLAR & HESAP ─── */}
               <View style={styles.sectionContainer}>
                 <Text style={styles.sectionHeaderLabel}>{t("menu.sections.account")}</Text>
+            <View style={[styles.sectionGroup, { backgroundColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]}>
 
 
                 <TouchableOpacity 
-                  style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
+                  style={[styles.menuItem, { backgroundColor: theme.cardBg }]} 
                   onPress={() => setShowGuideCatalog(true)}
                   activeOpacity={0.8}
                 >
@@ -418,7 +430,7 @@ export default function MenuScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity 
-                  style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
+                  style={[styles.menuItem, { backgroundColor: theme.cardBg }]} 
                   onPress={() => handleRoute("/(tabs)/profile")}
                   activeOpacity={0.8}
                 >
@@ -433,7 +445,7 @@ export default function MenuScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity 
-                  style={[styles.menuItem, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]} 
+                  style={[styles.menuItem, { backgroundColor: theme.cardBg }]} 
                   onPress={() => setLegalVisible(true)}
                   activeOpacity={0.8}
                 >
@@ -448,7 +460,7 @@ export default function MenuScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity 
-                  style={[styles.logoutItem, { backgroundColor: "rgba(255, 77, 106, 0.08)", borderColor: "rgba(255, 77, 106, 0.25)" }]} 
+                  style={[styles.logoutItem, { backgroundColor: theme.cardBg }]} 
                   onPress={handleSignOut}
                   activeOpacity={0.8}
                 >
@@ -461,7 +473,8 @@ export default function MenuScreen() {
                   </View>
                   <ChevronRight color="rgba(255, 77, 106, 0.4)" size={18} />
                 </TouchableOpacity>
-              </View>
+                          </View>
+</View>
             </>
           )}
         </ScrollView>
@@ -555,37 +568,36 @@ const getMenuStyles = (theme: any, isLight: boolean) => StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingBottom: 14,
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 34,
     fontFamily: "Inter_700Bold",
     color: theme.text,
-    letterSpacing: -0.4,
+    letterSpacing: -1,
   },
   closeBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 1,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
   },
   content: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingTop: 8,
-    gap: 20,
+    gap: 24,
   },
 
   /* PROFİL KARTI */
   profileCard: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
-    borderRadius: 22,
-    borderWidth: 1,
-    gap: 14,
+    padding: 18,
+    borderRadius: 28,
+    overflow: "hidden",
+    gap: 16,
   },
   profileInfo: {
     flex: 1,
@@ -611,34 +623,38 @@ const getMenuStyles = (theme: any, isLight: boolean) => StyleSheet.create({
   sectionContainer: {
     gap: 10,
   },
+  // Satırlar tek yuvarlak yüzeyde; aralarındaki ince boşluktan zemin rengi ayraç gibi görünür
+  sectionGroup: {
+    borderRadius: 24,
+    overflow: "hidden",
+    gap: StyleSheet.hairlineWidth,
+  },
   sectionHeaderLabel: {
     fontSize: 11,
     fontFamily: "Inter_700Bold",
     color: theme.textMuted,
     letterSpacing: 0.8,
-    marginLeft: 4,
+    marginLeft: 8,
+    textTransform: "uppercase",
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 14,
-    borderRadius: 18,
-    borderWidth: 1,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
     gap: 14,
   },
   logoutItem: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 14,
-    borderRadius: 18,
-    borderWidth: 1,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
     gap: 14,
-    marginTop: 4,
   },
   iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
