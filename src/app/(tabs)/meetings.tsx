@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import {
   View,
   Text,
@@ -21,7 +22,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trash2, MapPin, AlignJustify, Pencil, ChevronLeft, Plus, Calendar, Clock, Navigation, Check, X, Heart } from "lucide-react-native";
+import { Trash2, MapPin, Pencil, Plus, Calendar, Clock, Navigation, Check, X, Heart } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { supabase } from "@/lib/supabase";
@@ -34,7 +35,6 @@ import { useTheme } from "@/context/ThemeContext";
 import { MapPickerModal } from "@/components/MapPickerModal";
 import { usePageTour } from "@/hooks/usePageTour";
 import { useDeferredReady } from "@/hooks/useDeferredReady";
-import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { DEMO_MEETINGS } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { sanitizeStrict } from "@/utils/sanitize";
@@ -302,41 +302,7 @@ export default function MeetingsScreen() {
     <ScreenBackground>
       <View style={{ flex: 1 }}>
         {/* HEADER */}
-        <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
-          <TouchableOpacity 
-            accessibilityRole="button"
-            accessibilityLabel={t("common.back")}
-            onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace("/(tabs)/home");
-              }
-            }} 
-            style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <ChevronLeft color={theme.text} size={24} />
-          </TouchableOpacity>
-
-          <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{t("menu.meetups.title")}</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>{t("meetings.subtitle")}</Text>
-          </View>
-
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <TourGuideButton onPress={openTour} />
-            <TouchableOpacity 
-              accessibilityRole="button"
-              accessibilityLabel={t("common.openMenu")}
-              onPress={() => router.push("/menu")} 
-              style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <AlignJustify color={theme.textSecondary} size={20} />
-            </TouchableOpacity>
-          </View>
-        </View>
+        <ScreenHeader title={t("menu.meetups.title")} subtitle={t("meetings.subtitle")} onOpenTour={openTour} />
 
         <ScrollView 
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 140 }]}

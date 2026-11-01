@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useFocusEffect } from "expo-router";
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, Modal } from "react-native";
+import { ScreenHeader, ScreenHeaderButton } from "@/components/ui/ScreenHeader";
 import { appAlert, type DialogButton } from "@/lib/dialog";
 import { DialogHost } from "@/components/ui/DialogHost";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
@@ -12,7 +13,7 @@ import { notifyPartner } from "@/lib/notifications";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
 import { encrypt, decrypt } from "@/utils/crypto";
-import { ChevronRight, LockKeyhole, Calendar as CalendarIcon, X, AlignJustify, PenLine, Send, ChevronLeft, Clock, Unlock, UserCheck, ChevronDown, Eye, EyeOff, MoreHorizontal, Hourglass, HeartHandshake } from "lucide-react-native";
+import { ChevronRight, LockKeyhole, Calendar as CalendarIcon, X, PenLine, Send, Clock, Unlock, UserCheck, ChevronDown, Eye, EyeOff, MoreHorizontal, Hourglass, HeartHandshake } from "lucide-react-native";
 import { sanitize, sanitizeStrict } from "@/utils/sanitize";
 import { logger } from "@/utils/logger";
 import type { AppTheme } from "@/lib/theme";
@@ -21,7 +22,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { UserAvatar } from "@/components/avatar/UserAvatar";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 import { usePageTour } from "@/hooks/usePageTour";
-import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { DEMO_LETTERS } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { playLetterSend, hapticStamp } from "@/lib/soundEffects";
@@ -729,49 +729,13 @@ export default function LettersScreen() {
     <ScreenBackground>
       <View style={{ flex: 1 }}>
         {/* HEADER - Diğer tüm sayfalarla simetrik ve tam uyumlu */}
-        <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
-          <TouchableOpacity 
-            accessibilityRole="button"
-            accessibilityLabel={t("common.back")}
-            onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace("/(tabs)/home");
-              }
-            }} 
-            style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <ChevronLeft color={theme.text} size={24} />
-          </TouchableOpacity>
-
-          <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{t("tabs.letters.label")}</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>{t("letters.subtitle")}</Text>
-          </View>
-
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <TourGuideButton onPress={openTour} />
-            <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.edit")} 
+        <ScreenHeader title={t("tabs.letters.label")} subtitle={t("letters.subtitle")} onOpenTour={openTour} actions={
+          <ScreenHeaderButton label={t("a11y.edit")} 
               onPress={handleOpenWriteModal} 
-              style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : theme.cardBg, borderColor: theme.cardBorder }]}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <PenLine color={theme.accent} size={19} />
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              accessibilityRole="button"
-              accessibilityLabel={t("common.openMenu")}
-              onPress={() => router.push("/menu")} 
-              style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <AlignJustify color={theme.textSecondary} size={20} />
-            </TouchableOpacity>
-          </View>
-        </View>
+            </ScreenHeaderButton>
+        } />
 
         {/* ÜSTTE HIZLI MEKTUP YAZ BUTONU */}
         <View style={styles.topActionContainer}>

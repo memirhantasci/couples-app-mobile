@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import {
   View,
   Text,
@@ -19,14 +20,13 @@ import { dayjs, todayString } from "@/lib/date";
 import { logger } from "@/utils/logger";
 import { Calendar } from "react-native-calendars";
 import "@/lib/calendarLocale";
-import { Check, ChevronLeft, AlignJustify, Crown, Sparkles, Droplet, MessageCircleHeart } from "lucide-react-native";
+import { Check, Crown, Sparkles, Droplet, MessageCircleHeart } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { usePageTour } from "@/hooks/usePageTour";
 import { useDeferredReady } from "@/hooks/useDeferredReady";
-import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { LazyPremiumPaywall, LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
 import {
@@ -285,43 +285,7 @@ export default function PeriodTrackerScreen() {
     <ScreenBackground>
       <View style={{ flex: 1 }}>
         {/* HEADER */}
-        <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
-          <TouchableOpacity 
-            accessibilityRole="button"
-            accessibilityLabel={t("common.back")}
-            onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace("/(tabs)/home");
-              }
-            }} 
-            style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <ChevronLeft color={theme.text} size={24} />
-          </TouchableOpacity>
-
-          <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{t("menu.cycle.title")}</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>
-              {isFemale ? t("period.subtitle.female") : t("period.subtitle.male")}
-            </Text>
-          </View>
-
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <TourGuideButton onPress={openTour} />
-            <TouchableOpacity 
-              accessibilityRole="button"
-              accessibilityLabel={t("common.openMenu")}
-              onPress={() => router.push("/menu")} 
-              style={[styles.headerBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", borderColor: theme.cardBorder }]}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <AlignJustify color={theme.textSecondary} size={20} />
-            </TouchableOpacity>
-          </View>
-        </View>
+        <ScreenHeader title={t("menu.cycle.title")} subtitle={isFemale ? t("period.subtitle.female") : t("period.subtitle.male")} onOpenTour={openTour} />
 
         <ScrollView 
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 140 }]}
