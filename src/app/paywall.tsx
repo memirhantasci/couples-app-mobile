@@ -201,7 +201,7 @@ export default function PaywallScreen() {
         </TouchableOpacity>
 
         <View style={styles.header}>
-          <View style={[styles.crownCircle, { backgroundColor: `${theme.accent}18` }]}>
+          <View style={[styles.crownCircle, { backgroundColor: `${theme.accent}22`, shadowColor: theme.accent, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 20, elevation: 8 }]}>
             <Crown color={theme.accent} size={48} />
           </View>
           <Text style={[styles.title, { color: theme.text }]}>{APP_NAME} Premium</Text>
@@ -212,9 +212,7 @@ export default function PaywallScreen() {
           style={[
             styles.featuresBox,
             {
-              backgroundColor: isLight ? theme.unitBg : "rgba(255,255,255,0.03)",
-              borderColor: isLight ? "rgba(0,0,0,0.06)" : theme.cardBorder,
-              borderWidth: 1,
+              backgroundColor: isLight ? theme.unitBg : "rgba(255,255,255,0.06)",
             },
           ]}
         >
@@ -405,7 +403,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    borderWidth: 1,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -415,26 +412,26 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   crownCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 96,
+    height: 96,
+    borderRadius: 32,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "800",
+    fontSize: 32,
+    fontFamily: "Inter_700Bold",
     marginBottom: 8,
-    letterSpacing: -0.4,
+    letterSpacing: -1,
   },
   subtitle: {
     fontSize: 16,
     letterSpacing: -0.2,
   },
   featuresBox: {
-    padding: 20,
-    borderRadius: 20,
+    padding: 22,
+    borderRadius: 26,
     marginBottom: 28,
   },
   featureRow: {
@@ -452,7 +449,7 @@ const styles = StyleSheet.create({
   },
   featureText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontFamily: "Inter_600SemiBold",
     flex: 1,
   },
   packagesContainer: {
@@ -462,9 +459,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 18,
-    borderRadius: 18,
-    borderWidth: 1.8,
+    padding: 20,
+    borderRadius: 24,
+    borderWidth: 2,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 10,
@@ -474,8 +471,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   packageTitle: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 16.5,
+    fontFamily: "Inter_700Bold",
     marginBottom: 4,
   },
   packagePrice: {
@@ -496,8 +493,8 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   ctaBtn: {
-    paddingVertical: 18,
-    borderRadius: 18,
+    paddingVertical: 19,
+    borderRadius: 30,
     alignItems: "center",
     marginTop: 10,
     shadowColor: "#000",
@@ -509,7 +506,7 @@ const styles = StyleSheet.create({
   ctaBtnText: {
     color: "#fff",
     fontSize: 17,
-    fontWeight: "bold",
+    fontFamily: "Inter_700Bold",
     letterSpacing: -0.2,
   },
   restoreBtn: {
