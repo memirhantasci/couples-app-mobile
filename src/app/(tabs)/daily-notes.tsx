@@ -243,7 +243,7 @@ export default function DailyNotesScreen() {
         {/* ÜSTTE YENİ SAYFA EKLE BUTONU */}
         <View style={styles.topActionContainer}>
           <TouchableOpacity 
-            style={[styles.writeNoteActionBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
+            style={[styles.writeNoteActionBtn, { backgroundColor: theme.accent }]}
             onPress={() => {
               if (executeOrIntercept(
                 () => router.push(openForm("/(tabs)/add-daily-note")),
@@ -256,14 +256,14 @@ export default function DailyNotesScreen() {
             }}
             activeOpacity={0.88}
           >
-            <View style={[styles.writeActionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
-              <BookOpen size={20} color={theme.accent} />
+            <View style={[styles.writeActionIconCircle, { backgroundColor: "rgba(255,255,255,0.22)" }]}>
+              <BookOpen size={20} color="#ffffff" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.writeActionTitle, { color: theme.text }]}>{t("dailyNotes.writeToday")}</Text>
-              <Text style={[styles.writeActionSub, { color: theme.textMuted }]}>{t("dailyNotes.writeTodaySub")}</Text>
+              <Text style={[styles.writeActionTitle, { color: "#ffffff" }]}>{t("dailyNotes.writeToday")}</Text>
+              <Text style={[styles.writeActionSub, { color: "rgba(255,255,255,0.8)" }]}>{t("dailyNotes.writeTodaySub")}</Text>
             </View>
-            <PenLine size={18} color={theme.textMuted} />
+            <PenLine size={18} color="rgba(255,255,255,0.85)" />
           </TouchableOpacity>
         </View>
 
@@ -452,15 +452,9 @@ const createStyles = (theme: AppTheme) => {
     writeNoteActionBtn: {
       flexDirection: "row",
       alignItems: "center",
-      padding: 14,
-      borderRadius: 18,
-      borderWidth: 1,
-      gap: 12,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.2,
-      shadowRadius: 8,
-      elevation: 3,
+      padding: 16,
+      borderRadius: 24,
+      gap: 14,
     },
     writeActionIconCircle: {
       width: 44,
