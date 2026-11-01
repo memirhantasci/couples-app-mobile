@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Palette, Check } from "lucide-react-native";
 import { getAvailableThemes, type AppTheme, type ThemeMode } from "@/lib/theme";
 import { ModernSection } from "./ModernSection";
@@ -14,8 +15,11 @@ interface ThemePickerProps {
   onSelectTheme: (mode: ThemeMode) => void;
 }
 
-export function ThemePicker({ theme, isLight, gender, themeMode, onSelectTheme }: ThemePickerProps) {
+export function ThemePicker({ theme, gender, themeMode, onSelectTheme }: ThemePickerProps) {
   const { t } = useTranslation();
+  const options = getAvailableThemes(gender);
+  const selected = options.find((option) => option.id === themeMode);
+
   return (
     <ModernSection
       title={t("profile.theme.title")}
@@ -23,119 +27,127 @@ export function ThemePicker({ theme, isLight, gender, themeMode, onSelectTheme }
       theme={theme}
       defaultOpen={true}
     >
-      <View style={{ gap: 10 }}>
-        <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>
-          {gender === "female" ? t("profile.theme.femaleModes") : t("profile.theme.maleModes")}
-        </Text>
+      <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>
+        {gender === "female" ? t("profile.theme.femaleModes") : t("profile.theme.maleModes")}
+      </Text>
 
-        <View style={styles.themeOptionsContainer}>
-          {getAvailableThemes(gender).map((option) => {
-            const isSelected = themeMode === option.id;
-            return (
-              <TouchableOpacity
-                key={option.id}
-                activeOpacity={0.82}
-                onPress={() => {
-                  onSelectTheme(option.id);
-                }}
+      <View style={styles.row}>
+        {options.map((option) => {
+          const isSelected = themeMode === option.id;
+          const [bg, surface, accent] = option.previewColors;
+          return (
+            <Pressable
+              key={option.id}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: isSelected }}
+              accessibilityLabel={t(option.nameKey)}
+              onPress={() => onSelectTheme(option.id)}
+              style={({ pressed }) => [styles.option, pressed && { opacity: 0.85 }]}
+            >
+              {/* Temanın gerçek renkleriyle çizilmiş mini ekran */}
+              <View
                 style={[
-                  styles.themeOptionCard,
-                  {
-                    backgroundColor: theme.unitBg,
-                    borderColor: isSelected ? theme.accent : (isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.07)"),
-                    borderWidth: isSelected ? 2 : 1,
-                  },
+                  styles.preview,
+                  { borderColor: isSelected ? theme.accent : "transparent" },
                 ]}
               >
-                {/* Renk Paleti Önizleme */}
-                <View style={styles.palettePreviewRow}>
-                  <View style={[styles.colorDot, { backgroundColor: option.previewColors[0] }]} />
-                  <View style={[styles.colorDot, { backgroundColor: option.previewColors[1] }]} />
-                  <View style={[styles.colorDot, { backgroundColor: option.previewColors[2] }]} />
-                </View>
-
-                {/* Bilgi */}
-                <View style={styles.themeInfoBlock}>
-                  <View style={styles.themeTitleRow}>
-                    <Text style={[styles.themeOptionTitle, { color: theme.text }]}>
-                      {t(option.nameKey)}
-                    </Text>
-                    {isSelected ? (
-                      <View style={[styles.activeThemeCheck, { backgroundColor: theme.accent }]}>
-                        <Check size={12} color="#ffffff" strokeWidth={3} />
-                      </View>
-                    ) : (
-                      <View style={[styles.inactiveThemeCheck, { borderColor: isLight ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.2)" }]} />
-                    )}
+                <LinearGradient colors={[bg, surface]} style={StyleSheet.absoluteFill} />
+                <View style={[styles.miniCard, { backgroundColor: surface }]}>
+                  <View style={[styles.miniDot, { backgroundColor: accent }]} />
+                  <View style={styles.miniLines}>
+                    <View style={[styles.miniLine, { backgroundColor: accent, width: "70%" }]} />
+                    <View style={[styles.miniLine, { backgroundColor: accent, opacity: 0.4, width: "45%" }]} />
                   </View>
-                  <Text style={[styles.themeOptionDesc, { color: theme.textMuted }]}>
-                    {t(option.descriptionKey)}
-                  </Text>
                 </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+                <View style={[styles.miniButton, { backgroundColor: accent }]} />
+
+                {isSelected ? (
+                  <View style={[styles.check, { backgroundColor: theme.accent }]}>
+                    <Check size={12} color="#ffffff" strokeWidth={3} />
+                  </View>
+                ) : null}
+              </View>
+
+              <Text
+                style={[
+                  styles.name,
+                  { color: isSelected ? theme.text : theme.textSecondary },
+                  isSelected && { fontFamily: "Inter_700Bold" },
+                ]}
+                numberOfLines={1}
+              >
+                {t(option.nameKey)}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
+
+      {selected ? (
+        <Text style={[profileSharedStyles.sessionHintText, { color: theme.textMuted }]}>
+          {t(selected.descriptionKey)}
+        </Text>
+      ) : null}
     </ModernSection>
   );
 }
 
 const styles = StyleSheet.create({
-  themeOptionsContainer: {
+  row: {
+    flexDirection: "row",
     gap: 10,
-    marginTop: 4,
   },
-  themeOptionCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 13,
-    borderRadius: 16,
-    gap: 12,
-  },
-  palettePreviewRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    padding: 6,
-    borderRadius: 10,
-    backgroundColor: "rgba(0,0,0,0.12)",
-  },
-  colorDot: {
-    width: 13,
-    height: 13,
-    borderRadius: 6.5,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.25)",
-  },
-  themeInfoBlock: {
+  option: {
     flex: 1,
-  },
-  themeTitleRow: {
-    flexDirection: "row",
+    gap: 8,
     alignItems: "center",
+  },
+  preview: {
+    width: "100%",
+    height: 96,
+    borderRadius: 18,
+    borderWidth: 2.5,
+    overflow: "hidden",
+    padding: 8,
     justifyContent: "space-between",
   },
-  themeOptionTitle: {
-    fontSize: 14.5,
-    fontFamily: "Inter_700Bold",
+  miniCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    padding: 6,
+    borderRadius: 9,
   },
-  themeOptionDesc: {
-    fontSize: 11.5,
-    fontFamily: "Inter_400Regular",
-    marginTop: 2,
+  miniDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
   },
-  activeThemeCheck: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+  miniLines: {
+    flex: 1,
+    gap: 4,
+  },
+  miniLine: {
+    height: 4,
+    borderRadius: 2,
+  },
+  miniButton: {
+    height: 12,
+    borderRadius: 6,
+  },
+  check: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
-  inactiveThemeCheck: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 1.5,
+  name: {
+    fontSize: 12.5,
+    fontFamily: "Inter_600SemiBold",
+    textAlign: "center",
   },
 });

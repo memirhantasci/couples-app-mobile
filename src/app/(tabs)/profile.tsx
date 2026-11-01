@@ -39,19 +39,10 @@ import { useDeferredReady } from "@/hooks/useDeferredReady";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DEMO_PROFILE } from "@/constants/demoData";
-import { EditableAvatar } from "@/components/avatar/EditableAvatar";
-import {
-  LogOut,
-  AlignJustify,
-  Wallet,
-  Crown,
-  ShieldCheck,
-  Heart,
-  ChevronLeft,
-} from "lucide-react-native";
+import { AlignJustify, ChevronLeft } from "lucide-react-native";
 import { LegalModal } from "@/components/legal/LegalModal";
 import { LegalDocType } from "@/constants/legalTexts";
-import { ModernSection } from "@/components/profile/ModernSection";
+import { ProfileHero } from "@/components/profile/ProfileHero";
 import { ThemePicker } from "@/components/profile/ThemePicker";
 import { TabBarCustomizer } from "@/components/profile/TabBarCustomizer";
 import { PersonalInfoForm } from "@/components/profile/PersonalInfoForm";
@@ -61,8 +52,7 @@ import { SoundHapticsTestBox } from "@/components/profile/SoundHapticsTestBox";
 import { TourGuidesCard } from "@/components/profile/TourGuidesCard";
 import { LanguagePicker } from "@/components/profile/LanguagePicker";
 import { LegalDocsList } from "@/components/profile/LegalDocsList";
-import { DangerZoneCard } from "@/components/profile/DangerZoneCard";
-import { profileSharedStyles } from "@/components/profile/profileSharedStyles";
+import { AccountActionsCard } from "@/components/profile/AccountActionsCard";
 import dayjs from "dayjs";
 import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
 import { useTranslation } from "react-i18next";
@@ -578,11 +568,6 @@ export default function ProfileScreen() {
             <ChevronLeft color={theme.text} size={24} />
           </TouchableOpacity>
 
-          <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{t("tabs.profile.label")}</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>{t("profile.subtitle")}</Text>
-          </View>
-
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <TourGuideButton onPress={openTour} />
             <TouchableOpacity
@@ -597,66 +582,33 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* BÜYÜK BAŞLIK */}
+        <View style={styles.titleBlock}>
+          <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+            {t("tabs.profile.label")}
+          </Text>
+          <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>
+            {t("profile.subtitle")}
+          </Text>
+        </View>
+
         {/* KAYDIRILABİLİR İÇERİK */}
         <KeyboardAwareScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={StyleSheet.flatten([styles.scrollContent, { paddingBottom: insets.bottom + 280 }])}
+          contentContainerStyle={StyleSheet.flatten([styles.scrollContent, { paddingBottom: insets.bottom + 110 }])}
           showsVerticalScrollIndicator={false}
           enableOnAndroid={true}
           extraScrollHeight={130}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ─── LÜKS PROFİL HERO KARTI ─── */}
-          <View style={[styles.heroProfileCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
-            <EditableAvatar name={displayName || t("common.userFallback")} size={54} />
-
-            <View style={styles.heroDetails}>
-              <Text style={[styles.heroNameText, { color: theme.text }]} numberOfLines={1}>
-                {displayName || t("common.userFallback")}
-              </Text>
-
-              <View style={styles.badgesRow}>
-                {isPremium ? (
-                  <View style={styles.premiumBadge}>
-                    <Crown size={12} color={isLight ? "#A16207" : "#ffd700"} />
-                    <Text style={styles.premiumBadgeText}>{t("profile.membership.premium")}</Text>
-                  </View>
-                ) : (
-                  <View style={styles.standardBadge}>
-                    <ShieldCheck size={12} color={isLight ? theme.textSecondary : "rgba(255,255,255,0.6)"} />
-                    <Text style={[styles.standardBadgeText, { color: theme.textSecondary }]}>{t("profile.membership.standard")}</Text>
-                  </View>
-                )}
-
-                {coupleId ? (
-                  <View style={[styles.pairedBadge, { backgroundColor: `${theme.accent}18` }]}>
-                    <Heart size={11} color={theme.accent} fill={theme.accent} />
-                    <Text style={[styles.pairedBadgeText, { color: theme.accent }]}>{t("profile.membership.paired")}</Text>
-                  </View>
-                ) : null}
-              </View>
-            </View>
-          </View>
-
-          {/* ─── CÜZDAN & AYRICALIKLAR ─── */}
-          <View style={[styles.walletCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
-            <View style={styles.walletHeader}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                <View style={[styles.walletIconCircle, { backgroundColor: theme.pillAccentBg }]}>
-                  <Wallet size={18} color={theme.accent} />
-                </View>
-                <View>
-                  <Text style={[styles.walletCardTitle, { color: theme.text }]}>{t("profile.wallet.title")}</Text>
-                  <Text style={[styles.walletCardSub, { color: theme.textMuted }]}>{t("profile.wallet.current")}</Text>
-                </View>
-              </View>
-
-              <View style={styles.tokenPill}>
-                <Text style={styles.tokenEmoji}>🪙</Text>
-                <Text style={styles.tokenAmountText}>{tokenBalance}</Text>
-              </View>
-            </View>
-          </View>
+          {/* ─── PROFİL & İSTATİSTİK KARTI ─── */}
+          <ProfileHero
+            theme={theme}
+            name={displayName || t("common.userFallback")}
+            isPremium={isPremium}
+            isPaired={!!coupleId}
+            tokenBalance={tokenBalance}
+          />
 
           {/* ─── TEMA & GÖRÜNÜM TERCİHİ ─── */}
           <ThemePicker
@@ -727,49 +679,20 @@ export default function ProfileScreen() {
               {/* ─── UYGULAMA REHBERLERİ & TANITIMLAR ─── */}
               <TourGuidesCard theme={theme} isLight={isLight} onOpenTour={openTour} />
 
-              {/* ─── OTURUM & GÜVENLİK ─── */}
-              <ModernSection
-                title={t("profile.session.title")}
-                icon={<LogOut size={18} color={theme.accent} />}
-                theme={theme}
-                defaultOpen={false}
-              >
-                <Text style={[profileSharedStyles.sessionHintText, { color: theme.textMuted }]}>
-                  {t("profile.session.description")}
-                </Text>
-
-                <TouchableOpacity
-                  onPress={handleLogout}
-                  style={[
-                    profileSharedStyles.logoutBtn,
-                    {
-                      backgroundColor: isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)",
-                      borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.1)",
-                    },
-                  ]}
-                  activeOpacity={0.8}
-                >
-                  <LogOut size={16} color={theme.text} />
-                  <Text style={[profileSharedStyles.logoutBtnText, { color: theme.text }]}>{t("auth.signOut")}</Text>
-                </TouchableOpacity>
-              </ModernSection>
-
-              {/* ─── YASAL BİLGİLER & GİZLİLİK SÖZLEŞMELERİ ─── */}
+              {/* ─── YASAL BİLGİLER (varsayılan kapalı) ─── */}
               <LegalDocsList theme={theme} onOpenDoc={openLegal} />
 
-              {/* ─── TEHLİKE BÖLGESİ ─── */}
-              <DangerZoneCard
+              {/* ─── ÇIKIŞ YAP & HESABI SİL (en altta) ─── */}
+              <AccountActionsCard
                 theme={theme}
-                isLight={isLight}
-                loading={deleteLoading}
+                deleting={deleteLoading}
+                onSignOut={handleLogout}
                 onDeleteAccount={handleDeleteAccount}
               />
 
             </>
           )}
 
-          {/* Alt Tab Bar İçin Ekstra Ferah Boşluk */}
-          <View style={{ height: 120 }} />
         </KeyboardAwareScrollView>
       </View>
 
@@ -816,142 +739,27 @@ const createStyles = (theme: AppTheme) => {
       alignItems: "center",
       justifyContent: "center",
     },
-    headerTitleBox: {
-      flex: 1,
-      alignItems: "center",
-      paddingHorizontal: 8,
+    titleBlock: {
+      paddingHorizontal: 24,
+      paddingBottom: 14,
     },
     headerTitle: {
-      fontSize: 22,
+      fontSize: 34,
       fontFamily: "Inter_700Bold",
       color: theme.text,
-      letterSpacing: -0.4,
+      letterSpacing: -1,
     },
     headerSubtitle: {
-      fontSize: 12,
+      fontSize: 14,
       fontFamily: "Inter_400Regular",
       color: isLight ? theme.textMuted : "rgba(255,255,255,0.55)",
       marginTop: 2,
     },
     scrollContent: {
       paddingHorizontal: 16,
-      paddingTop: 10,
-      gap: 14,
+      paddingTop: 6,
+      gap: 22,
     },
 
-    /* HERO PROFİL KARTI */
-    heroProfileCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      padding: 16,
-      borderRadius: 22,
-      borderWidth: 1,
-      gap: 14,
-    },
-    heroDetails: {
-      flex: 1,
-    },
-    heroNameText: {
-      fontSize: 17,
-      fontFamily: "Inter_700Bold",
-      color: theme.text,
-      letterSpacing: -0.2,
-      marginBottom: 6,
-    },
-    badgesRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-    },
-    premiumBadge: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-      backgroundColor: "rgba(255, 215, 0, 0.12)",
-      borderWidth: 1,
-      borderColor: "rgba(255, 215, 0, 0.3)",
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 8,
-    },
-    premiumBadgeText: {
-      color: isLight ? "#A16207" : "#ffd700",
-      fontSize: 11.5,
-      fontFamily: "Inter_600SemiBold",
-    },
-    standardBadge: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 8,
-    },
-    standardBadgeText: {
-      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.6)",
-      fontSize: 11.5,
-      fontFamily: "Inter_500Medium",
-    },
-    pairedBadge: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 8,
-    },
-    pairedBadgeText: {
-      fontSize: 11.5,
-      fontFamily: "Inter_600SemiBold",
-    },
-
-    /* CÜZDAN KARTI */
-    walletCard: {
-      borderRadius: 20,
-      padding: 16,
-      borderWidth: 1,
-    },
-    walletHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    },
-    walletIconCircle: {
-      width: 36,
-      height: 36,
-      borderRadius: 12,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    walletCardTitle: {
-      fontSize: 15,
-      fontFamily: "Inter_700Bold",
-      color: theme.text,
-    },
-    walletCardSub: {
-      fontSize: 12,
-      fontFamily: "Inter_400Regular",
-      color: isLight ? theme.textMuted : "rgba(255,255,255,0.5)",
-    },
-    tokenPill: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      backgroundColor: "rgba(255, 215, 0, 0.12)",
-      borderWidth: 1,
-      borderColor: "rgba(255, 215, 0, 0.3)",
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 14,
-    },
-    tokenEmoji: {
-      fontSize: 15,
-    },
-    tokenAmountText: {
-      fontSize: 16,
-      fontFamily: "Inter_700Bold",
-      color: isLight ? "#A16207" : "#ffd700",
-    },
   });
 };

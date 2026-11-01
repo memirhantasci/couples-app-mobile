@@ -631,6 +631,15 @@
       "scheduledMessage": "Hesabın ve tüm verilerin {{deletionDay}} tarihinde kalıcı olarak silinecek. Fikrini değiştirirsen bu tarihe kadar giriş yapıp silmeyi iptal edebilirsin."
     },
     "subtitle": "Profil & Hesap Tercihleri ⚙️",
+    "stats": {
+      "tokens": "Jeton",
+      "plan": "Üyelik",
+      "status": "Durum",
+      "planPremium": "Premium",
+      "planFree": "Ücretsiz",
+      "paired": "Eşleşti",
+      "single": "Tek"
+    },
     "membership": {
       "premium": "Premium Üye",
       "standard": "Standart Üye",

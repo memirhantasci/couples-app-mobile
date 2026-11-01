@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { ChevronDown, ChevronUp } from "lucide-react-native";
 import type { AppTheme } from "@/lib/theme";
+import { hairlineColor } from "./profileTokens";
 
 interface ModernSectionProps {
   title: string;
@@ -9,6 +10,8 @@ interface ModernSectionProps {
   children: React.ReactNode;
   theme: AppTheme;
   defaultOpen?: boolean;
+  /** Açılan içerik kart kenarlarına kadar uzanan, ayraçlı satır listesi olur (iç boşluk yok). */
+  flush?: boolean;
 }
 
 // ─── Modern Grup Kartı ────────────────────────────────────────────────────────
@@ -18,12 +21,16 @@ export function ModernSection({
   children,
   theme,
   defaultOpen = true,
+  flush = false,
 }: ModernSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const divider = hairlineColor(theme);
 
   return (
-    <View style={[styles.sectionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
+    <View style={[styles.sectionCard, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}>
       <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityState={{ expanded: isOpen }}
         activeOpacity={0.78}
         onPress={() => setIsOpen(!isOpen)}
         style={styles.sectionHeader}
@@ -45,9 +52,20 @@ export function ModernSection({
       </TouchableOpacity>
 
       {isOpen && (
-        <View style={[styles.sectionContent, { borderTopColor: theme.cardBorder }]}>
-          {children}
-        </View>
+        flush ? (
+          <View style={[styles.flushContent, { borderTopColor: divider }]}>
+            {React.Children.toArray(children).map((child, index) => (
+              <React.Fragment key={index}>
+                {index > 0 ? <View style={[styles.flushDivider, { backgroundColor: divider }]} /> : null}
+                {child}
+              </React.Fragment>
+            ))}
+          </View>
+        ) : (
+          <View style={[styles.sectionContent, { borderTopColor: divider }]}>
+            {children}
+          </View>
+        )
       )}
     </View>
   );
@@ -55,35 +73,35 @@ export function ModernSection({
 
 const styles = StyleSheet.create({
   sectionCard: {
-    borderRadius: 20,
-    borderWidth: 1,
+    borderRadius: 24,
     overflow: "hidden",
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minHeight: 56,
   },
   sectionHeaderLeft: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 14,
     marginRight: 8,
   },
   sectionIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+    width: 34,
+    height: 34,
+    borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
   },
   sectionTitleText: {
     flex: 1,
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
-    color: "#ffffff",
+    fontSize: 15.5,
+    fontFamily: "Inter_600SemiBold",
     letterSpacing: -0.2,
   },
   chevronWrapper: {
@@ -94,9 +112,16 @@ const styles = StyleSheet.create({
   },
   sectionContent: {
     paddingHorizontal: 16,
+    paddingTop: 16,
     paddingBottom: 18,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.06)",
-    gap: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 16,
+  },
+  flushContent: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  flushDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 62,
   },
 });

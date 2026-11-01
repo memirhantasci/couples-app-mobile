@@ -1,9 +1,12 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { LayoutGrid, RotateCcw, Lock, Check } from "lucide-react-native";
+import { View, Text, Pressable, Switch, StyleSheet } from "react-native";
+import { LayoutGrid, RotateCcw, Lock } from "lucide-react-native";
 import type { AppTheme } from "@/lib/theme";
 import { useTabBar } from "@/context/TabBarContext";
 import { ModernSection } from "./ModernSection";
+import { SettingsGroup } from "./SettingsGroup";
+import { SettingsRow } from "./SettingsRow";
+import { fieldSurface } from "./profileTokens";
 import { profileSharedStyles } from "./profileSharedStyles";
 import { useTranslation } from "react-i18next";
 
@@ -15,276 +18,148 @@ interface TabBarCustomizerProps {
 export function TabBarCustomizer({ theme, isLight }: TabBarCustomizerProps) {
   const { t } = useTranslation();
   const { enabledTabs, allTabs, toggleTab, isTabEnabled, resetTabs, maxTabs } = useTabBar();
+  const switchTrack = { false: isLight ? "#d1d5db" : "#374151", true: theme.accent };
 
   return (
     <ModernSection
       title={t("profile.tabBar.title")}
       icon={<LayoutGrid size={18} color={theme.accent} />}
       theme={theme}
-      defaultOpen={true}
+      defaultOpen={false}
     >
-      <View style={{ gap: 12 }}>
-        <View style={styles.tabSectionHeaderRow}>
-          <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>
-            {t("profile.tabBar.selected", { count: enabledTabs.length, max: maxTabs })}
-          </Text>
-          <TouchableOpacity
-            onPress={resetTabs}
-            style={[styles.resetTabsBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)" }]}
-            activeOpacity={0.7}
-          >
-            <RotateCcw size={12} color={theme.accent} />
-            <Text style={[styles.resetTabsText, { color: theme.accent }]}>{t("common.reset")}</Text>
-          </TouchableOpacity>
-        </View>
+      <Text style={[profileSharedStyles.sessionHintText, { color: theme.textMuted }]}>
+        {t("profile.tabBar.description")}
+      </Text>
 
-        <Text style={[styles.sectionSubtitleText, { color: theme.textMuted }]}>
-          {t("profile.tabBar.description")}
+      {/* Canlı önizleme: alt çubuğun küçük bir kopyası */}
+      <View style={profileSharedStyles.inputGroup}>
+        <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>
+          {t("profile.tabBar.preview")}
         </Text>
-
-        {/* Canlı Önizleme Çubuğu */}
-        <View
-          style={[
-            styles.tabPreviewStrip,
-            {
-              backgroundColor: theme.unitBg,
-              borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
-            },
-          ]}
-        >
-          <Text style={[styles.tabPreviewTitle, { color: theme.textSecondary }]}>
-            {t("profile.tabBar.preview")}
-          </Text>
-
-          <View style={styles.tabPreviewCapsulesRow}>
-            {enabledTabs.map((key) => {
-              const item = allTabs.find((tab) => tab.key === key);
-              if (!item) return null;
-              const ItemIcon = item.Icon;
-              return (
-                <View
-                  key={key}
-                  style={[
-                    styles.tabPreviewCapsule,
-                    {
-                      backgroundColor: theme.pillAccentBg,
-                      borderColor: theme.pillAccentBorder,
-                    },
-                  ]}
-                >
-                  <ItemIcon size={12} color={theme.accent} />
-                  <Text style={[styles.tabPreviewCapsuleText, { color: theme.text }]} numberOfLines={1}>
-                    {t(item.labelKey)}
-                  </Text>
-                </View>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Tüm Sayfaların Listesi & Seçim */}
-        <View style={styles.tabItemsList}>
-          {allTabs.map((item) => {
-            const isEnabled = isTabEnabled(item.key);
-            const isMandatory = item.isMandatory;
+        <View style={[styles.previewBar, { backgroundColor: fieldSurface(theme) }]}>
+          {enabledTabs.map((key) => {
+            const item = allTabs.find((tab) => tab.key === key);
+            if (!item) return null;
             const ItemIcon = item.Icon;
-
             return (
-              <TouchableOpacity
-                key={item.key}
-                activeOpacity={isMandatory ? 1 : 0.78}
-                onPress={() => toggleTab(item.key)}
-                style={[
-                  styles.tabOptionCard,
-                  {
-                    backgroundColor: theme.unitBg,
-                    borderColor: isEnabled
-                      ? theme.accent
-                      : (isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.07)"),
-                    borderWidth: isEnabled ? 1.5 : 1,
-                  },
-                ]}
-              >
-                <View style={styles.tabOptionLeft}>
-                  <View
-                    style={[
-                      styles.tabOptionIconBox,
-                      {
-                        backgroundColor: isEnabled ? theme.pillAccentBg : (isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.05)"),
-                        borderColor: isEnabled ? theme.pillAccentBorder : "transparent",
-                      },
-                    ]}
-                  >
-                    <ItemIcon
-                      size={18}
-                      color={isEnabled ? theme.accent : theme.textMuted}
-                    />
-                  </View>
-
-                  <View style={styles.tabOptionInfo}>
-                    <View style={styles.tabOptionTitleRow}>
-                      <Text style={[styles.tabOptionTitle, { color: theme.text }]}>
-                        {t(item.labelKey)}
-                      </Text>
-                      {isMandatory && (
-                        <View style={[styles.mandatoryBadge, { backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.1)" }]}>
-                          <Lock size={9} color={theme.textMuted} />
-                          <Text style={[styles.mandatoryBadgeText, { color: theme.textMuted }]}>{t("common.required")}</Text>
-                        </View>
-                      )}
-                    </View>
-                    <Text style={[styles.tabOptionDesc, { color: theme.textMuted }]} numberOfLines={1}>
-                      {t(item.descriptionKey)}
-                    </Text>
-                  </View>
+              <View key={key} style={styles.previewTab}>
+                <View style={[styles.previewIconWrap, { backgroundColor: theme.pillAccentBg }]}>
+                  <ItemIcon size={16} color={theme.accent} />
                 </View>
-
-                {/* Sağ Taraf: Aktiflik Durumu */}
-                <View style={styles.tabOptionRight}>
-                  {isMandatory ? (
-                    <View style={[styles.activeTabCheck, { backgroundColor: theme.accent }]}>
-                      <Check size={12} color="#ffffff" strokeWidth={3} />
-                    </View>
-                  ) : isEnabled ? (
-                    <View style={[styles.activeTabCheck, { backgroundColor: theme.accent }]}>
-                      <Check size={12} color="#ffffff" strokeWidth={3} />
-                    </View>
-                  ) : (
-                    <View style={[styles.inactiveTabCheck, { borderColor: isLight ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.2)" }]} />
-                  )}
-                </View>
-              </TouchableOpacity>
+                <Text style={[styles.previewLabel, { color: theme.textSecondary }]} numberOfLines={1}>
+                  {t(item.labelKey)}
+                </Text>
+              </View>
             );
           })}
         </View>
       </View>
+
+      {/* Sayaç ve sıfırlama */}
+      <View style={styles.counterRow}>
+        <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>
+          {t("profile.tabBar.selected", { count: enabledTabs.length, max: maxTabs })}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("common.reset")}
+          onPress={resetTabs}
+          style={({ pressed }) => [styles.resetBtn, { backgroundColor: theme.pillAccentBg }, pressed && { opacity: 0.7 }]}
+        >
+          <RotateCcw size={12} color={theme.accent} />
+          <Text style={[styles.resetText, { color: theme.accent }]}>{t("common.reset")}</Text>
+        </Pressable>
+      </View>
+
+      {/* Tüm sayfalar: anahtarla aç / kapat */}
+      <SettingsGroup inset theme={theme}>
+        {allTabs.map((item) => {
+          const isEnabled = isTabEnabled(item.key);
+          return (
+            <SettingsRow
+              key={item.key}
+              icon={item.Icon}
+              title={t(item.labelKey)}
+              subtitle={t(item.descriptionKey)}
+              theme={theme}
+              trailing={
+                item.isMandatory ? (
+                  <View style={styles.requiredPill}>
+                    <Lock size={10} color={theme.textMuted} />
+                    <Text style={[styles.requiredText, { color: theme.textMuted }]}>{t("common.required")}</Text>
+                  </View>
+                ) : (
+                  <Switch
+                    value={isEnabled}
+                    onValueChange={() => {
+                      toggleTab(item.key);
+                    }}
+                    trackColor={switchTrack}
+                    thumbColor="#ffffff"
+                  />
+                )
+              }
+            />
+          );
+        })}
+      </SettingsGroup>
     </ModernSection>
   );
 }
 
 const styles = StyleSheet.create({
-  tabSectionHeaderRow: {
+  previewBar: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingVertical: 12,
+    paddingHorizontal: 6,
+    borderRadius: 22,
+  },
+  previewTab: {
+    flex: 1,
+    alignItems: "center",
+    gap: 5,
+  },
+  previewIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  previewLabel: {
+    fontSize: 9.5,
+    fontFamily: "Inter_600SemiBold",
+    maxWidth: "100%",
+  },
+  counterRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  sectionSubtitleText: {
-    fontSize: 12.5,
-    fontFamily: "Inter_400Regular",
-    lineHeight: 18,
-  },
-  resetTabsBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingVertical: 5,
-    paddingHorizontal: 9,
-    borderRadius: 8,
-  },
-  resetTabsText: {
-    fontSize: 11.5,
-    fontFamily: "Inter_600SemiBold",
-  },
-  tabPreviewStrip: {
-    borderRadius: 16,
-    padding: 12,
-    borderWidth: 1,
-    gap: 10,
-    marginTop: 2,
-  },
-  tabPreviewTitle: {
-    fontSize: 11.5,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 0.3,
-  },
-  tabPreviewCapsulesRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    alignItems: "center",
-  },
-  tabPreviewCapsule: {
+  resetBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
+    paddingHorizontal: 11,
+    borderRadius: 10,
   },
-  tabPreviewCapsuleText: {
-    fontSize: 11.5,
+  resetText: {
+    fontSize: 12,
     fontFamily: "Inter_600SemiBold",
   },
-  tabItemsList: {
-    gap: 8,
-    marginTop: 4,
-  },
-  tabOptionCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 12,
-    borderRadius: 16,
-    gap: 12,
-  },
-  tabOptionLeft: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  tabOptionIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-  },
-  tabOptionInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  tabOptionTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  tabOptionTitle: {
-    fontSize: 14,
-    fontFamily: "Inter_700Bold",
-  },
-  mandatoryBadge: {
+  requiredPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: "rgba(128,128,128,0.16)",
   },
-  mandatoryBadgeText: {
-    fontSize: 10,
+  requiredText: {
+    fontSize: 10.5,
     fontFamily: "Inter_600SemiBold",
-  },
-  tabOptionDesc: {
-    fontSize: 11.5,
-    fontFamily: "Inter_400Regular",
-  },
-  tabOptionRight: {
-    paddingLeft: 4,
-  },
-  activeTabCheck: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  inactiveTabCheck: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 1.5,
   },
 });

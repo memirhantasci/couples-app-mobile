@@ -15,6 +15,7 @@ import type { AppTheme } from "@/lib/theme";
 import type { useDemoAction } from "@/hooks/useDemoAction";
 import { toast } from "@/lib/toast";
 import { suppressPremiumCelebration } from "@/lib/premiumCelebration";
+import { fieldSurface } from "./profileTokens";
 import { useTranslation } from "react-i18next";
 import { localizeServerError } from "@/lib/serverErrors";
 
@@ -151,9 +152,8 @@ export function PromoCodeForm({
           style={[
             styles.promoTextInput,
             {
-              backgroundColor: theme.unitBg,
+              backgroundColor: fieldSurface(theme),
               color: theme.text,
-              borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
             },
           ]}
           placeholder={t("profile.promo.placeholder")}
@@ -184,7 +184,7 @@ export function PromoCodeForm({
       {Platform.OS === "ios" && (
         <TouchableOpacity
           onPress={() => RevenueCatService.presentCodeRedemptionSheet()}
-          style={[styles.iosCodeBtn, { backgroundColor: theme.unitBg, borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}
+          style={[styles.iosCodeBtn, { backgroundColor: fieldSurface(theme) }]}
           activeOpacity={0.8}
         >
           <Text style={[styles.iosCodeBtnText, { color: theme.textSecondary }]}>{t("profile.promo.appStoreOffer")}</Text>
@@ -209,9 +209,7 @@ const styles = StyleSheet.create({
   },
   promoTextInput: {
     flex: 1,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 12,
     color: "#ffffff",
@@ -221,7 +219,7 @@ const styles = StyleSheet.create({
   },
   promoApplyBtn: {
     paddingHorizontal: 20,
-    borderRadius: 14,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -233,11 +231,9 @@ const styles = StyleSheet.create({
   iosCodeBtn: {
     marginTop: 10,
     paddingVertical: 12,
-    borderRadius: 14,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
   },
   iosCodeBtnText: {
     color: "rgba(255,255,255,0.75)",

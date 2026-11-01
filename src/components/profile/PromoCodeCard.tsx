@@ -1,3 +1,4 @@
+import { View } from "react-native";
 import { Gift } from "lucide-react-native";
 import type { AppTheme } from "@/lib/theme";
 import type { useDemoAction } from "@/hooks/useDemoAction";
@@ -29,13 +30,16 @@ export function PromoCodeCard({
       theme={theme}
       defaultOpen={false}
     >
-      <PromoCodeForm
-        theme={theme}
-        isLight={isLight}
-        executeOrIntercept={executeOrIntercept}
-        refreshProfile={refreshProfile}
-        onPremiumSuccess={onPremiumSuccess}
-      />
+      {/* Form kendi üst boşluklarını taşır (modalla ortak); kartın iç boşluğuyla çift saymamak için yukarı çekilir */}
+      <View style={{ marginTop: -10 }}>
+        <PromoCodeForm
+          theme={theme}
+          isLight={isLight}
+          executeOrIntercept={executeOrIntercept}
+          refreshProfile={refreshProfile}
+          onPremiumSuccess={onPremiumSuccess}
+        />
+      </View>
     </ModernSection>
   );
 }

@@ -631,6 +631,15 @@
       "scheduledMessage": "Your account and all your data will be permanently deleted on {{deletionDay}}. If you change your mind, you can sign in until then and cancel the deletion."
     },
     "subtitle": "Profile & Account Preferences ⚙️",
+    "stats": {
+      "tokens": "Tokens",
+      "plan": "Plan",
+      "status": "Status",
+      "planPremium": "Premium",
+      "planFree": "Free",
+      "paired": "Paired",
+      "single": "Solo"
+    },
     "membership": {
       "premium": "Premium Member",
       "standard": "Standard Member",

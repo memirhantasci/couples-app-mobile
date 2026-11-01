@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Languages, Check } from "lucide-react-native";
+import { View, Text, StyleSheet } from "react-native";
+import { Check, Languages } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import type { AppTheme } from "@/lib/theme";
@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { LANGUAGE_OPTIONS, setAppLanguage, type AppLanguage } from "@/lib/i18n";
 import { hapticTap } from "@/lib/soundEffects";
 import { ModernSection } from "./ModernSection";
-import { profileSharedStyles } from "./profileSharedStyles";
+import { SettingsRow } from "./SettingsRow";
 
 interface LanguagePickerProps {
   theme: AppTheme;
@@ -19,7 +19,7 @@ interface LanguagePickerProps {
  * Uygulama dili seçici (Türkçe / English). Seçim anında uygulanır:
  * i18n.changeLanguage → ekranlar yeniden çizilir, dayjs locale'i güncellenir, tercih saklanır.
  */
-export function LanguagePicker({ theme, isLight }: LanguagePickerProps) {
+export function LanguagePicker({ theme }: LanguagePickerProps) {
   const { t, i18n } = useTranslation();
   const { isDemoMode } = useAuth();
   const queryClient = useQueryClient();
@@ -43,88 +43,50 @@ export function LanguagePicker({ theme, isLight }: LanguagePickerProps) {
       title={t("language.title")}
       icon={<Languages size={18} color={theme.accent} />}
       theme={theme}
-      defaultOpen={true}
+      defaultOpen={false}
+      flush
     >
-      <View style={{ gap: 10 }}>
-        <Text style={[profileSharedStyles.fieldLabel, { color: theme.textSecondary }]}>
-          {t("language.description")}
-        </Text>
-
-        <View style={styles.optionsContainer}>
-          {LANGUAGE_OPTIONS.map((option) => {
-            const isSelected = i18n.language === option.code;
-            return (
-              <TouchableOpacity
-                key={option.code}
-                activeOpacity={0.82}
-                disabled={switching}
-                onPress={() => handleSelect(option.code)}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: isSelected }}
-                accessibilityLabel={option.label}
-                style={[
-                  styles.optionCard,
-                  {
-                    backgroundColor: theme.unitBg,
-                    borderColor: isSelected ? theme.accent : isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.07)",
-                    borderWidth: isSelected ? 2 : 1,
-                  },
-                ]}
-              >
-                <Text style={styles.flag}>{option.flag}</Text>
-                <Text style={[styles.optionLabel, { color: theme.text }]}>{option.label}</Text>
-                {isSelected ? (
-                  <View style={[styles.activeCheck, { backgroundColor: theme.accent }]}>
-                    <Check size={12} color="#ffffff" strokeWidth={3} />
-                  </View>
-                ) : (
-                  <View
-                    style={[
-                      styles.inactiveCheck,
-                      { borderColor: isLight ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.2)" },
-                    ]}
-                  />
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
+      {LANGUAGE_OPTIONS.map((option) => {
+        const isSelected = i18n.language === option.code;
+        return (
+          <SettingsRow
+            key={option.code}
+            leading={<Text style={styles.flag}>{option.flag}</Text>}
+            title={option.label}
+            onPress={() => handleSelect(option.code)}
+            trailing={
+              isSelected ? (
+                <View style={[styles.check, { backgroundColor: theme.accent }]}>
+                  <Check size={13} color="#ffffff" strokeWidth={3} />
+                </View>
+              ) : (
+                <View style={[styles.radio, { borderColor: theme.textMuted }]} />
+              )
+            }
+            theme={theme}
+          />
+        );
+      })}
     </ModernSection>
   );
 }
 
 const styles = StyleSheet.create({
-  optionsContainer: {
-    gap: 10,
-    marginTop: 4,
-  },
-  optionCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 13,
-    borderRadius: 16,
-    gap: 12,
-  },
-  flag: {
-    fontSize: 26,
-  },
-  optionLabel: {
-    flex: 1,
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
-  },
-  activeCheck: {
+  check: {
     width: 22,
     height: 22,
     borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
   },
-  inactiveCheck: {
+  radio: {
     width: 22,
     height: 22,
     borderRadius: 11,
     borderWidth: 1.5,
+    opacity: 0.5,
+  },
+  flag: {
+    fontSize: 20,
   },
 });
