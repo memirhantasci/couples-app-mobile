@@ -744,8 +744,7 @@ const createStyles = (theme: AppTheme) => {
       flexDirection: "row",
       alignItems: "center",
       padding: 14,
-      borderRadius: 18,
-      borderWidth: 1,
+      borderRadius: 22,
       gap: 12,
     },
     quickActionIconCircle: {

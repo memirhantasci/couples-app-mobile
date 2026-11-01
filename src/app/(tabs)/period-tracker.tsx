@@ -614,7 +614,6 @@ const createStyles = (theme: AppTheme) => {
     /* ─── LÜKS KİLİT KARTI (PREMIUMSIZ) ─── */
     luxuryLockCard: {
       borderRadius: 24,
-      borderWidth: 1,
       padding: 24,
       alignItems: "center",
       marginTop: 10,
@@ -723,8 +722,7 @@ const createStyles = (theme: AppTheme) => {
       flexDirection: "row",
       alignItems: "center",
       padding: 16,
-      borderRadius: 20,
-      borderWidth: 1,
+      borderRadius: 22,
       gap: 14,
       ...theme.cardShadow,
     },
@@ -770,8 +768,7 @@ const createStyles = (theme: AppTheme) => {
 
     /* ─── ŞEFKAT & DESTEK REHBERİ ─── */
     gentleGuideCard: {
-      borderRadius: 20,
-      borderWidth: 1,
+      borderRadius: 22,
       padding: 16,
       gap: 12,
       ...theme.cardShadow,
@@ -806,8 +803,7 @@ const createStyles = (theme: AppTheme) => {
 
     /* KADIN İPUCU KARTI */
     femaleTipsCard: {
-      borderRadius: 18,
-      borderWidth: 1,
+      borderRadius: 22,
       padding: 14,
       gap: 8,
       ...theme.cardShadow,
@@ -857,8 +853,7 @@ const createStyles = (theme: AppTheme) => {
       alignItems: "center",
       justifyContent: "space-between",
       padding: 14,
-      borderRadius: 16,
-      borderWidth: 1,
+      borderRadius: 22,
       ...theme.cardShadow,
     },
     logLeftCol: {

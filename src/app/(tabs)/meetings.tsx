@@ -310,7 +310,7 @@ export default function MeetingsScreen() {
         >
           {/* HIZLI BULUŞMA EKLE BUTONU */}
           <TouchableOpacity 
-            style={[styles.quickPlanBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
+            style={[styles.quickPlanBtn, { backgroundColor: theme.accent }]}
             onPress={() => {
               if (executeOrIntercept(
                 () => {},
@@ -324,14 +324,14 @@ export default function MeetingsScreen() {
             }}
             activeOpacity={0.88}
           >
-            <View style={[styles.quickPlanIconCircle, { backgroundColor: theme.pillAccentBg }]}>
-              <Plus size={20} color={theme.accent} />
+            <View style={[styles.quickPlanIconCircle, { backgroundColor: "rgba(255,255,255,0.22)" }]}>
+              <Plus size={22} color="#ffffff" strokeWidth={2.5} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.quickPlanTitle, { color: theme.text }]}>{t("meetings.plan.cta")}</Text>
-              <Text style={[styles.quickPlanSub, { color: theme.textMuted }]}>{t("meetings.plan.ctaSub")}</Text>
+              <Text style={[styles.quickPlanTitle, { color: "#ffffff" }]}>{t("meetings.plan.cta")}</Text>
+              <Text style={[styles.quickPlanSub, { color: "rgba(255,255,255,0.8)" }]}>{t("meetings.plan.ctaSub")}</Text>
             </View>
-            <MapPin size={18} color={theme.textMuted} />
+            <MapPin size={18} color="rgba(255,255,255,0.85)" />
           </TouchableOpacity>
 
           {/* AKTİF BULUŞMALAR BÖLÜMÜ */}
@@ -756,11 +756,9 @@ const createStyles = (theme: AppTheme) => {
     quickPlanBtn: {
       flexDirection: "row",
       alignItems: "center",
-      padding: 14,
-      borderRadius: 18,
-      borderWidth: 1,
-      gap: 12,
-      ...theme.cardShadow,
+      padding: 16,
+      borderRadius: 24,
+      gap: 14,
     },
     quickPlanIconCircle: {
       width: 42,
@@ -806,8 +804,7 @@ const createStyles = (theme: AppTheme) => {
 
     /* BULUŞMA KARTI */
     meetingCard: {
-      borderRadius: 20,
-      borderWidth: 1,
+      borderRadius: 22,
       padding: 16,
       gap: 12,
       ...theme.cardShadow,
@@ -932,8 +929,7 @@ const createStyles = (theme: AppTheme) => {
       alignItems: "center",
       justifyContent: "space-between",
       padding: 14,
-      borderRadius: 16,
-      borderWidth: 1,
+      borderRadius: 22,
       opacity: 0.65,
       ...theme.cardShadow,
     },

@@ -1273,9 +1273,8 @@ const createStyles = (theme: AppTheme) => {
       gap: 12,
     },
     letterCard: {
-      borderRadius: 18,
+      borderRadius: 22,
       padding: 16,
-      borderWidth: 1,
       shadowColor: "#000",
       shadowOffset: { width: 0, height: 3 },
       shadowOpacity: 0.2,
@@ -1480,10 +1479,8 @@ const createStyles = (theme: AppTheme) => {
       marginBottom: 12,
       paddingHorizontal: 14,
       paddingVertical: 11,
-      borderRadius: 14,
-      borderWidth: 1,
+      borderRadius: 22,
       backgroundColor: "rgba(245,158,11,0.12)",
-      borderColor: "rgba(245,158,11,0.28)",
     },
     approvalBannerText: {
       flex: 1,

@@ -487,9 +487,8 @@ const createStyles = (theme: AppTheme) => {
       gap: 14,
     },
     cardContainer: {
-      borderRadius: 20,
+      borderRadius: 22,
       padding: 18,
-      borderWidth: 1,
       shadowColor: "#000",
       shadowOffset: { width: 0, height: 3 },
       shadowOpacity: 0.2,

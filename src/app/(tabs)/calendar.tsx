@@ -695,8 +695,7 @@ const createStyles = (theme: AppTheme) => {
 
     /* FOTOĞRAFLAR */
     photoCard: {
-      borderRadius: 20,
-      borderWidth: 1,
+      borderRadius: 22,
       overflow: "hidden",
     },
     photoImg: {
@@ -770,8 +769,7 @@ const createStyles = (theme: AppTheme) => {
     },
     moodCard: {
       flex: 1,
-      borderRadius: 16,
-      borderWidth: 1,
+      borderRadius: 22,
       paddingVertical: 12,
       paddingHorizontal: 6,
       alignItems: "center",
@@ -797,8 +795,7 @@ const createStyles = (theme: AppTheme) => {
 
     /* BULUŞMALAR */
     meetingCard: {
-      borderRadius: 18,
-      borderWidth: 1,
+      borderRadius: 22,
       padding: 14,
     },
     meetingHeader: {
@@ -833,8 +830,7 @@ const createStyles = (theme: AppTheme) => {
 
     /* PERİYOD/DÖNGÜ */
     periodCard: {
-      borderRadius: 18,
-      borderWidth: 1,
+      borderRadius: 22,
       padding: 14,
       flexDirection: "row",
       alignItems: "center",
