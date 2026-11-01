@@ -333,7 +333,7 @@ export default function DatesScreen() {
           </View>
 
           <View style={{ flex: 1 }}>
-            <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "700", marginBottom: 2 }}>
+            <Text style={{ color: "#FFFFFF", fontSize: 16, fontFamily: "Inter_700Bold", marginBottom: 2 }}>
               {t("setup.dates.relationshipLabel")}
             </Text>
             <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
@@ -342,7 +342,7 @@ export default function DatesScreen() {
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Text style={{ color: "#FFFFFF", fontSize: 15, fontWeight: "600", letterSpacing: 1 }}>
+            <Text style={{ color: "#FFFFFF", fontSize: 15, fontFamily: "Inter_600SemiBold", letterSpacing: 1 }}>
               {displayDate(relDate)}
             </Text>
             <ChevronRight color="rgba(255,255,255,0.3)" size={20} />
@@ -382,7 +382,7 @@ export default function DatesScreen() {
             </View>
 
             <View style={{ flex: 1 }}>
-              <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "700", marginBottom: 2 }}>
+              <Text style={{ color: "#FFFFFF", fontSize: 16, fontFamily: "Inter_700Bold", marginBottom: 2 }}>
                 {t("setup.dates.meetLabel")}
               </Text>
               <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
@@ -423,7 +423,7 @@ export default function DatesScreen() {
                 {t("setup.dates.meetDay")}
               </Text>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <Text style={{ color: "#FFFFFF", fontSize: 15, fontWeight: "600", letterSpacing: 1 }}>
+                <Text style={{ color: "#FFFFFF", fontSize: 15, fontFamily: "Inter_600SemiBold", letterSpacing: 1 }}>
                   {displayDate(meetDate)}
                 </Text>
                 <ChevronRight color="rgba(255,255,255,0.3)" size={20} />
@@ -484,7 +484,7 @@ export default function DatesScreen() {
             {isLoading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 17 }}>
+              <Text style={{ color: "#fff", fontFamily: "Inter_700Bold", fontSize: 17 }}>
                 {t("setup.dates.submit")}
               </Text>
             )}
@@ -505,7 +505,7 @@ export default function DatesScreen() {
             opacity: isLoading ? 0.5 : 1,
           }}
         >
-          <Text style={{ color: "rgba(255,255,255,0.7)", fontWeight: "600", fontSize: 15 }}>
+          <Text style={{ color: "rgba(255,255,255,0.7)", fontFamily: "Inter_600SemiBold", fontSize: 15 }}>
             {t("setup.dates.later")}
           </Text>
         </TouchableOpacity>

@@ -334,8 +334,6 @@ export default function PairingScreen() {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 6,
-                  borderWidth: 1,
-                  borderColor: "rgba(255,255,255,0.12)",
                 }}
               >
                 {copiedCode ? (
@@ -367,8 +365,6 @@ export default function PairingScreen() {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 6,
-                  borderWidth: 1,
-                  borderColor: "rgba(255,255,255,0.12)",
                 }}
               >
                 {copiedLink ? (
@@ -427,15 +423,13 @@ export default function PairingScreen() {
           {/* ─── 2. PARTNERİNİN KODUNU GİR KARTI ─── */}
           <View
             style={{
-              borderWidth: 1,
-              borderColor: "rgba(255,255,255,0.08)",
               borderRadius: 24,
               padding: 24,
               backgroundColor: "rgba(255,255,255,0.03)",
               marginBottom: 20,
             }}
           >
-            <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "700", marginBottom: 6 }}>
+            <Text style={{ color: "#FFFFFF", fontSize: 16, fontFamily: "Inter_700Bold", marginBottom: 6 }}>
               {t("setup.pairing.enterTitle")}
             </Text>
             <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginBottom: 18 }}>
@@ -453,8 +447,6 @@ export default function PairingScreen() {
               autoCapitalize="characters"
               autoCorrect={false}
               style={{
-                borderWidth: 1,
-                borderColor: "rgba(255,255,255,0.12)",
                 borderRadius: 16,
                 paddingVertical: 14,
                 paddingHorizontal: 20,
@@ -501,7 +493,7 @@ export default function PairingScreen() {
               {isSubmitting ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>
+                <Text style={{ color: "#fff", fontFamily: "Inter_700Bold", fontSize: 16 }}>
                   {t("setup.pairing.submit")}
                 </Text>
               )}
@@ -511,8 +503,6 @@ export default function PairingScreen() {
           {/* ─── 3. BEKLEME ODASI: PARTNER KATILINCA NELER AÇILACAK? ─── */}
           <View
             style={{
-              borderWidth: 1,
-              borderColor: "rgba(255,255,255,0.08)",
               borderRadius: 20,
               padding: 18,
               backgroundColor: "rgba(255,255,255,0.03)",
@@ -599,7 +589,7 @@ export default function PairingScreen() {
             }}
           >
             <LogOut color="rgba(255,255,255,0.4)" size={16} />
-            <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 13.5, fontWeight: "600" }}>
+            <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 13.5, fontFamily: "Inter_600SemiBold" }}>
               {t("auth.reset.backToSignIn")}
             </Text>
           </TouchableOpacity>

@@ -290,8 +290,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.05)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
     borderRadius: 16,
   },
   inputIconBox: {
@@ -321,8 +319,6 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 124,
     borderRadius: 22,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
     backgroundColor: "rgba(255,255,255,0.04)",
     alignItems: "center",
     justifyContent: "center",

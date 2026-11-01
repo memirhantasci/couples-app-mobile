@@ -98,9 +98,9 @@ export default function ForgotPasswordScreen() {
           <View style={{ alignItems: "center", marginBottom: 36 }}>
             <View
               style={{
-                width: 80,
-                height: 80,
-                borderRadius: 40,
+                width: 88,
+                height: 88,
+                borderRadius: 30,
                 backgroundColor: "rgba(255,255,255,0.06)",
                 alignItems: "center",
                 justifyContent: "center",
@@ -115,7 +115,7 @@ export default function ForgotPasswordScreen() {
             style={{
               color: "#FFFFFF",
               fontSize: 30,
-              fontWeight: "800",
+              fontFamily: "Inter_700Bold",
               textAlign: "center",
               marginBottom: 12,
               letterSpacing: -0.5,
@@ -156,8 +156,6 @@ export default function ForgotPasswordScreen() {
             autoCorrect={false}
             style={{
               backgroundColor: "rgba(255,255,255,0.06)",
-              borderWidth: 1,
-              borderColor: "rgba(255,255,255,0.1)",
               borderRadius: 16,
               paddingHorizontal: 18,
               paddingVertical: 16,
@@ -211,7 +209,7 @@ export default function ForgotPasswordScreen() {
               {isLoading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 17 }}>
+                <Text style={{ color: "#fff", fontFamily: "Inter_700Bold", fontSize: 17 }}>
                   {t("auth.forgot.submit")}
                 </Text>
               )}

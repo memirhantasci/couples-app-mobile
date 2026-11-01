@@ -356,7 +356,7 @@ export default function VerifyScreen() {
                     focusedIndex === index || digit ? "#FF4D6A" : "rgba(255,255,255,0.08)",
                   color: "#FFFFFF",
                   fontSize: 22,
-                  fontWeight: "700",
+                  fontFamily: "Inter_700Bold",
                   textAlign: "center",
                 }}
               />
@@ -392,7 +392,7 @@ export default function VerifyScreen() {
               {isLoading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 17 }}>
+                <Text style={{ color: "#fff", fontFamily: "Inter_700Bold", fontSize: 17 }}>
                   {t("auth.verify.submit")}
                 </Text>
               )}
@@ -404,7 +404,7 @@ export default function VerifyScreen() {
               {t("auth.verify.noCode")}{" "}
             </Text>
             <TouchableOpacity onPress={handleResend} disabled={isLoading}>
-              <Text style={{ color: "#FF4D6A", fontSize: 14, fontWeight: "600" }}>
+              <Text style={{ color: "#FF4D6A", fontSize: 14, fontFamily: "Inter_600SemiBold" }}>
                 {t("auth.verify.resend")}
               </Text>
             </TouchableOpacity>

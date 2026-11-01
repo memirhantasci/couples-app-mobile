@@ -78,7 +78,7 @@ export default function ResetPasswordScreen() {
       <ScreenBackground colors={["#080811", "#0A0A0C", "#080811"]}>
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 30 }}>
           <Text style={{ fontSize: 60, marginBottom: 20 }}>✅</Text>
-          <Text style={{ color: "#fff", fontSize: 24, fontWeight: "800", marginBottom: 10, textAlign: "center" }}>
+          <Text style={{ color: "#fff", fontSize: 24, fontFamily: "Inter_700Bold", marginBottom: 10, textAlign: "center" }}>
             {t("auth.reset.successTitle")}
           </Text>
           <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 15, textAlign: "center", marginBottom: 40 }}>
@@ -93,7 +93,7 @@ export default function ResetPasswordScreen() {
               borderRadius: 18,
             }}
           >
-            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>
+            <Text style={{ color: "#fff", fontFamily: "Inter_700Bold", fontSize: 16 }}>
               {t("auth.reset.backToSignIn")}
             </Text>
           </TouchableOpacity>
@@ -104,8 +104,6 @@ export default function ResetPasswordScreen() {
 
   const inputStyle = {
     backgroundColor: "rgba(255,255,255,0.07)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
     borderRadius: 16,
     paddingHorizontal: 18,
     paddingVertical: 16,
@@ -161,7 +159,7 @@ export default function ResetPasswordScreen() {
             <ArrowLeft color="#fff" size={28} />
           </TouchableOpacity>
 
-          <Text style={{ color: "#fff", fontSize: 30, fontWeight: "800", marginBottom: 12, letterSpacing: -0.5 }}>
+          <Text style={{ color: "#fff", fontSize: 30, fontFamily: "Inter_700Bold", marginBottom: 12, letterSpacing: -0.5 }}>
             {t("auth.reset.title")}
           </Text>
           <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 15, lineHeight: 22, marginBottom: 32 }}>
@@ -233,7 +231,7 @@ export default function ResetPasswordScreen() {
             {isLoading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={{ color: "#fff", fontWeight: "800", fontSize: 17 }}>
+              <Text style={{ color: "#fff", fontFamily: "Inter_700Bold", fontSize: 17 }}>
                 {t("auth.reset.submit")}
               </Text>
             )}
