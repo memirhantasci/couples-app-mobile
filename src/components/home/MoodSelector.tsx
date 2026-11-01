@@ -280,8 +280,7 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, theme }: M
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 18,
     marginBottom: 4,
   },

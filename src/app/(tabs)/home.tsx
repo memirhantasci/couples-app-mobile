@@ -555,10 +555,7 @@ export default function HomeScreen() {
                 onPress={() => router.push("/menu")} 
                 style={[
                   styles.menuBtn, 
-                  { 
-                    backgroundColor: isLight ? "rgba(0,0,0,0.05)" : theme.cardBg, 
-                    borderColor: theme.cardBorder 
-                  }
+                  { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.07)" }
                 ]}
                 activeOpacity={0.8}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -576,7 +573,7 @@ export default function HomeScreen() {
                 exitDemoMode();
                 router.replace({ pathname: "/(auth)/login", params: { initialMode: "register" } });
               }}
-              style={[styles.demoRibbon, { backgroundColor: theme.pillAccentBg, borderColor: theme.cardBorder }]}
+              style={[styles.demoRibbon, { backgroundColor: theme.pillAccentBg }]}
               accessibilityRole="button"
               accessibilityLabel={t("home.demoRibbon.a11y")}
             >
@@ -597,8 +594,15 @@ export default function HomeScreen() {
           <View
             ref={counterRef}
             collapsable={false}
-            style={[styles.heroLoveCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
+            style={[styles.heroLoveCard, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}
           >
+            <LinearGradient
+              pointerEvents="none"
+              colors={[`${theme.accent}40`, `${theme.accent}00`]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 0.8 }}
+              style={StyleSheet.absoluteFill}
+            />
             <View style={styles.heroTopRow}>
               <View style={[styles.heroTopBadge, { backgroundColor: theme.pillAccentBg }]}>
                 <Heart size={13} color={theme.accent} fill={theme.accent} />
@@ -617,7 +621,7 @@ export default function HomeScreen() {
 
             <View style={styles.countersRow}>
               {/* Sevgililik Sayacı */}
-              <View style={[styles.counterBox, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+              <View style={[styles.counterBox, { backgroundColor: isLight ? "rgba(0,0,0,0.045)" : "rgba(255,255,255,0.07)" }]}>
                 <View style={[styles.counterIconCircle, { backgroundColor: theme.pillAccentBg }]}>
                   <Heart size={16} color={theme.accent} fill={theme.accent} />
                 </View>
@@ -626,7 +630,7 @@ export default function HomeScreen() {
               </View>
 
               {/* Tanışma Sayacı */}
-              <View style={[styles.counterBox, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+              <View style={[styles.counterBox, { backgroundColor: isLight ? "rgba(0,0,0,0.045)" : "rgba(255,255,255,0.07)" }]}>
                 <View style={[styles.counterIconCircle, { backgroundColor: isLight ? "rgba(255, 215, 0, 0.15)" : "rgba(255,255,255,0.06)" }]}>
                   <Sparkles size={16} color={isLight ? "#B7791F" : "#ffd700"} />
                 </View>
@@ -640,7 +644,7 @@ export default function HomeScreen() {
           {/* ─── 3. HIZLI ERİŞİM KISAYOLLARI (QUICK ACTIONS) ─── */}
           <View ref={shortcutsRef} collapsable={false} style={styles.quickActionsContainer}>
             <TouchableOpacity 
-              style={[styles.actionPill, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
+              style={[styles.actionPill, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}
               onPress={() => router.push("/(tabs)/photos")}
               activeOpacity={0.8}
             >
@@ -651,7 +655,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.actionPill, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
+              style={[styles.actionPill, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}
               onPress={() => router.push("/(tabs)/daily-notes")}
               activeOpacity={0.8}
             >
@@ -662,7 +666,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.actionPill, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
+              style={[styles.actionPill, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}
               onPress={() => router.push("/(tabs)/letters")}
               activeOpacity={0.8}
             >
@@ -673,7 +677,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.actionPill, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
+              style={[styles.actionPill, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}
               onPress={() => router.push("/(tabs)/meetings")}
               activeOpacity={0.8}
             >
@@ -693,7 +697,7 @@ export default function HomeScreen() {
           </View>
 
           {/* ─── 5. GÜNÜN SÖZÜ ─── */}
-          <View style={[styles.quoteCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
+          <View style={[styles.quoteCard, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}>
             <View style={styles.quoteHeaderRow}>
               <View style={[styles.quoteStarCircle, { backgroundColor: theme.pillAccentBg }]}>
                 <Sparkles size={14} color={theme.accent} />
@@ -784,7 +788,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
-    gap: 14,
+    gap: 16,
   },
 
   // ─── Couple Wrapped Banner ─────────────────────────────────────────────
@@ -880,21 +884,15 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
 
   // ─── Hero Aşk Sayacı ───────────────────────────────────────────────────
   heroLoveCard: {
-    borderRadius: 24,
-    padding: 16,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 3,
+    borderRadius: 28,
+    padding: 18,
+    overflow: "hidden",
   },
   heroTopRow: {
     flexDirection: "row",
@@ -925,8 +923,8 @@ const styles = StyleSheet.create({
   },
   counterBox: {
     flex: 1,
-    borderRadius: 18,
-    paddingVertical: 14,
+    borderRadius: 22,
+    paddingVertical: 18,
     paddingHorizontal: 12,
     alignItems: "center",
     justifyContent: "center",
@@ -940,10 +938,10 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   counterNumber: {
-    fontSize: 26,
+    fontSize: 34,
     fontFamily: "Inter_700Bold",
     color: "#ffffff",
-    letterSpacing: -0.5,
+    letterSpacing: -1,
   },
   counterDesc: {
     fontSize: 11.5,
@@ -964,15 +962,14 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
-    borderRadius: 18,
-    borderWidth: 1,
-    gap: 6,
+    paddingVertical: 14,
+    borderRadius: 22,
+    gap: 8,
   },
   actionIconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 40,
+    height: 40,
+    borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -984,9 +981,8 @@ const styles = StyleSheet.create({
 
   // ─── Günün Sözü ────────────────────────────────────────────────────────
   quoteCard: {
-    borderRadius: 22,
-    padding: 18,
-    borderWidth: 1,
+    borderRadius: 24,
+    padding: 20,
   },
   quoteHeaderRow: {
     flexDirection: "row",
@@ -1020,8 +1016,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 16,
     marginBottom: 12,
   },
   demoRibbonText: {

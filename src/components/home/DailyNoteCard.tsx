@@ -162,8 +162,7 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 18,
     marginBottom: 4,
   },

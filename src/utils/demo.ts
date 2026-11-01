@@ -18,3 +18,4 @@ export function isDemoOrReviewerAccount(emailOrUserId?: string | null): boolean 
     val.endsWith("@couplesky.app")
   );
 }
+

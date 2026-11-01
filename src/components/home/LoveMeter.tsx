@@ -100,8 +100,7 @@ export const LoveMeter = memo(function LoveMeter({ value, theme, subtitle, isLoa
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 20,
     marginBottom: 4,
   },
