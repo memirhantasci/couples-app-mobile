@@ -740,25 +740,25 @@ export default function LettersScreen() {
         {/* ÜSTTE HIZLI MEKTUP YAZ BUTONU */}
         <View style={styles.topActionContainer}>
           <TouchableOpacity 
-            style={[styles.writeLetterActionBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
+            style={[styles.writeLetterActionBtn, { backgroundColor: theme.accent }]}
             onPress={handleOpenWriteModal}
             activeOpacity={0.88}
           >
-            <View style={[styles.writeActionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
-              <PenLine size={20} color={theme.accent} />
+            <View style={[styles.writeActionIconCircle, { backgroundColor: "rgba(255,255,255,0.22)" }]}>
+              <PenLine size={20} color="#ffffff" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.writeActionTitle, { color: theme.text }]}>{t("letters.write.cta")}</Text>
-              <Text style={[styles.writeActionSub, { color: theme.textMuted }]}>{t("letters.write.ctaSub")}</Text>
+              <Text style={[styles.writeActionTitle, { color: "#ffffff" }]}>{t("letters.write.cta")}</Text>
+              <Text style={[styles.writeActionSub, { color: "rgba(255,255,255,0.8)" }]}>{t("letters.write.ctaSub")}</Text>
             </View>
-            <ChevronRight size={18} color={theme.textMuted} />
+            <ChevronRight size={18} color="rgba(255,255,255,0.85)" />
           </TouchableOpacity>
         </View>
 
         {/* SEKME ÇUBUĞU (TÜMÜ / GELENLER / GÖNDERİLENLER) */}
-        <View style={[styles.tabsWrapper, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}>
+        <View style={[styles.tabsWrapper, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}>
           <TouchableOpacity 
-            style={[styles.tabBtn, activeTab === "all" && { backgroundColor: theme.unitBg }]}
+            style={[styles.tabBtn, activeTab === "all" && { backgroundColor: theme.pillAccentBg }]}
             onPress={() => setActiveTab("all")}
             activeOpacity={0.8}
           >
@@ -768,7 +768,7 @@ export default function LettersScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.tabBtn, activeTab === "received" && { backgroundColor: theme.unitBg }]}
+            style={[styles.tabBtn, activeTab === "received" && { backgroundColor: theme.pillAccentBg }]}
             onPress={() => setActiveTab("received")}
             activeOpacity={0.8}
           >
@@ -778,7 +778,7 @@ export default function LettersScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.tabBtn, activeTab === "sent" && { backgroundColor: theme.unitBg }]}
+            style={[styles.tabBtn, activeTab === "sent" && { backgroundColor: theme.pillAccentBg }]}
             onPress={() => setActiveTab("sent")}
             activeOpacity={0.8}
           >
@@ -1217,15 +1217,9 @@ const createStyles = (theme: AppTheme) => {
     writeLetterActionBtn: {
       flexDirection: "row",
       alignItems: "center",
-      padding: 14,
-      borderRadius: 18,
-      borderWidth: 1,
-      gap: 12,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.2,
-      shadowRadius: 8,
-      elevation: 3,
+      padding: 16,
+      borderRadius: 24,
+      gap: 14,
     },
     writeActionIconCircle: {
       width: 44,
@@ -1250,15 +1244,13 @@ const createStyles = (theme: AppTheme) => {
       flexDirection: "row",
       marginHorizontal: 16,
       marginBottom: 14,
-      borderRadius: 14,
+      borderRadius: 20,
       padding: 4,
-      borderWidth: 1,
-      borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.05)",
     },
     tabBtn: {
       flex: 1,
-      paddingVertical: 10,
-      borderRadius: 10,
+      paddingVertical: 11,
+      borderRadius: 16,
       alignItems: "center",
       justifyContent: "center",
     },
