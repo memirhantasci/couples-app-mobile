@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { toast } from "@/lib/toast";
@@ -11,7 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { removeStoredFiles } from "@/lib/storageImages";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs } from "@/lib/date";
-import { Trash2, Pencil, PlusCircle, AlignJustify } from "lucide-react-native";
+import { Trash2, Pencil, PlusCircle } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { openForm } from "@/lib/formEntry";
 import Animated, { FadeInDown, FadeInUp, FadeOutDown } from "react-native-reanimated";
@@ -20,7 +21,6 @@ import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { usePageTour } from "@/hooks/usePageTour";
-import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { DEMO_PROFILE } from "@/constants/demoData";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -309,54 +309,20 @@ export default function MemoriesScreen() {
 
   return (
     <ScreenBackground>
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
-          {/* minWidth: 0 + tek satır: dar ekranda / büyük yazıda başlık alt alta kırılmaz, gerekirse küçülür */}
-          <View style={{ flex: 1, minWidth: 0, marginRight: 10 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <Text
-                style={[styles.title, { color: theme.text, flexShrink: 1 }]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.7}
-              >
-                {t("memories.title")}
-              </Text>
-              <Text style={{ fontSize: 22 }}>❤️</Text>
-            </View>
-            <Text style={[styles.subtitle, { color: theme.textMuted, marginTop: 4 }]} numberOfLines={1}>
-              {t("memories.subtitle")}
-            </Text>
-          </View>
-
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 0 }}>
-            <TourGuideButton onPress={openTour} />
-            <TouchableOpacity 
-              style={[styles.editBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}
-              onPress={() => setIsEditMode(!isEditMode)}
-            >
-              <Text style={[styles.editBtnText, { color: theme.text }]}>{isEditMode ? t("memories.done") : t("common.edit")}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              onPress={() => router.push("/menu")} 
-              style={{ 
-                padding: 8, 
-                backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.05)", 
-                borderRadius: 20, 
-                width: 40, 
-                height: 40, 
-                alignItems: "center", 
-                justifyContent: "center",
-                borderColor: theme.cardBorder,
-                borderWidth: 1
-              }}
-            >
-              <AlignJustify color={theme.textSecondary} size={22} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+      <ScreenHeader
+        title={t("memories.title")}
+        subtitle={t("memories.subtitle")}
+        onOpenTour={openTour}
+        actions={
+          <TouchableOpacity
+            accessibilityRole="button"
+            style={[styles.editBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.07)" }]}
+            onPress={() => setIsEditMode(!isEditMode)}
+          >
+            <Text style={[styles.editBtnText, { color: theme.text }]}>{isEditMode ? t("memories.done") : t("common.edit")}</Text>
+          </TouchableOpacity>
+        }
+      />
 
       {isLoading ? (
         <View style={{ gap: 16, marginTop: 40, paddingHorizontal: 20 }}>
@@ -450,8 +416,9 @@ const createStyles = (theme: AppTheme) => {
       fontFamily: "Inter_400Regular",
     },
     editBtn: {
-      paddingVertical: 8,
-      paddingHorizontal: 12,
+      height: 40,
+      justifyContent: "center",
+      paddingHorizontal: 16,
       borderRadius: 20,
     },
     editBtnText: {
@@ -498,8 +465,8 @@ const createStyles = (theme: AppTheme) => {
     },
     card: {
       flex: 1,
-      borderRadius: 20,
-      padding: 16,
+      borderRadius: 24,
+      padding: 18,
     },
     cardHeader: {
       flexDirection: "row",
