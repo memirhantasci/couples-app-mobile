@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { logger } from "@/utils/logger";
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
 import { appAlert } from "@/lib/dialog";
@@ -7,10 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { formEntryOf } from "@/lib/formEntry";
-import { 
-  ChevronLeft, Check, Calendar as CalendarIcon, 
-  Clock, BookOpen 
-} from "lucide-react-native";
+import { Check, Calendar as CalendarIcon, Clock, BookOpen } from "lucide-react-native";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { encrypt, decrypt } from "@/utils/crypto";
@@ -134,29 +132,12 @@ export default function AddDailyNoteScreen() {
     <ScreenBackground>
       <View style={{ flex: 1 }}>
         {/* HEADER */}
-        <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
-          <TouchableOpacity 
-            accessibilityRole="button"
-            accessibilityLabel={t("common.back")}
-            onPress={() => router.replace("/(tabs)/daily-notes")} 
-            style={[
-              styles.headerBtn,
-              { 
-                backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
-                borderColor: theme.cardBorder 
-              }
-            ]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <ChevronLeft color={theme.text} size={24} />
-          </TouchableOpacity>
-
-          <View style={styles.headerTitleBox}>
-            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{t("dailyNotes.add.title")}</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textMuted }]} numberOfLines={1}>{t("dailyNotes.add.subtitle")}</Text>
-          </View>
-
-          <TouchableOpacity 
+        <ScreenHeader
+          title={t("dailyNotes.add.title")}
+          subtitle={t("dailyNotes.add.subtitle")}
+          fallbackRoute="/(tabs)/daily-notes"
+          actions={
+            <TouchableOpacity 
             onPress={handleSave}
             disabled={isSubmitting || !content.trim()}
             style={[
@@ -172,7 +153,8 @@ export default function AddDailyNoteScreen() {
               <Check color="#ffffff" size={18} />
             )}
           </TouchableOpacity>
-        </View>
+          }
+        />
 
         {/* KLAVYE DUYARLI FORM ALANI */}
         <KeyboardAwareScrollView 
@@ -316,8 +298,7 @@ const createStyles = (theme: AppTheme) => {
       justifyContent: "space-between",
       paddingHorizontal: 16,
       paddingVertical: 12,
-      borderRadius: 16,
-      borderWidth: 1,
+      borderRadius: 22,
     },
     dateIconCircle: {
       width: 32,
@@ -365,8 +346,7 @@ const createStyles = (theme: AppTheme) => {
       color: isLight ? theme.textMuted : "rgba(255,255,255,0.45)",
     },
     editorContainer: {
-      borderRadius: 20,
-      borderWidth: 1,
+      borderRadius: 22,
       padding: 16,
       minHeight: 320,
     },

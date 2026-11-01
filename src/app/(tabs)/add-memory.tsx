@@ -3,6 +3,7 @@ import { useState, useMemo } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { Image } from "expo-image";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { formEntryOf } from "@/lib/formEntry";
@@ -15,7 +16,7 @@ import { StorageImage } from "@/components/common/StorageImage";
 import { useQueryClient } from "@tanstack/react-query";
 import { logger } from "@/utils/logger";
 import { decode } from "base64-arraybuffer";
-import { Save, ImagePlus, ChevronLeft, AlignJustify } from "lucide-react-native";
+import { Save, ImagePlus } from "lucide-react-native";
 import { dayjs, todayString, formatLongDate } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
@@ -224,35 +225,9 @@ export default function AddMemoryScreen() {
 
   return (
     <ScreenBackground>
-        <TouchableOpacity 
-          onPress={() => router.push("/menu")} 
-          style={{ 
-            padding: 8, 
-            backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", 
-            borderRadius: 20, 
-            width: 40, 
-            height: 40, 
-            alignItems: "center", 
-            justifyContent: "center", 
-            position: "absolute", 
-            top: insets.top + 16, 
-            right: 20, 
-            zIndex: 50,
-            borderWidth: 1,
-            borderColor: theme.cardBorder
-          }}
-        >
-          <AlignJustify color={theme.text} size={22} />
-        </TouchableOpacity>
 
       <View style={{ flex: 1 }}>
-        <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.back")} onPress={() => router.replace("/(tabs)/memories")} style={{ padding: 8, marginLeft: -8 }}>
-            <ChevronLeft color={theme.text} size={28} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{isEditing ? t("memories.add.editTitle") : t("memories.add.newTitle")}</Text>
-          <View style={{ width: 28 }} />
-        </View>
+        <ScreenHeader title={isEditing ? t("memories.add.editTitle") : t("memories.add.newTitle")} fallbackRoute="/(tabs)/memories" />
 
         {/* Klavye açılınca odaktaki alan (Açıklama) ve Kaydet butonu klavyenin üstüne kayar (iOS + Android) */}
         <KeyboardAwareScrollView

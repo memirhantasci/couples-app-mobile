@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import {
   View,
   Text,
@@ -16,11 +17,7 @@ import * as ImageManipulator from "expo-image-manipulator";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { formEntryOf } from "@/lib/formEntry";
 import { useQueryClient } from "@tanstack/react-query";
-import { 
-  ChevronLeft, ImagePlus, CheckCircle2, 
-  AlertCircle, Calendar as CalendarIcon, Clock, AlignJustify, 
-  UploadCloud, RefreshCw, MapPin, Navigation, Search
-} from "lucide-react-native";
+import { ImagePlus, CheckCircle2, AlertCircle, Calendar as CalendarIcon, Clock, UploadCloud, RefreshCw, MapPin, Navigation, Search } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { supabase } from "@/lib/supabase";
@@ -400,38 +397,7 @@ export default function AddPhotoScreen() {
     <ScreenBackground>
       <View style={{ flex: 1 }}>
         {/* HEADER - Diğer tüm sayfalarla tam uyumlu ve simetrik */}
-        <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
-          <TouchableOpacity 
-            accessibilityRole="button"
-            accessibilityLabel={t("common.back")}
-            onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace("/(tabs)/photos");
-              }
-            }} 
-            style={styles.headerBtn}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <ChevronLeft color={theme.text} size={24} />
-          </TouchableOpacity>
-
-          <View style={styles.headerTitleBox}>
-            <Text style={styles.headerTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{t("menu.upload.title")}</Text>
-            <Text style={styles.headerSubtitle} numberOfLines={1}>{t("photos.add.subtitle")}</Text>
-          </View>
-
-          <TouchableOpacity 
-            accessibilityRole="button"
-            accessibilityLabel={t("common.openMenu")}
-            onPress={() => router.push("/menu")} 
-            style={styles.headerBtn}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <AlignJustify color={theme.textSecondary} size={20} />
-          </TouchableOpacity>
-        </View>
+        <ScreenHeader title={t("menu.upload.title")} subtitle={t("photos.add.subtitle")} fallbackRoute="/(tabs)/photos" />
 
         <KeyboardAwareScrollView 
           style={{ flex: 1 }}
@@ -813,8 +779,7 @@ const createStyles = (theme: AppTheme) => {
       gap: 14,
     },
     card: {
-      borderRadius: 20,
-      borderWidth: 1,
+      borderRadius: 22,
       padding: 16,
       gap: 12,
       ...theme.cardShadow,

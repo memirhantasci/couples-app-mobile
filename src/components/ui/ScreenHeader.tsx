@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AlignJustify, ChevronLeft } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
@@ -16,10 +16,12 @@ interface ScreenHeaderProps {
   actions?: React.ReactNode;
   /** Varsayılan: önceki ekrana, yoksa ana sayfaya dön. */
   onBack?: () => void;
+  /** Geri gidilecek ekran yoksa gidilen rota (varsayılan: ana sayfa). */
+  fallbackRoute?: Href;
 }
 
 /** Tüm ekranların ortak üst alanı: yuvarlak butonlar satırı ve altında sola hizalı büyük başlık. */
-export function ScreenHeader({ title, subtitle, onOpenTour, actions, onBack }: ScreenHeaderProps) {
+export function ScreenHeader({ title, subtitle, onOpenTour, actions, onBack, fallbackRoute = "/(tabs)/home" }: ScreenHeaderProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -33,7 +35,7 @@ export function ScreenHeader({ title, subtitle, onOpenTour, actions, onBack }: S
   const goBack = () => {
     if (onBack) return onBack();
     if (router.canGoBack()) router.back();
-    else router.replace("/(tabs)/home");
+    else router.replace(fallbackRoute);
   };
 
   return (
