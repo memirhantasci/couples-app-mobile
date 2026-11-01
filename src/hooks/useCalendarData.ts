@@ -59,7 +59,7 @@ export async function fetchCalendarData(params: CalendarFetchParams) {
           location_name: i18n.t("demo.calendar.dinnerLocation"),
           meeting_datetime: `${today}T19:30:00`,
           is_active: true,
-          created_by: userId,
+          user_id: userId,
         },
       ],
       periods: canSeePeriod
@@ -117,7 +117,7 @@ export async function fetchCalendarData(params: CalendarFetchParams) {
       : Promise.resolve({ data: [], error: null }),
     supabase
       .from("meetings")
-      .select("id, title, location_name, meeting_datetime, is_active, created_by")
+      .select("id, title, location_name, meeting_datetime, is_active, user_id")
       .eq("couple_id", coupleId)
       // Buluşmalar UTC olarak saklanır; aralık yerel gün sınırlarıyla (UTC'ye çevrilerek) sorgulanır
       .gte("meeting_datetime", dayjs(startDate).startOf("day").toISOString())
@@ -172,7 +172,7 @@ export async function fetchCalendarData(params: CalendarFetchParams) {
     })),
     meetings: (meetingsRes.data || []).map((m: any) => ({
       ...m,
-      creator: userMap[m.created_by],
+      creator: userMap[m.user_id],
     })),
     periods: (periodsRes.data || []).map((p: any) => ({
       ...p,
