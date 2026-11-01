@@ -71,8 +71,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 22,
   },
   historyDate: {
     fontSize: 13.5,

@@ -130,9 +130,8 @@ export const MedicineDoseCard = React.memo(MedicineDoseCardBase);
 
 const styles = StyleSheet.create({
   medCard: {
-    borderRadius: 20,
+    borderRadius: 22,
     padding: 16,
-    borderWidth: 1,
     gap: 14,
   },
   medCardHeader: {

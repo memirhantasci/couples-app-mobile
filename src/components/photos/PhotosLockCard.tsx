@@ -62,7 +62,6 @@ const styles = StyleSheet.create({
   luxuryLockCard: {
     margin: 16,
     borderRadius: 24,
-    borderWidth: 1,
     padding: 24,
     alignItems: "center",
   },

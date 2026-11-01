@@ -181,8 +181,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 18,
-    borderWidth: 1,
+    borderRadius: 22,
   },
   monthArrowBtn: {
     width: 36,
@@ -208,7 +207,6 @@ const styles = StyleSheet.create({
   calendarCard: {
     borderRadius: 22,
     padding: 14,
-    borderWidth: 1,
   },
   legendRow: {
     flexDirection: "row",

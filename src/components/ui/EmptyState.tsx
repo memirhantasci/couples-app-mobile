@@ -175,7 +175,6 @@ const styles = StyleSheet.create({
     paddingVertical: 30,
     paddingHorizontal: 26,
     borderRadius: 24,
-    borderWidth: 1,
     marginTop: 20,
   },
   cardCompact: {
