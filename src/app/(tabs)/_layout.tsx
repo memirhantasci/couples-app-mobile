@@ -103,10 +103,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                   styles.tabCapsule,
                   isFocused && [
                     styles.tabCapsuleActive,
-                    { 
-                      backgroundColor: theme.pillAccentBg,
-                      borderColor: theme.pillAccentBorder,
-                    }
+                    { backgroundColor: theme.pillAccentBg }
                   ]
                 ]}
               >
@@ -206,7 +203,7 @@ const styles = StyleSheet.create({
     right: 16,
     height: 64,
     borderRadius: 32,
-    borderWidth: 1.2,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(255, 255, 255, 0.12)",
     elevation: 24,
     shadowColor: "#000000",
@@ -236,17 +233,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 3,
-    borderWidth: 1.2,
-    borderColor: "transparent",
   },
-  tabCapsuleActive: {
-    borderWidth: 1.2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 4,
-  },
+  // Aktif sekme: çerçevesiz, gölgesiz yumuşak vurgu dolgusu
+  tabCapsuleActive: {},
   tabText: {
     // Kapsülün tam genişliği: metin kutusu ölçülen (iOS'ta bazen dar kalan) genişliğe değil, kapsüle
     // bağlı olur; "Takvim" gibi kısa etiketler boş yer varken "Takv…" diye kesilmez
