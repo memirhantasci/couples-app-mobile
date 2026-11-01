@@ -336,10 +336,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 16,
     right: 16,
-    borderRadius: 22,
+    borderRadius: 28,
     overflow: "hidden",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.15)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.45,
@@ -348,8 +346,8 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   detailCardBody: {
-    padding: 16,
-    gap: 12,
+    padding: 20,
+    gap: 14,
   },
   detailCardHeader: {
     flexDirection: "row",

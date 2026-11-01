@@ -32,7 +32,7 @@ export function MapThemePicker({ accent, isLight, mapTheme, onSelect }: MapTheme
             key={option.id}
             style={[
               styles.themeOptionBtn,
-              { borderColor: isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.12)" },
+              { borderColor: "transparent", backgroundColor: isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.07)" },
               mapTheme === option.id && {
                 borderColor: accent,
                 backgroundColor: `${accent}15`,
@@ -68,10 +68,8 @@ const styles = StyleSheet.create({
   themePickerMenu: {
     marginHorizontal: 16,
     marginBottom: 10,
-    padding: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.08)",
+    padding: 14,
+    borderRadius: 24,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -79,9 +77,9 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   themeMenuHeader: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: "Inter_700Bold",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   themeOptionsRow: {
     flexDirection: "row",
@@ -89,11 +87,11 @@ const styles = StyleSheet.create({
   },
   themeOptionBtn: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 12,
     paddingHorizontal: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.1)",
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: "transparent",
     alignItems: "center",
   },
   themeOptionTitle: {

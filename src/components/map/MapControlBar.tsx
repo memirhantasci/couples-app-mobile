@@ -62,8 +62,7 @@ export function MapControlBar({
   const actionBtnStyle = [
     styles.topActionBtn,
     {
-      backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.1)",
-      borderColor: isLight ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.15)",
+      backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.12)",
     },
   ];
 
@@ -173,16 +172,16 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     overflow: "hidden",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.06)",
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     zIndex: 20,
   },
   topBarMainRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingHorizontal: 20,
+    paddingBottom: 12,
   },
   // Beş aksiyon butonu yer açsın diye başlık bloğu gerekirse daralır.
   topBarTitleBlock: {
@@ -190,12 +189,12 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   topBarTitle: {
-    fontSize: 22,
+    fontSize: 28,
     fontFamily: "Inter_700Bold",
-    letterSpacing: -0.4,
+    letterSpacing: -0.8,
   },
   topBarSub: {
-    fontSize: 11.5,
+    fontSize: 12.5,
     fontFamily: "Inter_400Regular",
     marginTop: 2,
   },
@@ -204,10 +203,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   topActionBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
   },

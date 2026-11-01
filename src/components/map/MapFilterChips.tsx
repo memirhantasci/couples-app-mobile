@@ -68,15 +68,14 @@ export function MapFilterChips({
             style={[
               styles.filterChip,
               isSelected
-                ? { backgroundColor: accent, borderColor: accent }
+                ? { backgroundColor: accent, shadowColor: accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 4 }
                 : {
-                    backgroundColor: isLight ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.08)",
-                    borderColor: isLight ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.12)",
+                    backgroundColor: isLight ? "rgba(255,255,255,0.92)" : "rgba(30,30,36,0.78)",
                   },
             ]}
             activeOpacity={0.8}
           >
-            <ItemIcon size={12} color={isSelected ? "#fff" : isLight ? "#555" : "#aaa"} />
+            <ItemIcon size={14} color={isSelected ? "#fff" : isLight ? "#555" : "#aaa"} />
             <Text
               style={[
                 styles.filterChipText,
@@ -103,14 +102,13 @@ const styles = StyleSheet.create({
   filterChip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    borderWidth: 1,
+    gap: 6,
+    height: 38,
+    paddingHorizontal: 15,
+    borderRadius: 19,
   },
   filterChipText: {
-    fontSize: 11.5,
+    fontSize: 12.5,
     fontFamily: "Inter_600SemiBold",
   },
 });
