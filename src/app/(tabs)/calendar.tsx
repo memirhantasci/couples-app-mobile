@@ -855,9 +855,8 @@ const createStyles = (theme: AppTheme) => {
 
     /* BOŞ DURUM */
     emptyCard: {
-      borderRadius: 20,
-      borderWidth: 1,
-      padding: 24,
+      borderRadius: 28,
+      padding: 28,
       alignItems: "center",
       justifyContent: "center",
       gap: 8,

@@ -115,7 +115,7 @@ export function PremiumPaywall({
             <Trans
               i18nKey="paywall.featureGate"
               values={{ feature: resolvedFeatureName }}
-              components={{ feature: <Text style={{ fontWeight: "700", color: theme.accent }} /> }}
+              components={{ feature: <Text style={{ fontFamily: "Inter_700Bold", color: theme.accent }} /> }}
             />
           </Text>
 
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    fontWeight: "800",
+    fontFamily: "Inter_700Bold",
     marginBottom: 8,
     letterSpacing: -0.3,
   },
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   },
   featureText: {
     fontSize: 13.5,
-    fontWeight: "600",
+    fontFamily: "Inter_600SemiBold",
   },
   ctaBtn: {
     width: "100%",
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   },
   ctaBtnText: {
     color: "#fff",
-    fontWeight: "800",
+    fontFamily: "Inter_700Bold",
     fontSize: 16,
     letterSpacing: -0.2,
   },
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
   eulaLink: {
     fontSize: 11,
     textDecorationLine: "underline",
-    fontWeight: "600",
+    fontFamily: "Inter_600SemiBold",
   },
   tokenSection: {
     width: "100%",
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     fontSize: 12,
-    fontWeight: "500",
+    fontFamily: "Inter_500Medium",
   },
   tokenBtn: {
     width: "100%",
@@ -347,12 +347,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   tokenBtnText: {
-    fontWeight: "700",
+    fontFamily: "Inter_700Bold",
     fontSize: 14,
   },
   tokenBalance: {
     fontSize: 11,
-    fontWeight: "500",
+    fontFamily: "Inter_500Medium",
   },
   adBtn: {
     width: "100%",
@@ -364,6 +364,6 @@ const styles = StyleSheet.create({
   },
   adBtnText: {
     fontSize: 12.5,
-    fontWeight: "600",
+    fontFamily: "Inter_600SemiBold",
   },
 });

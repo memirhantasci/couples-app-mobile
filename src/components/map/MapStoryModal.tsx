@@ -330,8 +330,6 @@ const styles = StyleSheet.create({
     paddingVertical: 36,
     paddingHorizontal: 24,
     backgroundColor: "#161220",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.12)",
   },
   emptyIconCircle: {
     width: 56,
@@ -360,8 +358,6 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: "hidden",
     padding: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.12)",
     elevation: 8,
     shadowColor: "#FF4D6D",
     shadowOffset: { width: 0, height: 6 },
@@ -406,8 +402,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
   },
   stopRow: {
     flexDirection: "row",

@@ -184,8 +184,6 @@ const styles = StyleSheet.create({
     minHeight: 140,
     textAlignVertical: "top",
     lineHeight: 22,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
   },
   modalCharCount: {
     alignSelf: "flex-end",

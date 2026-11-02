@@ -179,8 +179,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 14,
     fontFamily: "Inter_400Regular",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
     minHeight: 100,
     textAlignVertical: "top",
     lineHeight: 20,
@@ -204,8 +202,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 14,
     backgroundColor: "rgba(255,255,255,0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
   },
   modalCancelBtnText: {
     color: "rgba(255,255,255,0.7)",

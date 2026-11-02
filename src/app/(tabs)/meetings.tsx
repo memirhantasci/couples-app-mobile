@@ -835,10 +835,9 @@ const createStyles = (theme: AppTheme) => {
       marginLeft: 8,
     },
     cardActionBtn: {
-      width: 34,
-      height: 34,
-      borderRadius: 12,
-      borderWidth: 1,
+      width: 38,
+      height: 38,
+      borderRadius: 14,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -908,9 +907,8 @@ const createStyles = (theme: AppTheme) => {
 
     /* GEÇMİŞ BULUŞMA KARTI */
     showMorePastBtn: {
-      paddingVertical: 13,
-      borderRadius: 16,
-      borderWidth: 1,
+      paddingVertical: 15,
+      borderRadius: 22,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -958,9 +956,8 @@ const createStyles = (theme: AppTheme) => {
       padding: 18,
     },
     modalBox: {
-      borderRadius: 24,
-      borderWidth: 1,
-      padding: 20,
+      borderRadius: 32,
+      padding: 22,
       maxHeight: "88%",
     },
     modalHeader: {
