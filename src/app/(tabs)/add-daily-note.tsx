@@ -85,11 +85,11 @@ export default function AddDailyNoteScreen() {
   }
 
   // Geri: her zaman Günlüklerim ekranına (ana sayfaya değil); Android geri tuşu da aynı yere gider
-  const goBackToJournal = () => router.replace("/(tabs)/daily-notes");
+  const goBackToJournal = () => router.navigate("/(tabs)/daily-notes");
   useFocusEffect(
     useCallback(() => {
       const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-        router.replace("/(tabs)/daily-notes");
+        router.navigate("/(tabs)/daily-notes");
         return true;
       });
       return () => sub.remove();

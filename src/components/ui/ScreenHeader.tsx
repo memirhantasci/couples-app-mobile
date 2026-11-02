@@ -16,12 +16,12 @@ interface ScreenHeaderProps {
   actions?: React.ReactNode;
   /** Varsayılan: önceki ekrana, yoksa ana sayfaya dön. */
   onBack?: () => void;
-  /** Geri gidilecek ekran yoksa gidilen rota (varsayılan: ana sayfa). */
+  /** Verilirse geri her zaman bu ekrana döner (varsayılan: önceki ekran, yoksa ana sayfa). */
   fallbackRoute?: Href;
 }
 
 /** Tüm ekranların ortak üst alanı: yuvarlak butonlar satırı ve altında sola hizalı büyük başlık. */
-export function ScreenHeader({ title, subtitle, onOpenTour, actions, onBack, fallbackRoute = "/(tabs)/home" }: ScreenHeaderProps) {
+export function ScreenHeader({ title, subtitle, onOpenTour, actions, onBack, fallbackRoute }: ScreenHeaderProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -34,8 +34,10 @@ export function ScreenHeader({ title, subtitle, onOpenTour, actions, onBack, fal
 
   const goBack = () => {
     if (onBack) return onBack();
+    // Form ekranları (ekle/düzenle) kendi liste ekranını verir: geri her zaman oraya döner
+    if (fallbackRoute) return router.navigate(fallbackRoute);
     if (router.canGoBack()) router.back();
-    else router.replace(fallbackRoute);
+    else router.replace("/(tabs)/home");
   };
 
   return (
