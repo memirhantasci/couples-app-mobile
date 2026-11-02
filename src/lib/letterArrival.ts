@@ -27,6 +27,8 @@ export function onLetterArrivalCheckRequested(listener: () => void): () => void 
 const SEEN_KEY_PREFIX = "@letters_seen_at_";
 const EPOCH_ISO = "1970-01-01T00:00:00.000Z";
 const MAX_ARRIVALS = 10;
+// İlk kontrolde bundan yeni mektuplar "yeni geldi" sayılır (cihaz saati sapsa da tolere eder)
+const FIRST_RUN_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 function seenKey(userId: string): string {
   return `${SEEN_KEY_PREFIX}${userId}`;
@@ -73,27 +75,37 @@ export interface ArrivedLetters {
 
 
 /**
- * Kullanıcının görmediği (kendisine gelmiş) mektupları bulur. İlk çalıştırmada mevcut mektuplar
- * "görülmüş" sayılır ve null döner: yalnızca bundan sonra gelenler karşılama tetikler.
+ * Kullanıcının görmediği (kendisine gelmiş) mektupları bulur. İlk çalıştırmada 24 saatten eski mektuplar
+ * "görülmüş" sayılır; daha yeni olanlar (ör. ilk girişten hemen önce gönderilen) karşılama tetikler.
  */
 export async function fetchArrivedLetters(
   userId: string,
   coupleId: number
 ): Promise<ArrivedLetters | null> {
   try {
-    const seenAt = await readSeenAt(userId);
+    let storedSeenAt = await readSeenAt(userId);
 
-    if (!seenAt) {
-      const { data } = await supabase
+    if (!storedSeenAt) {
+      // Bu hesabın bu cihazdaki ilk kontrolü: eski mektuplar (yeniden kurulum, yeni cihaz) kuş tetiklemesin,
+      // ama yakın zamanda gelmiş olanlar tetiklesin. Mektup, alıcı bu cihazda ilk kez giriş yapmadan önce
+      // gönderilmiş olabilir; hepsini "görülmüş" saymak ilk girişteki karşılamayı yutuyordu.
+      const cutoff = new Date(Date.now() - FIRST_RUN_WINDOW_MS).toISOString();
+      const { data, error } = await supabase
         .from("letters")
         .select("created_at")
         .eq("couple_id", coupleId)
         .eq("receiver_id", userId)
+        .lte("created_at", cutoff)
         .order("created_at", { ascending: false })
         .limit(1);
-      await safeStorage.setItem(seenKey(userId), data?.[0]?.created_at ?? EPOCH_ISO);
-      return null;
+      // Sorgu başarısızsa işaret yazılmaz: bir sonraki kontrol yeniden dener, eski mektuplar yanlışlıkla
+      // "yeni" sayılmaz
+      if (error) return null;
+      const baseline: string = data?.[0]?.created_at ?? EPOCH_ISO;
+      storedSeenAt = baseline;
+      await safeStorage.setItem(seenKey(userId), baseline);
     }
+    const seenAt: string = storedSeenAt;
 
     const { data, error } = await supabase
       .from("letters")
