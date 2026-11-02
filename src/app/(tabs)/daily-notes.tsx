@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { ActionCard } from "@/components/ui/ActionCard";
 import { ScreenHeader, ScreenHeaderButton } from "@/components/ui/ScreenHeader";
 import {
@@ -6,30 +6,24 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
-  Modal,
-  TextInput,
   StyleSheet,
 } from "react-native";
 import { appAlert } from "@/lib/dialog";
-import { DialogHost } from "@/components/ui/DialogHost";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { encrypt, decrypt } from "@/utils/crypto";
+import { decrypt } from "@/utils/crypto";
 import dayjs from "dayjs";
-import { Edit3, Trash2, PenLine, BookOpen, X, Check } from "lucide-react-native";
+import { Edit3, Trash2, PenLine, BookOpen } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { openForm } from "@/lib/formEntry";
-import { DAILY_NOTE_MAX_CHARS } from "@/lib/dailyNote";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { usePageTour } from "@/hooks/usePageTour";
 import { DEMO_DAILY_NOTES } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
@@ -64,11 +58,6 @@ export default function DailyNotesScreen() {
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("daily-notes");
   const userId = session?.user?.id ? session.user.id : null;
 
-  const [editingNote, setEditingNote] = useState<DailyNote | null>(null);
-  const [editContent, setEditContent] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editError, setEditError] = useState(false);
-
   const {
     data: notes = [],
     isLoading,
@@ -97,6 +86,8 @@ export default function DailyNotesScreen() {
     staleTime: 1000 * 60 * 5, // 5 dk — invalidateQueries zaten yeni not eklenince günceller
   });
 
+  const hasTodayNote = notes.some((n) => n.date === dayjs().format("YYYY-MM-DD"));
+
   const handleDelete = useCallback(async (id: number) => {
     if (executeOrIntercept(
       () => {},
@@ -123,43 +114,6 @@ export default function DailyNotesScreen() {
       }
     ]);
   }, [queryClient, userId, executeOrIntercept, t]);
-
-  const handleUpdate = async () => {
-    if (executeOrIntercept(
-      () => {},
-      t("dailyNotes.demo.editTitle"),
-      t("dailyNotes.demo.editDescription")
-    )) {
-      setEditingNote(null);
-      return;
-    }
-
-    if (!editingNote) return;
-    if (!editContent.trim()) {
-      setEditError(true);
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      const encrypted = encrypt(editContent.trim());
-      const { error } = await supabase
-        .from("daily_notes")
-        .update({ content: encrypted })
-        .eq("id", editingNote.id);
-
-      if (error) throw error;
-
-      queryClient.invalidateQueries({ queryKey: ["daily_notes_history", userId] });
-      queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
-      setEditingNote(null);
-      setEditContent("");
-      setEditError(false);
-    } catch (e: any) {
-      appAlert(t("common.error"), t("dailyNotes.errors.updateFailed"));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const renderNoteCard = useCallback(({ item: note }: { item: DailyNote }) => {
     const dateObj = dayjs(note.date);
@@ -193,9 +147,8 @@ export default function DailyNotesScreen() {
                 )) {
                   return;
                 }
-                setEditingNote(note);
-                setEditContent(cleanContentText(note.content));
-                setEditError(false);
+                // Düzenleme, günlük yazarkenki tam ekran sayfada o günün notuyla açılır
+                router.push(openForm("/(tabs)/add-daily-note", { date: note.date }));
               }}
               style={styles.actionIconBtn}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
@@ -216,7 +169,7 @@ export default function DailyNotesScreen() {
         <Text style={[styles.noteBodyText, { color: theme.textSecondary }]}>{displayContent}</Text>
       </View>
     );
-  }, [theme, styles, executeOrIntercept, handleDelete, i18n.language, t]);
+  }, [theme, styles, executeOrIntercept, handleDelete, router, i18n.language, t]);
 
   const keyExtractor = useCallback((item: DailyNote) => item.id.toString(), []);
 
@@ -228,13 +181,13 @@ export default function DailyNotesScreen() {
           <ScreenHeaderButton label={t("a11y.edit")} 
               onPress={() => {
                 if (executeOrIntercept(
-                  () => router.push(openForm("/(tabs)/add-daily-note")),
+                  () => router.push(openForm("/(tabs)/add-daily-note", { date: dayjs().format("YYYY-MM-DD") })),
                   t("dailyNotes.demo.writeTitle"),
                   t("dailyNotes.demo.writeDescription")
                 )) {
                   return;
                 }
-                router.push(openForm("/(tabs)/add-daily-note"));
+                router.push(openForm("/(tabs)/add-daily-note", { date: dayjs().format("YYYY-MM-DD") }));
               }} 
             >
               <PenLine color={theme.accent} size={19} />
@@ -245,18 +198,18 @@ export default function DailyNotesScreen() {
         <View style={styles.topActionContainer}>
           <ActionCard
             icon={BookOpen}
-            title={t("dailyNotes.writeToday")}
-            subtitle={t("dailyNotes.writeTodaySub")}
+            title={hasTodayNote ? t("dailyNotes.continueToday") : t("dailyNotes.writeToday")}
+            subtitle={hasTodayNote ? t("dailyNotes.continueTodaySub") : t("dailyNotes.writeTodaySub")}
             theme={theme}
             onPress={() => {
               if (executeOrIntercept(
-                () => router.push(openForm("/(tabs)/add-daily-note")),
+                () => router.push(openForm("/(tabs)/add-daily-note", { date: dayjs().format("YYYY-MM-DD") })),
                 t("dailyNotes.demo.writeTitle"),
                 t("dailyNotes.demo.writeDescription")
               )) {
                 return;
               }
-              router.push(openForm("/(tabs)/add-daily-note"));
+              router.push(openForm("/(tabs)/add-daily-note", { date: dayjs().format("YYYY-MM-DD") }));
             }}
           />
         </View>
@@ -294,13 +247,13 @@ export default function DailyNotesScreen() {
                 ctaLabel={t("dailyNotes.empty.cta")}
                 onPressCta={() => {
                   if (executeOrIntercept(
-                    () => router.push(openForm("/(tabs)/add-daily-note")),
+                    () => router.push(openForm("/(tabs)/add-daily-note", { date: dayjs().format("YYYY-MM-DD") })),
                     t("dailyNotes.demo.writeTitle"),
                     t("dailyNotes.demo.writeDescription")
                   )) {
                     return;
                   }
-                  router.push(openForm("/(tabs)/add-daily-note"));
+                  router.push(openForm("/(tabs)/add-daily-note", { date: dayjs().format("YYYY-MM-DD") }));
                 }}
                 theme={theme}
               />
@@ -309,87 +262,6 @@ export default function DailyNotesScreen() {
         )}
       </View>
 
-      {/* DÜZENLEME MODALI (Modern ve Klavye Korumalı) */}
-      <Modal visible={!!editingNote} animationType="slide" transparent onRequestClose={() => setEditingNote(null)}>
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
-            {/* Modal Header */}
-            <View style={[styles.modalHeader, { borderBottomColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <Edit3 size={18} color={theme.accent} />
-                <Text style={[styles.modalTitle, { color: theme.text }]}>{t("dailyNotes.edit.title")}</Text>
-              </View>
-
-              <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} 
-                onPress={() => setEditingNote(null)}
-                style={[styles.modalCloseBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)" }]}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <X size={18} color={theme.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            <KeyboardAwareScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 20, gap: 14 }}
-              enableOnAndroid={true}
-              extraScrollHeight={140}
-              keyboardShouldPersistTaps="handled"
-            >
-              <TextInput
-                style={[
-                  styles.modalTextInput,
-                  { 
-                    backgroundColor: theme.unitBg,
-                    color: theme.text,
-                    borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.08)"
-                  },
-                  editError && styles.modalInputError
-                ]}
-                multiline
-                maxLength={DAILY_NOTE_MAX_CHARS}
-                value={editContent}
-                onChangeText={(text) => {
-                  setEditContent(text);
-                  setEditError(false);
-                }}
-                placeholder={t("dailyNotes.edit.placeholder")}
-                placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
-              />
-
-              <Text style={{ alignSelf: "flex-end", fontSize: 11.5, fontFamily: "Inter_400Regular", color: theme.textMuted, marginRight: 4 }}>
-                {t("dailyNotes.edit.counter", { chars: editContent.length, max: DAILY_NOTE_MAX_CHARS })}
-              </Text>
-
-              <View style={styles.modalActionsRow}>
-                <TouchableOpacity 
-                  onPress={() => setEditingNote(null)}
-                  style={[styles.modalCancelBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)" }]}
-                >
-                  <Text style={[styles.modalCancelBtnText, { color: theme.textSecondary }]}>{t("common.cancelAction")}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                  onPress={handleUpdate}
-                  disabled={isSubmitting}
-                  style={[styles.modalSaveBtn, { backgroundColor: theme.accent }]}
-                >
-                  {isSubmitting ? (
-                    <ActivityIndicator size="small" color="#ffffff" />
-                  ) : (
-                    <>
-                      <Check size={17} color="#ffffff" />
-                      <Text style={styles.modalSaveBtnText}>{t("common.update")}</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </KeyboardAwareScrollView>
-          </View>
-        </View>
-        {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
-        <DialogHost embedded visible={!!editingNote} />
-      </Modal>
       <LazyPageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
       <LazyDemoActionModal
         visible={isDemoModalOpen}

@@ -1721,6 +1721,8 @@
     "subtitle": "Sadece senin görebildiğin notların 📓",
     "writeToday": "Günün Günlüğünü Yaz",
     "writeTodaySub": "İçinden geçenleri defterine emanet et ✨",
+    "continueToday": "Günün Günlüğüne Devam Et",
+    "continueTodaySub": "Bugünün sayfasını aç, devam et ya da düzenle ✨",
     "empty": {
       "title": "Günlüğünün ilk sayfası seni bekliyor",
       "description": "Bugün hissettiklerini, sevgilinle yaşadığın güzel bir anı ya da sadece aklından geçenleri yaz; sadece sen okuyabilirsin.",
@@ -1745,7 +1747,10 @@
       "counter_one": "{{chars}} / {{max}} harf ({{count}} kelime)",
       "counter_other": "{{chars}} / {{max}} harf ({{count}} kelime)",
       "placeholder": "Sevgili günlük, bugün içimden geçenler...",
-      "submit": "Günlüğü Deftere Kaydet 📖"
+      "submit": "Günlüğü Deftere Kaydet 📖",
+      "editTitle": "Günün Sayfası",
+      "editSubtitle": "Kaldığın yerden devam et ya da düzenle ✍️",
+      "update": "Değişiklikleri Kaydet 📖"
     }
   },
   "calendar": {

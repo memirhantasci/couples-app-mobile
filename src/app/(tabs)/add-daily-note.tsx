@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { logger } from "@/utils/logger";
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
@@ -24,28 +24,87 @@ import { LazyDemoActionModal } from "@/components/ui/lazyMount";
 import { useTranslation } from "react-i18next";
 
 
+/** Günlük sayfasının yerel önbellekteki (şifreli) satırı: liste ekranı bununla anında güncellenir. */
+interface CachedDailyNote {
+  id: number;
+  date: string;
+  content: string;
+}
+
 export default function AddDailyNoteScreen() {
   const { t, i18n } = useTranslation();
-  const { session, profile } = useAuth();
+  const { session } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
+  const userId = session?.user?.id ?? null;
 
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Bu güne ait kayıtlı sayfa varsa kimliği: doluysa ekran "devam et / düzenle" modundadır
+  const [noteId, setNoteId] = useState<number | null>(null);
+  const [isLoadingNote, setIsLoadingNote] = useState(true);
 
-  // Ekran sekme olarak bellekte kalır: yeni bir açılışta (formEntry) yazı alanı boş başlar. Menüye girip
+  // Hangi günün sayfası açılıyor: günlük ekranından gelen `date` parametresi (düzenleme ya da bugünün sayfası)
+  const params = useLocalSearchParams();
+  const rawDate = typeof params.date === "string" ? params.date : "";
+  const targetDate = /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : dayjs().format("YYYY-MM-DD");
+  const isToday = targetDate === dayjs().format("YYYY-MM-DD");
+
+  // Ekran sekme olarak bellekte kalır: yeni bir açılışta (formEntry) sayfa baştan kurulur. Menüye girip
   // dönmek açılış sayılmaz; yazılan metin yerinde kalır.
-  const entry = formEntryOf(useLocalSearchParams());
+  const entry = formEntryOf(params);
   const [seenEntry, setSeenEntry] = useState(entry);
   if (seenEntry !== entry) {
     setSeenEntry(entry);
     setContent("");
+    setNoteId(null);
+    setIsLoadingNote(true);
     setIsSubmitting(false);
   }
+
+  // O günün kayıtlı sayfası varsa editöre yüklenir: sıfırdan boş sayfa değil, kaldığın yerden devam edersin
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!userId) {
+        if (!cancelled) setIsLoadingNote(false);
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from("daily_notes")
+          .select("id, content")
+          .eq("user_id", userId)
+          .eq("date", targetDate)
+          .maybeSingle();
+        if (cancelled) return;
+        if (error) throw error;
+        if (data) {
+          const text = decrypt(data.content);
+          if (!text) {
+            // Çözülemeyen notu boş sayfa sanıp ezmemek için kullanıcı uyarılır ve geri döner
+            appAlert(t("common.error"), t("dailyNotes.add.readFailed"));
+            router.replace("/(tabs)/daily-notes");
+            return;
+          }
+          setNoteId(data.id);
+          setContent(text.replace(/^\[Mod:\s*.*?\]\n?/, "").replace(/^#\s*.*?\n\n?/, "").trim());
+        }
+      } catch (error) {
+        if (!cancelled) logger.error(error);
+      } finally {
+        if (!cancelled) setIsLoadingNote(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entry, targetDate, userId]);
 
   const handleSave = async () => {
     if (executeOrIntercept(
@@ -61,7 +120,7 @@ export default function AddDailyNoteScreen() {
       return;
     }
 
-    if (!session?.user?.id) return;
+    if (!userId) return;
 
     setIsSubmitting(true);
     try {
@@ -71,51 +130,41 @@ export default function AddDailyNoteScreen() {
         setIsSubmitting(false);
         return;
       }
-      const today = dayjs().format("YYYY-MM-DD");
+      if (cleanContent.length > DAILY_NOTE_MAX_CHARS) {
+        appAlert(t("dailyNotes.add.pageFullTitle"), t("dailyNotes.add.pageFullMessage"));
+        return;
+      }
+      const encrypted = encrypt(cleanContent);
 
-      // (user_id, date) benzersiz: günde tek günlük sayfası var. Bugünün notu zaten varsa
-      // üzerine yazmak (upsert) onu silerdi; bunun yerine yeni yazıyı mevcut notun sonuna ekliyoruz.
-      const { data: existing, error: fetchError } = await supabase
-        .from("daily_notes")
-        .select("id, content")
-        .eq("user_id", session.user.id)
-        .eq("date", today)
-        .maybeSingle();
-
-      if (fetchError) throw fetchError;
-
-      let error;
-      if (existing) {
-        const previous = decrypt(existing.content);
-        if (!previous) {
-          // Çözülemeyen notu ezmemek için işlemi durdur
-          appAlert(t("common.error"), t("dailyNotes.add.readFailed"));
-          return;
-        }
-        const merged = `${previous}\n\n${cleanContent}`;
-        if (merged.length > DAILY_NOTE_MAX_CHARS) {
-          appAlert(t("dailyNotes.add.pageFullTitle"), t("dailyNotes.add.pageFullMessage"));
-          return;
-        }
-        ({ error } = await supabase
-          .from("daily_notes")
-          .update({ content: encrypt(merged) })
-          .eq("id", existing.id));
+      // (user_id, date) benzersiz: günde tek sayfa. Editörde sayfanın tamamı göründüğü için kayıt, mevcut
+      // sayfanın yerine geçer (eklenmez); sayfa yoksa yeni satır açılır.
+      let savedId = noteId;
+      if (noteId) {
+        const { error } = await supabase.from("daily_notes").update({ content: encrypted }).eq("id", noteId);
+        if (error) throw error;
       } else {
-        ({ error } = await supabase.from("daily_notes").insert({
-          user_id: session.user.id,
-          date: today,
-          content: encrypt(cleanContent),
-        }));
+        const { data, error } = await supabase
+          .from("daily_notes")
+          .insert({ user_id: userId, date: targetDate, content: encrypted })
+          .select("id")
+          .single();
+        if (error) throw error;
+        savedId = data.id;
       }
 
-      if (error) throw error;
-
-      queryClient.invalidateQueries({ queryKey: ["daily_notes_history", session.user.id] });
+      // Liste ekranı sunucudan yeniden çekilmeyi beklemeden kaydı hemen gösterir
+      queryClient.setQueryData<CachedDailyNote[]>(["daily_notes_history", userId, false], (old = []) =>
+        [
+          { id: savedId as number, date: targetDate, content: encrypted },
+          ...old.filter((n) => n.date !== targetDate),
+        ].sort((x, y) => y.date.localeCompare(x.date))
+      );
+      queryClient.invalidateQueries({ queryKey: ["daily_notes_history", userId] });
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
       toast.success(t("dailyNotes.add.saved"));
       // Kaydedilen not yazı alanında kalmasın (ekran bellekte duruyor)
       setContent("");
+      setNoteId(null);
       router.replace("/(tabs)/daily-notes");
     } catch (error) {
       logger.error(error);
@@ -133,13 +182,13 @@ export default function AddDailyNoteScreen() {
       <View style={{ flex: 1 }}>
         {/* HEADER */}
         <ScreenHeader
-          title={t("dailyNotes.add.title")}
-          subtitle={t("dailyNotes.add.subtitle")}
+          title={noteId ? t("dailyNotes.add.editTitle") : t("dailyNotes.add.title")}
+          subtitle={noteId ? t("dailyNotes.add.editSubtitle") : t("dailyNotes.add.subtitle")}
           fallbackRoute="/(tabs)/daily-notes"
           actions={
             <TouchableOpacity 
             onPress={handleSave}
-            disabled={isSubmitting || !content.trim()}
+            disabled={isSubmitting || isLoadingNote || !content.trim()}
             style={[
               styles.saveHeaderBtn,
               { backgroundColor: theme.accent },
@@ -172,14 +221,16 @@ export default function AddDailyNoteScreen() {
                 <CalendarIcon size={16} color={theme.accent} />
               </View>
               <Text style={[styles.dateCardText, { color: theme.text }]}>
-                {dayjs().locale(i18n.language).format("D MMMM YYYY, dddd")}
+                {dayjs(targetDate).locale(i18n.language).format("D MMMM YYYY, dddd")}
               </Text>
             </View>
 
-            <View style={[styles.timeBadge, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)" }]}>
-              <Clock size={12} color={theme.textMuted} />
-              <Text style={[styles.timeText, { color: theme.textSecondary }]}>{dayjs().format("HH:mm")}</Text>
-            </View>
+            {isToday ? (
+              <View style={[styles.timeBadge, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)" }]}>
+                <Clock size={12} color={theme.textMuted} />
+                <Text style={[styles.timeText, { color: theme.textSecondary }]}>{dayjs().format("HH:mm")}</Text>
+              </View>
+            ) : null}
           </View>
 
           {/* GÜNLÜK METİN EDİTÖRÜ */}
@@ -201,6 +252,7 @@ export default function AddDailyNoteScreen() {
                 onChangeText={setContent}
                 maxLength={DAILY_NOTE_MAX_CHARS}
                 textAlignVertical="top"
+                editable={!isLoadingNote}
               />
             </View>
           </View>
@@ -213,7 +265,7 @@ export default function AddDailyNoteScreen() {
               (isSubmitting || !content.trim()) && { opacity: 0.65 }
             ]}
             onPress={handleSave}
-            disabled={isSubmitting || !content.trim()}
+            disabled={isSubmitting || isLoadingNote || !content.trim()}
             activeOpacity={0.88}
           >
             {isSubmitting ? (
@@ -221,7 +273,7 @@ export default function AddDailyNoteScreen() {
             ) : (
               <>
                 <BookOpen size={19} color="#ffffff" />
-                <Text style={styles.bottomSaveBtnText}>{t("dailyNotes.add.submit")}</Text>
+                <Text style={styles.bottomSaveBtnText}>{noteId ? t("dailyNotes.add.update") : t("dailyNotes.add.submit")}</Text>
               </>
             )}
           </TouchableOpacity>

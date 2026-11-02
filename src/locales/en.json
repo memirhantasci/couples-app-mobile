@@ -1721,6 +1721,8 @@
     "subtitle": "Notes only you can see 📓",
     "writeToday": "Write Today's Journal",
     "writeTodaySub": "Entrust what's in your heart to your notebook ✨",
+    "continueToday": "Continue Today's Journal",
+    "continueTodaySub": "Open today's page, keep writing or edit it ✨",
     "empty": {
       "title": "The first page of your journal is waiting for you",
       "description": "Write what you feel today, a lovely moment with your love, or simply what's on your mind; only you can read it.",
@@ -1745,7 +1747,10 @@
       "counter_one": "{{chars}} / {{max}} characters ({{count}} word)",
       "counter_other": "{{chars}} / {{max}} characters ({{count}} words)",
       "placeholder": "Dear journal, what's on my mind today...",
-      "submit": "Save to My Notebook 📖"
+      "submit": "Save to My Notebook 📖",
+      "editTitle": "Today's Page",
+      "editSubtitle": "Pick up where you left off or edit ✍️",
+      "update": "Save Changes 📖"
     }
   },
   "calendar": {
