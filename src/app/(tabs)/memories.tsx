@@ -1,44 +1,44 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
-import { appAlert } from "@/lib/dialog";
-import { toast } from "@/lib/toast";
 import { StorageImage } from "@/components/common/StorageImage";
-import { ScreenBackground } from "@/components/ui/ScreenBackground";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabase";
-import { removeStoredFiles } from "@/lib/storageImages";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import { dayjs, todayString } from "@/lib/date";
-import { Trash2, Pencil, PlusCircle } from "lucide-react-native";
-import { useFocusEffect, useRouter } from "expo-router";
-import { openForm } from "@/lib/formEntry";
-import Animated, { FadeInDown, FadeInUp, FadeOutDown, useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated";
+import { AnniversaryMilestoneModal } from "@/components/memories/AnniversaryMilestoneModal";
 import { MemoryThread } from "@/components/memories/MemoryThread";
 import { MilestoneDateCircle } from "@/components/memories/MilestoneDateCircle";
-import { WashiTape, WASHI_COLORS } from "@/components/memories/WashiTape";
-import { AnniversaryMilestoneModal } from "@/components/memories/AnniversaryMilestoneModal";
-import { getSpecialDayState } from "@/lib/specialDays";
-import { rainConfetti } from "@/lib/confettiRain";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { AppTheme } from "@/lib/theme";
+import { WashiCornerPair } from "@/components/memories/WashiTape";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { LazyDemoActionModal, LazyPageTourModal } from "@/components/ui/lazyMount";
+import { ScreenBackground } from "@/components/ui/ScreenBackground";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
-import { usePageTour } from "@/hooks/usePageTour";
 import { useDemoAction } from "@/hooks/useDemoAction";
+import { usePageTour } from "@/hooks/usePageTour";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
-import { fetchMemoriesPage, memoriesQueryKey, MEMORIES_PAGE_SIZE } from "@/lib/screenQueries";
+import { rainConfetti } from "@/lib/confettiRain";
+import { dayjs, todayString } from "@/lib/date";
 import {
   DEFAULT_MEMORY_DESCRIPTIONS,
   DEFAULT_MEMORY_TITLES,
   DEFAULT_MEMORY_TITLE_LIST,
   localizeDefaultMemory,
 } from "@/lib/defaultMemories";
-import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
-import { useTranslation } from "react-i18next";
+import { appAlert } from "@/lib/dialog";
+import { openForm } from "@/lib/formEntry";
+import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
+import { MEMORIES_PAGE_SIZE, fetchMemoriesPage, memoriesQueryKey } from "@/lib/screenQueries";
 import { localizeServerError } from "@/lib/serverErrors";
+import { getSpecialDayState } from "@/lib/specialDays";
+import { removeStoredFiles } from "@/lib/storageImages";
+import { supabase } from "@/lib/supabase";
+import type { AppTheme } from "@/lib/theme";
+import { toast } from "@/lib/toast";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useFocusEffect, useRouter } from "expo-router";
+import { Pencil, PlusCircle, Trash2 } from "lucide-react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Animated, { FadeInDown, FadeInUp, FadeOutDown, useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function MemoriesScreen() {
   const { t, i18n } = useTranslation();
@@ -186,7 +186,7 @@ export default function MemoriesScreen() {
   });
 
   // ─── Yıldönümü sabahı karşılaması: her cihazda o yılın yıldönümünde yalnızca bir kez ───
-  const relationshipStartDate = profile?.relationshipStartDate ?? null;
+  const relationshipStartDate = profile?.relationshipStartDate;
   const anniversary = useMemo(
     () => getSpecialDayState(relationshipStartDate).anniversary,
     [relationshipStartDate]
@@ -215,7 +215,7 @@ export default function MemoriesScreen() {
 
   const handleDelete = (id: number) => {
     if (executeOrIntercept(
-      () => {},
+      () => { },
       t("memories.demo.deleteTitle"),
       t("memories.demo.deleteDescription")
     )) {
@@ -237,7 +237,7 @@ export default function MemoriesScreen() {
             setDeletingId(null);
             if (!error) {
               if (imagePath) {
-                removeStoredFiles("memories", [imagePath]).catch(() => {});
+                removeStoredFiles("memories", [imagePath]).catch(() => { });
               }
               await queryClient.invalidateQueries({ queryKey: ["memories"] });
               toast.success(t("memories.toasts.deleted"));
@@ -264,7 +264,7 @@ export default function MemoriesScreen() {
 
   const handleEdit = (memory: any) => {
     if (executeOrIntercept(
-      () => {},
+      () => { },
       t("memories.demo.editTitle"),
       t("memories.demo.editDescription")
     )) {
@@ -297,7 +297,7 @@ export default function MemoriesScreen() {
     const defaultLocalized = localizeDefaultMemory(memory, t);
 
     return (
-      <Animated.View 
+      <Animated.View
         key={memory.id}
         // Gecikme ilk birkaç kartla sınırlı: eskiden 15. kart 900 ms boş bekleyip sonra beliriyordu
         entering={FadeInDown.delay(Math.min(index, 5) * 45).duration(280)}
@@ -359,8 +359,7 @@ export default function MemoriesScreen() {
               <View style={styles.imageBox}>
                 <StorageImage bucket="memories" path={memory.image_path} style={styles.image} contentFit="cover" />
               </View>
-              <WashiTape color={WASHI_COLORS.rose} rotate={-12} style={styles.tapeLeft} />
-              <WashiTape color={WASHI_COLORS.kraft} rotate={12} style={styles.tapeRight} />
+              <WashiCornerPair animate={false} />
             </View>
           )}
         </View>
@@ -435,13 +434,13 @@ export default function MemoriesScreen() {
 
       {/* Yeni özel gün ekleme: "Düzenle" butonuna dokunulduğunda zarifçe açılır */}
       {isEditMode && (
-        <Animated.View 
-          entering={FadeInUp.duration(250)} 
-          exiting={FadeOutDown.duration(200)} 
-          style={[styles.addBtnContainer, { bottom: insets.bottom + 96 }]} 
+        <Animated.View
+          entering={FadeInUp.duration(250)}
+          exiting={FadeOutDown.duration(200)}
+          style={[styles.addBtnContainer, { bottom: insets.bottom + 96 }]}
           pointerEvents="box-none"
         >
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.addBtn, { backgroundColor: theme.accent }]}
             onPress={goToAddMemory}
             activeOpacity={0.8}
@@ -575,14 +574,6 @@ const createStyles = (theme: AppTheme) => {
     imageFrame: {
       position: "relative",
       marginTop: 6,
-    },
-    tapeLeft: {
-      top: -9,
-      left: -8,
-    },
-    tapeRight: {
-      top: -9,
-      right: -8,
     },
     imageBox: {
       borderRadius: 12,

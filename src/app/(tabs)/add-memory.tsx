@@ -29,8 +29,7 @@ import { useNotificationPriming } from "@/hooks/useNotificationPriming";
 import { toast } from "@/lib/toast";
 import { LazyPremiumPaywall, LazyDemoActionModal, LazyPermissionPrimingModal, LazyDateTimePickerSheet } from "@/components/ui/lazyMount";
 import { useTranslation } from "react-i18next";
-import Animated, { ZoomIn } from "react-native-reanimated";
-import { WashiTape, WASHI_COLORS } from "@/components/memories/WashiTape";
+import { WashiCornerPair } from "@/components/memories/WashiTape";
 import { playStampDrop } from "@/lib/soundEffects";
 
 /** Yüklenen anı fotoğrafının en geniş kenarı (px); galeri yüklemesindeki tam boy ile aynı. */
@@ -56,6 +55,7 @@ export default function AddMemoryScreen() {
   // "memories" bucket'ındaki mevcut fotoğrafın yolu (düzenlemede)
   const [imagePath, setImagePath] = useState(params.image_path as string || "");
   const [localImage, setLocalImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [isNewlyPicked, setIsNewlyPicked] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({ title: false, date: false });
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -74,6 +74,7 @@ export default function AddMemoryScreen() {
     setDescription((params.description as string) || "");
     setImagePath((params.image_path as string) || "");
     setLocalImage(null);
+    setIsNewlyPicked(false);
     setErrors({ title: false, date: false });
     setLoading(false);
   }
@@ -103,6 +104,7 @@ export default function AddMemoryScreen() {
 
     if (!result.canceled && result.assets[0]) {
       setLocalImage(result.assets[0]);
+      setIsNewlyPicked(true);
       // Fotoğraf anı defterine bantlanırken "çıt" damga sesi (ve tek tok titreşim)
       playStampDrop();
     }
@@ -311,17 +313,9 @@ export default function AddMemoryScreen() {
                   </View>
                 )}
               </TouchableOpacity>
-              {/* Seçilen fotoğraf anı defterine bantlanır: her yeni fotoğrafta bantlar yaylanarak yeniden oturur */}
+              {/* Fotoğraf anı defterine tutturulur: düzenlemede tamamen sabittir, yalnızca yeni fotoğraf seçildiğinde elle yapıştırma efekti oynar */}
               {localImage || imagePath ? (
-                <Animated.View
-                  key={localImage?.uri ?? imagePath}
-                  entering={ZoomIn.springify().damping(12)}
-                  pointerEvents="none"
-                  style={StyleSheet.absoluteFill}
-                >
-                  <WashiTape color={WASHI_COLORS.rose} rotate={-12} style={styles.tapeLeft} />
-                  <WashiTape color={WASHI_COLORS.kraft} rotate={12} style={styles.tapeRight} />
-                </Animated.View>
+                <WashiCornerPair animate={isNewlyPicked} />
               ) : null}
             </View>
           </View>
@@ -418,14 +412,6 @@ const createStyles = (theme: AppTheme) => {
     imageFrame: {
       position: "relative",
       marginTop: 6,
-    },
-    tapeLeft: {
-      top: -9,
-      left: -8,
-    },
-    tapeRight: {
-      top: -9,
-      right: -8,
     },
     imagePicker: {
       borderRadius: 16,

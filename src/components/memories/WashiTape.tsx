@@ -1,5 +1,12 @@
-import { memo } from "react";
+import { memo, useEffect } from "react";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  Easing,
+  useReducedMotion,
+} from "react-native-reanimated";
 import Svg, { Line, Path } from "react-native-svg";
 
 const W = 66;
@@ -38,7 +45,7 @@ interface WashiTapeProps {
   style?: StyleProp<ViewStyle>;
 }
 
-/** Fotoğrafı anı defterine tutturan yarı saydam, uçları tırtıklı washi bant. */
+/** Fotoğrafı anı defterine tutturan yarı saydam, uçları tırtıklı tekil washi bant. */
 export const WashiTape = memo(function WashiTape({ color = WASHI_COLORS.rose, rotate = 0, style }: WashiTapeProps) {
   return (
     <View pointerEvents="none" style={[styles.wrap, { transform: [{ rotate: `${rotate}deg` }] }, style]}>
@@ -53,6 +60,51 @@ export const WashiTape = memo(function WashiTape({ color = WASHI_COLORS.rose, ro
   );
 });
 
+export interface WashiCornerPairProps {
+  /**
+   * Yalnızca yeni fotoğraf seçildiğinde true olur:
+   * Bant parmakla hafifçe kâğıda yapıştırılıyormuş gibi tek seferlik yumuşakça oturur.
+   * Düzenleme modunda veya form doldurulurken kesinlikle hareket etmez (0 titreme).
+   */
+  animate?: boolean;
+}
+
+/**
+ * Fotoğrafın sol ve sağ üst köşesini tutan washi bant çifti.
+ * Yaylanarak ileri geri oynamaz; tek seferde, elle yapıştırma hissiyle oturur ve sabit kalır.
+ */
+export const WashiCornerPair = memo(function WashiCornerPair({ animate = false }: WashiCornerPairProps) {
+  const reduceMotion = useReducedMotion();
+  const press = useSharedValue(animate && !reduceMotion ? 0 : 1);
+
+  useEffect(() => {
+    if (animate && !reduceMotion) {
+      press.set(0);
+      press.set(withTiming(1, { duration: 220, easing: Easing.out(Easing.cubic) }));
+    } else {
+      press.set(1);
+    }
+  }, [animate, reduceMotion, press]);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    const p = press.get();
+    return {
+      opacity: 0.35 + 0.65 * p,
+      transform: [
+        { translateY: (1 - p) * -5 },
+        { scale: 1.04 - 0.04 * p },
+      ],
+    };
+  });
+
+  return (
+    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, animatedStyle]}>
+      <WashiTape color={WASHI_COLORS.rose} rotate={-12} style={styles.tapeLeft} />
+      <WashiTape color={WASHI_COLORS.kraft} rotate={12} style={styles.tapeRight} />
+    </Animated.View>
+  );
+});
+
 const styles = StyleSheet.create({
   wrap: {
     position: "absolute",
@@ -64,5 +116,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 3,
   },
+  tapeLeft: {
+    top: -8,
+    left: -6,
+  },
+  tapeRight: {
+    top: -8,
+    right: -6,
+  },
 });
-
