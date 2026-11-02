@@ -1,4 +1,4 @@
-import { useState, useEffect, memo, useCallback } from "react";
+import { useState, useEffect, memo, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -36,6 +36,8 @@ import { Pulse } from "@/components/ui/Pulse";
 import { rainConfetti } from "@/lib/confettiRain";
 import { playCelebration } from "@/lib/soundEffects";
 import { useTranslation } from "react-i18next";
+import { scheduleOnRN } from "react-native-worklets";
+import { markMeetingCelebrationSeen } from "@/lib/activeMeeting";
 
 // Skia yalnızca native modül mevcutsa yüklenir (Expo Go vb. ortamlarda çökmesin);
 // yoksa kavuşma kartı dönen hale yerine yıldönümü ışıltısıyla sarılır.
@@ -65,9 +67,10 @@ interface CountdownProps {
   /** Kavuşma kartında sarılan avatarların baş harfleri için */
   myName?: string | null;
   partnerName?: string | null;
+  onCelebrated?: (meetingId: number) => void;
 }
 
-export const MeetingCountdown = memo(function MeetingCountdown({ meeting, theme, myName, partnerName }: CountdownProps) {
+export const MeetingCountdown = memo(function MeetingCountdown({ meeting, theme, myName, partnerName, onCelebrated }: CountdownProps) {
   const { t, i18n } = useTranslation();
   const reduceMotion = useReducedMotion();
   const targetDate = meeting.meeting_datetime;
@@ -107,6 +110,7 @@ export const MeetingCountdown = memo(function MeetingCountdown({ meeting, theme,
     return (
       <>
         <ReunionCard
+          meetingId={meeting.id}
           title={title}
           theme={theme}
           myName={myName}
@@ -114,6 +118,7 @@ export const MeetingCountdown = memo(function MeetingCountdown({ meeting, theme,
           myAvatarUrl={myAvatarUrl}
           partnerAvatarUrl={partnerAvatarUrl}
           onOpenDetails={() => setShowModal(true)}
+          onCelebrated={onCelebrated}
         />
         <MeetingModal
           visible={showModal}
@@ -226,6 +231,7 @@ const REUNION_STAGE_H = 64;
 const RUN_MS = 950;
 
 interface ReunionCardProps {
+  meetingId: number;
   title: string;
   theme: AppTheme;
   myName?: string | null;
@@ -233,10 +239,12 @@ interface ReunionCardProps {
   myAvatarUrl?: string | null;
   partnerAvatarUrl?: string | null;
   onOpenDetails: () => void;
+  onCelebrated?: (meetingId: number) => void;
 }
 
 /** Buluşma anı geldi: iki avatar iki yandan koşup sarılır; karta dokununca ekran boyunca konfeti yağar. */
 function ReunionCard({
+  meetingId,
   title,
   theme,
   myName,
@@ -244,13 +252,23 @@ function ReunionCard({
   myAvatarUrl,
   partnerAvatarUrl,
   onOpenDetails,
+  onCelebrated,
 }: ReunionCardProps) {
   const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
   const [stageW, setStageW] = useState(0);
   const [cardSize, setCardSize] = useState<{ width: number; height: number } | null>(null);
+  const [celebrated, setCelebrated] = useState(false);
   const run = useSharedValue(reduceMotion ? 1 : 0);
   const hug = useSharedValue(reduceMotion ? 1 : 0);
+  const cardOpacity = useSharedValue(1);
+  const celebrateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (celebrateTimerRef.current) clearTimeout(celebrateTimerRef.current);
+    };
+  }, []);
 
   const playHug = useCallback(() => {
     if (reduceMotion) return;
@@ -278,6 +296,38 @@ function ReunionCard({
     playCelebration();
     rainConfetti();
     playHug();
+
+    if (!celebrated) {
+      setCelebrated(true);
+      // Yerel hafızaya hemen kaydet: kullanıcı uygulamadan çıksa bile artık görüldü sayılır
+      markMeetingCelebrationSeen(meetingId);
+
+      if (celebrateTimerRef.current) clearTimeout(celebrateTimerRef.current);
+      // Konfetiler patladıktan sonra kart 3.5 sn ekranda kalıp nazikçe kapanır
+      celebrateTimerRef.current = setTimeout(() => {
+        cardOpacity.set(
+          withTiming(0, { duration: 350, easing: Easing.out(Easing.quad) }, (done) => {
+            "worklet";
+            if (done && onCelebrated) {
+              scheduleOnRN(() => onCelebrated(meetingId));
+            }
+          })
+        );
+      }, 3500);
+    }
+  };
+
+  const handleDismiss = () => {
+    markMeetingCelebrationSeen(meetingId);
+    if (celebrateTimerRef.current) clearTimeout(celebrateTimerRef.current);
+    cardOpacity.set(
+      withTiming(0, { duration: 250, easing: Easing.out(Easing.quad) }, (done) => {
+        "worklet";
+        if (done && onCelebrated) {
+          scheduleOnRN(() => onCelebrated(meetingId));
+        }
+      })
+    );
   };
 
   const handleStageLayout = (event: LayoutChangeEvent) => setStageW(Math.round(event.nativeEvent.layout.width));
@@ -295,24 +345,41 @@ function ReunionCard({
     transform: [{ translateY: -4 * hug.get() }, { scale: 0.4 + 0.6 * hug.get() }],
   }));
 
+  const cardAnimStyle = useAnimatedStyle(() => ({
+    opacity: cardOpacity.get(),
+    transform: [{ scale: 0.95 + 0.05 * cardOpacity.get() }],
+  }));
+
   const card = (
-    <TouchableOpacity
-      activeOpacity={0.92}
-      onPress={handleCelebrate}
-      onLayout={handleCardLayout}
-      style={[styles.card, styles.reunionCard, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}
-      accessibilityRole="button"
-      accessibilityHint={t("home.meeting.reunion.celebrateHint")}
-    >
+    <Animated.View style={cardAnimStyle}>
       <TouchableOpacity
-        onPress={onOpenDetails}
-        hitSlop={10}
-        style={[styles.reunionInfoBtn, { backgroundColor: theme.pillAccentBg }]}
+        activeOpacity={0.92}
+        onPress={handleCelebrate}
+        onLayout={handleCardLayout}
+        style={[styles.card, styles.reunionCard, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}
         accessibilityRole="button"
-        accessibilityLabel={t("home.meeting.details")}
+        accessibilityHint={t("home.meeting.reunion.celebrateHint")}
       >
-        <Info size={14} color={theme.accent} />
-      </TouchableOpacity>
+        {/* Kapat / Görüldü butonu */}
+        <TouchableOpacity
+          onPress={handleDismiss}
+          hitSlop={10}
+          style={[styles.reunionCloseBtn, { backgroundColor: theme.pillAccentBg }]}
+          accessibilityRole="button"
+          accessibilityLabel={t("a11y.close")}
+        >
+          <X size={14} color={theme.accent} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={onOpenDetails}
+          hitSlop={10}
+          style={[styles.reunionInfoBtn, { backgroundColor: theme.pillAccentBg }]}
+          accessibilityRole="button"
+          accessibilityLabel={t("home.meeting.details")}
+        >
+          <Info size={14} color={theme.accent} />
+        </TouchableOpacity>
 
       <View style={styles.reunionStage} onLayout={handleStageLayout}>
         {stageW > 0 ? (
@@ -340,8 +407,11 @@ function ReunionCard({
       <Text style={[styles.reunionMeeting, { color: theme.textSecondary }]} numberOfLines={1}>
         {title}
       </Text>
-      <Text style={[styles.reunionHint, { color: theme.accent }]}>{t("home.meeting.reunion.celebrateHint")}</Text>
+      <Text style={[styles.reunionHint, { color: theme.accent }]}>
+        {celebrated ? t("home.meeting.reunion.celebrated") : t("home.meeting.reunion.celebrateHint")}
+      </Text>
     </TouchableOpacity>
+    </Animated.View>
   );
 
   if (!SkiaLib) {
@@ -580,6 +650,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 0,
     paddingTop: 16,
+  },
+  reunionCloseBtn: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
   },
   reunionInfoBtn: {
     position: "absolute",

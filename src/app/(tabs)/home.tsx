@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -21,7 +21,13 @@ import {
   todayString,
 } from "@/lib/date";
 import { getQuoteForDay } from "@/lib/quotes";
-import { MEETING_CELEBRATION_MINUTES, pickActiveMeeting, nextMeetingBoundary } from "@/lib/activeMeeting";
+import {
+  MEETING_CELEBRATION_HOURS,
+  pickActiveMeeting,
+  nextMeetingBoundary,
+  isMeetingCelebrationSeen,
+  markMeetingCelebrationSeen,
+} from "@/lib/activeMeeting";
 import { decrypt } from "@/utils/crypto";
 import { computeLoveScore, getCachedLoveScore, getCachedLoveScoreSync, LoveScoreResult , getLoveScoreSubtitle } from "@/lib/loveScore";
 import { scheduleDateLocalNotification } from "@/lib/notifications";
@@ -220,9 +226,9 @@ export default function HomeScreen() {
             .select("id, meeting_datetime, title, location_name, latitude, longitude, user_id")
             .eq("couple_id", coupleId)
             .eq("is_active", true)
-            .gte("meeting_datetime", dayjs().subtract(MEETING_CELEBRATION_MINUTES, "minute").toISOString())
+            .gte("meeting_datetime", dayjs().subtract(MEETING_CELEBRATION_HOURS, "hour").toISOString())
             .order("meeting_datetime", { ascending: true })
-            .limit(5)
+            .limit(10)
           : Promise.resolve({ data: [] }),
         coupleId
           ? supabase
@@ -390,13 +396,48 @@ export default function HomeScreen() {
 
   // ─── BULUŞMA KARTI ───
   // Seçim render anında yapılır: buluşma saati geçince sıradaki buluşmaya geçilir,
-  // kutlama süresi (30 dk) dolunca kart kalkar; hiçbiri yeniden sorgu gerektirmez.
-  // "Şimdi" render'da okunmaz: verinin geldiği an ile zamanlayıcının son uyandığı anın büyüğüdür.
+  // 24 saatlik kutlama süresi dolunca veya kullanıcı konfetiyi patlatınca kart kalkar;
+  // yeni bir buluşma planlandığında anında gelecekteki buluşmaya dönülür.
   const [meetingClock, setMeetingClock] = useState(0);
+  const [seenCelebrationIds, setSeenCelebrationIds] = useState<Set<number | string>>(new Set());
+
+  // Buluşmalar listesi geldikçe bu cihazda daha önce kutlanmış olanları AsyncStorage'dan yükle
+  useEffect(() => {
+    const meetings = dashboardData?.meetings;
+    if (!meetings || meetings.length === 0) return;
+
+    let active = true;
+    (async () => {
+      const seen = new Set<number | string>();
+      for (const m of meetings) {
+        if (m.id != null) {
+          const isSeen = await isMeetingCelebrationSeen(m.id);
+          if (isSeen) seen.add(m.id);
+        }
+      }
+      if (active) {
+        setSeenCelebrationIds(seen);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [dashboardData?.meetings]);
+
+  const handleMeetingCelebrated = useCallback((meetingId: number | string) => {
+    markMeetingCelebrationSeen(meetingId);
+    setSeenCelebrationIds((prev) => {
+      const next = new Set(prev);
+      next.add(meetingId);
+      return next;
+    });
+  }, []);
+
   const meetingNow = Math.max(dataUpdatedAt, meetingClock);
   const activeMeeting = useMemo(
-    () => pickActiveMeeting<Meeting>(dashboardData?.meetings, meetingNow),
-    [dashboardData?.meetings, meetingNow]
+    () => pickActiveMeeting<Meeting>(dashboardData?.meetings, meetingNow, seenCelebrationIds),
+    [dashboardData?.meetings, meetingNow, seenCelebrationIds]
   );
 
   useEffect(() => {
@@ -790,6 +831,7 @@ export default function HomeScreen() {
               theme={theme}
               myName={profile?.displayName}
               partnerName={partnerDisplayName}
+              onCelebrated={handleMeetingCelebrated}
             />
           )}
 

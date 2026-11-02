@@ -1004,7 +1004,8 @@
       "reunion": {
         "title": "Bugün Kavuşma Günü! Sarılmadan Bırakma 🥰",
         "todayBadge": "Bugün Kavuşma Günü 🥰",
-        "celebrateHint": "Kutlamak için dokun 🎉"
+        "celebrateHint": "Kutlamak için dokun 🎉",
+        "celebrated": "Kavuşuldu! Harika bir gündü 🥰"
       }
     },
     "mood": {

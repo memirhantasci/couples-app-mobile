@@ -1004,7 +1004,8 @@
       "reunion": {
         "title": "It's Reunion Day! Don't Let Go Without a Hug 🥰",
         "todayBadge": "Reunion Day Today 🥰",
-        "celebrateHint": "Tap to celebrate 🎉"
+        "celebrateHint": "Tap to celebrate 🎉",
+        "celebrated": "Reunited! What a wonderful day 🥰"
       }
     },
     "mood": {
