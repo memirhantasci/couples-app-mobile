@@ -237,6 +237,16 @@
       "accountDeletion": {
         "subtitle": "Hesap Silme",
         "body": "Hesabını silme talebinde bulundu."
+      },
+      "gentleCare": {
+        "subtitle": "Özel Bir His",
+        "lockedTitle": "Sevgilinden Özel Bir His 🔒",
+        "lockedBody": "Sevgilin seninle özel bir hissini paylaştı. Ne hissettiğini öğrenmek ve yanında olmak için dokun.",
+        "feelings": {
+          "low_energy": "Sevgilin bugün enerjisinin biraz düşük olduğunu paylaştı. Birlikte sakin bir gün geçirmeye ne dersin? ☕",
+          "emotional": "Sevgilin bugün biraz duygusal olduğunu paylaştı. Ona sıcacık bir mesaj yazmak ister misin? 🤍",
+          "resting": "Sevgilin dinlendiğini paylaştı. Ona güzel bir ses kaydı ya da mesaj bırakmak ister misin? 🌸"
+        }
       }
     },
     "labels": {
@@ -254,7 +264,9 @@
       "goToHome": "Ana Sayfaya Git ✨",
       "goToMeetings": "Buluşmalara Git 🗓️",
       "letsStart": "Birlikte Başlayalım ✨",
-      "view": "Görüntüle ❤️"
+      "view": "Görüntüle ❤️",
+      "writeMessage": "Mesaj Yaz 💌",
+      "discoverFeeling": "Ne Hissettiğini Öğren 🔒"
     },
     "local": {
       "meetingSoon": "Buluşma Yaklaşıyor",
@@ -303,6 +315,9 @@
       },
       "general": {
         "badge": "Çift Bildirimi"
+      },
+      "gentleCare": {
+        "badge": "Özel Bir His"
       }
     },
     "demo": {
@@ -1033,7 +1048,8 @@
       "photos": "Sınırsız fotoğraf yükleme ve galeri",
       "periodMen": "Erkekler için regl takvimi görünümü",
       "pastPhotos": "Takvimde geçmiş günlerin fotoğrafları",
-      "letters": "Sınırsız geleceğe mektup yazma"
+      "letters": "Sınırsız geleceğe mektup yazma",
+      "feelings": "Sevgilinin seninle paylaştığı özel hisler"
     },
     "subtitle": "İkiniz için de geçerli tek abonelik",
     "storeUnavailable": "Şu anda mağazaya bağlanılamıyor veya paketler yüklenemedi. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.",
@@ -1102,7 +1118,11 @@
       "unlimitedLettersSub": "Geleceğe dilediğiniz kadar mektup gönderin.",
       "cta": "Harika! Başla"
     },
-    "celebration": "Partnerin Premium'a geçti! Artık ikiniz de Premium üyesiniz; bütün sınırlar kalktı, aşkınızın tadını sınırsızca çıkarabilirsiniz."
+    "celebration": "Partnerin Premium'a geçti! Artık ikiniz de Premium üyesiniz; bütün sınırlar kalktı, aşkınızın tadını sınırsızca çıkarabilirsiniz.",
+    "feeling": {
+      "subtitle": "Sevgilinin seninle paylaştığı özel duygusal anları, gün içindeki hislerini ve sana bıraktığı sinyalleri açmak için Premium'a geç.",
+      "revealTitle": "Sevgilinden Özel Bir His 🤍"
+    }
   },
   "tabs": {
     "home": {
@@ -1634,7 +1654,8 @@
       "tapSeal": "Mührü kırmak için dokun ✨",
       "breakSealA11y": "Mührü kır ve mektubu aç",
       "writtenOn": "{{date}} tarihinde yazıldı",
-      "signature": "Sevgiyle, {{name}}"
+      "signature": "Sevgiyle, {{name}}",
+      "reseal": "Mührü Tekrar Kır 🕯️"
     }
   },
   "memories": {
@@ -1931,6 +1952,32 @@
     },
     "premium": {
       "featureDescription": "Sevgilinizin döngüsünü birlikte takip edin, hassas dönemlerinde ona en doğru şekilde destek olun."
+    },
+    "comfort": {
+      "label": "SICACIK BİR MOLA",
+      "message": "Bugün kendine karşı nazik ol birtanem, sıcacık dinlen... ☕🌸"
+    },
+    "gentleCare": {
+      "title": "Hissini Sevgilinle Paylaş",
+      "subtitle": "Tek dokunuşla nasıl hissettiğini ona nazikçe bildir.",
+      "options": {
+        "lowEnergy": {
+          "title": "Bugün enerjim biraz düşük",
+          "hint": "Sakin bir gün geçirelim"
+        },
+        "emotional": {
+          "title": "Bugün biraz duygusalım",
+          "hint": "Anlayışına ihtiyacım var"
+        },
+        "resting": {
+          "title": "Dinleniyorum",
+          "hint": "Bana güzel bir ses kaydı veya mesaj bırak"
+        }
+      },
+      "sent": "Hissin sevgiline iletildi 🤍",
+      "sentBadge": "İletildi",
+      "cooldown": "Az önce paylaştın; biraz sonra yeniden paylaşabilirsin 🤍",
+      "privacyNote": "Sevgiline yalnızca hissin iletilir 🤍"
     }
   },
   "meetings": {

@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, Platform } from "react-native";
 import { appAlert } from "@/lib/dialog";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { isGentleCareFeeling } from "@/lib/gentleCare";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
@@ -48,9 +49,24 @@ function getPackagePeriodLabel(packageType: string | undefined, t: TFunction): s
 export default function PaywallScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { refreshProfile, isDemoMode } = useAuth();
+  const { refreshProfile, isDemoMode, profile } = useAuth();
   const { theme, isLight } = useTheme();
   const insets = useSafeAreaInsets();
+
+  // Partnerin paylaştığı kilitli bir hisse dokunularak gelindi (bkz. lib/gentleCare.ts).
+  // GİZLİLİK: bu bağlamda ekranda döngü / regl kelimesi geçmez; ilgili özellik maddesi de listelenmez.
+  const params = useLocalSearchParams<{ context?: string; feeling?: string }>();
+  const isFeelingContext = params.context === "feeling";
+  const sharedFeeling = isFeelingContext && isGentleCareFeeling(params.feeling) ? params.feeling : null;
+
+  /** Premium açıldıktan sonra partnerin paylaştığı his gösterilir: bildirimin vaadi yerine gelir. */
+  const revealSharedFeeling = useCallback(() => {
+    if (!sharedFeeling) return;
+    appAlert(
+      t("paywall.feeling.revealTitle"),
+      t(`notifications.push.gentleCare.feelings.${sharedFeeling}`)
+    );
+  }, [sharedFeeling, t]);
 
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,13 +105,24 @@ export default function PaywallScreen() {
     fetchOfferings();
   };
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     if (router.canGoBack()) {
       router.back();
     } else {
       router.replace('/(tabs)/home');
     }
-  };
+  }, [router]);
+
+  // Bildirim gönderildikten sonra Premium alınmışsa satış ekranı gösterilmez: his doğrudan açılır.
+  // Yalnızca ekranın açıldığı andaki duruma bakılır; bu ekranda yapılan satın alma kendi akışıyla açar.
+  const [premiumOnArrival] = useState(() => !!profile?.isPremium);
+  const revealedOnArrivalRef = useRef(false);
+  useEffect(() => {
+    if (!sharedFeeling || !premiumOnArrival || revealedOnArrivalRef.current) return;
+    revealedOnArrivalRef.current = true;
+    handleBack();
+    revealSharedFeeling();
+  }, [sharedFeeling, premiumOnArrival, handleBack, revealSharedFeeling]);
 
   const handlePurchase = async () => {
     if (!selectedPackage) return;
@@ -116,6 +143,7 @@ export default function PaywallScreen() {
         await waitForServerPremium(refreshProfile);
         toast.success(t("paywall.activated"), { title: t("common.congratulations"), emoji: "👑", duration: 3400 });
         handleBack();
+        revealSharedFeeling();
       }
     } catch (e: any) {
       appAlert(t("paywall.purchaseFailedTitle"), e.message || t("errors.generic"));
@@ -138,6 +166,7 @@ export default function PaywallScreen() {
         await waitForServerPremium(refreshProfile);
         toast.success(t("paywall.restored"));
         handleBack();
+        revealSharedFeeling();
       } else {
         toast.info(t("paywall.noActiveSubscription"));
       }
@@ -166,15 +195,24 @@ export default function PaywallScreen() {
     setCodeModalVisible(false);
     toast.success(t("paywall.activated"), { title: t("common.congratulations"), emoji: "👑", duration: 3400 });
     handleBack();
+    revealSharedFeeling();
   };
 
-  const features = [
-    t("paywall.features.shared"),
-    t("paywall.features.photos"),
-    t("paywall.features.periodMen"),
-    t("paywall.features.pastPhotos"),
-    t("paywall.features.letters"),
-  ];
+  const features = isFeelingContext
+    ? [
+        t("paywall.features.feelings"),
+        t("paywall.features.shared"),
+        t("paywall.features.photos"),
+        t("paywall.features.pastPhotos"),
+        t("paywall.features.letters"),
+      ]
+    : [
+        t("paywall.features.shared"),
+        t("paywall.features.photos"),
+        t("paywall.features.periodMen"),
+        t("paywall.features.pastPhotos"),
+        t("paywall.features.letters"),
+      ];
 
   return (
     <ScreenBackground>
@@ -204,8 +242,17 @@ export default function PaywallScreen() {
           <View style={[styles.crownCircle, { backgroundColor: `${theme.accent}22`, shadowColor: theme.accent, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 8 }]}>
             <Crown color={theme.accent} size={48} />
           </View>
+          {isFeelingContext ? (
+            <View style={[styles.feelingPill, { backgroundColor: `${theme.accent}1F`, borderColor: `${theme.accent}55` }]}>
+              <Text style={[styles.feelingPillText, { color: theme.accent }]}>
+                {t("notifications.push.gentleCare.lockedTitle")}
+              </Text>
+            </View>
+          ) : null}
           <Text style={[styles.title, { color: theme.text }]}>{APP_NAME} Premium</Text>
-          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{t("paywall.subtitle")}</Text>
+          <Text style={[styles.subtitle, isFeelingContext && styles.feelingSubtitle, { color: theme.textSecondary }]}>
+            {isFeelingContext ? t("paywall.feeling.subtitle") : t("paywall.subtitle")}
+          </Text>
         </View>
 
         <View
@@ -428,6 +475,23 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     letterSpacing: -0.2,
+  },
+  feelingSubtitle: {
+    fontSize: 14.5,
+    lineHeight: 21,
+    textAlign: "center",
+    paddingHorizontal: 8,
+  },
+  feelingPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  feelingPillText: {
+    fontSize: 12.5,
+    fontFamily: "Inter_700Bold",
   },
   featuresBox: {
     padding: 22,

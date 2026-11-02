@@ -34,6 +34,7 @@ import { useTranslation } from "react-i18next";
 import { UserAvatar } from "@/components/avatar/UserAvatar";
 import { dayjs } from "@/lib/date";
 import { smoothstep } from "@/lib/bezier";
+import { isSealBroken, isSealBrokenCached, rememberBrokenSeal } from "@/lib/letterSeals";
 import { playStampDrop } from "@/lib/soundEffects";
 import type { AppTheme } from "@/lib/theme";
 
@@ -79,33 +80,72 @@ const T = {
   closeDuration: 220,
 } as const;
 
+// "Mührü Tekrar Kır": açılış tersine oynar (kâğıt katlanıp zarfa girer, kapak kapanır, mühür birleşir)
+const R = {
+  contentOut: 180,
+  foldDelay: 120,
+  foldDuration: 520,
+  tuckDelay: 560,
+  tuckDuration: 420,
+  closeFlapDelay: 900,
+  closeFlapDuration: 460,
+  mendDelay: 1250,
+  mendDuration: 420,
+} as const;
+
 const SEAL = 58;
 /** Mührün düzensiz mum kenarı dahil kapladığı kutu. */
 const SEAL_BOX = SEAL + 10;
 const PETAL_COUNT = 6;
 
-type Phase = "sealed" | "opening" | "open";
+type Phase = "sealed" | "opening" | "open" | "resealing";
 
 export function LetterReadingModal({ visible, letter, theme, onClose }: LetterReadingModalProps) {
-  // İçerik yalnızca görünürken mount edilir: her açılış mühürlü zarfla, temiz durumla başlar
+  // İçerik yalnızca görünürken mount edilir: her açılış temiz durumla başlar
   if (!visible || !letter) return null;
-  return <ReadingScene letter={letter} theme={theme} onClose={onClose} />;
+  return <SealGate key={letter.id} letter={letter} theme={theme} onClose={onClose} />;
+}
+
+/**
+ * Mührün daha önce kırılıp kırılmadığına göre sahneyi mühürlü zarfla ya da doğrudan açık kâğıtla
+ * başlatır. Hafıza liste ekranında önceden yüklendiği için cevap neredeyse her zaman ilk karede hazırdır.
+ */
+function SealGate({ letter, theme, onClose }: { letter: ReadableLetter; theme: AppTheme; onClose: () => void }) {
+  const [sealBroken, setSealBroken] = useState<boolean | null>(() => isSealBrokenCached(letter.id));
+
+  useEffect(() => {
+    if (sealBroken !== null) return;
+    let alive = true;
+    isSealBroken(letter.id).then((broken) => {
+      if (alive) setSealBroken(broken);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [sealBroken, letter.id]);
+
+  if (sealBroken === null) return null;
+  return <ReadingScene letter={letter} theme={theme} onClose={onClose} startOpen={sealBroken} />;
 }
 
 function ReadingScene({
   letter,
   theme,
   onClose,
+  startOpen,
 }: {
   letter: ReadableLetter;
   theme: AppTheme;
   onClose: () => void;
+  /** Mühür daha önce kırıldı: ritüel atlanır, mektup açık kâğıtla gelir. */
+  startOpen: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
-  const [phase, setPhase] = useState<Phase>(reduceMotion ? "open" : "sealed");
+  const opensDirectly = reduceMotion || startOpen;
+  const [phase, setPhase] = useState<Phase>(opensDirectly ? "open" : "sealed");
 
   // ─── Geometri ───
   const envW = Math.min(screenW - 64, 320);
@@ -129,36 +169,44 @@ function ReadingScene({
 
   // ─── Animasyon değerleri ───
   const scrim = useSharedValue(0);
-  const rise = useSharedValue(reduceMotion ? 1 : 0);
+  const rise = useSharedValue(opensDirectly ? 1 : 0);
   const hint = useSharedValue(0);
   const jolt = useSharedValue(0);
   const crack = useSharedValue(0);
   const flap = useSharedValue(0);
   const pull = useSharedValue(0);
-  const unfold = useSharedValue(reduceMotion ? 1 : 0);
-  const contentIn = useSharedValue(reduceMotion ? 1 : 0);
+  const unfold = useSharedValue(opensDirectly ? 1 : 0);
+  const contentIn = useSharedValue(opensDirectly ? 1 : 0);
   const petals = useSharedValue(0);
   const out = useSharedValue(0);
 
+  // Mühürlü zarfın bekleme hâli: dokunma ipucu yavaşça yanıp söner
+  const startHint = useCallback(
+    (delay: number) => {
+      hint.set(
+        withDelay(
+          delay,
+          withRepeat(
+            withSequence(withTiming(1, { duration: 900 }), withTiming(0.4, { duration: 900 })),
+            -1,
+            true
+          )
+        )
+      );
+    },
+    [hint]
+  );
+
   useEffect(() => {
     scrim.set(withTiming(1, { duration: reduceMotion ? 180 : 260 }));
-    if (reduceMotion) return;
+    if (opensDirectly) return;
     rise.set(withSpring(1, { damping: 14, stiffness: 120 }));
-    hint.set(
-      withDelay(
-        T.riseIn,
-        withRepeat(
-          withSequence(withTiming(1, { duration: 900 }), withTiming(0.4, { duration: 900 })),
-          -1,
-          true
-        )
-      )
-    );
+    startHint(T.riseIn);
     return () => {
       cancelAnimation(rise);
       cancelAnimation(hint);
     };
-  }, [reduceMotion, scrim, rise, hint]);
+  }, [reduceMotion, opensDirectly, scrim, rise, hint, startHint]);
 
   const markOpen = useCallback(() => setPhase("open"), []);
 
@@ -166,7 +214,9 @@ function ReadingScene({
   const breakSeal = useCallback(() => {
     if (phase !== "sealed") return;
     setPhase("opening");
-    // Tok mühür sesi; titreşimi (hapticStamp) efektin kendisi verir
+    rememberBrokenSeal(letter.id);
+    // Tek, tok kırılma titreşimi: playStampDrop sesle birlikte hapticStamp'i kendisi verir;
+    // burada ayrıca bir haptik çağrılmaz
     playStampDrop();
 
     cancelAnimation(hint);
@@ -192,7 +242,39 @@ function ReadingScene({
     petals.set(
       withDelay(T.petalsDelay, withTiming(1, { duration: T.petalsDuration, easing: Easing.out(Easing.quad) }))
     );
-  }, [phase, hint, jolt, crack, flap, pull, unfold, contentIn, petals, markOpen]);
+  }, [phase, letter.id, hint, jolt, crack, flap, pull, unfold, contentIn, petals, markOpen]);
+
+  // ─── Mührü tekrar kır: açılış tersine oynar, ardından mühür yeniden kırılmayı bekler ───
+  const finishReseal = useCallback(() => {
+    setPhase("sealed");
+    startHint(0);
+  }, [startHint]);
+
+  const reseal = useCallback(() => {
+    if (phase !== "open") return;
+    setPhase("resealing");
+    cancelAnimation(petals);
+    petals.set(0);
+    // Mektup doğrudan açıldıysa zarf hiç açılmadı: kâğıt görünürken (zarf gizli) "açılmış" konuma alınır
+    rise.set(1);
+    crack.set(1);
+    flap.set(1);
+    pull.set(1);
+    const ease = Easing.inOut(Easing.cubic);
+    contentIn.set(withTiming(0, { duration: R.contentOut }));
+    unfold.set(withDelay(R.foldDelay, withTiming(0, { duration: R.foldDuration, easing: ease })));
+    pull.set(withDelay(R.tuckDelay, withTiming(0, { duration: R.tuckDuration, easing: ease })));
+    flap.set(withDelay(R.closeFlapDelay, withTiming(0, { duration: R.closeFlapDuration, easing: ease })));
+    crack.set(
+      withDelay(
+        R.mendDelay,
+        withTiming(0, { duration: R.mendDuration, easing: Easing.out(Easing.cubic) }, (done) => {
+          "worklet";
+          if (done) scheduleOnRN(finishReseal);
+        })
+      )
+    );
+  }, [phase, petals, rise, crack, flap, pull, contentIn, unfold, finishReseal]);
 
   // ─── Kapat: her şey yumuşakça söner, ardından onClose ───
   const close = useCallback(() => {
@@ -361,7 +443,7 @@ function ReadingScene({
           </Pressable>
         </Animated.View>
 
-        {phase === "sealed" || phase === "opening" ? (
+        {phase !== "open" ? (
           <Animated.Text
             pointerEvents="none"
             style={[styles.hint, { top: envTop + envH + 34, color: theme.isLight ? theme.textSecondary : "rgba(255,255,255,0.82)" }, hintStyle]}
@@ -441,6 +523,27 @@ function ReadingScene({
           : Array.from({ length: PETAL_COUNT }, (_, index) => (
               <Petal key={index} index={index} progress={petals} screenW={screenW} screenH={screenH} />
             ))}
+
+        {/* Ritüel zorunlu değil, ama dileyen o anı yeniden yaşayabilir */}
+        {phase === "open" && !reduceMotion ? (
+          <Pressable
+            onPress={reseal}
+            hitSlop={6}
+            style={[
+              styles.resealBtn,
+              {
+                top: insets.top + 12,
+                backgroundColor: theme.isLight ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.12)",
+                borderColor: theme.isLight ? theme.cardBorder : "rgba(255,255,255,0.18)",
+              },
+            ]}
+            accessibilityRole="button"
+          >
+            <Text style={[styles.resealText, { color: theme.isLight ? theme.text : "#FFFFFF" }]}>
+              {t("letters.reading.reseal")}
+            </Text>
+          </Pressable>
+        ) : null}
 
         <Pressable
           onPress={close}
@@ -913,6 +1016,20 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
 
+  resealBtn: {
+    position: "absolute",
+    right: 16 + 40 + 8,
+    height: 40,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  resealText: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
   closeBtn: {
     position: "absolute",
     right: 16,

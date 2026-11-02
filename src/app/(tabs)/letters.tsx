@@ -29,6 +29,7 @@ import { useDemoAction } from "@/hooks/useDemoAction";
 import { playLetterSend } from "@/lib/soundEffects";
 import { toast } from "@/lib/toast";
 import { markLettersSeen } from "@/lib/letterArrival";
+import { preloadBrokenSeals } from "@/lib/letterSeals";
 import { markLettersVisited } from "@/lib/widgetUnread";
 import { setCoupleWidgetUnread } from "@/utils/widgetBridge";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -112,6 +113,10 @@ export default function LettersScreen() {
   const [openLetterId, setOpenLetterId] = useState<number | null>(null);
   // Açılmış gelen mektup, mum mühür kırılarak okunan pencerede açılır (gönderilenler yerinde genişler)
   const [readingLetter, setReadingLetter] = useState<ReadableLetter | null>(null);
+  // Mührü önceden kırılmış mektup okuma penceresinde beklemeden açık gelsin: hafıza şimdiden yüklenir
+  useEffect(() => {
+    preloadBrokenSeals();
+  }, []);
 
   // --- Form State ---
   const [receiverId, setReceiverId] = useState("");

@@ -429,6 +429,31 @@ export function formatMessagingStyleNotification(
       body = trimmedBody || i18n.t("notifications.push.period.body");
       break;
     }
+    case "gentle_care": {
+      // GİZLİLİK: Premium olmayan partnere giden kilitli bildirim döngüden ya da hissin kendisinden
+      // hiç söz etmez; yalnızca merak uyandıran bir ilgi çağrısıdır (bkz. lib/gentleCare.ts)
+      channelId = "partner_messages";
+      if (data?.locked) {
+        title = i18n.t("notifications.push.gentleCare.lockedTitle");
+        subtitle = APP_NAME;
+        body = i18n.t("notifications.push.gentleCare.lockedBody");
+        break;
+      }
+      title = `${name} 🤍`;
+      subtitle = i18n.t("notifications.push.gentleCare.subtitle");
+      switch (data?.feeling) {
+        case "low_energy":
+          body = i18n.t("notifications.push.gentleCare.feelings.low_energy");
+          break;
+        case "resting":
+          body = i18n.t("notifications.push.gentleCare.feelings.resting");
+          break;
+        default:
+          body = i18n.t("notifications.push.gentleCare.feelings.emotional");
+          break;
+      }
+      break;
+    }
     case "pairing": {
       // Sistem olayı: başlıkta uygulama adı, gönderen adı değil
       title = `${APP_NAME} ❤️`;

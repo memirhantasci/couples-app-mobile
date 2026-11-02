@@ -10,6 +10,7 @@ export type NotificationType =
   | "mood"              // Ruh Hali Paylaşımı ✨
   | "meeting"           // Buluşma / Özel Gün 🗓️
   | "pairing"           // Eşleşme Tamamlandı 💑
+  | "gentle_care"       // Partnerin Paylaştığı Özel His 🤍 (Premium değilse kilitli, ipucusuz)
   | "general";          // Genel Aşk Bildirimi ❤️
 
 export interface InAppNotificationData {
@@ -145,6 +146,18 @@ export const NOTIFICATION_THEMES: Record<NotificationType, NotificationThemeConf
     secondaryColor: "#FFC2D1",
     iconBg: "rgba(255, 138, 168, 0.16)",
     defaultActionLabelKey: "notifications.actions.letsStart",
+  },
+  gentle_care: {
+    type: "gentle_care",
+    // Rozet ve varsayılan eylem nötrdür: kilitli bildirimde de görünür, döngüden söz etmez
+    badgeLabelKey: "notifications.types.gentleCare.badge",
+    badgeIcon: "Heart",
+    gradient: ["#3A1A2E", "#22101C", "#12080F"],
+    borderGlow: "rgba(255, 196, 214, 0.45)",
+    accentColor: "#FFB3C7",
+    secondaryColor: "#FFE0EA",
+    iconBg: "rgba(255, 179, 199, 0.16)",
+    defaultActionLabelKey: "notifications.actions.view",
   },
   general: {
     type: "general",

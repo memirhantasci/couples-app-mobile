@@ -35,6 +35,8 @@ import {
 } from "@/lib/periodCycle";
 import { useTranslation } from "react-i18next";
 import { localizeServerError } from "@/lib/serverErrors";
+import { PeriodComfortCard } from "@/components/period/PeriodComfortCard";
+import { GentleCareMode } from "@/components/period/GentleCareMode";
 
 export default function PeriodTrackerScreen() {
   const { t, i18n } = useTranslation();
@@ -94,6 +96,12 @@ export default function PeriodTrackerScreen() {
   const periodStarts = useMemo(() => getPeriodStarts((logs ?? []).map(l => l.date)), [logs]);
 
   const latestStart = periodStarts.length > 0 ? periodStarts[periodStarts.length - 1] : null;
+
+  // Bugün işaretlenmiş 5 günlük sürecin içinde mi: şefkat kartı ve his paylaşımı bu günlerde görünür
+  const isPeriodToday = useMemo(
+    () => periodStarts.some((start) => getPeriodDays(start).includes(today)),
+    [periodStarts, today]
+  );
 
   // Sonraki döngü tahmini: son aralıklardan yalnızca 21–35 günlük olanların ortalaması, yoksa standart 28 gün
   const cycleInfo = useMemo(() => {
@@ -404,6 +412,22 @@ export default function PeriodTrackerScreen() {
                     </>
                   )}
                 </TouchableOpacity>
+              )}
+
+              {/* ─── KADIN KULLANICI İÇİN DÖNGÜ GÜNLERİNDE ŞEFKAT KARTI & HİS PAYLAŞIMI ─── */}
+              {isFemale && isPeriodToday && (
+                <>
+                  <PeriodComfortCard theme={theme} />
+                  <GentleCareMode
+                    theme={theme}
+                    coupleId={coupleId}
+                    userId={userId}
+                    partnerHasPremium={profile?.isPremium ?? false}
+                    interceptDemo={() =>
+                      executeOrIntercept(() => {}, t("demo.prompts.cycle.title"), t("demo.prompts.cycle.description"))
+                    }
+                  />
+                </>
               )}
 
               {/* ─── ERKEK KULLANICI İÇİN ŞEFKAT & DESTEK REHBERİ ─── */}

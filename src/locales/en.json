@@ -237,6 +237,16 @@
       "accountDeletion": {
         "subtitle": "Account Deletion",
         "body": "Requested to delete their account."
+      },
+      "gentleCare": {
+        "subtitle": "A Special Feeling",
+        "lockedTitle": "A Special Feeling From Your Love 🔒",
+        "lockedBody": "Your love shared a special feeling with you. Tap to find out how they feel and be there for them.",
+        "feelings": {
+          "low_energy": "Your love shared that their energy is a bit low today. How about a calm day together? ☕",
+          "emotional": "Your love shared that they're feeling a little emotional today. Would you like to write them a warm message? 🤍",
+          "resting": "Your love shared that they're resting. Would you like to leave them a sweet voice note or message? 🌸"
+        }
       }
     },
     "labels": {
@@ -254,7 +264,9 @@
       "goToHome": "Go to Home ✨",
       "goToMeetings": "Go to Meetups 🗓️",
       "letsStart": "Let's Begin Together ✨",
-      "view": "View ❤️"
+      "view": "View ❤️",
+      "writeMessage": "Write a Message 💌",
+      "discoverFeeling": "See How They Feel 🔒"
     },
     "local": {
       "meetingSoon": "Meetup Coming Up",
@@ -303,6 +315,9 @@
       },
       "general": {
         "badge": "Couple Notification"
+      },
+      "gentleCare": {
+        "badge": "A Special Feeling"
       }
     },
     "demo": {
@@ -1033,7 +1048,8 @@
       "photos": "Unlimited photo uploads and gallery",
       "periodMen": "Period calendar view for men",
       "pastPhotos": "Photos of past days in the calendar",
-      "letters": "Write unlimited letters to the future"
+      "letters": "Write unlimited letters to the future",
+      "feelings": "Special feelings your partner shares with you"
     },
     "subtitle": "One subscription for both of you",
     "storeUnavailable": "We can't connect to the store right now, or the plans couldn't be loaded. Please check your internet connection and try again.",
@@ -1102,7 +1118,11 @@
       "unlimitedLettersSub": "Send as many letters to the future as you like.",
       "cta": "Wonderful! Let's Begin"
     },
-    "celebration": "Your partner went Premium! You're both Premium members now; all limits are lifted, so you can enjoy your love without limits."
+    "celebration": "Your partner went Premium! You're both Premium members now; all limits are lifted, so you can enjoy your love without limits.",
+    "feeling": {
+      "subtitle": "Go Premium to unlock the special emotional moments, daily feelings and little signals your partner shares with you.",
+      "revealTitle": "A Special Feeling From Your Love 🤍"
+    }
   },
   "tabs": {
     "home": {
@@ -1634,7 +1654,8 @@
       "tapSeal": "Tap to break the seal ✨",
       "breakSealA11y": "Break the seal and open the letter",
       "writtenOn": "Written on {{date}}",
-      "signature": "With love, {{name}}"
+      "signature": "With love, {{name}}",
+      "reseal": "Break the Seal Again 🕯️"
     }
   },
   "memories": {
@@ -1931,6 +1952,32 @@
     },
     "premium": {
       "featureDescription": "Track your love's cycle together and support them in the best way during their sensitive days."
+    },
+    "comfort": {
+      "label": "A WARM LITTLE BREAK",
+      "message": "Be gentle with yourself today, my love — rest somewhere cosy... ☕🌸"
+    },
+    "gentleCare": {
+      "title": "Share How You Feel",
+      "subtitle": "With one tap, gently let your partner know how you're feeling.",
+      "options": {
+        "lowEnergy": {
+          "title": "My energy is a bit low today",
+          "hint": "Let's have a calm day"
+        },
+        "emotional": {
+          "title": "I'm a little emotional today",
+          "hint": "I need your understanding"
+        },
+        "resting": {
+          "title": "I'm resting",
+          "hint": "Leave me a sweet voice note or message"
+        }
+      },
+      "sent": "Your feeling was shared with your partner 🤍",
+      "sentBadge": "Shared",
+      "cooldown": "You just shared; you can share again in a little while 🤍",
+      "privacyNote": "Only your feeling is shared with your partner 🤍"
     }
   },
   "meetings": {
