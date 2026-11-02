@@ -30,7 +30,6 @@ import { usePageTour } from "@/hooks/usePageTour";
 import { DEMO_MEDICINES } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { sanitizeStrict } from "@/utils/sanitize";
-import { playSuccessChime } from "@/lib/soundEffects";
 import { toast } from "@/lib/toast";
 import { MedicineStreakCard } from "@/components/medicine/MedicineStreakCard";
 import { MedicineDoseCard } from "@/components/medicine/MedicineDoseCard";
@@ -45,6 +44,7 @@ import type {
   MedicineItem,
   MedicineSubmitResult,
   MedicineTab,
+  TodayDoseProgress,
   WeeklyComplianceDay,
 } from "@/components/medicine/medicineTypes";
 import { useTranslation } from "react-i18next";
@@ -189,8 +189,8 @@ export default function MedicineScreen() {
     },
     onSuccess: (_, variables) => {
       const { medicineId, status } = variables;
+      // Ses dokunuş anında doz kartında (baloncuk) ve gün tamamlanınca Şifa Çiçeği'nde (zil) çalar
       if (status === "DRANK") {
-        playSuccessChime();
         const med = data?.medicines?.find((m: any) => m.id === medicineId);
         const medName = med?.name || t("profile.sound.medicine");
         const senderName = profile?.displayName || t("common.partnerFallback");
@@ -223,15 +223,17 @@ export default function MedicineScreen() {
     },
   });
 
-  const handleLog = (medicineId: number, status: string, timeSlot: string) => {
+  /** Kaydı başlattıysa true döner (demo modunda engellenirse false: doz kartı animasyon oynatmaz). */
+  const handleLog = (medicineId: number, status: string, timeSlot: string): boolean => {
     if (executeOrIntercept(
       () => {},
       t("medicine.demo.useTitle"),
       t("medicine.demo.useDescription")
     )) {
-      return;
+      return false;
     }
     updateLogMutation.mutate({ medicineId, status, timeSlot });
+    return true;
   };
 
   // İlaç ekleme/düzenleme formu modalın kendi state'inde tutulur; burada yalnızca kaydetme mantığı var.
@@ -459,8 +461,9 @@ export default function MedicineScreen() {
   const sortedDates = useMemo(() => Object.keys(historyGrouped).sort((a, b) => b.localeCompare(a)), [historyGrouped]);
 
   // 7 Günlük Uyum Matrisi ve Seri (Streak)
-  const { weeklyCompliance, streakCount } = useMemo(() => {
+  const { weeklyCompliance, streakCount, todayDoses } = useMemo(() => {
     const days: WeeklyComplianceDay[] = [];
+    const todayDoses: TodayDoseProgress = { taken: 0, total: 0 };
 
     // Son 7 gün (6 gün önce -> bugün)
     for (let i = 6; i >= 0; i--) {
@@ -496,6 +499,8 @@ export default function MedicineScreen() {
             }
           });
         });
+        todayDoses.taken = drankSlots;
+        todayDoses.total = totalSlots;
         if (drankSlots === totalSlots && totalSlots > 0) {
           days.push({ dateStr, dayLabel, dayNumber, isToday, status: "complete" });
         } else if (drankSlots > 0) {
@@ -539,7 +544,7 @@ export default function MedicineScreen() {
       }
     }
 
-    return { weeklyCompliance: days, streakCount: streak };
+    return { weeklyCompliance: days, streakCount: streak, todayDoses };
   }, [filteredMedicines, statusMap, historyGrouped, i18n.language]);
 
   return (
@@ -589,6 +594,7 @@ export default function MedicineScreen() {
             activeTab={activeTab}
             weeklyCompliance={weeklyCompliance}
             streakCount={streakCount}
+            todayDoses={todayDoses}
           />
 
           {/* BUGÜNÜN İLAÇLARI BÖLÜMÜ */}

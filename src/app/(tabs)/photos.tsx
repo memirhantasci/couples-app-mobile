@@ -311,9 +311,9 @@ export default function PhotosScreen() {
           />
         ) : (
           <EmptyState
-            emoji="📸"
-            title={t("photos.empty.title")}
-            description={t("photos.empty.description")}
+            illustrationType="photos"
+            title={t("empty.photosTitle")}
+            description={t("empty.photosDesc")}
             ctaLabel={t("photos.empty.cta")}
             onPressCta={goToUpload}
             theme={theme}

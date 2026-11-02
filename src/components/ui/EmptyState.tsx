@@ -11,10 +11,9 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import type { AppTheme } from "@/lib/theme";
+import { EmptyIllustration, type EmptyIllustrationType } from "./EmptyStateIllustrations";
 
-interface EmptyStateProps {
-  /** Üstte süzülen büyük emoji */
-  emoji: string;
+interface EmptyStateBaseProps {
   title: string;
   description: string;
   /** Verilirse altında parlayan bir eylem butonu çıkar */
@@ -27,20 +26,65 @@ interface EmptyStateProps {
 }
 
 /**
+ * Üstteki görsel: ya süzülen büyük bir emoji ya da yaşayan bir sahne (mektup: uyuyan kedi,
+ * fotoğraf: sallanan boş polaroid, anı: kahve fincanları ve kalp buharı).
+ */
+type EmptyStateArt =
+  | { illustrationType?: "default"; /** Üstte süzülen büyük emoji */ emoji: string }
+  | { illustrationType: EmptyIllustrationType; emoji?: never };
+
+type EmptyStateProps = EmptyStateBaseProps & EmptyStateArt;
+
+/**
  * İlk kullanımda boş kalan listeler için "kayıt yok" yazısı yerine çifti ilk adıma çağıran,
  * romantik ve yönlendirici boş durum kartı.
  */
-export function EmptyState({
-  emoji,
-  title,
-  description,
-  ctaLabel,
-  onPressCta,
-  theme,
-  compact = false,
-  style,
-}: EmptyStateProps) {
+export function EmptyState(props: EmptyStateProps) {
+  const { title, description, ctaLabel, onPressCta, theme, compact = false, style } = props;
   const reduceMotion = useReducedMotion();
+
+  return (
+    <View
+      style={[
+        styles.card,
+        compact && styles.cardCompact,
+        { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow },
+        style,
+      ]}
+    >
+      {props.illustrationType !== undefined && props.illustrationType !== "default" ? (
+        // Dekoratif: ekran okuyucu yalnızca başlığı ve açıklamayı okusun
+        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.illustration}>
+          <EmptyIllustration type={props.illustrationType} theme={theme} />
+        </View>
+      ) : (
+        <FloatingEmoji emoji={props.emoji} theme={theme} compact={compact} reduceMotion={reduceMotion} />
+      )}
+
+      <Text style={[styles.title, compact && styles.titleCompact, { color: theme.text }]}>{title}</Text>
+      <Text style={[styles.description, compact && styles.descriptionCompact, { color: theme.textSecondary }]}>
+        {description}
+      </Text>
+
+      {ctaLabel && onPressCta ? (
+        <GlowButton label={ctaLabel} onPress={onPressCta} color={theme.accent} reduceMotion={reduceMotion} />
+      ) : null}
+    </View>
+  );
+}
+
+/** Halka halka ışık yayan dairenin içinde hafifçe süzülen emoji. */
+function FloatingEmoji({
+  emoji,
+  theme,
+  compact,
+  reduceMotion,
+}: {
+  emoji: string;
+  theme: AppTheme;
+  compact: boolean;
+  reduceMotion: boolean;
+}) {
   const float = useSharedValue(0);
   const ring = useSharedValue(0);
 
@@ -74,52 +118,34 @@ export function EmptyState({
   const circleSize = compact ? 64 : 88;
 
   return (
+    // Dekoratif: ekran okuyucu yalnızca başlığı ve açıklamayı okusun
     <View
-      style={[
-        styles.card,
-        compact && styles.cardCompact,
-        { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow },
-        style,
-      ]}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={[styles.emojiWrap, { width: circleSize, height: circleSize }]}
     >
-      {/* Dekoratif: ekran okuyucu yalnızca başlığı ve açıklamayı okusun */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.emojiRing,
+          { borderRadius: circleSize / 2, backgroundColor: theme.accent },
+          ringStyle,
+        ]}
+      />
       <View
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        style={[styles.emojiWrap, { width: circleSize, height: circleSize }]}
+        style={[
+          styles.emojiCircle,
+          {
+            borderRadius: circleSize / 2,
+            backgroundColor: theme.pillAccentBg,
+            borderColor: theme.pillAccentBorder,
+          },
+        ]}
       >
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.emojiRing,
-            { borderRadius: circleSize / 2, backgroundColor: theme.accent },
-            ringStyle,
-          ]}
-        />
-        <View
-          style={[
-            styles.emojiCircle,
-            {
-              borderRadius: circleSize / 2,
-              backgroundColor: theme.pillAccentBg,
-              borderColor: theme.pillAccentBorder,
-            },
-          ]}
-        >
-          <Animated.Text style={[compact ? styles.emojiCompact : styles.emoji, emojiStyle]}>
-            {emoji}
-          </Animated.Text>
-        </View>
+        <Animated.Text style={[compact ? styles.emojiCompact : styles.emoji, emojiStyle]}>
+          {emoji}
+        </Animated.Text>
       </View>
-
-      <Text style={[styles.title, compact && styles.titleCompact, { color: theme.text }]}>{title}</Text>
-      <Text style={[styles.description, compact && styles.descriptionCompact, { color: theme.textSecondary }]}>
-        {description}
-      </Text>
-
-      {ctaLabel && onPressCta ? (
-        <GlowButton label={ctaLabel} onPress={onPressCta} color={theme.accent} reduceMotion={reduceMotion} />
-      ) : null}
     </View>
   );
 }
@@ -186,6 +212,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
+  },
+  illustration: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
   },
   emojiRing: {
     position: "absolute",

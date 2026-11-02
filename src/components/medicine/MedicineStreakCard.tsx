@@ -3,7 +3,8 @@ import { View, Text, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Pill, Check, Flame } from "lucide-react-native";
 import type { AppTheme } from "@/lib/theme";
-import type { MedicineTab, WeeklyComplianceDay } from "./medicineTypes";
+import type { MedicineTab, TodayDoseProgress, WeeklyComplianceDay } from "./medicineTypes";
+import { HealingSprout } from "./HealingSprout";
 import { useTranslation } from "react-i18next";
 
 interface MedicineStreakCardProps {
@@ -12,6 +13,8 @@ interface MedicineStreakCardProps {
   activeTab: MedicineTab;
   weeklyCompliance: WeeklyComplianceDay[];
   streakCount: number;
+  /** Bugün alınan / toplam doz: Şifa Çiçeği bununla büyür. */
+  todayDoses: TodayDoseProgress;
 }
 
 const FLAME = "#F97316";
@@ -23,6 +26,7 @@ export function MedicineStreakCard({
   activeTab,
   weeklyCompliance,
   streakCount,
+  todayDoses,
 }: MedicineStreakCardProps) {
   const { t } = useTranslation();
 
@@ -51,6 +55,8 @@ export function MedicineStreakCard({
               : t("medicine.streak.partner")}
           </Text>
         </View>
+        {/* Sekme değişince yeniden kurulur: sevgilinin tamamlanmış günü "şimdi açtı" diye kutlanmasın */}
+        <HealingSprout key={activeTab} taken={todayDoses.taken} total={todayDoses.total} />
       </View>
 
       {/* 7 günlük uyum şeridi */}

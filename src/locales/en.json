@@ -795,8 +795,6 @@
       "oldest": "Oldest First"
     },
     "empty": {
-      "title": "Your shared memory wall is still blank",
-      "description": "Start by adding your favorite photo of the two of you.",
       "cta": "Choose Your First Photo 📸"
     },
     "premium": {
@@ -990,8 +988,8 @@
       "saved": "Your daily note has been saved ✨",
       "title": "My Daily Note",
       "writeTomorrow": "You can write a new note tomorrow 🌙",
-      "seePast": "See My Past Notes",
-      "placeholder": "How was today? What are you feeling?..."
+      "placeholder": "How was today? What are you feeling?...",
+      "openA11y": "Open today's journal page"
     },
     "meeting": {
       "happened": "The meetup took place!",
@@ -1623,9 +1621,7 @@
     "empty": {
       "hiddenTitle": "No hidden letters in this tab",
       "hiddenDescription": "Letters you hide from your list stay here; you can bring them back anytime.",
-      "noneYetTitle": "Your First Letter Hasn't Arrived Yet",
       "firstMarkTitle": "Leave the First Mark on the Future!",
-      "noneYetDescription": "It will appear here when your partner writes you a sealed letter. You can also take the first step and leave them a surprise.",
       "firstMarkDescription": "Write your partner's first sealed letter right now, to be opened on your first anniversary or their birthday.",
       "cta": "Seal Your First Letter 💌"
     },
@@ -1669,7 +1665,9 @@
       "writtenOn": "Written on {{date}}",
       "signature": "With love, {{name}}",
       "reseal": "Break the Seal Again 🕯️"
-    }
+    },
+    "lockedPillTime_one": "Sealed with love... Opens in {{count}} day ⏳",
+    "lockedPillTime_other": "Sealed with love... Opens in {{count}} days ⏳"
   },
   "memories": {
     "defaults": {
@@ -1719,8 +1717,6 @@
     "subtitle": "The milestones of our sweetest memories",
     "done": "Done",
     "empty": {
-      "title": "Your memory book is still blank",
-      "description": "Add the day you met, your first date, everything that's special to you; years from now, the first page will make you smile.",
       "cta": "Add Your First Special Day ✨"
     },
     "addNew": "Add a New Special Day",
@@ -1785,7 +1781,6 @@
       "readFailed": "Today's existing journal entry couldn't be read, so it wasn't overwritten.",
       "pageFullTitle": "Page Full",
       "pageFullMessage": "Today's journal page is full. You can edit the existing note from the My Journal screen.",
-      "saved": "Your journal entry has been saved ✨",
       "saveFailed": "Something went wrong while saving your journal.",
       "title": "New Journal Page",
       "subtitle": "Your private note, visible only to you 🔒",
@@ -1797,7 +1792,9 @@
       "editTitle": "Today's Page",
       "editSubtitle": "Pick up where you left off or edit ✍️",
       "update": "Save Changes 📖"
-    }
+    },
+    "journalLocked": "Your day's secrets are locked in your journal 🗝️",
+    "openJournal": "Open & Read Page 📖"
   },
   "calendar": {
     "loadFailed": "The calendar couldn't be loaded: {{message}}",
@@ -3441,5 +3438,13 @@
     "milestoneToDay_one": "✨ {{days}} day until day {{target}}",
     "milestoneToDay_other": "✨ {{days}} days until day {{target}}",
     "thousandsSeparator": ","
+  },
+  "empty": {
+    "lettersTitle": "Your Mailbox Is Still Quiet",
+    "lettersDesc": "Waiting for the first lines to pour from your love's heart... 🐾",
+    "photosTitle": "Waiting for Your First Laugh",
+    "photosDesc": "Choose a photo to hang your first memory together right here 📸",
+    "memoriesTitle": "So Much Still to Collect Together",
+    "memoriesDesc": "Seal every memory here, from the day you met to unforgettable trips ✨"
   }
 }

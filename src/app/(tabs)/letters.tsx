@@ -26,7 +26,9 @@ import { UserAvatar } from "@/components/avatar/UserAvatar";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 import { usePageTour } from "@/hooks/usePageTour";
 import { useDemoAction } from "@/hooks/useDemoAction";
-import { playLetterSend } from "@/lib/soundEffects";
+import { hapticStamp, playLetterSend } from "@/lib/soundEffects";
+import { LockedHourglassBadge } from "@/components/letters/LockedHourglassBadge";
+import { LockedLetterPadlock, LockedLetterPill } from "@/components/letters/LockedLetterFeedback";
 import { toast } from "@/lib/toast";
 import { markLettersSeen } from "@/lib/letterArrival";
 import { preloadBrokenSeals } from "@/lib/letterSeals";
@@ -113,6 +115,9 @@ export default function LettersScreen() {
   const [openLetterId, setOpenLetterId] = useState<number | null>(null);
   // Açılmış gelen mektup, mum mühür kırılarak okunan pencerede açılır (gönderilenler yerinde genişler)
   const [readingLetter, setReadingLetter] = useState<ReadableLetter | null>(null);
+  // Tarihi gelmemiş mektuba son dokunuş: kartın kilidi sallanır, altında kalan gün hapı belirir.
+  // `nonce` her dokunuşta artar ki aynı karta tekrar dokunmak animasyonu yeniden oynatsın
+  const [lockedTap, setLockedTap] = useState<{ id: number; nonce: number } | null>(null);
   // Mührü önceden kırılmış mektup okuma penceresinde beklemeden açık gelsin: hafıza şimdiden yüklenir
   useEffect(() => {
     preloadBrokenSeals();
@@ -481,6 +486,16 @@ export default function LettersScreen() {
     const itemType = letter._type || (letter.sender_id === userId ? "sent" : "received");
     const canOpen = itemType === "sent" || !isLockedDate;
     const isOpen = openLetterId === letter.id;
+    // Alıcının henüz açamadığı mektup: kum saati rozeti, sallanan kilit ve kalan gün hapı
+    const isSealedForMe = itemType === "received" && isLockedDate;
+    const lockedTapKey = isSealedForMe && lockedTap && lockedTap.id === letter.id ? lockedTap.nonce : 0;
+    const createdMs = dayjs(letter.created_at).valueOf();
+    const sandProgress = isSealedForMe
+      ? Math.min(0.92, Math.max(0.08, (Date.now() - createdMs) / Math.max(1, unlockMoment.valueOf() - createdMs)))
+      : 0;
+    const daysUntilOpen = isSealedForMe
+      ? Math.max(1, dayjs(unlockDateStr).startOf("day").diff(dayjs().startOf("day"), "day"))
+      : 0;
 
     const personObj = itemType === "received" ? letter.sender : letter.receiver;
     const personName =
@@ -534,7 +549,12 @@ export default function LettersScreen() {
         <TouchableOpacity
           activeOpacity={canOpen ? 0.75 : 1}
           onPress={() => {
-            if (!canOpen) return;
+            if (!canOpen) {
+              // Mektup açılmaz: kilit sallanır, mekanik bir tık hissedilir, kalan süre hatırlatılır
+              hapticStamp();
+              setLockedTap((prev) => ({ id: letter.id, nonce: (prev?.nonce ?? 0) + 1 }));
+              return;
+            }
             if (itemType === "received") {
               setReadingLetter({
                 id: letter.id,
@@ -577,13 +597,11 @@ export default function LettersScreen() {
                 </View>
               )}
 
-              {isLockedDate && itemType === "received" ? (
-                <View style={styles.lockedBadge}>
-                  <LockKeyhole size={13} color={isLight ? "#B45309" : "#f59e0b"} />
-                  <Text style={styles.lockedBadgeText}>
-                    {t("letters.card.locked", { date: dayjs(unlockDateStr).locale(i18n.language).format("DD MMM YYYY") })}
-                  </Text>
-                </View>
+              {isSealedForMe ? (
+                <LockedHourglassBadge
+                  label={t("letters.card.locked", { date: dayjs(unlockDateStr).locale(i18n.language).format("DD MMM YYYY") })}
+                  progress={sandProgress}
+                />
               ) : (
                 <View style={styles.unlockedBadge}>
                   <Unlock size={13} color="#22c55e" />
@@ -608,8 +626,9 @@ export default function LettersScreen() {
                   style={{ transform: [{ rotate: isOpen ? "180deg" : "0deg" }] }}
                 />
               )}
+              {isSealedForMe && <LockedLetterPadlock shakeKey={lockedTapKey} />}
               {/* Alıcı kilitli bir mektubu göremez; gizleme/silme seçenekleri açılmış ya da gönderilmiş mektuplarda */}
-              {!(itemType === "received" && isLockedDate) && (
+              {!isSealedForMe && (
                 <TouchableOpacity
                   onPress={() => openLetterMenu(letter, itemType, isLockedDate)}
                   style={[styles.cardMoreBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)" }]}
@@ -665,6 +684,8 @@ export default function LettersScreen() {
               ) : null}
             </View>
           )}
+
+          {isSealedForMe && <LockedLetterPill showKey={lockedTapKey} daysLeft={daysUntilOpen} />}
         </TouchableOpacity>
 
         {/* Alıcının kararı: onay vermeden mektup silinmez */}
@@ -735,7 +756,7 @@ export default function LettersScreen() {
     );
   }, [
     theme.cardBg, theme.cardBorder, theme.text, theme.textMuted, theme.textSecondary, theme.accent, theme.unitBg,
-    isLight, userId, openLetterId, activeTab, getAvatarUrl, busyLetterId, isHiddenView,
+    isLight, userId, openLetterId, activeTab, getAvatarUrl, busyLetterId, isHiddenView, lockedTap,
     openLetterMenu, handleSetHidden, handleCancelDeletion, respondToDeletion, handleApproveDeletion,
     t, i18n.language,
   ]);
@@ -868,12 +889,13 @@ export default function LettersScreen() {
                 />
               ) : (
               <EmptyState
-                emoji={activeTab === "received" ? "📬" : "💌"}
-                title={activeTab === "received" ? t("letters.empty.noneYetTitle") : t("letters.empty.firstMarkTitle")}
+                illustrationType="letters"
+                // Gelen kutusu sessiz: uyuyan kedi ilk satırları bekliyor. Gönderilenler sekmesi ise ilk mektuba çağırır
+                title={activeTab === "sent" ? t("letters.empty.firstMarkTitle") : t("empty.lettersTitle")}
                 description={
-                  activeTab === "received"
-                    ? t("letters.empty.noneYetDescription")
-                    : t("letters.empty.firstMarkDescription")
+                  activeTab === "sent"
+                    ? t("letters.empty.firstMarkDescription")
+                    : t("empty.lettersDesc")
                 }
                 ctaLabel={t("letters.empty.cta")}
                 onPressCta={handleOpenWriteModal}
@@ -1296,22 +1318,6 @@ const createStyles = (theme: AppTheme) => {
     directionBadgeText: {
       fontSize: 11,
       fontFamily: "Inter_700Bold",
-    },
-    lockedBadge: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 5,
-      backgroundColor: "rgba(245,158,11,0.12)",
-      paddingHorizontal: 9,
-      paddingVertical: 4,
-      borderRadius: 10,
-      borderWidth: 1,
-      borderColor: "rgba(245,158,11,0.25)",
-    },
-    lockedBadgeText: {
-      color: isLight ? "#B45309" : "#f59e0b",
-      fontSize: 11.5,
-      fontFamily: "Inter_600SemiBold",
     },
     unlockedBadge: {
       flexDirection: "row",

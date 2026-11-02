@@ -252,12 +252,17 @@ function getOrCreatePlayer(type: SoundEffectType): AudioPlayer | null {
   }
 }
 
+export interface PlaySoundOptions {
+  /** false: yalnızca ses çalar; dokunsal geri bildirimi çağıran kendisi verir (çift titreşim olmasın). */
+  haptic?: boolean;
+}
+
 /**
  * Play a specific sound effect and trigger its synchronized haptic feedback.
  */
-export async function playSoundEffect(type: SoundEffectType): Promise<void> {
+export async function playSoundEffect(type: SoundEffectType, { haptic = true }: PlaySoundOptions = {}): Promise<void> {
   // 1. Trigger haptics immediately for responsive tactile feel
-  triggerHaptic(type).catch(() => {});
+  if (haptic) triggerHaptic(type).catch(() => {});
 
   // 2. Check if sound is enabled
   const soundEnabled = await getSoundEffectsEnabled();
@@ -285,7 +290,7 @@ export async function playSoundEffect(type: SoundEffectType): Promise<void> {
 /**
  * Mood / emoji selector, heart taps (soft bubble pop)
  */
-export const playBubblePop = () => playSoundEffect('bubble_pop');
+export const playBubblePop = (options?: PlaySoundOptions) => playSoundEffect('bubble_pop', options);
 
 /**
  * Letter sent / origami flight (whoosh & twinkle)

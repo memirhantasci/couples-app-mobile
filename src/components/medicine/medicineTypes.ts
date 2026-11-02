@@ -24,6 +24,12 @@ export type MedicineHistoryGrouped = Record<string, MedicineHistoryEntry[]>;
 
 export type ComplianceStatus = "complete" | "partial" | "missed" | "pending" | "empty";
 
+/** Today's taken doses out of all doses due today (both 0 when nothing is scheduled). */
+export interface TodayDoseProgress {
+  taken: number;
+  total: number;
+}
+
 export interface WeeklyComplianceDay {
   dateStr: string;
   dayLabel: string;

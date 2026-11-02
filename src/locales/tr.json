@@ -795,8 +795,6 @@
       "oldest": "Eskiden Yeniye"
     },
     "empty": {
-      "title": "Ortak anı duvarınız henüz bembeyaz",
-      "description": "Birlikte çekildiğiniz en sevdiğiniz fotoğrafı ekleyerek başlayın.",
       "cta": "İlk Fotoğrafı Seç 📸"
     },
     "premium": {
@@ -990,8 +988,8 @@
       "saved": "Günlük notun kaydedildi ✨",
       "title": "Günlük Notum",
       "writeTomorrow": "Yarın yeni bir not yazabilirsin 🌙",
-      "seePast": "Geçmiş Notlarımı Gör",
-      "placeholder": "Bugün nasıldı? Ne hissediyorsun?..."
+      "placeholder": "Bugün nasıldı? Ne hissediyorsun?...",
+      "openA11y": "Bugünün günlük sayfasını aç"
     },
     "meeting": {
       "happened": "Buluşma gerçekleşti!",
@@ -1623,9 +1621,7 @@
     "empty": {
       "hiddenTitle": "Bu sekmede gizlenen mektup yok",
       "hiddenDescription": "Listenden gizlediğin mektuplar burada durur; dilediğin an geri getirebilirsin.",
-      "noneYetTitle": "Sana ilk mektup henüz gelmedi",
       "firstMarkTitle": "Geleceğe ilk izi bırak!",
-      "noneYetDescription": "Partnerin sana mühürlü bir mektup yazdığında burada belirecek. Sen de ilk adımı atıp ona bir sürpriz bırakabilirsin.",
       "firstMarkDescription": "Partnerinin ilk yıl dönümünüzde veya doğum gününde açacağı ilk mühürlü mektubunu hemen yaz.",
       "cta": "İlk Mektubu Mühürle 💌"
     },
@@ -1669,7 +1665,9 @@
       "writtenOn": "{{date}} tarihinde yazıldı",
       "signature": "Sevgiyle, {{name}}",
       "reseal": "Mührü Tekrar Kır 🕯️"
-    }
+    },
+    "lockedPillTime_one": "Bu mektup sevgiyle mühürlendi... Açılış: {{count}} gün sonra ⏳",
+    "lockedPillTime_other": "Bu mektup sevgiyle mühürlendi... Açılış: {{count}} gün sonra ⏳"
   },
   "memories": {
     "defaults": {
@@ -1719,8 +1717,6 @@
     "subtitle": "En tatlı anılarımızın milatları",
     "done": "Bitti",
     "empty": {
-      "title": "Anı defteriniz henüz bembeyaz",
-      "description": "Tanıştığınız günü, ilk buluşmanızı, size özel her şeyi ekleyin; yıllar sonra ilk sayfa sizi gülümsetsin.",
       "cta": "İlk Özel Günü Ekle ✨"
     },
     "addNew": "Yeni Özel Gün Ekle",
@@ -1785,7 +1781,6 @@
       "readFailed": "Bugünün mevcut günlüğü okunamadı, üzerine yazılmadı.",
       "pageFullTitle": "Sayfa Dolu",
       "pageFullMessage": "Bugünün günlük sayfası doldu. Günlüklerim ekranından mevcut notu düzenleyebilirsin.",
-      "saved": "Günlüğün kaydedildi ✨",
       "saveFailed": "Günlük kaydedilirken bir hata oluştu.",
       "title": "Yeni Günlük Sayfası",
       "subtitle": "Sadece senin görebildiğin özel notun 🔒",
@@ -1797,7 +1792,9 @@
       "editTitle": "Günün Sayfası",
       "editSubtitle": "Kaldığın yerden devam et ya da düzenle ✍️",
       "update": "Değişiklikleri Kaydet 📖"
-    }
+    },
+    "journalLocked": "Günün sırrı defterine kilitlendi 🗝️",
+    "openJournal": "Sayfayı Aç & Oku 📖"
   },
   "calendar": {
     "loadFailed": "Takvim verisi yüklenemedi: {{message}}",
@@ -3441,5 +3438,13 @@
     "milestoneToDay_one": "✨ {{target}}. güne {{days}} gün",
     "milestoneToDay_other": "✨ {{target}}. güne {{days}} gün",
     "thousandsSeparator": "."
+  },
+  "empty": {
+    "lettersTitle": "Posta Kutunuz Henüz Sessiz",
+    "lettersDesc": "Sevgilinin kalbinden dökülecek ilk satırları bekliyor... 🐾",
+    "photosTitle": "İlk Kahkahanızı Bekliyor",
+    "photosDesc": "Birlikte çekildiğiniz ilk anıyı buraya asmak için bir fotoğraf seçin 📸",
+    "memoriesTitle": "Birlikte Biriktirilecek Çok Şey Var",
+    "memoriesDesc": "İlk tanışma gününüzden unutulmaz tatillere kadar her anıyı buraya mühürleyin ✨"
   }
 }

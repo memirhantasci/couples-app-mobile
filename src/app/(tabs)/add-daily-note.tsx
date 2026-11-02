@@ -1,7 +1,7 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { logger } from "@/utils/logger";
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, BackHandler } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, BackHandler, Keyboard } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useAuth } from "@/context/AuthContext";
@@ -21,6 +21,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { LazyDemoActionModal } from "@/components/ui/lazyMount";
+import { JournalLockSuccessOverlay } from "@/components/daily-notes/JournalLockSuccessOverlay";
 import { useTranslation } from "react-i18next";
 
 
@@ -70,6 +71,8 @@ export default function AddDailyNoteScreen() {
   // Bu güne ait kayıtlı sayfa varsa kimliği: doluysa ekran "devam et / düzenle" modundadır
   const [noteId, setNoteId] = useState<number | null>(initialPage?.id ?? null);
   const [isLoadingNote, setIsLoadingNote] = useState(!initialPage);
+  // Kayıttan sonra oynayan "sır defterine kilitlendi" töreni; bitince listeye dönülür
+  const [isLocking, setIsLocking] = useState(false);
 
   // Ekran sekme olarak bellekte kalır: yeni bir açılışta (formEntry) sayfa baştan kurulur. Menüye girip
   // dönmek açılış sayılmaz; yazılan metin yerinde kalır.
@@ -82,6 +85,7 @@ export default function AddDailyNoteScreen() {
     setNoteId(page?.id ?? null);
     setIsLoadingNote(!page);
     setIsSubmitting(false);
+    setIsLocking(false);
   }
 
   // Geri: her zaman Günlüklerim ekranına (ana sayfaya değil); Android geri tuşu da aynı yere gider
@@ -95,6 +99,33 @@ export default function AddDailyNoteScreen() {
       return () => sub.remove();
     }, [router])
   );
+  // Kaydedilmiş ama yazı alanından henüz temizlenmemiş sayfa var (tören sürüyor)
+  const lockPendingRef = useRef(false);
+  const clearSavedPage = useCallback(() => {
+    if (!lockPendingRef.current) return;
+    lockPendingRef.current = false;
+    // Kaydedilen not yazı alanında kalmasın (ekran bellekte duruyor)
+    setContent("");
+    setNoteId(null);
+  }, []);
+
+  // Ekrandan çıkınca (tören bitip listeye dönüldü ya da tören sırasında başka yere gidildi) kapak kalkar;
+  // tören yarıda kaldıysa sayfa yine temizlenir ki ikinci kayıt aynı güne yeni satır açmaya çalışmasın
+  useFocusEffect(
+    useCallback(
+      () => () => {
+        clearSavedPage();
+        setIsLocking(false);
+      },
+      [clearSavedPage]
+    )
+  );
+
+  const finishJournalLock = useCallback(() => {
+    // Kapak bu sırada sayfayı örtüyor: temizlenen editör görünmez
+    clearSavedPage();
+    router.replace("/(tabs)/daily-notes");
+  }, [clearSavedPage, router]);
 
   // O günün kayıtlı sayfası varsa editöre yüklenir: sıfırdan boş sayfa değil, kaldığın yerden devam edersin
   useEffect(() => {
@@ -192,11 +223,10 @@ export default function AddDailyNoteScreen() {
       );
       queryClient.invalidateQueries({ queryKey: ["daily_notes_history", userId] });
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
-      toast.success(t("dailyNotes.add.saved"));
-      // Kaydedilen not yazı alanında kalmasın (ekran bellekte duruyor)
-      setContent("");
-      setNoteId(null);
-      router.replace("/(tabs)/daily-notes");
+      Keyboard.dismiss();
+      // Başarı bildirimi yerine sır defteri kilitlenir; listeye dönüş tören bitince (finishJournalLock)
+      lockPendingRef.current = true;
+      setIsLocking(true);
     } catch (error) {
       logger.error(error);
       appAlert(t("common.error"), t("dailyNotes.add.saveFailed"));
@@ -210,6 +240,7 @@ export default function AddDailyNoteScreen() {
 
   return (
     <ScreenBackground>
+      <JournalLockSuccessOverlay active={isLocking} onComplete={finishJournalLock}>
       <View style={{ flex: 1 }}>
         {/* HEADER */}
         <ScreenHeader
@@ -318,6 +349,7 @@ export default function AddDailyNoteScreen() {
           description={modalConfig.description}
         />
       </View>
+      </JournalLockSuccessOverlay>
     </ScreenBackground>
   );
 }

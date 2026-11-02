@@ -330,9 +330,9 @@ export default function MemoriesScreen() {
         </View>
       ) : memories?.length === 0 ? (
         <EmptyState
-          emoji="🎞️"
-          title={t("memories.empty.title")}
-          description={t("memories.empty.description")}
+          illustrationType="memories"
+          title={t("empty.memoriesTitle")}
+          description={t("empty.memoriesDesc")}
           ctaLabel={t("memories.empty.cta")}
           onPressCta={goToAddMemory}
           theme={theme}
