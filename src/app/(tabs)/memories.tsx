@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { toast } from "@/lib/toast";
 import { StorageImage } from "@/components/common/StorageImage";
@@ -11,11 +11,17 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { removeStoredFiles } from "@/lib/storageImages";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import { dayjs } from "@/lib/date";
+import { dayjs, todayString } from "@/lib/date";
 import { Trash2, Pencil, PlusCircle } from "lucide-react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { openForm } from "@/lib/formEntry";
-import Animated, { FadeInDown, FadeInUp, FadeOutDown } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInUp, FadeOutDown, useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated";
+import { MemoryThread } from "@/components/memories/MemoryThread";
+import { MilestoneDateCircle } from "@/components/memories/MilestoneDateCircle";
+import { WashiTape, WASHI_COLORS } from "@/components/memories/WashiTape";
+import { AnniversaryMilestoneModal } from "@/components/memories/AnniversaryMilestoneModal";
+import { getSpecialDayState } from "@/lib/specialDays";
+import { rainConfetti } from "@/lib/confettiRain";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
@@ -149,7 +155,63 @@ export default function MemoriesScreen() {
 
   const { refreshing, onRefresh } = usePullToRefresh(refetch);
 
-  const memories = data ? data.pages.flat() : [];
+  const memories = useMemo(() => (data ? data.pages.flat() : []), [data]);
+
+  // ─── Sıradaki özel gün: yıldönümüne kalan günü en az olan anı(lar) altın nabızla öne çıkar ───
+  const closestUpcomingIds = useMemo(() => {
+    const today = dayjs().startOf("day");
+    let min = Infinity;
+    const ids = new Set<number>();
+    for (const memory of memories) {
+      const memDay = dayjs(memory.date).startOf("day");
+      if (!memDay.isValid()) continue;
+      let next = memDay.year(today.year());
+      if (next.isBefore(today)) next = next.add(1, "year");
+      const diff = next.diff(today, "day");
+      if (diff < min) {
+        min = diff;
+        ids.clear();
+        ids.add(memory.id);
+      } else if (diff === min) {
+        ids.add(memory.id);
+      }
+    }
+    return ids;
+  }, [memories]);
+
+  // ─── Zaman tüneli ipi: liste kaydırıldıkça ışık huzmesi akar ───
+  const scrollY = useSharedValue(0);
+  const onListScroll = useAnimatedScrollHandler((event) => {
+    scrollY.set(event.contentOffset.y);
+  });
+
+  // ─── Yıldönümü sabahı karşılaması: her cihazda o yılın yıldönümünde yalnızca bir kez ───
+  const relationshipStartDate = profile?.relationshipStartDate ?? null;
+  const anniversary = useMemo(
+    () => getSpecialDayState(relationshipStartDate).anniversary,
+    [relationshipStartDate]
+  );
+  const [milestone, setMilestone] = useState<{ years: number; days: number; key: string } | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      if (!anniversary || anniversary.daysLeft !== 0 || !relationshipStartDate) return;
+      const key = `@seen_anniversary_milestone_${anniversary.years}_${todayString()}`;
+      const days = dayjs().startOf("day").diff(dayjs(relationshipStartDate).startOf("day"), "day");
+      let active = true;
+      AsyncStorage.getItem(key).then((seen) => {
+        if (active && !seen) setMilestone({ years: anniversary.years, days, key });
+      });
+      return () => {
+        active = false;
+      };
+    }, [anniversary, relationshipStartDate])
+  );
+  const closeMilestone = useCallback(() => {
+    if (milestone) AsyncStorage.setItem(milestone.key, "1");
+    setMilestone(null);
+    // Modal native olarak en üstte çizilir; konfeti, tören kapanınca Anılar ekranına yağar
+    rainConfetti();
+  }, [milestone]);
 
   const handleDelete = (id: number) => {
     if (executeOrIntercept(
@@ -241,9 +303,7 @@ export default function MemoriesScreen() {
         entering={FadeInDown.delay(Math.min(index, 5) * 45).duration(280)}
         style={styles.memoryRow}
       >
-        <View style={[styles.dateCircle, { borderColor: theme.accent, backgroundColor: theme.cardBg }]}>
-          <Text style={[styles.dateNumber, { color: theme.accent }]}>{index + 1}</Text>
-        </View>
+        <MilestoneDateCircle index={index} theme={theme} highlight={closestUpcomingIds.has(memory.id)} />
 
         <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}>
           <View style={styles.cardHeader}>
@@ -294,14 +354,19 @@ export default function MemoriesScreen() {
           ) : null}
 
           {memory.image_path && (
-            <View style={styles.imageBox}>
-              <StorageImage bucket="memories" path={memory.image_path} style={styles.image} contentFit="cover" />
+            // Anı defteri: fotoğraf üst köşelerinden yarı saydam washi bantla tutturulmuş gibi durur
+            <View style={styles.imageFrame}>
+              <View style={styles.imageBox}>
+                <StorageImage bucket="memories" path={memory.image_path} style={styles.image} contentFit="cover" />
+              </View>
+              <WashiTape color={WASHI_COLORS.rose} rotate={-12} style={styles.tapeLeft} />
+              <WashiTape color={WASHI_COLORS.kraft} rotate={12} style={styles.tapeRight} />
             </View>
           )}
         </View>
       </Animated.View>
     );
-  }, [theme, isLight, styles, isEditMode, executeOrIntercept, handleEdit, handleDelete, deletingId, t, i18n.language]);
+  }, [theme, isLight, styles, isEditMode, executeOrIntercept, handleEdit, handleDelete, deletingId, t, i18n.language, closestUpcomingIds]);
 
   // Oturum yokken boş zemin; hook sırası bozulmasın diye tüm hook'lardan sonra kontrol edilir
   if (!session && !isDemoMode) return <View style={{ flex: 1, backgroundColor: "#080811" }} />;
@@ -340,14 +405,16 @@ export default function MemoriesScreen() {
         />
       ) : (
         <View style={styles.timelineContainer}>
-          {/* Vertical line matching the screenshot (very dark burgundy or theme.unitBg with opacity) */}
-          <View style={[styles.timelineLine, { backgroundColor: theme.unitBg }]} />
+          {/* Yaşayan zaman tüneli: degrade aşk ipi, nefes alan ışıltı ve kaydırmayla akan ışık huzmesi */}
+          <MemoryThread theme={theme} scrollY={scrollY} left={36} />
 
-          <FlatList
+          <Animated.FlatList
             data={memories}
             keyExtractor={item => item.id.toString()}
-            extraData={{ theme, isLight, isEditMode }}
+            extraData={{ theme, isLight, isEditMode, closestUpcomingIds }}
             renderItem={renderMemory}
+            onScroll={onListScroll}
+            scrollEventThrottle={16}
             refreshing={refreshing}
             onRefresh={onRefresh}
             initialNumToRender={6}
@@ -385,6 +452,13 @@ export default function MemoriesScreen() {
         </Animated.View>
       )}
       <LazyPageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
+      <AnniversaryMilestoneModal
+        visible={!!milestone}
+        years={milestone?.years ?? 1}
+        days={milestone?.days ?? 0}
+        theme={theme}
+        onClose={closeMilestone}
+      />
       <LazyDemoActionModal
         visible={isDemoModalOpen}
         onClose={() => setIsDemoModalOpen(false)}
@@ -434,33 +508,11 @@ const createStyles = (theme: AppTheme) => {
       paddingVertical: 8,
       paddingHorizontal: 20,
     },
-    timelineLine: {
-      position: "absolute",
-      left: 36,
-      top: 0,
-      bottom: 0,
-      width: 2,
-      zIndex: 0,
-    },
     memoryRow: {
       flexDirection: "row",
       marginBottom: 24,
       alignItems: "flex-start",
       zIndex: 1,
-    },
-    dateCircle: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      borderWidth: 2,
-      alignItems: "center",
-      justifyContent: "center",
-      marginRight: 20,
-      zIndex: 2,
-    },
-    dateNumber: {
-      fontSize: 13,
-      fontFamily: "Inter_600SemiBold",
     },
     card: {
       flex: 1,
@@ -519,6 +571,18 @@ const createStyles = (theme: AppTheme) => {
     actionsBox: {
       flexDirection: "row",
       gap: 16,
+    },
+    imageFrame: {
+      position: "relative",
+      marginTop: 6,
+    },
+    tapeLeft: {
+      top: -9,
+      left: -8,
+    },
+    tapeRight: {
+      top: -9,
+      right: -8,
     },
     imageBox: {
       borderRadius: 12,

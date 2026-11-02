@@ -1738,6 +1738,11 @@
     "premium": {
       "featureName": "Fotoğraflı Özel Gün",
       "featureDescription": "Özel günlerinize fotoğraf eklemek için Premium'a geçmeniz gerekmektedir."
+    },
+    "milestone": {
+      "title": "{{years}}. Yılımız Kutlu Olsun! ✨",
+      "message": "Birlikte biriktirdiğimiz {{days}} günün her anı paha biçilemez. Nice güzel yıllarımıza sevgilim ❤️",
+      "cta": "Teşekkürler & Anılarımıza Bak 🥂"
     }
   },
   "dailyNotes": {

@@ -29,6 +29,9 @@ import { useNotificationPriming } from "@/hooks/useNotificationPriming";
 import { toast } from "@/lib/toast";
 import { LazyPremiumPaywall, LazyDemoActionModal, LazyPermissionPrimingModal, LazyDateTimePickerSheet } from "@/components/ui/lazyMount";
 import { useTranslation } from "react-i18next";
+import Animated, { ZoomIn } from "react-native-reanimated";
+import { WashiTape, WASHI_COLORS } from "@/components/memories/WashiTape";
+import { playStampDrop } from "@/lib/soundEffects";
 
 /** Yüklenen anı fotoğrafının en geniş kenarı (px); galeri yüklemesindeki tam boy ile aynı. */
 const MEMORY_IMAGE_MAX_WIDTH = 1600;
@@ -100,6 +103,8 @@ export default function AddMemoryScreen() {
 
     if (!result.canceled && result.assets[0]) {
       setLocalImage(result.assets[0]);
+      // Fotoğraf anı defterine bantlanırken "çıt" damga sesi (ve tek tok titreşim)
+      playStampDrop();
     }
   }
 
@@ -293,18 +298,32 @@ export default function AddMemoryScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>{t("memories.add.photoLabel")}</Text>
-            <TouchableOpacity style={[styles.imagePicker, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder, borderWidth: 1 }]} onPress={pickImage}>
-              {localImage ? (
-                <Image source={{ uri: localImage.uri }} style={styles.previewImg} contentFit="cover" />
-              ) : imagePath ? (
-                <StorageImage bucket="memories" path={imagePath} style={styles.previewImg} contentFit="cover" />
-              ) : (
-                <View style={styles.imagePlaceholder}>
-                  <ImagePlus color={theme.textMuted} size={32} />
-                  <Text style={[styles.imagePlaceholderText, { color: theme.textMuted }]}>{t("memories.add.chooseFromGallery")}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
+            <View style={styles.imageFrame}>
+              <TouchableOpacity style={[styles.imagePicker, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder, borderWidth: 1 }]} onPress={pickImage}>
+                {localImage ? (
+                  <Image source={{ uri: localImage.uri }} style={styles.previewImg} contentFit="cover" />
+                ) : imagePath ? (
+                  <StorageImage bucket="memories" path={imagePath} style={styles.previewImg} contentFit="cover" />
+                ) : (
+                  <View style={styles.imagePlaceholder}>
+                    <ImagePlus color={theme.textMuted} size={32} />
+                    <Text style={[styles.imagePlaceholderText, { color: theme.textMuted }]}>{t("memories.add.chooseFromGallery")}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              {/* Seçilen fotoğraf anı defterine bantlanır: her yeni fotoğrafta bantlar yaylanarak yeniden oturur */}
+              {localImage || imagePath ? (
+                <Animated.View
+                  key={localImage?.uri ?? imagePath}
+                  entering={ZoomIn.springify().damping(12)}
+                  pointerEvents="none"
+                  style={StyleSheet.absoluteFill}
+                >
+                  <WashiTape color={WASHI_COLORS.rose} rotate={-12} style={styles.tapeLeft} />
+                  <WashiTape color={WASHI_COLORS.kraft} rotate={12} style={styles.tapeRight} />
+                </Animated.View>
+              ) : null}
+            </View>
           </View>
 
           <TouchableOpacity 
@@ -395,6 +414,18 @@ const createStyles = (theme: AppTheme) => {
     textArea: {
       minHeight: 100,
       textAlignVertical: "top",
+    },
+    imageFrame: {
+      position: "relative",
+      marginTop: 6,
+    },
+    tapeLeft: {
+      top: -9,
+      left: -8,
+    },
+    tapeRight: {
+      top: -9,
+      right: -8,
     },
     imagePicker: {
       borderRadius: 16,
