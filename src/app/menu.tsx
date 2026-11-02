@@ -4,7 +4,7 @@ import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { X, Heart, Settings, Home, Pill, CalendarHeart, Droplet, MapPin, LogOut, ChevronRight, BookOpen, Mail, Images, Sparkles, ShieldCheck, Clock, ImagePlus, HelpCircle, Orbit } from "lucide-react-native";
+import { X, Heart, Settings, Home, Pill, CalendarHeart, Droplet, MapPin, LogOut, ChevronRight, BookOpen, Mail, Images, Sparkles, Clock, ImagePlus, HelpCircle, Orbit } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 
 import { dayjs, daysSince } from "@/lib/date";
@@ -12,7 +12,6 @@ import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LegalModal } from "@/components/legal/LegalModal";
 import { getAllPageGuides, getPageGuide } from "@/constants/featureGuides";
 import { resetAllPageTours } from "@/hooks/usePageTour";
 import { useDeferredReady } from "@/hooks/useDeferredReady";
@@ -30,7 +29,6 @@ export default function MenuScreen() {
   const styles = React.useMemo(() => getMenuStyles(theme, isLight), [theme, isLight]);
   const insets = useSafeAreaInsets();
   const guides = React.useMemo(() => getAllPageGuides(t), [t]);
-  const [legalVisible, setLegalVisible] = React.useState(false);
   const [selectedTourPage, setSelectedTourPage] = useState<string | null>(null);
   const [showGuideCatalog, setShowGuideCatalog] = useState(false);
   // Menü her açılışta baştan kurulur: ilk karede ilk kategori çizilir, ekran dışındaki sağlık ve hesap
@@ -445,21 +443,6 @@ export default function MenuScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity 
-                  style={[styles.menuItem, { backgroundColor: theme.cardBg }]} 
-                  onPress={() => setLegalVisible(true)}
-                  activeOpacity={0.8}
-                >
-                  <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
-                    <ShieldCheck color={theme.accent} size={18} />
-                  </View>
-                  <View style={styles.menuTextContainer}>
-                    <Text style={styles.menuTitle}>{t("menu.legal.title")}</Text>
-                    <Text style={styles.menuSub}>{t("menu.legal.subtitle")}</Text>
-                  </View>
-                  <ChevronRight color={theme.textMuted} size={18} />
-                </TouchableOpacity>
-
-                <TouchableOpacity 
                   style={[styles.logoutItem, { backgroundColor: theme.cardBg }]} 
                   onPress={handleSignOut}
                   activeOpacity={0.8}
@@ -480,14 +463,7 @@ export default function MenuScreen() {
         </ScrollView>
       </View>
 
-      {legalVisible && (
-        <LegalModal
-          visible={legalVisible}
-          onClose={() => setLegalVisible(false)}
-          accentColor={theme.accent}
-        />
-      )}
-
+      
       {/* REHBER KATALOĞU SEÇİM MODALI */}
       {showGuideCatalog && (
         <Modal
