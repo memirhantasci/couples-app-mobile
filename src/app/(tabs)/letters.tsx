@@ -24,7 +24,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { UserAvatar } from "@/components/avatar/UserAvatar";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 import { usePageTour } from "@/hooks/usePageTour";
-import { DEMO_LETTERS } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { playLetterSend, hapticStamp } from "@/lib/soundEffects";
 import { toast } from "@/lib/toast";
@@ -58,7 +57,6 @@ const readableName = (val: string | null | undefined): string => (val ?? "").tri
 
 export default function LettersScreen() {
   const { t, i18n } = useTranslation();
-  const router = useRouter();
   const { session, profile, refreshProfile, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();

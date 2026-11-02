@@ -16,7 +16,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Pill, Plus } from "lucide-react-native";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
-import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { cancelLocalNotification, notifyPartner } from "@/lib/notifications";
@@ -57,7 +56,6 @@ export default function MedicineScreen() {
   const { theme, isLight } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { showNotification } = useCustomNotification();
-  const router = useRouter();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const coupleId = profile?.coupleId;

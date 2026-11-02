@@ -278,7 +278,13 @@ export function MapPickerModal({
       }, 300);
       return () => clearTimeout(timer);
     }
-    void locateUser(true).finally(() => setIsLocating(false));
+    void (async () => {
+      try {
+        await locateUser(true);
+      } finally {
+        setIsLocating(false);
+      }
+    })();
     // Yalnızca açılış anahtarı değiştiğinde çalışır
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openKey]);

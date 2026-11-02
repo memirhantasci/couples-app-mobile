@@ -16,7 +16,6 @@ import { sanitize } from "@/utils/sanitize";
 import { logger } from "@/utils/logger";
 import { dialog } from "@/lib/dialog";
 import { Plus, Calendar as CalendarIcon, Clock, Maximize2, MapPin, Droplet } from "lucide-react-native";
-import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
@@ -71,7 +70,6 @@ export { CALENDAR_COLORS };
 
 export default function CalendarScreen() {
   const { t, i18n } = useTranslation();
-  const router = useRouter();
   const { session, profile, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();

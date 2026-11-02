@@ -22,7 +22,6 @@ import { useTheme } from "@/context/ThemeContext";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { usePageTour } from "@/hooks/usePageTour";
 import { useDemoAction } from "@/hooks/useDemoAction";
-import { DEMO_PROFILE } from "@/constants/demoData";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { fetchMemoriesPage, memoriesQueryKey, MEMORIES_PAGE_SIZE } from "@/lib/screenQueries";
 import {

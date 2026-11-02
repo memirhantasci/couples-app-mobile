@@ -22,7 +22,6 @@ import { logger } from "@/utils/logger";
 import { Calendar } from "react-native-calendars";
 import "@/lib/calendarLocale";
 import { Check, Crown, Sparkles, Droplet, MessageCircleHeart } from "lucide-react-native";
-import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
@@ -44,7 +43,6 @@ export default function PeriodTrackerScreen() {
   const { theme, isLight } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const goldColor = isLight ? "#A16207" : "#E6C055";
-  const router = useRouter();
   const queryClient = useQueryClient();
   const today = todayString();
   const insets = useSafeAreaInsets();

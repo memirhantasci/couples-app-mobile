@@ -21,7 +21,6 @@ import { UserAvatar } from "@/components/avatar/UserAvatar";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2, MapPin, Pencil, Plus, Calendar, Clock, Navigation, Check, X, Heart } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -36,7 +35,6 @@ import { useTheme } from "@/context/ThemeContext";
 import { MapPickerModal } from "@/components/MapPickerModal";
 import { usePageTour } from "@/hooks/usePageTour";
 import { useDeferredReady } from "@/hooks/useDeferredReady";
-import { DEMO_MEETINGS } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { sanitizeStrict } from "@/utils/sanitize";
 import { toast } from "@/lib/toast";
@@ -51,7 +49,6 @@ const PAST_MEETINGS_PAGE_SIZE = 10;
 
 export default function MeetingsScreen() {
   const { t, i18n } = useTranslation();
-  const router = useRouter();
   const { session, profile, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
