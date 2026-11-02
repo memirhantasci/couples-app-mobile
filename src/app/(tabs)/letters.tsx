@@ -1238,15 +1238,11 @@ const createStyles = (theme: AppTheme) => {
       gap: 12,
     },
     letterCard: {
-      borderRadius: 22,
-      padding: 16,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.2,
-      shadowRadius: 6,
-      elevation: 2,
+      borderRadius: 28,
+      padding: 18,
     },
     letterCardLocked: {
+      borderWidth: 1.5,
       borderStyle: "dashed",
       borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.15)",
     },
