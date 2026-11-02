@@ -1,7 +1,7 @@
-import { Tabs } from "expo-router";
+import { Tabs, useRouter, usePathname, type Href } from "expo-router";
 import { StyleSheet, View, Text, Platform, TouchableOpacity } from "react-native";
 import { BlurView } from "expo-blur";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
 import { SafeAreaInsetsContext, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -9,6 +9,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { useTabBar } from "@/context/TabBarContext";
 import { getTabBarBottomOffset } from "@/constants/tabBar";
 
+import { EdgeSwipeBack } from "@/components/ui/EdgeSwipeBack";
 import { DemoModeBanner } from "@/components/demo/DemoModeBanner";
 import { useReminderSync } from "@/hooks/useReminderSync";
 import { usePushLanguageSync } from "@/hooks/usePushLanguageSync";
@@ -149,6 +150,24 @@ export default function TabsLayout() {
   const { isDemoMode } = useAuth();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // iPhone kenar kaydırma hareketi: ekle/düzenle formları kendi liste ekranına, diğerleri önceki ekrana
+  // (yoksa ana sayfaya) döner. Ana sayfada ve harita üzerinde (harita kendi kaydırmasını kullanır) kapalıdır.
+  const FORM_BACK_TARGETS: Record<string, Href> = {
+    "/add-daily-note": "/(tabs)/daily-notes",
+    "/add-photo": "/(tabs)/photos",
+    "/add-memory": "/(tabs)/memories",
+  };
+  const swipeBackEnabled = pathname !== "/home" && pathname !== "/" && pathname !== "/map";
+  const handleSwipeBack = useCallback(() => {
+    const target = FORM_BACK_TARGETS[pathname];
+    if (target) router.navigate(target);
+    else if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/home");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, router]);
   // Demo şeridi durum çubuğu boşluğunu kendisi üstlenir; ekranlar `insets.top` ile ikinci kez
   // boşluk bırakmasın diye şeridin altındaki içerik için üst güvenli alan sıfırlanır.
   const contentInsets = useMemo(
@@ -160,6 +179,7 @@ export default function TabsLayout() {
     <View style={{ flex: 1, backgroundColor: theme.bgGradient[0] }}>
       <DemoModeBanner />
       <SafeAreaInsetsContext.Provider value={contentInsets}>
+      <EdgeSwipeBack onBack={handleSwipeBack} enabled={swipeBackEnabled}>
       <View style={{ flex: 1, backgroundColor: theme.bgGradient[0] }}>
       <Tabs
         tabBar={(props) => <CustomTabBar {...props} />}
@@ -191,6 +211,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="add-daily-note" options={{ href: null }} />
     </Tabs>
       </View>
+      </EdgeSwipeBack>
       </SafeAreaInsetsContext.Provider>
     </View>
   );
