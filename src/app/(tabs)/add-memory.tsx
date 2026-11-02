@@ -4,6 +4,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator 
 import { appAlert } from "@/lib/dialog";
 import { Image } from "expo-image";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { celebrate } from "@/lib/celebrate";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { formEntryOf } from "@/lib/formEntry";
@@ -213,6 +214,7 @@ export default function AddMemoryScreen() {
       if (!isEditing && (await priming.maybePrompt())) return;
 
       toast.success(isEditing ? t("memories.toasts.updated") : t("memories.toasts.saved"));
+      celebrate("sparkles");
       router.replace("/(tabs)/memories");
     } catch (error: any) {
       logger.error("Memory save error:", error);

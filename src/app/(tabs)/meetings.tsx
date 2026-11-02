@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
+import { celebrate } from "@/lib/celebrate";
 import { ActionCard } from "@/components/ui/ActionCard";
+import { Reveal } from "@/components/ui/Reveal";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import {
   View,
@@ -243,6 +245,7 @@ export default function MeetingsScreen() {
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
       // Form modalı kapanırken değil, kapandıktan sonra görünsün (modalın arkasında kalmasın)
       toast.success(successMessage, { delay: 350 });
+      setTimeout(() => celebrate("hearts"), 350);
     } catch (error: any) {
       appAlert(
         t("common.error"),
@@ -340,13 +343,14 @@ export default function MeetingsScreen() {
                 <Skeleton height={140} borderRadius={20} />
               </View>
             ) : activeMeetings.length > 0 ? (
-              activeMeetings.map((m) => {
+              activeMeetings.map((m, idx) => {
                 const isMyMeeting = m.user_id === userId;
                 const formattedDate = dayjs(m.meeting_datetime).locale(i18n.language).format("D MMMM YYYY, dddd");
                 const formattedTime = dayjs(m.meeting_datetime).format("HH:mm");
 
                 return (
-                  <View key={m.id} style={[styles.meetingCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
+                  <Reveal key={m.id} index={idx}>
+                  <View style={[styles.meetingCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
                     {/* Kart Üst Bilgisi */}
                     <View style={styles.cardTopRow}>
                       <View style={styles.titleWithIcon}>
@@ -443,6 +447,7 @@ export default function MeetingsScreen() {
                       </TouchableOpacity>
                     ) : null}
                   </View>
+                  </Reveal>
                 );
               })
             ) : (

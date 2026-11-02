@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { celebrate } from "@/lib/celebrate";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { logger } from "@/utils/logger";
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, BackHandler } from "react-native";
@@ -193,6 +194,7 @@ export default function AddDailyNoteScreen() {
       queryClient.invalidateQueries({ queryKey: ["daily_notes_history", userId] });
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
       toast.success(t("dailyNotes.add.saved"));
+      celebrate("hearts");
       // Kaydedilen not yazı alanında kalmasın (ekran bellekte duruyor)
       setContent("");
       setNoteId(null);

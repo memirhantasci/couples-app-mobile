@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { celebrate } from "@/lib/celebrate";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import {
   View,
@@ -340,6 +341,7 @@ export default function AddPhotoScreen() {
       // "Tamam"a bastırmak yerine süzülen bir pil; sayfa hemen kapanır, pil galeride görünmeye devam eder.
       // Kamera deklanşörü haptiği zaten verildi (playCameraClick) → pilde ayrı titreşim yok.
       toast.success(t("photos.add.added"), { haptic: false });
+      celebrate("sparkles");
       if (router.canGoBack()) {
         router.back();
       } else {

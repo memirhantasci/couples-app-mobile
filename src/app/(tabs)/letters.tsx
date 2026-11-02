@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { ActionCard } from "@/components/ui/ActionCard";
+import { Reveal } from "@/components/ui/Reveal";
 import { SegmentedControl } from "@/components/profile/SegmentedControl";
 import { useRouter, useFocusEffect } from "expo-router";
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, Modal } from "react-native";
@@ -466,7 +467,7 @@ export default function LettersScreen() {
     );
   };
 
-  const renderLetterItem = useCallback(({ item: letter }: { item: any }) => {
+  const renderLetterItem = useCallback(({ item: letter, index }: { item: any; index: number }) => {
     const unlockDateStr = letter.unlock_date.substring(0, 10);
     // Sunucu mektubu açılış gününün 00:00 UTC'sinde açar (Türkiye'de 03:00). Kilit durumu ve gösterilen saat
     // bu gerçek ana göre hesaplanır; yerel gün karşılaştırması 00:00–03:00 arasında yanlış sonuç verirdi.
@@ -517,6 +518,7 @@ export default function LettersScreen() {
     }
 
     return (
+      <Reveal index={index}>
       <View 
         style={[
           styles.letterCard, 
@@ -708,6 +710,7 @@ export default function LettersScreen() {
           </View>
         )}
       </View>
+      </Reveal>
     );
   }, [
     theme.cardBg, theme.cardBorder, theme.text, theme.textMuted, theme.textSecondary, theme.accent, theme.unitBg,

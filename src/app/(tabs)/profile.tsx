@@ -43,6 +43,7 @@ import { AlignJustify, ChevronLeft } from "lucide-react-native";
 import { LegalModal } from "@/components/legal/LegalModal";
 import { LegalDocType } from "@/constants/legalTexts";
 import { ProfileHero } from "@/components/profile/ProfileHero";
+import { Reveal } from "@/components/ui/Reveal";
 import { ThemePicker } from "@/components/profile/ThemePicker";
 import { TabBarCustomizer } from "@/components/profile/TabBarCustomizer";
 import { PersonalInfoForm } from "@/components/profile/PersonalInfoForm";
@@ -602,6 +603,7 @@ export default function ProfileScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* ─── PROFİL & İSTATİSTİK KARTI ─── */}
+          <Reveal index={0}>
           <ProfileHero
             theme={theme}
             name={displayName || t("common.userFallback")}
@@ -609,8 +611,10 @@ export default function ProfileScreen() {
             isPaired={!!coupleId}
             tokenBalance={tokenBalance}
           />
+          </Reveal>
 
           {/* ─── TEMA & GÖRÜNÜM TERCİHİ ─── */}
+          <Reveal index={1}>
           <ThemePicker
             theme={theme}
             isLight={isLight}
@@ -618,12 +622,17 @@ export default function ProfileScreen() {
             themeMode={themeMode}
             onSelectTheme={setThemeMode}
           />
+          </Reveal>
 
           {/* ─── DİL SEÇİMİ (Türkçe / English) ─── */}
-          <LanguagePicker theme={theme} isLight={isLight} />
+          <Reveal index={2}>
+            <LanguagePicker theme={theme} isLight={isLight} />
+          </Reveal>
 
           {/* ─── ALT BAR MENÜSÜ ÖZELLEŞTİRME ─── */}
-          <TabBarCustomizer theme={theme} isLight={isLight} />
+          <Reveal index={3}>
+            <TabBarCustomizer theme={theme} isLight={isLight} />
+          </Reveal>
 
           {showLowerSections && (
             <>

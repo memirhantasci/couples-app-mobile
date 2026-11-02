@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { ActionCard } from "@/components/ui/ActionCard";
+import { Reveal } from "@/components/ui/Reveal";
 import { ScreenHeader, ScreenHeaderButton } from "@/components/ui/ScreenHeader";
 import {
   View,
@@ -115,7 +116,7 @@ export default function DailyNotesScreen() {
     ]);
   }, [queryClient, userId, executeOrIntercept, t]);
 
-  const renderNoteCard = useCallback(({ item: note }: { item: DailyNote }) => {
+  const renderNoteCard = useCallback(({ item: note, index }: { item: DailyNote; index: number }) => {
     const dateObj = dayjs(note.date);
     const day = dateObj.format("D");
     const month = dateObj.locale(i18n.language).format("MMMM");
@@ -125,6 +126,7 @@ export default function DailyNotesScreen() {
     const displayContent = cleanContentText(note.content);
 
     return (
+      <Reveal index={index}>
       <View style={[styles.cardContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
         <View style={styles.cardHeader}>
           <View style={styles.dateBadge}>
@@ -168,6 +170,7 @@ export default function DailyNotesScreen() {
 
         <Text style={[styles.noteBodyText, { color: theme.textSecondary }]}>{displayContent}</Text>
       </View>
+      </Reveal>
     );
   }, [theme, styles, executeOrIntercept, handleDelete, router, i18n.language, t]);
 

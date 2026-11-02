@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import { ActionCard } from "@/components/ui/ActionCard";
+import { Reveal } from "@/components/ui/Reveal";
 import { SegmentedControl } from "@/components/profile/SegmentedControl";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import {
@@ -618,9 +619,9 @@ export default function MedicineScreen() {
                 </TouchableOpacity>
               </View>
             ) : (
-              filteredMedicines.map((m) => (
+              filteredMedicines.map((m, idx) => (
+                <Reveal key={m.id} index={idx}>
                 <MedicineDoseCard
-                  key={m.id}
                   medicine={m}
                   theme={theme}
                   activeTab={activeTab}
@@ -629,6 +630,7 @@ export default function MedicineScreen() {
                   currentHMS={currentHMS}
                   onLog={handleLog}
                 />
+                </Reveal>
               ))
             )}
           </View>

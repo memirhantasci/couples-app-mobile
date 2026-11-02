@@ -44,6 +44,8 @@ import { PendingLettersBadge } from "@/components/home/PendingLettersCard";
 import { useHomeSpotlightTour } from "@/hooks/useHomeSpotlightTour";
 import { type SpotlightStep } from "@/components/tour/SpotlightTour";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
+import { Reveal } from "@/components/ui/Reveal";
+import { CountUp } from "@/components/ui/CountUp";
 import { getHomeSpotlightSteps, type HomeSpotlightTargetId } from "@/constants/featureGuides";
 import { DEMO_HOME_DATA, DEMO_LOVE_SCORE } from "@/constants/demoData";
 import {
@@ -590,6 +592,7 @@ export default function HomeScreen() {
 
           {/* ─── 2. HERO İLİŞKİ SAYACI KARTI ─── */}
           {/* Yıldönümüne ≤3 gün kala ve 14 Şubat'ta kartın etrafında altın ışıltı; kart (counterRef) aynı kalır */}
+          <Reveal index={1}>
           <AnniversaryGlow active={specialDay.glow} radius={24} isLight={isLight}>
           <View
             ref={counterRef}
@@ -625,7 +628,11 @@ export default function HomeScreen() {
                 <View style={[styles.counterIconCircle, { backgroundColor: theme.pillAccentBg }]}>
                   <Heart size={16} color={theme.accent} fill={theme.accent} />
                 </View>
-                <Text style={[styles.counterNumber, { color: theme.text }]}>{relDate || isDemoMode ? daysSinceTogether : "—"}</Text>
+                {relDate || isDemoMode ? (
+                  <CountUp value={daysSinceTogether} style={[styles.counterNumber, { color: theme.text }]} />
+                ) : (
+                  <Text style={[styles.counterNumber, { color: theme.text }]}>—</Text>
+                )}
                 <Text style={[styles.counterDesc, { color: theme.textSecondary }]}>{t("home.counters.together")}</Text>
               </View>
 
@@ -634,14 +641,20 @@ export default function HomeScreen() {
                 <View style={[styles.counterIconCircle, { backgroundColor: isLight ? "rgba(230, 192, 85, 0.15)" : "rgba(255,255,255,0.06)" }]}>
                   <Sparkles size={16} color={isLight ? "#B7791F" : "#E6C055"} />
                 </View>
-                <Text style={[styles.counterNumber, { color: theme.text }]}>{meetDate || isDemoMode ? daysSinceMeeting : "—"}</Text>
+                {meetDate || isDemoMode ? (
+                  <CountUp value={daysSinceMeeting} style={[styles.counterNumber, { color: theme.text }]} />
+                ) : (
+                  <Text style={[styles.counterNumber, { color: theme.text }]}>—</Text>
+                )}
                 <Text style={[styles.counterDesc, { color: theme.textSecondary }]}>{t("home.counters.inMyLife")}</Text>
               </View>
             </View>
           </View>
           </AnniversaryGlow>
+          </Reveal>
 
           {/* ─── 3. HIZLI ERİŞİM KISAYOLLARI (QUICK ACTIONS) ─── */}
+          <Reveal index={2}>
           <View ref={shortcutsRef} collapsable={false} style={styles.quickActionsContainer}>
             <TouchableOpacity 
               style={[styles.actionPill, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}
@@ -687,14 +700,17 @@ export default function HomeScreen() {
               <Text style={[styles.actionPillText, { color: theme.textSecondary }]}>{t("tabs.meetings.label")}</Text>
             </TouchableOpacity>
           </View>
+          </Reveal>
 
           {/* ─── 4. MOD SEÇİMİ (günlük ana aksiyon: kısayolların hemen altında, ilk ekranda görünür) ─── */}
-          <View ref={moodRef} collapsable={false}>
-            <MoodSelector
-              currentMood={dashboardData?.currentMood}
-              theme={theme}
-            />
-          </View>
+          <Reveal index={3}>
+            <View ref={moodRef} collapsable={false}>
+              <MoodSelector
+                currentMood={dashboardData?.currentMood}
+                theme={theme}
+              />
+            </View>
+          </Reveal>
 
           {/* ─── 5. GÜNÜN SÖZÜ ─── */}
           <View style={[styles.quoteCard, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}>
@@ -708,12 +724,14 @@ export default function HomeScreen() {
           </View>
 
           {/* ─── 6. AŞK ÖLÇER ─── */}
+          <Reveal index={5}>
           <LoveMeter 
             value={loveMeter} 
             theme={theme} 
             subtitle={loveSubtitle} 
             isLoading={!activeLoveScore && isLoveScoreLoading} 
           />
+          </Reveal>
 
           {/* ─── COUPLE WRAPPED BANNER (Ayda 1 Kez Dönemsel) ─── */}
           {showWrappedBanner && isWrappedPeriod && isWrappedAccountEligible && (
@@ -770,7 +788,9 @@ export default function HomeScreen() {
           )}
 
           {/* ─── 8. GÜNLÜK NOT ─── */}
-          <DailyNoteCard existingNote={dashboardData?.currentNote} theme={theme} />
+          <Reveal index={6}>
+            <DailyNoteCard existingNote={dashboardData?.currentNote} theme={theme} />
+          </Reveal>
         </KeyboardAwareScrollView>
       </View>
       <LazySpotlightTour visible={isSpotlightVisible} steps={spotlightSteps} onClose={closeSpotlight} />
