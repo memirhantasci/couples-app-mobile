@@ -10,7 +10,7 @@ export default function MapScreen() {
     <ScreenBackground>
       <View style={styles.container}>
         <View style={styles.card}>
-          <MapPin size={48} color="#4F9FCB" style={{ marginBottom: 14 }} />
+          <MapPin size={48} color="#4A8CB3" style={{ marginBottom: 14 }} />
           <Text style={styles.title}>{t("notifications.push.map.subtitle")}</Text>
           <Text style={styles.desc}>
             {t("map.web.description")}

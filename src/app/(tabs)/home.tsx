@@ -721,7 +721,7 @@ export default function HomeScreen() {
               style={[
                 styles.wrappedBanner,
                 {
-                  borderColor: theme.gender === "male" ? "rgba(90, 143, 219, 0.35)" : "rgba(229, 84, 111, 0.35)",
+                  borderColor: theme.gender === "male" ? "rgba(79, 125, 190, 0.35)" : "rgba(216, 88, 112, 0.35)",
                   shadowColor: theme.accent,
                 },
               ]}
@@ -796,7 +796,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: "hidden",
     borderWidth: 1,
-    shadowColor: "#E5546F",
+    shadowColor: "#D85870",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -819,7 +819,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(229, 84, 111, 0.2)",
+    backgroundColor: "rgba(216, 88, 112, 0.2)",
     justifyContent: "center",
     alignItems: "center",
   },

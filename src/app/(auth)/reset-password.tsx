@@ -206,7 +206,7 @@ export default function ResetPasswordScreen() {
 
           {!!error && (
             <View style={{ backgroundColor: "rgba(200, 33, 63,0.14)", borderRadius: 18, padding: 14, marginBottom: 16, marginTop: 10 }}>
-              <Text style={{ color: "#E5546F", fontSize: 14, textAlign: "center" }}>
+              <Text style={{ color: "#D85870", fontSize: 14, textAlign: "center" }}>
                 {error}
               </Text>
             </View>

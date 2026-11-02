@@ -16,7 +16,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
 import { APP_NAME } from "@/constants/brand";
 
-const ACCENT = "#E5546F";
+const ACCENT = "#D85870";
 
 export default function WelcomeScreen() {
   const { t } = useTranslation();

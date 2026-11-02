@@ -46,7 +46,7 @@ function PhotoSingleCellBase({ item, index, isMine, theme, isLight, onPress, onD
             onPress={() => onDelete(item.id)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Trash2 color="#E8617A" size={15} />
+            <Trash2 color="#D85F78" size={15} />
           </TouchableOpacity>
         )}
       </View>

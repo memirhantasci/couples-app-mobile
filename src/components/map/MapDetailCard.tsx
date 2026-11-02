@@ -84,7 +84,7 @@ function DeleteButton({ onPress }: { onPress: () => void }) {
   const { t } = useTranslation();
   return (
     <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.delete")} style={styles.deleteActionBtn} onPress={onPress} activeOpacity={0.8}>
-      <Trash2 size={15} color="#E5546F" />
+      <Trash2 size={15} color="#D85870" />
     </TouchableOpacity>
   );
 }
@@ -439,15 +439,15 @@ const styles = StyleSheet.create({
 
   // Aşk Notu Detay
   noteMessageCard: {
-    backgroundColor: "rgba(229, 84, 111, 0.1)",
+    backgroundColor: "rgba(216, 88, 112, 0.1)",
     borderRadius: 14,
     padding: 12,
     borderWidth: 1,
-    borderColor: "rgba(229, 84, 111, 0.25)",
+    borderColor: "rgba(216, 88, 112, 0.25)",
   },
   quoteMark: {
     fontSize: 24,
-    color: "#E5546F",
+    color: "#D85870",
     fontFamily: "Inter_700Bold",
     lineHeight: 22,
     marginBottom: -4,
@@ -550,10 +550,10 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: "rgba(229, 84, 111, 0.15)",
+    backgroundColor: "rgba(216, 88, 112, 0.15)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(229, 84, 111, 0.3)",
+    borderColor: "rgba(216, 88, 112, 0.3)",
   },
 });

@@ -230,7 +230,7 @@ export default function VerifyScreen() {
       <View
         style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#080811" }}
       >
-        <ActivityIndicator color="#E5546F" size="large" />
+        <ActivityIndicator color="#D85870" size="large" />
         <Text
           style={{ color: "rgba(255,255,255,0.6)", marginTop: 16, fontSize: 15 }}
         >
@@ -275,8 +275,8 @@ export default function VerifyScreen() {
                 width: 92,
                 height: 92,
                 borderRadius: 30,
-                backgroundColor: "rgba(229, 84, 111,0.14)",
-                shadowColor: "#E5546F",
+                backgroundColor: "rgba(216, 88, 112,0.14)",
+                shadowColor: "#D85870",
                 shadowOffset: { width: 0, height: 10 },
                 shadowOpacity: 0.2,
                 shadowRadius: 20,
@@ -285,7 +285,7 @@ export default function VerifyScreen() {
                 marginBottom: 20,
               }}
             >
-              <Mail color="#E5546F" size={32} />
+              <Mail color="#D85870" size={32} />
             </View>
 
             <Text
@@ -355,7 +355,7 @@ export default function VerifyScreen() {
                   backgroundColor: "rgba(255,255,255,0.07)",
                   borderWidth: 1.5,
                   borderColor:
-                    focusedIndex === index || digit ? "#E5546F" : "transparent",
+                    focusedIndex === index || digit ? "#D85870" : "transparent",
                   color: "#FFFFFF",
                   fontSize: 22,
                   fontFamily: "Inter_700Bold",
@@ -366,7 +366,7 @@ export default function VerifyScreen() {
           </View>
 
           {!!errorMsg && (
-            <Text style={{ color: "#E5546F", textAlign: "center", marginBottom: 20, fontSize: 14 }}>
+            <Text style={{ color: "#D85870", textAlign: "center", marginBottom: 20, fontSize: 14 }}>
               {errorMsg}
             </Text>
           )}
@@ -378,14 +378,14 @@ export default function VerifyScreen() {
             activeOpacity={0.85}
           >
             <LinearGradient
-              colors={["#E5546F", "#E5546F"]} // Mockup shows solid looking pink/red, let's use the exact color from mockup or similar gradient
+              colors={["#D85870", "#D85870"]} // Mockup shows solid looking pink/red, let's use the exact color from mockup or similar gradient
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={{
                 paddingVertical: 18,
                 alignItems: "center",
                 borderRadius: 30,
-                shadowColor: "#E5546F",
+                shadowColor: "#D85870",
                 shadowOffset: { width: 0, height: 6 },
                 shadowOpacity: 0.2,
                 shadowRadius: 14,
@@ -406,7 +406,7 @@ export default function VerifyScreen() {
               {t("auth.verify.noCode")}{" "}
             </Text>
             <TouchableOpacity onPress={handleResend} disabled={isLoading}>
-              <Text style={{ color: "#E5546F", fontSize: 14, fontFamily: "Inter_600SemiBold" }}>
+              <Text style={{ color: "#D85870", fontSize: 14, fontFamily: "Inter_600SemiBold" }}>
                 {t("auth.verify.resend")}
               </Text>
             </TouchableOpacity>

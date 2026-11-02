@@ -464,14 +464,14 @@ export default function MenuScreen() {
                   onPress={handleSignOut}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.iconCircle, { backgroundColor: "rgba(229, 84, 111, 0.15)" }]}>
-                    <LogOut color="#E5546F" size={18} />
+                  <View style={[styles.iconCircle, { backgroundColor: "rgba(216, 88, 112, 0.15)" }]}>
+                    <LogOut color="#D85870" size={18} />
                   </View>
                   <View style={styles.menuTextContainer}>
-                    <Text style={[styles.menuTitle, { color: "#E5546F" }]}>{t("auth.signOut")}</Text>
+                    <Text style={[styles.menuTitle, { color: "#D85870" }]}>{t("auth.signOut")}</Text>
                     <Text style={styles.menuSub}>{t("menu.signOut.subtitle")}</Text>
                   </View>
-                  <ChevronRight color="rgba(229, 84, 111, 0.4)" size={18} />
+                  <ChevronRight color="rgba(216, 88, 112, 0.4)" size={18} />
                 </TouchableOpacity>
                           </View>
 </View>

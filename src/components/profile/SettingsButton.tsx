@@ -22,8 +22,8 @@ export function SettingsButton({
   variant = "primary",
 }: SettingsButtonProps) {
   const isPrimary = variant === "primary";
-  const background = isPrimary ? theme.accent : variant === "tinted" ? `${theme.accent}22` : variant === "danger" ? "rgba(229, 84, 111,0.14)" : fieldSurface(theme);
-  const textColor = isPrimary ? "#ffffff" : variant === "tinted" ? theme.accent : variant === "danger" ? "#E5546F" : theme.text;
+  const background = isPrimary ? theme.accent : variant === "tinted" ? `${theme.accent}22` : variant === "danger" ? "rgba(216, 88, 112,0.14)" : fieldSurface(theme);
+  const textColor = isPrimary ? "#ffffff" : variant === "tinted" ? theme.accent : variant === "danger" ? "#D85870" : theme.text;
 
   return (
     <Pressable

@@ -70,10 +70,10 @@ export function AvatarActionSheet({ visible, onClose, onPick, onRemove, canRemov
 
           {canRemove && (
             <TouchableOpacity style={rowStyle} onPress={onRemove} activeOpacity={0.8}>
-              <View style={[styles.iconCircle, { backgroundColor: "rgba(229, 84, 111, 0.15)" }]}>
-                <Trash2 size={18} color="#E5546F" />
+              <View style={[styles.iconCircle, { backgroundColor: "rgba(216, 88, 112, 0.15)" }]}>
+                <Trash2 size={18} color="#D85870" />
               </View>
-              <Text style={[styles.rowText, { color: "#E5546F" }]}>{t("profile.avatar.removeCurrent")}</Text>
+              <Text style={[styles.rowText, { color: "#D85870" }]}>{t("profile.avatar.removeCurrent")}</Text>
             </TouchableOpacity>
           )}
 

@@ -1,12 +1,12 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { logger } from "@/utils/logger";
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, BackHandler } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { formEntryOf } from "@/lib/formEntry";
 import { Check, Calendar as CalendarIcon, Clock, BookOpen } from "lucide-react-native";
 import type { AppTheme } from "@/lib/theme";
@@ -31,6 +31,10 @@ interface CachedDailyNote {
   content: string;
 }
 
+/** Eski kayıtlardaki "[Mod: ...]" ve "# başlık" önekleri editörde gösterilmez. */
+const cleanPageText = (text: string) =>
+  text.replace(/^\[Mod:\s*.*?\]\n?/, "").replace(/^#\s*.*?\n\n?/, "").trim();
+
 export default function AddDailyNoteScreen() {
   const { t, i18n } = useTranslation();
   const { session } = useAuth();
@@ -42,32 +46,59 @@ export default function AddDailyNoteScreen() {
   const insets = useSafeAreaInsets();
   const userId = session?.user?.id ?? null;
 
-  const [content, setContent] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  // Bu güne ait kayıtlı sayfa varsa kimliği: doluysa ekran "devam et / düzenle" modundadır
-  const [noteId, setNoteId] = useState<number | null>(null);
-  const [isLoadingNote, setIsLoadingNote] = useState(true);
-
   // Hangi günün sayfası açılıyor: günlük ekranından gelen `date` parametresi (düzenleme ya da bugünün sayfası)
   const params = useLocalSearchParams();
   const rawDate = typeof params.date === "string" ? params.date : "";
   const targetDate = /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : dayjs().format("YYYY-MM-DD");
   const isToday = targetDate === dayjs().format("YYYY-MM-DD");
 
+  // O günün sayfası günlük listesinin önbelleğinde varsa ekran ilk karede dolu açılır: boş "yeni sayfa"
+  // görünüp bir saniye sonra dolmaz
+  const readCachedPage = (date: string): { id: number; text: string } | null => {
+    const cached = queryClient
+      .getQueryData<CachedDailyNote[]>(["daily_notes_history", userId, false])
+      ?.find((n) => n.date === date);
+    if (!cached) return null;
+    const text = decrypt(cached.content);
+    if (!text) return null;
+    return { id: cached.id, text: cleanPageText(text) };
+  };
+
+  const [initialPage] = useState(() => readCachedPage(targetDate));
+  const [content, setContent] = useState(initialPage?.text ?? "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Bu güne ait kayıtlı sayfa varsa kimliği: doluysa ekran "devam et / düzenle" modundadır
+  const [noteId, setNoteId] = useState<number | null>(initialPage?.id ?? null);
+  const [isLoadingNote, setIsLoadingNote] = useState(!initialPage);
+
   // Ekran sekme olarak bellekte kalır: yeni bir açılışta (formEntry) sayfa baştan kurulur. Menüye girip
   // dönmek açılış sayılmaz; yazılan metin yerinde kalır.
   const entry = formEntryOf(params);
   const [seenEntry, setSeenEntry] = useState(entry);
   if (seenEntry !== entry) {
+    const page = readCachedPage(targetDate);
     setSeenEntry(entry);
-    setContent("");
-    setNoteId(null);
-    setIsLoadingNote(true);
+    setContent(page?.text ?? "");
+    setNoteId(page?.id ?? null);
+    setIsLoadingNote(!page);
     setIsSubmitting(false);
   }
 
+  // Geri: her zaman Günlüklerim ekranına (ana sayfaya değil); Android geri tuşu da aynı yere gider
+  const goBackToJournal = () => router.replace("/(tabs)/daily-notes");
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+        router.replace("/(tabs)/daily-notes");
+        return true;
+      });
+      return () => sub.remove();
+    }, [router])
+  );
+
   // O günün kayıtlı sayfası varsa editöre yüklenir: sıfırdan boş sayfa değil, kaldığın yerden devam edersin
   useEffect(() => {
+    if (!isLoadingNote) return;
     let cancelled = false;
     (async () => {
       if (!userId) {
@@ -92,7 +123,7 @@ export default function AddDailyNoteScreen() {
             return;
           }
           setNoteId(data.id);
-          setContent(text.replace(/^\[Mod:\s*.*?\]\n?/, "").replace(/^#\s*.*?\n\n?/, "").trim());
+          setContent(cleanPageText(text));
         }
       } catch (error) {
         if (!cancelled) logger.error(error);
@@ -184,6 +215,7 @@ export default function AddDailyNoteScreen() {
         <ScreenHeader
           title={noteId ? t("dailyNotes.add.editTitle") : t("dailyNotes.add.title")}
           subtitle={noteId ? t("dailyNotes.add.editSubtitle") : t("dailyNotes.add.subtitle")}
+          onBack={goBackToJournal}
           fallbackRoute="/(tabs)/daily-notes"
           actions={
             <TouchableOpacity 

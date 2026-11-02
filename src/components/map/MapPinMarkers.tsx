@@ -83,7 +83,7 @@ function NoteMarkerPinBase({ note, avatarUrl, onSelect }: NoteMarkerPinProps) {
             </View>
           </View>
         ) : (
-          <LinearGradient colors={["#E5546F", "#E01E5A"]} style={styles.noteEnvelopePill}>
+          <LinearGradient colors={["#D85870", "#E01E5A"]} style={styles.noteEnvelopePill}>
             <Text style={{ fontSize: 13 }}>💌</Text>
           </LinearGradient>
         )}
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     width: 17,
     height: 17,
     borderRadius: 9,
-    backgroundColor: "#E5546F",
+    backgroundColor: "#D85870",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(229, 84, 111, 0.25)",
+    backgroundColor: "rgba(216, 88, 112, 0.25)",
   },
   pendingMarkerCore: {
     width: 28,

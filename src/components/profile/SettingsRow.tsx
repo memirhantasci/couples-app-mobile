@@ -3,7 +3,7 @@ import { View, Text, Pressable, ActivityIndicator, StyleSheet } from "react-nati
 import { ChevronRight, type LucideIcon } from "lucide-react-native";
 import type { AppTheme } from "@/lib/theme";
 
-const DESTRUCTIVE = "#E5546F";
+const DESTRUCTIVE = "#D85870";
 
 interface SettingsRowProps {
   icon?: LucideIcon;

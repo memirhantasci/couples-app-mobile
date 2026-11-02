@@ -175,7 +175,7 @@ export default function ForgotPasswordScreen() {
                 marginBottom: 16,
               }}
             >
-              <Text style={{ color: "#E5546F", fontSize: 14, textAlign: "center" }}>
+              <Text style={{ color: "#D85870", fontSize: 14, textAlign: "center" }}>
                 {errorMsg}
               </Text>
             </View>

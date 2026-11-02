@@ -820,7 +820,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(229, 84, 111, 0.25)",
+    borderColor: "rgba(216, 88, 112, 0.25)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.15,
@@ -893,7 +893,7 @@ const styles = StyleSheet.create({
   confirmBtn: {
     borderRadius: 16,
     overflow: "hidden",
-    shadowColor: "#E5546F",
+    shadowColor: "#D85870",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 10,

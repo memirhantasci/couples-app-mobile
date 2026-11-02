@@ -1170,7 +1170,7 @@ export const OurStarScreen: React.FC = () => {
     return (
       <View style={styles.loadingContainer}>
         <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-        <ActivityIndicator size="large" color="#4F9FCB" />
+        <ActivityIndicator size="large" color="#4A8CB3" />
         <Text style={styles.loadingText}>{t('stars.screen.loading')}</Text>
       </View>
     );
@@ -1183,7 +1183,7 @@ export const OurStarScreen: React.FC = () => {
       {/* ─── REALTIME IŞIMA DALGASI (GLOW WAVE OVERLAY) ─────────────── */}
       <Animated.View style={[styles.glowWaveOverlay, glowWaveStyle]} pointerEvents="none">
         <LinearGradient
-          colors={['rgba(245, 158, 11, 0.45)', 'rgba(79, 159, 203, 0.25)', 'transparent']}
+          colors={['rgba(245, 158, 11, 0.45)', 'rgba(74, 140, 179, 0.25)', 'transparent']}
           start={{ x: 0.5, y: 0.4 }}
           end={{ x: 0.5, y: 1 }}
           style={StyleSheet.absoluteFill}
@@ -1325,7 +1325,7 @@ export const OurStarScreen: React.FC = () => {
             {isAmbientMuted ? (
               <VolumeX size={16} color={hudLight ? '#6B7280' : 'rgba(255, 255, 255, 0.65)'} />
             ) : (
-              <Volume2 size={16} color={hudLight ? '#0284C7' : '#4F9FCB'} />
+              <Volume2 size={16} color={hudLight ? '#0284C7' : '#4A8CB3'} />
             )}
           </TouchableOpacity>
 
@@ -1338,12 +1338,12 @@ export const OurStarScreen: React.FC = () => {
                 styles.cosmicBagBtn,
                 {
                   backgroundColor: hudLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(7, 5, 18, 0.65)',
-                  borderColor: hudLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(79, 159, 203, 0.35)',
+                  borderColor: hudLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(74, 140, 179, 0.35)',
                 },
               ]}
               accessibilityLabel={t('stars.screen.searchA11y')}
             >
-              <Search size={16} color={hudLight ? '#0284C7' : '#4F9FCB'} />
+              <Search size={16} color={hudLight ? '#0284C7' : '#4A8CB3'} />
             </TouchableOpacity>
           )}
         </View>
@@ -1502,7 +1502,7 @@ export const OurStarScreen: React.FC = () => {
                 ? 'rgba(245, 158, 11, 0.6)'
                 : isLight
                 ? 'rgba(0, 0, 0, 0.1)'
-                : 'rgba(79, 159, 203, 0.35)',
+                : 'rgba(74, 140, 179, 0.35)',
             },
             selectedMacroStar.is_mine && (isLight ? { backgroundColor: '#FFFDF7' } : styles.macroStarCardMine),
           ]}
@@ -1886,7 +1886,7 @@ export const OurStarScreen: React.FC = () => {
               accessibilityLabel={viewMode === 'micro' ? t('stars.card.ascendA11y') : t('stars.card.enterStarA11y')}
             >
               {viewMode === 'micro' ? (
-                <Globe size={20} color="#4F9FCB" />
+                <Globe size={20} color="#4A8CB3" />
               ) : (
                 <Orbit size={20} color="#FBBF24" />
               )}
@@ -2255,7 +2255,7 @@ const styles = StyleSheet.create({
     zIndex: 25,
     backgroundColor: 'rgba(10, 8, 24, 0.94)',
     borderWidth: 1.2,
-    borderColor: 'rgba(79, 159, 203, 0.35)',
+    borderColor: 'rgba(74, 140, 179, 0.35)',
     borderRadius: 18,
     padding: 14,
     shadowColor: '#000',
@@ -2405,12 +2405,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 8,
-    backgroundColor: 'rgba(79, 159, 203, 0.18)',
+    backgroundColor: 'rgba(74, 140, 179, 0.18)',
     borderWidth: 0.8,
-    borderColor: 'rgba(79, 159, 203, 0.4)',
+    borderColor: 'rgba(74, 140, 179, 0.4)',
   },
   availableBadgeText: {
-    color: '#4F9FCB',
+    color: '#4A8CB3',
     fontSize: 10,
     fontWeight: '700',
   },
@@ -2437,7 +2437,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   macroStarHighlight: {
-    color: '#4F9FCB',
+    color: '#4A8CB3',
     fontWeight: '700',
   },
   macroStarLightRow: {
@@ -2626,7 +2626,7 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     overflow: 'hidden',
-    shadowColor: '#4F9FCB',
+    shadowColor: '#4A8CB3',
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 6,

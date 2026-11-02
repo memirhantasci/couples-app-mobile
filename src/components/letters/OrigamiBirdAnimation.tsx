@@ -66,7 +66,7 @@ interface FlightPath {
 export function OrigamiBirdAnimation({
   visible,
   onComplete,
-  accentColor = "#E5546F",
+  accentColor = "#D85870",
 }: OrigamiBirdAnimationProps) {
   // İçerik yalnızca görünürken mount edilir: her gösterim sıfırdan, temiz durumla başlar
   if (!visible) return null;
@@ -287,7 +287,7 @@ function FlightScene({
           <View style={styles.letterSheet}>
             <View style={styles.letterHeader}>
               <View style={styles.stampCircle}>
-                <Heart size={16} color="#E5546F" fill="#E5546F" />
+                <Heart size={16} color="#D85870" fill="#D85870" />
               </View>
               <Text style={styles.letterTitle}>{t("letters.origami.title")}</Text>
             </View>
@@ -413,8 +413,8 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 18,
     borderWidth: 1.5,
-    borderColor: "rgba(229, 84, 111, 0.25)",
-    shadowColor: "#E5546F",
+    borderColor: "rgba(216, 88, 112, 0.25)",
+    shadowColor: "#D85870",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
     shadowRadius: 18,
@@ -426,14 +426,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(229, 84, 111, 0.15)",
+    borderBottomColor: "rgba(216, 88, 112, 0.15)",
     paddingBottom: 10,
   },
   stampCircle: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "rgba(229, 84, 111, 0.12)",
+    backgroundColor: "rgba(216, 88, 112, 0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderTopWidth: 1,
-    borderTopColor: "rgba(229, 84, 111, 0.12)",
+    borderTopColor: "rgba(216, 88, 112, 0.12)",
     paddingTop: 8,
     minHeight: 30,
   },

@@ -20,7 +20,7 @@ interface LegendEntry {
 const LEGEND_ENTRIES: LegendEntry[] = [
   { labelKey: "calendar.legend.note", color: CALENDAR_COLORS.note, rgb: "236,72,153", textLight: "#BE185D", textDark: "#F472B6" },
   { labelKey: "calendar.legend.myMood", color: CALENDAR_COLORS.myMood, rgb: "245,158,11", textLight: "#B45309", textDark: "#FBBF24" },
-  { labelKey: "calendar.legend.partner", color: CALENDAR_COLORS.partnerMood, rgb: "14,165,233", textLight: "#0369A1", textDark: "#4F9FCB" },
+  { labelKey: "calendar.legend.partner", color: CALENDAR_COLORS.partnerMood, rgb: "14,165,233", textLight: "#0369A1", textDark: "#4A8CB3" },
   { labelKey: "calendar.legend.photo", color: CALENDAR_COLORS.photo, rgb: "16,185,129", textLight: "#047857", textDark: "#34D399" },
   { labelKey: "tabs.meetings.label", color: CALENDAR_COLORS.meeting, rgb: "139,92,246", textLight: "#7C3AED", textDark: "#A78BFA" },
 ];

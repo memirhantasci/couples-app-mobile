@@ -874,12 +874,12 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                     styles.skyGuideCard,
                     {
                       backgroundColor: theme.unitBg,
-                      borderColor: isLight ? 'rgba(79, 159, 203, 0.35)' : 'rgba(79, 159, 203, 0.2)',
+                      borderColor: isLight ? 'rgba(74, 140, 179, 0.35)' : 'rgba(74, 140, 179, 0.2)',
                     },
                   ]}
                 >
                   <View style={styles.skyGuideHeader}>
-                    <Globe size={24} color="#4F9FCB" />
+                    <Globe size={24} color="#4A8CB3" />
                     <Text style={[styles.skyGuideTitle, { color: theme.text }]}>{t('stars.connect.skyGuideTitle')}</Text>
                   </View>
 
@@ -926,7 +926,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
                     style={styles.goToSkyBtn}
                   >
                     <LinearGradient
-                      colors={['#4F9FCB', '#6366F1']}
+                      colors={['#4A8CB3', '#6366F1']}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                       style={styles.goToSkyBtnGradient}
@@ -1505,15 +1505,15 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: 'rgba(79, 159, 203, 0.2)',
+    backgroundColor: 'rgba(74, 140, 179, 0.2)',
     borderWidth: 1,
-    borderColor: '#4F9FCB',
+    borderColor: '#4A8CB3',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 1,
   },
   stepNumberText: {
-    color: '#4F9FCB',
+    color: '#4A8CB3',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -1523,7 +1523,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   stepHighlight: {
-    color: '#4F9FCB',
+    color: '#4A8CB3',
     fontWeight: '600',
   },
   goToSkyBtn: {

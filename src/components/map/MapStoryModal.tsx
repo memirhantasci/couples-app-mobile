@@ -174,7 +174,7 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
           {!stats ? (
             <View style={styles.emptyCard}>
               <View style={styles.emptyIconCircle}>
-                <Compass size={26} color="#E5546F" />
+                <Compass size={26} color="#D85870" />
               </View>
               <Text style={styles.emptyTitle}>{t("map.story.emptyTitle")}</Text>
               <Text style={styles.emptyText}>
@@ -193,7 +193,7 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
             {/* Kart Header */}
             <View style={styles.cardTopRow}>
               <View style={styles.iconCircle}>
-                <Compass size={18} color="#E5546F" />
+                <Compass size={18} color="#D85870" />
               </View>
               <Text style={styles.cardHeaderTitle}>OUR LOVE ROUTE</Text>
               <Text style={styles.cardDateText}>{dayjs().format("YYYY")}</Text>
@@ -256,7 +256,7 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
             style={styles.shareBtn}
           >
             <LinearGradient
-              colors={["#E5546F", "#C8213F"]}
+              colors={["#D85870", "#C8213F"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.shareBtnGradient}
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "rgba(229, 84, 111, 0.12)",
+    backgroundColor: "rgba(216, 88, 112, 0.12)",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 4,
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     padding: 24,
     elevation: 8,
-    shadowColor: "#E5546F",
+    shadowColor: "#D85870",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.2,
     shadowRadius: 14,
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "rgba(229, 84, 111, 0.2)",
+    backgroundColor: "rgba(216, 88, 112, 0.2)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#E5546F",
+    backgroundColor: "#D85870",
   },
   watermarkText: {
     color: "rgba(255, 255, 255, 0.55)",
@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 26,
     overflow: "hidden",
-    shadowColor: "#E5546F",
+    shadowColor: "#D85870",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 10,

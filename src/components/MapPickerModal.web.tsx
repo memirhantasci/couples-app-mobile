@@ -34,7 +34,7 @@ export function MapPickerModal({
           <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} onPress={onClose} style={styles.closeBtn}>
             <X size={18} color="#FFFFFF" />
           </TouchableOpacity>
-          <MapPin size={40} color="#4F9FCB" style={{ marginBottom: 12 }} />
+          <MapPin size={40} color="#4A8CB3" style={{ marginBottom: 12 }} />
           <Text style={styles.title}>{resolvedTitle}</Text>
           <Text style={styles.desc}>
             {t("map.picker.webNote")}
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   actionBtn: {
-    backgroundColor: "#4F9FCB",
+    backgroundColor: "#4A8CB3",
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 20,

@@ -658,9 +658,9 @@ export default function LoginScreen() {
 
   // ─── Gender & button accent ───────────────────────────────────────────────
   const isMale = regGender === "male";
-  const activeAccent = mode === "register" && isMale ? "#5A8FDB" : "#E5546F";
+  const activeAccent = mode === "register" && isMale ? "#4F7DBE" : "#D85870";
   const activeGradient = mode === "register" && isMale
-    ? (["#5A8FDB", "#1B6FD8"] as const)
+    ? (["#4F7DBE", "#1B6FD8"] as const)
     : (["#E04668", "#C8213F", "#C0006B"] as const);
 
   const scrollContentStyle = StyleSheet.flatten([
@@ -696,7 +696,7 @@ export default function LoginScreen() {
       <View 
         style={[
           styles.bottomAmbientGlow, 
-          { backgroundColor: mode === "register" && isMale ? "rgba(90, 143, 219, 0.12)" : "rgba(229, 84, 111, 0.12)" }
+          { backgroundColor: mode === "register" && isMale ? "rgba(79, 125, 190, 0.12)" : "rgba(216, 88, 112, 0.12)" }
         ]} 
         pointerEvents="none" 
       />
@@ -987,8 +987,8 @@ export default function LoginScreen() {
                 <Text style={styles.fieldLabel}>{t("auth.register.genderLabel")}</Text>
                 <View style={styles.genderRow}>
                   {([
-                    { val: "female" as const, label: t("auth.register.genderFemale"), color: "#E5546F", bg: "rgba(229, 84, 111, 0.14)" },
-                    { val: "male" as const, label: t("auth.register.genderMale"), color: "#5A8FDB", bg: "rgba(90, 143, 219, 0.14)" },
+                    { val: "female" as const, label: t("auth.register.genderFemale"), color: "#D85870", bg: "rgba(216, 88, 112, 0.14)" },
+                    { val: "male" as const, label: t("auth.register.genderMale"), color: "#4F7DBE", bg: "rgba(79, 125, 190, 0.14)" },
                   ]).map(({ val, label, color, bg }) => {
                     const isSelected = regGender === val;
                     return (
@@ -1045,7 +1045,7 @@ export default function LoginScreen() {
           {/* ─── Hata Bildirimi ─── */}
           {!!errorMsg && (
             <View style={styles.errorBanner}>
-              <AlertCircle size={18} color="#E5546F" />
+              <AlertCircle size={18} color="#D85870" />
               <Text style={styles.errorBannerText}>{errorMsg}</Text>
             </View>
           )}
@@ -1174,7 +1174,7 @@ const styles = StyleSheet.create({
     width: 320,
     height: 320,
     borderRadius: 160,
-    backgroundColor: "rgba(229, 84, 111, 0.1)",
+    backgroundColor: "rgba(216, 88, 112, 0.1)",
   },
   bottomAmbientGlow: {
     position: "absolute",
@@ -1201,7 +1201,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 18,
     overflow: "hidden",
-    shadowColor: "#E5546F",
+    shadowColor: "#D85870",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.2,
     shadowRadius: 20,
@@ -1333,7 +1333,7 @@ const styles = StyleSheet.create({
   },
   errorBannerText: {
     flex: 1,
-    color: "#E5546F",
+    color: "#D85870",
     fontSize: 13,
     fontFamily: "Inter_500Medium",
   },

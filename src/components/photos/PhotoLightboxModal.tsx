@@ -77,7 +77,7 @@ export function PhotoLightboxModal({
               style={styles.lightboxDeleteBtn}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Trash2 size={18} color="#E8617A" />
+              <Trash2 size={18} color="#D85F78" />
             </TouchableOpacity>
           ) : (
             <View style={{ width: 40 }} />

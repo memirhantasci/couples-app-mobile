@@ -124,8 +124,8 @@ export default function PeriodTrackerScreen() {
   const calendarTheme = useMemo(() => ({
     calendarBackground: "transparent",
     textSectionTitleColor: theme.textMuted,
-    todayTextColor: "#E5546F",
-    selectedDayBackgroundColor: "#E5546F",
+    todayTextColor: "#D85870",
+    selectedDayBackgroundColor: "#D85870",
     selectedDayTextColor: "#ffffff",
     dayTextColor: theme.text,
     textDisabledColor: isLight ? "rgba(0,0,0,0.22)" : "rgba(255,255,255,0.2)",
@@ -149,7 +149,7 @@ export default function PeriodTrackerScreen() {
         marks[dayStr] = {
           customStyles: {
             container: {
-              backgroundColor: i === 0 ? '#E04668' : 'rgba(229, 84, 111, 0.75)',
+              backgroundColor: i === 0 ? '#E04668' : 'rgba(216, 88, 112, 0.75)',
               borderRadius: 18,
             },
             text: {
@@ -296,8 +296,8 @@ export default function PeriodTrackerScreen() {
           {isMaleLocked ? (
             <View style={[styles.luxuryLockCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
               <View style={styles.luxuryLockGlow}>
-                <View style={[styles.luxuryLockIconBox, { backgroundColor: "rgba(229, 84, 111, 0.15)", borderColor: "rgba(229, 84, 111, 0.35)" }]}>
-                  <Crown color="#E5546F" size={32} />
+                <View style={[styles.luxuryLockIconBox, { backgroundColor: "rgba(216, 88, 112, 0.15)", borderColor: "rgba(216, 88, 112, 0.35)" }]}>
+                  <Crown color="#D85870" size={32} />
                 </View>
               </View>
 
@@ -354,13 +354,13 @@ export default function PeriodTrackerScreen() {
               <View style={[styles.statusHeroCard, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}>
                 <LinearGradient
                   pointerEvents="none"
-                  colors={["rgba(229, 84, 111,0.28)", "rgba(229, 84, 111,0)"]}
+                  colors={["rgba(216, 88, 112,0.28)", "rgba(216, 88, 112,0)"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={StyleSheet.absoluteFill}
                 />
-                <View style={[styles.statusHeroIconBox, { backgroundColor: "rgba(229, 84, 111, 0.15)" }]}>
-                  <Droplet size={24} color="#E5546F" />
+                <View style={[styles.statusHeroIconBox, { backgroundColor: "rgba(216, 88, 112, 0.15)" }]}>
+                  <Droplet size={24} color="#D85870" />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.statusHeroTitle, { color: theme.text }]}>
@@ -387,8 +387,8 @@ export default function PeriodTrackerScreen() {
                   style={[
                     styles.quickStartBtn,
                     startedToday
-                      ? { backgroundColor: "rgba(229, 84, 111, 0.14)" }
-                      : { backgroundColor: "#E5546F", shadowColor: "#E5546F", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 8 },
+                      ? { backgroundColor: "rgba(216, 88, 112, 0.14)" }
+                      : { backgroundColor: "#D85870", shadowColor: "#D85870", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 8 },
                     loading && { opacity: 0.7 },
                   ]}
                 >
@@ -396,8 +396,8 @@ export default function PeriodTrackerScreen() {
                     <ActivityIndicator color="#ffffff" size="small" />
                   ) : startedToday ? (
                     <>
-                      <Check color="#E5546F" size={18} strokeWidth={3} />
-                      <Text style={[styles.quickStartBtnText, { color: "#E5546F" }]}>{t("period.today.logged")}</Text>
+                      <Check color="#D85870" size={18} strokeWidth={3} />
+                      <Text style={[styles.quickStartBtnText, { color: "#D85870" }]}>{t("period.today.logged")}</Text>
                     </>
                   ) : (
                     <>
@@ -412,7 +412,7 @@ export default function PeriodTrackerScreen() {
               {!isFemale && (
                 <View style={[styles.gentleGuideCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
                   <View style={styles.guideHeader}>
-                    <MessageCircleHeart size={18} color="#E5546F" />
+                    <MessageCircleHeart size={18} color="#D85870" />
                     <Text style={[styles.guideTitle, { color: theme.text }]}>{t("period.tips.title")}</Text>
                   </View>
                   <View style={styles.guideItemsBox}>
@@ -479,8 +479,8 @@ export default function PeriodTrackerScreen() {
                       return (
                         <View key={log.id} style={[styles.logCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
                           <View style={styles.logLeftCol}>
-                            <View style={[styles.logDropBadge, { backgroundColor: "rgba(229, 84, 111, 0.15)" }]}>
-                              <Droplet size={18} color="#E5546F" />
+                            <View style={[styles.logDropBadge, { backgroundColor: "rgba(216, 88, 112, 0.15)" }]}>
+                              <Droplet size={18} color="#D85870" />
                             </View>
                             <View>
                               <Text style={[styles.logDateText, { color: theme.text }]}>{logDate.locale(i18n.language).format("DD MMMM YYYY")}</Text>
@@ -505,8 +505,8 @@ export default function PeriodTrackerScreen() {
       <Modal visible={!!selectedDate} transparent animationType="fade" onRequestClose={() => setSelectedDate(null)}>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalBox, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}>
-            <View style={[styles.modalIconCircle, { backgroundColor: "rgba(229, 84, 111, 0.15)" }]}>
-              <Droplet size={28} color="#E5546F" />
+            <View style={[styles.modalIconCircle, { backgroundColor: "rgba(216, 88, 112, 0.15)" }]}>
+              <Droplet size={28} color="#D85870" />
             </View>
 
             <Text style={[styles.modalDateTitle, { color: theme.text }]}>
@@ -532,7 +532,7 @@ export default function PeriodTrackerScreen() {
               <TouchableOpacity
                 style={[
                   styles.modalConfirmBtn, 
-                  { backgroundColor: isAdding ? "#E5546F" : "rgba(239, 68, 68, 0.85)" }, 
+                  { backgroundColor: isAdding ? "#D85870" : "rgba(239, 68, 68, 0.85)" }, 
                   loading && { opacity: 0.7 }
                 ]}
                 disabled={loading}
@@ -759,8 +759,8 @@ const createStyles = (theme: AppTheme) => {
       alignSelf: "flex-start",
       fontSize: 12.5,
       fontFamily: "Inter_700Bold",
-      color: isLight ? "#E11D48" : "#E5546F",
-      backgroundColor: "rgba(229, 84, 111,0.14)",
+      color: isLight ? "#E11D48" : "#D85870",
+      backgroundColor: "rgba(216, 88, 112,0.14)",
       paddingHorizontal: 12,
       paddingVertical: 5,
       borderRadius: 12,

@@ -194,7 +194,7 @@ export const InAppNotificationBanner: React.FC<InAppNotificationBannerProps> = (
               <Mail size={16} color="#FFEBB8" strokeWidth={2.5} />
             </View>
             <View style={styles.sealHeartDot}>
-              <Heart size={8} color="#E8617A" fill="#E8617A" />
+              <Heart size={8} color="#D85F78" fill="#D85F78" />
             </View>
           </View>
         );
@@ -213,8 +213,8 @@ export const InAppNotificationBanner: React.FC<InAppNotificationBannerProps> = (
 
       case "medicine_reminder":
         return (
-          <View style={[styles.medicineCapsuleBadge, { borderColor: "#4F9FCB" }]}>
-            <Clock size={18} color="#4F9FCB" strokeWidth={2.4} />
+          <View style={[styles.medicineCapsuleBadge, { borderColor: "#4A8CB3" }]}>
+            <Clock size={18} color="#4A8CB3" strokeWidth={2.4} />
           </View>
         );
 
@@ -262,8 +262,8 @@ export const InAppNotificationBanner: React.FC<InAppNotificationBannerProps> = (
 
       default:
         return (
-          <View style={[styles.defaultBadge, { borderColor: "#E8617A" }]}>
-            <Heart size={17} color="#E8617A" fill="#E8617A" />
+          <View style={[styles.defaultBadge, { borderColor: "#D85F78" }]}>
+            <Heart size={17} color="#D85F78" fill="#D85F78" />
           </View>
         );
     }

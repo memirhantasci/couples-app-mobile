@@ -139,7 +139,7 @@ export const MicroStarHeader = memo(function MicroStarHeader({
         <Stat icon={<Sparkles size={11} color="#FBBF24" />} value={`%${luminosityPercent}`} label={t('stars.micro.statLight')}>
           <View style={styles.meter}>
             <LinearGradient
-              colors={luminosity >= 0.8 ? ['#FDE68A', '#F59E0B'] : ['#8CC4E0', '#4F9FCB']}
+              colors={luminosity >= 0.8 ? ['#FDE68A', '#F59E0B'] : ['#8CC4E0', '#4A8CB3']}
               start={{ x: 0, y: 0.5 }}
               end={{ x: 1, y: 0.5 }}
               style={[styles.meterFill, { width: `${luminosityPercent}%` }]}

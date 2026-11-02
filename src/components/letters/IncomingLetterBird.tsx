@@ -254,7 +254,7 @@ export function IncomingLetterBird({ arrival, onOpen, onDismiss }: IncomingLette
                   <Mail size={16} color="#FFEBB8" strokeWidth={2.5} />
                 </View>
                 <View style={styles.heartDot}>
-                  <Heart size={8} color="#E8617A" fill="#E8617A" />
+                  <Heart size={8} color="#D85F78" fill="#D85F78" />
                 </View>
               </View>
               <View style={styles.textCol}>

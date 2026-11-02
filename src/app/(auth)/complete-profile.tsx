@@ -22,8 +22,8 @@ import { localizeServerError } from "@/lib/serverErrors";
 type Gender = "male" | "female";
 
 const GENDER_OPTIONS: { value: Gender; labelKey: "common.gender.female" | "common.gender.male"; symbol: string; color: string; bg: string }[] = [
-  { value: "female", labelKey: "common.gender.female", symbol: "♀", color: "#E5546F", bg: "rgba(229, 84, 111, 0.14)" },
-  { value: "male", labelKey: "common.gender.male", symbol: "♂", color: "#5A8FDB", bg: "rgba(90, 143, 219, 0.14)" },
+  { value: "female", labelKey: "common.gender.female", symbol: "♀", color: "#D85870", bg: "rgba(216, 88, 112, 0.14)" },
+  { value: "male", labelKey: "common.gender.male", symbol: "♂", color: "#4F7DBE", bg: "rgba(79, 125, 190, 0.14)" },
 ];
 
 /**
@@ -48,9 +48,9 @@ export default function CompleteProfileScreen() {
   const [error, setError] = useState("");
 
   const selected = GENDER_OPTIONS.find((g) => g.value === gender);
-  const accent = selected?.color ?? "#E5546F";
+  const accent = selected?.color ?? "#D85870";
   const ctaColors = gender === "male"
-    ? (["#5A8FDB", "#1B6FD8"] as const)
+    ? (["#4F7DBE", "#1B6FD8"] as const)
     : (["#E04668", "#C8213F", "#C0006B"] as const);
 
   async function handleSave() {
@@ -196,7 +196,7 @@ export default function CompleteProfileScreen() {
 
           {!!error && (
             <View style={styles.errorBanner}>
-              <AlertCircle size={18} color="#E5546F" />
+              <AlertCircle size={18} color="#D85870" />
               <Text style={styles.errorText}>{error}</Text>
             </View>
           )}
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     width: 92,
     height: 92,
     borderRadius: 30,
-    backgroundColor: "rgba(229, 84, 111,0.14)",
+    backgroundColor: "rgba(216, 88, 112,0.14)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 20,
@@ -337,14 +337,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "rgba(229, 84, 111, 0.14)",
+    backgroundColor: "rgba(216, 88, 112, 0.14)",
     borderRadius: 18,
     padding: 14,
     marginBottom: 16,
   },
   errorText: {
     flex: 1,
-    color: "#E5546F",
+    color: "#D85870",
     fontSize: 13.5,
     lineHeight: 19,
   },

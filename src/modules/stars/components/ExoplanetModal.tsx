@@ -93,7 +93,7 @@ export interface PlanetTypeOption {
 }
 
 export const PLANET_TYPE_OPTIONS: readonly PlanetTypeOption[] = [
-  { type: 'terrestrial', labelKey: 'stars.exoplanet.types.terrestrial', palette: ['#4F9FCB', '#4F7FD6'] },
+  { type: 'terrestrial', labelKey: 'stars.exoplanet.types.terrestrial', palette: ['#4A8CB3', '#4F7FD6'] },
   { type: 'ocean_world', labelKey: 'stars.exoplanet.types.ocean_world', palette: ['#06B6D4', '#0284C7'] },
   { type: 'crystal', labelKey: 'stars.exoplanet.types.crystal', palette: ['#C084FC', '#9333EA'] },
   { type: 'ice_world', labelKey: 'stars.exoplanet.types.ice_world', palette: ['#E0F2FE', '#8CC4E0'] },
@@ -451,7 +451,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
       setUploadProgressText(t('stars.exoplanet.placing'));
 
       const selectedTypeConfig = PLANET_TYPE_OPTIONS.find((p) => p.type === planetType);
-      const palette = selectedTypeConfig ? selectedTypeConfig.palette : ['#4F9FCB', '#4F7FD6'];
+      const palette = selectedTypeConfig ? selectedTypeConfig.palette : ['#4A8CB3', '#4F7FD6'];
 
       const payload: CreateExoplanetDto = {
         title: trimmedTitle,
@@ -552,7 +552,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
       setUploadProgressText(t('stars.exoplanet.updating'));
 
       const selectedTypeConfig = PLANET_TYPE_OPTIONS.find((p) => p.type === planetType);
-      const palette = selectedTypeConfig ? selectedTypeConfig.palette : ['#4F9FCB', '#4F7FD6'];
+      const palette = selectedTypeConfig ? selectedTypeConfig.palette : ['#4A8CB3', '#4F7FD6'];
 
       const updatePayload: Partial<CreateExoplanetDto> = {
         title: trimmedTitle,
@@ -603,7 +603,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
     activeMode === 'view' && selectedPlanet
       ? { palette: selectedPlanet.palette, planet_type: selectedPlanet.planet_type, is_locked: !isPremium }
       : {
-          palette: PLANET_TYPE_OPTIONS.find((option) => option.type === planetType)?.palette ?? ['#4F9FCB', '#4F7FD6'],
+          palette: PLANET_TYPE_OPTIONS.find((option) => option.type === planetType)?.palette ?? ['#4A8CB3', '#4F7FD6'],
           planet_type: planetType,
           is_locked: false,
         };

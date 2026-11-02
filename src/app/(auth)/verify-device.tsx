@@ -232,13 +232,13 @@ export default function VerifyDeviceScreen() {
                 borderRadius: 40,
                 backgroundColor: "rgba(255,255,255,0.03)",
                 borderWidth: 1,
-                borderColor: "#E5546F",
+                borderColor: "#D85870",
                 alignItems: "center",
                 justifyContent: "center",
                 marginBottom: 20,
               }}
             >
-              <ShieldAlert color="#E5546F" size={32} />
+              <ShieldAlert color="#D85870" size={32} />
             </View>
 
             <Text
@@ -308,7 +308,7 @@ export default function VerifyDeviceScreen() {
                   backgroundColor: "rgba(255,255,255,0.07)",
                   borderWidth: 1.5,
                   borderColor:
-                    focusedIndex === index || digit ? "#E5546F" : "transparent",
+                    focusedIndex === index || digit ? "#D85870" : "transparent",
                   color: "#FFFFFF",
                   fontSize: 22,
                   fontFamily: "Inter_700Bold",
@@ -319,7 +319,7 @@ export default function VerifyDeviceScreen() {
           </View>
 
           {!!errorMsg && (
-            <Text style={{ color: "#E5546F", textAlign: "center", marginBottom: 20, fontSize: 14 }}>
+            <Text style={{ color: "#D85870", textAlign: "center", marginBottom: 20, fontSize: 14 }}>
               {errorMsg}
             </Text>
           )}
@@ -331,7 +331,7 @@ export default function VerifyDeviceScreen() {
             activeOpacity={0.85}
           >
             <LinearGradient
-              colors={["#E5546F", "#9B4DFF"]} // Pink to Purple gradient for device verify as in mockup
+              colors={["#D85870", "#9B4DFF"]} // Pink to Purple gradient for device verify as in mockup
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={{
@@ -362,7 +362,7 @@ export default function VerifyDeviceScreen() {
           >
             <Text
               style={{
-                color: resendCooldown > 0 ? "rgba(255,255,255,0.4)" : "#E5546F",
+                color: resendCooldown > 0 ? "rgba(255,255,255,0.4)" : "#D85870",
                 fontSize: 14,
                 fontFamily: "Inter_500Medium",
               }}
