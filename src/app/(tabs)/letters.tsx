@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { ActionCard } from "@/components/ui/ActionCard";
+import { SegmentedControl } from "@/components/profile/SegmentedControl";
 import { useRouter, useFocusEffect } from "expo-router";
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, Modal } from "react-native";
 import { ScreenHeader, ScreenHeaderButton } from "@/components/ui/ScreenHeader";
@@ -739,53 +741,27 @@ export default function LettersScreen() {
 
         {/* ÜSTTE HIZLI MEKTUP YAZ BUTONU */}
         <View style={styles.topActionContainer}>
-          <TouchableOpacity 
-            style={[styles.writeLetterActionBtn, { backgroundColor: theme.accent }]}
+          <ActionCard
+            icon={PenLine}
+            title={t("letters.write.cta")}
+            subtitle={t("letters.write.ctaSub")}
+            theme={theme}
             onPress={handleOpenWriteModal}
-            activeOpacity={0.88}
-          >
-            <View style={[styles.writeActionIconCircle, { backgroundColor: "rgba(255,255,255,0.22)" }]}>
-              <PenLine size={20} color="#ffffff" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.writeActionTitle, { color: "#ffffff" }]}>{t("letters.write.cta")}</Text>
-              <Text style={[styles.writeActionSub, { color: "rgba(255,255,255,0.8)" }]}>{t("letters.write.ctaSub")}</Text>
-            </View>
-            <ChevronRight size={18} color="rgba(255,255,255,0.85)" />
-          </TouchableOpacity>
+          />
         </View>
 
         {/* SEKME ÇUBUĞU (TÜMÜ / GELENLER / GÖNDERİLENLER) */}
-        <View style={[styles.tabsWrapper, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}>
-          <TouchableOpacity 
-            style={[styles.tabBtn, activeTab === "all" && { backgroundColor: theme.pillAccentBg }]}
-            onPress={() => setActiveTab("all")}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.tabText, { color: activeTab === "all" ? theme.accent : theme.textSecondary }, activeTab === "all" && { fontFamily: "Inter_700Bold" }]}>
-              {t("letters.filters.all", { total: allLetters.length })}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.tabBtn, activeTab === "received" && { backgroundColor: theme.pillAccentBg }]}
-            onPress={() => setActiveTab("received")}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.tabText, { color: activeTab === "received" ? theme.accent : theme.textSecondary }, activeTab === "received" && { fontFamily: "Inter_700Bold" }]}>
-              {t("letters.filters.received", { total: receivedLetters.length })}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.tabBtn, activeTab === "sent" && { backgroundColor: theme.pillAccentBg }]}
-            onPress={() => setActiveTab("sent")}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.tabText, { color: activeTab === "sent" ? theme.accent : theme.textSecondary }, activeTab === "sent" && { fontFamily: "Inter_700Bold" }]}>
-              {t("letters.filters.sent", { total: sentLetters.length })}
-            </Text>
-          </TouchableOpacity>
+        <View style={styles.tabsWrapper}>
+          <SegmentedControl
+            theme={theme}
+            value={activeTab}
+            onChange={setActiveTab}
+            options={[
+              { key: "all", label: t("letters.filters.all", { total: allLetters.length }) },
+              { key: "received", label: t("letters.filters.received", { total: receivedLetters.length }) },
+              { key: "sent", label: t("letters.filters.sent", { total: sentLetters.length }) },
+            ]}
+          />
         </View>
 
         {/* Partnerin silme isteği: karar verilene kadar burada hatırlatılır */}
@@ -1241,11 +1217,8 @@ const createStyles = (theme: AppTheme) => {
       marginTop: 2,
     },
     tabsWrapper: {
-      flexDirection: "row",
       marginHorizontal: 16,
       marginBottom: 14,
-      borderRadius: 20,
-      padding: 4,
     },
     tabBtn: {
       flex: 1,

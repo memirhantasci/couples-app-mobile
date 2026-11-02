@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { ActionCard } from "@/components/ui/ActionCard";
 import { ScreenHeader, ScreenHeaderButton } from "@/components/ui/ScreenHeader";
 import {
   View,
@@ -242,8 +243,11 @@ export default function DailyNotesScreen() {
 
         {/* ÜSTTE YENİ SAYFA EKLE BUTONU */}
         <View style={styles.topActionContainer}>
-          <TouchableOpacity 
-            style={[styles.writeNoteActionBtn, { backgroundColor: theme.accent }]}
+          <ActionCard
+            icon={BookOpen}
+            title={t("dailyNotes.writeToday")}
+            subtitle={t("dailyNotes.writeTodaySub")}
+            theme={theme}
             onPress={() => {
               if (executeOrIntercept(
                 () => router.push(openForm("/(tabs)/add-daily-note")),
@@ -254,17 +258,7 @@ export default function DailyNotesScreen() {
               }
               router.push(openForm("/(tabs)/add-daily-note"));
             }}
-            activeOpacity={0.88}
-          >
-            <View style={[styles.writeActionIconCircle, { backgroundColor: "rgba(255,255,255,0.22)" }]}>
-              <BookOpen size={20} color="#ffffff" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.writeActionTitle, { color: "#ffffff" }]}>{t("dailyNotes.writeToday")}</Text>
-              <Text style={[styles.writeActionSub, { color: "rgba(255,255,255,0.8)" }]}>{t("dailyNotes.writeTodaySub")}</Text>
-            </View>
-            <PenLine size={18} color="rgba(255,255,255,0.85)" />
-          </TouchableOpacity>
+          />
         </View>
 
         {/* GÜNLÜK LİSTESİ */}

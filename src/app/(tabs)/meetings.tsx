@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { ActionCard } from "@/components/ui/ActionCard";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import {
   View,
@@ -309,8 +310,11 @@ export default function MeetingsScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* HIZLI BULUŞMA EKLE BUTONU */}
-          <TouchableOpacity 
-            style={[styles.quickPlanBtn, { backgroundColor: theme.accent }]}
+          <ActionCard
+            icon={Plus}
+            title={t("meetings.plan.cta")}
+            subtitle={t("meetings.plan.ctaSub")}
+            theme={theme}
             onPress={() => {
               if (executeOrIntercept(
                 () => {},
@@ -322,17 +326,7 @@ export default function MeetingsScreen() {
               handleCancelEdit();
               setShowFormModal(true);
             }}
-            activeOpacity={0.88}
-          >
-            <View style={[styles.quickPlanIconCircle, { backgroundColor: "rgba(255,255,255,0.22)" }]}>
-              <Plus size={22} color="#ffffff" strokeWidth={2.5} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.quickPlanTitle, { color: "#ffffff" }]}>{t("meetings.plan.cta")}</Text>
-              <Text style={[styles.quickPlanSub, { color: "rgba(255,255,255,0.8)" }]}>{t("meetings.plan.ctaSub")}</Text>
-            </View>
-            <MapPin size={18} color="rgba(255,255,255,0.85)" />
-          </TouchableOpacity>
+          />
 
           {/* AKTİF BULUŞMALAR BÖLÜMÜ */}
           <View style={styles.sectionBlock}>
