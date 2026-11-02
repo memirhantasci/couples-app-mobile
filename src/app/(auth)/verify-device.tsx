@@ -302,13 +302,13 @@ export default function VerifyDeviceScreen() {
                 autoComplete="sms-otp"
                 style={{
                   flex: 1,
-                  maxWidth: 48,
-                  height: 56,
-                  borderRadius: 12,
-                  backgroundColor: "rgba(255,255,255,0.04)",
+                  maxWidth: 50,
+                  height: 64,
+                  borderRadius: 18,
+                  backgroundColor: "rgba(255,255,255,0.07)",
                   borderWidth: 1.5,
                   borderColor:
-                    focusedIndex === index || digit ? "#FF4D6A" : "rgba(255,255,255,0.08)",
+                    focusedIndex === index || digit ? "#FF4D6A" : "transparent",
                   color: "#FFFFFF",
                   fontSize: 22,
                   fontFamily: "Inter_700Bold",

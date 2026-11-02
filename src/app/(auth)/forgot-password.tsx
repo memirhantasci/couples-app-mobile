@@ -114,11 +114,11 @@ export default function ForgotPasswordScreen() {
           <Text
             style={{
               color: "#FFFFFF",
-              fontSize: 30,
+              fontSize: 34,
               fontFamily: "Inter_700Bold",
               textAlign: "center",
               marginBottom: 12,
-              letterSpacing: -0.5,
+              letterSpacing: -1,
             }}
           >
             {t("auth.forgot.title")}
@@ -169,10 +169,8 @@ export default function ForgotPasswordScreen() {
           {!!errorMsg && (
             <View
               style={{
-                backgroundColor: "rgba(232,0,45,0.1)",
-                borderWidth: 1,
-                borderColor: "rgba(232,0,45,0.3)",
-                borderRadius: 14,
+                backgroundColor: "rgba(232,0,45,0.14)",
+                borderRadius: 18,
                 padding: 14,
                 marginBottom: 16,
               }}

@@ -159,7 +159,7 @@ export default function ResetPasswordScreen() {
             <ArrowLeft color="#fff" size={28} />
           </TouchableOpacity>
 
-          <Text style={{ color: "#fff", fontSize: 30, fontFamily: "Inter_700Bold", marginBottom: 12, letterSpacing: -0.5 }}>
+          <Text style={{ color: "#fff", fontSize: 34, fontFamily: "Inter_700Bold", marginBottom: 12, letterSpacing: -1 }}>
             {t("auth.reset.title")}
           </Text>
           <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 15, lineHeight: 22, marginBottom: 32 }}>
@@ -205,7 +205,7 @@ export default function ResetPasswordScreen() {
           />
 
           {!!error && (
-            <View style={{ backgroundColor: "rgba(232,0,45,0.12)", borderWidth: 1, borderColor: "rgba(232,0,45,0.3)", borderRadius: 14, padding: 14, marginBottom: 16, marginTop: 10 }}>
+            <View style={{ backgroundColor: "rgba(232,0,45,0.14)", borderRadius: 18, padding: 14, marginBottom: 16, marginTop: 10 }}>
               <Text style={{ color: "#FF4D6A", fontSize: 14, textAlign: "center" }}>
                 {error}
               </Text>

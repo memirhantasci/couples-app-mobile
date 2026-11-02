@@ -272,12 +272,14 @@ export default function VerifyScreen() {
           <View style={{ alignItems: "center", marginBottom: 36 }}>
             <View
               style={{
-                width: 80,
-                height: 80,
-                borderRadius: 40,
-                backgroundColor: "rgba(255,255,255,0.03)",
-                borderWidth: 1,
-                borderColor: "rgba(255,255,255,0.05)",
+                width: 92,
+                height: 92,
+                borderRadius: 30,
+                backgroundColor: "rgba(255,77,106,0.14)",
+                shadowColor: "#FF4D6A",
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.35,
+                shadowRadius: 20,
                 alignItems: "center",
                 justifyContent: "center",
                 marginBottom: 20,
@@ -289,9 +291,9 @@ export default function VerifyScreen() {
             <Text
               style={{
                 color: "#FFFFFF",
-                fontSize: 28,
+                fontSize: 34,
                 fontFamily: "Inter_700Bold",
-                letterSpacing: -0.5,
+                letterSpacing: -1,
                 textAlign: "center",
                 marginBottom: 8,
               }}
@@ -347,13 +349,13 @@ export default function VerifyScreen() {
                 autoComplete="sms-otp"
                 style={{
                   flex: 1,
-                  maxWidth: 48,
-                  height: 56,
-                  borderRadius: 12,
-                  backgroundColor: "rgba(255,255,255,0.04)",
+                  maxWidth: 50,
+                  height: 64,
+                  borderRadius: 18,
+                  backgroundColor: "rgba(255,255,255,0.07)",
                   borderWidth: 1.5,
                   borderColor:
-                    focusedIndex === index || digit ? "#FF4D6A" : "rgba(255,255,255,0.08)",
+                    focusedIndex === index || digit ? "#FF4D6A" : "transparent",
                   color: "#FFFFFF",
                   fontSize: 22,
                   fontFamily: "Inter_700Bold",
