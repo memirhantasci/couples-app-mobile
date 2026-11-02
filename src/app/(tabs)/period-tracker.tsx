@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { LinearGradient } from "expo-linear-gradient";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import {
   View,
@@ -350,7 +351,14 @@ export default function PeriodTrackerScreen() {
           ) : (
             <>
               {/* ─── KADIN YA DA PREMIUM ERKEK İÇİN DURUM ÖZETİ KARTI ─── */}
-              <View style={[styles.statusHeroCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
+              <View style={[styles.statusHeroCard, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}>
+                <LinearGradient
+                  pointerEvents="none"
+                  colors={["rgba(255,77,106,0.28)", "rgba(255,77,106,0)"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                />
                 <View style={[styles.statusHeroIconBox, { backgroundColor: "rgba(255, 77, 106, 0.15)" }]}>
                   <Droplet size={24} color="#ff4d6a" />
                 </View>
@@ -379,8 +387,8 @@ export default function PeriodTrackerScreen() {
                   style={[
                     styles.quickStartBtn,
                     startedToday
-                      ? { backgroundColor: "rgba(255, 77, 106, 0.12)", borderWidth: 1, borderColor: "rgba(255, 77, 106, 0.35)" }
-                      : { backgroundColor: "#ff4d6a" },
+                      ? { backgroundColor: "rgba(255, 77, 106, 0.14)" }
+                      : { backgroundColor: "#ff4d6a", shadowColor: "#ff4d6a", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 16, elevation: 8 },
                     loading && { opacity: 0.7 },
                   ]}
                 >
@@ -460,7 +468,7 @@ export default function PeriodTrackerScreen() {
                 <Text style={[styles.pastSectionTitle, { color: theme.textMuted }]}>{t("period.history.title")}</Text>
 
                 {!showPastRecords ? null : !logs || logs.length === 0 ? (
-                  <View style={[styles.emptyBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}>
+                  <View style={[styles.emptyBox, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}>
                     <Text style={{ fontSize: 32, marginBottom: 8 }}>🌸</Text>
                     <Text style={[styles.emptyText, { color: theme.textSecondary }]}>{t("period.history.empty")}</Text>
                   </View>
@@ -496,7 +504,7 @@ export default function PeriodTrackerScreen() {
       {/* ─── TARİH KAYIT / SİLME MODALI ─── */}
       <Modal visible={!!selectedDate} transparent animationType="fade" onRequestClose={() => setSelectedDate(null)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
+          <View style={[styles.modalBox, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}>
             <View style={[styles.modalIconCircle, { backgroundColor: "rgba(255, 77, 106, 0.15)" }]}>
               <Droplet size={28} color="#ff4d6a" />
             </View>
@@ -514,7 +522,7 @@ export default function PeriodTrackerScreen() {
 
             <View style={styles.modalBtnRow}>
               <TouchableOpacity
-                style={[styles.modalCancelBtn, { backgroundColor: theme.unitBg, borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.08)" }]}
+                style={[styles.modalCancelBtn, { backgroundColor: theme.unitBg }]}
                 disabled={loading}
                 onPress={() => setSelectedDate(null)}
               >
@@ -721,23 +729,24 @@ const createStyles = (theme: AppTheme) => {
     statusHeroCard: {
       flexDirection: "row",
       alignItems: "center",
-      padding: 16,
-      borderRadius: 22,
-      gap: 14,
+      padding: 20,
+      borderRadius: 28,
+      gap: 16,
+      overflow: "hidden",
       ...theme.cardShadow,
     },
     statusHeroIconBox: {
-      width: 46,
-      height: 46,
-      borderRadius: 23,
+      width: 58,
+      height: 58,
+      borderRadius: 20,
       alignItems: "center",
       justifyContent: "center",
     },
     statusHeroTitle: {
-      fontSize: 15.5,
+      fontSize: 17,
       fontFamily: "Inter_700Bold",
       color: theme.text,
-      letterSpacing: -0.2,
+      letterSpacing: -0.4,
     },
     statusHeroSubtitle: {
       fontSize: 12.5,
@@ -747,18 +756,24 @@ const createStyles = (theme: AppTheme) => {
     },
 
     statusHeroCountdown: {
+      alignSelf: "flex-start",
       fontSize: 12.5,
-      fontFamily: "Inter_600SemiBold",
+      fontFamily: "Inter_700Bold",
       color: isLight ? "#E11D48" : "#ff4d6a",
-      marginTop: 4,
+      backgroundColor: "rgba(255,77,106,0.14)",
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+      borderRadius: 12,
+      overflow: "hidden",
+      marginTop: 10,
     },
     quickStartBtn: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
       gap: 8,
-      height: 52,
-      borderRadius: 18,
+      height: 58,
+      borderRadius: 29,
     },
     quickStartBtnText: {
       color: "#ffffff",
@@ -817,10 +832,9 @@ const createStyles = (theme: AppTheme) => {
 
     /* MODERN TAKVİM KUTUSU */
     calendarBox: {
-      borderRadius: 22,
-      borderWidth: 1,
+      borderRadius: 28,
       overflow: "hidden",
-      paddingVertical: 8,
+      paddingVertical: 12,
       ...theme.cardShadow,
     },
 
@@ -901,9 +915,8 @@ const createStyles = (theme: AppTheme) => {
     },
     modalBox: {
       width: "100%",
-      borderRadius: 24,
-      borderWidth: 1,
-      padding: 22,
+      borderRadius: 30,
+      padding: 24,
       alignItems: "center",
       gap: 12,
     },
@@ -936,8 +949,8 @@ const createStyles = (theme: AppTheme) => {
     },
     modalCancelBtn: {
       flex: 1,
-      height: 44,
-      borderRadius: 14,
+      height: 50,
+      borderRadius: 25,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -952,8 +965,8 @@ const createStyles = (theme: AppTheme) => {
       alignItems: "center",
       justifyContent: "center",
       gap: 6,
-      height: 44,
-      borderRadius: 14,
+      height: 50,
+      borderRadius: 25,
     },
     modalConfirmBtnText: {
       color: "#ffffff",
