@@ -38,7 +38,7 @@ export function MedicineHistoryList({ theme, historyGrouped, sortedDates }: Medi
               const iconColor = isAllDrank ? "#22c55e" : "#f59e0b";
 
               return (
-                <View key={`${dateStr}-${idx}`} style={[styles.historyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
+                <View key={`${dateStr}-${idx}`} style={[styles.historyCard, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.historyDate, { color: theme.text }]}>{getRelativeDateLabel(dateStr, t, i18n.language)}</Text>
                     <Text style={[styles.historyMedSub, { color: theme.textSecondary }]}>

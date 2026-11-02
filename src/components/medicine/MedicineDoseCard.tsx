@@ -34,7 +34,7 @@ function MedicineDoseCardBase({
     : [m.time ? m.time.substring(0, 5) : "08:00"];
 
   return (
-    <View style={[styles.medCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
+    <View style={[styles.medCard, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}>
       <View style={styles.medCardHeader}>
         <View style={[styles.medIconBox, { backgroundColor: theme.pillAccentBg }]}>
           <Pill color={theme.accent} size={20} />
@@ -130,9 +130,9 @@ export const MedicineDoseCard = React.memo(MedicineDoseCardBase);
 
 const styles = StyleSheet.create({
   medCard: {
-    borderRadius: 22,
-    padding: 16,
-    gap: 14,
+    borderRadius: 28,
+    padding: 18,
+    gap: 16,
   },
   medCardHeader: {
     flexDirection: "row",
@@ -140,9 +140,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   medIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 46,
+    height: 46,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -166,13 +166,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingVertical: 12,
-    borderRadius: 14,
+    paddingVertical: 14,
+    borderRadius: 18,
   },
   drankStateBox: {
-    backgroundColor: "rgba(34, 197, 94, 0.12)",
-    borderWidth: 1,
-    borderColor: "rgba(34, 197, 94, 0.3)",
+    backgroundColor: "rgba(34, 197, 94, 0.16)",
   },
   drankStateText: {
     color: "#22c55e",
@@ -195,8 +193,8 @@ const styles = StyleSheet.create({
   },
   skipBtn: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 14,
+    paddingVertical: 14,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -211,8 +209,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingVertical: 12,
-    borderRadius: 14,
+    paddingVertical: 14,
+    borderRadius: 18,
   },
   takeBtnText: {
     color: "#ffffff",

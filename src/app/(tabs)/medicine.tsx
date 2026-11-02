@@ -1,4 +1,6 @@
 import { useState, useMemo, useRef } from "react";
+import { ActionCard } from "@/components/ui/ActionCard";
+import { SegmentedControl } from "@/components/profile/SegmentedControl";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import {
   View,
@@ -11,7 +13,7 @@ import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Pill, Plus, ChevronRight } from "lucide-react-native";
+import { Pill, Plus } from "lucide-react-native";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { useRouter } from "expo-router";
@@ -553,8 +555,11 @@ export default function MedicineScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* HIZLI İLAÇ EKLE / YÖNET KARTI */}
-          <TouchableOpacity
-            style={[styles.quickActionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}
+          <ActionCard
+            icon={Plus}
+            title={t("medicine.manage.cta")}
+            subtitle={t("medicine.manage.ctaSub")}
+            theme={theme}
             onPress={() => {
               if (executeOrIntercept(
                 () => {},
@@ -565,40 +570,18 @@ export default function MedicineScreen() {
               }
               openManagerModal(null);
             }}
-            activeOpacity={0.88}
-          >
-            <View style={[styles.quickActionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
-              <Plus size={20} color={theme.accent} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.quickActionTitle, { color: theme.text }]}>{t("medicine.manage.cta")}</Text>
-              <Text style={[styles.quickActionSub, { color: theme.textMuted }]}>{t("medicine.manage.ctaSub")}</Text>
-            </View>
-            <ChevronRight size={18} color={theme.textMuted} />
-          </TouchableOpacity>
+          />
 
-          {/* BEN / SEVGİLİM SEGMENTED CONTROL */}
-          <View style={[styles.segmentedContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}>
-            <TouchableOpacity
-              style={[styles.segmentedBtn, activeTab === "me" && { backgroundColor: theme.unitBg }]}
-              onPress={() => setActiveTab("me")}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.segmentedText, { color: activeTab === "me" ? theme.accent : theme.textSecondary }, activeTab === "me" && { fontFamily: "Inter_700Bold" }]}>
-                {t("medicine.tabs.mine")}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.segmentedBtn, activeTab === "partner" && { backgroundColor: theme.unitBg }]}
-              onPress={() => setActiveTab("partner")}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.segmentedText, { color: activeTab === "partner" ? theme.accent : theme.textSecondary }, activeTab === "partner" && { fontFamily: "Inter_700Bold" }]}>
-                {t("medicine.tabs.partner")}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          {/* BEN / SEVGİLİM SEÇİMİ */}
+          <SegmentedControl
+            theme={theme}
+            value={activeTab}
+            onChange={setActiveTab}
+            options={[
+              { key: "me", label: t("medicine.tabs.mine") },
+              { key: "partner", label: t("medicine.tabs.partner") },
+            ]}
+          />
 
           {/* HAFTALIK UYUM VE SERİ (STREAK) KARTI */}
           <MedicineStreakCard
@@ -622,7 +605,7 @@ export default function MedicineScreen() {
                 <Skeleton height={110} borderRadius={20} />
               </View>
             ) : filteredMedicines.length === 0 ? (
-              <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}>
+              <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}>
                 <Pill size={36} color={theme.textMuted} />
                 <Text style={[styles.emptyCardTitle, { color: theme.text }]}>{t("medicine.today.emptyTitle")}</Text>
                 <Text style={[styles.emptyCardSub, { color: theme.textSecondary }]}>

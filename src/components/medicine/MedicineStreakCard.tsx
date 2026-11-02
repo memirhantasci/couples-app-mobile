@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Pill, Check, Flame } from "lucide-react-native";
 import type { AppTheme } from "@/lib/theme";
 import type { MedicineTab, WeeklyComplianceDay } from "./medicineTypes";
@@ -13,6 +14,8 @@ interface MedicineStreakCardProps {
   streakCount: number;
 }
 
+const FLAME = "#F97316";
+
 // ─── HAFTALIK UYUM VE SERİ (STREAK) KARTI ────────────────────────────────────
 export function MedicineStreakCard({
   theme,
@@ -22,80 +25,82 @@ export function MedicineStreakCard({
   streakCount,
 }: MedicineStreakCardProps) {
   const { t } = useTranslation();
+
   return (
-    <View style={[styles.streakCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}>
-      <View style={styles.streakHeader}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <View style={[styles.streakIconCircle, { backgroundColor: isLight ? "rgba(239,68,68,0.1)" : "rgba(239,68,68,0.18)" }]}>
-            <Flame size={20} color="#EF4444" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.streakTitle, { color: theme.text }]}>
-              {streakCount > 0 ? t("medicine.streak.title", { count: streakCount }) : t("medicine.streak.habit")}
-            </Text>
-            <Text style={[styles.streakSub, { color: theme.textMuted }]}>
-              {streakCount > 0
-                ? t("medicine.streak.great")
-                : (activeTab === "me" ? t("medicine.streak.startMine") : t("medicine.streak.partner"))}
-            </Text>
-          </View>
+    <View style={[styles.card, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}>
+      {/* Seri varken üstten turuncu bir sıcaklık parıltısı */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={[streakCount > 0 ? `${FLAME}30` : `${theme.accent}1A`, "rgba(0,0,0,0)"]}
+        style={StyleSheet.absoluteFill}
+      />
+
+      <View style={styles.header}>
+        <View style={[styles.flameTile, { backgroundColor: `${FLAME}22` }]}>
+          <Flame size={26} color={FLAME} fill={streakCount > 0 ? FLAME : "transparent"} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.title, { color: theme.text }]}>
+            {streakCount > 0 ? t("medicine.streak.title", { count: streakCount }) : t("medicine.streak.habit")}
+          </Text>
+          <Text style={[styles.sub, { color: theme.textMuted }]}>
+            {streakCount > 0
+              ? t("medicine.streak.great")
+              : activeTab === "me"
+              ? t("medicine.streak.startMine")
+              : t("medicine.streak.partner")}
+          </Text>
         </View>
       </View>
 
-      {/* 7 GÜNLÜK HAP MATRİSİ */}
-      <View style={styles.matrixRow}>
-        {weeklyCompliance.map((dayItem) => {
-          const isComplete = dayItem.status === "complete";
-          const isPartial = dayItem.status === "partial";
-          const isMissed = dayItem.status === "missed";
-          const isToday = dayItem.isToday;
+      {/* 7 günlük uyum şeridi */}
+      <View style={styles.weekRow}>
+        {weeklyCompliance.map((day) => {
+          const complete = day.status === "complete";
+          const partial = day.status === "partial";
+          const missed = day.status === "missed";
 
-          const pillColor = isComplete
+          const color = complete
             ? "#22C55E"
-            : isPartial
+            : partial
             ? "#F59E0B"
-            : isMissed
-            ? (isLight ? "#DC2626" : "#EF4444")
-            : isToday
+            : missed
+            ? isLight
+              ? "#DC2626"
+              : "#EF4444"
+            : day.isToday
             ? theme.accent
-            : (isLight ? "#9CA3AF" : "#6B7280");
-
-          const pillBg = isComplete
-            ? (isLight ? "rgba(34,197,94,0.12)" : "rgba(34,197,94,0.2)")
-            : isPartial
-            ? (isLight ? "rgba(245,158,11,0.12)" : "rgba(245,158,11,0.2)")
-            : isMissed
-            ? (isLight ? "rgba(239,68,68,0.1)" : "rgba(239,68,68,0.18)")
-            : isToday
-            ? (isLight ? "rgba(225,29,72,0.08)" : "rgba(255,75,110,0.15)")
-            : (isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.05)");
+            : theme.textMuted;
+          const bg = complete
+            ? "rgba(34,197,94,0.18)"
+            : partial
+            ? "rgba(245,158,11,0.18)"
+            : missed
+            ? "rgba(239,68,68,0.16)"
+            : day.isToday
+            ? `${theme.accent}22`
+            : isLight
+            ? "rgba(0,0,0,0.05)"
+            : "rgba(255,255,255,0.06)";
 
           return (
-            <View
-              key={dayItem.dateStr}
-              style={[
-                styles.matrixCol,
-                isToday && {
-                  borderColor: theme.accent,
-                  borderWidth: 1,
-                  borderRadius: 14,
-                  backgroundColor: isLight ? "rgba(225,29,72,0.03)" : "rgba(255,75,110,0.05)",
-                },
-              ]}
-            >
-              <Text style={[styles.matrixDayLabel, { color: isToday ? theme.accent : theme.textMuted }]}>
-                {dayItem.dayLabel}
+            <View key={day.dateStr} style={styles.dayCol}>
+              <Text style={[styles.dayLabel, { color: day.isToday ? theme.accent : theme.textMuted }]}>
+                {day.dayLabel}
               </Text>
-              <View style={[styles.matrixPillCircle, { backgroundColor: pillBg }]}>
-                {isComplete ? (
-                  <Check size={14} color={pillColor} strokeWidth={3} />
-                ) : (
-                  <Pill size={14} color={pillColor} />
-                )}
+              <View style={[styles.dayCircle, { backgroundColor: bg }]}>
+                {complete ? <Check size={16} color={color} strokeWidth={3} /> : <Pill size={15} color={color} />}
               </View>
-              <Text style={[styles.matrixDayNum, { color: isToday ? theme.text : theme.textSecondary }]}>
-                {dayItem.dayNumber}
+              <Text
+                style={[
+                  styles.dayNum,
+                  { color: day.isToday ? theme.text : theme.textSecondary },
+                  day.isToday && { fontFamily: "Inter_700Bold" },
+                ]}
+              >
+                {day.dayNumber}
               </Text>
+              <View style={[styles.todayDot, { backgroundColor: day.isToday ? theme.accent : "transparent" }]} />
             </View>
           );
         })}
@@ -105,58 +110,61 @@ export function MedicineStreakCard({
 }
 
 const styles = StyleSheet.create({
-  streakCard: {
-    borderRadius: 20,
-    padding: 16,
-    gap: 14,
+  card: {
+    borderRadius: 28,
+    padding: 18,
+    gap: 18,
+    overflow: "hidden",
   },
-  streakHeader: {
+  header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 14,
   },
-  streakIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+  flameTile: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
   },
-  streakTitle: {
-    fontSize: 15,
+  title: {
+    fontSize: 18,
     fontFamily: "Inter_700Bold",
+    letterSpacing: -0.4,
   },
-  streakSub: {
-    fontSize: 11.5,
+  sub: {
+    fontSize: 12.5,
     fontFamily: "Inter_400Regular",
     marginTop: 2,
   },
-  matrixRow: {
+  weekRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 4,
   },
-  matrixCol: {
+  dayCol: {
+    flex: 1,
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    flex: 1,
   },
-  matrixDayLabel: {
+  dayLabel: {
     fontSize: 11,
     fontFamily: "Inter_600SemiBold",
   },
-  matrixPillCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  dayCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
   },
-  matrixDayNum: {
-    fontSize: 11,
+  dayNum: {
+    fontSize: 12,
     fontFamily: "Inter_500Medium",
+  },
+  todayDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
   },
 });

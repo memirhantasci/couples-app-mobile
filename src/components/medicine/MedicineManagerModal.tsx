@@ -259,7 +259,7 @@ function MedicineManagerForm({
             <View style={{ gap: 8 }}>
               <Text style={[styles.modalSectionSub, { color: theme.textMuted }]}>{t("medicine.manager.saved")}</Text>
               {medicines.map((m) => (
-                <View key={m.id} style={[styles.registeredMedCard, { backgroundColor: theme.unitBg, borderColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)", borderWidth: 1 }]}>
+                <View key={m.id} style={[styles.registeredMedCard, { backgroundColor: theme.unitBg }]}>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.registeredMedName, { color: theme.text }]}>{m.name}</Text>
                     <Text style={[styles.registeredMedSub, { color: theme.textMuted }]}>
@@ -471,7 +471,6 @@ const styles = StyleSheet.create({
   },
   modalBox: {
     borderRadius: 24,
-    borderWidth: 1,
     padding: 20,
     maxHeight: "88%",
   },
@@ -558,8 +557,6 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 14.5,
     fontFamily: "Inter_400Regular",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
   },
   inputError: {
     borderColor: "#ff4d6a",
@@ -571,8 +568,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
   },
   freqBtnText: {
     fontSize: 13,
@@ -587,8 +582,6 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 12,
     borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
   },
   timePickerText: {
     fontSize: 13.5,
@@ -602,8 +595,6 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 12,
     borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
   },
   datePickerText: {
     fontSize: 13,
