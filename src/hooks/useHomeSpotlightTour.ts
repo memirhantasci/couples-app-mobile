@@ -8,7 +8,8 @@ import { safeStorage } from "@/lib/safeStorage";
 const HOME_TOUR_COMPLETED_KEY = "@couples_app_home_tour_completed_v1";
 // Eski sayfa bazlı turda Ana Sayfa tanıtımını görmüş kullanıcılar yeni turu otomatik görmez
 const LEGACY_HOME_TOUR_KEY = "@couples_app_tour_seen_v1_home";
-const AUTO_START_DELAY_MS = 700;
+// Ana sayfa kartları kademeli belirir (Reveal ~0.9 sn); tur hedefleri animasyon bittikten sonra ölçülsün
+const AUTO_START_DELAY_MS = 1200;
 
 export async function isHomeTourCompleted(): Promise<boolean> {
   try {
