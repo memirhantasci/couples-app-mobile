@@ -1,12 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, type ReactNode } from "react";
 import { logger } from "@/utils/logger";
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions, ActivityIndicator, Share } from "react-native";
+import { View, Text, StyleSheet, Modal, TouchableOpacity, useWindowDimensions, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRealTopInset } from "@/hooks/useRealTopInset";
 import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from "expo-blur";
-import { Image } from "expo-image";
-import { X, Share2, Heart, Sparkles, Mail } from "lucide-react-native";
+import { X, Share2, Heart, Sparkles, Mail, MapPin } from "lucide-react-native";
 import Animated, {
   Easing,
   cancelAnimation,
@@ -16,14 +14,17 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
-import { captureRef } from "react-native-view-shot";
-import * as Sharing from "expo-sharing";
 import { CoupleWrappedData } from "@/utils/wrappedCalculator";
 import { AppTheme } from "@/lib/theme";
 import { appAlert } from "@/lib/dialog";
+import { shareStoryImage } from "@/lib/storyShare";
+import { StoryCard, STORY_ASPECT, type StoryPalette, type StoryScale } from "@/components/share/StoryCard";
 import { useTranslation } from "react-i18next";
 
-const { width: SW, height: SH } = Dimensions.get("window");
+// Son slayttaki hikâye önizlemesinin altında kalan yer: paylaş butonu + aralık; üstte ilerleme çubuğu bölgesi
+const HEADER_HEIGHT = 70;
+const SHARE_BUTTON_HEIGHT = 52;
+const SHARE_BUTTON_GAP = 18;
 
 interface CoupleWrappedModalProps {
   visible: boolean;
@@ -35,6 +36,52 @@ interface CoupleWrappedModalProps {
 
 const TOTAL_SLIDES = 4;
 const SLIDE_DURATION = 5500; // ms
+
+function StoryStatTile({ s, glyph, value, caption }: { s: StoryScale; glyph: ReactNode; value: string; caption: string }) {
+  return (
+    <View
+      style={{
+        flex: 1,
+        alignItems: "center",
+        backgroundColor: "rgba(255, 255, 255, 0.07)",
+        borderRadius: s(16),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(255, 255, 255, 0.14)",
+        paddingVertical: s(12),
+        paddingHorizontal: s(6),
+      }}
+    >
+      <View style={{ height: s(26), justifyContent: "center" }}>{glyph}</View>
+      <Text
+        numberOfLines={2}
+        style={{
+          color: "#FFFFFF",
+          fontSize: s(11.5),
+          lineHeight: s(14),
+          fontFamily: "Inter_600SemiBold",
+          textAlign: "center",
+          marginTop: s(6),
+          minHeight: s(28),
+        }}
+      >
+        {value}
+      </Text>
+      <Text
+        numberOfLines={2}
+        style={{
+          color: "rgba(255, 255, 255, 0.55)",
+          fontSize: s(8.5),
+          lineHeight: s(11),
+          fontFamily: "Inter_500Medium",
+          textAlign: "center",
+          marginTop: s(4),
+        }}
+      >
+        {caption}
+      </Text>
+    </View>
+  );
+}
 
 function ProgressFill({ state, progress }: { state: "done" | "active" | "idle"; progress: SharedValue<number> }) {
   const style = useAnimatedStyle(() => ({
@@ -52,6 +99,7 @@ export function CoupleWrappedModal({
 }: CoupleWrappedModalProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   // Tam ekran modal ekranın tepesinden başlar; durum çubuğu / Dynamic Island boşluğu gerçek üst güvenli
   // alandan alınır (demo modunda insets.top 0'a çekilir; SafeAreaView ise modal içinde 0 dönebiliyordu)
   const topInset = useRealTopInset();
@@ -59,9 +107,13 @@ export function CoupleWrappedModal({
   const modalGradientColors = isMale
     ? (["#0A0E17", "#0D182A", "#13233D", "#0A0E17"] as const)
     : (["#0A0A0C", "#1F0C18", "#2E0A1F", "#0A0A0C"] as const);
-  const cardGradientColors = isMale
-    ? (["#0D1726", "#142238", "#0B111A"] as const)
-    : (["#1C1622", "#2B1425", "#160D1A"] as const);
+  const storyPalette: StoryPalette = isMale
+    ? { background: ["#0A1424", "#152B4D", "#0A111C"], glow: "79, 125, 190", decor: "#7FA6DC" }
+    : { background: ["#1A0B16", "#3A1029", "#14081A"], glow: "216, 88, 112", decor: "#EC7E95" };
+  // Önizleme 9:16 hikâye oranında; ekranda kalan yüksekliğe ve genişliğe sığacak en büyük boyda çizilir
+  const storyHeightBudget =
+    windowHeight - topInset - insets.bottom - HEADER_HEIGHT - SHARE_BUTTON_HEIGHT - SHARE_BUTTON_GAP - 12;
+  const storyWidth = Math.floor(Math.min(windowWidth - 48, storyHeightBudget * STORY_ASPECT));
   const shareBtnColors = isMale
     ? ([theme.accent, "#1D4ED8"] as const)
     : (["#D85870", "#C8213F"] as const);
@@ -110,36 +162,12 @@ export function CoupleWrappedModal({
 
   // Hikaye Paylaşım Fonksiyonu
   const handleShareStory = async () => {
-    if (!shareCardRef.current) return;
     try {
       setIsSharing(true);
-      const uri = await captureRef(shareCardRef, {
-        format: "png",
-        quality: 1.0,
-        result: "tmpfile",
+      await shareStoryImage(shareCardRef, {
+        dialogTitle: t("wrapped.shareTitle"),
+        fallbackMessage: `${data?.romanticStatement} · ${t("common.madeWith")}`,
       });
-
-      if (!uri) throw new Error("Görüntü oluşturulamadı");
-      const fileUri = uri.startsWith("file://") ? uri : `file://${uri}`;
-
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri, {
-          mimeType: "image/png",
-          dialogTitle: t("wrapped.shareTitle"),
-          UTI: "public.png",
-          anchor: {
-            x: SW / 2,
-            y: SH / 2,
-            width: 1,
-            height: 1,
-          },
-        });
-      } else {
-        await Share.share({
-          url: fileUri,
-          message: `${data?.romanticStatement} · ${t("common.madeWith")}`,
-        });
-      }
     } catch (error) {
       logger.warn("Share error:", error);
       appAlert(t("common.error"), t("wrapped.shareError"));
@@ -256,66 +284,136 @@ export function CoupleWrappedModal({
               </View>
             )}
 
-            {/* SLIDE 3: Büyük Final & Paylaşılabilir Story Kartı */}
+            {/* SLIDE 3: Büyük Final & Instagram hikâyesi (9:16) önizlemesi */}
             {currentSlide === 3 && (
               <View style={styles.finalSlideWrapper}>
-                {/* Paylaşılacak Kart (Capture Target) */}
-                <View ref={shareCardRef} collapsable={false} style={[styles.shareableCard, { shadowColor: theme.accent, borderColor: isMale ? "rgba(79, 125, 190, 0.25)" : "rgba(255, 255, 255, 0.12)" }]}>
-                  <LinearGradient
-                    colors={cardGradientColors}
-                    style={StyleSheet.absoluteFill}
-                  />
+                {/* Paylaşılan görsel tam bu karttır: 1080×1920, kenar boşluksuz */}
+                <StoryCard
+                  width={storyWidth}
+                  cardRef={shareCardRef}
+                  palette={storyPalette}
+                  backdrop={
+                    <View pointerEvents="none" style={styles.storyBackdrop}>
+                      <Heart size={storyWidth * 0.95} color="rgba(255, 255, 255, 0.035)" fill="rgba(255, 255, 255, 0.035)" />
+                    </View>
+                  }
+                >
+                  {(s) => (
+                    <>
+                      <View style={styles.storyHeader}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: s(6),
+                            backgroundColor: "rgba(255, 255, 255, 0.09)",
+                            borderRadius: s(14),
+                            paddingHorizontal: s(12),
+                            paddingVertical: s(6),
+                          }}
+                        >
+                          <Heart size={s(12)} color={theme.accent} fill={theme.accent} />
+                          <Text
+                            style={{ color: theme.accentLight, fontSize: s(10.5), fontFamily: "Inter_700Bold", letterSpacing: s(1.6) }}
+                          >
+                            COUPLE WRAPPED
+                          </Text>
+                        </View>
+                        <Text
+                          style={{ marginTop: s(8), color: "rgba(255, 255, 255, 0.6)", fontSize: s(11.5), fontFamily: "Inter_500Medium" }}
+                        >
+                          {data.periodTitle}
+                        </Text>
+                      </View>
 
-                  {/* Kart Üst Başlık */}
-                  <View style={styles.cardHeader}>
-                    <View style={styles.cardHeartIcon}>
-                      <Heart size={16} color={theme.accent} fill={theme.accent} />
-                    </View>
-                    <Text style={[styles.cardHeaderTitle, { color: theme.accentLight }]}>COUPLE WRAPPED</Text>
-                    <Text style={styles.cardPeriodBadge}>{data.periodTitle}</Text>
-                  </View>
+                      <View style={styles.storyHero}>
+                        <View
+                          style={{
+                            width: s(72),
+                            height: s(72),
+                            borderRadius: s(36),
+                            alignItems: "center",
+                            justifyContent: "center",
+                            backgroundColor: "rgba(255, 255, 255, 0.08)",
+                            borderWidth: 1,
+                            borderColor: "rgba(255, 255, 255, 0.14)",
+                            marginBottom: s(12),
+                          }}
+                        >
+                          <Heart size={s(32)} color={theme.accent} fill={theme.accent} />
+                        </View>
+                        <Text
+                          style={{ color: "#FFFFFF", fontSize: s(88), lineHeight: s(96), fontFamily: "PlayfairDisplay_700Bold" }}
+                        >
+                          {data.daysTogether}
+                        </Text>
+                        <Text
+                          style={{
+                            color: "rgba(255, 255, 255, 0.78)",
+                            fontSize: s(13),
+                            lineHeight: s(19),
+                            fontFamily: "Inter_400Regular",
+                            textAlign: "center",
+                            maxWidth: s(250),
+                            marginTop: s(4),
+                          }}
+                        >
+                          {t("wrapped.slides.daysTogether")}
+                        </Text>
+                        <Text
+                          style={{
+                            color: "#FFFFFF",
+                            fontSize: s(19),
+                            lineHeight: s(27),
+                            fontFamily: "PlayfairDisplay_400Regular_Italic",
+                            textAlign: "center",
+                            maxWidth: s(280),
+                            marginTop: s(22),
+                          }}
+                        >
+                          {data.romanticStatement}
+                        </Text>
+                      </View>
 
-                  {/* Romantik İfade */}
-                  <Text style={styles.cardRomanticTitle}>
-                    {data.romanticStatement}
-                  </Text>
+                      <View style={{ flexDirection: "row", gap: s(8) }}>
+                        <StoryStatTile
+                          s={s}
+                          glyph={<Text style={{ fontSize: s(22) }}>{data.topMood.emoji}</Text>}
+                          value={data.topMood.label}
+                          caption={t("wrapped.card.mostFelt")}
+                        />
+                        <StoryStatTile
+                          s={s}
+                          glyph={<Mail size={s(22)} color={theme.accentLight} />}
+                          value={t("wrapped.card.items", { count: data.lettersCount + data.dailyNotesCount })}
+                          caption={t("wrapped.card.sharedNotes")}
+                        />
+                        <StoryStatTile
+                          s={s}
+                          glyph={<MapPin size={s(22)} color={theme.accentLight} />}
+                          value={data.topLocation}
+                          caption={t("wrapped.card.meetupPlace")}
+                        />
+                      </View>
 
-                  {/* Kart İçi Grid İstatistikler */}
-                  <View style={styles.cardMetricsContainer}>
-                    <View style={styles.cardMetricRow}>
-                      <Text style={styles.cardMetricLabel}>{t("wrapped.card.together")}</Text>
-                      <Text style={styles.cardMetricVal}>{t("wrapped.card.days", { count: data.daysTogether })}</Text>
-                    </View>
-                    <View style={styles.cardMetricDivider} />
-                    <View style={styles.cardMetricRow}>
-                      <Text style={styles.cardMetricLabel}>{t("wrapped.card.mostFelt")}</Text>
-                      <Text style={styles.cardMetricVal}>{data.topMood.emoji} {data.topMood.label}</Text>
-                    </View>
-                    <View style={styles.cardMetricDivider} />
-                    <View style={styles.cardMetricRow}>
-                      <Text style={styles.cardMetricLabel}>{t("wrapped.card.sharedNotes")}</Text>
-                      <Text style={styles.cardMetricVal}>{t("wrapped.card.items", { count: data.lettersCount + data.dailyNotesCount })}</Text>
-                    </View>
-                    <View style={styles.cardMetricDivider} />
-                    <View style={styles.cardMetricRow}>
-                      <Text style={styles.cardMetricLabel}>{t("wrapped.card.meetupPlace")}</Text>
-                      <Text style={styles.cardMetricVal}>{data.topLocation}</Text>
-                    </View>
-                  </View>
-
-                  {/* Minimalist, Zarif ve Göze Sokulmayan İmza */}
-                  <View style={styles.subtleWatermarkContainer}>
-                    <View style={styles.watermarkDot} />
-                    <Text style={styles.subtleWatermarkText}>{t("common.madeWith")}</Text>
-                  </View>
-                </View>
+                      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: s(6), marginTop: s(16) }}>
+                        <View style={{ width: s(4), height: s(4), borderRadius: s(2), backgroundColor: theme.accent }} />
+                        <Text
+                          style={{ color: "rgba(255, 255, 255, 0.6)", fontSize: s(10.5), fontFamily: "Inter_500Medium", letterSpacing: s(0.5) }}
+                        >
+                          {t("common.madeWith")}
+                        </Text>
+                      </View>
+                    </>
+                  )}
+                </StoryCard>
 
                 {/* Butonlar */}
                 <TouchableOpacity
                   onPress={handleShareStory}
                   disabled={isSharing}
                   activeOpacity={0.85}
-                  style={styles.shareActionBtn}
+                  style={[styles.shareActionBtn, { width: storyWidth }]}
                 >
                   <LinearGradient
                     colors={shareBtnColors}
@@ -539,104 +637,22 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
   },
-  shareableCard: {
-    width: SW * 0.88,
-    borderRadius: 26,
-    overflow: "hidden",
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.12)",
-    elevation: 8,
-    shadowColor: "#D85870",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-  },
-  cardHeader: {
-    flexDirection: "row",
+  storyBackdrop: {
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
-    marginBottom: 16,
-    gap: 8,
-  },
-  cardHeartIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "rgba(216, 88, 112, 0.2)",
     justifyContent: "center",
+  },
+  storyHeader: {
     alignItems: "center",
   },
-  cardHeaderTitle: {
-    color: "#FF8FA3",
-    fontSize: 11,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: 1.5,
+  storyHero: {
     flex: 1,
-  },
-  cardPeriodBadge: {
-    color: "rgba(255, 255, 255, 0.5)",
-    fontSize: 11,
-    fontFamily: "Inter_500Medium",
-  },
-  cardRomanticTitle: {
-    color: "#FFFFFF",
-    fontSize: 22,
-    fontFamily: "PlayfairDisplay_700Bold",
-    lineHeight: 30,
-    marginBottom: 20,
-  },
-  cardMetricsContainer: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    borderRadius: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginBottom: 18,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
-  },
-  cardMetricRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 8,
-  },
-  cardMetricLabel: {
-    color: "rgba(255, 255, 255, 0.6)",
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-  },
-  cardMetricVal: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
-  },
-  cardMetricDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
-  },
-  subtleWatermarkContainer: {
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingTop: 4,
-  },
-  watermarkDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#D85870",
-  },
-  subtleWatermarkText: {
-    color: "rgba(255, 255, 255, 0.55)",
-    fontSize: 11,
-    fontFamily: "Inter_500Medium",
-    letterSpacing: 0.5,
   },
   shareActionBtn: {
-    marginTop: 20,
-    width: SW * 0.88,
-    height: 52,
+    marginTop: SHARE_BUTTON_GAP,
+    height: SHARE_BUTTON_HEIGHT,
     borderRadius: 26,
     overflow: "hidden",
     shadowColor: "#D85870",

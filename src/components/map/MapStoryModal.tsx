@@ -7,13 +7,14 @@ import {
   Modal,
   TouchableOpacity,
   ActivityIndicator,
-  Share,
+  useWindowDimensions,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { X, Share2, Sparkles, Compass } from "lucide-react-native";
-import { captureRef } from "react-native-view-shot";
-import * as Sharing from "expo-sharing";
 import { AppTheme } from "@/lib/theme";
+import { shareStoryImage } from "@/lib/storyShare";
+import { StoryCard, STORY_ASPECT, type StoryPalette, type StoryScale } from "@/components/share/StoryCard";
 import { dayjs } from "@/lib/date";
 import { useTranslation } from "react-i18next";
 
@@ -90,8 +91,33 @@ function maxDistanceKm(pins: readonly { latitude: number; longitude: number }[])
 
 const EXACT_PAIRWISE_LIMIT = 150;
 
+// Önizlemenin üstündeki başlık satırı ile altındaki paylaş butonunun (aralıklarıyla) kapladığı yükseklik
+const CHROME_HEIGHT = 170;
+
+const ROUTE_PALETTE: StoryPalette = {
+  background: ["#150E1F", "#2D1236", "#120A18"],
+  glow: "216, 88, 112",
+  decor: "#EC7E95",
+};
+
+function StopRow({ s, color, label, value }: { s: StoryScale; color: string; label: string; value: string }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: s(12) }}>
+      <View style={{ width: s(10), height: s(10), borderRadius: s(5), backgroundColor: color }} />
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: "rgba(255, 255, 255, 0.55)", fontSize: s(10.5), fontFamily: "Inter_400Regular" }}>{label}</Text>
+        <Text numberOfLines={2} style={{ color: "#FFFFFF", fontSize: s(14), lineHeight: s(19), fontFamily: "Inter_600SemiBold" }}>
+          {value}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalProps) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [isSharing, setIsSharing] = useState(false);
   const shareCardRef = useRef<View>(null);
 
@@ -125,28 +151,19 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
     };
   }, [pins, visible, t]);
 
+  // Önizleme 9:16 hikâye oranında; ekrana sığan en büyük boyda çizilir
+  const storyWidth = Math.floor(
+    Math.min(windowWidth - 48, (windowHeight - insets.top - insets.bottom - CHROME_HEIGHT) * STORY_ASPECT)
+  );
+
   const handleShare = async () => {
-    if (!shareCardRef.current || !stats) return;
+    if (!stats) return;
     try {
       setIsSharing(true);
-      const uri = await captureRef(shareCardRef, {
-        format: "png",
-        quality: 1.0,
-        result: "tmpfile",
+      await shareStoryImage(shareCardRef, {
+        dialogTitle: t("map.story.shareTitle"),
+        fallbackMessage: `${stats.headline} · ${t("common.madeWith")}`,
       });
-
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, {
-          mimeType: "image/png",
-          dialogTitle: t("map.story.shareTitle"),
-          UTI: "public.png",
-        });
-      } else {
-        await Share.share({
-          url: uri,
-          message: `${stats.headline} · ${t("common.madeWith")}`,
-        });
-      }
     } catch (error) {
       logger.warn("Map story share error:", error);
     } finally {
@@ -161,7 +178,7 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
       <View style={styles.backdrop}>
         <View style={styles.container}>
           {/* Kapat Butonu */}
-          <View style={styles.topBar}>
+          <View style={[styles.topBar, stats ? { width: storyWidth } : null]}>
             <View style={styles.badge}>
               <Sparkles size={14} color="#EC7E95" />
               <Text style={styles.badgeText}>{t("map.story.title")}</Text>
@@ -183,77 +200,126 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
             </View>
           ) : (
           <>
-          {/* Dışa Aktarılacak Estetik Story Kartı */}
-          <View ref={shareCardRef} collapsable={false} style={styles.storyCard}>
-            <LinearGradient
-              colors={["#161220", "#24132B", "#120B18"]}
-              style={StyleSheet.absoluteFill}
-            />
-
-            {/* Kart Header */}
-            <View style={styles.cardTopRow}>
-              <View style={styles.iconCircle}>
-                <Compass size={18} color="#D85870" />
+          {/* Dışa aktarılan görsel tam bu karttır: 1080×1920 (Instagram hikâyesi), kenar boşluksuz */}
+          <StoryCard
+            width={storyWidth}
+            cardRef={shareCardRef}
+            palette={ROUTE_PALETTE}
+            backdrop={
+              <View pointerEvents="none" style={styles.storyBackdrop}>
+                <Compass size={storyWidth * 0.95} color="rgba(255, 255, 255, 0.04)" />
               </View>
-              <Text style={styles.cardHeaderTitle}>OUR LOVE ROUTE</Text>
-              <Text style={styles.cardDateText}>{dayjs().format("YYYY")}</Text>
-            </View>
-
-            {/* Manşet Cümlesi */}
-            <Text style={styles.cardHeadline}>{stats.headline}</Text>
-
-            {/* Rota Çizgisi & Duraklar */}
-            <View style={styles.routeBox}>
-              <View style={styles.stopRow}>
-                <View style={styles.dotStart} />
-                <View style={styles.stopTextGroup}>
-                  <Text style={styles.stopLabel}>{t("map.story.firstStopLabel")}</Text>
-                  <Text style={styles.stopValue}>{stats.firstPlace}</Text>
+            }
+          >
+            {(s) => (
+              <>
+                <View style={styles.storyHeader}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: s(6),
+                      backgroundColor: "rgba(255, 255, 255, 0.09)",
+                      borderRadius: s(14),
+                      paddingHorizontal: s(12),
+                      paddingVertical: s(6),
+                    }}
+                  >
+                    <Compass size={s(13)} color="#FF8FA3" />
+                    <Text style={{ color: "#FF8FA3", fontSize: s(10.5), fontFamily: "Inter_700Bold", letterSpacing: s(1.6) }}>
+                      OUR LOVE ROUTE
+                    </Text>
+                  </View>
+                  <Text style={{ marginTop: s(8), color: "rgba(255, 255, 255, 0.6)", fontSize: s(11.5), fontFamily: "Inter_500Medium" }}>
+                    {dayjs().format("YYYY")}
+                  </Text>
                 </View>
-              </View>
 
-              <View style={styles.dashedLine} />
+                <View style={styles.storyMiddle}>
+                  <Text
+                    numberOfLines={4}
+                    style={{
+                      color: "#FFFFFF",
+                      fontSize: s(27),
+                      lineHeight: s(36),
+                      fontFamily: "PlayfairDisplay_700Bold",
+                      textAlign: "center",
+                      marginBottom: s(24),
+                    }}
+                  >
+                    {stats.headline}
+                  </Text>
 
-              <View style={styles.stopRow}>
-                <View style={styles.dotEnd} />
-                <View style={styles.stopTextGroup}>
-                  <Text style={styles.stopLabel}>{t("map.story.latestRouteLabel")}</Text>
-                  <Text style={styles.stopValue}>{stats.latestPlace}</Text>
+                  <View
+                    style={{
+                      backgroundColor: "rgba(255, 255, 255, 0.07)",
+                      borderRadius: s(20),
+                      borderWidth: StyleSheet.hairlineWidth,
+                      borderColor: "rgba(255, 255, 255, 0.14)",
+                      padding: s(16),
+                    }}
+                  >
+                    <StopRow s={s} color="#EC7E95" label={t("map.story.firstStopLabel")} value={stats.firstPlace} />
+                    <View style={{ marginLeft: s(4), marginVertical: s(4) }}>
+                      {[0, 1, 2, 3].map((dot) => (
+                        <View
+                          key={dot}
+                          style={{
+                            width: s(2),
+                            height: s(4),
+                            marginVertical: s(2),
+                            borderRadius: 1,
+                            backgroundColor: "rgba(255, 255, 255, 0.3)",
+                          }}
+                        />
+                      ))}
+                    </View>
+                    <StopRow s={s} color="#FFFFFF" label={t("map.story.latestRouteLabel")} value={stats.latestPlace} />
+                  </View>
                 </View>
-              </View>
-            </View>
 
-            {/* Metrikler */}
-            <View style={styles.metricsGrid}>
-              <View style={styles.metricItem}>
-                <Text style={styles.metricNum}>{stats.totalPins}</Text>
-                <Text style={styles.metricLabel}>{t("map.story.trail")}</Text>
-              </View>
-              <View style={styles.metricDivider} />
-              <View style={styles.metricItem}>
-                <Text style={styles.metricNum}>{stats.maxDistanceKm}</Text>
-                <Text style={styles.metricLabel}>{t("map.story.kilometers")}</Text>
-              </View>
-              <View style={styles.metricDivider} />
-              <View style={styles.metricItem}>
-                <Text style={styles.metricNum}>{Math.max(1, stats.locationsList.length)}</Text>
-                <Text style={styles.metricLabel}>{t("map.story.explored")}</Text>
-              </View>
-            </View>
+                <View style={{ flexDirection: "row", gap: s(8) }}>
+                  {[
+                    { value: stats.totalPins, label: t("map.story.trail") },
+                    { value: stats.maxDistanceKm, label: t("map.story.kilometers") },
+                    { value: Math.max(1, stats.locationsList.length), label: t("map.story.explored") },
+                  ].map((metric) => (
+                    <View
+                      key={metric.label}
+                      style={{
+                        flex: 1,
+                        alignItems: "center",
+                        backgroundColor: "rgba(255, 255, 255, 0.07)",
+                        borderRadius: s(16),
+                        borderWidth: StyleSheet.hairlineWidth,
+                        borderColor: "rgba(255, 255, 255, 0.14)",
+                        paddingVertical: s(12),
+                      }}
+                    >
+                      <Text style={{ color: "#FF8FA3", fontSize: s(24), fontFamily: "Inter_700Bold" }}>{metric.value}</Text>
+                      <Text style={{ color: "rgba(255, 255, 255, 0.6)", fontSize: s(10), fontFamily: "Inter_400Regular", marginTop: s(2) }}>
+                        {metric.label}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
 
-            {/* Minimalist Watermark */}
-            <View style={styles.watermarkWrapper}>
-              <View style={styles.watermarkDot} />
-              <Text style={styles.watermarkText}>{t("common.madeWith")}</Text>
-            </View>
-          </View>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: s(6), marginTop: s(16) }}>
+                  <View style={{ width: s(4), height: s(4), borderRadius: s(2), backgroundColor: "#D85870" }} />
+                  <Text style={{ color: "rgba(255, 255, 255, 0.6)", fontSize: s(10.5), fontFamily: "Inter_500Medium", letterSpacing: s(0.5) }}>
+                    {t("common.madeWith")}
+                  </Text>
+                </View>
+              </>
+            )}
+          </StoryCard>
 
           {/* Paylaşım Butonu */}
           <TouchableOpacity
             onPress={handleShare}
             disabled={isSharing}
             activeOpacity={0.85}
-            style={styles.shareBtn}
+            style={[styles.shareBtn, { width: storyWidth }]}
           >
             <LinearGradient
               colors={["#D85870", "#C8213F"]}
@@ -353,145 +419,20 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textAlign: "center",
   },
-  storyCard: {
-    width: "100%",
-    borderRadius: 24,
-    overflow: "hidden",
-    padding: 24,
-    elevation: 8,
-    shadowColor: "#D85870",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 14,
-  },
-  cardTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 16,
-  },
-  iconCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "rgba(216, 88, 112, 0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  cardHeaderTitle: {
-    color: "#FF8FA3",
-    fontSize: 11,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: 1.5,
-    flex: 1,
-  },
-  cardDateText: {
-    color: "rgba(255, 255, 255, 0.4)",
-    fontSize: 12,
-    fontFamily: "Inter_500Medium",
-  },
-  cardHeadline: {
-    color: "#FFFFFF",
-    fontSize: 22,
-    fontFamily: "PlayfairDisplay_700Bold",
-    lineHeight: 30,
-    marginBottom: 20,
-  },
-  routeBox: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-  },
-  stopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  dotStart: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#EC7E95",
-  },
-  dotEnd: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#C8213F",
-  },
-  dashedLine: {
-    width: 2,
-    height: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    marginLeft: 4,
-    marginVertical: 4,
-  },
-  stopTextGroup: {
-    flex: 1,
-  },
-  stopLabel: {
-    color: "rgba(255, 255, 255, 0.5)",
-    fontSize: 11,
-    fontFamily: "Inter_400Regular",
-  },
-  stopValue: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
-  },
-  metricsGrid: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginBottom: 18,
-  },
-  metricItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  metricNum: {
-    color: "#FF8FA3",
-    fontSize: 20,
-    fontFamily: "Inter_700Bold",
-  },
-  metricLabel: {
-    color: "rgba(255, 255, 255, 0.6)",
-    fontSize: 11,
-    fontFamily: "Inter_400Regular",
-    marginTop: 2,
-  },
-  metricDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-  },
-  watermarkWrapper: {
-    flexDirection: "row",
+  storyBackdrop: {
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingTop: 4,
   },
-  watermarkDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#D85870",
+  storyHeader: {
+    alignItems: "center",
   },
-  watermarkText: {
-    color: "rgba(255, 255, 255, 0.55)",
-    fontSize: 11,
-    fontFamily: "Inter_500Medium",
-    letterSpacing: 0.5,
+  storyMiddle: {
+    flex: 1,
+    justifyContent: "center",
   },
   shareBtn: {
     marginTop: 18,
-    width: "100%",
     height: 52,
     borderRadius: 26,
     overflow: "hidden",
