@@ -26,7 +26,7 @@ import { UserAvatar } from "@/components/avatar/UserAvatar";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 import { usePageTour } from "@/hooks/usePageTour";
 import { useDemoAction } from "@/hooks/useDemoAction";
-import { playLetterSend, hapticStamp } from "@/lib/soundEffects";
+import { playLetterSend } from "@/lib/soundEffects";
 import { toast } from "@/lib/toast";
 import { markLettersSeen } from "@/lib/letterArrival";
 import { markLettersVisited } from "@/lib/widgetUnread";
@@ -215,9 +215,6 @@ export default function LettersScreen() {
       return;
     }
 
-    // Doğrulama geçti ve mühürleme başlıyor: mühür basılırken tok bir darbe hissi.
-    // (Mektup gerçekten mühürlenince playLetterSend başarı titreşimini verir.)
-    hapticStamp();
     setLoadingForm(true);
 
     try {
@@ -1126,7 +1123,6 @@ export default function LettersScreen() {
         onComplete={() => {
           setShowOrigamiAnimation(false);
           // Kuş uçup gidince bloklayıcı bir kart yerine süzülen başarı pili.
-          // Titreşim yok: mühür ve başarı titreşimi zaten verildi.
           toast.success(t("letters.toasts.sealed"), { delay: 250, haptic: false });
           // Bildirim ön-onay kartı, başarı pili görülebilsin diye biraz sonra gösterilir
           setTimeout(() => priming.maybePrompt(), 2800);

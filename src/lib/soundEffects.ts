@@ -210,6 +210,8 @@ export async function triggerHaptic(type: SoundEffectType): Promise<void> {
       await fireHaptic('selection');
       break;
     case 'letter_send':
+      // Mektup gönderimi titreşimsiz: yalnızca ses ve kuş animasyonu
+      break;
     case 'success_chime':
     case 'celebration':
       await fireHaptic('success');

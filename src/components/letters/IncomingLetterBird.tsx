@@ -19,7 +19,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Heart, Mail } from "lucide-react-native";
 import { OrigamiBird, ORIGAMI_BIRD_HEAD_OFFSET, ORIGAMI_BIRD_SIZE } from "./OrigamiBird";
 import { cubicBezierPoint, cubicBezierTangent, headingDegrees, smoothstep } from "@/lib/bezier";
-import { hapticTap } from "@/lib/soundEffects";
 import { dayjs } from "@/lib/date";
 import type { ArrivedLetters } from "@/lib/letterArrival";
 import { useTranslation } from "react-i18next";
@@ -150,11 +149,9 @@ export function IncomingLetterBird({ arrival, onOpen, onDismiss }: IncomingLette
     }
     startExit(PILL_DELAY_MS + AUTO_DISMISS_MS);
 
-    const landed = setTimeout(hapticTap, reduceMotion ? 0 : FLIGHT_MS);
     // Güvenlik ağı: animasyon geri çağrısı gelmezse hap yine de kapansın
     const safety = setTimeout(finish, PILL_DELAY_MS + AUTO_DISMISS_MS + EXIT_MS + 1500);
     return () => {
-      clearTimeout(landed);
       clearTimeout(safety);
     };
   }, [reduceMotion, flight, flapPhase, pillIn, settle, startExit, finish]);

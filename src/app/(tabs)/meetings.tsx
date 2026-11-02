@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { celebrate } from "@/lib/celebrate";
 import { ActionCard } from "@/components/ui/ActionCard";
 import { Reveal } from "@/components/ui/Reveal";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
@@ -245,7 +244,6 @@ export default function MeetingsScreen() {
       queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
       // Form modalı kapanırken değil, kapandıktan sonra görünsün (modalın arkasında kalmasın)
       toast.success(successMessage, { delay: 350 });
-      setTimeout(() => celebrate("hearts"), 350);
     } catch (error: any) {
       appAlert(
         t("common.error"),

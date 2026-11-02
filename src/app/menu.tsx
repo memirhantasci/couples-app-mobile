@@ -18,7 +18,6 @@ import { resetAllPageTours } from "@/hooks/usePageTour";
 import { useDeferredReady } from "@/hooks/useDeferredReady";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { EditableAvatar } from "@/components/avatar/EditableAvatar";
-import { Reveal } from "@/components/ui/Reveal";
 import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
 import { useTranslation } from "react-i18next";
 
@@ -200,7 +199,7 @@ export default function MenuScreen() {
           </View>
 
           {/* ─── KATEGORİ 1: AŞK & ANILAR (ANA BÖLÜMLER) ─── */}
-          <Reveal index={1}><View style={styles.sectionContainer}>
+          <View style={styles.sectionContainer}>
             <Text style={styles.sectionHeaderLabel}>{t("menu.sections.love")}</Text>
             <View style={[styles.sectionGroup, { backgroundColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]}>
 
@@ -368,12 +367,12 @@ export default function MenuScreen() {
               <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
                       </View>
-</View></Reveal>
+</View>
 
           {showLowerSections && (
             <>
               {/* ─── KATEGORİ 2: SAĞLIK & ÖZEL TAKİP ─── */}
-              <Reveal index={2}><View style={styles.sectionContainer}>
+              <View style={styles.sectionContainer}>
                 <Text style={styles.sectionHeaderLabel}>{t("menu.sections.health")}</Text>
             <View style={[styles.sectionGroup, { backgroundColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]}>
 
@@ -407,10 +406,10 @@ export default function MenuScreen() {
                   <ChevronRight color={theme.textMuted} size={18} />
                 </TouchableOpacity>
                           </View>
-</View></Reveal>
+</View>
 
               {/* ─── KATEGORİ 3: AYARLAR & HESAP ─── */}
-              <Reveal index={3}><View style={styles.sectionContainer}>
+              <View style={styles.sectionContainer}>
                 <Text style={styles.sectionHeaderLabel}>{t("menu.sections.account")}</Text>
             <View style={[styles.sectionGroup, { backgroundColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]}>
 
@@ -475,7 +474,7 @@ export default function MenuScreen() {
                   <ChevronRight color="rgba(216, 88, 112, 0.4)" size={18} />
                 </TouchableOpacity>
                           </View>
-</View></Reveal>
+</View>
             </>
           )}
         </ScrollView>

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, memo } from "react";
-import { celebrate } from "@/lib/celebrate";
 import {
   View,
   Text,
@@ -180,7 +179,6 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, theme }: M
     if (!error) {
       const now = Date.now();
       setSelected(emoji);
-      celebrate("hearts");
       const nextCount = updateCount + 1;
       setUpdateCount(nextCount);
       setCooldown(COOLDOWN_SECONDS);

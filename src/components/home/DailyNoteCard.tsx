@@ -1,5 +1,4 @@
 import { useState, memo } from "react";
-import { celebrate } from "@/lib/celebrate";
 import {
   View,
   Text,
@@ -94,7 +93,6 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
       // Günlüklerim ekranı da yeni notu görsün
       queryClient.invalidateQueries({ queryKey: ["daily_notes_history"] });
       toast.success(t("home.dailyNote.saved"));
-      celebrate("hearts");
     } else {
       logger.error("Note save error:", JSON.stringify(error, null, 2));
       toast.error(localizeServerError(error, t("errors.unknown")), { title: t("home.dailyNote.saveFailed") });

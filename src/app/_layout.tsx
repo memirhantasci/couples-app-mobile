@@ -1,5 +1,4 @@
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { CelebrationHost } from "@/components/ui/CelebrationHost";
 import "../global.css";
 // Çok büyük sistem yazı boyutunda ekranlar bozulmasın: tüm metinlere büyüme sınırı koyar
 import "@/lib/fontScaleCap";
@@ -255,7 +254,7 @@ function RootLayoutNav() {
       {/* Modals */}
       {/* <Stack.Screen name="add-memory" options={{ presentation: "modal" }} /> */}
       {/* <Stack.Screen name="write-letter" options={{ presentation: "modal" }} /> */}
-      <Stack.Screen name="menu" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="menu" options={{ presentation: 'modal', animation: 'none' }} />
     </Stack>
     </>
   );
@@ -287,8 +286,6 @@ export default function RootLayout() {
                 <StarPointsToastHost />
                 {/* Alert yerine süzülen hap bildirimleri; ağacın en üstünde çizilir */}
                 <ToastHost />
-                {/* Güzel anlarda (günlük, ruh hali, buluşma...) yükselen kalpler */}
-                <CelebrationHost />
                 {/* İnternet kopunca üstte süzülen uyarı */}
                 <OfflineBanner />
                 {/* Alert.alert yerine cam efektli, pastel tonlu diyalog kartları (onay / uzun uyarılar) */}
