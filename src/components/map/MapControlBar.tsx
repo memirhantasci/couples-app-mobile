@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { BlurView } from "expo-blur";
-import { BookHeart, Layers, Maximize2, Navigation } from "lucide-react-native";
+import { BookHeart, Layers, Maximize2, Navigation, Route } from "lucide-react-native";
 
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { MapFilterChips } from "./MapFilterChips";
@@ -27,6 +27,9 @@ interface MapControlBarProps {
   onOpenStory: () => void;
   onFitAll: () => void;
   onLocate: () => void;
+  /** "Aşk Rotamız" turu sürüyor mu */
+  isJourneyActive: boolean;
+  onToggleJourney: () => void;
 }
 
 // ─── ÜST KONTROL ÇUBUĞU (Başlık, aksiyonlar, filtreler, tema menüsü) ──────────
@@ -47,6 +50,8 @@ export function MapControlBar({
   onOpenStory,
   onFitAll,
   onLocate,
+  isJourneyActive,
+  onToggleJourney,
 }: MapControlBarProps) {
   const { t } = useTranslation();
   const [showThemePicker, setShowThemePicker] = useState(false);
@@ -151,6 +156,29 @@ export function MapControlBar({
         meetingCount={meetingCount}
         activeFilter={activeFilter}
         onChange={onFilterChange}
+        leading={
+          <TouchableOpacity
+            onPress={onToggleJourney}
+            activeOpacity={0.8}
+            style={[
+              styles.journeyChip,
+              isJourneyActive
+                ? { backgroundColor: accent, borderColor: accent }
+                : {
+                    backgroundColor: isLight ? "rgba(255,255,255,0.92)" : "rgba(30,30,36,0.78)",
+                    borderColor: `${accent}88`,
+                  },
+            ]}
+            accessibilityRole="button"
+            accessibilityState={{ selected: isJourneyActive }}
+            accessibilityLabel={isJourneyActive ? t("map.journey.close") : t("map.journey.button")}
+          >
+            <Route size={14} color={isJourneyActive ? "#fff" : accent} />
+            <Text style={[styles.journeyChipText, { color: isJourneyActive ? "#fff" : accent }]}>
+              {t("map.journey.button")}
+            </Text>
+          </TouchableOpacity>
+        }
       />
 
       {showThemePicker && (
@@ -208,5 +236,18 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
+  },
+  journeyChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    height: 38,
+    paddingHorizontal: 15,
+    borderRadius: 19,
+    borderWidth: 1.5,
+  },
+  journeyChipText: {
+    fontSize: 12.5,
+    fontFamily: "Inter_700Bold",
   },
 });

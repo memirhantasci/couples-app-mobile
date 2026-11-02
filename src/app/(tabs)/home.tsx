@@ -788,6 +788,8 @@ export default function HomeScreen() {
               key={`${activeMeeting.id}-${activeMeeting.meeting_datetime}`}
               meeting={activeMeeting}
               theme={theme}
+              myName={profile?.displayName}
+              partnerName={partnerDisplayName}
             />
           )}
 

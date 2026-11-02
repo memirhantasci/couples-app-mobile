@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { ActionCard } from "@/components/ui/ActionCard";
 import { Reveal } from "@/components/ui/Reveal";
+import { Pulse } from "@/components/ui/Pulse";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import {
   View,
@@ -345,6 +346,7 @@ export default function MeetingsScreen() {
                 const isMyMeeting = m.user_id === userId;
                 const formattedDate = dayjs(m.meeting_datetime).locale(i18n.language).format("D MMMM YYYY, dddd");
                 const formattedTime = dayjs(m.meeting_datetime).format("HH:mm");
+                const isReunionDay = dayjs(m.meeting_datetime).isSame(now, "day");
 
                 return (
                   <Reveal key={m.id} index={idx}>
@@ -384,6 +386,19 @@ export default function MeetingsScreen() {
                         </View>
                       )}
                     </View>
+
+                    {/* Buluşma bugün: kavuşma günü rozeti hafifçe kalp gibi atar */}
+                    {isReunionDay ? (
+                      <View style={styles.reunionRow}>
+                        <Pulse scale={1.08} period={1800}>
+                          <View style={[styles.reunionPill, { backgroundColor: theme.pillAccentBg, borderColor: theme.pillAccentBorder }]}>
+                            <Text style={[styles.reunionPillText, { color: theme.accent }]}>
+                              {t("home.meeting.reunion.todayBadge")}
+                            </Text>
+                          </View>
+                        </Pulse>
+                      </View>
+                    ) : null}
 
                     {/* Zaman Rozeti */}
                     <View style={styles.timeBadgeRow}>
@@ -854,6 +869,20 @@ const createStyles = (theme: AppTheme) => {
       flexDirection: "row",
       alignItems: "center",
       gap: 8,
+    },
+    reunionRow: {
+      alignItems: "flex-start",
+      marginBottom: 10,
+    },
+    reunionPill: {
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+      borderRadius: 12,
+      borderWidth: 1,
+    },
+    reunionPillText: {
+      fontSize: 12,
+      fontFamily: "Inter_700Bold",
     },
     timePill: {
       flexDirection: "row",

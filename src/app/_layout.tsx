@@ -26,6 +26,7 @@ import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 import { useLanguageReady } from "@/hooks/useLanguageReady";
 import { useTranslation } from "react-i18next";
 import { ToastHost } from "@/components/ui/ToastHost";
+import { ConfettiRainHost } from "@/components/ui/ConfettiRainHost";
 import { OfflineBanner } from "@/components/ui/OfflineBanner";
 import { AppErrorScreen } from "@/components/ui/AppErrorScreen";
 import { installGlobalErrorReporting } from "@/lib/errorReporting";
@@ -284,6 +285,8 @@ export default function RootLayout() {
                 <PremiumCelebrationHost />
                 {/* Yıldızı parlatan aktivitelerde "+N puan 🌟" bildirimi */}
                 <StarPointsToastHost />
+                {/* Büyük anlarda (kavuşma günü) ekran boyunca yağan konfeti; dokunuşları engellemez */}
+                <ConfettiRainHost />
                 {/* Alert yerine süzülen hap bildirimleri; ağacın en üstünde çizilir */}
                 <ToastHost />
                 {/* İnternet kopunca üstte süzülen uyarı */}

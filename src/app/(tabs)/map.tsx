@@ -1,9 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BlurView } from "expo-blur";
 import * as Location from "expo-location";
-import { useIsFocused, useRouter } from "expo-router";
+import { useFocusEffect, useIsFocused, useRouter } from "expo-router";
 import { Heart } from "lucide-react-native";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import {
   ActivityIndicator,
   Platform,
@@ -16,7 +17,7 @@ import {
 import { appAlert } from "@/lib/dialog";
 import { showPermissionDeniedDialog } from "@/lib/permissions";
 import MapView from "react-native-maps";
-import type { LongPressEvent, MapPressEvent } from "react-native-maps";
+import type { LongPressEvent, MapPressEvent, Region } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -31,6 +32,16 @@ import {
 } from "@/components/map/MapPinMarkers";
 import { MapStoryModal } from "@/components/map/MapStoryModal";
 import { PhotoMarkerPin } from "@/components/map/PhotoMarkerPin";
+import {
+  MAX_RIPPLES,
+  MapPinRipples,
+  ripplePhase,
+  rippleTipOffset,
+  type RipplePinType,
+  type RipplePoint,
+} from "@/components/map/MapPinRipples";
+import { JourneyRoute, JourneyStatusPill, JourneyStopCard, useLoveJourney } from "@/components/map/LoveJourney";
+import { buildJourneyStops } from "@/components/map/journeyStops";
 import type {
   FilterType,
   MapCoordinate,
@@ -54,6 +65,15 @@ import { toast } from "@/lib/toast";
 import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
 import { useTranslation } from "react-i18next";
 import { localizeServerError } from "@/lib/serverErrors";
+
+const INITIAL_REGION: Region = {
+  latitude: 41.0082,
+  longitude: 28.9784,
+  latitudeDelta: 0.15,
+  longitudeDelta: 0.15,
+};
+
+const RIPPLE_COLOR = "#FF6B8F";
 
 export default function MapScreen() {
   const { t } = useTranslation();
@@ -378,6 +398,103 @@ export default function MapScreen() {
     });
   };
 
+  // ─── Pinlerde Nabız Dalgası ───────────────────────────────────────────────
+  // Dalgalar haritanın üstündeki tek Skia katmanında çizilir (bkz. MapPinRipples). Harita kayarken
+  // gizlenir; durunca ekrandaki pinlerin ekran konumları native haritadan okunup yeniden yerleştirilir.
+  const reduceMotion = useReducedMotion();
+  const ripplePoints = useSharedValue<RipplePoint[]>([]);
+  const rippleVisible = useSharedValue(0);
+  const ripplesShownRef = useRef(false);
+  const rippleRequestRef = useRef(0);
+  const lastRegionRef = useRef<Region>(INITIAL_REGION);
+
+  const ripplePins = useMemo(() => {
+    const pins: { key: string; type: RipplePinType; latitude: number; longitude: number }[] = [];
+    if (activeFilter === "all" || activeFilter === "photos") {
+      photoPins.forEach((p) => pins.push({ key: `photo-${p.id}`, type: "photo", latitude: p.latitude, longitude: p.longitude }));
+    }
+    if (activeFilter === "all" || activeFilter === "notes") {
+      mapNotes.forEach((n) => pins.push({ key: `note-${n.id}`, type: "note", latitude: n.latitude, longitude: n.longitude }));
+    }
+    if (activeFilter === "all" || activeFilter === "meetings") {
+      meetingPins.forEach((m) => pins.push({ key: `meeting-${m.id}`, type: "meeting", latitude: m.latitude, longitude: m.longitude }));
+    }
+    return pins;
+  }, [activeFilter, photoPins, mapNotes, meetingPins]);
+
+  const hideRipples = useCallback(() => {
+    // Süren bir konumlama varsa sonucu artık geçersiz: harita yeniden kıpırdadı
+    rippleRequestRef.current += 1;
+    if (!ripplesShownRef.current) return;
+    ripplesShownRef.current = false;
+    rippleVisible.set(withTiming(0, { duration: 120 }));
+  }, [rippleVisible]);
+
+  const placeRipples = useCallback(
+    async (region: Region) => {
+      const map = mapRef.current;
+      if (!map || reduceMotion) return;
+      const request = ++rippleRequestRef.current;
+      const halfLat = region.latitudeDelta / 2;
+      const halfLng = region.longitudeDelta / 2;
+      const distanceToCenter = (p: { latitude: number; longitude: number }) =>
+        (p.latitude - region.latitude) ** 2 + (p.longitude - region.longitude) ** 2;
+      const inView = ripplePins
+        .filter(
+          (p) => Math.abs(p.latitude - region.latitude) <= halfLat && Math.abs(p.longitude - region.longitude) <= halfLng
+        )
+        .sort((a, b) => distanceToCenter(a) - distanceToCenter(b))
+        .slice(0, MAX_RIPPLES);
+      try {
+        const screenPoints = await Promise.all(
+          inView.map((p) => map.pointForCoordinate({ latitude: p.latitude, longitude: p.longitude }))
+        );
+        if (request !== rippleRequestRef.current) return;
+        ripplePoints.set(
+          screenPoints.map((point, i) => ({
+            x: point.x,
+            y: point.y + rippleTipOffset(inView[i].type),
+            phase: ripplePhase(inView[i].key),
+          }))
+        );
+        ripplesShownRef.current = true;
+        rippleVisible.set(withTiming(1, { duration: 260 }));
+      } catch {
+        // Harita henüz hazır değil: bir sonraki durmada yeniden denenir
+      }
+    },
+    [reduceMotion, ripplePins, ripplePoints, rippleVisible]
+  );
+
+  // Pinler ya da filtre değişince dalgalar yeni listeye göre yerleşir
+  useEffect(() => {
+    placeRipples(lastRegionRef.current);
+  }, [placeRipples]);
+
+  // ─── "Aşk Rotamız" ─────────────────────────────────────────────────────────
+  const { journey, startJourney, stopJourney } = useLoveJourney(mapRef);
+
+  // Ekrandan çıkılınca tur durur (zamanlayıcılar ve rota temizlenir)
+  useFocusEffect(useCallback(() => stopJourney, [stopJourney]));
+
+  const handleToggleJourney = () => {
+    if (journey) {
+      stopJourney();
+      return;
+    }
+    const stops = buildJourneyStops({
+      photos: activeFilter === "all" || activeFilter === "photos" ? photoPins : [],
+      notes: activeFilter === "all" || activeFilter === "notes" ? mapNotes : [],
+      meetings: activeFilter === "all" || activeFilter === "meetings" ? meetingPins : [],
+    });
+    if (stops.length < 2) {
+      toast.info(t("map.journey.notEnough"), { emoji: "📍" });
+      return;
+    }
+    setSelectedItem(null);
+    startJourney(stops, reduceMotion);
+  };
+
   const isLight = isLightMapTheme(mapTheme);
   const mapBgColor = isLight ? "#F7F4EF" : "#0F131D";
   const isAddingNote = pendingCoord !== null;
@@ -398,14 +515,15 @@ export default function MapScreen() {
         // JSON stili yok sayar; orada renk modu yalnızca açık/koyu arayüz stiliyle değişir.
         customMapStyle={Platform.OS === "android" ? MAP_THEME_STYLES[mapTheme] : undefined}
         userInterfaceStyle={Platform.OS === "ios" ? (isLight ? "light" : "dark") : undefined}
-        initialRegion={{
-          latitude: 41.0082,
-          longitude: 28.9784,
-          latitudeDelta: 0.15,
-          longitudeDelta: 0.15,
-        }}
+        initialRegion={INITIAL_REGION}
         onLongPress={handleMapLongPress}
         onPress={handleMapPress}
+        onMapReady={() => placeRipples(lastRegionRef.current)}
+        onRegionChange={hideRipples}
+        onRegionChangeComplete={(region) => {
+          lastRegionRef.current = region;
+          placeRipples(region);
+        }}
         showsUserLocation={hasLocationPermission}
         showsMyLocationButton={false}
         showsCompass={false}
@@ -444,7 +562,15 @@ export default function MapScreen() {
         {pendingCoord && (
           <PendingNoteMarker coordinate={pendingCoord} accent={theme.accent} />
         )}
+
+        {journey ? <JourneyRoute journey={journey} /> : null}
       </MapView>
+
+      {/* ─── PİNLERDE NABIZ DALGASI (dokunuşları engellemez) ───────────────── */}
+      <MapPinRipples points={ripplePoints} visible={rippleVisible} color={RIPPLE_COLOR} />
+
+      {/* ─── AŞK ROTAMIZ: varılan durağın anısı ─────────────────────────────── */}
+      {journey ? <JourneyStopCard journey={journey} isLight={isLight} /> : null}
 
       {/* ─── ÜST KONTROL ÇUBUĞU (Başlık, Filtreler, Tema, Hikaye) ───────── */}
       <MapControlBar
@@ -464,6 +590,8 @@ export default function MapScreen() {
         onOpenStory={() => setIsStoryVisible(true)}
         onFitAll={fitAllPins}
         onLocate={goToUserLocation}
+        isJourneyActive={!!journey}
+        onToggleJourney={handleToggleJourney}
       />
 
       {/* ─── YÜKLENİYOR GÖSTERGESİ ─────────────────────────────────────── */}
@@ -510,8 +638,19 @@ export default function MapScreen() {
         </TouchableOpacity>
       )}
 
+      {/* ─── AŞK ROTAMIZ: ilerleme ve kapatma ──────────────────────────── */}
+      {journey && !selectedItem ? (
+        <JourneyStatusPill
+          journey={journey}
+          isLight={isLight}
+          accent={theme.accent}
+          bottom={insets.bottom + 90}
+          onClose={stopJourney}
+        />
+      ) : null}
+
       {/* ─── HIZLI NOT EKLEME REHBERİ (Floating Pill) ──────────────────── */}
-      {!isLoading && !isMapEmpty && !selectedItem && !isAddingNote && (
+      {!isLoading && !isMapEmpty && !selectedItem && !isAddingNote && !journey && (
         <View style={[styles.hintPill, { bottom: insets.bottom + 90 }]}>
           <BlurView
             tint={isLight ? "light" : "dark"}

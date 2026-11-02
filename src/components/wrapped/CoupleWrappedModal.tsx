@@ -7,12 +7,16 @@ import { LinearGradient } from "expo-linear-gradient";
 import { X, Share2, Heart, Sparkles, Mail, MapPin } from "lucide-react-native";
 import Animated, {
   Easing,
+  FadeInDown,
+  FadeInUp,
   cancelAnimation,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withTiming,
   type SharedValue,
 } from "react-native-reanimated";
+import { UICountUp } from "@/components/ui/CountUp";
 import { scheduleOnRN } from "react-native-worklets";
 import { CoupleWrappedData } from "@/utils/wrappedCalculator";
 import { AppTheme } from "@/lib/theme";
@@ -83,6 +87,45 @@ function StoryStatTile({ s, glyph, value, caption }: { s: StoryScale; glyph: Rea
   );
 }
 
+// ─── Sahne Girişleri (Instagram hikâyesi gibi) ────────────────────────────────
+// Başlık ve ikonlar yukarıdan süzülür; altındaki rozet ve kutular kademeli olarak (80 ms arayla) aşağıdan gelir.
+const HERO_DELAY_MS = 120;
+const HERO_STEP_MS = 70;
+const ITEMS_DELAY_MS = 420;
+const ITEM_STAGGER_MS = 80;
+/** Arka plan rengi slayt konusuna göre bu sürede yumuşakça değişir */
+const BACKDROP_MORPH_MS = 1500;
+
+type GradientColors = readonly [string, string, ...string[]];
+
+// Slayt konuları: 0 Aşk (birlikte geçen günler) · 1 Ruh hali · 2 Mektuplar · 3 Final
+const SLIDE_BACKDROPS: Record<"female" | "male", readonly GradientColors[]> = {
+  female: [
+    ["#0A0A0C", "#2A0A1C", "#4A0F2C", "#0A0A0C"],
+    ["#0C0A10", "#2A1530", "#3D1F12", "#0C0A10"],
+    ["#0A0A12", "#1A1240", "#2E0A3A", "#0A0A12"],
+    ["#0A0A0C", "#1F0C18", "#2E0A1F", "#0A0A0C"],
+  ],
+  male: [
+    ["#0A0E17", "#0D1E3A", "#1A2F5A", "#0A0E17"],
+    ["#0A0E14", "#14283A", "#2B2A4A", "#0A0E14"],
+    ["#090C16", "#16173F", "#1D2E55", "#090C16"],
+    ["#0A0E17", "#0D182A", "#13233D", "#0A0E17"],
+  ],
+};
+
+/** Slayt arka planlarından biri: etkin slayt indeksine yaklaştıkça görünür, komşusuyla çapraz geçiş yapar. */
+function BackdropLayer({ index, active, colors }: { index: number; active: SharedValue<number>; colors: GradientColors }) {
+  const style = useAnimatedStyle(() => ({
+    opacity: Math.max(0, 1 - Math.abs(active.get() - index)),
+  }));
+  return (
+    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, style]}>
+      <LinearGradient colors={colors} style={StyleSheet.absoluteFill} />
+    </Animated.View>
+  );
+}
+
 function ProgressFill({ state, progress }: { state: "done" | "active" | "idle"; progress: SharedValue<number> }) {
   const style = useAnimatedStyle(() => ({
     width: state === "done" ? "100%" : state === "active" ? `${progress.value}%` : "0%",
@@ -104,9 +147,8 @@ export function CoupleWrappedModal({
   // alandan alınır (demo modunda insets.top 0'a çekilir; SafeAreaView ise modal içinde 0 dönebiliyordu)
   const topInset = useRealTopInset();
   const isMale = theme?.gender === "male";
-  const modalGradientColors = isMale
-    ? (["#0A0E17", "#0D182A", "#13233D", "#0A0E17"] as const)
-    : (["#0A0A0C", "#1F0C18", "#2E0A1F", "#0A0A0C"] as const);
+  const slideBackdrops = SLIDE_BACKDROPS[isMale ? "male" : "female"];
+  const reduceMotion = useReducedMotion();
   const storyPalette: StoryPalette = isMale
     ? { background: ["#0A1424", "#152B4D", "#0A111C"], glow: "79, 125, 190", decor: "#7FA6DC" }
     : { background: ["#1A0B16", "#3A1029", "#14081A"], glow: "216, 88, 112", decor: "#EC7E95" };
@@ -148,6 +190,22 @@ export function CoupleWrappedModal({
     return () => cancelAnimation(progress);
   }, [visible, currentSlide, data, progress, advanceSlide]);
 
+  // Arka plan, slayt değişince konusunun rengine 1.5 sn'de akar; her açılış ilk slaytın renginden başlar
+  const backdropIndex = useSharedValue(0);
+  useEffect(() => {
+    if (!visible || reduceMotion) {
+      backdropIndex.set(visible ? currentSlide : 0);
+      return;
+    }
+    backdropIndex.set(withTiming(currentSlide, { duration: BACKDROP_MORPH_MS, easing: Easing.inOut(Easing.cubic) }));
+  }, [visible, currentSlide, reduceMotion, backdropIndex]);
+
+  // Sahne girişleri: hareket azaltma açıkken öğeler doğrudan yerinde görünür
+  const heroIn = (step: number) =>
+    reduceMotion ? undefined : FadeInUp.delay(HERO_DELAY_MS + step * HERO_STEP_MS).duration(400).springify();
+  const itemIn = (step: number) =>
+    reduceMotion ? undefined : FadeInDown.delay(ITEMS_DELAY_MS + step * ITEM_STAGGER_MS).duration(380).springify();
+
   const handleNext = () => {
     if (currentSlide < TOTAL_SLIDES - 1) {
       setCurrentSlide((s) => s + 1);
@@ -181,11 +239,10 @@ export function CoupleWrappedModal({
   return (
     <Modal visible={visible} animationType="fade" transparent statusBarTranslucent onRequestClose={onClose}>
       <View style={styles.backdrop}>
-        {/* Arka Plan Gradient */}
-        <LinearGradient
-          colors={modalGradientColors}
-          style={StyleSheet.absoluteFill}
-        />
+        {/* Arka Plan Gradient: slayt konusuna göre çapraz geçişle renk değiştirir */}
+        {slideBackdrops.map((colors, index) => (
+          <BackdropLayer key={index} index={index} active={backdropIndex} colors={colors} />
+        ))}
 
         <View style={[styles.safeArea, { paddingTop: topInset, paddingBottom: insets.bottom }]}>
           {/* Üst Bar: İlerleme Çubukları & Kapat Butonu */}
@@ -225,38 +282,50 @@ export function CoupleWrappedModal({
             {/* SLIDE 0: Birlikte Geçen Günler */}
             {currentSlide === 0 && (
               <View style={styles.slideContent}>
-                <View style={styles.iconCircle}>
+                <Animated.View entering={heroIn(0)} style={styles.iconCircle}>
                   <Heart size={38} color={theme.accent} fill={theme.accent} />
-                </View>
-                <Text style={styles.subHeading}>{t("wrapped.slides.storyTitle")}</Text>
-                <Text style={styles.bigStatNumber}>{data.daysTogether}</Text>
-                <Text style={styles.statLabel}>{t("wrapped.slides.daysTogether")}</Text>
+                </Animated.View>
+                <Animated.Text entering={heroIn(1)} style={styles.subHeading}>
+                  {t("wrapped.slides.storyTitle")}
+                </Animated.Text>
+                <Animated.View entering={heroIn(2)} style={styles.countRow}>
+                  <UICountUp value={data.daysTogether} delay={HERO_DELAY_MS + 2 * HERO_STEP_MS} style={styles.bigStatNumber} />
+                </Animated.View>
+                <Animated.Text entering={heroIn(3)} style={styles.statLabel}>
+                  {t("wrapped.slides.daysTogether")}
+                </Animated.Text>
 
-                <View style={styles.quoteBox}>
+                <Animated.View entering={itemIn(0)} style={styles.quoteBox}>
                   <Text style={styles.quoteText}>
                     {t("wrapped.slides.quote")}
                   </Text>
-                </View>
+                </Animated.View>
               </View>
             )}
 
             {/* SLIDE 1: Ortak Mood */}
             {currentSlide === 1 && (
               <View style={styles.slideContent}>
-                <Text style={styles.emojiDisplay}>{data.topMood.emoji}</Text>
-                <Text style={styles.subHeading}>{t("wrapped.slides.moodTitle")}</Text>
-                <Text style={styles.mainTitle}>{data.topMood.label}</Text>
-                <Text style={styles.statDescription}>
+                <Animated.Text entering={heroIn(0)} style={styles.emojiDisplay}>
+                  {data.topMood.emoji}
+                </Animated.Text>
+                <Animated.Text entering={heroIn(1)} style={styles.subHeading}>
+                  {t("wrapped.slides.moodTitle")}
+                </Animated.Text>
+                <Animated.Text entering={heroIn(2)} style={styles.mainTitle}>
+                  {data.topMood.label}
+                </Animated.Text>
+                <Animated.Text entering={heroIn(3)} style={styles.statDescription}>
                   {t("wrapped.slides.moodDescription", { count: data.topMood.count })}
-                </Text>
+                </Animated.Text>
 
                 <View style={styles.badgeRow}>
-                  <View style={styles.miniPill}>
+                  <Animated.View entering={itemIn(0)} style={styles.miniPill}>
                     <Text style={styles.miniPillText}>{t("wrapped.slides.pillLove")}</Text>
-                  </View>
-                  <View style={styles.miniPill}>
+                  </Animated.View>
+                  <Animated.View entering={itemIn(1)} style={styles.miniPill}>
                     <Text style={styles.miniPillText}>{t("wrapped.slides.pillHarmony")}</Text>
-                  </View>
+                  </Animated.View>
                 </View>
               </View>
             )}
@@ -264,29 +333,40 @@ export function CoupleWrappedModal({
             {/* SLIDE 2: Mektup ve Notlar */}
             {currentSlide === 2 && (
               <View style={styles.slideContent}>
-                <View style={styles.iconCircle}>
+                <Animated.View entering={heroIn(0)} style={styles.iconCircle}>
                   <Mail size={36} color={theme.accentLight} />
-                </View>
-                <Text style={styles.subHeading}>{t("wrapped.slides.wordsTitle")}</Text>
+                </Animated.View>
+                <Animated.Text entering={heroIn(1)} style={styles.subHeading}>
+                  {t("wrapped.slides.wordsTitle")}
+                </Animated.Text>
                 <View style={styles.twoColumnGrid}>
-                  <View style={styles.statBox}>
-                    <Text style={styles.boxNumber}>{data.lettersCount}</Text>
+                  <Animated.View entering={itemIn(0)} style={styles.statBox}>
+                    <UICountUp
+                      value={data.lettersCount}
+                      delay={ITEMS_DELAY_MS}
+                      style={styles.boxNumber}
+                    />
                     <Text style={styles.boxLabel}>{t("wrapped.slides.loveLetters")}</Text>
-                  </View>
-                  <View style={styles.statBox}>
-                    <Text style={styles.boxNumber}>{data.dailyNotesCount}</Text>
+                  </Animated.View>
+                  <Animated.View entering={itemIn(1)} style={styles.statBox}>
+                    <UICountUp
+                      value={data.dailyNotesCount}
+                      delay={ITEMS_DELAY_MS + ITEM_STAGGER_MS}
+                      style={styles.boxNumber}
+                    />
                     <Text style={styles.boxLabel}>{t("wrapped.slides.journalNotes")}</Text>
-                  </View>
+                  </Animated.View>
                 </View>
-                <Text style={styles.statDescription}>
+                <Animated.Text entering={itemIn(2)} style={styles.statDescription}>
                   {data.highlightStat}
-                </Text>
+                </Animated.Text>
               </View>
             )}
 
-            {/* SLIDE 3: Büyük Final & Instagram hikâyesi (9:16) önizlemesi */}
+            {/* SLIDE 3: Büyük Final & Instagram hikâyesi (9:16) önizlemesi.
+                Paylaşılan görsel bu kartın kendisi: içi sabit kalır, yalnızca bütünü sahneye süzülür */}
             {currentSlide === 3 && (
-              <View style={styles.finalSlideWrapper}>
+              <Animated.View entering={heroIn(0)} style={styles.finalSlideWrapper}>
                 {/* Paylaşılan görsel tam bu karttır: 1080×1920, kenar boşluksuz */}
                 <StoryCard
                   width={storyWidth}
@@ -431,7 +511,7 @@ export function CoupleWrappedModal({
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
-              </View>
+              </Animated.View>
             )}
           </View>
         </View>
@@ -549,6 +629,10 @@ const styles = StyleSheet.create({
     fontFamily: "PlayfairDisplay_700Bold",
     lineHeight: 84,
   },
+  // Sayaç metin kutusu satırı kaplar: rakam sayarken genişlik değişse de ortada kalır
+  countRow: {
+    alignSelf: "stretch",
+  },
   statLabel: {
     color: "rgba(255, 255, 255, 0.8)",
     fontSize: 16,
@@ -625,6 +709,7 @@ const styles = StyleSheet.create({
   boxNumber: {
     color: "#FF8FA3",
     fontSize: 34,
+    lineHeight: 40,
     fontFamily: "Inter_700Bold",
     marginBottom: 4,
   },

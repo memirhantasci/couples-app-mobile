@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { Calendar, Camera, Sparkles, StickyNote } from "lucide-react-native";
 import type { LucideIcon } from "lucide-react-native";
@@ -15,6 +15,8 @@ interface MapFilterChipsProps {
   meetingCount: number;
   activeFilter: FilterType;
   onChange: (filter: FilterType) => void;
+  /** Çiplerin önünde, aynı satırda kayan ek düğme (ör. "Aşk Rotamız") */
+  leading?: ReactNode;
 }
 
 interface FilterOption {
@@ -33,6 +35,7 @@ export function MapFilterChips({
   meetingCount,
   activeFilter,
   onChange,
+  leading,
 }: MapFilterChipsProps) {
   const { t } = useTranslation();
   const options = useMemo<FilterOption[]>(
@@ -58,6 +61,7 @@ export function MapFilterChips({
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.filterRow}
     >
+      {leading}
       {options.map((item) => {
         const isSelected = activeFilter === item.id;
         const ItemIcon = item.icon;

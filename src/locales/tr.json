@@ -1003,7 +1003,12 @@
       "details": "Buluşma Detayları",
       "titleLabel": "Başlık",
       "dateTime": "Tarih & Saat",
-      "location": "Konum"
+      "location": "Konum",
+      "reunion": {
+        "title": "Bugün Kavuşma Günü! Sarılmadan Bırakma 🥰",
+        "todayBadge": "Bugün Kavuşma Günü 🥰",
+        "celebrateHint": "Kutlamak için dokun 🎉"
+      }
     },
     "mood": {
       "cooldownToast_one": "Ruh halini {{count}} saniye sonra tekrar güncelleyebilirsin.",
@@ -1379,6 +1384,14 @@
     },
     "lightbox": {
       "directions": "Bu Konuma Yol Tarifi Al"
+    },
+    "journey": {
+      "button": "Aşk Rotamız 📍",
+      "close": "Rotayı kapat",
+      "step": "DURAK {{current}}/{{total}}",
+      "progress": "Aşk rotamız · {{current}}/{{total}}",
+      "finished": "Yolculuğumuz: {{count}} durak 💕",
+      "notEnough": "Rota için haritada en az iki farklı yerde anınız olmalı 📍"
     }
   },
   "errors": {

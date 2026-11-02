@@ -1,8 +1,26 @@
 import { Tabs, useRouter, usePathname, type Href } from "expo-router";
-import { StyleSheet, View, Text, Platform, TouchableOpacity } from "react-native";
+import {
+  StyleSheet,
+  View,
+  Text,
+  Platform,
+  TouchableOpacity,
+  type LayoutChangeEvent,
+  type StyleProp,
+  type TextStyle,
+} from "react-native";
 import { BlurView } from "expo-blur";
-import React, { useCallback, useEffect, useMemo } from "react";
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+  type SharedValue,
+} from "react-native-reanimated";
+import { hapticSelection } from "@/lib/soundEffects";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
 import { SafeAreaInsetsContext, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,14 +33,132 @@ import { DemoModeBanner } from "@/components/demo/DemoModeBanner";
 import { useReminderSync } from "@/hooks/useReminderSync";
 import { usePushLanguageSync } from "@/hooks/usePushLanguageSync";
 
-/** Odaktaki sekmenin ikonu yaylanarak büyür, odak gidince eski boyuna döner. */
-function TabIcon({ focused, children }: { focused: boolean; children: React.ReactNode }) {
+/**
+ * Odaktaki sekmenin ikonu yaylanarak büyür, odak gidince eski boyuna döner. Basıldığı an jöle gibi
+ * ezilir (enine genişleyip boyca kısalır) ve yaylanarak toparlanır.
+ */
+function TabIcon({
+  focused,
+  squash,
+  children,
+}: {
+  focused: boolean;
+  squash: SharedValue<number>;
+  children: React.ReactNode;
+}) {
   const scale = useSharedValue(focused ? 1.12 : 1);
   useEffect(() => {
     scale.set(withSpring(focused ? 1.12 : 1, { damping: 9, stiffness: 220 }));
   }, [focused, scale]);
-  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }] }));
+  const style = useAnimatedStyle(() => {
+    const s = squash.get();
+    return {
+      transform: [{ scaleX: scale.get() * (1 + 0.15 * s) }, { scaleY: scale.get() * (1 - 0.12 * s) }],
+    };
+  });
   return <Animated.View style={style}>{children}</Animated.View>;
+}
+
+const PILL_H = 48;
+const BAR_PADDING = 8;
+const ITEM_PADDING = 2;
+
+/**
+ * Aktif sekmenin arkasındaki "jöle hap": yeni sekmeye geçerken ön kenarı sert, arka kenarı yumuşak bir
+ * yayla gider; böylece hap sakız gibi uzar, hedefe varınca toparlanır ve uzadıkça hafifçe incelir.
+ */
+function JellyPill({
+  index,
+  count,
+  width,
+  color,
+}: {
+  index: number;
+  count: number;
+  width: number;
+  color: string;
+}) {
+  const reduceMotion = useReducedMotion();
+  const itemW = (width - BAR_PADDING * 2) / count;
+  const targetLeft = BAR_PADDING + index * itemW + ITEM_PADDING;
+  const targetRight = targetLeft + itemW - ITEM_PADDING * 2;
+  const left = useSharedValue(targetLeft);
+  const right = useSharedValue(targetRight);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      left.set(targetLeft);
+      right.set(targetRight);
+      return;
+    }
+    const lead = { damping: 18, stiffness: 320, mass: 0.8 };
+    const trail = { damping: 16, stiffness: 140, mass: 1 };
+    const movingRight = targetLeft > left.get();
+    left.set(withSpring(targetLeft, movingRight ? trail : lead));
+    right.set(withSpring(targetRight, movingRight ? lead : trail));
+  }, [targetLeft, targetRight, reduceMotion, left, right]);
+
+  const style = useAnimatedStyle(() => {
+    const l = left.get();
+    const w = Math.max(0, right.get() - l);
+    const stretch = Math.min(1, Math.max(0, w / Math.max(1, itemW - ITEM_PADDING * 2) - 1));
+    return {
+      left: l,
+      width: w,
+      transform: [{ scaleY: 1 - 0.14 * stretch }],
+    };
+  });
+
+  return <Animated.View pointerEvents="none" style={[styles.jellyPill, { backgroundColor: color }, style]} />;
+}
+
+interface TabButtonProps {
+  label: string;
+  isFocused: boolean;
+  icon: React.ReactNode;
+  labelStyle: StyleProp<TextStyle>;
+  onPress: () => void;
+}
+
+function TabButton({ label, isFocused, icon, labelStyle, onPress }: TabButtonProps) {
+  const reduceMotion = useReducedMotion();
+  const squash = useSharedValue(0);
+
+  const handlePress = () => {
+    hapticSelection();
+    if (!reduceMotion) {
+      squash.set(withSequence(withTiming(1, { duration: 80 }), withSpring(0, { damping: 6, stiffness: 260 })));
+    }
+    onPress();
+  };
+
+  return (
+    <TouchableOpacity
+      onPress={handlePress}
+      activeOpacity={0.75}
+      style={styles.tabItemBtn}
+      accessibilityRole="tab"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: isFocused }}
+    >
+      <View style={styles.tabCapsule}>
+        <TabIcon focused={isFocused} squash={squash}>
+          {icon}
+        </TabIcon>
+
+        <Text
+          style={[styles.tabText, labelStyle]}
+          numberOfLines={1}
+          // Etiket, sığabildiği her yerde tam yazılır; yalnızca gerçekten sığmayacaksa (dar ekran,
+          // 6 sekme) yazı hafifçe küçülür. "…" ile kesilme yalnızca bu da yetmezse olur.
+          adjustsFontSizeToFit
+          minimumFontScale={0.75}
+        >
+          {label}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
 }
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
@@ -30,6 +166,10 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   const { enabledTabs, allTabs } = useTabBar();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const [innerWidth, setInnerWidth] = useState(0);
+  const handleInnerLayout = useCallback((event: LayoutChangeEvent) => {
+    setInnerWidth(Math.round(event.nativeEvent.layout.width));
+  }, []);
 
   const tabLookup = useMemo(() => {
     return allTabs.reduce((acc, tab) => {
@@ -62,6 +202,8 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 
   // Alt boşluk: iPhone Home Bar ve Android sistem çubuğunun (3 buton / jest çizgisi) üstünde süzülür
   const bottomOffset = getTabBarBottomOffset(insets.bottom);
+  // Odaktaki ekran alt barda yoksa (kullanıcı o sekmeyi gizlemiş) hap gösterilmez
+  const focusedIndex = visibleTabs.findIndex(({ route }) => route.name === currentRouteName);
 
   return (
     <View 
@@ -82,7 +224,11 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
         style={StyleSheet.absoluteFill}
       />
 
-      <View style={styles.tabBarInner}>
+      <View style={styles.tabBarInner} onLayout={handleInnerLayout}>
+        {innerWidth > 0 && focusedIndex >= 0 ? (
+          <JellyPill index={focusedIndex} count={visibleTabs.length} width={innerWidth} color={theme.pillAccentBg} />
+        ) : null}
+
         {visibleTabs.map(({ route, config }) => {
           const isFocused = state.routes[state.index].name === route.name;
           const { labelKey, Icon } = config;
@@ -101,53 +247,24 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           };
 
           return (
-            <TouchableOpacity
+            <TabButton
               key={route.key}
+              label={label}
+              isFocused={isFocused}
               onPress={onPress}
-              activeOpacity={0.75}
-              style={styles.tabItemBtn}
-              accessibilityRole="tab"
-              accessibilityLabel={label}
-              accessibilityState={{ selected: isFocused }}
-            >
-              <View 
-                style={[
-                  styles.tabCapsule,
-                  isFocused && [
-                    styles.tabCapsuleActive,
-                    { backgroundColor: theme.pillAccentBg }
-                  ]
-                ]}
-              >
-                <TabIcon focused={isFocused}>
-                  <Icon
-                    size={18}
-                    color={isFocused ? theme.accent : (isLight ? theme.textMuted : "rgba(255, 255, 255, 0.42)")}
-                    strokeWidth={isFocused ? 2.4 : 1.8}
-                  />
-                </TabIcon>
-
-                <Text
-                  style={[
-                    styles.tabText,
-                    isFocused ? { 
-                      color: isLight ? theme.accent : "#FFFFFF", 
-                      fontFamily: "Inter_700Bold", 
-                    } : {
-                      color: isLight ? theme.textMuted : "rgba(255, 255, 255, 0.42)",
-                      fontFamily: "Inter_500Medium",
-                    }
-                  ]}
-                  numberOfLines={1}
-                  // Etiket, sığabildiği her yerde tam yazılır; yalnızca gerçekten sığmayacaksa (dar ekran,
-                  // 6 sekme) yazı hafifçe küçülür. "…" ile kesilme yalnızca bu da yetmezse olur.
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.75}
-                >
-                  {label}
-                </Text>
-              </View>
-            </TouchableOpacity>
+              icon={
+                <Icon
+                  size={18}
+                  color={isFocused ? theme.accent : (isLight ? theme.textMuted : "rgba(255, 255, 255, 0.42)")}
+                  strokeWidth={isFocused ? 2.4 : 1.8}
+                />
+              }
+              labelStyle={
+                isFocused
+                  ? { color: isLight ? theme.accent : "#FFFFFF", fontFamily: "Inter_700Bold" }
+                  : { color: isLight ? theme.textMuted : "rgba(255, 255, 255, 0.42)", fontFamily: "Inter_500Medium" }
+              }
+            />
           );
         })}
       </View>
@@ -251,25 +368,30 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 8,
+    paddingHorizontal: BAR_PADDING,
   },
   tabItemBtn: {
     flex: 1,
     height: "100%",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 2,
+    paddingHorizontal: ITEM_PADDING,
   },
   tabCapsule: {
     width: "100%",
-    height: 48,
-    borderRadius: 24,
+    height: PILL_H,
+    borderRadius: PILL_H / 2,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 3,
   },
-  // Aktif sekme: çerçevesiz, gölgesiz yumuşak vurgu dolgusu
-  tabCapsuleActive: {},
+  // Aktif sekmenin arkasında kayan, çerçevesiz ve gölgesiz yumuşak vurgu dolgusu
+  jellyPill: {
+    position: "absolute",
+    top: (64 - PILL_H) / 2,
+    height: PILL_H,
+    borderRadius: PILL_H / 2,
+  },
   tabText: {
     // Kapsülün tam genişliği: metin kutusu ölçülen (iOS'ta bazen dar kalan) genişliğe değil, kapsüle
     // bağlı olur; "Takvim" gibi kısa etiketler boş yer varken "Takv…" diye kesilmez
