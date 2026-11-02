@@ -17,14 +17,16 @@ import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, type CoupleProfile } from "@/context/AuthContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Link, Share2, LogOut, Sparkles, Check, Copy } from "lucide-react-native";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
-import { navigateAfterAuth } from "@/lib/navigate";
+import { navigateAfterAuth, releaseAuthFlow, setAuthFlowActive } from "@/lib/navigate";
 import { isDefinitivePairingError, normalizePairingCode, translatePairingError } from "@/lib/pairingCode";
 import { useNotificationPriming } from "@/hooks/useNotificationPriming";
+import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 import { PermissionPrimingModal } from "@/components/common/PermissionPrimingModal";
+import { PairingCelebrationModal } from "@/components/pairing/PairingCelebrationModal";
 import { useTranslation } from "react-i18next";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -54,6 +56,17 @@ async function fetchPairingStatus(): Promise<PairingStatus> {
   };
 }
 
+// Kutlamada partnerin adı görünsün; okunamazsa kutlama yine "Sevgilin" ile oynar
+async function fetchPartnerName(coupleId: number, userId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("users")
+    .select("id, display_name, username")
+    .eq("couple_id", coupleId);
+  if (error || !data) return null;
+  const partner = data.find((row) => row.id !== userId);
+  return partner?.display_name?.trim() || partner?.username?.trim() || null;
+}
+
 // ─── Pairing Screen ──────────────────────────────────────────────────────────
 
 export default function PairingScreen() {
@@ -61,7 +74,7 @@ export default function PairingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { session, profile, refreshProfile, signOut, enterDemoMode } = useAuth();
+  const { session, profile, refreshProfile, signOut, enterDemoMode, isDemoMode } = useAuth();
   const userId = session?.user?.id;
   const params = useLocalSearchParams<{ code?: string }>();
 
@@ -83,16 +96,77 @@ export default function PairingScreen() {
     refetchIntervalInBackground: false,
   });
 
-  // Eşleşme tamamlandı: profil yenilenmeden yönlendirilirse koruyucu (useProtectedRoute) eski
-  // "eşleşmemiş" profile bakıp kullanıcıyı bu ekrana geri atıyordu
+  // ─── Eşleşme kutlaması ───
+  // Profil bu ekranda "eşleşmemiş"ten "eşleşti"ye döndüğü an kutlama başlar. Eşleşme hangi yoldan
+  // gelirse gelsin (kod girişi, yoklama ya da partner katılınca realtime profil yenilemesi) aynı an
+  // yakalanır. Yönlendirme kutlama bitince yapılır.
+  const [sawUnpaired, setSawUnpaired] = useState(false);
+  const [celebration, setCelebration] = useState<CoupleProfile | null>(null);
+  const [celebrationDone, setCelebrationDone] = useState(false);
+  const [celebrationVisible, setCelebrationVisible] = useState(true);
+  const lockReleasedRef = useRef(false);
+  const { myAvatarUrl, partnerAvatarUrl } = useCoupleAvatars();
+
+  // Render sırasında kendi state'ini güncellemek React'in önerdiği "prop değişince ayarla" kalıbıdır.
+  // Demo profili de "eşleşmiş" sayılır: "Uygulamayı Keşfet" kutlama oynatmaz.
+  if (profile && !profile.isPaired && !sawUnpaired) setSawUnpaired(true);
+  if (profile?.isPaired && sawUnpaired && !celebration && !isDemoMode) setCelebration(profile);
+
+  // Kutlama sürerken koruyucu (useProtectedRoute) yönlendirmesi bekletilir: aksi halde profil
+  // "eşleşti" olduğu an kullanıcı tarih ekranına atılır ve kutlama yarıda kesilirdi. Bu etki
+  // profilin değiştiği aynı commit'te çalışır, koruyucunun zamanlayıcısından önce kilitlenir.
+  const isCelebrating = celebration !== null;
+  useEffect(() => {
+    if (!isCelebrating) return;
+    setAuthFlowActive(true);
+    return () => {
+      // Ekran kutlama bitmeden kapanırsa kilit takılı kalmasın
+      if (!lockReleasedRef.current) setAuthFlowActive(false);
+    };
+  }, [isCelebrating]);
+
+  const { data: celebrationPartnerName } = useQuery({
+    queryKey: ["pairing-partner-name", celebration?.coupleId],
+    enabled: !!celebration?.coupleId && !!userId,
+    queryFn: () => fetchPartnerName(celebration!.coupleId!, userId!),
+    staleTime: Infinity,
+  });
+
+  const handleCelebrationComplete = useCallback(() => {
+    if (!celebration || lockReleasedRef.current) return;
+    lockReleasedRef.current = true;
+    // Kutlama sırasında tarihler gibi alanlar güncellenmiş olabilir: en güncel profile göre yönlendir
+    navigateAfterAuth(profile?.isPaired ? profile : celebration);
+    releaseAuthFlow();
+    setCelebrationDone(true);
+  }, [celebration, profile]);
+
+  // Yönlendirme bu ekranı (ve kutlama katmanını) kapatır; kapatmazsa karanlık katman takılı kalmasın
+  useEffect(() => {
+    if (!celebrationDone) return;
+    const timer = setTimeout(() => setCelebrationVisible(false), 1200);
+    return () => clearTimeout(timer);
+  }, [celebrationDone]);
+
+  const celebrationModal = (
+    <PairingCelebrationModal
+      visible={isCelebrating && celebrationVisible}
+      myName={celebration?.displayName}
+      partnerName={celebrationPartnerName}
+      myAvatarUrl={myAvatarUrl}
+      partnerAvatarUrl={partnerAvatarUrl}
+      onComplete={handleCelebrationComplete}
+    />
+  );
+
+  // Eşleşme tamamlandı: profil yenilenir ve "eşleşti"ye dönünce kutlama başlar (bkz. yukarı).
+  // Profil yenilenmeden yönlendirilirse koruyucu eski "eşleşmemiş" profile bakıp kullanıcıyı geri atıyordu.
   const finishPairing = useCallback(async () => {
     if (finishingRef.current) return;
     finishingRef.current = true;
     await AsyncStorage.removeItem("@pending_invite_code");
     const fresh = await refreshProfile();
-    if (fresh?.isPaired) {
-      navigateAfterAuth(fresh);
-    } else {
+    if (!fresh?.isPaired) {
       // Profil henüz okunamadı; bir sonraki yoklamada tekrar denenir
       finishingRef.current = false;
     }
@@ -224,17 +298,23 @@ export default function PairingScreen() {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
+  // Kutlama katmanı her iki dalda da aynı konumda çizilir: davet koduyla otomatik eşleşmede kutlama
+  // yükleme ekranındayken başlar, ekran ana görünüme geçince baştan başlamaz
   if (!autoPairChecked || isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: "#0A0A10", alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator color="#D85870" size="large" />
-      </View>
+      <>
+        <View style={{ flex: 1, backgroundColor: "#0A0A10", alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator color="#D85870" size="large" />
+        </View>
+        {celebrationModal}
+      </>
     );
   }
 
   const activePairingCode = status?.pairingCode;
 
   return (
+    <>
     <ScreenBackground colors={["#0A0A10", "#0D0D14", "#0A0A10"]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <ScrollView
@@ -599,5 +679,7 @@ export default function PairingScreen() {
         onDismiss={priming.dismiss}
       />
     </ScreenBackground>
+    {celebrationModal}
+    </>
   );
 }

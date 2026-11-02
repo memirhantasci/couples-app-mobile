@@ -461,7 +461,12 @@
       "unlock2": "💌 Sealed letters just for each other, with an origami animation",
       "unlock3": "📸 A map of the places you've been together and your shared memory album",
       "exploreDemo": "Explore the App in Demo Mode ✨",
-      "exploreDemoHint": "(While you wait for your partner, you can safely explore all the app's features with the demo couple)."
+      "exploreDemoHint": "(While you wait for your partner, you can safely explore all the app's features with the demo couple).",
+      "celebration": {
+        "title": "You're Together Now! 💕",
+        "names": "{{me}} & {{partner}}",
+        "skip": "Skip celebration"
+      }
     }
   },
   "common": {
@@ -922,7 +927,8 @@
       "loading": "Calculating your love score..."
     },
     "couple": {
-      "a11yLabel": "{{me}} and {{partner}}"
+      "a11yLabel": "{{me}} and {{partner}}",
+      "a11yHint": "Tap to feel your hearts beat together"
     },
     "pending": {
       "sealedOne": "A sealed letter is waiting for you 💌",
@@ -1623,6 +1629,12 @@
       "sealed": "Sealed ✨",
       "caption": "Entrusting it to the future... ✨",
       "skip": "Skip animation"
+    },
+    "reading": {
+      "tapSeal": "Tap to break the seal ✨",
+      "breakSealA11y": "Break the seal and open the letter",
+      "writtenOn": "Written on {{date}}",
+      "signature": "With love, {{name}}"
     }
   },
   "memories": {

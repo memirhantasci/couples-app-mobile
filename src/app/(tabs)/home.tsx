@@ -622,6 +622,7 @@ export default function HomeScreen() {
                 myAvatarUrl={myAvatarUrl}
                 partnerAvatarUrl={partnerAvatarUrl}
                 partnerMoodEmoji={dashboardData?.partnerMood}
+                interactive
               />
             </View>
 

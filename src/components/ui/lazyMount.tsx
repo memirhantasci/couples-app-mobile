@@ -6,6 +6,7 @@ import { WatchAdModal } from "@/components/ui/WatchAdModal";
 import { PermissionPrimingModal } from "@/components/common/PermissionPrimingModal";
 import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
 import { OrigamiBirdAnimation } from "@/components/letters/OrigamiBirdAnimation";
+import { LetterReadingModal } from "@/components/letters/LetterReadingModal";
 import { SpotlightTour } from "@/components/tour/SpotlightTour";
 import { CoupleWrappedModal } from "@/components/wrapped/CoupleWrappedModal";
 
@@ -31,5 +32,6 @@ export const LazyWatchAdModal = withLazyMount(WatchAdModal);
 export const LazyPermissionPrimingModal = withLazyMount(PermissionPrimingModal);
 export const LazyDateTimePickerSheet = withLazyMount(DateTimePickerSheet);
 export const LazyOrigamiBirdAnimation = withLazyMount(OrigamiBirdAnimation);
+export const LazyLetterReadingModal = withLazyMount(LetterReadingModal);
 export const LazySpotlightTour = withLazyMount(SpotlightTour);
 export const LazyCoupleWrappedModal = withLazyMount(CoupleWrappedModal);

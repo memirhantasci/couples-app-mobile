@@ -461,7 +461,12 @@
       "unlock2": "💌 Birbirinize özel mühürlü mektuplar ve origami animasyonu",
       "unlock3": "📸 Birlikte gezdiğiniz yerlerin haritası ve ortak anı albümünüz",
       "exploreDemo": "Uygulamayı Demo Modunda Keşfet ✨",
-      "exploreDemoHint": "(Partnerini beklerken uygulamanın tüm özelliklerini demo çiftiyle güvenle keşfedebilirsin)."
+      "exploreDemoHint": "(Partnerini beklerken uygulamanın tüm özelliklerini demo çiftiyle güvenle keşfedebilirsin).",
+      "celebration": {
+        "title": "Artık Birliktesiniz! 💕",
+        "names": "{{me}} & {{partner}}",
+        "skip": "Kutlamayı geç"
+      }
     }
   },
   "common": {
@@ -922,7 +927,8 @@
       "loading": "Aşk skoru hesaplanıyor..."
     },
     "couple": {
-      "a11yLabel": "{{me}} ve {{partner}}"
+      "a11yLabel": "{{me}} ve {{partner}}",
+      "a11yHint": "Dokununca kalbiniz birlikte atar"
     },
     "pending": {
       "sealedOne": "Sana mühürlü bir mektup var 💌",
@@ -1623,6 +1629,12 @@
       "sealed": "Mühürlendi ✨",
       "caption": "Geleceğe emanet ediliyor... ✨",
       "skip": "Animasyonu geç"
+    },
+    "reading": {
+      "tapSeal": "Mührü kırmak için dokun ✨",
+      "breakSealA11y": "Mührü kır ve mektubu aç",
+      "writtenOn": "{{date}} tarihinde yazıldı",
+      "signature": "Sevgiyle, {{name}}"
     }
   },
   "memories": {

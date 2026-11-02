@@ -36,7 +36,8 @@ import { useNotificationPriming } from "@/hooks/useNotificationPriming";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { fetchLetters, lettersQueryKey, LETTERS_PAGE_SIZE } from "@/lib/screenQueries";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
-import { LazyPremiumPaywall, LazyPageTourModal, LazyDemoActionModal, LazyWatchAdModal, LazyPermissionPrimingModal, LazyDateTimePickerSheet, LazyOrigamiBirdAnimation } from "@/components/ui/lazyMount";
+import { LazyPremiumPaywall, LazyPageTourModal, LazyDemoActionModal, LazyWatchAdModal, LazyPermissionPrimingModal, LazyDateTimePickerSheet, LazyOrigamiBirdAnimation, LazyLetterReadingModal } from "@/components/ui/lazyMount";
+import type { ReadableLetter } from "@/components/letters/LetterReadingModal";
 import { deletionRequestOpensAt, deletionRetryAt, isHiddenBy, letterDeletableAt, letterDeletionState, letterUnlockAt } from "@/lib/letterPolicy";
 import { useTranslation } from "react-i18next";
 import { localizeServerError } from "@/lib/serverErrors";
@@ -109,6 +110,8 @@ export default function LettersScreen() {
   });
 
   const [openLetterId, setOpenLetterId] = useState<number | null>(null);
+  // Açılmış gelen mektup, mum mühür kırılarak okunan pencerede açılır (gönderilenler yerinde genişler)
+  const [readingLetter, setReadingLetter] = useState<ReadableLetter | null>(null);
 
   // --- Form State ---
   const [receiverId, setReceiverId] = useState("");
@@ -525,7 +528,22 @@ export default function LettersScreen() {
       >
         <TouchableOpacity
           activeOpacity={canOpen ? 0.75 : 1}
-          onPress={() => canOpen && setOpenLetterId(isOpen ? null : letter.id)}
+          onPress={() => {
+            if (!canOpen) return;
+            if (itemType === "received") {
+              setReadingLetter({
+                id: letter.id,
+                title: letter.title,
+                content: letterContent,
+                senderName: personName,
+                senderAvatarUrl: personAvatarUrl,
+                createdAt: letter.created_at,
+                unlockDate: unlockDateStr || null,
+              });
+              return;
+            }
+            setOpenLetterId(isOpen ? null : letter.id);
+          }}
         >
           {/* Üst Durum Çubuğu */}
           <View style={styles.cardTopRow}>
@@ -577,7 +595,8 @@ export default function LettersScreen() {
 
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               <Text style={[styles.cardDate, { color: theme.textMuted }]}>{relativeDate}</Text>
-              {canOpen && (
+              {canOpen && itemType === "received" && <ChevronRight size={14} color={theme.textMuted} />}
+              {canOpen && itemType === "sent" && (
                 <ChevronDown
                   size={14}
                   color={theme.textMuted}
@@ -1128,6 +1147,12 @@ export default function LettersScreen() {
           setTimeout(() => priming.maybePrompt(), 2800);
         }}
         accentColor={theme.accent}
+      />
+      <LazyLetterReadingModal
+        visible={readingLetter !== null}
+        letter={readingLetter}
+        theme={theme}
+        onClose={() => setReadingLetter(null)}
       />
       <LazyPermissionPrimingModal
         visible={priming.isVisible}

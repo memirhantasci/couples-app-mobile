@@ -198,6 +198,15 @@ export const hapticSuccess = () => fireHaptic('success');
 export const hapticWarning = () => fireHaptic('warning');
 export const hapticError = () => fireHaptic('error');
 
+const HEARTBEAT_GAP_MS = 140;
+
+/** Kalp atışı ("lub-dub"): tok bir darbe, kısa bir ara, ardından daha hafif ikinci darbe. */
+export async function hapticHeartbeat(): Promise<void> {
+  await fireHaptic('stamp');
+  await new Promise((resolve) => setTimeout(resolve, HEARTBEAT_GAP_MS));
+  await fireHaptic('tap');
+}
+
 /**
  * Trigger tactile haptic feedback matching the interaction.
  * Tüm efektler platforma duyarlı `fireHaptic` üzerinden geçer (iOS'ta çağrılar öncekiyle aynıdır;
