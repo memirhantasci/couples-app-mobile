@@ -24,6 +24,9 @@ import { DAILY_NOTE_MAX_CHARS } from "@/lib/dailyNote";
 import { useTranslation } from "react-i18next";
 import { localizeServerError } from "@/lib/serverErrors";
 
+/** Ana sayfa kartında not en çok bu kadar karakter gösterilir; devamı Günlüklerim ekranında okunur. */
+const PREVIEW_MAX_CHARS = 180;
+
 interface DailyNoteCardProps {
   existingNote?: string | null;
   theme: AppTheme;
@@ -102,7 +105,9 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
 
       {saved ? (
         <View style={[styles.savedBox, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder }]}>
-          <Text style={[styles.savedContent, { color: theme.text }]}>{content}</Text>
+          <Text style={[styles.savedContent, { color: theme.text }]} numberOfLines={5} ellipsizeMode="tail">
+            {content.length > PREVIEW_MAX_CHARS ? `${content.slice(0, PREVIEW_MAX_CHARS).trimEnd()}…` : content}
+          </Text>
           <Text style={[styles.footerText, { color: theme.textMuted }]}>{t("home.dailyNote.writeTomorrow")}</Text>
           <TouchableOpacity
             onPress={() => router.push("/(tabs)/daily-notes" as any)}
