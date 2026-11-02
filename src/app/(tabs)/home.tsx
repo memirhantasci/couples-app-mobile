@@ -45,6 +45,7 @@ import { useHomeSpotlightTour } from "@/hooks/useHomeSpotlightTour";
 import { type SpotlightStep } from "@/components/tour/SpotlightTour";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
 import { Reveal } from "@/components/ui/Reveal";
+import { Pulse } from "@/components/ui/Pulse";
 import { CountUp } from "@/components/ui/CountUp";
 import { getHomeSpotlightSteps, type HomeSpotlightTargetId } from "@/constants/featureGuides";
 import { DEMO_HOME_DATA, DEMO_LOVE_SCORE } from "@/constants/demoData";
@@ -608,7 +609,9 @@ export default function HomeScreen() {
             />
             <View style={styles.heroTopRow}>
               <View style={[styles.heroTopBadge, { backgroundColor: theme.pillAccentBg }]}>
-                <Heart size={13} color={theme.accent} fill={theme.accent} />
+                <Pulse>
+                  <Heart size={13} color={theme.accent} fill={theme.accent} />
+                </Pulse>
                 <Text style={[styles.heroTopBadgeText, { color: theme.accent }]}>
                   {t("home.journeyTitle")}
                 </Text>

@@ -114,7 +114,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/notification-icon.png",
-          "color": "#E8002D",
+          "color": "#C8213F",
           "defaultChannel": "default",
           "sounds": [],
           "androidCollapsedTitle": "CoupleSky"

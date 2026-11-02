@@ -1,7 +1,8 @@
 import { Tabs, useRouter, usePathname, type Href } from "expo-router";
 import { StyleSheet, View, Text, Platform, TouchableOpacity } from "react-native";
 import { BlurView } from "expo-blur";
-import { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
 import { SafeAreaInsetsContext, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -13,6 +14,16 @@ import { EdgeSwipeBack } from "@/components/ui/EdgeSwipeBack";
 import { DemoModeBanner } from "@/components/demo/DemoModeBanner";
 import { useReminderSync } from "@/hooks/useReminderSync";
 import { usePushLanguageSync } from "@/hooks/usePushLanguageSync";
+
+/** Odaktaki sekmenin ikonu yaylanarak büyür, odak gidince eski boyuna döner. */
+function TabIcon({ focused, children }: { focused: boolean; children: React.ReactNode }) {
+  const scale = useSharedValue(focused ? 1.12 : 1);
+  useEffect(() => {
+    scale.set(withSpring(focused ? 1.12 : 1, { damping: 9, stiffness: 220 }));
+  }, [focused, scale]);
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }] }));
+  return <Animated.View style={style}>{children}</Animated.View>;
+}
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const { theme, isLight } = useTheme();
@@ -108,11 +119,13 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                   ]
                 ]}
               >
-                <Icon
-                  size={18}
-                  color={isFocused ? theme.accent : (isLight ? theme.textMuted : "rgba(255, 255, 255, 0.42)")}
-                  strokeWidth={isFocused ? 2.4 : 1.8}
-                />
+                <TabIcon focused={isFocused}>
+                  <Icon
+                    size={18}
+                    color={isFocused ? theme.accent : (isLight ? theme.textMuted : "rgba(255, 255, 255, 0.42)")}
+                    strokeWidth={isFocused ? 2.4 : 1.8}
+                  />
+                </TabIcon>
 
                 <Text
                   style={[
