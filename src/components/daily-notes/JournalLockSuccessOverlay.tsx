@@ -1,13 +1,5 @@
-import { memo, useCallback, useEffect, useRef, type ReactNode } from "react";
-import {
-  AccessibilityInfo,
-  StyleSheet,
-  Text,
-  View,
-  useWindowDimensions,
-  type StyleProp,
-  type ViewStyle,
-} from "react-native";
+import { memo, useCallback, useEffect, useRef } from "react";
+import { AccessibilityInfo, Modal, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import Animated, {
   Easing,
   cancelAnimation,
@@ -23,108 +15,116 @@ import { scheduleOnRN } from "react-native-worklets";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Circle, Defs, Ellipse, LinearGradient as SvgGradient, Path, Rect, Stop } from "react-native-svg";
 import { Heart } from "lucide-react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/context/ThemeContext";
 import { playStampDrop } from "@/lib/soundEffects";
 
 interface JournalLockSuccessOverlayProps {
-  /** true olunca kilit töreni baştan oynar; false olunca katman kalkar ve sayfa düzleşir. */
-  active: boolean;
-  /** Tören bittiğinde tam bir kez çağrılır (listeye dönüş burada yapılır). */
+  /** true olunca tören baştan oynar; false olunca katman kapanır. */
+  visible: boolean;
+  /** Tören bittiğinde tam bir kez çağrılır. */
   onComplete: () => void;
-  /** Törende bükülen sayfa: ekranın içeriği. */
-  children: ReactNode;
+  /** Kapanan sayfada silik görünen notun ilk satırları. */
+  pageText?: string;
 }
 
-// ─── Zaman Çizelgesi (ms) ───────────────────────────────────────────────────────
-// 0     sayfa sağdan sola 3B bir açıyla bükülür
-// 350   defterin kapağı sağdan kayarak kapanır
-// 700   kapağın ortasında altın asma kilit "çıt" diye yerine oturur
-// 720   damga sesi + tek tok titreşim (playStampDrop titreşimi kendisi verir; ayrıca çağrılmaz)
-// 800   kilidin çevresine altın yıldız tozu dağılır, alttaki yazı belirir
-// 1200  onComplete
+// ─── Zaman Çizelgesi (ms, toplam ≈2.25 sn) ──────────────────────────────────────
+// 0     arka plan kararır, defter ortada belirir (sayfa yukarı kalkık, kapak açık)
+// 280   sayfa hışırdayarak defterin içine kapanır
+// 760   ön kapak sağdan sola yumuşakça örtülür
+// 1210  64 px altın asma kilit kapağın ortasında yaylanarak kilitlenir; damga sesi + tok titreşim
+// 1300  kilidin çevresine altın yıldız tozu dağılır, alttaki yazı belirir
+// 2000  sahne söner → onComplete
 const T = {
-  bend: 350,
-  coverAt: 350,
-  cover: 350,
-  lockAt: 700,
-  clickAt: 720,
-  dustAt: 800,
-  dust: 400,
-  caption: 320,
+  scrimIn: 280,
+  bookIn: 320,
+  pageAt: 280,
+  page: 450,
+  coverAt: 760,
+  cover: 450,
+  lockAt: 1210,
+  clickAt: 1230,
+  dustAt: 1300,
+  dust: 560,
+  captionAt: 1320,
+  caption: 360,
+  exitAt: 2000,
+  exit: 260,
 } as const;
 const LOCK_SPRING = { damping: 12, stiffness: 200 } as const;
-/** Animasyon geri çağrısı gelmezse (ör. ekran arkaya düştü) akış yine de takılı kalmasın. */
-const SAFETY_MS = T.dustAt + T.dust + 1200;
+/** Hareket azaltmada son kare (kapalı defter, kilit, yazı) bu kadar ekranda kalır. */
+const REDUCED_HOLD_MS = 1700;
+/** Animasyon geri çağrısı gelmezse akış yine de takılı kalmasın. */
+const SAFETY_MS = T.exitAt + T.exit + 1500;
+
+const BOOK_W = 280;
+const BOOK_H = 380;
+const LOCK_W = 64;
+const LOCK_H = 77;
+/** Kalkık sayfanın başlangıç açısı (sırttan, derece). */
+const PAGE_LIFT_DEG = -55;
+/** Kapak sağdan gelirken taşıdığı hafif menteşe eğimi (derece). */
+const COVER_TILT_DEG = -24;
+const RULED_LINES = 13;
 
 const GOLD = "#F5C563";
-const DUST_COUNT = 10;
+const DUST_COUNT = 12;
 /** Yıldız tozu her seferinde aynı zarif dağılımla saçılsın: açı, uzaklık, boyut sabit. */
 const DUST = Array.from({ length: DUST_COUNT }, (_, i) => {
   const angle = (i / DUST_COUNT) * Math.PI * 2 + (i % 2 ? 0.2 : -0.14);
-  const distance = 48 + (i % 3) * 13;
-  return { dx: Math.cos(angle) * distance, dy: Math.sin(angle) * distance, size: 8 + (i % 3) * 2.5 };
+  const distance = 62 + (i % 3) * 16;
+  return { dx: Math.cos(angle) * distance, dy: Math.sin(angle) * distance, size: 9 + (i % 3) * 3 };
 });
 
 const COVER = {
   // Koyu temada deri, açık temada fildişi kapak
   leather: {
-    top: "#62402F",
+    top: "#6A4433",
     bottom: "#38211A",
     spine: "#2A1710",
-    stitch: "rgba(245,197,99,0.42)",
+    stitch: "rgba(245,197,99,0.45)",
     strap: "#2E1A12",
-    caption: "#F6DFA6",
   },
   ivory: {
     top: "#FBF4E8",
-    bottom: "#EAD9BE",
-    spine: "#D9C29C",
-    stitch: "rgba(150,108,48,0.42)",
+    bottom: "#E6D2B2",
+    spine: "#D3B98F",
+    stitch: "rgba(150,108,48,0.45)",
     strap: "#C6AA80",
-    caption: "#7A5326",
   },
 } as const;
+const PAPER = "#FFFDF6";
+const INK = "#5B4636";
 
 /**
- * Günlük sayfası kaydedilince oynayan "sır defteri" töreni: sayfa bükülür, defterin kapağı kapanır,
- * altın kilit kilitlenir. Sayfanın kendisini (children) sarar; törende bükülen katman odur.
+ * Günlük sayfası kaydedilince oynayan "sır defteri" töreni: tam ekran karartmanın ortasında bir defter,
+ * yazılan sayfa içine kapanır, ön kapak örtülür ve altın asma kilit kilitlenir. Hem günlük editöründe hem
+ * ana sayfadaki hızlı not kartında aynı tören oynar.
  */
-export function JournalLockSuccessOverlay({ active, onComplete, children }: JournalLockSuccessOverlayProps) {
-  const bend = useSharedValue(0);
-
-  const pageStyle = useAnimatedStyle(() => {
-    const b = bend.get();
-    return {
-      transform: [{ perspective: 1000 }, { rotateY: `${-25 * b}deg` }, { scale: 1 - 0.08 * b }],
-    };
-  });
-
-  return (
-    <View style={styles.root}>
-      <Animated.View style={[styles.page, pageStyle]}>{children}</Animated.View>
-      {active ? <JournalLockScene bend={bend} onComplete={onComplete} /> : null}
-    </View>
-  );
+export function JournalLockSuccessOverlay({ visible, ...rest }: JournalLockSuccessOverlayProps) {
+  // İçerik yalnızca görünürken kurulur: her tören sıfırdan, temiz durumla başlar
+  if (!visible) return null;
+  return <JournalLockScene {...rest} />;
 }
 
-function JournalLockScene({ bend, onComplete }: { bend: SharedValue<number>; onComplete: () => void }) {
+function JournalLockScene({ onComplete, pageText }: Omit<JournalLockSuccessOverlayProps, "visible">) {
   const { t } = useTranslation();
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
   const palette = theme.isLight ? COVER.ivory : COVER.leather;
   const caption = t("dailyNotes.journalLocked");
 
+  const scrim = useSharedValue(0);
+  const bookIn = useSharedValue(0);
+  const page = useSharedValue(0);
   const cover = useSharedValue(0);
   const lockIn = useSharedValue(0);
-  const lockScale = useSharedValue(1.4);
+  const lockScale = useSharedValue(1.5);
   const dust = useSharedValue(0);
   const captionIn = useSharedValue(0);
+  const exit = useSharedValue(0);
 
-  // Tören sürerken ekran yeniden çizilse de zaman çizelgesi baştan başlamasın: geri çağrı ref'ten okunur
+  // Tören sürerken üst bileşen yeniden çizilse de zaman çizelgesi baştan başlamasın
   const onCompleteRef = useRef(onComplete);
   useEffect(() => {
     onCompleteRef.current = onComplete;
@@ -139,123 +139,160 @@ function JournalLockScene({ bend, onComplete }: { bend: SharedValue<number>; onC
   useEffect(() => {
     const safety = setTimeout(finish, SAFETY_MS);
     AccessibilityInfo.announceForAccessibility(caption);
+    const onExitDone = (done?: boolean) => {
+      "worklet";
+      if (done) scheduleOnRN(finish);
+    };
 
     if (reduceMotion) {
-      // Hareket azaltma: doğrudan son kare (kapak kapalı, kilit yerinde, yazı görünür); süre aynı kalır ki
-      // yazı okunabilsin
-      bend.set(1);
+      // Hareket azaltma: doğrudan son kare (kapalı defter, kilit yerinde, yazı görünür), kısa bekleme, solma
+      scrim.set(1);
+      bookIn.set(1);
+      page.set(1);
       cover.set(1);
       lockIn.set(1);
       lockScale.set(1);
       captionIn.set(1);
-      dust.set(
-        withDelay(
-          T.dustAt + T.dust,
-          withTiming(1, { duration: 0 }, (done) => {
-            "worklet";
-            if (done) scheduleOnRN(finish);
-          })
-        )
-      );
+      exit.set(withDelay(REDUCED_HOLD_MS, withTiming(1, { duration: 200 }, onExitDone)));
       playStampDrop();
       return () => {
         clearTimeout(safety);
-        cancelAnimation(dust);
-        bend.set(0);
+        cancelAnimation(exit);
       };
     }
 
-    bend.set(withTiming(1, { duration: T.bend, easing: Easing.inOut(Easing.quad) }));
+    scrim.set(withTiming(1, { duration: T.scrimIn, easing: Easing.out(Easing.quad) }));
+    bookIn.set(withTiming(1, { duration: T.bookIn, easing: Easing.out(Easing.cubic) }));
+    // Sayfa sırtın çevresinde yatar; hafif bir aşma ile içeri oturur (hışırtı hissi)
+    page.set(withDelay(T.pageAt, withTiming(1, { duration: T.page, easing: Easing.out(Easing.back(1.4)) })));
     cover.set(withDelay(T.coverAt, withTiming(1, { duration: T.cover, easing: Easing.out(Easing.cubic) })));
-    lockIn.set(withDelay(T.lockAt, withTiming(1, { duration: 90 })));
+    lockIn.set(withDelay(T.lockAt, withTiming(1, { duration: 110 })));
     lockScale.set(withDelay(T.lockAt, withSpring(1, LOCK_SPRING)));
-    captionIn.set(withDelay(T.dustAt, withTiming(1, { duration: T.caption, easing: Easing.out(Easing.quad) })));
-    dust.set(
-      withDelay(
-        T.dustAt,
-        withTiming(1, { duration: T.dust, easing: Easing.out(Easing.quad) }, (done) => {
-          "worklet";
-          if (done) scheduleOnRN(finish);
-        })
-      )
-    );
+    dust.set(withDelay(T.dustAt, withTiming(1, { duration: T.dust, easing: Easing.out(Easing.quad) })));
+    captionIn.set(withDelay(T.captionAt, withTiming(1, { duration: T.caption, easing: Easing.out(Easing.quad) })));
+    exit.set(withDelay(T.exitAt, withTiming(1, { duration: T.exit, easing: Easing.in(Easing.quad) }, onExitDone)));
+    // playStampDrop "çıt" sesini ve tek tok titreşimi birlikte verir (ayrıca hapticStamp çağrılmaz)
     const click = setTimeout(() => playStampDrop(), T.clickAt);
 
     return () => {
       clearTimeout(safety);
       clearTimeout(click);
-      cancelAnimation(bend);
-      cancelAnimation(cover);
-      cancelAnimation(lockIn);
-      cancelAnimation(lockScale);
-      cancelAnimation(captionIn);
-      cancelAnimation(dust);
-      bend.set(0);
+      [scrim, bookIn, page, cover, lockIn, lockScale, dust, captionIn, exit].forEach(cancelAnimation);
     };
-  }, [reduceMotion, bend, cover, lockIn, lockScale, captionIn, dust, finish, caption]);
+  }, [reduceMotion, scrim, bookIn, page, cover, lockIn, lockScale, dust, captionIn, exit, finish, caption]);
 
-  const scrimStyle = useAnimatedStyle(() => ({ opacity: 0.4 * cover.get() }));
-  // Kapak ekranın tam dışından gelir (300 px dar ekranda kapağın bir kısmını baştan gösterirdi)
-  const coverStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: (1 - cover.get()) * Math.max(300, width) }],
+  const scrimStyle = useAnimatedStyle(() => ({ opacity: scrim.get() * (1 - exit.get()) }));
+  const stageStyle = useAnimatedStyle(() => ({
+    opacity: bookIn.get() * (1 - exit.get()),
+    transform: [{ scale: 0.9 + 0.1 * bookIn.get() - 0.04 * exit.get() }],
   }));
+  const pageStyle = useAnimatedStyle(() => ({
+    transform: [{ perspective: 900 }, { rotateY: `${PAGE_LIFT_DEG * (1 - page.get())}deg` }],
+  }));
+  // Kalkık sayfanın alttaki sayfalara düşen gölgesi: sayfa yattıkça kaybolur
+  const pageShadowStyle = useAnimatedStyle(() => ({ opacity: 0.22 * (1 - page.get()) }));
+  const coverStyle = useAnimatedStyle(() => {
+    const c = cover.get();
+    return {
+      opacity: Math.min(1, c * 5),
+      transform: [
+        { perspective: 900 },
+        { translateX: (1 - c) * BOOK_W * 0.95 },
+        { rotateY: `${COVER_TILT_DEG * (1 - c)}deg` },
+      ],
+    };
+  });
   const lockStyle = useAnimatedStyle(() => ({
     opacity: lockIn.get(),
     transform: [{ scale: lockScale.get() }],
   }));
   const glowStyle = useAnimatedStyle(() => ({
-    opacity: 0.32 * lockIn.get() * (1 - 0.5 * dust.get()),
-    transform: [{ scale: 0.8 + 0.5 * dust.get() }],
+    opacity: 0.35 * lockIn.get() * (1 - 0.6 * dust.get()),
+    transform: [{ scale: 0.8 + 0.6 * dust.get() }],
   }));
   const captionStyle = useAnimatedStyle(() => ({
-    opacity: captionIn.get(),
-    transform: [{ translateY: (1 - captionIn.get()) * 10 }],
+    opacity: captionIn.get() * (1 - exit.get()),
+    transform: [{ translateY: (1 - captionIn.get()) * 12 }],
   }));
 
+  const excerpt = pageText?.trim() ?? "";
+
   return (
-    <View style={StyleSheet.absoluteFill} accessibilityViewIsModal>
-      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.scrim, scrimStyle]} />
+    <Modal
+      visible
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      navigationBarTranslucent
+      // Tören 2 sn sürer; geri tuşu onu yarıda kesip kaydı belirsiz bırakmasın
+      onRequestClose={() => {}}
+    >
+      <View style={styles.root} accessibilityViewIsModal>
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.scrim, scrimStyle]} />
 
-      <Animated.View
-        style={[styles.cover, { top: insets.top + 10, bottom: insets.bottom + 10 }, coverStyle]}
-      >
-        <LinearGradient
-          colors={[palette.top, palette.bottom]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-        {/* Sırt: koyu şerit ve dikiş */}
-        <View style={[styles.spine, { backgroundColor: palette.spine }]}>
-          <View style={[styles.spineStitch, { borderColor: palette.stitch }]} />
-        </View>
-        <View pointerEvents="none" style={[styles.stitchFrame, { borderColor: palette.stitch }]} />
-        <CornerCap style={styles.cornerTop} />
-        <CornerCap style={styles.cornerBottom} />
-        <View style={styles.emboss}>
-          <Heart size={24} color={palette.stitch} strokeWidth={1.6} />
-        </View>
+        <Animated.View style={[styles.stage, stageStyle]}>
+          {/* Arka kapak ve sayfa bloğu */}
+          <View style={[styles.bookFace, styles.backCover, { backgroundColor: palette.bottom }]}>
+            <View style={[styles.spine, { backgroundColor: palette.spine }]} />
+          </View>
+          <View style={styles.pageBlock}>
+            <View style={styles.pageEdges} />
+            <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.pageShadow, pageShadowStyle]} />
+          </View>
 
-        {/* Kapağı kilide bağlayan deri kayış */}
-        <View pointerEvents="none" style={styles.centerRow}>
-          <View style={[styles.strap, { backgroundColor: palette.strap, borderColor: palette.stitch }]} />
-        </View>
-
-        <View pointerEvents="none" style={styles.centerStack}>
-          {DUST.map((particle, index) => (
-            <DustStar key={index} dust={dust} {...particle} />
-          ))}
-          <Animated.View style={[styles.lockGlow, glowStyle]} />
-          <Animated.View style={lockStyle}>
-            <GoldPadlock />
+          {/* Yazılan sayfa: yukarı kalkık başlar, sırtın çevresinde dönüp içeri yatar */}
+          <Animated.View style={[styles.pageBlock, styles.topPage, pageStyle]}>
+            <View style={[styles.pageMargin, { backgroundColor: `${theme.accent}40` }]} />
+            {Array.from({ length: RULED_LINES }, (_, i) => (
+              <View key={i} style={[styles.ruledLine, { top: 46 + i * 23 }]} />
+            ))}
+            {excerpt ? (
+              <Text style={styles.pageText} numberOfLines={12}>
+                {excerpt}
+              </Text>
+            ) : null}
           </Animated.View>
-        </View>
+
+          {/* Ön kapak */}
+          <Animated.View style={[styles.bookFace, styles.frontCover, coverStyle]}>
+            <LinearGradient
+              colors={[palette.top, palette.bottom]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={[styles.spine, { backgroundColor: palette.spine }]}>
+              <View style={[styles.spineStitch, { borderColor: palette.stitch }]} />
+            </View>
+            <View pointerEvents="none" style={[styles.stitchFrame, { borderColor: palette.stitch }]} />
+            <CornerCap style={styles.cornerTop} />
+            <CornerCap style={styles.cornerBottom} />
+            <View style={styles.emboss}>
+              <Heart size={26} color={palette.stitch} strokeWidth={1.6} />
+            </View>
+            {/* Kapağı kilide bağlayan deri kayış */}
+            <View pointerEvents="none" style={styles.centerRow}>
+              <View style={[styles.strap, { backgroundColor: palette.strap, borderColor: palette.stitch }]} />
+            </View>
+          </Animated.View>
+
+          {/* Kilit ve yıldız tozu kapağın üstünde; toz defterin dışına da taşabilsin diye kapakta değil */}
+          <View pointerEvents="none" style={styles.centerStack}>
+            {DUST.map((particle, index) => (
+              <DustStar key={index} dust={dust} {...particle} />
+            ))}
+            <Animated.View style={[styles.lockGlow, glowStyle]} />
+            <Animated.View style={lockStyle}>
+              <GoldPadlock />
+            </Animated.View>
+          </View>
+        </Animated.View>
 
         <Animated.View style={[styles.captionWrap, captionStyle]}>
-          <Text style={[styles.caption, { color: palette.caption }]}>{caption}</Text>
+          <Text style={styles.caption}>{caption}</Text>
         </Animated.View>
-      </Animated.View>
-    </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -295,7 +332,7 @@ const CornerCap = memo(function CornerCap({ style }: { style: StyleProp<ViewStyl
 /** Antika altın asma kilit: kemer, gövde, süs çerçevesi ve anahtar deliği. */
 const GoldPadlock = memo(function GoldPadlock() {
   return (
-    <Svg width={58} height={70} viewBox="0 0 58 70">
+    <Svg width={LOCK_W} height={LOCK_H} viewBox="0 0 58 70">
       <Defs>
         <SvgGradient id="lockBody" x1="0" y1="0" x2="0" y2="1">
           <Stop offset="0" stopColor="#FCE9A8" />
@@ -327,34 +364,52 @@ const GoldPadlock = memo(function GoldPadlock() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-  },
-  // Sayfa sırtından (sol kenar) menteşelenmiş gibi bükülür
-  page: {
-    flex: 1,
-    transformOrigin: "left",
+    alignItems: "center",
+    justifyContent: "center",
   },
   scrim: {
-    backgroundColor: "#000000",
+    backgroundColor: "rgba(0,0,0,0.65)",
   },
-  cover: {
+  stage: {
+    width: BOOK_W,
+    height: BOOK_H,
+  },
+  bookFace: {
     position: "absolute",
-    left: 14,
-    right: 14,
-    borderRadius: 26,
-    overflow: "hidden",
+    top: 0,
+    left: 0,
+    width: BOOK_W,
+    height: BOOK_H,
+    borderTopLeftRadius: 6,
+    borderBottomLeftRadius: 6,
+    borderTopRightRadius: 18,
+    borderBottomRightRadius: 18,
+  },
+  backCover: {
     shadowColor: "#000000",
-    shadowOffset: { width: -6, height: 10 },
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    elevation: 14,
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.4,
+    shadowRadius: 22,
+    elevation: 12,
+  },
+  // Kapak sırttan (sol kenar) menteşeli gibi eğilir
+  frontCover: {
+    overflow: "hidden",
+    transformOrigin: "left",
+    shadowColor: "#000000",
+    shadowOffset: { width: -4, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 16,
   },
   spine: {
     position: "absolute",
     left: 0,
     top: 0,
     bottom: 0,
-    width: 22,
-    justifyContent: "center",
+    width: 20,
+    borderTopLeftRadius: 6,
+    borderBottomLeftRadius: 6,
   },
   spineStitch: {
     position: "absolute",
@@ -364,13 +419,69 @@ const styles = StyleSheet.create({
     borderRightWidth: 1.5,
     borderStyle: "dashed",
   },
+  pageBlock: {
+    position: "absolute",
+    top: 8,
+    bottom: 8,
+    left: 16,
+    right: 6,
+    borderTopRightRadius: 14,
+    borderBottomRightRadius: 14,
+    backgroundColor: PAPER,
+    overflow: "hidden",
+  },
+  // Sayfa destesinin sağ kenarındaki ince katman çizgileri
+  pageEdges: {
+    position: "absolute",
+    top: 6,
+    bottom: 6,
+    right: 2,
+    width: 4,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: "rgba(120,90,60,0.18)",
+  },
+  pageShadow: {
+    backgroundColor: "#000000",
+  },
+  // Kalkık sayfa sırtın (sol kenarı) çevresinde döner
+  topPage: {
+    transformOrigin: "left",
+    borderLeftWidth: 1,
+    borderLeftColor: "rgba(120,90,60,0.15)",
+  },
+  pageMargin: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 26,
+    width: 1,
+  },
+  ruledLine: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: "rgba(120,90,60,0.13)",
+  },
+  pageText: {
+    position: "absolute",
+    top: 28,
+    left: 34,
+    right: 16,
+    fontSize: 14,
+    lineHeight: 23,
+    fontFamily: "PlayfairDisplay_400Regular_Italic",
+    color: INK,
+    opacity: 0.75,
+  },
   stitchFrame: {
     position: "absolute",
     top: 14,
     bottom: 14,
-    left: 34,
+    left: 32,
     right: 14,
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1.5,
     borderStyle: "dashed",
   },
@@ -387,8 +498,8 @@ const styles = StyleSheet.create({
   },
   emboss: {
     position: "absolute",
-    top: "22%",
-    left: 22,
+    top: 54,
+    left: 20,
     right: 0,
     alignItems: "center",
   },
@@ -397,8 +508,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   strap: {
-    marginLeft: "50%",
-    height: 30,
+    marginLeft: BOOK_W / 2,
+    height: 34,
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderStyle: "dashed",
@@ -410,19 +521,17 @@ const styles = StyleSheet.create({
   },
   lockGlow: {
     position: "absolute",
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
     backgroundColor: GOLD,
   },
   dust: {
     position: "absolute",
   },
   captionWrap: {
-    position: "absolute",
-    left: 30,
-    right: 18,
-    bottom: "16%",
+    marginTop: 28,
+    paddingHorizontal: 32,
     alignItems: "center",
   },
   caption: {
@@ -430,5 +539,9 @@ const styles = StyleSheet.create({
     lineHeight: 27,
     fontFamily: "PlayfairDisplay_400Regular_Italic",
     textAlign: "center",
+    color: "#FFF4DA",
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
 });

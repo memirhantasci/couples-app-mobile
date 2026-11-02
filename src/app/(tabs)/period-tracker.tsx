@@ -35,7 +35,6 @@ import {
 } from "@/lib/periodCycle";
 import { useTranslation } from "react-i18next";
 import { localizeServerError } from "@/lib/serverErrors";
-import { PeriodComfortCard } from "@/components/period/PeriodComfortCard";
 import { GentleCareMode } from "@/components/period/GentleCareMode";
 
 export default function PeriodTrackerScreen() {
@@ -385,26 +384,20 @@ export default function PeriodTrackerScreen() {
               </View>
 
               {/* ─── KADIN KULLANICI İÇİN TEK DOKUNUŞLUK BAŞLANGIÇ BUTONU ─── */}
-              {isFemale && (
+              {/* Bugün zaten işaretlendiyse buton gizlenir: takvim o günü boyalı gösteriyor */}
+              {isFemale && !startedToday && (
                 <TouchableOpacity
                   onPress={handleQuickStart}
-                  disabled={loading || startedToday}
+                  disabled={loading}
                   activeOpacity={0.88}
                   style={[
                     styles.quickStartBtn,
-                    startedToday
-                      ? { backgroundColor: "rgba(216, 88, 112, 0.14)" }
-                      : { backgroundColor: "#D85870", shadowColor: "#D85870", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 8 },
+                    { backgroundColor: "#D85870", shadowColor: "#D85870", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 8 },
                     loading && { opacity: 0.7 },
                   ]}
                 >
                   {loading && !selectedDate ? (
                     <ActivityIndicator color="#ffffff" size="small" />
-                  ) : startedToday ? (
-                    <>
-                      <Check color="#D85870" size={18} strokeWidth={3} />
-                      <Text style={[styles.quickStartBtnText, { color: "#D85870" }]}>{t("period.today.logged")}</Text>
-                    </>
                   ) : (
                     <>
                       <Droplet color="#ffffff" size={18} />
@@ -414,20 +407,17 @@ export default function PeriodTrackerScreen() {
                 </TouchableOpacity>
               )}
 
-              {/* ─── KADIN KULLANICI İÇİN DÖNGÜ GÜNLERİNDE ŞEFKAT KARTI & HİS PAYLAŞIMI ─── */}
+              {/* ─── KADIN KULLANICI İÇİN DÖNGÜ GÜNLERİNDE HİS PAYLAŞIMI ─── */}
               {isFemale && isPeriodToday && (
-                <>
-                  <PeriodComfortCard theme={theme} />
-                  <GentleCareMode
-                    theme={theme}
-                    coupleId={coupleId}
-                    userId={userId}
-                    partnerHasPremium={profile?.isPremium ?? false}
-                    interceptDemo={() =>
-                      executeOrIntercept(() => {}, t("demo.prompts.cycle.title"), t("demo.prompts.cycle.description"))
-                    }
-                  />
-                </>
+                <GentleCareMode
+                  theme={theme}
+                  coupleId={coupleId}
+                  userId={userId}
+                  partnerHasPremium={profile?.isPremium ?? false}
+                  interceptDemo={() =>
+                    executeOrIntercept(() => {}, t("demo.prompts.cycle.title"), t("demo.prompts.cycle.description"))
+                  }
+                />
               )}
 
               {/* ─── ERKEK KULLANICI İÇİN ŞEFKAT & DESTEK REHBERİ ─── */}

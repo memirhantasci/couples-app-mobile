@@ -104,15 +104,16 @@ export async function setSoundEffectsEnabled(enabled: boolean): Promise<void> {
 }
 
 /**
- * Get whether haptic feedback is enabled (default: true).
+ * Get whether haptic feedback is enabled (default: false). Titreşim her cihazda kapalı başlar; kullanıcı
+ * Profil > Ses & Titreşim'den açabilir. Bir kez açan (ya da kapatan) kullanıcının seçimi korunur.
  */
 export async function getHapticFeedbackEnabled(): Promise<boolean> {
   if (isHapticEnabledCache !== null) return isHapticEnabledCache;
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEY_HAPTIC);
-    isHapticEnabledCache = raw !== null ? raw === 'true' : true;
+    isHapticEnabledCache = raw !== null ? raw === 'true' : false;
   } catch {
-    isHapticEnabledCache = true;
+    isHapticEnabledCache = false;
   }
   return isHapticEnabledCache;
 }

@@ -40,7 +40,7 @@ import {
   type RipplePinType,
   type RipplePoint,
 } from "@/components/map/MapPinRipples";
-import { JourneyRoute, JourneyStatusPill, JourneyStopCard, useLoveJourney } from "@/components/map/LoveJourney";
+import { JourneyRoute, JourneyStatusPill, useLoveJourney } from "@/components/map/LoveJourney";
 import { buildJourneyStops } from "@/components/map/journeyStops";
 import type {
   FilterType,
@@ -568,9 +568,6 @@ export default function MapScreen() {
 
       {/* ─── PİNLERDE NABIZ DALGASI (dokunuşları engellemez) ───────────────── */}
       <MapPinRipples points={ripplePoints} visible={rippleVisible} color={RIPPLE_COLOR} />
-
-      {/* ─── AŞK ROTAMIZ: varılan durağın anısı ─────────────────────────────── */}
-      {journey ? <JourneyStopCard journey={journey} isLight={isLight} /> : null}
 
       {/* ─── ÜST KONTROL ÇUBUĞU (Başlık, Filtreler, Tema, Hikaye) ───────── */}
       <MapControlBar

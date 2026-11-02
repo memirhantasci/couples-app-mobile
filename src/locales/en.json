@@ -985,7 +985,6 @@
       "demoTitle": "Sign Up to Save Today's Note 📖",
       "demoDescription": "Create your free account to safely keep your day, your feelings and your private personal journal.",
       "saveFailed": "Couldn't save your note",
-      "saved": "Your daily note has been saved ✨",
       "title": "My Daily Note",
       "writeTomorrow": "You can write a new note tomorrow 🌙",
       "placeholder": "How was today? What are you feeling?...",
@@ -1386,9 +1385,8 @@
     "journey": {
       "button": "Our Love Route 📍",
       "close": "Close route",
-      "step": "STOP {{current}}/{{total}}",
-      "progress": "Our love route · {{current}}/{{total}}",
-      "finished": "Our journey: {{count}} stops 💕",
+      "progress": "Stop {{current}} / {{total}}",
+      "finished": "Our Love Route Is Complete ✨",
       "notEnough": "You need memories in at least two different places for a route 📍"
     }
   },
@@ -1937,7 +1935,6 @@
       "none": "No period start has been recorded yet."
     },
     "today": {
-      "logged": "Logged Today",
       "start": "My Period Started Today 🌸"
     },
     "tips": {
@@ -1962,10 +1959,6 @@
     },
     "premium": {
       "featureDescription": "Track your love's cycle together and support them in the best way during their sensitive days."
-    },
-    "comfort": {
-      "label": "A WARM LITTLE BREAK",
-      "message": "Be gentle with yourself today, my love — rest somewhere cosy... ☕🌸"
     },
     "gentleCare": {
       "title": "Share How You Feel",

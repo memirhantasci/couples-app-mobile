@@ -520,14 +520,19 @@ export default function CalendarScreen() {
                         <View style={styles.meetingRow}>
                           <Clock size={13} color={theme.textMuted} />
                           <Text style={[styles.meetingSubText, { color: theme.textSecondary }]}>{timeStr}</Text>
-                          {meeting.location_name ? (
-                            <>
-                              <Text style={{ color: theme.textMuted }}>•</Text>
-                              <MapPin size={13} color={theme.textMuted} />
-                              <Text style={[styles.meetingSubText, { color: theme.textSecondary }]} numberOfLines={1}>{meeting.location_name}</Text>
-                            </>
-                          ) : null}
                         </View>
+                        {/* Adres kendi satırında: uzun adres kartın içinde kalır, en çok iki satıra sarılır */}
+                        {meeting.location_name ? (
+                          <View style={[styles.meetingRow, styles.meetingAddressRow]}>
+                            <MapPin size={13} color={theme.textMuted} style={styles.meetingAddressIcon} />
+                            <Text
+                              style={[styles.meetingSubText, styles.meetingAddress, { color: theme.textSecondary }]}
+                              numberOfLines={2}
+                            >
+                              {meeting.location_name}
+                            </Text>
+                          </View>
+                        ) : null}
                       </View>
                     );
                   })}
@@ -802,7 +807,10 @@ const createStyles = (theme: AppTheme) => {
       justifyContent: "space-between",
       marginBottom: 6,
     },
+    // Uzun başlık durum rozetini kartın dışına itmesin
     meetingTitle: {
+      flexShrink: 1,
+      marginRight: 8,
       fontSize: 15,
       fontFamily: "Inter_700Bold",
     },
@@ -811,6 +819,16 @@ const createStyles = (theme: AppTheme) => {
       alignItems: "center",
       gap: 6,
       marginTop: 4,
+    },
+    meetingAddressRow: {
+      alignItems: "flex-start",
+    },
+    meetingAddressIcon: {
+      marginTop: 2,
+    },
+    meetingAddress: {
+      flex: 1,
+      lineHeight: 17,
     },
     meetingSubText: {
       fontSize: 12.5,

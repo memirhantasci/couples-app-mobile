@@ -1,22 +1,20 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
-import { StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
-import Animated, { FadeIn, FadeOut, ZoomIn } from "react-native-reanimated";
+import { StyleSheet, Text, TouchableOpacity } from "react-native";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { BlurView } from "expo-blur";
-import { Image } from "expo-image";
 import { Route, X } from "lucide-react-native";
 import MapView, { Polyline } from "react-native-maps";
 import { useTranslation } from "react-i18next";
-import { dayjs } from "@/lib/date";
-import { useStorageImage } from "@/lib/storageImages";
 import { playStampDrop } from "@/lib/soundEffects";
 import type { JourneyStop } from "./journeyStops";
 
 // ─── Zaman Çizelgesi (ms) ───────────────────────────────────────────────────────
-// Kamera ilk durağa iner → anı kartı belirir (mühür tıkı) → kısa bekleme → rota bir sonraki durağa
-// uzarken kamera süzülür → … → son durakta tüm rota ekrana sığdırılır.
+// Kamera ilk durağa iner (mühür tıkı) → kısa bekleme → rota bir sonraki durağa uzarken kamera süzülür
+// → … → son durakta tüm rota ekrana sığdırılır. Durakta kart açılmaz: ekranda yalnızca rota ve alttaki
+// ilerleme hapı vardır, kamera akışı kesilmez.
 const FIRST_FLY_MS = 1100;
 const FLY_MS = 1500;
-const DWELL_MS = 1700;
+const DWELL_MS = 800;
 /** Rota parçası uçuş boyunca bu aralıkla uzar (harita çizgisi native bir katmandır, UI iş parçacığından sürülemez) */
 const ROUTE_STEP_MS = 90;
 const STOP_DELTA = 0.035;
@@ -157,69 +155,6 @@ export function JourneyRoute({ journey }: { journey: JourneyState }) {
   );
 }
 
-/** Varılan durağın anısı: kameranın ortaladığı pinin hemen üstünde minik bir kart. */
-export function JourneyStopCard({ journey, isLight }: { journey: JourneyState; isLight: boolean }) {
-  const { height } = useWindowDimensions();
-  const { stops, index, phase } = journey;
-  if (phase !== "arrived") return null;
-  const stop = stops[index];
-  // Kamera durağı haritanın (tam ekran) ortasına alır: kart pinin üst ucunun üstünde durur
-  return (
-    <View pointerEvents="none" style={[styles.stopCardAnchor, { bottom: height / 2 + 74 }]}>
-      <Animated.View
-        key={stop.key}
-        entering={ZoomIn.springify().damping(13)}
-        exiting={FadeOut.duration(180)}
-        style={[styles.stopCard, { backgroundColor: isLight ? "rgba(255,255,255,0.96)" : "rgba(24,18,30,0.94)" }]}
-      >
-        <StopVisual stop={stop} />
-        <StopText stop={stop} total={stops.length} index={index} isLight={isLight} />
-      </Animated.View>
-    </View>
-  );
-}
-
-function StopVisual({ stop }: { stop: JourneyStop }) {
-  const photoSource = useStorageImage(
-    "photos",
-    stop.type === "photo" ? stop.photo.thumb_path || stop.photo.storage_path : null
-  );
-  if (stop.type === "photo") {
-    return <Image source={photoSource} style={styles.stopPhoto} contentFit="cover" cachePolicy="memory-disk" transition={120} />;
-  }
-  return (
-    <View style={[styles.stopEmoji, { backgroundColor: stop.type === "note" ? "#FDE2EA" : "#EDE4FF" }]}>
-      <Text style={styles.stopEmojiText}>{stop.type === "note" ? "💌" : "📅"}</Text>
-    </View>
-  );
-}
-
-function StopText({ stop, index, total, isLight }: { stop: JourneyStop; index: number; total: number; isLight: boolean }) {
-  const { t, i18n } = useTranslation();
-  const label =
-    stop.type === "photo"
-      ? stop.photo.title || stop.photo.location_name || null
-      : stop.type === "note"
-        ? stop.note.note
-        : stop.meeting.title || stop.meeting.location_name || null;
-
-  return (
-    <View style={styles.stopTextCol}>
-      <Text style={[styles.stopStep, { color: ROUTE_COLOR }]}>
-        {t("map.journey.step", { current: index + 1, total })}
-      </Text>
-      {label ? (
-        <Text style={[styles.stopLabel, { color: isLight ? "#1A1528" : "#FFFFFF" }]} numberOfLines={2}>
-          {label}
-        </Text>
-      ) : null}
-      <Text style={[styles.stopDate, { color: isLight ? "#6B6577" : "rgba(255,255,255,0.6)" }]}>
-        {dayjs(stop.time).locale(i18n.language).format("D MMMM YYYY")}
-      </Text>
-    </View>
-  );
-}
-
 /** Tur sürerken alttaki ipucu hapının yerini alır: ilerleme ve kapatma. */
 export function JourneyStatusPill({
   journey,
@@ -237,7 +172,7 @@ export function JourneyStatusPill({
   const { t } = useTranslation();
   const text =
     journey.phase === "finished"
-      ? t("map.journey.finished", { count: journey.stops.length })
+      ? t("map.journey.finished")
       : t("map.journey.progress", { current: journey.index + 1, total: journey.stops.length });
 
   return (
@@ -261,60 +196,6 @@ export function JourneyStatusPill({
 }
 
 const styles = StyleSheet.create({
-  stopCardAnchor: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    zIndex: 12,
-  },
-  stopCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    padding: 8,
-    paddingRight: 14,
-    borderRadius: 18,
-    maxWidth: 270,
-    shadowColor: "#FF5C8A",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 14,
-    elevation: 10,
-  },
-  stopPhoto: {
-    width: 52,
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: "#F3F4F6",
-  },
-  stopEmoji: {
-    width: 52,
-    height: 52,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  stopEmojiText: {
-    fontSize: 24,
-  },
-  stopTextCol: {
-    flexShrink: 1,
-    gap: 2,
-  },
-  stopStep: {
-    fontSize: 10.5,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: 0.4,
-  },
-  stopLabel: {
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
-  },
-  stopDate: {
-    fontSize: 11.5,
-    fontFamily: "Inter_500Medium",
-  },
   statusPill: {
     position: "absolute",
     alignSelf: "center",

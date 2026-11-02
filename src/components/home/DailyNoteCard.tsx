@@ -28,6 +28,7 @@ import { AppTheme } from "@/lib/theme";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { useFocusClock } from "@/hooks/useFocusClock";
 import { DemoActionModal } from "@/components/demo/DemoActionModal";
+import { JournalLockSuccessOverlay } from "@/components/daily-notes/JournalLockSuccessOverlay";
 import { toast } from "@/lib/toast";
 import { openForm } from "@/lib/formEntry";
 import { DAILY_NOTE_MAX_CHARS } from "@/lib/dailyNote";
@@ -54,6 +55,7 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
   const [content, setContent] = useState(existingNote || "");
   const [saved, setSaved] = useState(!!existingNote);
   const [submitting, setSubmitting] = useState(false);
+  const [isLocking, setIsLocking] = useState(false);
 
   // Bugünkü not başka yerde değişirse (Günlüklerim'de düzenlendi, silindi ya da yeniden yüklendi) kart
   // eski metni göstermeye devam etmesin
@@ -100,15 +102,22 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
     setSubmitting(false);
 
     if (!error) {
-      setSaved(true);
-      queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
-      // Günlüklerim ekranı da yeni notu görsün
-      queryClient.invalidateQueries({ queryKey: ["daily_notes_history"] });
-      toast.success(t("home.dailyNote.saved"));
+      // Başarı bildirimi yerine editördeki aynı sır defteri töreni oynar; kart, tören bitince kilitlenir
+      setIsLocking(true);
     } else {
       logger.error("Note save error:", JSON.stringify(error, null, 2));
       toast.error(localizeServerError(error, t("errors.unknown")), { title: t("home.dailyNote.saveFailed") });
     }
+  }
+
+  // Tören bitti: kilit kapanıp altın haleyle parlasın diye kart ancak şimdi "kaydedildi" haline geçer.
+  // Liste de şimdi yenilenir; erken gelen yeni veri kartı törenin arkasında kilitlemesin
+  function finishJournalLock() {
+    setIsLocking(false);
+    setSaved(true);
+    queryClient.invalidateQueries({ queryKey: ["home_dashboard"] });
+    // Günlüklerim ekranı da yeni notu görsün
+    queryClient.invalidateQueries({ queryKey: ["daily_notes_history"] });
   }
 
   // Bugünün sayfası günlük editöründe açılır: yazılmadıysa yazmak, yazıldıysa okumak için
@@ -196,6 +205,7 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
         title={modalConfig.title}
         description={modalConfig.description}
       />
+      <JournalLockSuccessOverlay visible={isLocking} onComplete={finishJournalLock} pageText={content} />
     </Pressable>
   );
 });

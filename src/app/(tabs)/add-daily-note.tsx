@@ -122,8 +122,8 @@ export default function AddDailyNoteScreen() {
   );
 
   const finishJournalLock = useCallback(() => {
-    // Kapak bu sırada sayfayı örtüyor: temizlenen editör görünmez
     clearSavedPage();
+    setIsLocking(false);
     router.replace("/(tabs)/daily-notes");
   }, [clearSavedPage, router]);
 
@@ -240,7 +240,6 @@ export default function AddDailyNoteScreen() {
 
   return (
     <ScreenBackground>
-      <JournalLockSuccessOverlay active={isLocking} onComplete={finishJournalLock}>
       <View style={{ flex: 1 }}>
         {/* HEADER */}
         <ScreenHeader
@@ -348,8 +347,9 @@ export default function AddDailyNoteScreen() {
           title={modalConfig.title}
           description={modalConfig.description}
         />
+
+        <JournalLockSuccessOverlay visible={isLocking} onComplete={finishJournalLock} pageText={content} />
       </View>
-      </JournalLockSuccessOverlay>
     </ScreenBackground>
   );
 }

@@ -985,7 +985,6 @@
       "demoTitle": "Günün Notunu Kaydetmek İçin Kayıt Olun 📖",
       "demoDescription": "Gününüzü, hislerinizi ve sadece size özel kişisel günlüğünüzü güvenle saklamak için ücretsiz hesabınızı oluşturun.",
       "saveFailed": "Not kaydedilemedi",
-      "saved": "Günlük notun kaydedildi ✨",
       "title": "Günlük Notum",
       "writeTomorrow": "Yarın yeni bir not yazabilirsin 🌙",
       "placeholder": "Bugün nasıldı? Ne hissediyorsun?...",
@@ -1386,9 +1385,8 @@
     "journey": {
       "button": "Aşk Rotamız 📍",
       "close": "Rotayı kapat",
-      "step": "DURAK {{current}}/{{total}}",
-      "progress": "Aşk rotamız · {{current}}/{{total}}",
-      "finished": "Yolculuğumuz: {{count}} durak 💕",
+      "progress": "{{current}} / {{total}} Durak",
+      "finished": "Aşk Rotamız Tamamlandı ✨",
       "notEnough": "Rota için haritada en az iki farklı yerde anınız olmalı 📍"
     }
   },
@@ -1937,7 +1935,6 @@
       "none": "Henüz bir regl başlangıcı kaydedilmedi."
     },
     "today": {
-      "logged": "Bugün Kaydedildi",
       "start": "Bugün Reglim Başladı 🌸"
     },
     "tips": {
@@ -1962,10 +1959,6 @@
     },
     "premium": {
       "featureDescription": "Sevgilinizin döngüsünü birlikte takip edin, hassas dönemlerinde ona en doğru şekilde destek olun."
-    },
-    "comfort": {
-      "label": "SICACIK BİR MOLA",
-      "message": "Bugün kendine karşı nazik ol birtanem, sıcacık dinlen... ☕🌸"
     },
     "gentleCare": {
       "title": "Hissini Sevgilinle Paylaş",

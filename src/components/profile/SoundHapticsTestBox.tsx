@@ -31,7 +31,8 @@ export function SoundHapticsTestBox({ theme, isLight }: SoundHapticsTestBoxProps
   const { t } = useTranslation();
   // Ses & Titreşim Ayarları
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [hapticEnabled, setHapticEnabled] = useState(true);
+  // Titreşim varsayılan olarak kapalı: kayıtlı tercih okunana kadar anahtar açık görünüp kapanmasın
+  const [hapticEnabled, setHapticEnabled] = useState(false);
 
   useEffect(() => {
     getSoundEffectsEnabled().then(setSoundEnabled);

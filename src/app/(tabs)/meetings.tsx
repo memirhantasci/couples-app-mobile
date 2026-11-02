@@ -915,7 +915,9 @@ const createStyles = (theme: AppTheme) => {
       gap: 6,
       paddingHorizontal: 2,
     },
+    // Uzun adres kartın dışına taşmasın: satıra sığmazsa "…" ile kısalır
     locationText: {
+      flexShrink: 1,
       fontSize: 13,
       fontFamily: "Inter_400Regular",
       color: isLight ? theme.textSecondary : "rgba(255,255,255,0.7)",

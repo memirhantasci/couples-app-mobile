@@ -32,15 +32,19 @@ interface MedicineDoseCardProps {
   onLog: (medicineId: number, status: "DRANK" | "MISSED", timeSlot: string) => boolean;
 }
 
-const SPIN_MS = 450;
+const SPIN_MS = 400;
 const SPLASH_MS = 560;
 const DROP_COLOR = "#38BDF8";
-/** Su damlacıklarının fırlama yönü (derece, 0 = sağ, -90 = yukarı) ve uzaklığı. */
+/**
+ * Su damlacıklarının fırlama yönü (derece, 0 = sağ, -90 = yukarı) ve uzaklığı: onay ikonunun çevresinden
+ * her yöne, kutunun dışına taşacak kadar.
+ */
 const DROPS = [
-  { angle: -160, distance: 30 },
-  { angle: -115, distance: 34 },
-  { angle: -65, distance: 34 },
-  { angle: -20, distance: 30 },
+  { angle: -90, distance: 38 },
+  { angle: -20, distance: 42 },
+  { angle: 40, distance: 36 },
+  { angle: 140, distance: 36 },
+  { angle: 200, distance: 42 },
 ] as const;
 const TAKEN_GREEN = "rgba(34, 197, 94, 0.16)";
 
@@ -60,9 +64,8 @@ function MedicineDoseCardBase({
     ? m.times.map((t) => t.substring(0, 5))
     : [m.time ? m.time.substring(0, 5) : "08:00"];
 
-  const spin = useSharedValue(0);
-  const splash = useSharedValue(0);
-  // "İçtim" denen doz kaydedilirken bekleme simgesi yerine hemen yeşil kutu görünür
+  // "İçtim" denen doz kaydedilirken bekleme simgesi yerine hemen yeşil kutu görünür; takla ve su
+  // sıçraması dokunulan bu kutuda oynar
   const [justTakenSlot, setJustTakenSlot] = useState<string | null>(null);
 
   const handleTake = (slotTime: string) => {
@@ -71,11 +74,6 @@ function MedicineDoseCardBase({
     // Tek titreşim: baloncuk sesi kendi titreşimini vermez, dokunuşu hapticTap verir
     playBubblePop({ haptic: false });
     hapticTap();
-    if (reduceMotion) return;
-    spin.set(0);
-    spin.set(withTiming(1, { duration: SPIN_MS, easing: Easing.out(Easing.back(1.5)) }));
-    splash.set(0);
-    splash.set(withTiming(1, { duration: SPLASH_MS, easing: Easing.out(Easing.quad) }));
   };
 
   const handleSkip = (slotTime: string) => {
@@ -84,23 +82,11 @@ function MedicineDoseCardBase({
     onLog(m.id, "MISSED", slotTime);
   };
 
-  const pillStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${360 * spin.get()}deg` }],
-  }));
-
   return (
     <View style={[styles.medCard, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}>
       <View style={styles.medCardHeader}>
-        <View style={styles.medIconWrap}>
-          {/* Damlacıklar ikonun arkasından fırlar: kutunun dışına çıkınca görünür */}
-          {DROPS.map((drop, index) => (
-            <WaterDrop key={index} splash={splash} {...drop} />
-          ))}
-          <View style={[styles.medIconBox, { backgroundColor: theme.pillAccentBg }]}>
-            <Animated.View style={pillStyle}>
-              <Pill color={theme.accent} size={20} />
-            </Animated.View>
-          </View>
+        <View style={[styles.medIconBox, { backgroundColor: theme.pillAccentBg }]}>
+          <Pill color={theme.accent} size={20} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.medName, { color: theme.text }]}>{m.name}</Text>
@@ -194,7 +180,7 @@ function MedicineDoseCardBase({
 
 export const MedicineDoseCard = React.memo(MedicineDoseCardBase);
 
-/** İkonun arkasından fırlayıp hafifçe düşerek sönen su damlacığı (ucu uçuş yönüne bakar). */
+/** Onay ikonunun çevresinden dışa fırlayıp küçülerek sönen su damlacığı (ucu uçuş yönüne bakar). */
 function WaterDrop({ splash, angle, distance }: { splash: SharedValue<number>; angle: number; distance: number }) {
   const rad = (angle * Math.PI) / 180;
   const dx = Math.cos(rad) * distance;
@@ -206,9 +192,9 @@ function WaterDrop({ splash, angle, distance }: { splash: SharedValue<number>; a
       opacity: p <= 0 ? 0 : 1 - p,
       transform: [
         { translateX: dx * p },
-        { translateY: dy * p + 10 * p * p },
+        { translateY: dy * p + 8 * p * p },
         { rotate: `${angle + 90}deg` },
-        { scale: 1 - 0.35 * p },
+        { scale: 1 - p },
       ],
     };
   });
@@ -223,7 +209,8 @@ function WaterDrop({ splash, angle, distance }: { splash: SharedValue<number>; a
 }
 
 /**
- * Alınmış doz kutusu. "İçtim" ile yeni açıldıysa vurgu renginden yeşile döner, hafifçe ezilip yaylanır.
+ * Alınmış doz kutusu. "İçtim" ile yeni açıldıysa (dokunulan buton bu kutuya dönüşür) vurgu renginden yeşile
+ * döner, hafifçe ezilip yaylanır; onay ikonu 360° takla atar ve çevresinden mavi su damlacıkları fırlar.
  */
 function TakenSlot({ label, theme, celebrate }: { label: string; theme: AppTheme; celebrate: boolean }) {
   const greenText = theme.isLight ? "#15803D" : "#22c55e";
@@ -231,21 +218,33 @@ function TakenSlot({ label, theme, celebrate }: { label: string; theme: AppTheme
   const [celebrateOnMount] = useState(celebrate);
   const squash = useSharedValue(0);
   const tint = useSharedValue(celebrateOnMount ? 0 : 1);
+  const spin = useSharedValue(0);
+  const splash = useSharedValue(0);
 
   useEffect(() => {
     if (!celebrateOnMount) return;
     squash.set(withSequence(withTiming(1, { duration: 90 }), withSpring(0, { damping: 10, stiffness: 160 })));
     tint.set(withTiming(1, { duration: 280, easing: Easing.out(Easing.quad) }));
-  }, [celebrateOnMount, squash, tint]);
+    spin.set(withTiming(1, { duration: SPIN_MS, easing: Easing.out(Easing.back(1.5)) }));
+    splash.set(withTiming(1, { duration: SPLASH_MS, easing: Easing.out(Easing.quad) }));
+  }, [celebrateOnMount, squash, tint, spin, splash]);
 
   const boxStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(tint.get(), [0, 1], [theme.accent, TAKEN_GREEN]),
     transform: [{ scaleX: 1 + 0.04 * squash.get() }, { scaleY: 1 - 0.12 * squash.get() }],
   }));
+  const iconStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${360 * spin.get()}deg` }],
+  }));
 
   return (
     <Animated.View style={[styles.slotStateBox, boxStyle]}>
-      <CheckCircle2 size={16} color={greenText} />
+      <View style={styles.takenIconWrap}>
+        {celebrateOnMount ? DROPS.map((drop, index) => <WaterDrop key={index} splash={splash} {...drop} />) : null}
+        <Animated.View style={iconStyle}>
+          <CheckCircle2 size={16} color={greenText} />
+        </Animated.View>
+      </View>
       <Text style={[styles.drankStateText, { color: greenText }]}>{label}</Text>
     </Animated.View>
   );
@@ -262,16 +261,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
-  medIconWrap: {
-    width: 46,
-    height: 46,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   medIconBox: {
     width: 46,
     height: 46,
     borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  // Damlacıklar onay ikonunun merkezinden çıkar
+  takenIconWrap: {
+    width: 16,
+    height: 16,
     alignItems: "center",
     justifyContent: "center",
   },
