@@ -363,7 +363,7 @@ export function MapPickerModal({
               <View style={styles.selectedMarkerWrapper}>
                 <View style={[styles.markerAura, { backgroundColor: `${theme.accent}30` }]} />
                 <LinearGradient
-                  colors={[theme.accent, theme.accentLight || "#FF758F"]}
+                  colors={[theme.accent, theme.accentLight || "#EE8499"]}
                   style={styles.selectedMarkerCore}
                 >
                   <MapPin size={18} color="#FFFFFF" />
@@ -624,7 +624,7 @@ export function MapPickerModal({
                 activeOpacity={0.88}
               >
                 <LinearGradient
-                  colors={[theme.accent, theme.accentLight || "#FF758F"]}
+                  colors={[theme.accent, theme.accentLight || "#EE8499"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.confirmGradient}
@@ -820,7 +820,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255, 77, 109, 0.25)",
+    borderColor: "rgba(229, 84, 111, 0.25)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.15,
@@ -893,9 +893,9 @@ const styles = StyleSheet.create({
   confirmBtn: {
     borderRadius: 16,
     overflow: "hidden",
-    shadowColor: "#FF4D6D",
+    shadowColor: "#E5546F",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.2,
     shadowRadius: 10,
     elevation: 6,
   },

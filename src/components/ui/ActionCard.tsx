@@ -21,13 +21,14 @@ export function ActionCard({ icon: Icon, title, subtitle, onPress, theme }: Acti
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,
-        { backgroundColor: theme.accent, shadowColor: theme.accent },
+        { backgroundColor: theme.accent, shadowColor: theme.accent, shadowOpacity: theme.isLight ? 0.28 : 0.1 },
         pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
       ]}
     >
       <LinearGradient
         pointerEvents="none"
-        colors={["rgba(255,255,255,0.22)", "rgba(255,255,255,0)"]}
+        // Açık temada üstten ışık, koyu temada dolgu rengini bastıran hafif koyulaştırma (göz almasın)
+        colors={theme.isLight ? ["rgba(255,255,255,0.22)", "rgba(255,255,255,0)"] : ["rgba(0,0,0,0.12)", "rgba(0,0,0,0.30)"]}
         style={StyleSheet.absoluteFill}
       />
       <View style={styles.iconTile}>

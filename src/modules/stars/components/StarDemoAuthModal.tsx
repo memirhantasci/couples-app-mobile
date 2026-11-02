@@ -165,8 +165,8 @@ export const StarDemoAuthModal: React.FC<StarDemoAuthModalProps> = ({
                 isLight && { backgroundColor: theme.unitBg, borderColor: 'rgba(0,0,0,0.08)' },
               ]}
             >
-              <LogIn size={16} color={isLight ? theme.accent : '#38BDF8'} style={{ marginRight: 6 }} />
-              <Text style={[styles.loginBtnText, { color: isLight ? theme.accent : '#38BDF8' }]}>{t('auth.signIn')}</Text>
+              <LogIn size={16} color={isLight ? theme.accent : '#4F9FCB'} style={{ marginRight: 6 }} />
+              <Text style={[styles.loginBtnText, { color: isLight ? theme.accent : '#4F9FCB' }]}>{t('auth.signIn')}</Text>
             </TouchableOpacity>
 
             {/* 3. Buton: Kapat */}
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     shadowColor: '#F59E0B',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 10,
     elevation: 4,
   },
@@ -299,8 +299,8 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.35)',
-    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    borderColor: 'rgba(79, 159, 203, 0.35)',
+    backgroundColor: 'rgba(79, 159, 203, 0.08)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

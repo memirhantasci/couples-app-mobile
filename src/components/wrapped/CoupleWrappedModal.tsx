@@ -64,7 +64,7 @@ export function CoupleWrappedModal({
     : (["#1C1622", "#2B1425", "#160D1A"] as const);
   const shareBtnColors = isMale
     ? ([theme.accent, "#1D4ED8"] as const)
-    : (["#FF4D6D", "#E8002D"] as const);
+    : (["#E5546F", "#C8213F"] as const);
   const [currentSlide, setCurrentSlide] = useState(0);
   // Aktif slaytın ilerleme çubuğu (0-100): UI thread'inde animasyonla ilerler. Eskiden 50 ms'de bir React state
   // güncelleniyor, tüm modal (4 slayt, görseller) saniyede 20 kez yeniden çiziliyordu.
@@ -260,7 +260,7 @@ export function CoupleWrappedModal({
             {currentSlide === 3 && (
               <View style={styles.finalSlideWrapper}>
                 {/* Paylaşılacak Kart (Capture Target) */}
-                <View ref={shareCardRef} collapsable={false} style={[styles.shareableCard, { shadowColor: theme.accent, borderColor: isMale ? "rgba(77, 156, 255, 0.25)" : "rgba(255, 255, 255, 0.12)" }]}>
+                <View ref={shareCardRef} collapsable={false} style={[styles.shareableCard, { shadowColor: theme.accent, borderColor: isMale ? "rgba(90, 143, 219, 0.25)" : "rgba(255, 255, 255, 0.12)" }]}>
                   <LinearGradient
                     colors={cardGradientColors}
                     style={StyleSheet.absoluteFill}
@@ -431,12 +431,12 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "rgba(255, 77, 109, 0.14)",
+    backgroundColor: "rgba(229, 84, 111, 0.14)",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: "rgba(255, 77, 109, 0.3)",
+    borderColor: "rgba(229, 84, 111, 0.3)",
   },
   subHeading: {
     color: "#FF8FA3",
@@ -547,9 +547,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.12)",
     elevation: 8,
-    shadowColor: "#FF4D6D",
+    shadowColor: "#E5546F",
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.2,
     shadowRadius: 16,
   },
   cardHeader: {
@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 77, 109, 0.2)",
+    backgroundColor: "rgba(229, 84, 111, 0.2)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -625,7 +625,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#FF4D6D",
+    backgroundColor: "#E5546F",
   },
   subtleWatermarkText: {
     color: "rgba(255, 255, 255, 0.55)",
@@ -639,9 +639,9 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 26,
     overflow: "hidden",
-    shadowColor: "#FF4D6D",
+    shadowColor: "#E5546F",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.2,
     shadowRadius: 10,
     elevation: 4,
   },

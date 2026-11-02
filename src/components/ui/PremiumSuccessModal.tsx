@@ -24,7 +24,7 @@ export function PremiumSuccessModal({ visible, onClose, subtitle }: PremiumSucce
           
           <View style={styles.iconContainer}>
             <View style={[styles.iconBg, { backgroundColor: "rgba(200,146,42,0.2)" }]}>
-              <Crown color={isLight ? "#B7791F" : "#FFD700"} size={48} />
+              <Crown color={isLight ? "#B7791F" : "#E6C055"} size={48} />
             </View>
             <View style={styles.checkBadge}>
               <CheckCircle color="#4ade80" size={24} fill="#111" />
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
-    shadowColor: "#FFD700",
+    shadowColor: "#E6C055",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.15,
     shadowRadius: 30,

@@ -61,10 +61,10 @@ export const FEMALE_CURRENT: AppTheme = {
   cardBg: "#4A152B",
   cardBorder: "rgba(255, 255, 255, 0.06)",
   unitBg: "#330D1D",
-  accent: "#FF5C77",
-  accentLight: "#FF80AB",
-  pillAccentBorder: "rgba(255, 92, 119, 0.3)",
-  pillAccentBg: "rgba(255, 92, 119, 0.12)",
+  accent: "#E8617A",
+  accentLight: "#EE92A8",
+  pillAccentBorder: "rgba(232, 97, 122, 0.3)",
+  pillAccentBg: "rgba(232, 97, 122, 0.12)",
   inputBg: "#1C1C1E",
   inputBorder: "rgba(255, 255, 255, 0.08)",
   headerBg: "transparent",
@@ -76,7 +76,7 @@ export const FEMALE_CURRENT: AppTheme = {
   blurTint: "dark",
   cardShadow: NO_CARD_SHADOW,
   descriptionKey: "themes.femaleCurrent.description",
-  previewColors: ["#2E0F1C", "#4A152B", "#FF5C77"],
+  previewColors: ["#2E0F1C", "#4A152B", "#E8617A"],
 };
 
 // 2. Kadın: Gece Modu (Derin Siyah & Pembe Işıltı)
@@ -89,10 +89,10 @@ export const FEMALE_DARK: AppTheme = {
   cardBg: "#19121E",
   cardBorder: "rgba(255, 255, 255, 0.07)",
   unitBg: "#120B16",
-  accent: "#FF4D6D",
-  accentLight: "#FF758F",
-  pillAccentBorder: "rgba(255, 77, 109, 0.35)",
-  pillAccentBg: "rgba(255, 77, 109, 0.14)",
+  accent: "#E5546F",
+  accentLight: "#EE8499",
+  pillAccentBorder: "rgba(229, 84, 111, 0.35)",
+  pillAccentBg: "rgba(229, 84, 111, 0.14)",
   inputBg: "#120B16",
   inputBorder: "rgba(255, 255, 255, 0.08)",
   headerBg: "transparent",
@@ -104,7 +104,7 @@ export const FEMALE_DARK: AppTheme = {
   blurTint: "dark",
   cardShadow: NO_CARD_SHADOW,
   descriptionKey: "themes.femaleDark.description",
-  previewColors: ["#070508", "#19121E", "#FF4D6D"],
+  previewColors: ["#070508", "#19121E", "#E5546F"],
 };
 
 // 3. Kadın: Açık Mod (İpeksi Pudra & Saf Beyaz)
@@ -155,10 +155,10 @@ export const MALE_CURRENT: AppTheme = {
   cardBg: "#1A2235",
   cardBorder: "rgba(255, 255, 255, 0.07)",
   unitBg: "#0F172A",
-  accent: "#4D9CFF",
-  accentLight: "#93C5FD",
-  pillAccentBorder: "rgba(77, 156, 255, 0.25)",
-  pillAccentBg: "rgba(77, 156, 255, 0.08)",
+  accent: "#5A8FDB",
+  accentLight: "#9DBBE6",
+  pillAccentBorder: "rgba(90, 143, 219, 0.25)",
+  pillAccentBg: "rgba(90, 143, 219, 0.08)",
   inputBg: "#121A28",
   inputBorder: "rgba(255, 255, 255, 0.08)",
   headerBg: "transparent",
@@ -170,7 +170,7 @@ export const MALE_CURRENT: AppTheme = {
   blurTint: "dark",
   cardShadow: NO_CARD_SHADOW,
   descriptionKey: "themes.maleCurrent.description",
-  previewColors: ["#0B111A", "#1A2235", "#4D9CFF"],
+  previewColors: ["#0B111A", "#1A2235", "#5A8FDB"],
 };
 
 // 2. Erkek: Gece Modu (Obsidyen Siyah & Elektrik Mavi)
@@ -183,10 +183,10 @@ export const MALE_DARK: AppTheme = {
   cardBg: "#111622",
   cardBorder: "rgba(255, 255, 255, 0.07)",
   unitBg: "#0A0E17",
-  accent: "#38BDF8",
-  accentLight: "#7DD3FC",
-  pillAccentBorder: "rgba(56, 189, 248, 0.3)",
-  pillAccentBg: "rgba(56, 189, 248, 0.12)",
+  accent: "#4F9FCB",
+  accentLight: "#8CC4E0",
+  pillAccentBorder: "rgba(79, 159, 203, 0.3)",
+  pillAccentBg: "rgba(79, 159, 203, 0.12)",
   inputBg: "#0A0E17",
   inputBorder: "rgba(255, 255, 255, 0.08)",
   headerBg: "transparent",
@@ -198,7 +198,7 @@ export const MALE_DARK: AppTheme = {
   blurTint: "dark",
   cardShadow: NO_CARD_SHADOW,
   descriptionKey: "themes.maleDark.description",
-  previewColors: ["#030407", "#111622", "#38BDF8"],
+  previewColors: ["#030407", "#111622", "#4F9FCB"],
 };
 
 // 3. Erkek: Beyaz Mod (Kar Beyazı & Kobalt Mavi)

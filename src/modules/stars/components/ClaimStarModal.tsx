@@ -201,8 +201,8 @@ const CosmicRadarSweep: React.FC<{ isSlowWarning: boolean; isConfirming?: boolea
         <Animated.View style={[styles.sweepContainer, radarSweepStyle]}>
           <LinearGradient
             colors={[
-              isConfirming ? 'rgba(251, 191, 36, 0.55)' : isLight ? 'rgba(2, 132, 199, 0.55)' : 'rgba(56, 189, 248, 0.55)',
-              isConfirming ? 'rgba(251, 191, 36, 0)' : isLight ? 'rgba(2, 132, 199, 0)' : 'rgba(56, 189, 248, 0)',
+              isConfirming ? 'rgba(251, 191, 36, 0.55)' : isLight ? 'rgba(2, 132, 199, 0.55)' : 'rgba(79, 159, 203, 0.55)',
+              isConfirming ? 'rgba(251, 191, 36, 0)' : isLight ? 'rgba(2, 132, 199, 0)' : 'rgba(79, 159, 203, 0)',
             ]}
             start={{ x: 1, y: 0.5 }}
             end={{ x: 0, y: 0.5 }}
@@ -215,7 +215,7 @@ const CosmicRadarSweep: React.FC<{ isSlowWarning: boolean; isConfirming?: boolea
 
       <View style={styles.telemetryBox}>
         <View style={[styles.telemetryRow, isLight && { backgroundColor: 'rgba(2, 132, 199, 0.1)', borderColor: 'rgba(2, 132, 199, 0.25)' }]}>
-          <Radio size={12} color={isConfirming ? '#FBBF24' : isLight ? '#0284C7' : '#38BDF8'} />
+          <Radio size={12} color={isConfirming ? '#FBBF24' : isLight ? '#0284C7' : '#4F9FCB'} />
           <Text style={[styles.telemetryText, isConfirming && styles.telemetryTextGold, isLight && !isConfirming && { color: '#0284C7' }]}>
             RA: {displayRa}° | DEC: {displayDec}°
           </Text>
@@ -591,8 +591,8 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                     style={[
                       styles.preSelectedStarCard,
                       {
-                        backgroundColor: isLight ? theme.unitBg : 'rgba(56, 189, 248, 0.08)',
-                        borderColor: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(56, 189, 248, 0.25)',
+                        backgroundColor: isLight ? theme.unitBg : 'rgba(79, 159, 203, 0.08)',
+                        borderColor: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(79, 159, 203, 0.25)',
                       },
                     ]}
                   >
@@ -898,7 +898,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                 <View style={styles.certInfoGrid}>
                   <View style={[styles.gridItem, { backgroundColor: isLight ? theme.unitBg : 'rgba(255, 255, 255, 0.05)', borderColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.1)' }]}>
                     <Text style={[styles.gridLabel, { color: theme.textMuted }]}>{t('stars.claim.catalogCode')}</Text>
-                    <Text style={[styles.gridValueHighlight, { color: isLight ? '#D97706' : '#38BDF8' }]}>{claimedStar.catalog_code}</Text>
+                    <Text style={[styles.gridValueHighlight, { color: isLight ? '#D97706' : '#4F9FCB' }]}>{claimedStar.catalog_code}</Text>
                   </View>
                   <View style={[styles.gridItem, { backgroundColor: isLight ? theme.unitBg : 'rgba(255, 255, 255, 0.05)', borderColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.1)' }]}>
                     <Text style={[styles.gridLabel, { color: theme.textMuted }]}>{t('stars.claim.spectralClass')}</Text>
@@ -1005,14 +1005,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.2,
     shadowRadius: 24,
     elevation: 16,
   },
   certificateContainer: {
     borderColor: 'rgba(251, 191, 36, 0.4)',
     shadowColor: '#F59E0B',
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.2,
   },
   cardGlowBg: {
     position: 'absolute',
@@ -1104,7 +1104,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     shadowColor: '#7C3AED',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.2,
     shadowRadius: 10,
     elevation: 6,
   },
@@ -1141,7 +1141,7 @@ const styles = StyleSheet.create({
     height: 190,
     borderRadius: 95,
     borderWidth: 1.5,
-    borderColor: 'rgba(56, 189, 248, 0.35)',
+    borderColor: 'rgba(79, 159, 203, 0.35)',
     backgroundColor: 'rgba(6, 12, 28, 0.7)',
     position: 'relative',
     alignItems: 'center',
@@ -1155,7 +1155,7 @@ const styles = StyleSheet.create({
     height: 190,
     borderRadius: 95,
     borderWidth: 1.5,
-    borderColor: '#38BDF8',
+    borderColor: '#4F9FCB',
   },
   radarRing1: {
     position: 'absolute',
@@ -1163,7 +1163,7 @@ const styles = StyleSheet.create({
     height: 130,
     borderRadius: 65,
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.2)',
+    borderColor: 'rgba(79, 159, 203, 0.2)',
     borderStyle: 'dashed',
   },
   radarRing2: {
@@ -1172,19 +1172,19 @@ const styles = StyleSheet.create({
     height: 70,
     borderRadius: 35,
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.25)',
+    borderColor: 'rgba(79, 159, 203, 0.25)',
   },
   radarCrossH: {
     position: 'absolute',
     width: '100%',
     height: 1,
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: 'rgba(79, 159, 203, 0.15)',
   },
   radarCrossV: {
     position: 'absolute',
     height: '100%',
     width: 1,
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: 'rgba(79, 159, 203, 0.15)',
   },
   sweepContainer: {
     position: 'absolute',
@@ -1205,9 +1205,9 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#38BDF8',
-    shadowColor: '#38BDF8',
-    shadowOpacity: 0.9,
+    backgroundColor: '#4F9FCB',
+    shadowColor: '#4F9FCB',
+    shadowOpacity: 0.2,
     shadowRadius: 6,
   },
   telemetryBox: {
@@ -1218,15 +1218,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+    backgroundColor: 'rgba(79, 159, 203, 0.1)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.25)',
+    borderColor: 'rgba(79, 159, 203, 0.25)',
   },
   telemetryText: {
-    color: '#38BDF8',
+    color: '#4F9FCB',
     fontSize: 11,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     fontWeight: '600',
@@ -1367,7 +1367,7 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   gridValueHighlight: {
-    color: '#38BDF8',
+    color: '#4F9FCB',
     fontSize: 13,
     fontWeight: '700',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
@@ -1407,7 +1407,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    backgroundColor: 'rgba(79, 159, 203, 0.08)',
     borderRadius: 22,
     padding: 12,
     marginBottom: 16,
@@ -1425,7 +1425,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   preSelectedStarCode: {
-    color: '#38BDF8',
+    color: '#4F9FCB',
     fontSize: 11,
     fontWeight: '700',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',

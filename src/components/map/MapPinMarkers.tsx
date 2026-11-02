@@ -83,7 +83,7 @@ function NoteMarkerPinBase({ note, avatarUrl, onSelect }: NoteMarkerPinProps) {
             </View>
           </View>
         ) : (
-          <LinearGradient colors={["#FF4D6D", "#E01E5A"]} style={styles.noteEnvelopePill}>
+          <LinearGradient colors={["#E5546F", "#E01E5A"]} style={styles.noteEnvelopePill}>
             <Text style={{ fontSize: 13 }}>💌</Text>
           </LinearGradient>
         )}
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     borderColor: "#FFFFFF",
     shadowColor: "#FF1493",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.2,
     shadowRadius: 6,
     elevation: 6,
   },
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     shadowColor: "#FF1493",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.2,
     shadowRadius: 6,
     elevation: 6,
   },
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     width: 17,
     height: 17,
     borderRadius: 9,
-    backgroundColor: "#FF4D6D",
+    backgroundColor: "#E5546F",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     borderColor: "#FFFFFF",
     shadowColor: "#8B5CF6",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.2,
     shadowRadius: 6,
     elevation: 6,
     maxWidth: 130,
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255, 77, 109, 0.25)",
+    backgroundColor: "rgba(229, 84, 111, 0.25)",
   },
   pendingMarkerCore: {
     width: 28,

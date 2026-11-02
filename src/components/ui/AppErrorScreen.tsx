@@ -50,6 +50,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 24,
   },
-  button: { backgroundColor: "#E8002D", paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14 },
+  button: { backgroundColor: "#C8213F", paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14 },
   buttonText: { color: "#FFFFFF", fontSize: 15, fontFamily: "Inter_600SemiBold" },
 });

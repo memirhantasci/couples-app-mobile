@@ -45,7 +45,7 @@ export function LegalModal({
   visible,
   onClose,
   initialDoc = "kvkk",
-  accentColor = "#FF4D6D",
+  accentColor = "#E5546F",
 }: LegalModalProps) {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();

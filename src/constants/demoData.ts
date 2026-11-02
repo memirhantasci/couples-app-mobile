@@ -905,7 +905,7 @@ const DEMO_STAR_EXOPLANETS_TR: StarExoplanetRecord[] = [
     orbit_distance: 1,
     orbit_speed: 1.0,
     planet_type: "terrestrial",
-    palette: ["#FF6B8B", "#FF8E53", "#FFA07A"],
+    palette: ["#EC7E95", "#FF8E53", "#FFA07A"],
     media_urls: ["https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=600&auto=format&fit=crop&q=80"],
     custom_metadata: {},
     is_auto_generated: false,

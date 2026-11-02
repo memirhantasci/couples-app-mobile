@@ -46,7 +46,7 @@ function PhotoSingleCellBase({ item, index, isMine, theme, isLight, onPress, onD
             onPress={() => onDelete(item.id)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Trash2 color="#ff5c77" size={15} />
+            <Trash2 color="#E8617A" size={15} />
           </TouchableOpacity>
         )}
       </View>
@@ -127,11 +127,11 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
   },
   deleteBtn: {
-    backgroundColor: "rgba(255, 92, 119, 0.12)",
+    backgroundColor: "rgba(232, 97, 122, 0.12)",
     padding: 7,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(255, 92, 119, 0.25)",
+    borderColor: "rgba(232, 97, 122, 0.25)",
   },
   singleTouchable: {
     width: "100%",

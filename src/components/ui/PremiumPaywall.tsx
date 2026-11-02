@@ -172,8 +172,8 @@ export function PremiumPaywall({
                 style={[
                   styles.tokenBtn,
                   {
-                    backgroundColor: isLight ? "rgba(234, 179, 8, 0.12)" : "rgba(255,215,0,0.08)",
-                    borderColor: isLight ? "rgba(234, 179, 8, 0.3)" : "rgba(255,215,0,0.18)",
+                    backgroundColor: isLight ? "rgba(234, 179, 8, 0.12)" : "rgba(230, 192, 85,0.08)",
+                    borderColor: isLight ? "rgba(234, 179, 8, 0.3)" : "rgba(230, 192, 85,0.18)",
                   },
                   tokenOption.currentBalance < tokenOption.cost && { opacity: 0.4 },
                 ]}
@@ -181,11 +181,11 @@ export function PremiumPaywall({
                 onPress={tokenOption.onUseTokens}
                 activeOpacity={0.7}
               >
-                <Zap color={isLight ? "#B45309" : "#FFD700"} size={18} />
-                <Text style={[styles.tokenBtnText, { color: isLight ? "#B45309" : "#FFD700" }]}>
+                <Zap color={isLight ? "#B45309" : "#E6C055"} size={18} />
+                <Text style={[styles.tokenBtnText, { color: isLight ? "#B45309" : "#E6C055" }]}>
                   {t("paywall.useTokens", { cost: tokenOption.cost })}
                 </Text>
-                <Text style={[styles.tokenBalance, { color: isLight ? "rgba(180, 83, 9, 0.7)" : "rgba(255,215,0,0.6)" }]}>
+                <Text style={[styles.tokenBalance, { color: isLight ? "rgba(180, 83, 9, 0.7)" : "rgba(230, 192, 85,0.6)" }]}>
                   {t("paywall.tokenBalance", { currentBalance: tokenOption.currentBalance })}
                 </Text>
               </TouchableOpacity>

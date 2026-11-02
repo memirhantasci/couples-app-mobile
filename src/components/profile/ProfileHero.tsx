@@ -17,7 +17,7 @@ interface ProfileHeroProps {
 /** Ayarlar ekranının üstündeki profil kartı: büyük avatar + isim ve üç hızlı istatistik. */
 export function ProfileHero({ theme, name, isPremium, isPaired, tokenBalance }: ProfileHeroProps) {
   const { t } = useTranslation();
-  const gold = theme.isLight ? "#A16207" : "#ffd700";
+  const gold = theme.isLight ? "#A16207" : "#E6C055";
   const dividerColor = theme.isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)";
 
   return (

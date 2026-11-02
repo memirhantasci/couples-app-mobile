@@ -236,7 +236,7 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
           {viewMode === 'micro' && (
             <View style={styles.bottomRow}>
               <View style={styles.coordsBlock}>
-                <Text style={[styles.catalogCode, { color: isLight ? '#0284C7' : '#38BDF8' }]}>
+                <Text style={[styles.catalogCode, { color: isLight ? '#0284C7' : '#4F9FCB' }]}>
                   {starDetails.catalog_code}
                 </Text>
                 <View
@@ -270,7 +270,7 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
                       styles.progressBarFill,
                       {
                         width: `${luminosityPercent}%`,
-                        backgroundColor: luminosity >= 0.8 ? '#F59E0B' : '#38BDF8',
+                        backgroundColor: luminosity >= 0.8 ? '#F59E0B' : '#4F9FCB',
                       },
                     ]}
                   />
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     shadowColor: '#FFFFFF',
-    shadowOpacity: 0.8,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     flexShrink: 0,
   },

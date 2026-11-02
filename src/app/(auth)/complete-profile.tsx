@@ -22,8 +22,8 @@ import { localizeServerError } from "@/lib/serverErrors";
 type Gender = "male" | "female";
 
 const GENDER_OPTIONS: { value: Gender; labelKey: "common.gender.female" | "common.gender.male"; symbol: string; color: string; bg: string }[] = [
-  { value: "female", labelKey: "common.gender.female", symbol: "♀", color: "#FF4D6D", bg: "rgba(255, 77, 109, 0.14)" },
-  { value: "male", labelKey: "common.gender.male", symbol: "♂", color: "#4D9CFF", bg: "rgba(77, 156, 255, 0.14)" },
+  { value: "female", labelKey: "common.gender.female", symbol: "♀", color: "#E5546F", bg: "rgba(229, 84, 111, 0.14)" },
+  { value: "male", labelKey: "common.gender.male", symbol: "♂", color: "#5A8FDB", bg: "rgba(90, 143, 219, 0.14)" },
 ];
 
 /**
@@ -48,10 +48,10 @@ export default function CompleteProfileScreen() {
   const [error, setError] = useState("");
 
   const selected = GENDER_OPTIONS.find((g) => g.value === gender);
-  const accent = selected?.color ?? "#FF4D6D";
+  const accent = selected?.color ?? "#E5546F";
   const ctaColors = gender === "male"
-    ? (["#4D9CFF", "#1B6FD8"] as const)
-    : (["#FF3366", "#E8002D", "#C0006B"] as const);
+    ? (["#5A8FDB", "#1B6FD8"] as const)
+    : (["#E04668", "#C8213F", "#C0006B"] as const);
 
   async function handleSave() {
     const trimmedName = name.trim();
@@ -175,7 +175,7 @@ export default function CompleteProfileScreen() {
                         backgroundColor: option.bg,
                         borderWidth: 1.5,
                         shadowColor: option.color,
-                        shadowOpacity: 0.55,
+                        shadowOpacity: 0.2,
                         shadowRadius: 16,
                         shadowOffset: { width: 0, height: 0 },
                         elevation: 8,
@@ -196,7 +196,7 @@ export default function CompleteProfileScreen() {
 
           {!!error && (
             <View style={styles.errorBanner}>
-              <AlertCircle size={18} color="#FF4D6A" />
+              <AlertCircle size={18} color="#E5546F" />
               <Text style={styles.errorText}>{error}</Text>
             </View>
           )}
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     width: 92,
     height: 92,
     borderRadius: 30,
-    backgroundColor: "rgba(255,77,106,0.14)",
+    backgroundColor: "rgba(229, 84, 111,0.14)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 20,
@@ -337,14 +337,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "rgba(255, 77, 106, 0.14)",
+    backgroundColor: "rgba(229, 84, 111, 0.14)",
     borderRadius: 18,
     padding: 14,
     marginBottom: 16,
   },
   errorText: {
     flex: 1,
-    color: "#FF4D6A",
+    color: "#E5546F",
     fontSize: 13.5,
     lineHeight: 19,
   },

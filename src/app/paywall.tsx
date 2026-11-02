@@ -201,7 +201,7 @@ export default function PaywallScreen() {
         </TouchableOpacity>
 
         <View style={styles.header}>
-          <View style={[styles.crownCircle, { backgroundColor: `${theme.accent}22`, shadowColor: theme.accent, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 20, elevation: 8 }]}>
+          <View style={[styles.crownCircle, { backgroundColor: `${theme.accent}22`, shadowColor: theme.accent, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 8 }]}>
             <Crown color={theme.accent} size={48} />
           </View>
           <Text style={[styles.title, { color: theme.text }]}>{APP_NAME} Premium</Text>

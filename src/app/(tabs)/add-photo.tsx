@@ -619,11 +619,11 @@ export default function AddPhotoScreen() {
             {/* Açıklama Input */}
             <View style={styles.fieldGroup}>
               <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={[styles.fieldLabel, errors.description && { color: "#ff5c77" }]}>
+                <Text style={[styles.fieldLabel, errors.description && { color: "#E8617A" }]}>
                   {t("photos.add.storyLabel")}
                 </Text>
                 {errors.description && (
-                  <Text style={{ fontSize: 11, color: "#ff5c77", fontFamily: "Inter_500Medium" }}>
+                  <Text style={{ fontSize: 11, color: "#E8617A", fontFamily: "Inter_500Medium" }}>
                     {t("photos.add.required")}
                   </Text>
                 )}
@@ -800,7 +800,7 @@ const createStyles = (theme: AppTheme) => {
       alignItems: "center",
     },
     boxError: {
-      borderColor: "#ff5c77",
+      borderColor: "#E8617A",
       borderWidth: 1.5,
     },
     locationPickerBtn: {

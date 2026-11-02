@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderWidth: 1.5,
-    borderColor: "#ff4d6a",
+    borderColor: "#E5546F",
   },
   hintRow: {
     flexDirection: "row",

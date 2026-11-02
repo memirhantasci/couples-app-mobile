@@ -344,7 +344,7 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
                     typeColor = '#FBBF24';
                   } else if (item.entity_type === 'custom') {
                     typeLabel = t('stars.search.type.custom');
-                    typeColor = '#38BDF8';
+                    typeColor = '#4F9FCB';
                   } else if (item.entity_type === 'exoplanet') {
                     typeLabel = t('stars.search.type.exoplanet');
                     typeColor = '#A78BFA';
@@ -368,7 +368,7 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
                       {isSun ? (
                         <Sun size={20} color="#FBBF24" />
                       ) : isEarth ? (
-                        <Globe size={20} color="#38BDF8" />
+                        <Globe size={20} color="#4F9FCB" />
                       ) : (
                         <Star size={18} color={typeColor} />
                       )}

@@ -255,17 +255,17 @@ export default function DatesScreen() {
               width: 92,
               height: 92,
               borderRadius: 30,
-              backgroundColor: "rgba(255,77,106,0.14)",
-              shadowColor: "#FF4D6A",
+              backgroundColor: "rgba(229, 84, 111,0.14)",
+              shadowColor: "#E5546F",
               shadowOffset: { width: 0, height: 10 },
-              shadowOpacity: 0.4,
+              shadowOpacity: 0.2,
               shadowRadius: 20,
               alignItems: "center",
               justifyContent: "center",
               marginBottom: 20,
             }}
           >
-            <Calendar color="#FF4D6A" size={32} />
+            <Calendar color="#E5546F" size={32} />
           </View>
 
           <Text
@@ -298,7 +298,7 @@ export default function DatesScreen() {
           }}
           activeOpacity={0.8}
           style={{
-            backgroundColor: "rgba(255, 77, 106, 0.12)",
+            backgroundColor: "rgba(229, 84, 111, 0.12)",
             borderRadius: 26,
             padding: 18,
             flexDirection: "row",
@@ -329,7 +329,7 @@ export default function DatesScreen() {
               marginRight: 16,
             }}
           >
-            <Heart color="#FF4D6A" size={22} />
+            <Heart color="#E5546F" size={22} />
           </View>
 
           <View style={{ flex: 1 }}>
@@ -369,8 +369,8 @@ export default function DatesScreen() {
                 height: 22,
                 borderRadius: 7,
                 borderWidth: 1.5,
-                borderColor: includeMeetDate ? "#FF4D6A" : "rgba(255,255,255,0.25)",
-                backgroundColor: includeMeetDate ? "#FF4D6A" : "rgba(255,255,255,0.05)",
+                borderColor: includeMeetDate ? "#E5546F" : "rgba(255,255,255,0.25)",
+                backgroundColor: includeMeetDate ? "#E5546F" : "rgba(255,255,255,0.05)",
                 alignItems: "center",
                 justifyContent: "center",
                 marginRight: 14,
@@ -416,7 +416,7 @@ export default function DatesScreen() {
                 }}
               />
 
-              <Sparkles color="#FF4D6A" size={20} style={{ marginRight: 12 }} />
+              <Sparkles color="#E5546F" size={20} style={{ marginRight: 12 }} />
               <Text style={{ flex: 1, color: "rgba(255,255,255,0.6)", fontSize: 13 }}>
                 {t("setup.dates.meetDay")}
               </Text>
@@ -445,13 +445,13 @@ export default function DatesScreen() {
         {!!error && (
           <View
             style={{
-              backgroundColor: "rgba(232,0,45,0.1)",
+              backgroundColor: "rgba(200, 33, 63,0.1)",
               borderRadius: 12,
               padding: 14,
               marginBottom: 16,
             }}
           >
-            <Text style={{ color: "#FF4D6A", fontSize: 14, textAlign: "center" }}>
+            <Text style={{ color: "#E5546F", fontSize: 14, textAlign: "center" }}>
               {error}
             </Text>
           </View>
@@ -464,7 +464,7 @@ export default function DatesScreen() {
           style={{ borderRadius: 30, overflow: "hidden", opacity: isLoading ? 0.7 : 1 }}
         >
           <LinearGradient
-            colors={["#FF4D6A", "#9B4DFF"]}
+            colors={["#E5546F", "#9B4DFF"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={{
@@ -473,7 +473,7 @@ export default function DatesScreen() {
               borderRadius: 30,
               shadowColor: "#9B4DFF",
               shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.4,
+              shadowOpacity: 0.2,
               shadowRadius: 14,
             }}
           >

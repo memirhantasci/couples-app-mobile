@@ -133,8 +133,8 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
             <X color={theme.textSecondary} size={20} />
           </TouchableOpacity>
 
-          <View style={[styles.iconBox, { backgroundColor: "rgba(255, 215, 0, 0.1)" }]}>
-            <Coins color={isLight ? "#B7791F" : "#FFD700"} size={32} />
+          <View style={[styles.iconBox, { backgroundColor: "rgba(230, 192, 85, 0.1)" }]}>
+            <Coins color={isLight ? "#B7791F" : "#E6C055"} size={32} />
           </View>
           
           <Text style={[styles.title, { color: theme.text }]}>{t("ads.title")}</Text>

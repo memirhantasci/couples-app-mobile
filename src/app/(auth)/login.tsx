@@ -658,10 +658,10 @@ export default function LoginScreen() {
 
   // ─── Gender & button accent ───────────────────────────────────────────────
   const isMale = regGender === "male";
-  const activeAccent = mode === "register" && isMale ? "#4D9CFF" : "#FF4D6D";
+  const activeAccent = mode === "register" && isMale ? "#5A8FDB" : "#E5546F";
   const activeGradient = mode === "register" && isMale
-    ? (["#4D9CFF", "#1B6FD8"] as const)
-    : (["#FF3366", "#E8002D", "#C0006B"] as const);
+    ? (["#5A8FDB", "#1B6FD8"] as const)
+    : (["#E04668", "#C8213F", "#C0006B"] as const);
 
   const scrollContentStyle = StyleSheet.flatten([
     styles.scrollContent,
@@ -696,7 +696,7 @@ export default function LoginScreen() {
       <View 
         style={[
           styles.bottomAmbientGlow, 
-          { backgroundColor: mode === "register" && isMale ? "rgba(77, 156, 255, 0.12)" : "rgba(255, 77, 109, 0.12)" }
+          { backgroundColor: mode === "register" && isMale ? "rgba(90, 143, 219, 0.12)" : "rgba(229, 84, 111, 0.12)" }
         ]} 
         pointerEvents="none" 
       />
@@ -874,7 +874,7 @@ export default function LoginScreen() {
               {activeInviteCode ? (
                 <View style={styles.inviteBannerCard}>
                   <View style={styles.inviteBannerIconCircle}>
-                    <Heart size={16} color="#FF2E63" fill="#FF2E63" />
+                    <Heart size={16} color="#DC4466" fill="#DC4466" />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.inviteBannerTitle}>{t("auth.register.inviteTitle")}</Text>
@@ -987,8 +987,8 @@ export default function LoginScreen() {
                 <Text style={styles.fieldLabel}>{t("auth.register.genderLabel")}</Text>
                 <View style={styles.genderRow}>
                   {([
-                    { val: "female" as const, label: t("auth.register.genderFemale"), color: "#FF4D6D", bg: "rgba(255, 77, 109, 0.14)" },
-                    { val: "male" as const, label: t("auth.register.genderMale"), color: "#4D9CFF", bg: "rgba(77, 156, 255, 0.14)" },
+                    { val: "female" as const, label: t("auth.register.genderFemale"), color: "#E5546F", bg: "rgba(229, 84, 111, 0.14)" },
+                    { val: "male" as const, label: t("auth.register.genderMale"), color: "#5A8FDB", bg: "rgba(90, 143, 219, 0.14)" },
                   ]).map(({ val, label, color, bg }) => {
                     const isSelected = regGender === val;
                     return (
@@ -1045,7 +1045,7 @@ export default function LoginScreen() {
           {/* ─── Hata Bildirimi ─── */}
           {!!errorMsg && (
             <View style={styles.errorBanner}>
-              <AlertCircle size={18} color="#FF4D6A" />
+              <AlertCircle size={18} color="#E5546F" />
               <Text style={styles.errorBannerText}>{errorMsg}</Text>
             </View>
           )}
@@ -1174,7 +1174,7 @@ const styles = StyleSheet.create({
     width: 320,
     height: 320,
     borderRadius: 160,
-    backgroundColor: "rgba(255, 77, 109, 0.1)",
+    backgroundColor: "rgba(229, 84, 111, 0.1)",
   },
   bottomAmbientGlow: {
     position: "absolute",
@@ -1201,9 +1201,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 18,
     overflow: "hidden",
-    shadowColor: "#FF4D6D",
+    shadowColor: "#E5546F",
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.2,
     shadowRadius: 20,
     elevation: 8,
   },
@@ -1325,7 +1325,7 @@ const styles = StyleSheet.create({
   errorBanner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(232, 0, 45, 0.14)",
+    backgroundColor: "rgba(200, 33, 63, 0.14)",
     borderRadius: 18,
     padding: 13,
     marginBottom: 16,
@@ -1333,7 +1333,7 @@ const styles = StyleSheet.create({
   },
   errorBannerText: {
     flex: 1,
-    color: "#FF4D6A",
+    color: "#E5546F",
     fontSize: 13,
     fontFamily: "Inter_500Medium",
   },
@@ -1355,9 +1355,9 @@ const styles = StyleSheet.create({
   ctaWrapper: {
     borderRadius: 30,
     overflow: "hidden",
-    shadowColor: "#FF3366",
+    shadowColor: "#E04668",
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.45,
+    shadowOpacity: 0.2,
     shadowRadius: 18,
     elevation: 10,
   },

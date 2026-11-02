@@ -254,7 +254,7 @@ export function IncomingLetterBird({ arrival, onOpen, onDismiss }: IncomingLette
                   <Mail size={16} color="#FFEBB8" strokeWidth={2.5} />
                 </View>
                 <View style={styles.heartDot}>
-                  <Heart size={8} color="#FF5C77" fill="#FF5C77" />
+                  <Heart size={8} color="#E8617A" fill="#E8617A" />
                 </View>
               </View>
               <View style={styles.textCol}>
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#1B0E16",
     shadowColor: "#F5C563",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.2,
     shadowRadius: 16,
     elevation: 12,
   },

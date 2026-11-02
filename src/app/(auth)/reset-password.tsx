@@ -87,7 +87,7 @@ export default function ResetPasswordScreen() {
           <TouchableOpacity
             onPress={() => router.replace("/(auth)/login")}
             style={{
-              backgroundColor: "#E8002D",
+              backgroundColor: "#C8213F",
               paddingVertical: 16,
               paddingHorizontal: 40,
               borderRadius: 18,
@@ -129,7 +129,7 @@ export default function ResetPasswordScreen() {
           width: 280,
           height: 280,
           borderRadius: 140,
-          backgroundColor: "rgba(232, 0, 45, 0.15)",
+          backgroundColor: "rgba(200, 33, 63, 0.15)",
         }}
       />
       <KeyboardAvoidingView
@@ -205,8 +205,8 @@ export default function ResetPasswordScreen() {
           />
 
           {!!error && (
-            <View style={{ backgroundColor: "rgba(232,0,45,0.14)", borderRadius: 18, padding: 14, marginBottom: 16, marginTop: 10 }}>
-              <Text style={{ color: "#FF4D6A", fontSize: 14, textAlign: "center" }}>
+            <View style={{ backgroundColor: "rgba(200, 33, 63,0.14)", borderRadius: 18, padding: 14, marginBottom: 16, marginTop: 10 }}>
+              <Text style={{ color: "#E5546F", fontSize: 14, textAlign: "center" }}>
                 {error}
               </Text>
             </View>
@@ -216,14 +216,14 @@ export default function ResetPasswordScreen() {
             onPress={handleReset}
             disabled={isLoading}
             style={{
-              backgroundColor: isLoading ? "rgba(232,0,45,0.5)" : "#E8002D",
+              backgroundColor: isLoading ? "rgba(200, 33, 63,0.5)" : "#C8213F",
               paddingVertical: 18,
               borderRadius: 18,
               alignItems: "center",
               marginTop: 10,
-              shadowColor: "#E8002D",
+              shadowColor: "#C8213F",
               shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.4,
+              shadowOpacity: 0.2,
               shadowRadius: 12,
               elevation: 8,
             }}

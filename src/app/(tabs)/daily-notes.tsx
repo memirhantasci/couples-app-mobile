@@ -475,7 +475,7 @@ const createStyles = (theme: AppTheme) => {
       borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)",
     },
     modalInputError: {
-      borderColor: "#ff5c77",
+      borderColor: "#E8617A",
       borderWidth: 1.5,
     },
     modalActionsRow: {

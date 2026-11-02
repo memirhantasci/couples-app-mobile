@@ -66,7 +66,7 @@ interface FlightPath {
 export function OrigamiBirdAnimation({
   visible,
   onComplete,
-  accentColor = "#FF4D6D",
+  accentColor = "#E5546F",
 }: OrigamiBirdAnimationProps) {
   // İçerik yalnızca görünürken mount edilir: her gösterim sıfırdan, temiz durumla başlar
   if (!visible) return null;
@@ -287,7 +287,7 @@ function FlightScene({
           <View style={styles.letterSheet}>
             <View style={styles.letterHeader}>
               <View style={styles.stampCircle}>
-                <Heart size={16} color="#FF4D6D" fill="#FF4D6D" />
+                <Heart size={16} color="#E5546F" fill="#E5546F" />
               </View>
               <Text style={styles.letterTitle}>{t("letters.origami.title")}</Text>
             </View>
@@ -384,7 +384,7 @@ function TrailParticle({
       {isHeart ? (
         <Heart size={13} color="#FF85A1" fill="#FF85A1" />
       ) : (
-        <Sparkles size={15} color={index % 4 === 0 ? "#FFD700" : "#FFFFFF"} />
+        <Sparkles size={15} color={index % 4 === 0 ? "#E6C055" : "#FFFFFF"} />
       )}
     </Animated.View>
   );
@@ -413,10 +413,10 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 18,
     borderWidth: 1.5,
-    borderColor: "rgba(255, 77, 109, 0.25)",
-    shadowColor: "#FF4D6D",
+    borderColor: "rgba(229, 84, 111, 0.25)",
+    shadowColor: "#E5546F",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.2,
     shadowRadius: 18,
     elevation: 12,
     justifyContent: "space-between",
@@ -426,14 +426,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 77, 109, 0.15)",
+    borderBottomColor: "rgba(229, 84, 111, 0.15)",
     paddingBottom: 10,
   },
   stampCircle: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "rgba(255, 77, 109, 0.12)",
+    backgroundColor: "rgba(229, 84, 111, 0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 77, 109, 0.12)",
+    borderTopColor: "rgba(229, 84, 111, 0.12)",
     paddingTop: 8,
     minHeight: 30,
   },
@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     shadowColor: "#B3122F",
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.55,
+    shadowOpacity: 0.2,
     shadowRadius: 6,
     elevation: 8,
   },

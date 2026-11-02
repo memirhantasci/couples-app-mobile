@@ -163,7 +163,7 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
           {/* Kapat Butonu */}
           <View style={styles.topBar}>
             <View style={styles.badge}>
-              <Sparkles size={14} color="#FF6B8B" />
+              <Sparkles size={14} color="#EC7E95" />
               <Text style={styles.badgeText}>{t("map.story.title")}</Text>
             </View>
             <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={styles.closeBtn}>
@@ -174,7 +174,7 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
           {!stats ? (
             <View style={styles.emptyCard}>
               <View style={styles.emptyIconCircle}>
-                <Compass size={26} color="#FF4D6D" />
+                <Compass size={26} color="#E5546F" />
               </View>
               <Text style={styles.emptyTitle}>{t("map.story.emptyTitle")}</Text>
               <Text style={styles.emptyText}>
@@ -193,7 +193,7 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
             {/* Kart Header */}
             <View style={styles.cardTopRow}>
               <View style={styles.iconCircle}>
-                <Compass size={18} color="#FF4D6D" />
+                <Compass size={18} color="#E5546F" />
               </View>
               <Text style={styles.cardHeaderTitle}>OUR LOVE ROUTE</Text>
               <Text style={styles.cardDateText}>{dayjs().format("YYYY")}</Text>
@@ -256,7 +256,7 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
             style={styles.shareBtn}
           >
             <LinearGradient
-              colors={["#FF4D6D", "#E8002D"]}
+              colors={["#E5546F", "#C8213F"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.shareBtnGradient}
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "rgba(255, 77, 109, 0.12)",
+    backgroundColor: "rgba(229, 84, 111, 0.12)",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 4,
@@ -359,9 +359,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     padding: 24,
     elevation: 8,
-    shadowColor: "#FF4D6D",
+    shadowColor: "#E5546F",
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 14,
   },
   cardTopRow: {
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "rgba(255, 77, 109, 0.2)",
+    backgroundColor: "rgba(229, 84, 111, 0.2)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -412,13 +412,13 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#FF6B8B",
+    backgroundColor: "#EC7E95",
   },
   dotEnd: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#E8002D",
+    backgroundColor: "#C8213F",
   },
   dashedLine: {
     width: 2,
@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#FF4D6D",
+    backgroundColor: "#E5546F",
   },
   watermarkText: {
     color: "rgba(255, 255, 255, 0.55)",
@@ -495,9 +495,9 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 26,
     overflow: "hidden",
-    shadowColor: "#FF4D6D",
+    shadowColor: "#E5546F",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.2,
     shadowRadius: 10,
     elevation: 4,
   },

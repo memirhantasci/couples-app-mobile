@@ -16,7 +16,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
 import { APP_NAME } from "@/constants/brand";
 
-const ACCENT = "#FF4D6D";
+const ACCENT = "#E5546F";
 
 export default function WelcomeScreen() {
   const { t } = useTranslation();
@@ -63,7 +63,7 @@ export default function WelcomeScreen() {
             accessibilityRole="button"
           >
             <LinearGradient
-              colors={["#FF3366", "#E8002D", "#C0006B"]}
+              colors={["#E04668", "#C8213F", "#C0006B"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.primaryBtn}
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     borderRadius: 34,
     shadowColor: ACCENT,
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.45,
+    shadowOpacity: 0.2,
     shadowRadius: 24,
     elevation: 10,
     borderWidth: 1,
@@ -133,9 +133,9 @@ const styles = StyleSheet.create({
     borderRadius: 29,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#FF3366",
+    shadowColor: "#E04668",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.2,
     shadowRadius: 16,
     elevation: 8,
   },

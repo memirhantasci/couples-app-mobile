@@ -157,7 +157,7 @@ export default function MenuScreen() {
                 style={styles.demoCardGradient}
               >
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                  <Sparkles size={18} color="#FF2E63" />
+                  <Sparkles size={18} color="#DC4466" />
                   <Text style={styles.demoCardTitle}>{t("menu.demo.title")}</Text>
                 </View>
                 <Text style={styles.demoCardDesc}>
@@ -464,14 +464,14 @@ export default function MenuScreen() {
                   onPress={handleSignOut}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.iconCircle, { backgroundColor: "rgba(255, 77, 106, 0.15)" }]}>
-                    <LogOut color="#ff4d6a" size={18} />
+                  <View style={[styles.iconCircle, { backgroundColor: "rgba(229, 84, 111, 0.15)" }]}>
+                    <LogOut color="#E5546F" size={18} />
                   </View>
                   <View style={styles.menuTextContainer}>
-                    <Text style={[styles.menuTitle, { color: "#ff4d6a" }]}>{t("auth.signOut")}</Text>
+                    <Text style={[styles.menuTitle, { color: "#E5546F" }]}>{t("auth.signOut")}</Text>
                     <Text style={styles.menuSub}>{t("menu.signOut.subtitle")}</Text>
                   </View>
-                  <ChevronRight color="rgba(255, 77, 106, 0.4)" size={18} />
+                  <ChevronRight color="rgba(229, 84, 111, 0.4)" size={18} />
                 </TouchableOpacity>
                           </View>
 </View>
@@ -696,7 +696,7 @@ const getMenuStyles = (theme: any, isLight: boolean) => StyleSheet.create({
     marginBottom: 12,
   },
   demoCardBtn: {
-    backgroundColor: "#FF2E63",
+    backgroundColor: "#DC4466",
     borderRadius: 14,
     paddingVertical: 10,
     alignItems: "center",

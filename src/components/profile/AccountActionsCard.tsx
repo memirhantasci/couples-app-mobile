@@ -23,12 +23,12 @@ export function AccountActionsCard({ theme, deleting, onSignOut, onDeleteAccount
     <>
       <ModernSection
         title={t("profile.danger.delete")}
-        icon={<Trash2 size={18} color="#ff4d6a" />}
+        icon={<Trash2 size={18} color="#E5546F" />}
         theme={theme}
         defaultOpen={false}
       >
         <Text style={[profileSharedStyles.sessionHintText, { color: theme.textMuted }]}>
-          <Text style={{ fontFamily: "Inter_700Bold", color: "#ff4d6a" }}>{t("profile.danger.noticeTitle")} </Text>
+          <Text style={{ fontFamily: "Inter_700Bold", color: "#E5546F" }}>{t("profile.danger.noticeTitle")} </Text>
           {t("profile.danger.noticeText")}
         </Text>
         <SettingsButton

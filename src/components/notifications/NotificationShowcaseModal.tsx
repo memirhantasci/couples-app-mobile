@@ -45,7 +45,7 @@ const SHOWCASE_ITEMS: ShowcaseItem[] = [
     subtitleKey: "notifications.showcase.reminder.subtitle",
     descriptionKey: "notifications.showcase.reminder.description",
     icon: Clock,
-    accent: "#38BDF8",
+    accent: "#4F9FCB",
   },
   {
     type: "photo",
@@ -110,7 +110,7 @@ export const NotificationShowcaseModal: React.FC<NotificationShowcaseModalProps>
             <View style={styles.headerRow}>
               <View style={styles.headerTitleWrap}>
                 <View style={styles.headerBadge}>
-                  <Bell size={14} color="#FF5C77" />
+                  <Bell size={14} color="#E8617A" />
                   <Text style={styles.headerBadgeText}>{t("notifications.showcase.heading")}</Text>
                 </View>
                 <Text style={styles.headerTitle}>{t("notifications.showcase.title")}</Text>
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     overflow: "hidden",
     borderWidth: 1.2,
-    borderColor: "rgba(255, 92, 119, 0.3)",
+    borderColor: "rgba(232, 97, 122, 0.3)",
   },
   sheetGradient: {
     flex: 1,
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   headerBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 92, 119, 0.15)",
+    backgroundColor: "rgba(232, 97, 122, 0.15)",
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
   headerBadgeText: {
     fontSize: 10,
     fontWeight: "800",
-    color: "#FF5C77",
+    color: "#E8617A",
     letterSpacing: 0.8,
   },
   headerTitle: {

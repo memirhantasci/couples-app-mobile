@@ -91,7 +91,7 @@ export function DemoActionModal({
           {/* İkon Rozeti */}
           <View style={styles.iconCircle}>
             <LinearGradient
-              colors={["#FF2E63", "#FF6B8B"]}
+              colors={["#DC4466", "#EC7E95"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.iconGradient}
@@ -111,11 +111,11 @@ export function DemoActionModal({
           {/* Avantaj Rozetleri */}
           <View style={styles.perksContainer}>
             <View style={[styles.perkItem, { backgroundColor: isLight ? "rgba(255,46,99,0.06)" : "rgba(255,46,99,0.12)" }]}>
-              <Heart size={14} color="#FF2E63" />
+              <Heart size={14} color="#DC4466" />
               <Text style={[styles.perkText, { color: isLight ? "#333" : "#EEE" }]}>{t("demo.modal.album")}</Text>
             </View>
             <View style={[styles.perkItem, { backgroundColor: isLight ? "rgba(255,46,99,0.06)" : "rgba(255,46,99,0.12)" }]}>
-              <Sparkles size={14} color="#FF2E63" />
+              <Sparkles size={14} color="#DC4466" />
               <Text style={[styles.perkText, { color: isLight ? "#333" : "#EEE" }]}>{t("demo.modal.letters")}</Text>
             </View>
           </View>
@@ -127,7 +127,7 @@ export function DemoActionModal({
             style={styles.primaryBtn}
           >
             <LinearGradient
-              colors={["#FF2E63", "#FF6B8B"]}
+              colors={["#DC4466", "#EC7E95"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.primaryGradient}

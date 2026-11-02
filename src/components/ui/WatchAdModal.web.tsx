@@ -20,7 +20,7 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
           <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} onPress={onClose} style={styles.closeBtn}>
             <X size={18} color="#FFFFFF" />
           </TouchableOpacity>
-          <PlayCircle size={44} color="#38BDF8" style={{ marginBottom: 12 }} />
+          <PlayCircle size={44} color="#4F9FCB" style={{ marginBottom: 12 }} />
           <Text style={styles.title}>{t('ads.webSimulation')}</Text>
           <Text style={styles.desc}>
             {t('ads.webDescription')}
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   actionBtn: {
-    backgroundColor: '#38BDF8',
+    backgroundColor: '#4F9FCB',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 20,

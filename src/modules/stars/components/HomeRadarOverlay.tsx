@@ -249,7 +249,7 @@ export const HomeRadarOverlay: React.FC<HomeRadarOverlayProps> = ({
           >
             <View style={styles.coordItem}>
               <Text style={[styles.coordLabel, { color: theme.textMuted }]}>{t('stars.radar.ra')}</Text>
-              <Text style={[styles.coordValue, { color: isLight ? '#0284C7' : '#38BDF8' }]}>{starRa}°</Text>
+              <Text style={[styles.coordValue, { color: isLight ? '#0284C7' : '#4F9FCB' }]}>{starRa}°</Text>
             </View>
             <View
               style={[
@@ -259,7 +259,7 @@ export const HomeRadarOverlay: React.FC<HomeRadarOverlayProps> = ({
             />
             <View style={styles.coordItem}>
               <Text style={[styles.coordLabel, { color: theme.textMuted }]}>{t('stars.radar.dec')}</Text>
-              <Text style={[styles.coordValue, { color: isLight ? '#0284C7' : '#38BDF8' }]}>{starDec}°</Text>
+              <Text style={[styles.coordValue, { color: isLight ? '#0284C7' : '#4F9FCB' }]}>{starDec}°</Text>
             </View>
           </View>
 
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#10B981',
     shadowColor: '#10B981',
-    shadowOpacity: 0.9,
+    shadowOpacity: 0.2,
     shadowRadius: 6,
   },
   infoCard: {

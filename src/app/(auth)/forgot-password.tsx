@@ -169,13 +169,13 @@ export default function ForgotPasswordScreen() {
           {!!errorMsg && (
             <View
               style={{
-                backgroundColor: "rgba(232,0,45,0.14)",
+                backgroundColor: "rgba(200, 33, 63,0.14)",
                 borderRadius: 18,
                 padding: 14,
                 marginBottom: 16,
               }}
             >
-              <Text style={{ color: "#FF4D6A", fontSize: 14, textAlign: "center" }}>
+              <Text style={{ color: "#E5546F", fontSize: 14, textAlign: "center" }}>
                 {errorMsg}
               </Text>
             </View>
@@ -191,16 +191,16 @@ export default function ForgotPasswordScreen() {
             activeOpacity={0.85}
           >
             <LinearGradient
-              colors={["#E8002D", "#C0006B"]}
+              colors={["#C8213F", "#C0006B"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={{
                 paddingVertical: 18,
                 alignItems: "center",
                 borderRadius: 30,
-                shadowColor: "#E8002D",
+                shadowColor: "#C8213F",
                 shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.45,
+                shadowOpacity: 0.2,
                 shadowRadius: 14,
               }}
             >

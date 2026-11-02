@@ -920,7 +920,7 @@ export default function LettersScreen() {
             >
                 {/* KİME ALANI */}
                 <View>
-                  <Text style={[styles.fieldLabel, { color: theme.textSecondary }, errors.receiver && { color: "#ff5c77" }]}>
+                  <Text style={[styles.fieldLabel, { color: theme.textSecondary }, errors.receiver && { color: "#E8617A" }]}>
                     {t("letters.compose.toLabel")}
                   </Text>
                   <View style={styles.usersSelectorRow}>
@@ -1015,7 +1015,7 @@ export default function LettersScreen() {
 
                 {/* MEKTUP BAŞLIĞI */}
                 <View>
-                  <Text style={[styles.fieldLabel, { color: theme.textSecondary }, errors.title && { color: "#ff5c77" }]}>
+                  <Text style={[styles.fieldLabel, { color: theme.textSecondary }, errors.title && { color: "#E8617A" }]}>
                     {t("letters.compose.titleLabel")}
                   </Text>
                   <TextInput
@@ -1041,7 +1041,7 @@ export default function LettersScreen() {
 
                 {/* MEKTUP İÇERİĞİ */}
                 <View>
-                  <Text style={[styles.fieldLabel, { color: theme.textSecondary }, errors.content && { color: "#ff5c77" }]}>
+                  <Text style={[styles.fieldLabel, { color: theme.textSecondary }, errors.content && { color: "#E8617A" }]}>
                     {t("letters.compose.contentLabel")}
                   </Text>
                   <TextInput
@@ -1591,7 +1591,7 @@ const createStyles = (theme: AppTheme) => {
       lineHeight: 21,
     },
     inputError: {
-      borderColor: "#ff5c77",
+      borderColor: "#E8617A",
       borderWidth: 1.5,
     },
     sealBtn: {

@@ -163,7 +163,7 @@ export const MicroSystemDock = memo(function MicroSystemDock({
           accessibilityRole="button"
           accessibilityLabel={t('stars.micro.backToSky')}
         >
-          <Globe size={19} color="#7DD3FC" />
+          <Globe size={19} color="#8CC4E0" />
           <Text style={styles.skyButtonText}>{t('stars.micro.backToSky')}</Text>
         </TouchableOpacity>
       </View>

@@ -227,7 +227,7 @@ export default function PairingScreen() {
   if (!autoPairChecked || isLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: "#0A0A10", alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator color="#FF4D6A" size="large" />
+        <ActivityIndicator color="#E5546F" size="large" />
       </View>
     );
   }
@@ -271,10 +271,10 @@ export default function PairingScreen() {
             style={{
               borderRadius: 32,
               padding: 24,
-              backgroundColor: "rgba(255, 77, 106, 0.12)",
-              shadowColor: "#FF4D6A",
+              backgroundColor: "rgba(229, 84, 111, 0.12)",
+              shadowColor: "#E5546F",
               shadowOffset: { width: 0, height: 12 },
-              shadowOpacity: 0.25,
+              shadowOpacity: 0.2,
               shadowRadius: 24,
               elevation: 6,
               marginBottom: 24,
@@ -282,8 +282,8 @@ export default function PairingScreen() {
           >
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <Sparkles color="#FF4D6A" size={18} />
-                <Text style={{ color: "#FF4D6A", fontSize: 13, fontFamily: "Inter_700Bold", letterSpacing: 1 }}>
+                <Sparkles color="#E5546F" size={18} />
+                <Text style={{ color: "#E5546F", fontSize: 13, fontFamily: "Inter_700Bold", letterSpacing: 1 }}>
                   {t("setup.pairing.yourCode")}
                 </Text>
               </View>
@@ -391,7 +391,7 @@ export default function PairingScreen() {
               onPress={handleShareInvite}
               activeOpacity={0.88}
               style={{
-                backgroundColor: "#FF4D6A",
+                backgroundColor: "#E5546F",
                 borderRadius: 18,
                 paddingVertical: 15,
                 flexDirection: "row",
@@ -399,9 +399,9 @@ export default function PairingScreen() {
                 justifyContent: "center",
                 gap: 10,
                 marginBottom: 12,
-                shadowColor: "#FF4D6A",
+                shadowColor: "#E5546F",
                 shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.35,
+                shadowOpacity: 0.2,
                 shadowRadius: 10,
                 elevation: 5,
               }}
@@ -414,7 +414,7 @@ export default function PairingScreen() {
 
             {/* Bekleniyor Durumu */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center" }}>
-              <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#FF4D6A" }} />
+              <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#E5546F" }} />
               <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
                 {t("setup.pairing.waiting")}
               </Text>
@@ -463,13 +463,13 @@ export default function PairingScreen() {
             {!!submitError && (
               <View
                 style={{
-                  backgroundColor: "rgba(232,0,45,0.1)",
+                  backgroundColor: "rgba(200, 33, 63,0.1)",
                   borderRadius: 12,
                   padding: 12,
                   marginBottom: 14,
                 }}
               >
-                <Text style={{ color: "#FF4D6A", fontSize: 13, textAlign: "center" }}>
+                <Text style={{ color: "#E5546F", fontSize: 13, textAlign: "center" }}>
                   {submitError}
                 </Text>
               </View>
@@ -479,13 +479,13 @@ export default function PairingScreen() {
               onPress={handleSubmit}
               disabled={isSubmitting || inputCode.length < 4}
               style={{
-                backgroundColor: inputCode.length < 4 ? "rgba(77,156,255,0.4)" : "#4D9CFF",
+                backgroundColor: inputCode.length < 4 ? "rgba(90, 143, 219,0.4)" : "#5A8FDB",
                 paddingVertical: 16,
                 borderRadius: 24,
                 alignItems: "center",
-                shadowColor: "#4D9CFF",
+                shadowColor: "#5A8FDB",
                 shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.25,
+                shadowOpacity: 0.2,
                 shadowRadius: 8,
               }}
             >
@@ -542,15 +542,15 @@ export default function PairingScreen() {
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
-              backgroundColor: "rgba(255, 77, 106, 0.16)",
+              backgroundColor: "rgba(229, 84, 111, 0.16)",
               borderRadius: 26,
               paddingVertical: 14,
               paddingHorizontal: 20,
               marginBottom: 8,
             }}
           >
-            <Sparkles color="#FF4D6A" size={18} />
-            <Text style={{ color: "#FF4D6A", fontSize: 14, fontFamily: "Inter_700Bold" }}>
+            <Sparkles color="#E5546F" size={18} />
+            <Text style={{ color: "#E5546F", fontSize: 14, fontFamily: "Inter_700Bold" }}>
               {t("setup.pairing.exploreDemo")}
             </Text>
           </TouchableOpacity>

@@ -54,7 +54,7 @@ export const NOTIFICATION_THEMES: Record<NotificationType, NotificationThemeConf
     gradient: ["#4A1224", "#2B0B15", "#18060C"],
     borderGlow: "rgba(255, 180, 80, 0.45)",
     accentColor: "#F5C563", // Altın varak ışıltısı
-    secondaryColor: "#FF5C77",
+    secondaryColor: "#E8617A",
     iconBg: "rgba(245, 197, 99, 0.15)",
     defaultActionLabelKey: "notifications.actions.goToLetters",
   },
@@ -74,10 +74,10 @@ export const NOTIFICATION_THEMES: Record<NotificationType, NotificationThemeConf
     badgeLabelKey: "notifications.types.medicineReminder.badge",
     badgeIcon: "Clock",
     gradient: ["#0C2E4E", "#081E33", "#040F1A"],
-    borderGlow: "rgba(56, 189, 248, 0.45)",
-    accentColor: "#38BDF8", // Taze gök mavisi
-    secondaryColor: "#7DD3FC",
-    iconBg: "rgba(56, 189, 248, 0.16)",
+    borderGlow: "rgba(79, 159, 203, 0.45)",
+    accentColor: "#4F9FCB", // Taze gök mavisi
+    secondaryColor: "#8CC4E0",
+    iconBg: "rgba(79, 159, 203, 0.16)",
     defaultActionLabelKey: "notifications.actions.goToMedicine",
   },
   photo: {
@@ -151,10 +151,10 @@ export const NOTIFICATION_THEMES: Record<NotificationType, NotificationThemeConf
     badgeLabelKey: "notifications.types.general.badge",
     badgeIcon: "Heart",
     gradient: ["#3D0C1A", "#260610", "#140308"],
-    borderGlow: "rgba(255, 92, 119, 0.45)",
-    accentColor: "#FF5C77",
+    borderGlow: "rgba(232, 97, 122, 0.45)",
+    accentColor: "#E8617A",
     secondaryColor: "#FFA3B2",
-    iconBg: "rgba(255, 92, 119, 0.16)",
+    iconBg: "rgba(232, 97, 122, 0.16)",
     defaultActionLabelKey: "notifications.actions.view",
   },
 };

@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
   },
   inputError: {
-    borderColor: "#ff4d6a",
+    borderColor: "#E5546F",
     borderWidth: 1.5,
   },
   freqBtn: {

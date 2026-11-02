@@ -631,8 +631,8 @@ export default function HomeScreen() {
 
               {/* Tanışma Sayacı */}
               <View style={[styles.counterBox, { backgroundColor: isLight ? "rgba(0,0,0,0.045)" : "rgba(255,255,255,0.07)" }]}>
-                <View style={[styles.counterIconCircle, { backgroundColor: isLight ? "rgba(255, 215, 0, 0.15)" : "rgba(255,255,255,0.06)" }]}>
-                  <Sparkles size={16} color={isLight ? "#B7791F" : "#ffd700"} />
+                <View style={[styles.counterIconCircle, { backgroundColor: isLight ? "rgba(230, 192, 85, 0.15)" : "rgba(255,255,255,0.06)" }]}>
+                  <Sparkles size={16} color={isLight ? "#B7791F" : "#E6C055"} />
                 </View>
                 <Text style={[styles.counterNumber, { color: theme.text }]}>{meetDate || isDemoMode ? daysSinceMeeting : "—"}</Text>
                 <Text style={[styles.counterDesc, { color: theme.textSecondary }]}>{t("home.counters.inMyLife")}</Text>
@@ -721,7 +721,7 @@ export default function HomeScreen() {
               style={[
                 styles.wrappedBanner,
                 {
-                  borderColor: theme.gender === "male" ? "rgba(77, 156, 255, 0.35)" : "rgba(255, 77, 109, 0.35)",
+                  borderColor: theme.gender === "male" ? "rgba(90, 143, 219, 0.35)" : "rgba(229, 84, 111, 0.35)",
                   shadowColor: theme.accent,
                 },
               ]}
@@ -796,7 +796,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: "hidden",
     borderWidth: 1,
-    shadowColor: "#FF4D6D",
+    shadowColor: "#E5546F",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -819,7 +819,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255, 77, 109, 0.2)",
+    backgroundColor: "rgba(229, 84, 111, 0.2)",
     justifyContent: "center",
     alignItems: "center",
   },

@@ -26,7 +26,7 @@ export function PhotosLockCard({ theme, isLight, onUpgrade }: PhotosLockCardProp
       </View>
 
       <View style={styles.vipBadge}>
-        <Sparkles size={13} color={isLight ? "#A16207" : "#ffd700"} />
+        <Sparkles size={13} color={isLight ? "#A16207" : "#E6C055"} />
         <Text style={[styles.vipBadgeText, isLight && { color: "#A16207" }]}>{t("paywall.vipBadge")}</Text>
       </View>
 
@@ -77,16 +77,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(255, 215, 0, 0.12)",
+    backgroundColor: "rgba(230, 192, 85, 0.12)",
     borderWidth: 1,
-    borderColor: "rgba(255, 215, 0, 0.3)",
+    borderColor: "rgba(230, 192, 85, 0.3)",
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 12,
     marginBottom: 12,
   },
   vipBadgeText: {
-    color: "#ffd700",
+    color: "#E6C055",
     fontSize: 11,
     fontFamily: "Inter_700Bold",
     letterSpacing: 0.8,
