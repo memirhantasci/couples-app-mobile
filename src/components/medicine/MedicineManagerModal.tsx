@@ -171,8 +171,10 @@ function MedicineManagerForm({
   const commitPicker = (kind: PickerKind, date: Date): boolean => {
     if (kind === "start") {
       setMedStartDate(date);
+      // Bitiş, başlangıçtan önce kalamaz
+      if (dayjs(medEndDate).isBefore(date, "day")) setMedEndDate(date);
     } else if (kind === "end") {
-      setMedEndDate(date);
+      setMedEndDate(dayjs(date).isBefore(medStartDate, "day") ? medStartDate : date);
     } else if (activeTimeIndex !== null) {
       const newTimeStr = dayjs(date).format("HH:mm");
       const isDuplicate = medTimes.some(
@@ -447,6 +449,7 @@ function MedicineManagerForm({
         visible={showPicker !== null}
         mode={showPicker === "time" ? "time" : "date"}
         value={pickerValue}
+        minimumDate={showPicker === "end" ? medStartDate : undefined}
         title={showPicker === "time" ? t("medicine.manager.doseTimePickerTitle") : showPicker === "start" ? t("medicine.manager.startPickerTitle") : t("medicine.manager.endPickerTitle")}
         onCancel={closePicker}
         onConfirm={(date) => {
