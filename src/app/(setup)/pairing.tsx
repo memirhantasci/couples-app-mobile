@@ -247,9 +247,9 @@ export default function PairingScreen() {
             <Text
               style={{
                 color: "#FFFFFF",
-                fontSize: 30,
+                fontSize: 38,
                 fontFamily: "Inter_700Bold",
-                letterSpacing: -0.5,
+                letterSpacing: -1.2,
                 marginBottom: 8,
               }}
             >
@@ -269,11 +269,14 @@ export default function PairingScreen() {
           {/* ─── 1. SENİN EŞLEŞME KODUN KARTI (BELİRGİN VE BÜYÜK) ─── */}
           <View
             style={{
-              borderWidth: 1.5,
-              borderColor: "rgba(255, 77, 106, 0.4)",
-              borderRadius: 24,
+              borderRadius: 32,
               padding: 24,
-              backgroundColor: "rgba(255, 77, 106, 0.07)",
+              backgroundColor: "rgba(255, 77, 106, 0.12)",
+              shadowColor: "#FF4D6A",
+              shadowOffset: { width: 0, height: 12 },
+              shadowOpacity: 0.25,
+              shadowRadius: 24,
+              elevation: 6,
               marginBottom: 24,
             }}
           >
@@ -295,11 +298,9 @@ export default function PairingScreen() {
               onPress={handleCopyCode}
               activeOpacity={0.8}
               style={{
-                backgroundColor: "rgba(0,0,0,0.45)",
-                borderWidth: 1.5,
-                borderColor: "rgba(255, 77, 106, 0.3)",
-                borderRadius: 18,
-                paddingVertical: 18,
+                backgroundColor: "rgba(0,0,0,0.4)",
+                borderRadius: 24,
+                paddingVertical: 22,
                 alignItems: "center",
                 justifyContent: "center",
                 marginBottom: 16,
@@ -463,8 +464,6 @@ export default function PairingScreen() {
               <View
                 style={{
                   backgroundColor: "rgba(232,0,45,0.1)",
-                  borderWidth: 1,
-                  borderColor: "rgba(232,0,45,0.3)",
                   borderRadius: 12,
                   padding: 12,
                   marginBottom: 14,
@@ -543,10 +542,8 @@ export default function PairingScreen() {
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
-              backgroundColor: "rgba(255, 77, 106, 0.12)",
-              borderWidth: 1.2,
-              borderColor: "rgba(255, 77, 106, 0.4)",
-              borderRadius: 20,
+              backgroundColor: "rgba(255, 77, 106, 0.16)",
+              borderRadius: 26,
               paddingVertical: 14,
               paddingHorizontal: 20,
               marginBottom: 8,

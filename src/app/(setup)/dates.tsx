@@ -252,12 +252,14 @@ export default function DatesScreen() {
         <View style={{ alignItems: "center", marginBottom: 40 }}>
           <View
             style={{
-              width: 80,
-              height: 80,
-              borderRadius: 40,
-              backgroundColor: "rgba(255,255,255,0.03)",
-              borderWidth: 1,
-              borderColor: "#FF4D6A",
+              width: 92,
+              height: 92,
+              borderRadius: 30,
+              backgroundColor: "rgba(255,77,106,0.14)",
+              shadowColor: "#FF4D6A",
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.4,
+              shadowRadius: 20,
               alignItems: "center",
               justifyContent: "center",
               marginBottom: 20,
@@ -296,11 +298,9 @@ export default function DatesScreen() {
           }}
           activeOpacity={0.8}
           style={{
-            backgroundColor: "rgba(255,255,255,0.02)",
-            borderWidth: 1,
-            borderColor: "rgba(255, 77, 106, 0.35)",
-            borderRadius: 20,
-            padding: 16,
+            backgroundColor: "rgba(255, 77, 106, 0.12)",
+            borderRadius: 26,
+            padding: 18,
             flexDirection: "row",
             alignItems: "center",
             marginBottom: 16,
@@ -352,11 +352,9 @@ export default function DatesScreen() {
         {/* Kart 2 — Opsiyonel: Tanışma Tarihi */}
         <View
           style={{
-            backgroundColor: "rgba(255,255,255,0.02)",
-            borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.06)",
-            borderRadius: 20,
-            padding: 16,
+            backgroundColor: "rgba(255,255,255,0.06)",
+            borderRadius: 26,
+            padding: 18,
             marginBottom: 32,
           }}
         >
@@ -448,8 +446,6 @@ export default function DatesScreen() {
           <View
             style={{
               backgroundColor: "rgba(232,0,45,0.1)",
-              borderWidth: 1,
-              borderColor: "rgba(232,0,45,0.3)",
               borderRadius: 12,
               padding: 14,
               marginBottom: 16,
@@ -500,8 +496,7 @@ export default function DatesScreen() {
             paddingVertical: 15,
             alignItems: "center",
             borderRadius: 30,
-            borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.14)",
+            backgroundColor: "rgba(255,255,255,0.08)",
             opacity: isLoading ? 0.5 : 1,
           }}
         >
