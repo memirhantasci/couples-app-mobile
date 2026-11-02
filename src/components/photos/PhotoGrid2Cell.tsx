@@ -66,7 +66,7 @@ export const PhotoGrid2Cell = React.memo(PhotoGrid2CellBase);
 
 const styles = StyleSheet.create({
   grid2Card: {
-    borderRadius: 22,
+    borderRadius: 26,
     overflow: "hidden",
   },
   grid2ImgContainer: {

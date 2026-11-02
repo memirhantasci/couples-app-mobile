@@ -93,7 +93,7 @@ export const PhotoSingleCell = React.memo(PhotoSingleCellBase);
 
 const styles = StyleSheet.create({
   singleCard: {
-    borderRadius: 22,
+    borderRadius: 28,
     overflow: "hidden",
     padding: 14,
   },

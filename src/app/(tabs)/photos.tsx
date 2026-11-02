@@ -215,11 +215,11 @@ export default function PhotosScreen() {
 
         {/* ─── KONTROL ÇUBUĞU (GÖRÜNÜM SEÇİCİ & YENİ YÜKLE) ─── */}
         {isPremium && (
-          <View style={[styles.controlBar, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
+          <View style={styles.controlBar}>
             {/* Yükleme, başlıktaki kamera butonundadır; araç çubuğu dar telefonlarda taşmasın diye burada tekrarlanmaz */}
             {/* Tarih Sıralama Toggleu */}
             <TouchableOpacity
-              style={[styles.sortBtn, { backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)" }]}
+              style={[styles.sortBtn, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}
               onPress={() => setSortOrder(s => s === "desc" ? "asc" : "desc")}
               hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
             >
@@ -232,7 +232,7 @@ export default function PhotosScreen() {
             {/* Görünüm Modları: 3'lü, 2'li, 1'li */}
             <View style={styles.viewModePills}>
               <TouchableOpacity
-                style={[styles.viewModeBtn, viewMode === "grid3" && { backgroundColor: theme.unitBg }]}
+                style={[styles.viewModeBtn, viewMode === "grid3" && { backgroundColor: theme.pillAccentBg }]}
                 onPress={() => setViewMode("grid3")}
                 hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
               >
@@ -240,7 +240,7 @@ export default function PhotosScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.viewModeBtn, viewMode === "grid2" && { backgroundColor: theme.unitBg }]}
+                style={[styles.viewModeBtn, viewMode === "grid2" && { backgroundColor: theme.pillAccentBg }]}
                 onPress={() => setViewMode("grid2")}
                 hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
               >
@@ -248,7 +248,7 @@ export default function PhotosScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.viewModeBtn, viewMode === "single" && { backgroundColor: theme.unitBg }]}
+                style={[styles.viewModeBtn, viewMode === "single" && { backgroundColor: theme.pillAccentBg }]}
                 onPress={() => setViewMode("single")}
                 hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
               >
@@ -396,38 +396,34 @@ const createStyles = (theme: AppTheme) => {
       alignItems: "center",
       justifyContent: "space-between",
       marginHorizontal: 16,
-      marginBottom: 12,
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      borderRadius: 18,
-      borderWidth: 1,
+      marginBottom: 14,
     },
     sortBtn: {
       flexShrink: 1,
       flexDirection: "row",
       alignItems: "center",
-      gap: 5,
-      paddingHorizontal: 10,
-      paddingVertical: 7,
-      borderRadius: 12,
+      gap: 6,
+      height: 38,
+      paddingHorizontal: 14,
+      borderRadius: 19,
     },
     sortBtnText: {
       flexShrink: 1,
-      fontSize: 11,
+      fontSize: 12.5,
       fontFamily: "Inter_600SemiBold",
     },
     viewModePills: {
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)",
-      padding: 3,
-      borderRadius: 14,
+      padding: 4,
+      borderRadius: 20,
       gap: 4,
     },
     viewModeBtn: {
-      width: 32,
-      height: 32,
-      borderRadius: 10,
+      width: 36,
+      height: 30,
+      borderRadius: 16,
       alignItems: "center",
       justifyContent: "center",
     },

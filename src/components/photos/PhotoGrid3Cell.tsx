@@ -36,7 +36,7 @@ export const PhotoGrid3Cell = React.memo(PhotoGrid3CellBase);
 
 const styles = StyleSheet.create({
   grid3Box: {
-    borderRadius: 14,
+    borderRadius: 18,
     overflow: "hidden",
     backgroundColor: "rgba(128,128,128,0.16)", // yüklenirken görünen nötr yer tutucu: açık ve koyu zeminde okunur
   },
