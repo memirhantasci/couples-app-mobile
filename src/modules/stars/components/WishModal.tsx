@@ -750,8 +750,6 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: 28,
-    borderWidth: 1,
-    borderColor: 'rgba(253, 230, 138, 0.22)',
     paddingHorizontal: 22,
     paddingTop: 22,
     paddingBottom: 12,

@@ -404,8 +404,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   requestCard: {
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 22,
     padding: 14,
     gap: 12,
   },

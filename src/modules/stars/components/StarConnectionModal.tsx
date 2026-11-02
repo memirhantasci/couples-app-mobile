@@ -1152,8 +1152,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     padding: 12,
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 22,
   },
   pairingCodeIconBadge: {
     width: 30,
@@ -1182,8 +1181,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   friendCodeCard: {
-    borderRadius: 18,
-    borderWidth: 1,
+    borderRadius: 22,
     padding: 14,
     gap: 14,
   },
@@ -1409,9 +1407,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: 14,
+    borderRadius: 22,
     padding: 12,
-    borderWidth: 1,
   },
   starResultInfo: {
     flex: 1,
@@ -1479,9 +1476,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   skyGuideCard: {
-    borderRadius: 16,
+    borderRadius: 22,
     padding: 16,
-    borderWidth: 1,
     gap: 14,
   },
   skyGuideHeader: {

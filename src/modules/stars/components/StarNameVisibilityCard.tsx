@@ -166,8 +166,7 @@ export function StarNameVisibilityCard() {
 const styles = StyleSheet.create({
   container: {
     alignSelf: 'stretch',
-    borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: 22,
     padding: 12,
     gap: 6,
     marginTop: 4,
