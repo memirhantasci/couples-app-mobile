@@ -1742,7 +1742,11 @@
     "milestone": {
       "title": "Happy {{years}}. Anniversary! ✨",
       "message": "Every moment of the {{days}} days we've gathered together is priceless. Here's to many more beautiful years, my love ❤️",
-      "cta": "Thank You & See Our Memories 🥂"
+      "cta": "Thank You & See Our Memories 🥂",
+      "memoryAnniversaryTitle": "{{title}} • {{years}} Year Anniversary! ✨",
+      "memoryAnniversaryMessage": "Happy {{years}} year anniversary of \"{{title}}\"! Every moment of these {{days}} days together is priceless ❤️",
+      "todaySpecialTitle": "Today is a Very Special Day! ✨",
+      "todaySpecialMessage": "Our special day \"{{title}}\" was recorded today. Here's to many wonderful memories we will celebrate together, my love ❤️"
     }
   },
   "dailyNotes": {

@@ -32,7 +32,7 @@ import { supabase } from "@/lib/supabase";
 import type { AppTheme } from "@/lib/theme";
 import { toast } from "@/lib/toast";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useIsFocused, useRouter } from "expo-router";
 import { Pencil, PlusCircle, Trash2 } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -185,27 +185,105 @@ export default function MemoriesScreen() {
     scrollY.set(event.contentOffset.y);
   });
 
-  // ─── Yıldönümü sabahı karşılaması: her cihazda o yılın yıldönümünde yalnızca bir kez ───
+  interface MilestoneData {
+    title: string;
+    message: string;
+    years: number;
+    days: number;
+    key: string;
+  }
+
+  // ─── Yıldönümü / Özel Gün Karşılama Töreni (Milestone Reveal) ───
   const relationshipStartDate = profile?.relationshipStartDate;
   const anniversary = useMemo(
     () => getSpecialDayState(relationshipStartDate).anniversary,
     [relationshipStartDate]
   );
-  const [milestone, setMilestone] = useState<{ years: number; days: number; key: string } | null>(null);
+  const isFocused = useIsFocused();
+  const [milestone, setMilestone] = useState<MilestoneData | null>(null);
+
+  // Sekmeye her dönüldüğünde en güncel veriyi çek
   useFocusEffect(
     useCallback(() => {
-      if (!anniversary || anniversary.daysLeft !== 0 || !relationshipStartDate) return;
-      const key = `@seen_anniversary_milestone_${anniversary.years}_${todayString()}`;
-      const days = dayjs().startOf("day").diff(dayjs(relationshipStartDate).startOf("day"), "day");
-      let active = true;
-      AsyncStorage.getItem(key).then((seen) => {
-        if (active && !seen) setMilestone({ years: anniversary.years, days, key });
-      });
-      return () => {
-        active = false;
-      };
-    }, [anniversary, relationshipStartDate])
+      refetch();
+    }, [refetch])
   );
+
+  useEffect(() => {
+    if (!isFocused || milestone) return;
+
+    let active = true;
+
+    async function checkMilestoneCeremony() {
+      const today = dayjs().startOf("day");
+      const candidates: MilestoneData[] = [];
+
+      // 1. Sevgililik yıldönümü kontrolü
+      if (relationshipStartDate && anniversary && anniversary.daysLeft === 0) {
+        const days = today.diff(dayjs(relationshipStartDate).startOf("day"), "day");
+        candidates.push({
+          title: t("memories.milestone.title", { years: anniversary.years }),
+          message: t("memories.milestone.message", { days }),
+          years: anniversary.years,
+          days,
+          key: `@seen_anniversary_milestone_${anniversary.years}_${todayString()}`,
+        });
+      }
+
+      // 2. Anılar / özel günler listesindeki gün kontrolü (bugün veya bugünkü yıldönümleri)
+      for (const mem of memories) {
+        const d = dayjs(mem.date);
+        const memDay = d.startOf("day");
+        if (!memDay.isValid()) continue;
+
+        let nextAnn = memDay.year(today.year());
+        if (nextAnn.isBefore(today)) nextAnn = nextAnn.add(1, "year");
+        const diffDays = nextAnn.diff(today, "day");
+        const whichYear = nextAnn.year() - memDay.year();
+        const totalDays = today.diff(memDay, "day");
+
+        if (diffDays === 0) {
+          const defaultLoc = localizeDefaultMemory(mem, t);
+          const displayTitle = defaultLoc?.title ?? mem.title;
+
+          if (whichYear > 0) {
+            candidates.push({
+              title: mem.is_default
+                ? t("memories.milestone.title", { years: whichYear })
+                : t("memories.milestone.memoryAnniversaryTitle", { title: displayTitle, years: whichYear }),
+              message: t("memories.milestone.memoryAnniversaryMessage", { title: displayTitle, years: whichYear, days: totalDays }),
+              years: whichYear,
+              days: totalDays,
+              key: `@seen_milestone_mem_${mem.id}_${whichYear}_${todayString()}`,
+            });
+          } else {
+            candidates.push({
+              title: t("memories.milestone.todaySpecialTitle", { title: displayTitle }),
+              message: t("memories.milestone.todaySpecialMessage", { title: displayTitle }),
+              years: 0,
+              days: 0,
+              key: `@seen_milestone_mem_${mem.id}_today_${todayString()}`,
+            });
+          }
+        }
+      }
+
+      for (const c of candidates) {
+        const seen = await AsyncStorage.getItem(c.key);
+        if (!seen && active) {
+          setMilestone(c);
+          break;
+        }
+      }
+    }
+
+    checkMilestoneCeremony();
+
+    return () => {
+      active = false;
+    };
+  }, [isFocused, memories, relationshipStartDate, anniversary, milestone, t]);
+
   const closeMilestone = useCallback(() => {
     if (milestone) AsyncStorage.setItem(milestone.key, "1");
     setMilestone(null);
@@ -305,19 +383,42 @@ export default function MemoriesScreen() {
       >
         <MilestoneDateCircle index={index} theme={theme} highlight={closestUpcomingIds.has(memory.id)} />
 
-        <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1, ...theme.cardShadow }]}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: theme.cardBg,
+              borderColor: diffDays === 0 ? (isLight ? "#D97706" : "#F5C563") : theme.cardBorder,
+              borderWidth: diffDays === 0 ? 1.5 : 1,
+              ...theme.cardShadow,
+            },
+          ]}
+        >
           <View style={styles.cardHeader}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>{defaultLocalized?.title ?? memory.title}</Text>
               <Text style={[styles.cardYear, { color: theme.accent }]}>{d.locale(i18n.language).format("D MMMM YYYY")}</Text>
 
               <View style={styles.badgeRow}>
-                <View style={[styles.anniversaryBadge, { backgroundColor: isLight ? "rgba(225,29,72,0.08)" : "rgba(255, 75, 110, 0.12)", borderColor: isLight ? "rgba(225,29,72,0.25)" : "rgba(255, 75, 110, 0.25)" }]}>
-                  <Text style={[styles.anniversaryBadgeText, { color: theme.accent }]}>
+                <View
+                  style={[
+                    styles.anniversaryBadge,
+                    diffDays === 0
+                      ? {
+                          backgroundColor: isLight ? "rgba(245, 197, 99, 0.22)" : "rgba(245, 197, 99, 0.18)",
+                          borderColor: isLight ? "#D97706" : "#F5C563",
+                        }
+                      : {
+                          backgroundColor: isLight ? "rgba(225,29,72,0.08)" : "rgba(255, 75, 110, 0.12)",
+                          borderColor: isLight ? "rgba(225,29,72,0.25)" : "rgba(255, 75, 110, 0.25)",
+                        },
+                  ]}
+                >
+                  <Text style={[styles.anniversaryBadgeText, { color: diffDays === 0 ? (isLight ? "#B7791F" : "#F5C563") : theme.accent }]}>
                     {diffDays === 0
                       ? whichYear > 0
                         ? t("memories.badge.todayWithYear", { year: whichYear })
-                        : t("memories.badge.today")
+                        : `✨ ${t("memories.badge.today")} ✨`
                       : whichYear > 0
                         ? t("memories.badge.daysLeftWithYear", { year: whichYear, count: diffDays })
                         : t("memories.badge.daysLeft", { count: diffDays })}
@@ -455,6 +556,8 @@ export default function MemoriesScreen() {
         visible={!!milestone}
         years={milestone?.years ?? 1}
         days={milestone?.days ?? 0}
+        title={milestone?.title}
+        message={milestone?.message}
         theme={theme}
         onClose={closeMilestone}
       />

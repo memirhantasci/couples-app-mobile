@@ -1742,7 +1742,11 @@
     "milestone": {
       "title": "{{years}}. Yılımız Kutlu Olsun! ✨",
       "message": "Birlikte biriktirdiğimiz {{days}} günün her anı paha biçilemez. Nice güzel yıllarımıza sevgilim ❤️",
-      "cta": "Teşekkürler & Anılarımıza Bak 🥂"
+      "cta": "Teşekkürler & Anılarımıza Bak 🥂",
+      "memoryAnniversaryTitle": "{{title}} • {{years}}. Yıl Dönümü! ✨",
+      "memoryAnniversaryMessage": "\"{{title}}\" anımızın {{years}}. yıl dönümü kutlu olsun! Birlikte biriktirdiğimiz {{days}} günün her anı paha biçilemez ❤️",
+      "todaySpecialTitle": "Bugün Çok Özel Bir Gün! ✨",
+      "todaySpecialMessage": "\"{{title}}\" özel günümüz bugün kaydedildi. Birlikte kutlayacağımız nice güzel anılara sevgilim ❤️"
     }
   },
   "dailyNotes": {

@@ -142,18 +142,19 @@ export const memoriesQueryKey = (coupleId: number | null, isDemoMode: boolean) =
 export async function fetchMemoriesPage(params: { coupleId: number | null; pageParam: number; isDemoMode: boolean }) {
   const { coupleId, pageParam, isDemoMode } = params;
   if (isDemoMode) {
+    // En eski gün en yukarıda (#1), zaman tüneli geçmişten bugüne akar
     return [
-      {
-        id: 1,
-        title: i18n.t("demo.memories.relationshipStart.title"),
-        date: DEMO_PROFILE.relationshipStartDate ?? dayjs().subtract(365, "day").format("YYYY-MM-DD"),
-        description: i18n.t("demo.memories.relationshipStart.description"),
-      },
       {
         id: 2,
         title: i18n.t("demo.memories.firstMeeting.title"),
         date: DEMO_PROFILE.meetDate ?? dayjs().subtract(428, "day").format("YYYY-MM-DD"),
         description: i18n.t("demo.memories.firstMeeting.description"),
+      },
+      {
+        id: 1,
+        title: i18n.t("demo.memories.relationshipStart.title"),
+        date: DEMO_PROFILE.relationshipStartDate ?? dayjs().subtract(365, "day").format("YYYY-MM-DD"),
+        description: i18n.t("demo.memories.relationshipStart.description"),
       },
     ] as any[];
   }
@@ -161,7 +162,8 @@ export async function fetchMemoriesPage(params: { coupleId: number | null; pageP
     .from("memories")
     .select("id, date, title, description, image_path, is_default")
     .eq("couple_id", coupleId)
-    .order("date", { ascending: false })
+    .order("date", { ascending: true })
+    .order("id", { ascending: true })
     .range(pageParam * MEMORIES_PAGE_SIZE, (pageParam + 1) * MEMORIES_PAGE_SIZE - 1);
 
   if (error) throw error;

@@ -41,6 +41,10 @@ interface AnniversaryMilestoneModalProps {
   years: number;
   /** Birlikte geçen gün sayısı */
   days: number;
+  /** Özel başlık (varsayılan: t("memories.milestone.title", { years })) */
+  title?: string;
+  /** Özel mesaj (varsayılan: t("memories.milestone.message", { days })) */
+  message?: string;
   theme: AppTheme;
   /** Tören kapandıktan sonra çağrılır (görüldü kaydı ve konfeti üst bileşende) */
   onClose: () => void;
@@ -52,8 +56,10 @@ export function AnniversaryMilestoneModal({ visible, ...rest }: AnniversaryMiles
   return <MilestoneScene {...rest} />;
 }
 
-function MilestoneScene({ years, days, theme, onClose }: Omit<AnniversaryMilestoneModalProps, "visible">) {
+function MilestoneScene({ years, days, title, message, theme, onClose }: Omit<AnniversaryMilestoneModalProps, "visible">) {
   const { t } = useTranslation();
+  const displayTitle = title || t("memories.milestone.title", { years });
+  const displayMessage = message || t("memories.milestone.message", { days });
   const reduceMotion = useReducedMotion();
   const isLight = theme.isLight;
 
@@ -131,9 +137,9 @@ function MilestoneScene({ years, days, theme, onClose }: Omit<AnniversaryMilesto
               </View>
 
               <Animated.View style={[styles.body, textStyle]}>
-                <Text style={[styles.title, { color: ink }]}>{t("memories.milestone.title", { years })}</Text>
+                <Text style={[styles.title, { color: ink }]}>{displayTitle}</Text>
                 <View style={[styles.divider, { backgroundColor: GOLD }]} />
-                <Text style={[styles.message, { color: inkSoft }]}>{t("memories.milestone.message", { days })}</Text>
+                <Text style={[styles.message, { color: inkSoft }]}>{displayMessage}</Text>
 
                 <TouchableOpacity
                   activeOpacity={0.85}
