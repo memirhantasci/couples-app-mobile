@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import {
   View,
@@ -93,6 +93,21 @@ export default function AddPhotoScreen() {
   const [showMapPicker, setShowMapPicker] = useState(false);
   const [manualAddressInput, setManualAddressInput] = useState("");
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  const isPickingImageRef = useRef(false);
+
+  const resetForm = useCallback(() => {
+    setLocalImage(null);
+    setTitle("");
+    setDescription("");
+    setExifStatus("idle");
+    setTakenDate(todayString());
+    setTakenTime(dayjs().format("HH:mm"));
+    setErrors({ photo: false, description: false });
+    setUploading(false);
+    setPhotoLocation(null);
+    setExifGpsFound(false);
+    setManualAddressInput("");
+  }, []);
 
   const handleQuickGeocode = async () => {
     const query = manualAddressInput.trim();
@@ -132,6 +147,7 @@ export default function AddPhotoScreen() {
     }
 
     try {
+      isPickingImageRef.current = true;
       // base64:false — büyük fotoğrafları JS heap'e yüklemeyiz (OOM crash engeli)
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
@@ -196,6 +212,10 @@ export default function AddPhotoScreen() {
     } catch (error) {
       logger.error("Photo pick error:", error);
       appAlert(t("common.error"), t("photos.add.pickFailed"));
+    } finally {
+      setTimeout(() => {
+        isPickingImageRef.current = false;
+      }, 500);
     }
   };
 
@@ -339,6 +359,7 @@ export default function AddPhotoScreen() {
 
       // "Tamam"a bastırmak yerine süzülen bir pil; sayfa hemen kapanır, pil galeride görünmeye devam eder.
       // Kamera deklanşörü haptiği zaten verildi (playCameraClick) → pilde ayrı titreşim yok.
+      resetForm();
       toast.success(t("photos.add.added"), { haptic: false });
       if (router.canGoBack()) {
         router.back();
@@ -363,32 +384,27 @@ export default function AddPhotoScreen() {
     setTakenTime(dayjs(selectedTime).format("HH:mm"));
   };
 
-  // Ekran sekme olarak bellekte kalır: yeni bir açılışta (formEntry) form baştan kurulur. Menüye girip
-  // dönmek açılış sayılmaz; yazılan metin ve seçilen fotoğraf yerinde kalır.
   const entry = formEntryOf(useLocalSearchParams());
   const [seenEntry, setSeenEntry] = useState(entry);
   if (seenEntry !== entry) {
     setSeenEntry(entry);
-    setLocalImage(null);
-    setTitle("");
-    setDescription("");
-    setExifStatus("idle");
-    setTakenDate(todayString());
-    setTakenTime(dayjs().format("HH:mm"));
-    setErrors({ photo: false, description: false });
-    setUploading(false);
-    setPhotoLocation(null);
-    setExifGpsFound(false);
-    setManualAddressInput("");
+    resetForm();
   }
 
-  // Premium olmayan her odaklanmada ödeme duvarı gösterilir
+  // Odaklanmada ödeme duvarı kontrolü; ekrandan çıkıldığında (kaydedilmeden dönüldüğünde) form sıfırlanır
   useFocusEffect(
     useCallback(() => {
       if (!isPremium && !isDemoMode) {
         setShowPaywall(true);
       }
-    }, [isPremium, isDemoMode])
+
+      return () => {
+        // Galeri açılırken ekran odak kaybı yaşasa bile formu silme; gerçek sayfa ayrılışında sıfırla
+        if (!isPickingImageRef.current) {
+          resetForm();
+        }
+      };
+    }, [isPremium, isDemoMode, resetForm])
   );
 
   if (!session) return <View style={{ flex: 1, backgroundColor: theme.bgGradient[0] }} />;
