@@ -54,4 +54,6 @@ export interface MapStoryPin {
   location_name: string | null;
   date: string;
   type: "photo" | "note" | "meeting";
+  /** Fotoğraf pinlerinde "photos" bucket'ındaki küçük resim yolu (hikâye kartındaki pullar için) */
+  photo_path: string | null;
 }

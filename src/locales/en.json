@@ -1251,7 +1251,9 @@
       "sharedNotes": "Shared Notes & Letters",
       "items_one": "{{count}} Item",
       "items_other": "{{count}} Items",
-      "meetupPlace": "Meetup City / Place"
+      "meetupPlace": "Meetup City / Place",
+      "moodDays_one": "{{mood}} · {{count}} Day",
+      "moodDays_other": "{{mood}} · {{count}} Days"
     },
     "shareInstagram": "Share on Instagram Story",
     "shareError": "An error occurred while sharing the story image. Please try again."
@@ -1748,7 +1750,18 @@
       "memoryAnniversaryTitle": "{{title}} • {{years}} Year Anniversary! ✨",
       "memoryAnniversaryMessage": "Happy {{years}} year anniversary of \"{{title}}\"! Every moment of these {{days}} days together is priceless ❤️",
       "todaySpecialTitle": "Today is a Very Special Day! ✨",
-      "todaySpecialMessage": "Our special day \"{{title}}\" was recorded today. Here's to many wonderful memories we will celebrate together, my love ❤️"
+      "todaySpecialMessage": "Our special day \"{{title}}\" was recorded today. Here's to many wonderful memories we will celebrate together, my love ❤️",
+      "shareStory": "Share to Instagram Story",
+      "story": {
+        "kicker": "Our Anniversary",
+        "years": "Year {{years}} Together",
+        "days": "Day #{{days}}",
+        "today": "Today Is Ours",
+        "daysTogether_one": "{{count}} day together",
+        "daysTogether_other": "{{count}} days together",
+        "firstDay": "{{date}} · Our first day",
+        "shareTitle": "Share Our Anniversary"
+      }
     }
   },
   "dailyNotes": {
@@ -2595,7 +2608,14 @@
       "certBody": "Your star is in the sky! Every moment you share together will make it shine even brighter.",
       "closeCert": "Close Certificate ✨",
       "enterMicro": "Step into Our Micro Universe 🚀",
-      "publicNameNote": "* Your star’s name is visible to other users in the sky; only your couple’s initials are shown."
+      "publicNameNote": "* Your star’s name is visible to other users in the sky; only your couple’s initials are shown.",
+      "shareCertStory": "Share to Instagram Story",
+      "story": {
+        "headline": "This Star Is Officially Ours",
+        "registeredOn": "Registered on {{date}}",
+        "shareTitle": "Share Our Star Certificate",
+        "fallbackMessage": "{{name}} is officially our star ✨"
+      }
     },
     "exoplanet": {
       "zoneHelp": "{{periodDesc}} · each memory circles in its own ring",

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, type ReactNode } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { logger } from "@/utils/logger";
 import { View, Text, StyleSheet, Modal, TouchableOpacity, useWindowDimensions, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -22,7 +22,10 @@ import { CoupleWrappedData } from "@/utils/wrappedCalculator";
 import { AppTheme } from "@/lib/theme";
 import { appAlert } from "@/lib/dialog";
 import { shareStoryImage } from "@/lib/storyShare";
-import { StoryCard, STORY_ASPECT, type StoryPalette, type StoryScale } from "@/components/share/StoryCard";
+import { StoryCard, STORY_ASPECT } from "@/components/share/StoryCard";
+import { FrostedBadge, GOLD, Monogram, Polaroid } from "@/components/share/storyDecor";
+import { DialogHost } from "@/components/ui/DialogHost";
+import { useStoryCouple } from "@/hooks/useStoryCouple";
 import { useTranslation } from "react-i18next";
 
 // Son slayttaki hikâye önizlemesinin altında kalan yer: paylaş butonu + aralık; üstte ilerleme çubuğu bölgesi
@@ -40,52 +43,6 @@ interface CoupleWrappedModalProps {
 
 const TOTAL_SLIDES = 4;
 const SLIDE_DURATION = 5500; // ms
-
-function StoryStatTile({ s, glyph, value, caption }: { s: StoryScale; glyph: ReactNode; value: string; caption: string }) {
-  return (
-    <View
-      style={{
-        flex: 1,
-        alignItems: "center",
-        backgroundColor: "rgba(255, 255, 255, 0.07)",
-        borderRadius: s(16),
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255, 255, 255, 0.14)",
-        paddingVertical: s(12),
-        paddingHorizontal: s(6),
-      }}
-    >
-      <View style={{ height: s(26), justifyContent: "center" }}>{glyph}</View>
-      <Text
-        numberOfLines={2}
-        style={{
-          color: "#FFFFFF",
-          fontSize: s(11.5),
-          lineHeight: s(14),
-          fontFamily: "Inter_600SemiBold",
-          textAlign: "center",
-          marginTop: s(6),
-          minHeight: s(28),
-        }}
-      >
-        {value}
-      </Text>
-      <Text
-        numberOfLines={2}
-        style={{
-          color: "rgba(255, 255, 255, 0.55)",
-          fontSize: s(8.5),
-          lineHeight: s(11),
-          fontFamily: "Inter_500Medium",
-          textAlign: "center",
-          marginTop: s(4),
-        }}
-      >
-        {caption}
-      </Text>
-    </View>
-  );
-}
 
 // ─── Sahne Girişleri (Instagram hikâyesi gibi) ────────────────────────────────
 // Başlık ve ikonlar yukarıdan süzülür; altındaki rozet ve kutular kademeli olarak (80 ms arayla) aşağıdan gelir.
@@ -149,9 +106,8 @@ export function CoupleWrappedModal({
   const isMale = theme?.gender === "male";
   const slideBackdrops = SLIDE_BACKDROPS[isMale ? "male" : "female"];
   const reduceMotion = useReducedMotion();
-  const storyPalette: StoryPalette = isMale
-    ? { background: ["#0A1424", "#152B4D", "#0A111C"], glow: "79, 125, 190", decor: "#7FA6DC" }
-    : { background: ["#1A0B16", "#3A1029", "#14081A"], glow: "216, 88, 112", decor: "#EC7E95" };
+  // Final kartındaki Polaroid fotoğrafı, monogram ve isimler
+  const couple = useStoryCouple(visible);
   // Önizleme 9:16 hikâye oranında; ekranda kalan yüksekliğe ve genişliğe sığacak en büyük boyda çizilir
   const storyHeightBudget =
     windowHeight - topInset - insets.bottom - HEADER_HEIGHT - SHARE_BUTTON_HEIGHT - SHARE_BUTTON_GAP - 12;
@@ -368,123 +324,82 @@ export function CoupleWrappedModal({
             {currentSlide === 3 && (
               <Animated.View entering={heroIn(0)} style={styles.finalSlideWrapper}>
                 {/* Paylaşılan görsel tam bu karttır: 1080×1920, kenar boşluksuz */}
-                <StoryCard
-                  width={storyWidth}
-                  cardRef={shareCardRef}
-                  palette={storyPalette}
-                  backdrop={
-                    <View pointerEvents="none" style={styles.storyBackdrop}>
-                      <Heart size={storyWidth * 0.95} color="rgba(255, 255, 255, 0.035)" fill="rgba(255, 255, 255, 0.035)" />
-                    </View>
-                  }
-                >
+                <StoryCard width={storyWidth} cardRef={shareCardRef} tone={isMale ? "azure" : "rose"}>
                   {(s) => (
-                    <>
-                      <View style={styles.storyHeader}>
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            gap: s(6),
-                            backgroundColor: "rgba(255, 255, 255, 0.09)",
-                            borderRadius: s(14),
-                            paddingHorizontal: s(12),
-                            paddingVertical: s(6),
-                          }}
-                        >
-                          <Heart size={s(12)} color={theme.accent} fill={theme.accent} />
-                          <Text
-                            style={{ color: theme.accentLight, fontSize: s(10.5), fontFamily: "Inter_700Bold", letterSpacing: s(1.6) }}
-                          >
+                    <View style={styles.storyColumn}>
+                      {/* Üstte altın monogram ve dönem */}
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: s(10) }}>
+                        {couple.initials ? <Monogram s={s} initials={couple.initials} size={36} /> : null}
+                        <View>
+                          <Text style={{ color: GOLD.ink, fontSize: s(9.5), fontFamily: "Inter_700Bold", letterSpacing: s(2.6) }}>
                             COUPLE WRAPPED
                           </Text>
+                          <Text
+                            numberOfLines={1}
+                            style={{ marginTop: s(2), color: "rgba(255, 255, 255, 0.62)", fontSize: s(10.5), fontFamily: "Inter_500Medium" }}
+                          >
+                            {data.periodTitle}
+                          </Text>
                         </View>
-                        <Text
-                          style={{ marginTop: s(8), color: "rgba(255, 255, 255, 0.6)", fontSize: s(11.5), fontFamily: "Inter_500Medium" }}
-                        >
-                          {data.periodTitle}
-                        </Text>
                       </View>
 
-                      <View style={styles.storyHero}>
-                        <View
+                      {/* Çiftin son fotoğrafı: washi bantla iliştirilmiş, hafif eğik Polaroid */}
+                      <Polaroid s={s} width={s(158)} photo={couple.cover} rotate={-3.5} caption={couple.names} />
+
+                      <View style={{ alignItems: "center" }}>
+                        <Text
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
                           style={{
-                            width: s(72),
-                            height: s(72),
-                            borderRadius: s(36),
-                            alignItems: "center",
-                            justifyContent: "center",
-                            backgroundColor: "rgba(255, 255, 255, 0.08)",
-                            borderWidth: 1,
-                            borderColor: "rgba(255, 255, 255, 0.14)",
-                            marginBottom: s(12),
+                            color: GOLD.ink,
+                            fontSize: s(44),
+                            lineHeight: s(52),
+                            fontFamily: "PlayfairDisplay_700Bold",
+                            textShadowColor: "rgba(226, 184, 92, 0.45)",
+                            textShadowOffset: { width: 0, height: 0 },
+                            textShadowRadius: s(12),
                           }}
                         >
-                          <Heart size={s(32)} color={theme.accent} fill={theme.accent} />
-                        </View>
-                        <Text
-                          style={{ color: "#FFFFFF", fontSize: s(88), lineHeight: s(96), fontFamily: "PlayfairDisplay_700Bold" }}
-                        >
-                          {data.daysTogether}
+                          {t("wrapped.card.days", { count: data.daysTogether })}
                         </Text>
                         <Text
+                          numberOfLines={2}
                           style={{
-                            color: "rgba(255, 255, 255, 0.78)",
-                            fontSize: s(13),
+                            marginTop: s(2),
+                            maxWidth: s(276),
+                            color: "rgba(255, 255, 255, 0.86)",
+                            fontSize: s(13.5),
                             lineHeight: s(19),
-                            fontFamily: "Inter_400Regular",
-                            textAlign: "center",
-                            maxWidth: s(250),
-                            marginTop: s(4),
-                          }}
-                        >
-                          {t("wrapped.slides.daysTogether")}
-                        </Text>
-                        <Text
-                          style={{
-                            color: "#FFFFFF",
-                            fontSize: s(19),
-                            lineHeight: s(27),
                             fontFamily: "PlayfairDisplay_400Regular_Italic",
                             textAlign: "center",
-                            maxWidth: s(280),
-                            marginTop: s(22),
                           }}
                         >
                           {data.romanticStatement}
                         </Text>
                       </View>
 
-                      <View style={{ flexDirection: "row", gap: s(8) }}>
-                        <StoryStatTile
+                      {/* Buzlu cam rozetler */}
+                      <View style={{ flexDirection: "row", gap: s(8), alignSelf: "stretch" }}>
+                        <FrostedBadge
                           s={s}
-                          glyph={<Text style={{ fontSize: s(22) }}>{data.topMood.emoji}</Text>}
-                          value={data.topMood.label}
+                          glyph={<Text style={{ fontSize: s(19) }}>{data.topMood.emoji}</Text>}
+                          value={t("wrapped.card.moodDays", { count: data.topMood.count, mood: data.topMood.label })}
                           caption={t("wrapped.card.mostFelt")}
                         />
-                        <StoryStatTile
+                        <FrostedBadge
                           s={s}
-                          glyph={<Mail size={s(22)} color={theme.accentLight} />}
+                          glyph={<Mail size={s(19)} color={GOLD.ink} />}
                           value={t("wrapped.card.items", { count: data.lettersCount + data.dailyNotesCount })}
                           caption={t("wrapped.card.sharedNotes")}
                         />
-                        <StoryStatTile
+                        <FrostedBadge
                           s={s}
-                          glyph={<MapPin size={s(22)} color={theme.accentLight} />}
+                          glyph={<MapPin size={s(19)} color={GOLD.ink} />}
                           value={data.topLocation}
                           caption={t("wrapped.card.meetupPlace")}
                         />
                       </View>
-
-                      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: s(6), marginTop: s(16) }}>
-                        <View style={{ width: s(4), height: s(4), borderRadius: s(2), backgroundColor: theme.accent }} />
-                        <Text
-                          style={{ color: "rgba(255, 255, 255, 0.6)", fontSize: s(10.5), fontFamily: "Inter_500Medium", letterSpacing: s(0.5) }}
-                        >
-                          {t("common.madeWith")}
-                        </Text>
-                      </View>
-                    </>
+                    </View>
                   )}
                 </StoryCard>
 
@@ -516,6 +431,8 @@ export function CoupleWrappedModal({
           </View>
         </View>
       </View>
+      {/* Paylaşım hatası bu modalın içinde gösterilir (kök diyalog katmanı modalın arkasında kalırdı) */}
+      <DialogHost embedded visible={visible} />
     </Modal>
   );
 }
@@ -722,18 +639,11 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
   },
-  storyBackdrop: {
-    ...StyleSheet.absoluteFill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  storyHeader: {
-    alignItems: "center",
-  },
-  storyHero: {
+  // Final kartının dikey düzeni: başlık, Polaroid, gün sayısı ve rozetler güvenli bölgeye yayılır
+  storyColumn: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-between",
   },
   shareActionBtn: {
     marginTop: SHARE_BUTTON_GAP,

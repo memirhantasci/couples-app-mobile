@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
   Easing,
@@ -14,8 +14,14 @@ import Animated, {
 import { scheduleOnRN } from "react-native-worklets";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Circle, Path } from "react-native-svg";
+import { Share2 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { AnniversaryGlow } from "@/components/home/AnniversaryGlow";
+import { MilestoneStoryCard } from "@/components/share/MilestoneStoryCard";
+import { StorySharePreview } from "@/components/share/StorySharePreview";
+import { useAuth } from "@/context/AuthContext";
+import { useStoryCouple } from "@/hooks/useStoryCouple";
+import { dayjs } from "@/lib/date";
 import { playCelebration } from "@/lib/soundEffects";
 import type { AppTheme } from "@/lib/theme";
 
@@ -57,11 +63,28 @@ export function AnniversaryMilestoneModal({ visible, ...rest }: AnniversaryMiles
 }
 
 function MilestoneScene({ years, days, title, message, theme, onClose }: Omit<AnniversaryMilestoneModalProps, "visible">) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const displayTitle = title || t("memories.milestone.title", { years });
   const displayMessage = message || t("memories.milestone.message", { days });
   const reduceMotion = useReducedMotion();
   const isLight = theme.isLight;
+
+  // ─── Instagram hikâyesi kartı ───
+  const { profile } = useAuth();
+  const couple = useStoryCouple();
+  const [isStoryOpen, setIsStoryOpen] = useState(false);
+  const storyHeadline =
+    years > 0
+      ? t("memories.milestone.story.years", { years })
+      : days > 0
+        ? t("memories.milestone.story.days", { days })
+        : t("memories.milestone.story.today");
+  // Özel başlık bir anının kutlamasıdır: kartta anının adı görünür; sevgililik yıldönümünde gün sayısı ve ilk gün
+  const storySubtitle = title ?? (days > 0 ? t("memories.milestone.story.daysTogether", { count: days }) : null);
+  const startDate = !title ? profile?.relationshipStartDate : null;
+  const storyDateLine = startDate
+    ? t("memories.milestone.story.firstDay", { date: dayjs(startDate).locale(i18n.language).format("D MMMM YYYY") })
+    : null;
 
   const scrim = useSharedValue(0);
   const card = useSharedValue(0);
@@ -141,6 +164,17 @@ function MilestoneScene({ years, days, title, message, theme, onClose }: Omit<An
                 <View style={[styles.divider, { backgroundColor: GOLD }]} />
                 <Text style={[styles.message, { color: inkSoft }]}>{displayMessage}</Text>
 
+                {/* Bu özel günü 9:16 Instagram hikâyesi olarak paylaş */}
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => setIsStoryOpen(true)}
+                  style={[styles.shareStory, { borderColor: isLight ? GOLD_DEEP : GOLD }]}
+                  accessibilityRole="button"
+                >
+                  <Share2 size={16} color={isLight ? GOLD_DEEP : GOLD} />
+                  <Text style={[styles.shareStoryText, { color: isLight ? GOLD_DEEP : GOLD }]}>{t("memories.milestone.shareStory")}</Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity
                   activeOpacity={0.85}
                   onPress={handleClose}
@@ -161,6 +195,26 @@ function MilestoneScene({ years, days, title, message, theme, onClose }: Omit<An
           </View>
         </Animated.View>
       </View>
+      <StorySharePreview
+        visible={isStoryOpen}
+        onClose={() => setIsStoryOpen(false)}
+        dialogTitle={t("memories.milestone.story.shareTitle")}
+        fallbackMessage={`${storyHeadline} · ${t("common.madeWith")}`}
+        shareLabel={t("memories.milestone.shareStory")}
+        renderCard={(width, cardRef) => (
+          <MilestoneStoryCard
+            width={width}
+            cardRef={cardRef}
+            kicker={t("memories.milestone.story.kicker")}
+            headline={storyHeadline}
+            subtitle={storySubtitle}
+            dateLine={storyDateLine}
+            names={couple.names}
+            initials={couple.initials}
+            cover={couple.cover}
+          />
+        )}
+      />
     </Modal>
   );
 }
@@ -273,8 +327,22 @@ const styles = StyleSheet.create({
     fontFamily: "PlayfairDisplay_400Regular_Italic",
     textAlign: "center",
   },
-  cta: {
+  shareStory: {
     marginTop: 22,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 11,
+    paddingHorizontal: 18,
+    borderRadius: 18,
+    borderWidth: 1.2,
+  },
+  shareStoryText: {
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+  },
+  cta: {
+    marginTop: 12,
     paddingVertical: 14,
     paddingHorizontal: 22,
     borderRadius: 18,

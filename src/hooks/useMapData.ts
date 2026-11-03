@@ -170,6 +170,7 @@ export function useMapData({ coupleId, isPremium, isDemoMode }: UseMapDataArgs) 
         location_name: p.location_name ?? null,
         date: p.taken_date,
         type: "photo" as const,
+        photo_path: p.thumb_path || p.storage_path,
       })),
       ...mapNotes.map((n) => ({
         id: n.id,
@@ -178,6 +179,7 @@ export function useMapData({ coupleId, isPremium, isDemoMode }: UseMapDataArgs) 
         location_name: null,
         date: n.created_at,
         type: "note" as const,
+        photo_path: null,
       })),
       ...meetingPins.map((m) => ({
         id: m.id,
@@ -186,6 +188,7 @@ export function useMapData({ coupleId, isPremium, isDemoMode }: UseMapDataArgs) 
         location_name: m.location_name || m.title,
         date: m.meeting_datetime,
         type: "meeting" as const,
+        photo_path: null,
       })),
     ];
     return items.sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf());

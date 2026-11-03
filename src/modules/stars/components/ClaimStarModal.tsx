@@ -39,11 +39,11 @@ import { hapticStamp, hapticSuccess, hapticError } from '@/lib/soundEffects';
 import { dayjs } from '@/lib/date';
 import {
   Sparkles,
-  Award,
   AlertCircle,
   Radio,
   CheckCircle2,
   Pencil,
+  Share2,
 } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { starService, StarRenameCooldownError } from '../api/starService';
@@ -56,6 +56,10 @@ import { SKY_SECTORS, type SectorConfig } from '../config/skySectors.data';
 import { UNCLAIMED_STAR_BRIGHTNESS } from '../canvas/macro/starStyle';
 import { useTranslation } from 'react-i18next';
 import { localizeServerError } from '@/lib/serverErrors';
+import { StorySharePreview } from '@/components/share/StorySharePreview';
+import { StarCertificateStoryCard } from '@/components/share/StarCertificateStoryCard';
+import { FoilSeal, GOLD, GoldRule, Monogram, unitScale } from '@/components/share/storyDecor';
+import { useStoryCouple } from '@/hooks/useStoryCouple';
 
 // ============================================================================
 // TİPLER VE SABİTLER
@@ -98,6 +102,14 @@ export interface ClaimStarModalProps {
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Sertifikanın iç altın çerçevesinin köşelerindeki baklavalar
+const CERT_CORNERS = [
+  { key: 'tl', style: { top: 5, left: 5 } },
+  { key: 'tr', style: { top: 5, right: 5 } },
+  { key: 'bl', style: { bottom: 5, left: 5 } },
+  { key: 'br', style: { bottom: 5, right: 5 } },
+] as const;
 
 // ============================================================================
 // RADAR ANİMASYON BİLEŞENİ
@@ -262,6 +274,9 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
   const [claimedStar, setClaimedStar] = useState<CoupleStarDetails | null>(
     initialStar ?? null
   );
+  // Sertifikanın Instagram hikâyesi önizlemesi ve karttaki çift monogramı / isimleri
+  const [isStoryOpen, setIsStoryOpen] = useState(false);
+  const couple = useStoryCouple(visible && modalState === 'certificate');
 
   // preSelectedStar varken scanning süresi kısaltılır (0.8s vs 1.5s)
   const isSpecificMode = preSelectedStar != null;
@@ -506,6 +521,13 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
       onSuccess?.(claimedStar);
     }
   };
+
+  // Sertifika: açık temada altın parşömen, koyu temada koyu kadife; her ikisinde çift katmanlı altın varak
+  const certInk = isLight ? '#4A3214' : '#FFF1D6';
+  const certInkSoft = isLight ? '#7A5A33' : 'rgba(255, 241, 214, 0.72)';
+  const certGold = isLight ? '#9A6B1F' : GOLD.ink;
+  const certGoldLine = isLight ? 'rgba(184, 134, 46, 0.55)' : 'rgba(245, 158, 11, 0.42)';
+  const certCellBg = isLight ? 'rgba(184, 134, 46, 0.08)' : 'rgba(226, 184, 92, 0.07)';
 
   return (
     <Modal
@@ -797,33 +819,33 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                 style={[
                   styles.cardContainer,
                   styles.certificateContainer,
-                  {
-                    backgroundColor: isLight ? '#FFFFFF' : theme.cardBg,
-                    borderColor: isLight ? 'rgba(217, 119, 6, 0.5)' : 'rgba(251, 191, 36, 0.4)',
-                    shadowColor: isLight ? '#D97706' : '#F59E0B',
-                  },
+                  { backgroundColor: isLight ? '#FBF3E0' : '#140C16' },
                 ]}
               >
-                {/* Altın Işıltı Gradyanı */}
+                {/* Altın parşömen (açık tema) / koyu kadife (koyu tema) zemin */}
                 <LinearGradient
-                  colors={isLight ? ['rgba(245, 158, 11, 0.08)', 'rgba(217, 119, 6, 0.02)'] : ['rgba(251, 191, 36, 0.18)', 'rgba(124, 58, 237, 0.08)']}
+                  colors={isLight ? ['#FFF8EA', '#F6E6C2', '#EED7A3'] : ['#22131F', '#140B16', '#23160F']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
                   style={styles.cardGlowBg}
                 />
+                {/* Çift katmanlı altın çerçeve: dış kenarın içinde ikinci ince varak ve köşe baklavaları */}
+                <View pointerEvents="none" style={[styles.certInnerFrame, { borderColor: certGoldLine }]} />
+                {CERT_CORNERS.map((corner) => (
+                  <View key={corner.key} pointerEvents="none" style={[styles.certCorner, corner.style, { backgroundColor: certGold }]} />
+                ))}
 
-                <View
-                  style={[
-                    styles.certBadge,
-                    {
-                      backgroundColor: isLight ? 'rgba(245, 158, 11, 0.12)' : 'rgba(251, 191, 36, 0.15)',
-                      borderColor: isLight ? 'rgba(217, 119, 6, 0.35)' : 'rgba(251, 191, 36, 0.4)',
-                    },
-                  ]}
-                >
-                  <Award size={20} color={isLight ? '#D97706' : '#F59E0B'} />
-                  <Text style={[styles.certBadgeText, { color: isLight ? '#B45309' : '#FBBF24' }]}>{t('stars.claim.certTitle')}</Text>
-                </View>
+                <Text style={[styles.certTitle, { color: certGold }]}>{t('stars.claim.certTitle')}</Text>
+                <GoldRule s={unitScale} width={150} style={styles.certRule} />
 
-                <Text style={[styles.certStarName, { color: theme.text }]}>{claimedStar.custom_name}</Text>
+                {/* Çiftin baş harfleri */}
+                {couple.initials ? (
+                  <View style={styles.certMonogram}>
+                    <Monogram s={unitScale} initials={couple.initials} size={46} ink={certGold} ring={isLight ? GOLD.deep : GOLD.base} />
+                  </View>
+                ) : null}
+
+                <Text style={[styles.certStarName, { color: certGold }]}>{claimedStar.custom_name}</Text>
                 {/* İsim düzenleme: yalnızca mevcut sertifikayı görüntülerken; çift başına 30 günde bir hak */}
                 {canRename && initialStar ? (
                   isRenaming ? (
@@ -885,67 +907,100 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                 ) : null}
                 {/* Gerçek astronomi adı — yalnızca doluysa göster */}
                 {claimedStar.common_name ? (
-                  <Text style={[styles.certCommonName, { color: theme.textSecondary }]}>({claimedStar.common_name})</Text>
+                  <Text style={[styles.certCommonName, { color: certInkSoft }]}>({claimedStar.common_name})</Text>
                 ) : null}
-                <Text style={[styles.certSubText, { color: theme.textMuted }]}>
+                <Text style={[styles.certSubText, { color: certInkSoft }]}>
                   {t('stars.claim.certSubtitle')}
                 </Text>
 
                 {/* İSİMLERİMİZ: yalnızca kendi tescilli yıldızımızın sertifikasında (demo hariç) */}
                 {canRename && initialStar ? <StarNameVisibilityCard /> : null}
 
-                {/* ASTRONOMİK KÜNYE TABLOSU */}
+                {/* ASTRONOMİK KÜNYE TABLOSU: altın varaklı kutucuklar */}
                 <View style={styles.certInfoGrid}>
-                  <View style={[styles.gridItem, { backgroundColor: isLight ? theme.unitBg : 'rgba(255, 255, 255, 0.05)', borderColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.1)' }]}>
-                    <Text style={[styles.gridLabel, { color: theme.textMuted }]}>{t('stars.claim.catalogCode')}</Text>
-                    <Text style={[styles.gridValueHighlight, { color: isLight ? '#D97706' : '#4A8CB3' }]}>{claimedStar.catalog_code}</Text>
-                  </View>
-                  <View style={[styles.gridItem, { backgroundColor: isLight ? theme.unitBg : 'rgba(255, 255, 255, 0.05)', borderColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.1)' }]}>
-                    <Text style={[styles.gridLabel, { color: theme.textMuted }]}>{t('stars.claim.spectralClass')}</Text>
-                    <Text style={[styles.gridValue, { color: theme.text }]}>{claimedStar.spectral_type}</Text>
-                  </View>
-                  <View style={[styles.gridItem, { backgroundColor: isLight ? theme.unitBg : 'rgba(255, 255, 255, 0.05)', borderColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.1)' }]}>
-                    <Text style={[styles.gridLabel, { color: theme.textMuted }]}>RIGHT ASCENSION</Text>
-                    <Text style={[styles.gridValue, { color: theme.text }]}>{Number(claimedStar.ra).toFixed(4)}°</Text>
-                  </View>
-                  <View style={[styles.gridItem, { backgroundColor: isLight ? theme.unitBg : 'rgba(255, 255, 255, 0.05)', borderColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.1)' }]}>
-                    <Text style={[styles.gridLabel, { color: theme.textMuted }]}>DECLINATION</Text>
-                    <Text style={[styles.gridValue, { color: theme.text }]}>
-                      {Number(claimedStar.dec) >= 0 ? '+' : ''}{Number(claimedStar.dec).toFixed(4)}°
-                    </Text>
-                  </View>
+                  {[
+                    { label: t('stars.claim.catalogCode'), value: claimedStar.catalog_code },
+                    { label: t('stars.claim.spectralClass'), value: claimedStar.spectral_type },
+                    { label: 'RIGHT ASCENSION', value: `${Number(claimedStar.ra).toFixed(4)}°` },
+                    {
+                      label: 'DECLINATION',
+                      value: `${Number(claimedStar.dec) >= 0 ? '+' : ''}${Number(claimedStar.dec).toFixed(4)}°`,
+                    },
+                  ].map((cell) => (
+                    <View key={cell.label} style={[styles.gridItem, { backgroundColor: certCellBg, borderColor: certGoldLine }]}>
+                      <Text style={[styles.gridLabel, { color: certGold }]}>{cell.label}</Text>
+                      <Text style={[styles.gridValue, { color: certInk }]}>{cell.value}</Text>
+                    </View>
+                  ))}
                 </View>
 
                 {/* İLK IŞIK BİLGİLENDİRMESİ */}
-                <View style={[styles.firstSparkNote, { backgroundColor: isLight ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.12)', borderColor: isLight ? 'rgba(16, 185, 129, 0.25)' : 'rgba(16, 185, 129, 0.3)' }]}>
-                  <CheckCircle2 size={16} color="#10B981" />
-                  <Text style={[styles.firstSparkText, { color: isLight ? '#065F46' : '#A7F3D0' }]}>
+                <View style={[styles.firstSparkNote, { backgroundColor: certCellBg, borderColor: certGoldLine }]}>
+                  <CheckCircle2 size={16} color={certGold} />
+                  <Text style={[styles.firstSparkText, { color: certInk }]}>
                     {t('stars.claim.certBody')}
                   </Text>
                 </View>
 
-                {/* MİKRO SİSTEME ADIM AT VEYA SERTİFİKAYI KAPAT BUTONU */}
+                {/* Tescil tarihi ve altın folyo mühür */}
+                <View style={styles.certSealRow}>
+                  <View style={styles.certSealText}>
+                    <Text style={[styles.certRegistryLabel, { color: certGold }]}>CELESTIAL REGISTRY</Text>
+                    <Text style={[styles.certRegistered, { color: certInkSoft }]}>
+                      {t('stars.claim.story.registeredOn', {
+                        date: dayjs(claimedStar.created_at).locale(i18n.language).format('D MMMM YYYY'),
+                      })}
+                    </Text>
+                  </View>
+                  <FoilSeal s={unitScale} size={66} text="COUPLESKY ✦ OFFICIALLY SEALED ✦ " rotate={-12} ink={certGold} />
+                </View>
+
+                {/* BİRİNCİL: 9:16 Instagram hikâyesi kartı */}
                 <TouchableOpacity
                   activeOpacity={0.85}
-                  onPress={initialStar ? (onClose ?? (() => {})) : handleFinish}
-                  style={styles.primaryButton}
+                  onPress={() => setIsStoryOpen(true)}
+                  style={[styles.primaryButton, styles.goldButton]}
+                  accessibilityRole="button"
                 >
                   <LinearGradient
-                    colors={['#F59E0B', '#D97706', '#B45309']}
+                    colors={[GOLD.light, GOLD.base, GOLD.deep]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.buttonGradient}
                   >
-                    <Text style={styles.primaryButtonText}>
-                      {initialStar ? t('stars.claim.closeCert') : t('stars.claim.enterMicro')}
-                    </Text>
+                    <Share2 size={17} color="#2A1A08" />
+                    <Text style={[styles.primaryButtonText, styles.goldButtonText]}>{t('stars.claim.shareCertStory')}</Text>
                   </LinearGradient>
+                </TouchableOpacity>
+
+                {/* İKİNCİL: mikro sisteme adım at / sertifikayı kapat */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={initialStar ? (onClose ?? (() => {})) : handleFinish}
+                  style={[styles.secondaryButton, { borderColor: certGoldLine }]}
+                  accessibilityRole="button"
+                >
+                  <Text style={[styles.secondaryButtonText, { color: certGold }]}>
+                    {initialStar ? t('stars.claim.closeCert') : t('stars.claim.enterMicro')}
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
           </ScrollView>
         </KeyboardAvoidingView>
       </View>
+      {claimedStar ? (
+        <StorySharePreview
+          visible={isStoryOpen}
+          onClose={() => setIsStoryOpen(false)}
+          dialogTitle={t('stars.claim.story.shareTitle')}
+          fallbackMessage={t('stars.claim.story.fallbackMessage', { name: claimedStar.custom_name })}
+          shareLabel={t('stars.claim.shareCertStory')}
+          renderCard={(width, cardRef) => (
+            <StarCertificateStoryCard width={width} cardRef={cardRef} star={claimedStar} names={couple.names} />
+          )}
+        />
+      ) : null}
       {/* Modal açıkken diyaloglar (ör. isim görünürlüğü onayı) kök host'un değil bu modalın içinde çizilir */}
       <DialogHost embedded visible={visible} />
     </Modal>
@@ -1010,9 +1065,79 @@ const styles = StyleSheet.create({
     elevation: 16,
   },
   certificateContainer: {
-    borderColor: 'rgba(251, 191, 36, 0.4)',
+    borderColor: 'rgba(245, 158, 11, 0.6)',
+    borderWidth: 1.5,
     shadowColor: '#F59E0B',
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.25,
+    paddingTop: 30,
+  },
+  // Dış kenarın içindeki ikinci ince altın varak
+  certInnerFrame: {
+    position: 'absolute',
+    top: 9,
+    left: 9,
+    right: 9,
+    bottom: 9,
+    borderRadius: 21,
+    borderWidth: 0.8,
+  },
+  certCorner: {
+    position: 'absolute',
+    width: 7,
+    height: 7,
+    transform: [{ rotate: '45deg' }],
+  },
+  certTitle: {
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 15,
+    letterSpacing: 1.6,
+    textAlign: 'center',
+  },
+  certRule: {
+    marginTop: 10,
+    marginBottom: 14,
+  },
+  certMonogram: {
+    marginBottom: 10,
+  },
+  certSealRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  certSealText: {
+    flex: 1,
+  },
+  certRegistryLabel: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 1.6,
+  },
+  certRegistered: {
+    marginTop: 3,
+    fontSize: 12.5,
+    fontFamily: 'PlayfairDisplay_400Regular_Italic',
+  },
+  goldButton: {
+    shadowColor: '#D97706',
+  },
+  goldButtonText: {
+    color: '#2A1A08',
+  },
+  secondaryButton: {
+    width: '100%',
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 1.2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
   cardGlowBg: {
     position: 'absolute',
@@ -1240,30 +1365,12 @@ const styles = StyleSheet.create({
   },
 
   // SERTİFİKA STİLLERİ
-  certBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(251, 191, 36, 0.15)',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(251, 191, 36, 0.4)',
-    marginBottom: 12,
-  },
-  certBadgeText: {
-    color: '#FBBF24',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
   certStarName: {
     color: '#FFFFFF',
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: 30,
+    lineHeight: 38,
+    fontFamily: 'PlayfairDisplay_400Regular_Italic',
     textAlign: 'center',
-    letterSpacing: -0.5,
     marginBottom: 4,
   },
   renameLink: {
@@ -1333,9 +1440,10 @@ const styles = StyleSheet.create({
   },
   certSubText: {
     color: 'rgba(255, 255, 255, 0.65)',
-    fontSize: 12.5,
+    fontSize: 13.5,
+    fontFamily: 'PlayfairDisplay_400Regular_Italic',
     textAlign: 'center',
-    lineHeight: 17,
+    lineHeight: 19,
     marginBottom: 18,
   },
   certInfoGrid: {
@@ -1364,12 +1472,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '600',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  gridValueHighlight: {
-    color: '#4A8CB3',
-    fontSize: 13,
-    fontWeight: '700',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   firstSparkNote: {

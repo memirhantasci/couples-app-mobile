@@ -1251,7 +1251,9 @@
       "sharedNotes": "Paylaşılan Not & Mektup",
       "items_one": "{{count}} Adet",
       "items_other": "{{count}} Adet",
-      "meetupPlace": "Buluşulan Şehir / Yer"
+      "meetupPlace": "Buluşulan Şehir / Yer",
+      "moodDays_one": "{{count}} Gün {{mood}}",
+      "moodDays_other": "{{count}} Gün {{mood}}"
     },
     "shareInstagram": "Instagram Story’de Paylaş",
     "shareError": "Hikaye görseli paylaşılırken bir sorun oluştu. Lütfen tekrar deneyin."
@@ -1748,7 +1750,18 @@
       "memoryAnniversaryTitle": "{{title}} • {{years}}. Yıl Dönümü! ✨",
       "memoryAnniversaryMessage": "\"{{title}}\" anımızın {{years}}. yıl dönümü kutlu olsun! Birlikte biriktirdiğimiz {{days}} günün her anı paha biçilemez ❤️",
       "todaySpecialTitle": "Bugün Çok Özel Bir Gün! ✨",
-      "todaySpecialMessage": "\"{{title}}\" özel günümüz bugün kaydedildi. Birlikte kutlayacağımız nice güzel anılara sevgilim ❤️"
+      "todaySpecialMessage": "\"{{title}}\" özel günümüz bugün kaydedildi. Birlikte kutlayacağımız nice güzel anılara sevgilim ❤️",
+      "shareStory": "Instagram Story'de Paylaş",
+      "story": {
+        "kicker": "Yıldönümümüz",
+        "years": "{{years}}. Yılımız",
+        "days": "#{{days}} Gün",
+        "today": "Bugün Bizim Günümüz",
+        "daysTogether_one": "Birlikte geçen {{count}} gün",
+        "daysTogether_other": "Birlikte geçen {{count}} gün",
+        "firstDay": "{{date}} · İlk günümüz",
+        "shareTitle": "Yıldönümümüzü Paylaş"
+      }
     }
   },
   "dailyNotes": {
@@ -2595,7 +2608,14 @@
       "certBody": "Yıldızınız gökyüzünde! Birlikte paylaştığınız her anı onu daha da parlatacak.",
       "closeCert": "Sertifikayı Kapat ✨",
       "enterMicro": "Mikro Evrenimize Adım At 🚀",
-      "publicNameNote": "* Yıldızınızın adı gökyüzünde diğer kullanıcılara görünür; çiftinizin yalnızca baş harfleri gösterilir."
+      "publicNameNote": "* Yıldızınızın adı gökyüzünde diğer kullanıcılara görünür; çiftinizin yalnızca baş harfleri gösterilir.",
+      "shareCertStory": "Instagram Story'de Paylaş",
+      "story": {
+        "headline": "Bu Yıldız Artık Resmi Olarak Bizim",
+        "registeredOn": "Tescil tarihi · {{date}}",
+        "shareTitle": "Yıldız Sertifikamızı Paylaş",
+        "fallbackMessage": "{{name}} artık resmi olarak bizim yıldızımız ✨"
+      }
     },
     "exoplanet": {
       "zoneHelp": "{{periodDesc}} · her anı kendi halkasında döner",

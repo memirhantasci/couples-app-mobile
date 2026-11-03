@@ -13,7 +13,10 @@ interface ShareStoryOptions {
   fallbackMessage: string;
 }
 
-/** Karttaki görünümü 1080×1920 PNG olarak çekip sistem paylaşım menüsünü açar (Instagram Hikâye dahil). */
+/**
+ * Karttaki görünümü 1080×1920 PNG olarak çekip sistem paylaşım menüsünü açar (Instagram Hikâye dahil).
+ * StoryCard kartı zaten tam bu piksel boyunda çizer (ekranda yalnızca küçültülür); yakalama 1:1 olur, büyütme yapılmaz.
+ */
 export async function shareStoryImage(
   cardRef: RefObject<View | null>,
   { dialogTitle, fallbackMessage }: ShareStoryOptions
