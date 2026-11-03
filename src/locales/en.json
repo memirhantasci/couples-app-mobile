@@ -2089,7 +2089,8 @@
       "addToList": "Add Medicine to List",
       "doseTimePickerTitle": "Dose Time",
       "startPickerTitle": "Start Date",
-      "endPickerTitle": "End Date"
+      "endPickerTitle": "End Date",
+      "partnerCannotEdit": "This medicine belongs to your partner and can only be edited from their account."
     },
     "notify": {
       "drankBody": "{{senderName}} took their {{medName}}. You can rest easy! 🌿"
@@ -2113,7 +2114,8 @@
     },
     "toasts": {
       "updated": "Medicine info updated 🎉",
-      "saved": "New medicine saved 🎉"
+      "saved": "New medicine saved 🎉",
+      "deleted": "Medicine deleted"
     },
     "push": {
       "newTitle": "New Medicine Added 💊",
@@ -2122,7 +2124,9 @@
     },
     "delete": {
       "title": "Delete Medicine",
-      "message": "Are you sure you want to delete this medicine?"
+      "message": "Are you sure you want to delete this medicine?",
+      "partnerTitle": "Your Partner's Medicine 🌿",
+      "partnerCannotDelete": "This medicine belongs to your partner and can only be deleted from their account."
     },
     "subtitle": "Daily Health Reminder 💊",
     "manage": {

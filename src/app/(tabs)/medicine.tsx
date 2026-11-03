@@ -344,13 +344,25 @@ export default function MedicineScreen() {
     }
   };
 
-  // Kayıtlı bir ilacı düzenleme moduna almadan önce demo kontrolü (false = engelle)
-  const handleBeforeEditMedicine = () => {
-    return !executeOrIntercept(
+  // Kayıtlı bir ilacı düzenleme moduna almadan önce demo ve sahip kontrolü (false = engelle)
+  const handleBeforeEditMedicine = (med?: MedicineItem) => {
+    if (executeOrIntercept(
       () => {},
       t("medicine.demo.editTitle"),
       t("medicine.demo.editDescription")
-    );
+    )) {
+      return false;
+    }
+
+    if (med && med.user_id && med.user_id !== userId) {
+      appAlert(
+        t("medicine.delete.partnerTitle"),
+        t("medicine.manager.partnerCannotEdit")
+      );
+      return false;
+    }
+
+    return true;
   };
 
   const handleDeleteMedicine = async (id: number) => {
@@ -359,6 +371,15 @@ export default function MedicineScreen() {
       t("medicine.demo.deleteTitle"),
       t("medicine.demo.deleteDescription")
     )) {
+      return;
+    }
+
+    const med = data?.medicines?.find((m: any) => m.id === id);
+    if (med && med.user_id && med.user_id !== userId) {
+      appAlert(
+        t("medicine.delete.partnerTitle"),
+        t("medicine.delete.partnerCannotDelete")
+      );
       return;
     }
 
@@ -371,16 +392,20 @@ export default function MedicineScreen() {
           setIsDeleting(id);
 
           // Yerel bildirimleri temizle
-          const med = data?.medicines?.find((m: any) => m.id === id);
           if (med?.times && med.user_id === userId) {
             med.times.forEach((t: string) => cancelLocalNotification(medicineReminderId(id, t.substring(0, 5))));
           }
 
-          const { error } = await supabase.from("medicines").delete().eq("id", id).eq("couple_id", coupleId);
+          const { error, count } = await supabase.from("medicines").delete({ count: "exact" }).eq("id", id).eq("couple_id", coupleId);
           setIsDeleting(null);
-          if (error) {
-            appAlert(t("common.error"), t("medicine.errors.deleteFailed"));
+          if (error || count === 0) {
+            if (med?.user_id && med.user_id !== userId) {
+              appAlert(t("medicine.delete.partnerTitle"), t("medicine.delete.partnerCannotDelete"));
+            } else {
+              appAlert(t("common.error"), t("medicine.errors.deleteFailed"));
+            }
           } else {
+            toast.success(t("medicine.toasts.deleted"));
             refetch();
           }
         }

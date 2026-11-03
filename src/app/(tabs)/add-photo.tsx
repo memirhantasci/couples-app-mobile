@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import {
   View,
@@ -34,22 +34,7 @@ import { MapPickerModal } from "@/components/MapPickerModal";
 import { extractPhotoExif, isValidCoordinate, geocodeAddressString } from "@/utils/exifHelper";
 import { showPermissionDeniedDialog } from "@/lib/permissions";
 import { sanitize, sanitizeStrict } from "@/utils/sanitize";
-import { playCameraClick, playStampDrop } from "@/lib/soundEffects";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withSpring,
-  withRepeat,
-  withSequence,
-  cancelAnimation,
-  Easing,
-  FadeInDown,
-  useReducedMotion,
-} from "react-native-reanimated";
-import { scheduleOnRN } from "react-native-worklets";
-import { LinearGradient } from "expo-linear-gradient";
-import { WashiCornerPair } from "@/components/memories/WashiTape";
+import { playCameraClick } from "@/lib/soundEffects";
 import { toast } from "@/lib/toast";
 import { LazyPremiumPaywall, LazyDemoActionModal, LazyDateTimePickerSheet } from "@/components/ui/lazyMount";
 import { useTranslation } from "react-i18next";
@@ -68,8 +53,7 @@ export default function AddPhotoScreen() {
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
-  const reduceMotion = useReducedMotion();
-
+  // useTheme: getTheme(profile?.gender) seçili tema modunu (açık/koyu) bilmediği için açık temada koyu stilde kalıyordu
   const { theme, isLight } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   // Durum renkleri: koyu zeminde canlı, açık zeminde WCAG uyumlu koyu tonlar
@@ -109,86 +93,6 @@ export default function AddPhotoScreen() {
   const [showMapPicker, setShowMapPicker] = useState(false);
   const [manualAddressInput, setManualAddressInput] = useState("");
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
-
-  // ─── ANİMASYON DURUMLARI ───
-  // 1. Polaroid banyo & yaylanma efekti
-  const photoExposure = useSharedValue(1);
-  const photoScale = useSharedValue(1);
-  // 2. EXIF tarama lazer çizgisi
-  const scanProgress = useSharedValue(0);
-  const [previewHeight, setPreviewHeight] = useState(220);
-  // 3. Flaş ve albüme süzülme töreni
-  const flashOpacity = useSharedValue(0);
-  const flyProgress = useSharedValue(0);
-
-  const triggerPhotoReveal = useCallback(() => {
-    if (reduceMotion) {
-      photoExposure.set(1);
-      photoScale.set(1);
-      return;
-    }
-    photoExposure.set(0);
-    photoScale.set(0.93);
-    photoExposure.set(withTiming(1, { duration: 650, easing: Easing.out(Easing.quad) }));
-    photoScale.set(withSpring(1, { damping: 12, stiffness: 140 }));
-  }, [reduceMotion, photoExposure, photoScale]);
-
-  // EXIF taranırken lazer çizgisi yukarıdan aşağıya salınır
-  useEffect(() => {
-    if (exifStatus === "loading") {
-      scanProgress.set(0);
-      scanProgress.set(
-        withRepeat(
-          withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.quad) }),
-          -1,
-          true
-        )
-      );
-    } else {
-      cancelAnimation(scanProgress);
-      scanProgress.set(0);
-    }
-    return () => cancelAnimation(scanProgress);
-  }, [exifStatus, scanProgress]);
-
-  const photoStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: photoScale.get() }],
-  }));
-
-  const exposureStyle = useAnimatedStyle(() => ({
-    opacity: (1 - photoExposure.get()) * 0.78,
-  }));
-
-  const scanLineStyle = useAnimatedStyle(() => {
-    const travel = Math.max(50, previewHeight - 34);
-    return {
-      transform: [{ translateY: scanProgress.get() * travel }],
-      opacity: exifStatus === "loading" ? 0.95 : 0,
-    };
-  });
-
-  const flyStyle = useAnimatedStyle(() => {
-    const p = flyProgress.get();
-    return {
-      transform: [
-        { translateY: p * 420 },
-        { scale: 1 - 0.55 * p },
-        { rotate: `${-8 * p}deg` },
-      ],
-      opacity: 1 - 0.95 * p * p,
-    };
-  });
-
-  const flashStyle = useAnimatedStyle(() => ({
-    opacity: flashOpacity.get(),
-  }));
-
-  const handlePreviewLayout = (e: any) => {
-    const h = e.nativeEvent.layout.height;
-    if (h > 60) setPreviewHeight(Math.round(h));
-  };
-  // useTheme: getTheme(profile?.gender) seçili tema modunu (açık/koyu) bilmediği için açık temada koyu stilde kalıyordu
-  const [isNewlyPicked, setIsNewlyPicked] = useState(false);
 
   const handleQuickGeocode = async () => {
     const query = manualAddressInput.trim();
@@ -288,9 +192,6 @@ export default function AddPhotoScreen() {
         thumbBase64: thumbnail.base64,
         exif: asset.exif 
       });
-      setIsNewlyPicked(true);
-      triggerPhotoReveal();
-      playStampDrop();
 
     } catch (error) {
       logger.error("Photo pick error:", error);
@@ -436,36 +337,14 @@ export default function AddPhotoScreen() {
         });
       }
 
-      const finishNavigation = () => {
-        toast.success(t("photos.add.added"), { haptic: false });
-        if (router.canGoBack()) {
-          router.back();
-        } else {
-          router.replace("/(tabs)/photos");
-        }
-      };
-
-      if (reduceMotion) {
-        finishNavigation();
-        return;
+      // "Tamam"a bastırmak yerine süzülen bir pil; sayfa hemen kapanır, pil galeride görünmeye devam eder.
+      // Kamera deklanşörü haptiği zaten verildi (playCameraClick) → pilde ayrı titreşim yok.
+      toast.success(t("photos.add.added"), { haptic: false });
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace("/(tabs)/photos");
       }
-
-      // Flaş ve albüme süzülme töreni: yumuşak beyaz flaş patlar, fotoğraf albüme doğru uçar
-      flashOpacity.set(
-        withSequence(
-          withTiming(0.85, { duration: 75 }),
-          withTiming(0, { duration: 220 })
-        )
-      );
-
-      flyProgress.set(
-        withTiming(1, { duration: 460, easing: Easing.in(Easing.back(1.15)) }, (done) => {
-          "worklet";
-          if (done) {
-            scheduleOnRN(finishNavigation);
-          }
-        })
-      );
     } catch (error: any) {
       logger.error("Photo save error:", error);
       appAlert(t("common.error"), t("photos.errors.saveFailedWithMessage", { message: localizeServerError(error, "") }));
@@ -501,11 +380,6 @@ export default function AddPhotoScreen() {
     setPhotoLocation(null);
     setExifGpsFound(false);
     setManualAddressInput("");
-    setIsNewlyPicked(false);
-    photoExposure.set(1);
-    photoScale.set(1);
-    flyProgress.set(0);
-    flashOpacity.set(0);
   }
 
   // Premium olmayan her odaklanmada ödeme duvarı gösterilir
@@ -546,26 +420,8 @@ export default function AddPhotoScreen() {
               activeOpacity={0.88}
             >
               {localImage ? (
-                <Animated.View style={[styles.imagePreviewWrapper, photoStyle, flyStyle]} onLayout={handlePreviewLayout}>
+                <View style={styles.imagePreviewWrapper}>
                   <Image source={{ uri: localImage.uri }} style={styles.previewImage} contentFit="cover" />
-
-                  {/* Polaroid Banyo Efekti: puslu beyazdan netleşme */}
-                  <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.exposureOverlay, exposureStyle]} />
-
-                  {/* Nostaljik Anı Defteri Bantları: elle yapıştırma dokunuşu */}
-                  <WashiCornerPair animate={isNewlyPicked} />
-
-                  {/* EXIF Tarama Işıltısı: fotoğraf üzerinden akan lazer huzmesi */}
-                  {exifStatus === "loading" && (
-                    <Animated.View pointerEvents="none" style={[styles.scannerBeam, scanLineStyle]}>
-                      <LinearGradient
-                        colors={["rgba(245, 197, 99, 0)", "rgba(245, 197, 99, 0.4)", "rgba(245, 197, 99, 0)"]}
-                        style={StyleSheet.absoluteFill}
-                      />
-                      <View style={[styles.scannerLine, { backgroundColor: theme.accent }]} />
-                    </Animated.View>
-                  )}
-
                   <TouchableOpacity 
                     style={styles.changeImageBadge} 
                     onPress={handlePickImage}
@@ -574,7 +430,7 @@ export default function AddPhotoScreen() {
                     <RefreshCw size={13} color="#ffffff" />
                     <Text style={styles.changeImageText}>{t("photos.add.change")}</Text>
                   </TouchableOpacity>
-                </Animated.View>
+                </View>
               ) : (
                 <View style={styles.pickerPlaceholder}>
                   <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
@@ -597,12 +453,12 @@ export default function AddPhotoScreen() {
             )}
 
             {exifStatus === "found" && (
-              <Animated.View entering={FadeInDown.duration(280)} style={styles.exifSuccessBox}>
+              <View style={styles.exifSuccessBox}>
                 <CheckCircle2 color={okColor} size={16} />
                 <Text style={styles.exifSuccessText}>
                   {t("photos.add.captureDetected", { date: dayjs(takenDate).locale(i18n.language).format("D MMMM YYYY"), time: takenTime })}
                 </Text>
-              </Animated.View>
+              </View>
             )}
 
             {exifStatus === "not_found" && (
@@ -871,8 +727,6 @@ export default function AddPhotoScreen() {
           title={modalConfig.title}
           description={modalConfig.description}
         />
-        {/* Deklanşör Flaş Katmanı */}
-        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.flashOverlay, flashStyle]} />
       </View>
     </ScreenBackground>
   );
@@ -1036,31 +890,6 @@ const createStyles = (theme: AppTheme) => {
       textAlign: "center",
       lineHeight: 18,
       paddingHorizontal: 12,
-    },
-    exposureOverlay: {
-      backgroundColor: "#FFF9F2",
-      borderRadius: 15,
-    },
-    scannerBeam: {
-      position: "absolute",
-      left: 0,
-      right: 0,
-      height: 34,
-      justifyContent: "center",
-      zIndex: 4,
-    },
-    scannerLine: {
-      height: 2.5,
-      width: "100%",
-      shadowColor: "#F5C563",
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.9,
-      shadowRadius: 5,
-      elevation: 3,
-    },
-    flashOverlay: {
-      backgroundColor: "#FFFFFF",
-      zIndex: 9999,
     },
     imagePreviewWrapper: {
       width: "100%",

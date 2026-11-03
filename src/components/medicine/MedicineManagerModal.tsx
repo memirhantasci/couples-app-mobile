@@ -75,7 +75,7 @@ interface MedicineManagerModalProps {
   onClose: () => void;
   onDelete: (id: number) => void;
   /** Return `false` to block switching a registered medicine into edit mode (e.g. demo mode). */
-  onBeforeEdit?: () => boolean;
+  onBeforeEdit?: (med?: MedicineItem) => boolean;
 }
 
 /**
@@ -192,7 +192,7 @@ function MedicineManagerForm({
   };
 
   const handleEditRegistered = (med: MedicineItem) => {
-    if (onBeforeEdit && !onBeforeEdit()) return;
+    if (onBeforeEdit && !onBeforeEdit(med)) return;
     const data = medicineToFormData(med, userId);
     setEditingMedicineId(med.id);
     setMedName(med.name);

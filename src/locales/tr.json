@@ -2089,7 +2089,8 @@
       "addToList": "İlacı Listeye Ekle",
       "doseTimePickerTitle": "Doz Saati",
       "startPickerTitle": "Başlangıç Tarihi",
-      "endPickerTitle": "Bitiş Tarihi"
+      "endPickerTitle": "Bitiş Tarihi",
+      "partnerCannotEdit": "Bu ilaç sevgiline ait olduğu için yalnızca sevgilin kendi hesabından düzenleyebilir."
     },
     "notify": {
       "drankBody": "{{senderName}}, {{medName}} ilacını içti. İçin rahat olsun! 🌿"
@@ -2113,7 +2114,8 @@
     },
     "toasts": {
       "updated": "İlaç bilgisi güncellendi 🎉",
-      "saved": "Yeni ilaç kaydedildi 🎉"
+      "saved": "Yeni ilaç kaydedildi 🎉",
+      "deleted": "İlaç silindi"
     },
     "push": {
       "newTitle": "Yeni İlaç Eklendi 💊",
@@ -2122,7 +2124,9 @@
     },
     "delete": {
       "title": "İlacı Sil",
-      "message": "Bu ilacı silmek istediğinize emin misiniz?"
+      "message": "Bu ilacı silmek istediğinize emin misiniz?",
+      "partnerTitle": "Sevgilinin İlacı 🌿",
+      "partnerCannotDelete": "Bu ilaç sevgiline ait olduğu için yalnızca sevgilin kendi hesabından silebilir."
     },
     "subtitle": "Günlük Sağlık Hatırlatıcısı 💊",
     "manage": {
