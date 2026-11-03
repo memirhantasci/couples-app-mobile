@@ -202,11 +202,16 @@ export default function MemoriesScreen() {
   const isFocused = useIsFocused();
   const [milestone, setMilestone] = useState<MilestoneData | null>(null);
 
-  // Sekmeye her dönüldüğünde en güncel veriyi çek
+  // Sekmeye dönüldüğünde anılar yalnızca bayatlamışsa (5 dk staleTime dolmuş ya da geçersiz kılınmışsa) yenilenir.
+  // Koşulsuz refetch() önbelleği eziyordu: sekmeler arasında gezinirken tüm sayfalar ağdan inip baştan çözülüyordu.
+  // Anılar için gerçek zamanlı kanal yok; partnerin eklediği anı bu yolla (ve aşağı çekip yenilemeyle) görünür.
   useFocusEffect(
     useCallback(() => {
-      refetch();
-    }, [refetch])
+      queryClient.refetchQueries(
+        { queryKey: memoriesQueryKey(coupleId, isDemoMode), stale: true },
+        { cancelRefetch: false }
+      );
+    }, [queryClient, coupleId, isDemoMode])
   );
 
   useEffect(() => {

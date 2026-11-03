@@ -17,6 +17,7 @@ import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
+import { File } from "expo-file-system";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { formEntryOf } from "@/lib/formEntry";
 import { useQueryClient } from "@tanstack/react-query";
@@ -50,6 +51,14 @@ interface LocationData {
 }
 
 const INFO_REVEAL = FadeInDown.duration(280);
+
+/**
+ * Yükleme gövdesini kayıt anında diskteki dosyadan okur (base64 → ArrayBuffer). Megabaytlık base64 dizgileri
+ * React state'inde tutulmaz: yalnızca bu çağrı süresince yaşar, ardından çöp toplayıcıya kalır (OOM engeli).
+ */
+async function readPhotoBody(uri: string): Promise<ArrayBuffer> {
+  return decode(await new File(uri).base64());
+}
 
 /** Seçilen fotoğraf çat diye belirmek yerine hafifçe büyüyüp solarak yerine oturur. */
 function SettlingPhoto({ style, children }: { style: StyleProp<ViewStyle>; children: ReactNode }) {
@@ -89,12 +98,11 @@ export default function AddPhotoScreen() {
   const isPremium = (profile?.isPremium ?? false) || isDemoMode;
   const [showPaywall, setShowPaywall] = useState(false);
 
-  const [localImage, setLocalImage] = useState<{ 
-    uri: string; 
-    base64?: string;
-    thumbUri?: string; 
-    thumbBase64?: string;
-    fileSize?: number; 
+  // Yalnızca dosya yolları tutulur; base64 kayıt anında dosyadan okunur (bkz. readPhotoBody)
+  const [localImage, setLocalImage] = useState<{
+    uri: string;
+    thumbUri?: string;
+    fileSize?: number;
     exif?: any;
   } | null>(null);
   const [takenDate, setTakenDate] = useState(todayString());
@@ -206,28 +214,27 @@ export default function AddPhotoScreen() {
         setExifGpsFound(false);
       }
 
-      // Tam boy görsel: maks 1600px, JPEG %80 kalite, base64: true (küçük fotoğraflar büyütülmez)
+      // Tam boy görsel: maks 1600px, JPEG %80 kalite (küçük fotoğraflar büyütülmez).
+      // base64 üretilmez: dosya diskte kalır, yalnızca kayıt anında okunur (JS heap'e megabaytlık dizge girmez)
       const actions: ImageManipulator.Action[] =
         asset.width && asset.width > 1600 ? [{ resize: { width: 1600 } }] : [];
       const compressed = await ImageManipulator.manipulateAsync(
         asset.uri,
         actions,
-        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
       );
 
-      // Thumbnail: 300px JPEG %70 kalite, base64: true
+      // Thumbnail: 300px JPEG %70 kalite
       const thumbnail = await ImageManipulator.manipulateAsync(
         asset.uri,
         [{ resize: { width: 300 } }],
-        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
       );
 
-      setLocalImage({ 
-        uri: compressed.uri, 
-        base64: compressed.base64,
-        thumbUri: thumbnail.uri, 
-        thumbBase64: thumbnail.base64,
-        exif: asset.exif 
+      setLocalImage({
+        uri: compressed.uri,
+        thumbUri: thumbnail.uri,
+        exif: asset.exif
       });
 
     } catch (error) {
@@ -291,18 +298,23 @@ export default function AddPhotoScreen() {
         return;
       }
 
-      if (!localImage.base64) {
-        throw new Error(t("photos.add.processFailed"));
-      }
-
-      // Tam boy görsel yükleme — base64 decode ile doğrudan ArrayBuffer yüklemesi.
+      // Tam boy görsel yükleme — dosya yalnızca şimdi okunur: base64 → ArrayBuffer geçici bir değişkendir,
+      // yükleme bitince çöp toplayıcıya kalır. Dosya okunamazsa (ör. önbellek sistem tarafından temizlenmişse) anlaşılır hata verilir.
       // Bucket private: veritabanına URL değil yalnızca depolama yolu yazılır, görüntülerken imzalanır.
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
       const filePath = `${coupleId}/${fileName}`;
 
+      let fileBody: ArrayBuffer;
+      try {
+        fileBody = await readPhotoBody(localImage.uri);
+      } catch (readError) {
+        logger.error("Photo read error:", readError);
+        throw new Error(t("photos.add.processFailed"));
+      }
+
       const { error: uploadError } = await supabase.storage
         .from("photos")
-        .upload(filePath, decode(localImage.base64), {
+        .upload(filePath, fileBody, {
           contentType: "image/jpeg",
         });
 
@@ -310,13 +322,13 @@ export default function AddPhotoScreen() {
 
       // Thumbnail yükleme — galeri ızgarası için hızlı küçük resim
       let thumbPath: string | null = null;
-      if (localImage.thumbBase64) {
+      if (localImage.thumbUri) {
         try {
           const thumbFileName = `${Date.now()}_${Math.random().toString(36).substring(7)}_thumb.jpg`;
           const thumbFilePath = `${coupleId}/thumbs/${thumbFileName}`;
           const { error: thumbError } = await supabase.storage
             .from("photos")
-            .upload(thumbFilePath, decode(localImage.thumbBase64), { contentType: "image/jpeg" });
+            .upload(thumbFilePath, await readPhotoBody(localImage.thumbUri), { contentType: "image/jpeg" });
           if (!thumbError) thumbPath = thumbFilePath;
         } catch (thumbErr) {
           // Thumbnail başarısız olsa bile ana görsel yüklemeye devam et

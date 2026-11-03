@@ -1,5 +1,6 @@
 import { useState, useEffect, memo, useCallback, useRef } from "react";
 import {
+  AppState,
   View,
   Text,
   StyleSheet,
@@ -84,18 +85,42 @@ export const MeetingCountdown = memo(function MeetingCountdown({ meeting, theme,
   // Buluşma bugün ama saati henüz gelmedi: geri sayım sürer, kart kavuşma gününe bürünür
   const [isMeetingDay] = useState(() => dayjs(targetDate).isSame(dayjs(), "day"));
 
-  useEffect(() => {
-    if (countdown.isPast) return;
+  // Sayaç yalnızca bu ekran odaktayken ve uygulama öndeyken tiklar. Sekmeler bellekte kaldığı için aksi halde
+  // başka bir sekmedeyken ya da arka planda saniyede bir render + yaylı rakam animasyonu sürüp pil tüketirdi.
+  // Odağa / öne dönüşte önce o anki gerçek farkla eşitlenir (rakamlar bayat kalmaz), sonra saniyelik tik yeniden başlar.
+  useFocusEffect(
+    useCallback(() => {
+      if (countdown.isPast) return;
 
-    const interval = setInterval(() => {
-      const next = getCountdown(targetDate);
-      setCountdown(next);
-      if (next.isPast) {
-        clearInterval(interval);
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [targetDate, countdown.isPast]);
+      let interval: ReturnType<typeof setInterval> | null = null;
+      const stop = () => {
+        if (interval) clearInterval(interval);
+        interval = null;
+      };
+      const sync = () => {
+        const next = getCountdown(targetDate);
+        setCountdown(next);
+        return next;
+      };
+      const start = () => {
+        if (interval) return;
+        if (sync().isPast) return;
+        interval = setInterval(() => {
+          if (sync().isPast) stop();
+        }, 1000);
+      };
+
+      if (AppState.currentState === "active") start();
+      const subscription = AppState.addEventListener("change", (state) => {
+        if (state === "active") start();
+        else stop();
+      });
+      return () => {
+        subscription.remove();
+        stop();
+      };
+    }, [targetDate, countdown.isPast])
+  );
 
   const openDirections = () => {
     if (meeting.latitude && meeting.longitude) {

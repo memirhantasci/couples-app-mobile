@@ -1405,6 +1405,7 @@
     "genericWithMessage": "Bir hata oluştu: {{message}}",
     "unknown": "Bilinmeyen hata",
     "generic": "Bir hata oluştu.",
+    "adLimitReached": "Günlük reklam ödülü sınırına ulaştın. Daha sonra tekrar deneyebilirsin.",
     "actionFailed": "İşlem sırasında bir hata oluştu."
   },
   "menu": {

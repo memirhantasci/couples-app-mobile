@@ -9,7 +9,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Modal } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, interpolate, Easing } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, interpolate, Easing, cancelAnimation } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { hapticStamp, hapticTap, hapticSuccess } from '@/lib/soundEffects';
 import { Radio, Crosshair, Navigation, X } from 'lucide-react-native';
@@ -112,6 +112,10 @@ export const HomeRadarOverlay: React.FC<HomeRadarOverlayProps> = ({
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(tComplete);
+      // Sonsuz tekrarlı döngüler (ışın + iki nabız dalgası) kapanışta / yeniden kurulumda UI iş parçacığında sürmesin
+      cancelAnimation(sweepAngle);
+      cancelAnimation(pulse1);
+      cancelAnimation(pulse2);
     };
   }, [visible, onComplete, t]);
 

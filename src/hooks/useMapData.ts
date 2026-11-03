@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFocusEffect } from "expo-router";
 
 import type {
@@ -34,10 +34,11 @@ const MAX_MAP_PINS = 200;
 
 /**
  * Harita ekranının üç veri kaynağı: fotoğraf pinleri (yalnızca Premium), aşk notları ve buluşmalar.
- * Ekran her odaklandığında üçünü de yeniler.
+ * Ekran odaklandığında bayatlamış olanları yeniler (taze veri için ağ isteği yapılmaz).
  */
 export function useMapData({ coupleId, isPremium, isDemoMode }: UseMapDataArgs) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   // ─── 1. Fotoğraf Pinleri (description dahil) ──────────────────────────────
   const photosQuery = useQuery<PhotoPin[]>({
     queryKey: ["map_photos", coupleId, isDemoMode],
@@ -142,22 +143,20 @@ export function useMapData({ coupleId, isPremium, isDemoMode }: UseMapDataArgs) 
   const mapNotes = notesQuery.data ?? NO_NOTES;
   const meetingPins = meetingsQuery.data ?? NO_MEETINGS;
 
-  const { refetch: refetchPhotos } = photosQuery;
-  const { refetch: refetchNotes } = notesQuery;
-  const { refetch: refetchMeetings } = meetingsQuery;
-
-  // Sayfaya her gelindiğinde güncel verileri otomatik yenile. refetch() `enabled: false` ayarını
-  // aşıp sorguyu zorla çalıştırır; bu yüzden yalnızca etkin sorgular yenilenir (ücretsiz kullanıcının
-  // fotoğraf sorgusu ve Storage imza işlemleri her sekme geçişinde boşuna çalışmasın).
+  // Sayfaya gelindiğinde yalnızca bayatlamış (staleTime'ı dolmuş ya da geçersiz kılınmış) sorgular yenilenir:
+  // sekmeler arasında gezinirken önbellek geçerliyken ağ isteği yapılmaz. Koşulsuz refetch() staleTime'ı eziyordu.
+  // refetchQueries etkin olmayan (enabled: false) sorguları atlar, yani ücretsiz kullanıcının fotoğraf sorgusu ve
+  // Storage imza işlemleri boşuna çalışmaz; cancelRefetch: false, süren bir yüklemeyi baştan başlatmaz.
   useFocusEffect(
     useCallback(() => {
       if (!coupleId && !isDemoMode) return;
-      if (isPremium || isDemoMode) {
-        refetchPhotos();
+      for (const key of ["map_photos", "map_notes", "map_meetings"]) {
+        queryClient.refetchQueries(
+          { queryKey: [key, coupleId, isDemoMode], stale: true },
+          { cancelRefetch: false },
+        );
       }
-      refetchNotes();
-      refetchMeetings();
-    }, [coupleId, isDemoMode, isPremium, refetchPhotos, refetchNotes, refetchMeetings]),
+    }, [coupleId, isDemoMode, queryClient]),
   );
 
   // MapStoryModal için: tüm pinler, en yeni en başta (modal ilk/son durağı buna göre seçer).

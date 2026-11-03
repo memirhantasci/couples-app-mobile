@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { View, Text, TouchableOpacity, Modal, StyleSheet, ActivityIndicator, TurboModuleRegistry, Platform } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { DialogHost } from "@/components/ui/DialogHost";
@@ -36,6 +36,9 @@ const productionRewardedId = Platform.select({
 });
 
 const adUnitId = resolveAdUnitId(productionRewardedId, TestIds?.REWARDED);
+
+/** `earn_tokens` RPC'si günlük reklam ödülü sınırı dolunca bu SQLSTATE ile hata verir (bkz. migration 023). */
+const AD_LIMIT_ERROR_CODE = "P0003";
 
 // Mock hook for Expo Go where native ads binary is absent
 function useRewardedAdMock() {
@@ -82,9 +85,24 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
     }
   }, [error, t]);
 
+  // Gösterilen reklam başına en fazla bir `earn_tokens` talebi: effect yeniden çalışsa bile aynı ödül iki kez istenmez.
+  const claimedRef = useRef(false);
+
+  // MİMARİ NOT — sunucu tarafı doğrulama (AdMob SSV):
+  // Ödül bugün istemcideki reklam SDK'sının "ödül kazanıldı" olayına (isEarnedReward ↔ onUserEarnedReward) güvenerek
+  // `earn_tokens` RPC'siyle verilir; sunucu reklamın gerçekten izlenip izlenmediğini DOĞRULAYAMAZ. Tek sunucu önlemi,
+  // kullanıcı başına 24 saatte en çok 25 ödüldür (aşılınca P0003). Uygulamayı hiç açmadan RPC'yi doğrudan çağıran biri bu
+  // sınıra kadar token toplayabilir. Hedef: AdMob Server-Side Verification. Ödüllü reklam biriminin SSV geri çağrı adresi bir
+  // Supabase Edge Function'a verilir; AdMob reklam tamamlanınca imzalı isteği (Google'ın açık anahtarlarıyla doğrulanan
+  // imza, transaction_id ile tekilleştirme) gönderir ve token'ı YALNIZCA bu doğrulanmış çağrı yazar. İstemci,
+  // `serverSideVerificationOptions` (userId / customData) ile kullanıcıyı reklama iliştirir, ödülden sonra yalnızca profili
+  // yenileyip sonucu gösterir ve `earn_tokens` istemci erişimine kapatılır (REVOKE).
+  //
   // Yalnızca reklam kapandığında effect'ten çağrılır; güncel refreshProfile / onSuccess'i görür.
   // Durum güncellemeleri istek zincirinin içinde yapılır (effect gövdesinde senkron değil).
   const handleEarnReward = useEffectEvent(() => {
+    if (claimedRef.current) return;
+    claimedRef.current = true;
     void Promise.resolve()
       .then(async () => {
         setRewarding(true);
@@ -100,6 +118,13 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
         onSuccess();
       })
       .catch((error: any) => {
+        if (error?.code === AD_LIMIT_ERROR_CODE) {
+          // Günlük sınır dolu: hata değil nazik bir bilgi. Toast açık bir modalın arkasında kalacağından modal kapanır
+          // ve toast kapanışı bekler; böylece kullanıcı sınırı aşmış bir reklamı boşuna tekrar izlemeye davet edilmez.
+          onClose();
+          toast.info(t("errors.adLimitReached"), { delay: 350 });
+          return;
+        }
         logger.error("Earn token error:", error);
         appAlert(t("common.error"), t("ads.addFailed"));
       })
@@ -110,6 +135,7 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
 
   useEffect(() => {
     if (isClosed) {
+      // Yalnızca SDK ödülün kazanıldığını bildirdiyse (onUserEarnedReward) sunucuya gidilir
       if (isEarnedReward) {
         handleEarnReward();
       } else {
@@ -121,6 +147,8 @@ export function WatchAdModal({ visible, onClose, onSuccess }: WatchAdModalProps)
 
   const showAd = () => {
     if (isLoaded) {
+      // Her gösterim en fazla bir ödül verir: yeni reklam açılırken talep kilidi sıfırlanır
+      claimedRef.current = false;
       show();
     }
   };

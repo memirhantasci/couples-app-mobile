@@ -1405,6 +1405,7 @@
     "genericWithMessage": "Something went wrong: {{message}}",
     "unknown": "Unknown error",
     "generic": "Something went wrong.",
+    "adLimitReached": "You've reached the daily ad reward limit. Please try again later.",
     "actionFailed": "An error occurred during the action."
   },
   "menu": {
