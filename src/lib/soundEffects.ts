@@ -33,8 +33,66 @@ let isSoundEnabledCache: boolean | null = null;
 let isHapticEnabledCache: boolean | null = null;
 let isAudioModeConfigured = false;
 
-// Audio player instances cache (singleton pool)
-const playerPool = new Map<SoundEffectType, AudioPlayer>();
+// ─── Ses Havuzu, Soğuma Kalkanı ve Eşzamanlılık Sınırı ──────────────────────
+// Hızlı art arda dokunuşta (spam-click) yerel ses motoruna ve titreşim motoruna binen yükü sınırlar:
+//  1. Her ses tipi, kendi minimum aralığından sık gelen istekleri yerel motora hiç iletmeden düşürür.
+//  2. Her tip sabit sayıda oynatıcıyla (round-robin) çalar; çalışma anında havuz büyümez.
+//  3. Aynı anda en fazla MAX_ACTIVE_EFFECTS efekt çalar; fazlası için en eskisi susturulur.
+
+/** Aynı sesin iki tetiklenmesi arasındaki en kısa süre (ms). */
+const MIN_INTERVAL_MS: Record<SoundEffectType, number> = {
+  bubble_pop: 60,
+  celestial_chime: 120,
+  stamp_drop: 120,
+  camera_click: 150,
+  success_chime: 300,
+  letter_send: 350,
+  celebration: 500,
+};
+
+/** Tip başına oynatıcı sayısı: ardışık tetiklemeler öncekini kesmeden üst üste yankılanır. */
+const POOL_SIZE: Record<SoundEffectType, number> = {
+  bubble_pop: 3,
+  celestial_chime: 2,
+  stamp_drop: 2,
+  camera_click: 1,
+  success_chime: 1,
+  letter_send: 1,
+  celebration: 1,
+};
+
+/** Fon müziği (cosmic_ambient) hariç, aynı anda çalabilecek efekt sayısı. */
+const MAX_ACTIVE_EFFECTS = 4;
+/** play() sonrası native `playing` bayrağı gecikebilir: bu süre boyunca efekt çalıyor sayılır. */
+const START_GRACE_MS = 400;
+/** Başa sarma bu sürede dönmezse beklemeden çalınır (sessiz kalmaktansa devam). */
+const SEEK_TIMEOUT_MS = 80;
+
+interface PlayerSlot {
+  players: AudioPlayer[];
+  index: number;
+}
+
+const soundPool = new Map<SoundEffectType, PlayerSlot>();
+/** Bir kez çalmış oynatıcılar: yeni oynatıcı zaten başta olduğundan ilk çalışta sarma atlanır. */
+const playedPlayers = new WeakSet<AudioPlayer>();
+const activeEffects: { player: AudioPlayer; startedAt: number }[] = [];
+
+// Saat ayarı değişse bile aralık negatife düşmesin diye monoton saat kullanılır
+const nowMs = () => globalThis.performance?.now?.() ?? Date.now();
+
+const lastPlayTimes = Object.fromEntries(
+  (Object.keys(MIN_INTERVAL_MS) as SoundEffectType[]).map((type) => [type, Number.NEGATIVE_INFINITY])
+) as Record<SoundEffectType, number>;
+const lastHapticTimes = { ...lastPlayTimes };
+
+/** Son tetiklenmeden beri yeterli süre geçtiyse zamanı işler ve true döner; aksi halde isteği düşürür. */
+function passCooldown(times: Record<SoundEffectType, number>, type: SoundEffectType): boolean {
+  const now = nowMs();
+  if (now - times[type] < MIN_INTERVAL_MS[type]) return false;
+  times[type] = now;
+  return true;
+}
 
 /**
  * Configure audio mode to respect device silent mode (iPhone silent switch / Android mute).
@@ -61,7 +119,7 @@ export function warmUpSoundEffects(): void {
   ensureAudioMode().catch(() => {});
   try {
     for (const key of Object.keys(SOUND_ASSETS) as SoundEffectType[]) {
-      getOrCreatePlayer(key);
+      getOrCreateSlot(key);
     }
   } catch (err) {
     logger.log('[SoundEffects] Warm-up notice:', err);
@@ -69,7 +127,7 @@ export function warmUpSoundEffects(): void {
 }
 
 // Açılışla yarışmasın: ilk ekran çizildikten sonra arka planda hazırla (ilk dokunuşta yine de anında çalar,
-// çünkü getOrCreatePlayer eksik oynatıcıyı o an oluşturur)
+// çünkü getOrCreateSlot eksik havuzu o an oluşturur)
 setTimeout(() => {
   warmUpSoundEffects();
 }, 3000);
@@ -95,6 +153,7 @@ export async function setSoundEffectsEnabled(enabled: boolean): Promise<void> {
   isSoundEnabledCache = enabled;
   if (!enabled) {
     stopCosmicAmbient();
+    pauseAllEffects();
   }
   try {
     await AsyncStorage.setItem(STORAGE_KEY_SOUND, enabled ? 'true' : 'false');
@@ -212,8 +271,15 @@ export async function hapticHeartbeat(): Promise<void> {
  * Trigger tactile haptic feedback matching the interaction.
  * Tüm efektler platforma duyarlı `fireHaptic` üzerinden geçer (iOS'ta çağrılar öncekiyle aynıdır;
  * Android'de önerilen sistem dokunsal geri bildirimi kullanılır). Tercih kontrolü orada yapılır.
+ * Sesin soğuma süresine bağlıdır: saniyede onlarca dokunuşta titreşim motoru yığılmaz.
  */
 export async function triggerHaptic(type: SoundEffectType): Promise<void> {
+  if (!passCooldown(lastHapticTimes, type)) return;
+  await dispatchHaptic(type);
+}
+
+/** Soğuma kontrolü yapılmış bir efektin titreşimini verir (`playSoundEffect` kalkanı zaten geçti). */
+async function dispatchHaptic(type: SoundEffectType): Promise<void> {
   switch (type) {
     case 'bubble_pop':
       // Ruh hali seçimi: akıcı tekerlek tıkı (eskiden hafif darbe)
@@ -236,21 +302,93 @@ export async function triggerHaptic(type: SoundEffectType): Promise<void> {
 }
 
 /**
- * Get or initialize an AudioPlayer instance for a given sound effect.
+ * Get or initialize the fixed-size player pool for a given sound effect.
+ * Havuz tek seferde ve tam boyutta kurulur; sonradan yeni oynatıcı eklenmez.
  */
-function getOrCreatePlayer(type: SoundEffectType): AudioPlayer | null {
+function getOrCreateSlot(type: SoundEffectType): PlayerSlot | null {
+  const existing = soundPool.get(type);
+  if (existing) return existing;
+  const players: AudioPlayer[] = [];
   try {
-    if (playerPool.has(type)) {
-      return playerPool.get(type)!;
+    for (let i = 0; i < POOL_SIZE[type]; i++) {
+      players.push(createAudioPlayer(SOUND_ASSETS[type]));
     }
-    const source = SOUND_ASSETS[type];
-    const player = createAudioPlayer(source);
-    playerPool.set(type, player);
-    return player;
   } catch (err) {
+    // Yarım kalan havuz bırakılmaz: oluşanlar serbest bırakılır, sonraki istek yeniden dener
+    for (const player of players) {
+      try {
+        player.remove();
+      } catch {}
+    }
     logger.log('[SoundEffects] Player creation fallback:', err);
     return null;
   }
+  const slot: PlayerSlot = { players, index: 0 };
+  soundPool.set(type, slot);
+  return slot;
+}
+
+function isPlayerPlaying(player: AudioPlayer): boolean {
+  try {
+    return player.playing;
+  } catch {
+    return false;
+  }
+}
+
+function safePause(player: AudioPlayer): void {
+  try {
+    player.pause();
+  } catch {}
+}
+
+/** Havuzdaki tüm efekt oynatıcılarını durdurur (arka plan, ses kapatma). Fon müziğine dokunmaz. */
+function pauseAllEffects(): void {
+  activeEffects.length = 0;
+  for (const slot of soundPool.values()) {
+    for (const player of slot.players) {
+      if (isPlayerPlaying(player)) safePause(player);
+    }
+  }
+}
+
+/**
+ * Yeni bir efekt için eşzamanlılık yerini ayırır: biten sesler listeden düşer, sınır doluysa
+ * en eski çalan efekt susturulur.
+ */
+function reserveActiveSlot(player: AudioPlayer): void {
+  const now = nowMs();
+  let kept = 0;
+  for (const entry of activeEffects) {
+    if (entry.player !== player && (now - entry.startedAt < START_GRACE_MS || isPlayerPlaying(entry.player))) {
+      activeEffects[kept++] = entry;
+    }
+  }
+  activeEffects.length = kept;
+  while (activeEffects.length >= MAX_ACTIVE_EFFECTS) {
+    safePause(activeEffects.shift()!.player);
+  }
+  activeEffects.push({ player, startedAt: now });
+}
+
+/**
+ * expo-audio ses bitince otomatik başa dönmediği için çalmış oynatıcı başa sarılır. Sarma,
+ * yerel kuyruğa binmesin diye beklenir; ama dönmezse ses kaybolmasın diye süre sınırı vardır.
+ */
+function rewind(player: AudioPlayer): Promise<void> {
+  if (!playedPlayers.has(player)) return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    const timer = setTimeout(resolve, SEEK_TIMEOUT_MS);
+    const done = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    try {
+      player.seekTo(0).then(done, done);
+    } catch {
+      done();
+    }
+  });
 }
 
 export interface PlaySoundOptions {
@@ -262,8 +400,13 @@ export interface PlaySoundOptions {
  * Play a specific sound effect and trigger its synchronized haptic feedback.
  */
 export async function playSoundEffect(type: SoundEffectType, { haptic = true }: PlaySoundOptions = {}): Promise<void> {
+  if (Platform.OS === 'web') return;
+
+  // 0. Soğuma kalkanı: çok sık gelen istek ne sese ne titreşime iletilir
+  if (!passCooldown(lastPlayTimes, type)) return;
+
   // 1. Trigger haptics immediately for responsive tactile feel
-  if (haptic) triggerHaptic(type).catch(() => {});
+  if (haptic) dispatchHaptic(type).catch(() => {});
 
   // 2. Check if sound is enabled
   const soundEnabled = await getSoundEffectsEnabled();
@@ -272,15 +415,22 @@ export async function playSoundEffect(type: SoundEffectType, { haptic = true }: 
   // 3. Play audio
   try {
     await ensureAudioMode();
-    const player = getOrCreatePlayer(type);
-    if (!player) return;
+    const slot = getOrCreateSlot(type);
+    if (!slot) return;
 
-    // expo-audio ses bitince otomatik başa dönmediği için her seferinde 0'a sar
-    try {
-      player.seekTo(0);
-    } catch (_) {}
+    // Round-robin: ardışık tetiklemeler sıradaki oynatıcıya gider, öncekini kesmez
+    const player = slot.players[slot.index];
+    slot.index = (slot.index + 1) % slot.players.length;
+
+    if (isPlayerPlaying(player)) safePause(player);
+    reserveActiveSlot(player);
+    await rewind(player);
+
+    // Sarma beklenirken ses kapatıldıysa ya da uygulama arka plana geçtiyse çalma
+    if (isSoundEnabledCache === false || AppState.currentState === 'background') return;
 
     player.play();
+    playedPlayers.add(player);
   } catch (err) {
     logger.log('[SoundEffects] Play error (silent fallback):', err);
   }
@@ -348,6 +498,7 @@ if (Platform.OS !== 'web') {
   AppState.addEventListener('change', (state) => {
     if (state !== 'active') {
       pauseAmbientNow();
+      pauseAllEffects();
     } else if (ambientWanted) {
       if (!ambientPlayer) {
         // Başlatma arka plandayken geldi ve oynatıcıyı kurmadan döndü
