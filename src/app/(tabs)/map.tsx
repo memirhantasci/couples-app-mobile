@@ -535,6 +535,7 @@ export default function MapScreen() {
               key={`photo-${photo.id}`}
               photo={photo}
               avatarUrl={getAvatarUrl(photo.user_id)}
+              isLight={isLight}
               onSelect={handleMarkerPress}
             />
           ))}

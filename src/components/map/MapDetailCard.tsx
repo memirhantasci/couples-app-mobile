@@ -14,6 +14,7 @@ import {
 } from "lucide-react-native";
 import type { ReactNode } from "react";
 
+import { useTheme } from "@/context/ThemeContext";
 import { dayjs } from "@/lib/date";
 import { openDirections } from "./openDirections";
 import type { MapNote, MeetingPin, PhotoPin, SelectedItem } from "./mapTypes";
@@ -50,6 +51,31 @@ function getMeetingCountdown(meetingDateStr: string, t: TFunction): string {
   return t("map.meetingCountdown.days", { count: calendarDays });
 }
 
+/**
+ * Kart harita üstünde cam bir yüzeydir: koyu temada beyaz yazılar korunur, açık temada
+ * (pudra pembesi / buz mavisi) aynı alanlar tema metin ve yüzey renklerine geçer.
+ * `light` koyu temada null'dır; çağıranlar `light && {...}` ile üstüne yazar.
+ */
+function useDetailPalette() {
+  const { theme, isLight } = useTheme();
+  const light = isLight
+    ? {
+        text: theme.text,
+        textSecondary: theme.textSecondary,
+        textMuted: theme.textMuted,
+        closeBg: "rgba(0,0,0,0.06)",
+        thumbBorder: "rgba(0,0,0,0.1)",
+        boxBg: theme.unitBg,
+        boxBorder: theme.cardBorder,
+        secondaryBg: "rgba(0,0,0,0.05)",
+        // Açık zeminde pastel mor okunmaz: aynı ailenin koyu tonları
+        meetingDate: "#6D28D9",
+        meetingCountdown: "#5B21B6",
+      }
+    : null;
+  return { theme, light };
+}
+
 // ─── ORTAK BAŞLIK (Rozet + Kapat) ─────────────────────────────────────────────
 function DetailHeader({
   icon,
@@ -63,6 +89,7 @@ function DetailHeader({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const { theme, light } = useDetailPalette();
   return (
     <View style={styles.detailCardHeader}>
       <View style={[styles.detailBadge, badgeColor ? { backgroundColor: badgeColor } : null]}>
@@ -71,10 +98,10 @@ function DetailHeader({
       </View>
       <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")}
         onPress={onClose}
-        style={styles.detailCloseBtn}
+        style={[styles.detailCloseBtn, light && { backgroundColor: light.closeBg }]}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <X size={16} color="rgba(255,255,255,0.7)" />
+        <X size={16} color={light ? theme.textSecondary : "rgba(255,255,255,0.7)"} />
       </TouchableOpacity>
     </View>
   );
@@ -106,6 +133,7 @@ function PhotoDetail({
   onDeletePhoto: (photo: PhotoPin) => void;
 }) {
   const { t, i18n } = useTranslation();
+  const { light } = useDetailPalette();
   return (
     <View style={styles.detailCardBody}>
       <DetailHeader
@@ -120,21 +148,21 @@ function PhotoDetail({
           activeOpacity={0.85}
           style={styles.photoThumbContainer}
         >
-          <StorageImage bucket="photos" path={photo.thumb_path || photo.storage_path} style={styles.photoDetailThumb} contentFit="cover" />
+          <StorageImage bucket="photos" path={photo.thumb_path || photo.storage_path} style={[styles.photoDetailThumb, light && { borderColor: light.thumbBorder }]} contentFit="cover" />
           <View style={styles.zoomIconBadge}>
             <ZoomIn size={12} color="#fff" />
           </View>
         </TouchableOpacity>
 
         <View style={styles.photoDetailInfo}>
-          <Text style={styles.photoDetailTitle} numberOfLines={2}>
+          <Text style={[styles.photoDetailTitle, light && { color: light.text }]} numberOfLines={2}>
             {photo.title || t("map.detail.photoMemory")}
           </Text>
-          <Text style={styles.photoDetailDate}>
+          <Text style={[styles.photoDetailDate, light && { color: light.textSecondary }]}>
             📅 {dayjs(photo.taken_date).locale(i18n.language).format("D MMMM YYYY")}
           </Text>
           {photo.location_name ? (
-            <Text style={styles.photoDetailLocation} numberOfLines={1}>
+            <Text style={[styles.photoDetailLocation, light && { color: light.textSecondary }]} numberOfLines={1}>
               📍 {photo.location_name}
             </Text>
           ) : null}
@@ -143,8 +171,8 @@ function PhotoDetail({
 
       {/* Fotoğraf Açıklaması */}
       {photo.description ? (
-        <View style={styles.descriptionBox}>
-          <Text style={styles.descriptionText} numberOfLines={3}>
+        <View style={[styles.descriptionBox, light && { backgroundColor: light.boxBg, borderColor: light.boxBorder }]}>
+          <Text style={[styles.descriptionText, light && { color: light.text }]} numberOfLines={3}>
             {photo.description}
           </Text>
         </View>
@@ -161,12 +189,12 @@ function PhotoDetail({
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.actionBtnSecondary}
+          style={[styles.actionBtnSecondary, light && { backgroundColor: light.secondaryBg, borderColor: light.boxBorder }]}
           onPress={() => onZoomPhoto(photo)}
           activeOpacity={0.85}
         >
-          <ZoomIn size={14} color="#fff" />
-          <Text style={styles.actionBtnSecondaryText}>{t("map.detail.enlarge")}</Text>
+          <ZoomIn size={14} color={light ? light.text : "#fff"} />
+          <Text style={[styles.actionBtnSecondaryText, light && { color: light.text }]}>{t("map.detail.enlarge")}</Text>
         </TouchableOpacity>
 
         {isOwner && <DeleteButton onPress={() => onDeletePhoto(photo)} />}
@@ -190,6 +218,7 @@ function NoteDetail({
   onDeleteNote: (note: MapNote) => void;
 }) {
   const { t, i18n } = useTranslation();
+  const { light } = useDetailPalette();
   return (
     <View style={styles.detailCardBody}>
       <DetailHeader
@@ -202,8 +231,8 @@ function NoteDetail({
       {/* Not Mesajı Parşömeni */}
       <View style={styles.noteMessageCard}>
         <Text style={styles.quoteMark}>“</Text>
-        <Text style={styles.noteMessageText}>{note.note}</Text>
-        <Text style={styles.noteDateMeta}>
+        <Text style={[styles.noteMessageText, light && { color: light.text }]}>{note.note}</Text>
+        <Text style={[styles.noteDateMeta, light && { color: light.textMuted }]}>
           {dayjs(note.created_at).locale(i18n.language).format("D MMMM YYYY, HH:mm")}
         </Text>
       </View>
@@ -235,6 +264,7 @@ function MeetingDetail({
   onOpenMeetings: () => void;
 }) {
   const { t, i18n } = useTranslation();
+  const { light } = useDetailPalette();
   return (
     <View style={styles.detailCardBody}>
       <DetailHeader
@@ -246,19 +276,19 @@ function MeetingDetail({
 
       <View style={styles.meetingDetailsBox}>
         <View style={styles.meetingTopRow}>
-          <Text style={styles.meetingTitleText}>{meeting.title}</Text>
+          <Text style={[styles.meetingTitleText, light && { color: light.text }]}>{meeting.title}</Text>
           <View style={styles.meetingCountdownBadge}>
-            <Text style={styles.meetingCountdownText}>
+            <Text style={[styles.meetingCountdownText, light && { color: light.meetingCountdown }]}>
               {getMeetingCountdown(meeting.meeting_datetime, t)}
             </Text>
           </View>
         </View>
 
-        <Text style={styles.meetingDatetimeText}>
+        <Text style={[styles.meetingDatetimeText, light && { color: light.meetingDate }]}>
           🗓️ {dayjs(meeting.meeting_datetime).locale(i18n.language).format("D MMMM YYYY, dddd · HH:mm")}
         </Text>
         {meeting.location_name ? (
-          <Text style={styles.meetingLocationText} numberOfLines={2}>
+          <Text style={[styles.meetingLocationText, light && { color: light.textSecondary }]} numberOfLines={2}>
             📍 {meeting.location_name}
           </Text>
         ) : null}
@@ -275,12 +305,12 @@ function MeetingDetail({
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.actionBtnSecondary}
+          style={[styles.actionBtnSecondary, light && { backgroundColor: light.secondaryBg, borderColor: light.boxBorder }]}
           onPress={onOpenMeetings}
           activeOpacity={0.8}
         >
-          <Text style={styles.actionBtnSecondaryText}>{t("map.detail.seeMeetups")}</Text>
-          <ChevronRight size={14} color="#fff" />
+          <Text style={[styles.actionBtnSecondaryText, light && { color: light.text }]}>{t("map.detail.seeMeetups")}</Text>
+          <ChevronRight size={14} color={light ? light.text : "#fff"} />
         </TouchableOpacity>
       </View>
     </View>
@@ -299,9 +329,25 @@ export function MapDetailCard({
   onDeleteNote,
   onOpenMeetings,
 }: MapDetailCardProps) {
+  const { theme, isLight } = useTheme();
   return (
-    <View style={[styles.detailCardOverlay, { bottom: bottomInset + 85 }]}>
-      <BlurView tint="dark" intensity={95} style={StyleSheet.absoluteFill} />
+    <View
+      style={[
+        styles.detailCardOverlay,
+        isLight && {
+          borderWidth: 1,
+          borderColor: theme.cardBorder,
+          ...theme.cardShadow,
+          // Harita üstünde yüzen kart: tema gölgesinden daha belirgin ayrışır
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.2,
+          shadowRadius: 18,
+          elevation: 25,
+        },
+        { bottom: bottomInset + 85 },
+      ]}
+    >
+      <BlurView tint={isLight ? "light" : "dark"} intensity={95} style={StyleSheet.absoluteFill} />
 
       {item.type === "photo" && (
         <PhotoDetail

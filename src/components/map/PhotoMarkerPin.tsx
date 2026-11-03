@@ -13,6 +13,8 @@ interface PhotoMarkerPinProps {
   photo: PhotoPin;
   /** Fotoğrafı yükleyenin profil fotoğrafı (Premium) — varsa kalp rozetinin yerini alır */
   avatarUrl?: string | null;
+  /** Harita açık temadayken (ör. "silver") beyaz pin sapı zeminde kaybolmasın diye koyulaşır. */
+  isLight?: boolean;
   onSelect: (item: SelectedItem) => void;
 }
 
@@ -20,7 +22,7 @@ interface PhotoMarkerPinProps {
 const TRACKING_GIVE_UP_MS = 5000;
 
 // ─── 1. FOTOĞRAF PİNİ (Polaroid Çerçeveli) ───────────────────────────────────
-function PhotoMarkerPinBase({ photo, avatarUrl, onSelect }: PhotoMarkerPinProps) {
+function PhotoMarkerPinBase({ photo, avatarUrl, isLight = false, onSelect }: PhotoMarkerPinProps) {
   const photoPath = photo.thumb_path || photo.storage_path;
   const photoSource = useStorageImage("photos", photoPath);
 
@@ -30,6 +32,13 @@ function PhotoMarkerPinBase({ photo, avatarUrl, onSelect }: PhotoMarkerPinProps)
   const [renderedUri, setRenderedUri] = useState<string | null>(null);
   // Görselin yüklendiği an (0: henüz yüklenmedi)
   const [loadedAt, setLoadedAt] = useState(0);
+
+  // Harita teması değişince Android'in dondurduğu bitmap yenilensin (sap rengi değişti)
+  const [renderedLight, setRenderedLight] = useState(isLight);
+  if (renderedLight !== isLight) {
+    setRenderedLight(isLight);
+    setTracksViewChanges(true);
+  }
 
   const photoUri = photoSource?.uri ?? null;
   if (photoUri && renderedUri !== photoUri) {
@@ -77,7 +86,7 @@ function PhotoMarkerPinBase({ photo, avatarUrl, onSelect }: PhotoMarkerPinProps)
             </View>
           )}
         </View>
-        <View style={[markerStyles.markerStem, { borderTopColor: "#FFFFFF" }]} />
+        <View style={[markerStyles.markerStem, { borderTopColor: isLight ? "#CBD5E1" : "#FFFFFF" }]} />
       </View>
     </Marker>
   );

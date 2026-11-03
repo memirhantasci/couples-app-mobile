@@ -14,6 +14,7 @@ import { DialogHost } from "@/components/ui/DialogHost";
 import { BlurView } from "expo-blur";
 import { Check, StickyNote, X } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
+import { useTheme } from "@/context/ThemeContext";
 
 interface MapAddNoteModalProps {
   visible: boolean;
@@ -35,8 +36,11 @@ interface NoteFormProps {
 // bu yüzden alan her seferinde boş başlar.
 function MapAddNoteForm({ accent, isSaving, onSave, onClose }: NoteFormProps) {
   const { t } = useTranslation();
+  const { theme, isLight } = useTheme();
   const [noteText, setNoteText] = useState("");
   const hasText = noteText.trim().length > 0;
+  // Açık temada pasif kaydet butonunun zemini soluk gri: beyaz yazı okunmaz, soluk metin rengi kullanılır
+  const saveContentColor = isLight && !hasText ? theme.textMuted : "#FFFFFF";
 
   return (
     <KeyboardAvoidingView
@@ -47,28 +51,42 @@ function MapAddNoteForm({ accent, isSaving, onSave, onClose }: NoteFormProps) {
         <BlurView tint="dark" intensity={70} style={StyleSheet.absoluteFill} />
       </TouchableOpacity>
 
-      <View style={[styles.modalNoteCard, { marginBottom: Platform.OS === "ios" ? 40 : 20 }]}>
+      <View
+        style={[
+          styles.modalNoteCard,
+          isLight && { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow },
+          { marginBottom: Platform.OS === "ios" ? 40 : 20 },
+        ]}
+      >
         <View style={styles.modalNoteHeader}>
           <View style={[styles.modalNoteIconCircle, { backgroundColor: `${accent}20` }]}>
             <StickyNote size={20} color={accent} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.modalNoteTitle}>{t("map.addNote.title")}</Text>
-            <Text style={styles.modalNoteSubtitle}>
+            <Text style={[styles.modalNoteTitle, isLight && { color: theme.text }]}>{t("map.addNote.title")}</Text>
+            <Text style={[styles.modalNoteSubtitle, isLight && { color: theme.textSecondary }]}>
               {t("map.addNote.subtitle")}
             </Text>
           </View>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} style={styles.closeBtn} onPress={onClose}>
-            <X size={18} color="rgba(255,255,255,0.7)" />
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={t("a11y.close")}
+            style={[styles.closeBtn, isLight && styles.closeBtnLight]}
+            onPress={onClose}
+          >
+            <X size={18} color={isLight ? theme.textSecondary : "rgba(255,255,255,0.7)"} />
           </TouchableOpacity>
         </View>
 
         <TextInput
-          style={styles.modalNoteInput}
+          style={[
+            styles.modalNoteInput,
+            isLight && { backgroundColor: theme.unitBg, color: theme.text, borderColor: theme.inputBorder },
+          ]}
           value={noteText}
           onChangeText={setNoteText}
           placeholder={t("map.addNote.placeholder")}
-          placeholderTextColor="rgba(255,255,255,0.4)"
+          placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.4)"}
           multiline
           numberOfLines={4}
           maxLength={300}
@@ -76,19 +94,19 @@ function MapAddNoteForm({ accent, isSaving, onSave, onClose }: NoteFormProps) {
         />
 
         <View style={styles.charCountRow}>
-          <Text style={styles.charCountText}>{noteText.length} / 300</Text>
+          <Text style={[styles.charCountText, isLight && { color: theme.textMuted }]}>{noteText.length} / 300</Text>
         </View>
 
         <View style={styles.modalButtonsRow}>
-          <TouchableOpacity style={styles.modalCancelBtn} onPress={onClose}>
-            <Text style={styles.modalCancelBtnText}>{t("common.cancel")}</Text>
+          <TouchableOpacity style={[styles.modalCancelBtn, isLight && styles.modalCancelBtnLight]} onPress={onClose}>
+            <Text style={[styles.modalCancelBtnText, isLight && { color: theme.textSecondary }]}>{t("common.cancel")}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[
               styles.modalSaveBtn,
               {
-                backgroundColor: hasText ? accent : "rgba(255,255,255,0.15)",
+                backgroundColor: hasText ? accent : isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.15)",
                 opacity: isSaving ? 0.7 : 1,
               },
             ]}
@@ -100,8 +118,8 @@ function MapAddNoteForm({ accent, isSaving, onSave, onClose }: NoteFormProps) {
               <ActivityIndicator size={16} color="#fff" />
             ) : (
               <>
-                <Check size={16} color="#fff" />
-                <Text style={styles.modalSaveBtnText}>{t("map.addNote.submit")}</Text>
+                <Check size={16} color={saveContentColor} />
+                <Text style={[styles.modalSaveBtnText, { color: saveContentColor }]}>{t("map.addNote.submit")}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -174,6 +192,8 @@ const styles = StyleSheet.create({
   },
   modalNoteInput: {
     backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
     borderRadius: 16,
     padding: 14,
     color: "#FFFFFF",
@@ -182,6 +202,9 @@ const styles = StyleSheet.create({
     minHeight: 100,
     textAlignVertical: "top",
     lineHeight: 20,
+  },
+  closeBtnLight: {
+    backgroundColor: "rgba(0,0,0,0.06)",
   },
   charCountRow: {
     alignItems: "flex-end",
@@ -202,6 +225,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 14,
     backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  modalCancelBtnLight: {
+    backgroundColor: "rgba(0,0,0,0.06)",
   },
   modalCancelBtnText: {
     color: "rgba(255,255,255,0.7)",
