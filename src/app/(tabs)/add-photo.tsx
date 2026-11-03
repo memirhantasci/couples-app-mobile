@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect, type ReactNode } from "react";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import {
   View,
@@ -7,7 +7,10 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
+import Animated, { Easing, FadeIn, FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { appAlert } from "@/lib/dialog";
 import { Image } from "expo-image";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
@@ -44,6 +47,24 @@ interface LocationData {
   latitude: number;
   longitude: number;
   locationName?: string;
+}
+
+const INFO_REVEAL = FadeInDown.duration(280);
+
+/** Seçilen fotoğraf çat diye belirmek yerine hafifçe büyüyüp solarak yerine oturur. */
+function SettlingPhoto({ style, children }: { style: StyleProp<ViewStyle>; children: ReactNode }) {
+  const settle = useSharedValue(0);
+
+  useEffect(() => {
+    settle.set(withTiming(1, { duration: 300, easing: Easing.out(Easing.quad) }));
+  }, [settle]);
+
+  const settleStyle = useAnimatedStyle(() => ({
+    opacity: settle.get(),
+    transform: [{ scale: 0.97 + 0.03 * settle.get() }],
+  }));
+
+  return <Animated.View style={[style, settleStyle]}>{children}</Animated.View>;
 }
 
 export default function AddPhotoScreen() {
@@ -426,27 +447,29 @@ export default function AddPhotoScreen() {
           {/* FOTOĞRAF SEÇİM ALANI */}
           <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
             <Text style={styles.cardHeaderTitle}>{t("photos.add.image")}</Text>
-            <TouchableOpacity 
-              style={[
-                styles.imagePickerBox, 
+            <TouchableOpacity
+              // Fotoğraf seçiliyken çerçeveyi kendi kartı çizer: kutunun kırpması gölgesini kesmesin
+              style={localImage ? undefined : [
+                styles.imagePickerBox,
                 { backgroundColor: theme.unitBg },
                 errors.photo && styles.boxError
-              ]} 
+              ]}
               onPress={handlePickImage}
               activeOpacity={0.88}
             >
               {localImage ? (
-                <View style={styles.imagePreviewWrapper}>
+                // Her yeni seçimde yeniden kurulur: değiştirilen fotoğraf da yumuşakça yerine oturur
+                <SettlingPhoto key={localImage.uri} style={styles.photoFrame}>
                   <Image source={{ uri: localImage.uri }} style={styles.previewImage} contentFit="cover" />
-                  <TouchableOpacity 
-                    style={styles.changeImageBadge} 
+                  <TouchableOpacity
+                    style={styles.changeImageBadge}
                     onPress={handlePickImage}
                     activeOpacity={0.8}
                   >
                     <RefreshCw size={13} color="#ffffff" />
                     <Text style={styles.changeImageText}>{t("photos.add.change")}</Text>
                   </TouchableOpacity>
-                </View>
+                </SettlingPhoto>
               ) : (
                 <View style={styles.pickerPlaceholder}>
                   <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
@@ -469,21 +492,21 @@ export default function AddPhotoScreen() {
             )}
 
             {exifStatus === "found" && (
-              <View style={styles.exifSuccessBox}>
+              <Animated.View entering={INFO_REVEAL} style={styles.exifSuccessBox}>
                 <CheckCircle2 color={okColor} size={16} />
                 <Text style={styles.exifSuccessText}>
                   {t("photos.add.captureDetected", { date: dayjs(takenDate).locale(i18n.language).format("D MMMM YYYY"), time: takenTime })}
                 </Text>
-              </View>
+              </Animated.View>
             )}
 
             {exifStatus === "not_found" && (
-              <View style={styles.exifNoticeBox}>
+              <Animated.View entering={INFO_REVEAL} style={styles.exifNoticeBox}>
                 <AlertCircle color={warnColor} size={16} />
                 <Text style={styles.exifNoticeText}>
                   {t("photos.add.captureMissing")}
                 </Text>
-              </View>
+              </Animated.View>
             )}
           </View>
 
@@ -492,7 +515,7 @@ export default function AddPhotoScreen() {
             <Text style={styles.cardHeaderTitle}>{t("photos.add.locationInfo")}</Text>
 
             {photoLocation ? (
-              <View style={[styles.exifSuccessBox, { backgroundColor: exifGpsFound ? "rgba(34,197,94,0.12)" : "rgba(59,130,246,0.12)", borderColor: exifGpsFound ? "rgba(34,197,94,0.3)" : "rgba(59,130,246,0.3)" }]}>
+              <Animated.View entering={INFO_REVEAL} style={[styles.exifSuccessBox, { backgroundColor: exifGpsFound ? "rgba(34,197,94,0.12)" : "rgba(59,130,246,0.12)", borderColor: exifGpsFound ? "rgba(34,197,94,0.3)" : "rgba(59,130,246,0.3)" }]}>
                 {exifGpsFound ? (
                   <Navigation size={16} color={okColor} />
                 ) : (
@@ -518,7 +541,7 @@ export default function AddPhotoScreen() {
                 >
                   <Text style={[styles.changeLocBtnText, { color: dangerColor }]}>{t("photos.add.remove")}</Text>
                 </TouchableOpacity>
-              </View>
+              </Animated.View>
             ) : (
               <View style={{ gap: 10 }}>
                 {/* Hızlı Adres / İl / İlçe / Mahalle / Sokak Girişi */}
@@ -676,18 +699,19 @@ export default function AddPhotoScreen() {
                 <Text style={[styles.saveBtnText, { color: theme.accent }]}>{t("photos.add.premiumFeature")}</Text>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity 
-                style={[
-                  styles.saveBtn, 
-                  { backgroundColor: theme.accent, shadowColor: theme.accent },
-                  uploading && { opacity: 0.75 }
-                ]} 
+              <TouchableOpacity
+                // Yüklenirken buton soluklaşmaz; dönen gösterge ve yazı anının yerleştirildiğini anlatır
+                style={[styles.saveBtn, { backgroundColor: theme.accent, shadowColor: theme.accent }]}
                 onPress={handleSave}
                 disabled={uploading}
                 activeOpacity={0.85}
+                accessibilityState={{ busy: uploading, disabled: uploading }}
               >
                 {uploading ? (
-                  <ActivityIndicator color="#ffffff" />
+                  <Animated.View entering={FadeIn.duration(200)} style={styles.saveBtnContent}>
+                    <ActivityIndicator color="#ffffff" size="small" />
+                    <Text style={styles.saveBtnText}>{t("photos.add.uploading")}</Text>
+                  </Animated.View>
                 ) : (
                   <>
                     <UploadCloud size={20} color="#ffffff" />
@@ -907,14 +931,23 @@ const createStyles = (theme: AppTheme) => {
       lineHeight: 18,
       paddingHorizontal: 12,
     },
-    imagePreviewWrapper: {
+    photoFrame: {
       width: "100%",
-      position: "relative",
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+      backgroundColor: theme.unitBg,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: isLight ? 0.12 : 0.3,
+      shadowRadius: 14,
+      elevation: 4,
     },
     previewImage: {
       width: "100%",
       aspectRatio: 1.15,
-      borderRadius: 15,
+      // Çerçevenin 1px kenarlığının içinde kalır
+      borderRadius: 19,
     },
     // Fotoğrafın üstünde yüzer: zemin her temada koyu, yazı beyaz kalır
     changeImageBadge: {
@@ -1035,6 +1068,11 @@ const createStyles = (theme: AppTheme) => {
       shadowOpacity: 0.3,
       shadowRadius: 10,
       elevation: 4,
+    },
+    saveBtnContent: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
     },
     saveBtnText: {
       color: "#ffffff",
