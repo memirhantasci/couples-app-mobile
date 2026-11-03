@@ -2090,7 +2090,11 @@
       "doseTimePickerTitle": "Doz Saati",
       "startPickerTitle": "Başlangıç Tarihi",
       "endPickerTitle": "Bitiş Tarihi",
-      "partnerCannotEdit": "Bu ilaç sevgiline ait olduğu için yalnızca sevgilin kendi hesabından düzenleyebilir."
+      "partnerCannotEdit": "Bu ilaç sevgiline ait olduğu için yalnızca sevgilin kendi hesabından düzenleyebilir.",
+      "creatorOnlyEditTitle": "Yalnızca Oluşturan Düzenleyebilir 🌿",
+      "creatorOnlyEditMessage": "İlacı yalnızca oluşturan kişi düzenleyebilir. Bu ilacı partnerin oluşturduğu için yalnızca partnerin düzenleyebilir.",
+      "registeredSubCreatorYou": "Senin oluşturduğun ilaç • Günde {{count}} kez",
+      "registeredSubCreatorPartner": "Partnerinin oluşturduğu ilaç • Günde {{count}} kez"
     },
     "notify": {
       "drankBody": "{{senderName}}, {{medName}} ilacını içti. İçin rahat olsun! 🌿"
@@ -2126,7 +2130,9 @@
       "title": "İlacı Sil",
       "message": "Bu ilacı silmek istediğinize emin misiniz?",
       "partnerTitle": "Sevgilinin İlacı 🌿",
-      "partnerCannotDelete": "Bu ilaç sevgiline ait olduğu için yalnızca sevgilin kendi hesabından silebilir."
+      "partnerCannotDelete": "Bu ilaç sevgiline ait olduğu için yalnızca sevgilin kendi hesabından silebilir.",
+      "creatorOnlyTitle": "Yalnızca Oluşturan Silebilir 🌿",
+      "creatorOnlyDeleteMessage": "İlacı yalnızca oluşturan kişi silebilir. Bu ilacı partnerin oluşturduğu için yalnızca partnerin silebilir."
     },
     "subtitle": "Günlük Sağlık Hatırlatıcısı 💊",
     "manage": {

@@ -265,10 +265,9 @@ function MedicineManagerForm({
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.registeredMedName, { color: theme.text }]}>{m.name}</Text>
                     <Text style={[styles.registeredMedSub, { color: theme.textMuted }]}>
-                      {t("medicine.manager.registeredSub", {
-                        owner: m.user_id === userId ? t("medicine.manager.owner.mine") : t("medicine.manager.owner.partner"),
-                        count: Array.isArray(m.times) ? m.times.length : 1,
-                      })}
+                      {m.user_id === userId
+                        ? t("medicine.manager.registeredSubCreatorYou", { count: Array.isArray(m.times) ? m.times.length : 1 })
+                        : t("medicine.manager.registeredSubCreatorPartner", { count: Array.isArray(m.times) ? m.times.length : 1 })}
                     </Text>
                   </View>
                   <View style={{ flexDirection: "row", gap: 10 }}>

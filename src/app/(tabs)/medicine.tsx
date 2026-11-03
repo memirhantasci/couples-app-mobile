@@ -356,8 +356,8 @@ export default function MedicineScreen() {
 
     if (med && med.user_id && med.user_id !== userId) {
       appAlert(
-        t("medicine.delete.partnerTitle"),
-        t("medicine.manager.partnerCannotEdit")
+        t("medicine.delete.creatorOnlyTitle"),
+        t("medicine.manager.creatorOnlyEditMessage")
       );
       return false;
     }
@@ -377,8 +377,8 @@ export default function MedicineScreen() {
     const med = data?.medicines?.find((m: any) => m.id === id);
     if (med && med.user_id && med.user_id !== userId) {
       appAlert(
-        t("medicine.delete.partnerTitle"),
-        t("medicine.delete.partnerCannotDelete")
+        t("medicine.delete.creatorOnlyTitle"),
+        t("medicine.delete.creatorOnlyDeleteMessage")
       );
       return;
     }
@@ -400,7 +400,7 @@ export default function MedicineScreen() {
           setIsDeleting(null);
           if (error || count === 0) {
             if (med?.user_id && med.user_id !== userId) {
-              appAlert(t("medicine.delete.partnerTitle"), t("medicine.delete.partnerCannotDelete"));
+              appAlert(t("medicine.delete.creatorOnlyTitle"), t("medicine.delete.creatorOnlyDeleteMessage"));
             } else {
               appAlert(t("common.error"), t("medicine.errors.deleteFailed"));
             }
