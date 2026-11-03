@@ -23,7 +23,6 @@ import { navigateAfterAuth, releaseAuthFlow, setAuthFlowActive } from "@/lib/nav
 import { parseAppLink } from "@/lib/deepLinks";
 import { toast } from "@/lib/toast";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
-import { useLanguageReady } from "@/hooks/useLanguageReady";
 import { useTranslation } from "react-i18next";
 import { ToastHost } from "@/components/ui/ToastHost";
 import { ConfettiRainHost } from "@/components/ui/ConfettiRainHost";
@@ -39,6 +38,7 @@ import { NotificationPermissionHost } from "@/components/common/NotificationPerm
 import { PartnerNoticeHost } from "@/components/common/PartnerNoticeHost";
 import { PremiumCelebrationHost } from "@/components/ui/PremiumCelebrationHost";
 import { StarPointsToastHost } from "@/modules/stars/components/StarPointsToastHost";
+import { LaunchAnimation, NATIVE_SPLASH_FADE_MS } from "@/components/splash/LaunchAnimation";
 
 import { useFonts } from 'expo-font';
 // Paket kökünden içe aktarmak tüm ağırlık/italik varyantları uygulamaya sokar (~10 MB); yalnızca kullanılanlar alınır
@@ -51,6 +51,8 @@ import { PlayfairDisplay_400Regular_Italic } from '@expo-google-fonts/playfair-d
 import { PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display/700Bold';
 
 SplashScreen.preventAutoHideAsync();
+// Native splash'ı açılış animasyonu gizler; birebir aynı ilk karesinin üstünden kısa bir solmayla kalkar
+SplashScreen.setOptions({ duration: NATIVE_SPLASH_FADE_MS, fade: true });
 
 // expo-router (useLinking.native), uygulama bir bağlantıyla açıldığında (geliştirme istemcisi her zaman
 // bir URL ile açar) kapsayıcı henüz bağlanmadan "işlenmemiş bağlantı" durumunu yazıyor ve React bunu
@@ -83,7 +85,6 @@ function RootLayoutNav() {
   const { isSignedIn, isLoading, isDemoMode, exitDemoMode, refreshProfile } = useAuth();
   const { theme, isLight } = useTheme();
   const { i18n } = useTranslation();
-  const languageReady = useLanguageReady();
 
   // Enforce role-based routing
   useProtectedRoute();
@@ -98,14 +99,6 @@ function RootLayoutNav() {
     PlayfairDisplay_700Bold,
     PlayfairDisplay_400Regular_Italic,
   });
-
-  // Hide splash as soon as auth state and the saved language are resolved — don't wait for fonts
-  // (dil beklenmezse kayıtlı tercih okunana kadar ekran bir an yanlış dilde görünebilir)
-  useEffect(() => {
-    if (!isLoading && languageReady) {
-      SplashScreen.hideAsync().catch(() => {});
-    }
-  }, [isLoading, languageReady]);
 
   // Supabase önerisi (React Native): oturum belirteci yalnızca uygulama öndeyken yenilenir; arka plandan
   // dönünce yenileme hemen sürer, böylece ilk istek süresi dolmuş belirteçle gitmez
@@ -130,15 +123,6 @@ function RootLayoutNav() {
   useEffect(() => {
     configureAndroidNotificationChannel();
   }, [i18n.language]);
-
-  // Safety fallback: yalnızca oturum çözümü takılırsa (ör. çok yavaş ağ) splash'ı zorla kapat.
-  // Kısa tutulursa oturum henüz çözülmeden yanlış (demo/giriş) ekran bir an görünür.
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      SplashScreen.hideAsync().catch(() => {});
-    }, 4000);
-    return () => clearTimeout(timer);
-  }, []);
 
   // Always sees the latest session / demo state without re-subscribing the URL listener.
   const handleDeepLink = useEffectEvent(async (url: string) => {
@@ -293,6 +277,9 @@ export default function RootLayout() {
                 <OfflineBanner />
                 {/* Alert.alert yerine cam efektli, pastel tonlu diyalog kartları (onay / uzun uyarılar) */}
                 <DialogHost />
+                {/* Soğuk açılışta native splash'ı devralan "iki yıldız birleşir" perdesi; oturum çözülene
+                    kadar (yanlış ekran bir an görünmesin) her şeyin üstünde kalır */}
+                <LaunchAnimation />
               </NotificationProvider>
             </TabBarProvider>
           </ThemeProvider>
