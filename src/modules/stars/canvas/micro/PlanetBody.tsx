@@ -5,8 +5,8 @@
  *
  * Gezegen merkezdeki yıldızdan aydınlanır: parlak yüz her karede yıldıza döner,
  * karşı yüz gece gölgesinde kalır. Halkalı gezegenlerde halkanın arka yarısı
- * gövdenin arkasında, ön yarısı önünde çizilir. Aynı bileşen iki katmanda
- * (yıldızın arkası / önü) render edilir; derinliğe göre yalnızca biri görünür.
+ * gövdenin arkasında, ön yarısı önünde çizilir. Gövde bir kez çizilir; derinliğine
+ * göre Skia `zIndex` ile yıldızın arkasına ya da önüne sıralanır.
  */
 
 import React, { useMemo } from 'react';
@@ -24,6 +24,8 @@ import {
   B_Y,
   BODY_STRIDE,
   MICRO_PALETTE,
+  Z_PLANET_BACK,
+  Z_PLANET_FRONT,
   isRingedPlanet,
   makeOvalArcPath,
   makeSparklePath,
@@ -38,7 +40,6 @@ export interface PlanetBodyProps {
   readonly radius: number;
   readonly motion: SharedValue<number[]>;
   readonly clock: SharedValue<number>;
-  readonly layer: 'back' | 'front';
   readonly highlighted: boolean;
 }
 
@@ -127,13 +128,24 @@ function SurfaceDetail({ planet, r, primary }: { planet: StarSystemMapPlanet; r:
   }
 }
 
+/** Seçili gezegenin dönen altın hedef halkası; saat türetimleri yalnızca seçili gezegende çalışır. */
+function TargetReticle({ r, clock }: { r: number; clock: SharedValue<number> }) {
+  const opacity = useDerivedValue(() => 0.6 + 0.4 * Math.sin(clock.value * 4));
+  const phase = useDerivedValue(() => -((clock.value * 16) % 22));
+
+  return (
+    <Circle cx={0} cy={0} r={r * 1.9} style="stroke" strokeWidth={1.3} color={MICRO_PALETTE.gold} opacity={opacity}>
+      <DashPathEffect intervals={[6, 5]} phase={phase} />
+    </Circle>
+  );
+}
+
 export const PlanetBody = React.memo(function PlanetBody({
   index,
   planet,
   radius: r,
   motion,
   clock,
-  layer,
   highlighted,
 }: PlanetBodyProps) {
   const base = index * BODY_STRIDE;
@@ -150,12 +162,9 @@ export const PlanetBody = React.memo(function PlanetBody({
     ];
   });
 
-  const opacity = useDerivedValue(() => {
-    const m = motion.value;
-    const inFront = (m[base + B_DEPTH] ?? 0) > 0;
-    const visible = layer === 'front' ? inFront : !inFront;
-    return visible ? m[base + B_ALPHA] ?? 0 : 0;
-  });
+  // Yıldızın önüne / arkasına geçiş: sayı yalnızca geçişte değişir, ara karelerde kimseyi uyarmaz.
+  const zIndex = useDerivedValue(() => ((motion.value[base + B_DEPTH] ?? 0) > 0 ? Z_PLANET_FRONT : Z_PLANET_BACK));
+  const opacity = useDerivedValue(() => motion.value[base + B_ALPHA] ?? 0);
 
   // Yıldıza bakan parlak yüzün merkezi (gövde yarıçapına göre)
   const lightCenter = useDerivedValue(() => {
@@ -166,9 +175,6 @@ export const PlanetBody = React.memo(function PlanetBody({
     const m = motion.value;
     return { x: (m[base + B_LIGHT_X] ?? 0) * r * 0.48, y: (m[base + B_LIGHT_Y] ?? -1) * r * 0.48 };
   });
-
-  const reticleOpacity = useDerivedValue(() => (highlighted ? 0.6 + 0.4 * Math.sin(clock.value * 4) : 0));
-  const reticlePhase = useDerivedValue(() => -((clock.value * 16) % 22));
 
   const clip = useMemo(() => Skia.RRectXY(Skia.XYWHRect(-r, -r, r * 2, r * 2), r, r), [r]);
   const ringBack = useMemo(() => (ringed ? makeOvalArcPath(r * 2.05, r * 0.58, 180, 180) : null), [ringed, r]);
@@ -181,7 +187,7 @@ export const PlanetBody = React.memo(function PlanetBody({
   const ringThin = rgba(shade(secondary, 0.3), 0.7);
 
   return (
-    <Group transform={transform} opacity={opacity}>
+    <Group transform={transform} opacity={opacity} zIndex={zIndex}>
       {/* Atmosfer ışıması */}
       <Circle cx={0} cy={0} r={r * 2.2}>
         <RadialGradient
@@ -238,11 +244,7 @@ export const PlanetBody = React.memo(function PlanetBody({
       )}
 
       {/* Seçili gezegen: dönen altın hedef halkası */}
-      {highlighted && (
-        <Circle cx={0} cy={0} r={r * 1.9} style="stroke" strokeWidth={1.3} color={MICRO_PALETTE.gold} opacity={reticleOpacity}>
-          <DashPathEffect intervals={[6, 5]} phase={reticlePhase} />
-        </Circle>
-      )}
+      {highlighted && <TargetReticle r={r} clock={clock} />}
     </Group>
   );
 });

@@ -34,6 +34,8 @@ import {
   BODY_STRIDE,
   MICRO_PALETTE,
   STAR_CORE_RADIUS,
+  Z_SOUL_BACK,
+  Z_SOUL_FRONT,
   clamp,
   introOrbitFactor,
   makeArcPath,
@@ -260,11 +262,11 @@ export interface SoulBodyProps {
   readonly index: number;
   readonly souls: SharedValue<number[]>;
   readonly color: string;
-  readonly layer: 'back' | 'front';
   readonly resonance: boolean;
 }
 
-export const SoulBody = React.memo(function SoulBody({ index, souls, color, layer, resonance }: SoulBodyProps) {
+/** Ruh bir kez çizilir; derinliğine göre `zIndex` ile yıldızın arkasına ya da önüne sıralanır. */
+export const SoulBody = React.memo(function SoulBody({ index, souls, color, resonance }: SoulBodyProps) {
   const base = index * BODY_STRIDE;
   const transform = useDerivedValue(() => {
     const m = souls.value;
@@ -274,16 +276,12 @@ export const SoulBody = React.memo(function SoulBody({ index, souls, color, laye
       { scale: m[base + B_SCALE] ?? 1 },
     ];
   });
-  const opacity = useDerivedValue(() => {
-    const m = souls.value;
-    const inFront = (m[base + B_DEPTH] ?? 0) > 0;
-    const visible = layer === 'front' ? inFront : !inFront;
-    return visible ? m[base + B_ALPHA] ?? 0 : 0;
-  });
+  const zIndex = useDerivedValue(() => ((souls.value[base + B_DEPTH] ?? 0) > 0 ? Z_SOUL_FRONT : Z_SOUL_BACK));
+  const opacity = useDerivedValue(() => souls.value[base + B_ALPHA] ?? 0);
   const glow = resonance ? 16 : 11;
 
   return (
-    <Group transform={transform} opacity={opacity}>
+    <Group transform={transform} opacity={opacity} zIndex={zIndex}>
       <Circle cx={0} cy={0} r={glow} dither>
         <RadialGradient
           c={vec(0, 0)}

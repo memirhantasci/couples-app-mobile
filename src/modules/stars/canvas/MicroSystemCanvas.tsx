@@ -58,6 +58,7 @@ import {
   SPIN_PX_PER_RADIAN,
   STAR_CORE_RADIUS,
   TILT_PX_PER_UNIT,
+  Z_STAR,
   buildPlanetSpecs,
   clamp,
   computeOrbitLayout,
@@ -65,9 +66,11 @@ import {
   deterministicPhase,
   laneRadius,
   makeArcPath,
+  nextBodyStateBuffer,
   planetColors,
   rgba,
   writeBodyState,
+  type BodyStateBuffers,
 } from './micro/microScene';
 import { PlanetBody } from './micro/PlanetBody';
 import { OrbitPlane, OrbitTrail, ShockWave, SoulBody, SpaceBackdrop, StarCore } from './micro/SceneLayers';
@@ -230,8 +233,10 @@ function MicroSystemCanvasSkia({
   const radii = useMemo(() => specs.map((s) => s.radius), [specs]);
   const planetCount = specs.length;
 
+  // Gövde durumları iki kalıcı tampona sırayla yazılır: karede yeni dizi tahsis edilmez.
+  const motionBuffers = useSharedValue<BodyStateBuffers>({ current: [], spare: [] });
   const motion = useDerivedValue(() => {
-    const out: number[] = new Array(planetCount * BODY_STRIDE);
+    const out = nextBodyStateBuffer(motionBuffers, planetCount * BODY_STRIDE);
     const time = clock.value;
     const spinOffset = spin.value;
     const tl = Math.min(tilt.value, maxTilt);
@@ -247,8 +252,9 @@ function MicroSystemCanvasSkia({
   });
 
   const soulPhase = useMemo(() => deterministicPhase(starDetails.star_id), [starDetails.star_id]);
+  const soulBuffers = useSharedValue<BodyStateBuffers>({ current: [], spare: [] });
   const souls = useDerivedValue(() => {
-    const out: number[] = new Array(2 * BODY_STRIDE);
+    const out = nextBodyStateBuffer(soulBuffers, 2 * BODY_STRIDE);
     const time = clock.value;
     const tl = Math.min(tilt.value, maxTilt);
     const it = intro.value;
@@ -454,107 +460,95 @@ function MicroSystemCanvasSkia({
       <GestureDetector gesture={gesture}>
         <View style={[styles.container, { width: canvasWidth, height: canvasHeight }]}>
           <Canvas style={{ width: canvasWidth, height: canvasHeight }}>
-            <SpaceBackdrop
-              width={canvasWidth}
-              height={canvasHeight}
-              layout={layout}
-              starColor={starColor}
-              starfield={starfield}
-              clock={clock}
-              spin={spin}
-            />
-            <OrbitPlane layout={layout} zones={zones} tilt={tilt} intro={intro} camera={camera} />
+            {/* Tek kök grup: Skia `zIndex`'i yalnızca kardeşler arasında sıralar (kökte sıralamaz). */}
+            <Group>
+              <SpaceBackdrop
+                width={canvasWidth}
+                height={canvasHeight}
+                layout={layout}
+                starColor={starColor}
+                starfield={starfield}
+                clock={clock}
+                spin={spin}
+              />
+              <OrbitPlane layout={layout} zones={zones} tilt={tilt} intro={intro} camera={camera} />
 
-            {/* Kuyruk izleri */}
-            {exoplanets.map((planet, index) => {
-              const path = trailPaths.get(specs[index]?.orbitRadius ?? 0);
-              if (!path) return null;
-              return (
+              {/* Kuyruk izleri */}
+              {exoplanets.map((planet, index) => {
+                const path = trailPaths.get(specs[index]?.orbitRadius ?? 0);
+                if (!path) return null;
+                return (
+                  <OrbitTrail
+                    key={`trail-${planet.id}`}
+                    index={index}
+                    motion={motion}
+                    path={path}
+                    color={planetColors(planet).primary}
+                    alpha={planet.is_locked ? 0.22 : 0.55}
+                    sweepDeg={PLANET_TRAIL_DEG}
+                    strokeWidth={2.2}
+                    layout={layout}
+                    tilt={tilt}
+                    intro={intro}
+                    camera={camera}
+                  />
+                );
+              })}
+              {SOUL_COLORS.map((color, index) => (
                 <OrbitTrail
-                  key={`trail-${planet.id}`}
+                  key={`soul-trail-${index}`}
                   index={index}
-                  motion={motion}
-                  path={path}
-                  color={planetColors(planet).primary}
-                  alpha={planet.is_locked ? 0.22 : 0.55}
-                  sweepDeg={PLANET_TRAIL_DEG}
-                  strokeWidth={2.2}
+                  motion={souls}
+                  path={soulTrailPath}
+                  color={color}
+                  alpha={resonance ? 0.85 : 0.6}
+                  sweepDeg={SOUL_TRAIL_DEG}
+                  strokeWidth={1.6}
                   layout={layout}
                   tilt={tilt}
                   intro={intro}
                   camera={camera}
                 />
-              );
-            })}
-            {SOUL_COLORS.map((color, index) => (
-              <OrbitTrail
-                key={`soul-trail-${index}`}
-                index={index}
-                motion={souls}
-                path={soulTrailPath}
-                color={color}
-                alpha={resonance ? 0.85 : 0.6}
-                sweepDeg={SOUL_TRAIL_DEG}
-                strokeWidth={1.6}
-                layout={layout}
-                tilt={tilt}
-                intro={intro}
-                camera={camera}
-              />
-            ))}
+              ))}
 
-            {/* Yıldızın arkasındaki gövdeler */}
-            {exoplanets.map((planet, index) => (
-              <PlanetBody
-                key={`back-${planet.id}`}
-                index={index}
-                planet={planet}
-                radius={radii[index] ?? 10}
-                motion={motion}
-                clock={clock}
-                layer="back"
-                highlighted={index === highlightIndex}
-              />
-            ))}
-            {SOUL_COLORS.map((color, index) => (
-              <SoulBody key={`soul-back-${index}`} index={index} souls={souls} color={color} layer="back" resonance={resonance} />
-            ))}
+              {/* Gövdeler: her biri bir kez çizilir, derinliğine göre yıldızın arkasına ya da önüne sıralanır */}
+              {exoplanets.map((planet, index) => (
+                <PlanetBody
+                  key={`planet-${planet.id}`}
+                  index={index}
+                  planet={planet}
+                  radius={radii[index] ?? 10}
+                  motion={motion}
+                  clock={clock}
+                  highlighted={index === highlightIndex}
+                />
+              ))}
+              {SOUL_COLORS.map((color, index) => (
+                <SoulBody key={`soul-${index}`} index={index} souls={souls} color={color} resonance={resonance} />
+              ))}
 
-            <StarCore
-              layout={layout}
-              color={starColor}
-              luminosity={luminosity}
-              resonance={resonance}
-              clock={clock}
-              intro={intro}
-              wave={wave}
-              camera={camera}
-            />
-            <ShockWave layout={layout} tilt={tilt} wave={wave} camera={camera} />
+              {/* Merkez yıldız, şok dalgası ve kıvılcım tozu: arkadaki ve öndeki gövdelerin arasında */}
+              <Group zIndex={Z_STAR}>
+                <StarCore
+                  layout={layout}
+                  color={starColor}
+                  luminosity={luminosity}
+                  resonance={resonance}
+                  clock={clock}
+                  intro={intro}
+                  wave={wave}
+                  camera={camera}
+                />
+                <ShockWave layout={layout} tilt={tilt} wave={wave} camera={camera} />
 
-            {/* Yıldız tozu ve kıvılcım parçacıkları */}
-            <Group transform={particleTransform}>
-              <Points points={particles.basePoints} mode="points" strokeWidth={2.6} strokeCap="round" color={rgba(MICRO_PALETTE.goldSoft, 0.85)} />
-              <Points points={particles.res1Points} mode="points" strokeWidth={2.6} strokeCap="round" color={MICRO_PALETTE.gold} />
-              <Points points={particles.res2Points} mode="points" strokeWidth={2.6} strokeCap="round" color={MICRO_PALETTE.violet} />
+                {/* Yıldız tozu ve kıvılcım parçacıkları */}
+                <Group transform={particleTransform}>
+                  <Points points={particles.basePoints} mode="points" strokeWidth={2.6} strokeCap="round" color={rgba(MICRO_PALETTE.goldSoft, 0.85)} />
+                  <Points points={particles.res1Points} mode="points" strokeWidth={2.6} strokeCap="round" color={MICRO_PALETTE.gold} />
+                  <Points points={particles.res2Points} mode="points" strokeWidth={2.6} strokeCap="round" color={MICRO_PALETTE.violet} />
+                </Group>
+              </Group>
             </Group>
-
-            {/* Yıldızın önündeki gövdeler */}
-            {SOUL_COLORS.map((color, index) => (
-              <SoulBody key={`soul-front-${index}`} index={index} souls={souls} color={color} layer="front" resonance={resonance} />
-            ))}
-            {exoplanets.map((planet, index) => (
-              <PlanetBody
-                key={`front-${planet.id}`}
-                index={index}
-                planet={planet}
-                radius={radii[index] ?? 10}
-                motion={motion}
-                clock={clock}
-                layer="front"
-                highlighted={index === highlightIndex}
-              />
-            ))}
           </Canvas>
 
           <SceneOverlays

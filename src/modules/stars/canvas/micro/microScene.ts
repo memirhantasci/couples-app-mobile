@@ -13,6 +13,8 @@
  */
 
 import type { SkPath, SkPathBuilder } from '@shopify/react-native-skia';
+import type { SharedValue } from 'react-native-reanimated';
+import { isUIRuntime } from 'react-native-worklets';
 import { Skia } from '../skiaBridge';
 import type { PlanetType, StarSystemMapPlanet } from '../../types/star.types';
 import { ORBIT_CONFIG } from '../../types/star.types';
@@ -85,6 +87,17 @@ export const B_ALPHA = 4;
 export const B_LIGHT_X = 5;
 export const B_LIGHT_Y = 6;
 export const B_ANGLE = 7;
+
+/**
+ * Sahnenin derinlik sırası (Skia `zIndex`, kök grubun kardeşleri arasında; eşit olanlar
+ * yazılış sırasını korur). Her gövde bir kez çizilir ve derinliğine göre yıldızın arkasına
+ * ya da önüne sıralanır. Fon, yörünge düzlemi ve kuyruk izleri 0'da kalır.
+ */
+export const Z_PLANET_BACK = 1;
+export const Z_SOUL_BACK = 2;
+export const Z_STAR = 3;
+export const Z_SOUL_FRONT = 4;
+export const Z_PLANET_FRONT = 5;
 
 /** Gezegen tipine göre gövde yarıçapı (px, derinlik ölçeğinden önce). */
 export const PLANET_RADIUS_BY_TYPE: Record<PlanetType, number> = {
@@ -274,6 +287,30 @@ export function writeBodyState(
   out[base + B_LIGHT_X] = len > 0.001 ? lx / len : 0;
   out[base + B_LIGHT_Y] = len > 0.001 ? ly / len : -1;
   out[base + B_ANGLE] = angle;
+}
+
+/** Gövde durum dizisinin (`motion` / `souls`) UI thread'de sırayla yazılan iki kalıcı tamponu. */
+export interface BodyStateBuffers {
+  current: number[];
+  spare: number[];
+}
+
+/**
+ * Bu karede yazılacak tamponu verir; karede yeni dizi tahsis edilmez. Tek tampon olmaz:
+ * Reanimated aynı referansın yeniden atanmasını "değişmedi" sayar ve bağımlı katmanları
+ * (Skia, gezegen isimleri, dokunma testi) güncellemez, sahne donardı. İki tampon sırayla döner.
+ */
+export function nextBodyStateBuffer(buffers: SharedValue<BodyStateBuffers>, size: number): number[] {
+  'worklet';
+  // useDerivedValue'nun başlangıç değeri React tarafında hesaplanır: paylaşılan tampona dokunulmaz.
+  if (!isUIRuntime()) return new Array<number>(size);
+  const pair = buffers.value;
+  const next = pair.spare;
+  pair.spare = pair.current;
+  pair.current = next;
+  // Gezegen sayısı değişince tampon yerinde büyür / küçülür.
+  if (next.length !== size) next.length = size;
+  return next;
 }
 
 // ============================================================================
