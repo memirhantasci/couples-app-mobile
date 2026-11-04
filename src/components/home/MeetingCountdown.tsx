@@ -252,6 +252,8 @@ function RollingValue({ value, style, animate }: { value: string; style: StylePr
 const REUNION_AVATAR = 46;
 const REUNION_STAGE_H = 64;
 const RUN_MS = 950;
+/** Kutlama (ses, konfeti, sarılma) iki dokunuşta bundan sık yeniden oynamaz. */
+const REPLAY_GAP_MS = 700;
 
 interface ReunionCardProps {
   meetingId: number;
@@ -288,6 +290,8 @@ function ReunionCard({
   const celebrateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // State güncellemesi bir sonraki çizimde görünür; art arda hızlı dokunuşlar bu ref ile elenir
   const celebratedRef = useRef(false);
+  const dismissedRef = useRef(false);
+  const lastCelebrateAtRef = useRef(0);
 
   useEffect(() => {
     return () => {
@@ -325,25 +329,37 @@ function ReunionCard({
   };
 
   const handleCelebrate = () => {
-    // Kutlama zaten başladı: ikinci dokunuş ses, konfeti ve kavuşma animasyonunu yeniden başlatmaz
-    // (üst üste binen ses / animasyon / konfeti uygulamayı çökertiyordu)
-    if (celebratedRef.current) return;
-    celebratedRef.current = true;
-    setCelebrated(true);
+    // Kapat (X) ile kaldırılmaya başlayan kart yeniden canlanmaz
+    if (dismissedRef.current) return;
+
+    // Her dokunuş kartın kapanma sayacını baştan başlatır: ikinci dokunuş kartı kaldırmaz, yalnızca ömrünü uzatır.
+    // Kart zaten solmaya başladıysa (sayaç dolmuş, kaldırma bekliyor) tam görünürlüğe döner.
+    cancelAnimation(cardOpacity);
+    cardOpacity.set(1);
+    if (celebrateTimerRef.current) clearTimeout(celebrateTimerRef.current);
+    // Konfetiler patladıktan sonra kart 3.5 sn ekranda kalıp nazikçe kapanır
+    celebrateTimerRef.current = setTimeout(() => fadeOutThenRemove(350), 3500);
+
+    if (!celebratedRef.current) {
+      celebratedRef.current = true;
+      setCelebrated(true);
+      // Yerel hafızaya hemen kaydet: kullanıcı uygulamadan çıksa bile artık görüldü sayılır
+      markMeetingCelebrationSeen(meetingId);
+    }
+
+    // Seri dokunuşlar kutlamayı yeniden oynatmaz (üst üste binen ses / animasyon / konfeti uygulamayı çökertiyordu);
+    // ses 500 ms'den sık çalmaz, konfeti yağmuru sürerken yenisi başlamaz
+    const now = Date.now();
+    if (now - lastCelebrateAtRef.current < REPLAY_GAP_MS) return;
+    lastCelebrateAtRef.current = now;
 
     playCelebration();
     rainConfetti();
     playHug();
-
-    // Yerel hafızaya hemen kaydet: kullanıcı uygulamadan çıksa bile artık görüldü sayılır
-    markMeetingCelebrationSeen(meetingId);
-
-    if (celebrateTimerRef.current) clearTimeout(celebrateTimerRef.current);
-    // Konfetiler patladıktan sonra kart 3.5 sn ekranda kalıp nazikçe kapanır
-    celebrateTimerRef.current = setTimeout(() => fadeOutThenRemove(350), 3500);
   };
 
   const handleDismiss = () => {
+    dismissedRef.current = true;
     celebratedRef.current = true;
     markMeetingCelebrationSeen(meetingId);
     fadeOutThenRemove(250);

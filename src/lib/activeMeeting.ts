@@ -40,9 +40,25 @@ export interface MeetingLike {
 const timeOf = (m: MeetingLike) => new Date(m.meeting_datetime).getTime();
 
 /**
+ * Kutlama adayı: son 24 saat (CELEBRATION_MS) içinde gerçekleşen en son buluşma. Cihazda kutlanıp kutlanmadığına
+ * bakılmaz; kart henüz görüldü kayıtları okunmadan karar vermemek için bunu ayrıca sorar.
+ */
+export function celebrationCandidate<T extends MeetingLike>(
+  meetings: T[] | null | undefined,
+  now: number = Date.now()
+): T | null {
+  let last: T | null = null;
+  for (const m of meetings ?? []) {
+    if (timeOf(m) <= now && (last === null || timeOf(m) >= timeOf(last))) last = m;
+  }
+  return last !== null && now - timeOf(last) < CELEBRATION_MS ? last : null;
+}
+
+/**
  * Kartta gösterilecek buluşmayı seçer:
- *  1. Gelecekte planlı buluşma varsa en yakını (yeni buluşma planlanırsa geçmiş kutlamanın yerine hemen bu geçer).
- *  2. Yoksa, son 24 saat (CELEBRATION_MS) içinde gerçekleşen ve bu cihazda henüz kutlanmamış en son buluşma.
+ *  1. Son 24 saat içinde gerçekleşen ve bu cihazda henüz kutlanmamış en son buluşma. Sırada başka bir buluşma
+ *     (ya da yeni planlanan) olsa bile kutlama yarıda kesilmez; kutlanınca ya da kapatılınca sıradaki gelir.
+ *  2. Yoksa gelecekteki en yakın planlı buluşma.
  *  3. Aksi halde null (kart hiç gösterilmez).
  */
 export function pickActiveMeeting<T extends MeetingLike>(
@@ -52,29 +68,24 @@ export function pickActiveMeeting<T extends MeetingLike>(
 ): T | null {
   if (!meetings || meetings.length === 0) return null;
 
-  const sorted = [...meetings].sort((a, b) => timeOf(a) - timeOf(b));
-
-  // 1. Gelecekteki en yakın buluşma (varsa geçmiş kutlamaya hiç bakılmaz, doğrudan bu gösterilir)
-  const upcoming = sorted.find((m) => timeOf(m) > now);
-  if (upcoming) return upcoming;
-
-  // 2. Gelecekte buluşma yoksa, son 24 saat içinde gerçekleşmiş en son buluşmaya bakılır
-  const past = sorted.filter((m) => timeOf(m) <= now);
-  if (past.length === 0) return null;
-
-  const lastPast = past[past.length - 1];
-  if (now - timeOf(lastPast) >= CELEBRATION_MS) return null;
-
-  // Bu cihazda kullanıcı karta dokunup kutlamayı gördüyse kart gizlenir
-  if (lastPast.id != null && seenMeetingIds) {
+  // 1. Kutlama bekleyen buluşma (kullanıcı karta dokunup kutlamayı gördüyse ya da kapattıysa sayılmaz)
+  const celebration = celebrationCandidate(meetings, now);
+  if (celebration) {
     const isSeen =
-      typeof seenMeetingIds === "function"
-        ? seenMeetingIds(lastPast.id)
-        : seenMeetingIds.has(lastPast.id);
-    if (isSeen) return null;
+      celebration.id != null &&
+      !!seenMeetingIds &&
+      (typeof seenMeetingIds === "function"
+        ? seenMeetingIds(celebration.id)
+        : seenMeetingIds.has(celebration.id));
+    if (!isSeen) return celebration;
   }
 
-  return lastPast;
+  // 2. Gelecekteki en yakın buluşma
+  let upcoming: T | null = null;
+  for (const m of meetings) {
+    if (timeOf(m) > now && (upcoming === null || timeOf(m) < timeOf(upcoming))) upcoming = m;
+  }
+  return upcoming;
 }
 
 /**

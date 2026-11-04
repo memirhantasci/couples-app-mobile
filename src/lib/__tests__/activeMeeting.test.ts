@@ -5,6 +5,7 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 );
 
 import {
+  celebrationCandidate,
   pickActiveMeeting,
   nextMeetingBoundary,
   isMeetingCelebrationSeen,
@@ -28,7 +29,7 @@ describe("activeMeeting: pickActiveMeeting & celebration seen storage", () => {
 
   const now = new Date("2026-11-03T15:00:00.000Z").getTime();
 
-  it("gelecekte planlı bir buluşma varsa, geçmiş buluşmaya bakılmaksızın gelecekteki buluşmayı döner", () => {
+  it("kutlanmamış gerçekleşmiş buluşma varken sırada başka buluşma olsa bile önce kutlama gösterilir", () => {
     const pastMeeting: MeetingLike = {
       id: 101,
       meeting_datetime: new Date(now - 2 * 60 * 60 * 1000).toISOString(), // 2 saat önce
@@ -38,9 +39,59 @@ describe("activeMeeting: pickActiveMeeting & celebration seen storage", () => {
       meeting_datetime: new Date(now + 24 * 60 * 60 * 1000).toISOString(), // 1 gün sonra
     };
 
-    const active = pickActiveMeeting([pastMeeting, futureMeeting], now);
-    expect(active).not.toBeNull();
-    expect(active?.id).toBe(102);
+    const active = pickActiveMeeting([pastMeeting, futureMeeting], now, new Set());
+    expect(active?.id).toBe(101);
+  });
+
+  it("kutlama görüldükten (ya da kapatıldıktan) sonra sıradaki buluşmaya geçilir", () => {
+    const pastMeeting: MeetingLike = {
+      id: 101,
+      meeting_datetime: new Date(now - 2 * 60 * 60 * 1000).toISOString(),
+    };
+    const futureMeeting: MeetingLike = {
+      id: 102,
+      meeting_datetime: new Date(now + 24 * 60 * 60 * 1000).toISOString(),
+    };
+
+    expect(pickActiveMeeting([pastMeeting, futureMeeting], now, new Set([101]))?.id).toBe(102);
+    expect(pickActiveMeeting([pastMeeting, futureMeeting], now, (id) => id === 101)?.id).toBe(102);
+  });
+
+  it("kutlama süresi (24 saat) dolduysa sıradaki buluşmaya geçilir", () => {
+    const oldMeeting: MeetingLike = {
+      id: 103,
+      meeting_datetime: new Date(now - (MEETING_CELEBRATION_HOURS + 1) * 60 * 60 * 1000).toISOString(),
+    };
+    const futureMeeting: MeetingLike = {
+      id: 104,
+      meeting_datetime: new Date(now + 60 * 60 * 1000).toISOString(),
+    };
+
+    expect(pickActiveMeeting([oldMeeting, futureMeeting], now, new Set())?.id).toBe(104);
+  });
+
+  it("birden fazla gerçekleşmiş buluşma varsa en son gerçekleşen kutlanır", () => {
+    const earlier: MeetingLike = { id: 111, meeting_datetime: new Date(now - 5 * 60 * 60 * 1000).toISOString() };
+    const later: MeetingLike = { id: 112, meeting_datetime: new Date(now - 1 * 60 * 60 * 1000).toISOString() };
+    const future: MeetingLike = { id: 113, meeting_datetime: new Date(now + 60 * 60 * 1000).toISOString() };
+
+    expect(pickActiveMeeting([earlier, later, future], now, new Set())?.id).toBe(112);
+    // En son gerçekleşen kutlandıysa eski bir buluşma geri gelmez; sıradaki gösterilir
+    expect(pickActiveMeeting([earlier, later, future], now, new Set([112]))?.id).toBe(113);
+  });
+
+  it("celebrationCandidate: yalnızca son 24 saatte gerçekleşen en son buluşmayı, görüldü bilgisine bakmadan döner", () => {
+    const recent: MeetingLike = { id: 121, meeting_datetime: new Date(now - 60 * 60 * 1000).toISOString() };
+    const old: MeetingLike = {
+      id: 122,
+      meeting_datetime: new Date(now - (MEETING_CELEBRATION_HOURS + 1) * 60 * 60 * 1000).toISOString(),
+    };
+    const future: MeetingLike = { id: 123, meeting_datetime: new Date(now + 60 * 60 * 1000).toISOString() };
+
+    expect(celebrationCandidate([old, recent, future], now)?.id).toBe(121);
+    expect(celebrationCandidate([old, future], now)).toBeNull();
+    expect(celebrationCandidate([], now)).toBeNull();
+    expect(celebrationCandidate(null, now)).toBeNull();
   });
 
   it("birden fazla gelecek buluşma varsa, tarihi en yakın olanı seçer", () => {
@@ -89,7 +140,7 @@ describe("activeMeeting: pickActiveMeeting & celebration seen storage", () => {
     expect(active).toBeNull();
   });
 
-  it("KRİTİK UX: Gerçekleşmiş ve henüz görülmemiş buluşma varken yeni bir buluşma planlanırsa, en yeni planlanan buluşma öne geçer", () => {
+  it("KRİTİK UX: kutlama beklerken yeni bir buluşma planlanırsa kutlama kesilmez, kutlanınca yeni buluşma gelir", () => {
     const pastMeeting: MeetingLike = {
       id: 401,
       meeting_datetime: new Date(now - 4 * 60 * 60 * 1000).toISOString(), // 4 saat önce tamamlandı
@@ -105,9 +156,10 @@ describe("activeMeeting: pickActiveMeeting & celebration seen storage", () => {
       meeting_datetime: new Date(now + 48 * 60 * 60 * 1000).toISOString(), // 2 gün sonraya yeni buluşma
     };
 
-    // İkinci durumda: Yeni buluşma hemen öne geçer, geçmiş kutlama geri sayımı engellemez
-    const updatedActive = pickActiveMeeting([pastMeeting, newlyPlannedMeeting], now, new Set());
-    expect(updatedActive?.id).toBe(402);
+    // Kutlama hâlâ bekliyor: yeni buluşma onu hemen iptal etmez
+    expect(pickActiveMeeting([pastMeeting, newlyPlannedMeeting], now, new Set())?.id).toBe(401);
+    // Kutlama görüldükten sonra yeni buluşmanın geri sayımı gelir
+    expect(pickActiveMeeting([pastMeeting, newlyPlannedMeeting], now, new Set([401]))?.id).toBe(402);
   });
 
   it("AsyncStorage hafızası: isMeetingCelebrationSeen ve markMeetingCelebrationSeen doğru çalışır", async () => {

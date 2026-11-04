@@ -23,6 +23,7 @@ import {
 import { getQuoteForDay } from "@/lib/quotes";
 import {
   MEETING_CELEBRATION_HOURS,
+  celebrationCandidate,
   pickActiveMeeting,
   nextMeetingBoundary,
   isMeetingCelebrationSeen,
@@ -418,11 +419,12 @@ export default function HomeScreen() {
   const captionColor = specialDay.glow ? (isLight ? "#B7791F" : "#F5C563") : theme.textSecondary;
 
   // ─── BULUŞMA KARTI ───
-  // Seçim render anında yapılır: buluşma saati geçince sıradaki buluşmaya geçilir,
-  // 24 saatlik kutlama süresi dolunca veya kullanıcı konfetiyi patlatınca kart kalkar;
-  // yeni bir buluşma planlandığında anında gelecekteki buluşmaya dönülür.
+  // Seçim render anında yapılır: buluşma saati geçince kart kavuşma kutlamasına döner ve kutlama sıradaki
+  // (ya da yeni planlanan) buluşma olsa bile yarıda kesilmez; kullanıcı konfetiyi patlatınca ya da kartı
+  // kapatınca, ya da 24 saatlik süre dolunca kart sıradaki buluşmaya geçer.
   const [meetingClock, setMeetingClock] = useState(0);
   const [seenCelebrationIds, setSeenCelebrationIds] = useState<Set<number | string>>(new Set());
+  const [seenLoaded, setSeenLoaded] = useState(false);
 
   // Buluşmalar listesi geldikçe bu cihazda daha önce kutlanmış olanları AsyncStorage'dan yükle
   useEffect(() => {
@@ -440,6 +442,7 @@ export default function HomeScreen() {
       }
       if (active) {
         setSeenCelebrationIds(seen);
+        setSeenLoaded(true);
       }
     })();
 
@@ -458,10 +461,12 @@ export default function HomeScreen() {
   }, []);
 
   const meetingNow = Math.max(dataUpdatedAt, meetingClock);
-  const activeMeeting = useMemo(
-    () => pickActiveMeeting<Meeting>(dashboardData?.meetings, meetingNow, seenCelebrationIds),
-    [dashboardData?.meetings, meetingNow, seenCelebrationIds]
-  );
+  const activeMeeting = useMemo(() => {
+    // Kutlama bekleyen bir buluşma varsa kart, görüldü kayıtları okunana kadar bekler: yoksa daha önce
+    // kutlanmış bir buluşma açılışta bir an kutlama kartı olarak yanıp sönerdi
+    if (!seenLoaded && celebrationCandidate(dashboardData?.meetings, meetingNow)) return null;
+    return pickActiveMeeting<Meeting>(dashboardData?.meetings, meetingNow, seenCelebrationIds);
+  }, [dashboardData?.meetings, meetingNow, seenCelebrationIds, seenLoaded]);
 
   useEffect(() => {
     const boundary = nextMeetingBoundary(dashboardData?.meetings, meetingNow);
