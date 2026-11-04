@@ -83,9 +83,12 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
 
       "7. VERİ SAKLAMA VE SİLME (UNUTULMA HAKKI)",
       "Profil > Hesap Yönetimi & Tehlike Bölgesi bölümünden hesabınızı silme talebinde bulunabilirsiniz. Talep 7 gün beklemeye alınır; bu süre içinde aynı hesapla giriş yaparak talebi iptal edebilirsiniz. 7 gün sonunda hesabınıza ait profil bilgileri, dosyalar, günlükler ve mektuplar sunuculardan geri döndürülemez biçimde silinir. Partneriniz kendi hesabıyla kullanmaya devam eder; ortak anılar ise her iki taraftan da silinir ve partneriniz çiftten ayrılmış olur. Partnerinize silme talebi, vazgeçilmesi ve silinme durumunda uygulama içi açıklama ve bildirimle bilgi verilir. Yedek kopyalar en geç 30 gün içinde otomatik olarak imha edilir.\n\n" +
+      "Kullanıcıların KVKK'nın 11. maddesi ve GDPR'ın 17. maddesi uyarınca kendi kişisel verilerini, yükledikleri fotoğrafları ve mektupları silme hakkı hiçbir surette ücretli abonelik şartına bağlanamaz. Kullanıcılar abonelikleri sona erse dahi ücretsiz planda kendi içeriklerini diledikleri zaman kalıcı olarak silebilirler.\n\n" +
       "Saklama süreleri:\n" +
       "• Hesap, profil ve ortak içerikler: Hesabınız silinene kadar (silme talebinden 7 gün sonra silinir),\n" +
-      "• Yıldız verileri (sahiplik, ışıltı skoru, kıvılcımlar, anı gezegenleri): Premium süresi bittikten 14 gün sonra yenilenmezse silinir,\n" +
+      "• Yıldız tescili ve koordinatı: Premium bittikten sonra 14 günlük Kış Uykusu (Grace Period) süresince çifte ait kalır; 14 gün sonunda yenilenmezse yıldız koordinatı boşa çıkar ve diğer çiftlerin tesciline açılır,\n" +
+      "• Yıldız anı kasası ve gezegen verileri: Yıldız boşa çıktıktan sonra 90 gün boyunca sistem kasasında (Vault) saklanır; 90 gün içinde yenilenirse yeni veya boşta olan eski yıldıza aktarılabilir,\n" +
+      "• Medya depolama tasfiyesi: Premium üyeliği sona eren ve 90 gün boyunca yenilenmeyen hesaplara ait yüksek boyutlu fotoğraflar, 7 gün önceden e-posta veya uygulama içi bildirimle haber verilerek sunucu optimizasyonu kapsamında kalıcı olarak temizlenir (metin kayıtları korunabilir),\n" +
       "• Hata kayıtları: en fazla 30 gün,\n" +
       "• Giriş ve şifre sıfırlama deneme kayıtları (IP adresi dahil): en fazla 1 gün,\n" +
       "• Bildirimin tekrar gönderilmesini önleyen kayıtlar: 14 gün,\n" +
@@ -134,7 +137,8 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "Uygulama içinde yetkisiz cihaz girişlerini tespit etmek ve brute-force saldırılarını önlemek amacıyla rastgele üretilmiş bir 'Cihaz Kimliği' (UUID) kullanılır. Bu kimlik kişisel profilinizle ilişkilendirilerek başka bir cihazdan giriş yapıldığında e-posta onayı (OTP) istememizi sağlar.",
 
       "5. HESAP SİLME VE VERİLERİN İMHASI (GDPR & KVKK UYUMLU)",
-      "Hesabınızı istediğiniz zaman Profil > Hesap Yönetimi & Tehlike Bölgesi bölümünden silebilirsiniz. Talep 7 gün beklemeye alınır; bu süre içinde yalnızca hesabın sahibi aynı hesapla giriş yaparak talebi iptal edebilir. 7 gün sonunda hesabınıza ait kayıtlar, dosyalar ve ortak anılar sunuculardan kalıcı olarak silinir ve geri getirilemez. Eşleştiğiniz partnere silme talebi, vazgeçilmesi ve silinme durumunda uygulama içi açıklama ve bildirimle bilgi verilir; ortak veriler her iki taraf için silinir.",
+      "Hesabınızı istediğiniz zaman Profil > Hesap Yönetimi & Tehlike Bölgesi bölümünden silebilirsiniz. Talep 7 gün beklemeye alınır; bu süre içinde yalnızca hesabın sahibi aynı hesapla giriş yaparak talebi iptal edebilir. 7 gün sonunda hesabınıza ait kayıtlar, dosyalar ve ortak anılar sunuculardan kalıcı olarak silinir ve geri getirilemez. Eşleştiğiniz partnere silme talebi, vazgeçilmesi ve silinme durumunda uygulama içi açıklama ve bildirimle bilgi verilir; ortak veriler her iki taraf için silinir.\n\n" +
+      "Abonelik sona ermesi durumunda; yüklenmiş fotoğrafları ve mektupları silme hakkı hiçbir şekilde kısıtlanamaz. Kullanıcılar Premium üyeliği olmasa dahi kendi içeriklerini diledikleri zaman silebilirler. Premium sona erdiğinde yıldız 14 günlük Kış Uykusuna geçer; 14 gün sonunda yenilenmezse yıldız koordinatı serbest bırakılır ve anı gezegenleri ile hatıralar 90 gün boyunca kasada (Vault) saklanır. 90 gün boyunca yenilenmeyen hesaplara ait yüksek boyutlu fotoğraf dosyaları 7 gün önceden bildirim yapılarak depolama sunucularından tasfiye edilir.",
 
       "6. YAŞ SINIRI",
       "CoupleSky, 16 yaşından küçüklerin kullanımına yönelik değildir. 16 yaşın altındaki bir kullanıcının veri sağladığı tespit edilirse veriler derhal silinir.",
@@ -243,9 +247,12 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "5. CAYMA HAKKI VE İADE POLİTİKASI",
       "Mesafeli Sözleşmeler Yönetmeliği'nin 15. maddesinin 1. fıkrasının (ğ) bendi uyarınca; 'Elektronik ortamda anında ifa edilen hizmetler veya tüketiciye anında teslim edilen gayrimaddi mallara ilişkin sözleşmelerde' cayma hakkı kullanılamaz. Bununla birlikte, hatalı veya mükerrer tahsilatlara ilişkin iade talepleri doğrudan Apple Destek (reportaproblem.apple.com) veya Google Play Destek platformları üzerinden yürütülmektedir. Fiyat, yenileme periyodu, deneme sonrası tahsilat ve cayma bilgisi, satın almadan önce satın alma ekranında da gösterilir.",
 
-      "6. PREMİUM BİTTİĞİNDE YILDIZ VE 14 GÜNLÜK YENİLEME SÜRESİ",
-      "Yıldız sahipliği, ışıltı skoru, kıvılcımlar ve anı gezegenleri Premium'a bağlıdır. Premium sona erdiğinde (iptal, ödemenin alınamaması ya da sürenin bitmesi) çifte yenilemesi için bitiş tarihinden itibaren 14 gün verilir. Bu sürede Premium özellikleri ve yıldız kilitli kalır ancak hiçbir şey silinmez; abonelik yenilenirse her şey olduğu gibi devam eder.\n\n" +
-      "14 gün içinde yenilenmezse yıldızın sahipliği kaldırılır (yıldız yeniden sahiplenilebilir hâle gelir), ışıltı skoru ve kıvılcımlar sıfırlanır, anı gezegenleri ve içindeki fotoğraflar kalıcı olarak silinir. Yeniden abone olunduğunda yeni bir yıldız sahiplenilebilir; silinen veriler geri getirilemez. Mektup, fotoğraf arşivi, günlük gibi diğer içerikler bu işlemden etkilenmez. Kalan süre uygulamada Profil > Premium ekranında gün gün gösterilir."
+      "6. PREMİUM BİTTİĞİNDE YILDIZ, KIŞ UYKUSU VE İÇERİK ERİŞİMİ",
+      "Yıldız sahipliği, ışıltı skoru, kıvılcımlar ve anı gezegenleri Premium'a bağlıdır. Premium sona erdiğinde (iptal, ödemenin alınamaması ya da sürenin bitmesi) süreç şu şekilde işler:\n\n" +
+      "• 14 Günlük Kış Uykusu (Grace Period): Çifte yenilemesi için bitiş tarihinden itibaren 14 gün süre tanınır. Bu sürede gökkubbedeki yıldız koordinatı çifte ait kalır; ancak yıldız sönükleşir, yıldız içi 3D mikro evren ve arkadaşlık bağları geçici olarak dondurulur.\n" +
+      "• İçerik Erişim ve İşlem Hakları: Premium bittiğinde kullanıcılar geçmiş fotoğraflarını, anı defterini ve teslim alınmış aşk mektuplarını okumaya/görüntülemeye devam edebilir. Ancak yeni fotoğraf yükleme, yeni mektup mühürleme ve yeni anı ekleme kilitlenir. Premium'a özel düzenleme alanları (gezegen yörüngesi/renk paleti ayarları vb.) kilitlenir. Kendi yüklediği fotoğraf, mektup veya anıları kalıcı olarak silme hakkı ise hiçbir surette engellenemez ve ücretsiz olarak her zaman kullanılabilir.\n" +
+      "• 14 Günün Sonu (Koordinatın Boşa Çıkması & Kasa): 14 gün içinde yenilenmezse yıldızın gökkubbedeki koordinatı serbest bırakılır ve diğer kullanıcıların tesciline açılır. Çiftin anı gezegenleri ve hatıraları silinmez, 90 gün boyunca şifreli sistem kasasında (Vault) saklanır. 90 gün içinde yeniden abone olunursa, eski yıldız boşsa geri verilir; başka bir çift almışsa yeni seçilecek bir yıldıza tüm anılar kayıpsız aktarılır.\n" +
+      "• 90 Gün Sonu (Depolama Tasfiyesi): 90 gün boyunca yenilenmeyen hesaplara ait yüksek boyutlu fotoğraflar, kullanıcıya 7 gün önceden bildirim yapılarak sunucu depolama optimizasyonu kapsamında kalıcı olarak temizlenir. Kalan süreler uygulamada Profil > Premium ekranında gün gün gösterilir."
     ]
   }
 };
@@ -308,9 +315,12 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
 
       "7. DATA RETENTION AND DELETION (RIGHT TO BE FORGOTTEN)",
       "You can request permanent account deletion anytime from Profile > Account Management & Danger Zone. Deletion requests enter a 7-day safety grace period during which you can cancel by logging back in. After 7 days, all profile records, private journals, letters, and storage files are permanently and irreversibly purged from our servers. Shared memories are wiped for both sides, uncoupling your partner. Your partner is informed through an in-app explanation and a notification when you request deletion, when you cancel it, and when it is carried out. Backup copies are purged within 30 days.\n\n" +
+      "Under GDPR Article 17 and applicable data protection legislation, the statutory right to delete your personal data, uploaded photos, and letters cannot be conditioned upon an active paid subscription. Users may permanently delete their own content or terminate their accounts at any time, even on the free tier.\n\n" +
       "Retention periods:\n" +
       "• Account, profile and shared content: until your account is deleted (deleted 7 days after the request),\n" +
-      "• Star data (ownership, glow score, sparks, memory planets): deleted 14 days after Premium ends if not renewed,\n" +
+      "• Star registration and coordinate: retained for the couple during a 14-day Stellar Hibernation (Grace Period) following subscription expiration; if not renewed within 14 days, the coordinate is released to the public catalog for other couples to claim,\n" +
+      "• Star memory vault and planet data: securely archived in the system vault for 90 days after coordinate release; if renewed within 90 days, restored to the original or a newly chosen star,\n" +
+      "• Media storage purge: high-resolution photo files of accounts that remain expired for 90 days are permanently purged from cloud storage for optimization purposes, following a 7-day advance notice (text records may be retained),\n" +
       "• Error logs: at most 30 days,\n" +
       "• Sign-in and password-reset attempt records (including IP address): at most 1 day,\n" +
       "• Records that prevent duplicate notifications: 14 days,\n" +
@@ -359,7 +369,8 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "To prevent brute-force attacks and unauthorized multi-device logins, a randomly generated UUID device identifier is utilized. When logging in from an unrecognized device, one-time verification is prompted to safeguard your account.",
 
       "5. ACCOUNT ERASURE AND DATA PURGE (GDPR & CCPA COMPLIANT)",
-      "You may request account deletion at any time under Profile > Account Management & Danger Zone. Requests are subject to a 7-day cancellation window. Following the 7-day period, all account data, photos, and linked memories are irreversibly removed from active servers. Your paired partner is informed through an in-app explanation and a notification when you request deletion, cancel it, or it is carried out, and shared data is deleted for both sides.",
+      "You may request account deletion at any time under Profile > Account Management & Danger Zone. Requests are subject to a 7-day cancellation window. Following the 7-day period, all account data, photos, and linked memories are irreversibly removed from active servers. Your paired partner is informed through an in-app explanation and a notification when you request deletion, cancel it, or it is carried out, and shared data is deleted for both sides.\n\n" +
+      "In the event of subscription termination, your right to delete previously uploaded photos and letters is strictly preserved without fee or restriction. When Premium ends, the star enters a 14-day Stellar Hibernation; if not renewed, the star coordinate is released and memory planets enter a 90-day cold vault. Accounts unrenewed for 90 days are subject to high-resolution media storage purging with 7 days advance notice.",
 
       "6. AGE RESTRICTION",
       "CoupleSky is not intended for individuals under 16 years of age. If we learn that personal data of a minor under 16 has been collected without parental consent, we will promptly delete that information.",
@@ -468,9 +479,12 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "5. RIGHT OF WITHDRAWAL AND REFUND POLICY",
       "Under applicable digital consumer regulations, statutory withdrawal rights do not apply once digital content or services have commenced with the consumer's consent. Refund requests for accidental or duplicate charges are administered directly by Apple Support (reportaproblem.apple.com) or Google Play Customer Support in accordance with store refund policies. The price, renewal period, post-trial charge and withdrawal information are also shown on the purchase screen before you buy.",
 
-      "6. YOUR STAR WHEN PREMIUM ENDS AND THE 14-DAY RENEWAL WINDOW",
-      "Star ownership, glow score, sparks and memory planets depend on Premium. When Premium ends (cancellation, a failed payment or the end of the term), the couple gets 14 days from the end date to renew. During this window Premium features and the star stay locked, but nothing is deleted; if the subscription is renewed, everything continues as it was.\n\n" +
-      "If it is not renewed within 14 days, the star's ownership is removed (the star becomes claimable again), the glow score and sparks are reset, and the memory planets and the photos in them are permanently deleted. If you subscribe again you can claim a new star; deleted data cannot be restored. Other content such as letters, the photo archive and journals is not affected. The remaining time is shown day by day in the app under Profile > Premium."
+      "6. YOUR STAR WHEN PREMIUM ENDS, STELLAR HIBERNATION AND CONTENT ACCESS",
+      "Star ownership, glow score, sparks and memory planets depend on Premium. When Premium ends (cancellation, failed payment or expiration), the lifecycle proceeds as follows:\n\n" +
+      "• 14-Day Stellar Hibernation (Grace Period): The couple is granted a 14-day grace window. The celestial coordinate remains registered to the couple; however, the star dims, the 3D micro system is locked, and friendship constellation strands are temporarily frozen.\n" +
+      "• Content Access and Action Rights: When Premium ends, users retain full read and view access to their existing photos, journal timeline, and delivered letters. Uploading new photos, sealing new letters, and adding new memories are locked. Premium-exclusive editing (such as planet orbit/palette adjustments) is locked. The right to permanently delete one's own photos, letters, and memories remains unrestricted and entirely free at all times.\n" +
+      "• End of 14 Days (Coordinate Release & Vault): If not renewed within 14 days, the star's celestial coordinate is released back into the public catalog and can be claimed by other couples. The couple's memory planets and memories are not deleted; they are archived in the secure system vault for 90 days. If the subscription is renewed within 90 days, all memories are seamlessly reattached to the original star (if available) or to a newly chosen star.\n" +
+      "• End of 90 Days (Storage Purge): High-resolution media files belonging to accounts unrenewed for 90 days are permanently purged from storage following a 7-day prior notification. Remaining time is displayed day by day under Profile > Premium in the app."
     ]
   }
 };
