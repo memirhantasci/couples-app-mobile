@@ -1782,8 +1782,7 @@
     },
     "premium": {
       "featureName": "Fotoğraflı Özel Gün",
-      "featureDescription": "Özel günlerinize fotoğraf eklemek için Premium'a geçmeniz gerekmektedir.",
-      "editFeatureName": "Özel Günü Düzenleme"
+      "featureDescription": "Özel günlerinize fotoğraf eklemek veya fotoğrafı değiştirmek için Premium'a geçmeniz gerekmektedir."
     },
     "milestone": {
       "title": "{{years}}. Yılımız Kutlu Olsun! ✨",

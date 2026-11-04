@@ -1782,8 +1782,7 @@
     },
     "premium": {
       "featureName": "Special Day with Photo",
-      "featureDescription": "You need to go Premium to add photos to your special days.",
-      "editFeatureName": "Editing Special Days"
+      "featureDescription": "You need to go Premium to add or change photos on your special days."
     },
     "milestone": {
       "title": "Happy {{years}}. Anniversary! ✨",
