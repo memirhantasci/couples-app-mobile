@@ -657,7 +657,7 @@ export default function HomeScreen() {
 
           {/* ─── 2. HERO İLİŞKİ SAYACI KARTI ─── */}
           {/* Yıldönümüne ≤3 gün kala ve 14 Şubat'ta kartın etrafında altın ışıltı; kart (counterRef) aynı kalır */}
-          <Reveal index={1}>
+          <Reveal scope="home" index={1}>
           <AnniversaryGlow active={specialDay.glow} radius={24} isLight={isLight}>
           <View
             ref={counterRef}
@@ -722,7 +722,7 @@ export default function HomeScreen() {
           </Reveal>
 
           {/* ─── 3. HIZLI ERİŞİM KISAYOLLARI (QUICK ACTIONS) ─── */}
-          <Reveal index={2}>
+          <Reveal scope="home" index={2}>
           <View ref={shortcutsRef} collapsable={false} style={styles.quickActionsContainer}>
             <TouchableOpacity 
               style={[styles.actionPill, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}
@@ -771,7 +771,7 @@ export default function HomeScreen() {
           </Reveal>
 
           {/* ─── 4. MOD SEÇİMİ (günlük ana aksiyon: kısayolların hemen altında, ilk ekranda görünür) ─── */}
-          <Reveal index={3}>
+          <Reveal scope="home" index={3}>
             <View ref={moodRef} collapsable={false}>
               <MoodSelector
                 currentMood={dashboardData?.currentMood}
@@ -782,7 +782,7 @@ export default function HomeScreen() {
 
           {/* ─── 4b. YILDIZ KIŞ UYKUSUNDA (yalnızca Premium bitmiş, yıldızı olan çiftte) ─── */}
           {isStarHibernating && (
-            <Reveal index={4}>
+            <Reveal scope="home" index={4}>
               <StarHibernationCard daysLeft={hibernation.graceDaysLeft} onPress={() => setIsHibernationOpen(true)} />
             </Reveal>
           )}
@@ -799,7 +799,7 @@ export default function HomeScreen() {
           </View>
 
           {/* ─── 6. AŞK ÖLÇER ─── */}
-          <Reveal index={5}>
+          <Reveal scope="home" index={5}>
           <LoveMeter 
             value={loveMeter} 
             theme={theme} 
@@ -866,7 +866,7 @@ export default function HomeScreen() {
           )}
 
           {/* ─── 8. GÜNLÜK NOT ─── */}
-          <Reveal index={6}>
+          <Reveal scope="home" index={6}>
             <DailyNoteCard existingNote={dashboardData?.currentNote} theme={theme} />
           </Reveal>
         </KeyboardAwareScrollView>

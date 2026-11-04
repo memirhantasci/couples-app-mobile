@@ -348,7 +348,7 @@ export default function MeetingsScreen() {
                 const isReunionDay = dayjs(m.meeting_datetime).isSame(now, "day");
 
                 return (
-                  <Reveal key={m.id} index={idx}>
+                  <Reveal scope="meetings" key={m.id} index={idx}>
                   <View style={[styles.meetingCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
                     {/* Kart Üst Bilgisi */}
                     <View style={styles.cardTopRow}>

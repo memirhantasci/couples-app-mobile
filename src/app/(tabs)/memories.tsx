@@ -37,9 +37,27 @@ import { useFocusEffect, useIsFocused, useRouter } from "expo-router";
 import { Pencil, PlusCircle, Trash2 } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View, type StyleProp, type ViewStyle } from "react-native";
 import Animated, { FadeInDown, FadeInUp, FadeOutDown, useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRevealPlay } from "@/components/ui/Reveal";
+
+/**
+ * Zaman tünelindeki bir anı satırı. Satırlar yalnızca ekran soğuk açılışta ilk kez çizilirken süzülerek girer;
+ * sonradan çizilenler (yenileme, kaydırma, düzenleme) animasyonsuz belirir, kartlar sürekli sallanmaz.
+ */
+function MemoryRow({ index, style, children }: { index: number; style: StyleProp<ViewStyle>; children: React.ReactNode }) {
+  const play = useRevealPlay("memories");
+  return (
+    <Animated.View
+      // Gecikme ilk birkaç kartla sınırlı: eskiden 15. kart 900 ms boş bekleyip sonra beliriyordu
+      entering={play ? FadeInDown.delay(Math.min(index, 5) * 45).duration(280) : undefined}
+      style={style}
+    >
+      {children}
+    </Animated.View>
+  );
+}
 
 export default function MemoriesScreen() {
   const { t, i18n } = useTranslation();
@@ -382,12 +400,7 @@ export default function MemoriesScreen() {
     const defaultLocalized = localizeDefaultMemory(memory, t);
 
     return (
-      <Animated.View
-        key={memory.id}
-        // Gecikme ilk birkaç kartla sınırlı: eskiden 15. kart 900 ms boş bekleyip sonra beliriyordu
-        entering={FadeInDown.delay(Math.min(index, 5) * 45).duration(280)}
-        style={styles.memoryRow}
-      >
+      <MemoryRow key={memory.id} index={index} style={styles.memoryRow}>
         <MilestoneDateCircle index={index} theme={theme} highlight={closestUpcomingIds.has(memory.id)} />
 
         <View
@@ -471,7 +484,7 @@ export default function MemoriesScreen() {
             </View>
           )}
         </View>
-      </Animated.View>
+      </MemoryRow>
     );
   }, [theme, isLight, styles, isEditMode, executeOrIntercept, handleEdit, handleDelete, deletingId, t, i18n.language, closestUpcomingIds]);
 

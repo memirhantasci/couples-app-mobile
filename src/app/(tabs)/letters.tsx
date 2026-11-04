@@ -539,7 +539,7 @@ export default function LettersScreen() {
     }
 
     return (
-      <Reveal index={index}>
+      <Reveal scope="letters" index={index}>
       <View 
         style={[
           styles.letterCard, 

@@ -652,7 +652,7 @@ function MedicineScreenContent() {
               </View>
             ) : (
               filteredMedicines.map((m, idx) => (
-                <Reveal key={m.id} index={idx}>
+                <Reveal scope="medicine" key={m.id} index={idx}>
                 <MedicineDoseCard
                   medicine={m}
                   theme={theme}

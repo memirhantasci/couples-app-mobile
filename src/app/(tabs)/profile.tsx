@@ -608,7 +608,7 @@ export default function ProfileScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* ─── PROFİL & İSTATİSTİK KARTI ─── */}
-          <Reveal index={0}>
+          <Reveal scope="profile" index={0}>
           <ProfileHero
             theme={theme}
             name={displayName || t("common.userFallback")}
@@ -619,7 +619,7 @@ export default function ProfileScreen() {
           </Reveal>
 
           {/* ─── PREMIUM: durum, abonelik yönetimi, ayrıcalıklar ─── */}
-          <Reveal index={1}>
+          <Reveal scope="profile" index={1}>
             <PremiumStatusCard
               theme={theme}
               isPremium={profile?.isPremium ?? false}
@@ -632,7 +632,7 @@ export default function ProfileScreen() {
 
           {/* ─── ÇİFT ARKADAŞLARINI DAVET ET (eşleşmiş çift) ─── */}
           {(!!profile?.isPaired || isDemoMode) && (
-            <Reveal index={1}>
+            <Reveal scope="profile" index={1}>
               <ReferralCard
                 theme={theme}
                 rewardDays={DEFAULT_REFERRAL_REWARD_DAYS}
@@ -647,7 +647,7 @@ export default function ProfileScreen() {
           )}
 
           {/* ─── TEMA & GÖRÜNÜM TERCİHİ ─── */}
-          <Reveal index={1}>
+          <Reveal scope="profile" index={1}>
           <ThemePicker
             theme={theme}
             isLight={isLight}
@@ -658,12 +658,12 @@ export default function ProfileScreen() {
           </Reveal>
 
           {/* ─── DİL SEÇİMİ (Türkçe / English) ─── */}
-          <Reveal index={2}>
+          <Reveal scope="profile" index={2}>
             <LanguagePicker theme={theme} isLight={isLight} />
           </Reveal>
 
           {/* ─── ALT BAR MENÜSÜ ÖZELLEŞTİRME ─── */}
-          <Reveal index={3}>
+          <Reveal scope="profile" index={3}>
             <TabBarCustomizer theme={theme} isLight={isLight} />
           </Reveal>
 

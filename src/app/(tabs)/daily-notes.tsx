@@ -126,7 +126,7 @@ export default function DailyNotesScreen() {
     const displayContent = cleanContentText(note.content);
 
     return (
-      <Reveal index={index}>
+      <Reveal scope="daily-notes" index={index}>
       <View style={[styles.cardContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
         <View style={styles.cardHeader}>
           <View style={styles.dateBadge}>

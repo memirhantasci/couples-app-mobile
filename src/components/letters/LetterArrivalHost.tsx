@@ -2,10 +2,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import { usePathname, useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
-import { fetchArrivedLetters, markLettersSeen, onLetterArrivalCheckRequested, type ArrivedLetters } from "@/lib/letterArrival";
+import {
+  fetchArrivedLetters,
+  markLettersSeen,
+  onLetterArrivalCheckRequested,
+  reportFirstArrivalCheck,
+  type ArrivedLetters,
+} from "@/lib/letterArrival";
 import { IncomingLetterBird } from "./IncomingLetterBird";
 
-// Uygulama kabuğu (yazı tipleri, ilk ekran) otursun diye açılıştan sonra kısa bir bekleme
+// Uygulama kabuğu (yazı tipleri, ilk ekran) otursun diye kuş, açılıştan en az bu kadar sonra çıkar. Sorgu ise
+// hemen yapılır: kuşun uçup uçmayacağı ana sayfa kartları çizilmeden bilinsin (bkz. revealGate).
 const FIRST_CHECK_DELAY_MS = 1500;
 const RESUME_CHECK_DELAY_MS = 900;
 // Uygulamalar arası hızlı geçişlerde (öne/arkaya) her seferinde sorgu atmamak için alt sınır
@@ -36,22 +43,38 @@ export function LetterArrivalHost() {
   }, [pathname]);
   const checkingRef = useRef(false);
   const lastCheckAtRef = useRef(0);
+  // Hesap / eşleşme değişince artar: kuşu beklerken eski hesabın sonucu yeni hesaba gösterilmesin
+  const generationRef = useRef(0);
 
-  // force: partnerden mektup bildirimi geldi → sıklık sınırı uygulanmaz. Dönüş: karşılama bulundu mu
-  const check = useCallback(async (force = false): Promise<boolean> => {
+  // force: partnerden mektup bildirimi geldi → sıklık sınırı uygulanmaz. showNotBefore: kuş bu andan önce çıkmaz.
+  // Dönüş: karşılama bulundu mu
+  const check = useCallback(async (force = false, showNotBefore = 0): Promise<boolean> => {
     if (!userId || !coupleId || checkingRef.current) return false;
     const now = Date.now();
     if (!force && now - lastCheckAtRef.current < MIN_CHECK_INTERVAL_MS) return false;
     lastCheckAtRef.current = now;
 
+    const generation = generationRef.current;
     checkingRef.current = true;
     try {
       const result = await fetchArrivedLetters(userId, coupleId);
-      if (!result) return false;
+      if (!result) {
+        reportFirstArrivalCheck(false);
+        return false;
+      }
 
       // Kullanıcı zaten mektuplar ekranındaysa listeyi görüyordur: sessizce görüldü say
       await markLettersSeen(userId, result.newestCreatedAt);
-      if (pathnameRef.current.includes("/letters")) return true;
+      const onLetters = pathnameRef.current.includes("/letters");
+      // İlk kontrolün sonucu: kuş uçacaksa ana sayfa kartları girişte sallanmaz
+      reportFirstArrivalCheck(!onLetters);
+      if (onLetters) return true;
+
+      const wait = showNotBefore - Date.now();
+      if (wait > 0) {
+        await new Promise<void>((resolve) => setTimeout(resolve, wait));
+        if (generation !== generationRef.current) return false;
+      }
 
       setArrival(result);
       return true;
@@ -65,7 +88,7 @@ export function LetterArrivalHost() {
 
     // Hesap / eşleşme değişince kısıtlama sıfırlanır: yeni kullanıcının ilk kontrolü gecikmesin
     lastCheckAtRef.current = 0;
-    const first = setTimeout(check, FIRST_CHECK_DELAY_MS);
+    void check(false, Date.now() + FIRST_CHECK_DELAY_MS);
     let resume: ReturnType<typeof setTimeout> | null = null;
     const subscription = AppState.addEventListener("change", (state) => {
       if (state !== "active") return;
@@ -86,7 +109,7 @@ export function LetterArrivalHost() {
     });
 
     return () => {
-      clearTimeout(first);
+      generationRef.current += 1;
       if (resume) clearTimeout(resume);
       if (pushCheck) clearTimeout(pushCheck);
       if (pushRetry) clearTimeout(pushRetry);

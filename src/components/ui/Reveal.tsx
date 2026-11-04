@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 import Animated, { FadeInDown, useReducedMotion } from "react-native-reanimated";
+import { shouldReveal } from "@/lib/revealGate";
 
 interface RevealProps {
   children: React.ReactNode;
+  /** Kartın ait olduğu ekran: giriş animasyonu her ekran için soğuk açılışta yalnızca bir kez oynar. */
+  scope: string;
   /** Sıradaki öğe numarası: her öğe bir öncekinden biraz sonra belirir (en fazla 8 basamak). */
   index?: number;
   style?: StyleProp<ViewStyle>;
@@ -14,13 +17,24 @@ const MAX_STEPS = 8;
 const MAX_ANIMATED = 10;
 
 /**
- * İçeriği hafifçe aşağıdan yukarı süzülerek ve solarak gösterir; liste ve kartlar ekran açılırken
- * kademeli belirir. "Hareketi azalt" ayarı açıkken animasyonsuz çizilir.
+ * Ekranın kartları ilk kez çizilirken giriş animasyonu oynasın mı? Karar bileşenin ilk çiziminde bir kez
+ * verilir (yeniden çizimde değişmez). Bkz. revealGate.
  */
-export function Reveal({ children, index = 0, style }: RevealProps) {
+export function useRevealPlay(scope: string): boolean {
   const reduceMotion = useReducedMotion();
+  const [play] = useState(() => shouldReveal(scope));
+  return play && !reduceMotion;
+}
+
+/**
+ * İçeriği hafifçe aşağıdan yukarı süzülerek ve solarak gösterir; kartlar bir ekran soğuk açılışta ilk kez
+ * çizilirken kademeli belirir. Aynı ekranda sonradan çizilen kartlar (sekme / filtre geçişi, yenileme,
+ * kaydırma) animasyonsuz gelir. "Hareketi azalt" ayarı açıkken de animasyonsuz çizilir.
+ */
+export function Reveal({ children, scope, index = 0, style }: RevealProps) {
+  const play = useRevealPlay(scope);
   // Yalnızca ilk birkaç öğe animasyonlanır; uzun listelerde kaydırma sırasında satır başına iş yapılmaz
-  if (reduceMotion || index >= MAX_ANIMATED) return <Animated.View style={style}>{children}</Animated.View>;
+  if (!play || index >= MAX_ANIMATED) return <Animated.View style={style}>{children}</Animated.View>;
   return (
     <Animated.View
       style={style}

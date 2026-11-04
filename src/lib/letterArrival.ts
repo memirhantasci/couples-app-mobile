@@ -24,6 +24,19 @@ export function onLetterArrivalCheckRequested(listener: () => void): () => void 
   };
 }
 
+// Soğuk açılıştaki ilk kontrolün sonucu (kuş gösterilecek mi); null: henüz bilinmiyor. Ana sayfa kartlarının
+// giriş animasyonu, kuş uçacaksa susmak için buna bakar (bkz. revealGate).
+let firstCheckBird: boolean | null = null;
+
+/** İlk kontrol bitince bir kez bildirilir; sonraki çağrılar yok sayılır. */
+export function reportFirstArrivalCheck(bird: boolean): void {
+  if (firstCheckBird === null) firstCheckBird = bird;
+}
+
+export function getFirstArrivalBird(): boolean | null {
+  return firstCheckBird;
+}
+
 const SEEN_KEY_PREFIX = "@letters_seen_at_";
 const EPOCH_ISO = "1970-01-01T00:00:00.000Z";
 const MAX_ARRIVALS = 10;

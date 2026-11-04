@@ -273,7 +273,7 @@ export default function PremiumScreen() {
         <ScreenHeader title={t("premiumHub.title")} subtitle={t("premiumHub.subtitle")} />
 
         {/* ── Üst kart ── */}
-        <Reveal index={0}>
+        <Reveal scope="premium" index={0}>
           <View style={[styles.hero, { backgroundColor: theme.cardBg, borderColor: `${heroAccent}55`, ...theme.cardShadow }]}>
             <LinearGradient pointerEvents="none" colors={heroGradient} style={StyleSheet.absoluteFill} />
             <Animated.View style={[styles.crownWrap, { backgroundColor: `${heroAccent}22`, borderColor: `${heroAccent}66` }, crownStyle]}>
@@ -304,7 +304,7 @@ export default function PremiumScreen() {
 
         {/* ── Uyarı ── */}
         {alert ? (
-          <Reveal index={1}>
+          <Reveal scope="premium" index={1}>
             <View
               style={[
                 styles.alertCard,
@@ -324,7 +324,7 @@ export default function PremiumScreen() {
 
         {/* ── Abonelik ayrıntıları ── */}
         {detailRows.length > 0 ? (
-          <Reveal index={2}>
+          <Reveal scope="premium" index={2}>
             <Section title={t("premiumHub.details.title")} color={theme.textMuted}>
               <View style={[styles.card, { backgroundColor: cardBg, borderColor: hairline }]}>
                 {detailRows.map((row, i) => (
@@ -342,7 +342,7 @@ export default function PremiumScreen() {
 
         {/* ── Yönetim ── */}
         {phase === "active" || phase === "grace" ? (
-          <Reveal index={3}>
+          <Reveal scope="premium" index={3}>
             <Section title={t("premiumHub.manage.title")} color={theme.textMuted}>
               <View style={[styles.card, { backgroundColor: cardBg, borderColor: hairline }]}>
                 {ownSubscription ? (
@@ -378,7 +378,7 @@ export default function PremiumScreen() {
         ) : null}
 
         {/* ── Ayrıcalıklar ── */}
-        <Reveal index={4}>
+        <Reveal scope="premium" index={4}>
           <Section title={t("premiumHub.benefits.title")} color={theme.textMuted}>
             <View style={{ gap: 10 }}>
               {benefits.map(({ icon: Icon, title, body, highlight }) => (
@@ -403,7 +403,7 @@ export default function PremiumScreen() {
         </Reveal>
 
         {/* ── Diğer işlemler ── */}
-        <Reveal index={5}>
+        <Reveal scope="premium" index={5}>
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: hairline }]}>
             <ActionRow
               icon={RotateCcw}
@@ -427,7 +427,7 @@ export default function PremiumScreen() {
         </Reveal>
 
         {/* ── Yasal ── */}
-        <Reveal index={6}>
+        <Reveal scope="premium" index={6}>
           <View style={styles.legalRow}>
             <TouchableOpacity onPress={() => setLegalDoc("subscription")}>
               <Text style={[styles.legalLink, { color: theme.accent }]}>{t("paywall.links.subscription")}</Text>
