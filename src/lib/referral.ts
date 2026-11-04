@@ -1,4 +1,6 @@
+import * as Application from "expo-application";
 import type { TFunction } from "i18next";
+import { Platform } from "react-native";
 import i18n from "@/lib/i18n";
 import { supabase } from "@/lib/supabase";
 import { safeStorage } from "@/lib/safeStorage";
@@ -27,6 +29,11 @@ const DEFAULT_REFERRAL_QUOTA = 5;
 
 /** Davet bağlantısıyla gelen, hesap eşleşme ekranına ulaşınca girilecek kod */
 export const PENDING_REFERRAL_CODE_KEY = "@pending_referral_code";
+/** Play Install Referrer bu kurulumda okundu (kurulum başına bir kez) */
+const INSTALL_REFERRER_READ_KEY = "@install_referrer_read";
+/** Play Store yanıt vermezse eşleşme ekranı bekletilmez */
+const INSTALL_REFERRER_TIMEOUT_MS = 3000;
+const INSTALL_REFERRER_UNAVAILABLE = "ERR_APPLICATION_INSTALL_REFERRER_UNAVAILABLE";
 
 export type ReferralStatus = "pending" | "rewarded" | "rejected";
 /** Davet edilen çiftin ödülü (premium_days / premium_extended / tokens) ya da davet edenin ek durumları */
@@ -121,13 +128,41 @@ export function formatReferralCode(code: string): string {
 }
 
 /**
- * Çiftin özel davet bağlantısı (mağaza sayfası). Kod `referrer` parametresinde de taşınır; Play Install
- * Referrer desteği eklendiğinde kod kurulumla birlikte okunabilir. O zamana dek arkadaş kodu eşleşme
- * ekranına girer.
+ * Çiftin özel davet bağlantısı (mağaza sayfası). Kod `referrer` parametresinde taşınır; arkadaş uygulamayı bu
+ * bağlantıdan kurarsa kod Play Install Referrer'dan okunur (bkz. captureInstallReferrerCode).
  */
 export function buildReferralInviteLink(code: string): string {
   const referrer = encodeURIComponent(`utm_source=referral&utm_content=${normalizeReferralCode(code)}`);
   return `https://play.google.com/store/apps/details?id=${ANDROID_PACKAGE}&referrer=${referrer}`;
+}
+
+/**
+ * Play Install Referrer metninden davet kodunu çıkarır ("utm_source=referral&utm_content=SKYT4MAU"). Play bu
+ * metnin tam bir URL olmayabileceğini söylüyor: yalnızca anahtar=değer çiftlerine bakılır. Organik kurulumlar
+ * ("utm_source=google-play&utm_medium=organic") ve başka kampanyalar null döner.
+ */
+export function parseInstallReferrerCode(referrer: unknown): string | null {
+  if (typeof referrer !== "string" || !referrer) return null;
+  const query = referrer.includes("?") ? referrer.slice(referrer.indexOf("?") + 1) : referrer;
+
+  const params = new Map<string, string>();
+  for (const pair of query.split("&")) {
+    const separator = pair.indexOf("=");
+    if (separator <= 0) continue;
+    params.set(decodeQueryPart(pair.slice(0, separator)), decodeQueryPart(pair.slice(separator + 1)));
+  }
+
+  if (params.get("utm_source") !== "referral") return null;
+  const code = params.get("utm_content");
+  return isReferralCode(code) ? normalizeReferralCode(code) : null;
+}
+
+function decodeQueryPart(part: string): string {
+  try {
+    return decodeURIComponent(part.replace(/\+/g, " "));
+  } catch {
+    return part;
+  }
 }
 
 /** Uygulama yüklüyse davet kodunu doğrudan açan bağlantı */
@@ -272,11 +307,53 @@ export async function applyReferralCode(code: string): Promise<ApplyReferralResu
   return { status: asStatus(row?.result_status), error: null };
 }
 
+async function readInstallReferrer(): Promise<void> {
+  if (Platform.OS !== "android") return;
+  try {
+    if (await safeStorage.getItem(INSTALL_REFERRER_READ_KEY)) return;
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error("install referrer timeout")), INSTALL_REFERRER_TIMEOUT_MS);
+    });
+    const referrer = await Promise.race([Application.getInstallReferrerAsync(), timeout]).finally(() =>
+      clearTimeout(timer)
+    );
+
+    // Açık bir bağlantıyla (couplesapp://refer) gelmiş kodun yerine geçmez
+    const code = parseInstallReferrerCode(referrer);
+    if (code && !(await safeStorage.getItem(PENDING_REFERRAL_CODE_KEY))) {
+      await safeStorage.setItem(PENDING_REFERRAL_CODE_KEY, code);
+    }
+    await safeStorage.setItem(INSTALL_REFERRER_READ_KEY, "1");
+  } catch (cause) {
+    // Play Store yok / API desteklenmiyor: bu kurulumda hiç okunamaz. Bağlantı kopması ya da zaman aşımı
+    // geçicidir; bir sonraki açılışta yeniden denenir.
+    const errorCode = typeof cause === "object" && cause !== null ? (cause as { code?: unknown }).code : undefined;
+    if (errorCode === INSTALL_REFERRER_UNAVAILABLE) {
+      await safeStorage.setItem(INSTALL_REFERRER_READ_KEY, "1").catch(() => undefined);
+    }
+  }
+}
+
+let installReferrerRead: Promise<void> | null = null;
+
 /**
- * Davet bağlantısıyla gelip saklanan kodu girer (bekleyen kod yoksa null). Sonuç kesinse (kabul ya da kesin
- * red) kod silinir; ağ hatasında ya da deneme sınırında bir sonraki denemeye kalır.
+ * Uygulama Play Store'daki davet bağlantısından kurulduysa bağlantıdaki kodu bekleyen koda yazar; arkadaş kodu
+ * elle girmek zorunda kalmaz. Kurulum başına bir kez (oturumda tek çağrı) okunur ve hata fırlatmaz.
+ */
+export function captureInstallReferrerCode(): Promise<void> {
+  installReferrerRead ??= readInstallReferrer();
+  return installReferrerRead;
+}
+
+/**
+ * Davet bağlantısıyla gelip saklanan kodu girer (bekleyen kod yoksa null). Kurulum bağlantısındaki kod da
+ * burada okunur. Sonuç kesinse (kabul ya da kesin red) kod silinir; ağ hatasında ya da deneme sınırında bir
+ * sonraki denemeye kalır.
  */
 export async function applyPendingReferralCode(): Promise<(ApplyReferralResult & { code: string }) | null> {
+  await captureInstallReferrerCode();
   const stored = await safeStorage.getItem(PENDING_REFERRAL_CODE_KEY);
   if (!stored) return null;
   if (!isReferralCode(stored)) {

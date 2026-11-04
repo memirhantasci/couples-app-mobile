@@ -13,12 +13,25 @@ import {
   isReferralCode,
   looksLikeReferralCode,
   normalizeReferralCode,
+  parseInstallReferrerCode,
   parseReferralOverview,
   parseReferralStarInvite,
   translateReferralError,
 } from "../referral";
 
 const mockStore = new Map<string, string>();
+const mockPlatform = { OS: "ios" };
+const mockGetInstallReferrer = jest.fn();
+
+// Fabrika import'lardan önce çalışır: `mockPlatform` okunma anında çözülür
+jest.mock("react-native", () => ({
+  Platform: {
+    get OS() {
+      return mockPlatform.OS;
+    },
+  },
+}));
+jest.mock("expo-application", () => ({ getInstallReferrerAsync: (...args: unknown[]) => mockGetInstallReferrer(...args) }));
 
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
 jest.mock("@/lib/supabase", () => ({ supabase: { rpc: jest.fn() } }));
@@ -230,5 +243,107 @@ describe("applyPendingReferralCode", () => {
     rpc.mockRejectedValue(new Error("offline"));
     await expect(applyPendingReferralCode()).resolves.toEqual({ status: null, error: "offline", code: "SKYT4MAU" });
     expect(mockStore.get(PENDING_REFERRAL_CODE_KEY)).toBe("SKYT4MAU");
+  });
+});
+
+describe("parseInstallReferrerCode", () => {
+  it("davet bağlantısındaki kodu çıkarır", () => {
+    expect(parseInstallReferrerCode("utm_source=referral&utm_content=SKYT4MAU")).toBe("SKYT4MAU");
+    expect(parseInstallReferrerCode("utm_content=skyt4mau&utm_source=referral")).toBe("SKYT4MAU");
+  });
+
+  it("tam URL ve kodlanmış metinleri de çözer", () => {
+    expect(parseInstallReferrerCode("https://x.test/?utm_source=referral&utm_content=SKYT4MAU")).toBe("SKYT4MAU");
+    expect(parseInstallReferrerCode("utm_source=referral&utm_content=SKY%54%34MAU")).toBe("SKYT4MAU");
+  });
+
+  it("organik kurulumu, başka kampanyayı ve geçersiz kodu yok sayar", () => {
+    expect(parseInstallReferrerCode("utm_source=google-play&utm_medium=organic")).toBeNull();
+    expect(parseInstallReferrerCode("utm_source=other&utm_content=SKYT4MAU")).toBeNull();
+    expect(parseInstallReferrerCode("utm_source=referral&utm_content=HELLO123")).toBeNull();
+    expect(parseInstallReferrerCode("utm_source=referral")).toBeNull();
+    expect(parseInstallReferrerCode("")).toBeNull();
+    expect(parseInstallReferrerCode(null)).toBeNull();
+  });
+});
+
+describe("captureInstallReferrerCode / applyPendingReferralCode (Android)", () => {
+  type ReferralModule = typeof import("../referral");
+
+  /** Oturum başına tek okuma bellekte tutulur: her senaryo modülü sıfırdan yükler */
+  function loadFresh(): ReferralModule {
+    let lib!: ReferralModule;
+    jest.isolateModules(() => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports -- izole modül örneği için gerekli
+      lib = require("../referral");
+    });
+    return lib;
+  }
+
+  beforeEach(() => {
+    rpc.mockReset();
+    mockStore.clear();
+    mockGetInstallReferrer.mockReset();
+    mockPlatform.OS = "android";
+  });
+  afterEach(() => {
+    mockPlatform.OS = "ios";
+  });
+
+  it("kurulum bağlantısındaki kodu bekleyen koda yazıp sunucuya girer", async () => {
+    mockGetInstallReferrer.mockResolvedValue("utm_source=referral&utm_content=SKYT4MAU");
+    rpc.mockResolvedValue({ data: [{ result_status: "pending", result_error: null }], error: null });
+    const lib = loadFresh();
+
+    await expect(lib.applyPendingReferralCode()).resolves.toEqual({ status: "pending", error: null, code: "SKYT4MAU" });
+    expect(rpc).toHaveBeenCalledWith("apply_referral_code", { p_code: "SKYT4MAU" });
+    expect(mockStore.get("@install_referrer_read")).toBe("1");
+  });
+
+  it("organik kurulumda kod yazmaz ama okundu diye işaretler", async () => {
+    mockGetInstallReferrer.mockResolvedValue("utm_source=google-play&utm_medium=organic");
+    const lib = loadFresh();
+
+    await expect(lib.applyPendingReferralCode()).resolves.toBeNull();
+    expect(rpc).not.toHaveBeenCalled();
+    expect(mockStore.get("@install_referrer_read")).toBe("1");
+  });
+
+  it("açık bağlantıyla gelmiş kodun yerine geçmez", async () => {
+    mockStore.set(PENDING_REFERRAL_CODE_KEY, "SKYAAAAA");
+    mockGetInstallReferrer.mockResolvedValue("utm_source=referral&utm_content=SKYT4MAU");
+    const lib = loadFresh();
+
+    await lib.captureInstallReferrerCode();
+    expect(mockStore.get(PENDING_REFERRAL_CODE_KEY)).toBe("SKYAAAAA");
+  });
+
+  it("kurulum başına bir kez okur", async () => {
+    mockStore.set("@install_referrer_read", "1");
+    const lib = loadFresh();
+
+    await lib.captureInstallReferrerCode();
+    expect(mockGetInstallReferrer).not.toHaveBeenCalled();
+  });
+
+  it("Play Store yoksa bir daha denemez, geçici hatada sonraki açılışta dener", async () => {
+    mockGetInstallReferrer.mockRejectedValueOnce(
+      Object.assign(new Error("unavailable"), { code: "ERR_APPLICATION_INSTALL_REFERRER_UNAVAILABLE" })
+    );
+    await loadFresh().captureInstallReferrerCode();
+    expect(mockStore.get("@install_referrer_read")).toBe("1");
+
+    mockStore.clear();
+    mockGetInstallReferrer.mockRejectedValueOnce(
+      Object.assign(new Error("connection"), { code: "ERR_APPLICATION_INSTALL_REFERRER_CONNECTION" })
+    );
+    await loadFresh().captureInstallReferrerCode();
+    expect(mockStore.has("@install_referrer_read")).toBe(false);
+  });
+
+  it("iOS'ta Play Install Referrer'a hiç dokunmaz", async () => {
+    mockPlatform.OS = "ios";
+    await loadFresh().captureInstallReferrerCode();
+    expect(mockGetInstallReferrer).not.toHaveBeenCalled();
   });
 });
