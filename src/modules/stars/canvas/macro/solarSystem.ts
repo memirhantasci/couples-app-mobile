@@ -181,6 +181,15 @@ const ORRERY_RADIUS_DEG: Record<string, number> = {
   neptune: 18.0,
   pluto: 19.6,
 };
+/**
+ * Merkür, Venüs ve Dünya şu an Güneş'in aynı tarafında (~42–49°) olduğundan küçültülmüş ekranda
+ * Ay ile birlikte üst üste biniyordu. Bu iki iç gezegen sabit açıya sabitlenir: Merkür Güneş'in tam
+ * sağında (0°), Venüs sol altında (225°). Diğer gezegenler gerçek güncel açılarını korur.
+ */
+const PINNED_ANGLE_DEG: Record<string, number> = {
+  mercury: 0,
+  venus: 225,
+};
 /** Ay'ın Dünya'ya görsel uzaklığı (derece): Dünya'nın geniş parıltısından (16px) açıkça ayrı durur. */
 const MOON_OFFSET_DEG = 1.7;
 /** Yörünge düzlemine hafif eğik bakış: dikey eksen bu oranda basılır. */
@@ -235,7 +244,9 @@ export function computeSolarSystemLayout(date: Date = new Date()): Record<string
   };
   for (const name of Object.keys(ORRERY_RADIUS_DEG)) {
     const helio = heliocentricPosition(ELEMENTS[name], centuries);
-    layout[`SOL-${name.toUpperCase()}`] = place(Math.atan2(helio.y, helio.x), ORRERY_RADIUS_DEG[name]);
+    const pinned = PINNED_ANGLE_DEG[name];
+    const angle = pinned !== undefined ? pinned * DEG : Math.atan2(helio.y, helio.x);
+    layout[`SOL-${name.toUpperCase()}`] = place(angle, ORRERY_RADIUS_DEG[name]);
   }
   const moon = moonDirection(days);
   const earth = layout['SOL-EARTH'];
