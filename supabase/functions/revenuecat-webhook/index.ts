@@ -1,11 +1,16 @@
-// RevenueCat → Supabase: mağaza aboneliği olaylarını çiftin Premium durumuna yansıtır.
+// RevenueCat → Supabase: mağaza aboneliği olaylarını çiftin Premium yaşam döngüsüne yansıtır.
 //
 // Premium'u yalnızca bu fonksiyon (service_role) yazar; istemci artık `set_premium_status` çağırmaz.
-// Eski istemci eşitlemesi, RevenueCat'te hakkı olmayan partner uygulamayı açınca çiftin (ödenmiş ya da
-// promosyonla verilmiş) Premium'unu kapatıyordu. Burada kurallar:
+// Karar veritabanında tek işlemde verilir: public.apply_revenuecat_event (bkz.
+// migrations/20261104000003_subscription_lifecycle.sql) çift satırını kilitler, kuralı uygular ve yaşam
+// döngüsünü (active → grace_period → vault → free) aynı işlemde ilerletir. Eşzamanlı ya da sırası karışık gelen
+// olaylar birbirini ezemez (önceki sürüm okuyup ayrı istekle yazıyordu). Kurallar:
 //   • Satın alma / yenileme: bitiş = max(mevcut bitiş, mağaza bitişi). Süresiz (NULL) Premium korunur.
-//   • Bitiş / iade: yalnızca bitiş tarihi mağaza bitişine eşit ya da öncesindeyse kapatılır; daha geç bir
-//     promosyon süresi ya da süresiz Premium bu olaylardan etkilenmez.
+//     Kış uykusu ve kasa kalkar.
+//   • Bitiş / iade: Premium kapatılmaz, her şey kilitlenmez. Bitiş tarihi hakkın gerçek bitiş anına çekilir
+//     (iade: şimdi) ve 14 günlük kış uykusu başlar. Daha geç bir promosyon süresi ya da süresiz Premium etkilenmez.
+//   • CANCELLATION (otomatik yenileme kapatıldı): ödenmiş dönem sürer, değişiklik yok; kış uykusu dönem
+//     bitince EXPIRATION ile başlar.
 //
 // RevenueCat panelinde: Integrations → Webhooks → URL = <proje>/functions/v1/revenuecat-webhook,
 // "Authorization header value" = REVENUECAT_WEBHOOK_SECRET ile aynı değer.
@@ -18,16 +23,11 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const ENTITLEMENTS = new Set(["Premium", "couples_app_pro"]);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const GRANT_EVENTS = new Set([
-  "INITIAL_PURCHASE",
-  "RENEWAL",
-  "PRODUCT_CHANGE",
-  "UNCANCELLATION",
-  "NON_RENEWING_PURCHASE",
-  "SUBSCRIPTION_EXTENDED",
-  "REFUND_REVERSED",
-]);
-const END_SLACK_MS = 60_000;
+
+/** apply_revenuecat_event dönüşleri */
+const LIFECYCLE_RESULTS = ["granted", "kept_lifetime", "lapsed", "kept", "ignored", "no_couple"] as const;
+type LifecycleResult = (typeof LIFECYCLE_RESULTS)[number];
+type WebhookResult = LifecycleResult | "test" | "other_entitlement" | "no_user";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -66,7 +66,17 @@ function resolveUserId(event: RevenueCatEvent): string | null {
   return candidates.find((id): id is string => typeof id === "string" && UUID_PATTERN.test(id)) ?? null;
 }
 
-async function applyEvent(event: RevenueCatEvent): Promise<string> {
+function isLifecycleResult(value: unknown): value is LifecycleResult {
+  return typeof value === "string" && (LIFECYCLE_RESULTS as readonly string[]).includes(value);
+}
+
+/** Mağaza bitişi (ISO); yoksa ya da geçersizse null (satın almada süresiz demektir) */
+function storeExpiration(event: RevenueCatEvent): string | null {
+  const ms = event.expiration_at_ms;
+  return typeof ms === "number" && Number.isFinite(ms) ? new Date(ms).toISOString() : null;
+}
+
+async function applyEvent(event: RevenueCatEvent): Promise<WebhookResult> {
   const type = event.type ?? "";
   if (type === "TEST") return "test";
 
@@ -76,52 +86,15 @@ async function applyEvent(event: RevenueCatEvent): Promise<string> {
   const userId = resolveUserId(event);
   if (!userId) return "no_user";
 
-  const { data: profile, error: profileError } = await admin
-    .from("users")
-    .select("couple_id")
-    .eq("id", userId)
-    .maybeSingle();
-  if (profileError) throw new Error(`profil okunamadı: ${profileError.message}`);
-  if (!profile?.couple_id) return "no_couple";
-
-  const { data: couple, error: coupleError } = await admin
-    .from("couples")
-    .select("is_premium, premium_expires_at")
-    .eq("id", profile.couple_id)
-    .single();
-  if (coupleError) throw new Error(`çift okunamadı: ${coupleError.message}`);
-
-  const currentExpiry = couple.premium_expires_at ? Date.parse(couple.premium_expires_at) : null;
-  const storeExpiry = typeof event.expiration_at_ms === "number" ? event.expiration_at_ms : null;
-
-  if (GRANT_EVENTS.has(type)) {
-    // Mevcut süresiz Premium (ör. promosyon) mağaza olayıyla kısalmaz
-    if (couple.is_premium && couple.premium_expires_at === null) return "kept_lifetime";
-
-    const nextExpiry = storeExpiry === null ? null : Math.max(currentExpiry ?? 0, storeExpiry);
-    const { error } = await admin
-      .from("couples")
-      .update({
-        is_premium: true,
-        premium_expires_at: nextExpiry === null ? null : new Date(nextExpiry).toISOString(),
-      })
-      .eq("id", profile.couple_id);
-    if (error) throw new Error(`Premium yazılamadı: ${error.message}`);
-    return "granted";
-  }
-
-  const refund = type === "CANCELLATION" && event.cancel_reason === "CUSTOMER_SUPPORT";
-  if (type === "EXPIRATION" || refund) {
-    // Daha geç bir tarihle verilmiş Premium (promosyon / süresiz) bu olaydan etkilenmez
-    const endsWithStore = currentExpiry !== null && currentExpiry <= (storeExpiry ?? Date.now()) + END_SLACK_MS;
-    if (!couple.is_premium || !endsWithStore) return "kept";
-    const { error } = await admin.from("couples").update({ is_premium: false }).eq("id", profile.couple_id);
-    if (error) throw new Error(`Premium kapatılamadı: ${error.message}`);
-    return "revoked";
-  }
-
-  // CANCELLATION (dönem sonunda biter), BILLING_ISSUE vb.: bitiş tarihi zaten geçerlilik süresini belirler
-  return "ignored";
+  const { data, error } = await admin.rpc("apply_revenuecat_event", {
+    p_user_id: userId,
+    p_event_type: type,
+    p_expiration_at: storeExpiration(event),
+    p_cancel_reason: event.cancel_reason ?? null,
+  });
+  if (error) throw new Error(`olay uygulanamadı: ${error.message}`);
+  if (!isLifecycleResult(data)) throw new Error(`beklenmeyen sonuç: ${String(data)}`);
+  return data;
 }
 
 Deno.serve(async (req) => {
