@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Modal,
   Platform,
@@ -57,6 +57,11 @@ export interface LetterReadingModalProps {
   letter: ReadableLetter | null;
   theme: AppTheme;
   onClose: () => void;
+  /**
+   * Zamana kilitli bir mektubun mührü bu ziyarette ilk kez kırıldı ve pencere kapandı
+   * (mektup, açılış günü yazıldığı günden sonra olacak şekilde mühürlenmişti).
+   */
+  onFirstOpened?: () => void;
 }
 
 // ─── Zaman Çizelgesi (ms, mühre dokunulduğu andan itibaren) ─────────────────────
@@ -100,17 +105,32 @@ const PETAL_COUNT = 6;
 
 type Phase = "sealed" | "opening" | "open" | "resealing";
 
-export function LetterReadingModal({ visible, letter, theme, onClose }: LetterReadingModalProps) {
+export function LetterReadingModal({ visible, letter, theme, onClose, onFirstOpened }: LetterReadingModalProps) {
   // İçerik yalnızca görünürken mount edilir: her açılış temiz durumla başlar
   if (!visible || !letter) return null;
-  return <SealGate key={letter.id} letter={letter} theme={theme} onClose={onClose} />;
+  return <SealGate key={letter.id} letter={letter} theme={theme} onClose={onClose} onFirstOpened={onFirstOpened} />;
+}
+
+/** Mektup yazıldığı günden sonraki bir güne mühürlenmiş miydi (zaman kapsülü)? */
+function wasTimeLocked(letter: ReadableLetter): boolean {
+  return !!letter.unlockDate && dayjs(letter.unlockDate).isAfter(dayjs(letter.createdAt), "day");
 }
 
 /**
  * Mührün daha önce kırılıp kırılmadığına göre sahneyi mühürlü zarfla ya da doğrudan açık kâğıtla
  * başlatır. Hafıza liste ekranında önceden yüklendiği için cevap neredeyse her zaman ilk karede hazırdır.
  */
-function SealGate({ letter, theme, onClose }: { letter: ReadableLetter; theme: AppTheme; onClose: () => void }) {
+function SealGate({
+  letter,
+  theme,
+  onClose,
+  onFirstOpened,
+}: {
+  letter: ReadableLetter;
+  theme: AppTheme;
+  onClose: () => void;
+  onFirstOpened?: () => void;
+}) {
   const [sealBroken, setSealBroken] = useState<boolean | null>(() => isSealBrokenCached(letter.id));
 
   useEffect(() => {
@@ -125,18 +145,22 @@ function SealGate({ letter, theme, onClose }: { letter: ReadableLetter; theme: A
   }, [sealBroken, letter.id]);
 
   if (sealBroken === null) return null;
-  return <ReadingScene letter={letter} theme={theme} onClose={onClose} startOpen={sealBroken} />;
+  return (
+    <ReadingScene letter={letter} theme={theme} onClose={onClose} onFirstOpened={onFirstOpened} startOpen={sealBroken} />
+  );
 }
 
 function ReadingScene({
   letter,
   theme,
   onClose,
+  onFirstOpened,
   startOpen,
 }: {
   letter: ReadableLetter;
   theme: AppTheme;
   onClose: () => void;
+  onFirstOpened?: () => void;
   /** Mühür daha önce kırıldı: ritüel atlanır, mektup açık kâğıtla gelir. */
   startOpen: boolean;
 }) {
@@ -146,6 +170,8 @@ function ReadingScene({
   const reduceMotion = useReducedMotion();
   const opensDirectly = reduceMotion || startOpen;
   const [phase, setPhase] = useState<Phase>(opensDirectly ? "open" : "sealed");
+  // Mühür bu ziyarette ilk kez kırıldı mı (daha önce kırılmış mektupta ritüel atlanır, sayılmaz)
+  const brokeSealNowRef = useRef(false);
 
   // ─── Geometri ───
   const envW = Math.min(screenW - 64, 320);
@@ -214,6 +240,7 @@ function ReadingScene({
   const breakSeal = useCallback(() => {
     if (phase !== "sealed") return;
     setPhase("opening");
+    if (!startOpen) brokeSealNowRef.current = true;
     rememberBrokenSeal(letter.id);
     // Tek, tok kırılma titreşimi: playStampDrop sesle birlikte hapticStamp'i kendisi verir;
     // burada ayrıca bir haptik çağrılmaz
@@ -242,7 +269,7 @@ function ReadingScene({
     petals.set(
       withDelay(T.petalsDelay, withTiming(1, { duration: T.petalsDuration, easing: Easing.out(Easing.quad) }))
     );
-  }, [phase, letter.id, hint, jolt, crack, flap, pull, unfold, contentIn, petals, markOpen]);
+  }, [phase, startOpen, letter.id, hint, jolt, crack, flap, pull, unfold, contentIn, petals, markOpen]);
 
   // ─── Mührü tekrar kır: açılış tersine oynar, ardından mühür yeniden kırılmayı bekler ───
   const finishReseal = useCallback(() => {
@@ -277,15 +304,20 @@ function ReadingScene({
   }, [phase, petals, rise, crack, flap, pull, contentIn, unfold, finishReseal]);
 
   // ─── Kapat: her şey yumuşakça söner, ardından onClose ───
+  const handleClosed = useCallback(() => {
+    onClose();
+    if (brokeSealNowRef.current && wasTimeLocked(letter)) onFirstOpened?.();
+  }, [onClose, onFirstOpened, letter]);
+
   const close = useCallback(() => {
     cancelAnimation(out);
     out.set(
       withTiming(1, { duration: reduceMotion ? 150 : T.closeDuration }, (done) => {
         "worklet";
-        if (done) scheduleOnRN(onClose);
+        if (done) scheduleOnRN(handleClosed);
       })
     );
-  }, [out, reduceMotion, onClose]);
+  }, [out, reduceMotion, handleClosed]);
 
   // ─── Stiller ───
   const rootStyle = useAnimatedStyle(() => ({ opacity: 1 - out.get() }));

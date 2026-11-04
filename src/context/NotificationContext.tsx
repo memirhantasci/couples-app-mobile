@@ -3,8 +3,9 @@ import { invalidateForNotification, invalidateOnResume } from "@/lib/notificatio
 import { AppState } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Notifications from "expo-notifications";
-import { useRouter } from "expo-router";
+import { useRootNavigationState, useRouter } from "expo-router";
 import { InAppNotificationData, NotificationType } from "@/types/notification";
+import { resolveNotificationRoute } from "@/lib/notificationRoutes";
 import { logger } from "@/utils/logger";
 import { clearNotificationBadge } from "@/lib/notifications";
 import { markLettersSeen, requestLetterArrivalCheck } from "@/lib/letterArrival";
@@ -35,8 +36,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [currentNotification, setCurrentNotification] = useState<InAppNotificationData | null>(null);
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { session } = useAuth();
+  const { session, isSignedIn, isLoading: isAuthLoading } = useAuth();
   const userId = session?.user?.id ?? null;
+  // Gezinti ağacı kurulmadan (soğuk açılış) yapılan yönlendirme kaybolur; bu yüzden hedef önce bekletilir
+  const isNavigationReady = !!useRootNavigationState()?.key;
 
   const dismissNotification = useCallback(() => {
     setCurrentNotification(null);
@@ -245,20 +248,37 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     invalidateForNotification(queryClient, responseData?.type);
     // Mektup bildirimine dokunan kullanıcı mektuplar ekranına gidiyor: kuş karşılaması gerekmez
     if (responseData?.type === "letter" && userId) markLettersSeen(userId);
+  }, [lastResponse, userId, queryClient]);
 
-    const route = responseData?.route;
-    if (typeof route !== "string" || !route.startsWith("/")) return;
+  // Dokunulan bildirimin hedef ekranı (route, yoksa tür; yalnızca bilinen ekranlar)
+  const tap = useMemo(() => {
+    if (!lastResponse || lastResponse.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return null;
+    const { request, date } = lastResponse.notification;
+    return { key: `${request.identifier}:${date}`, route: resolveNotificationRoute(request.content.data) };
+  }, [lastResponse]);
+  const navigatedTapRef = useRef<string | null>(null);
 
-    // Soğuk açılışta gezinti ağacı henüz hazır olmayabilir; kısa bir gecikmeyle dene
+  // Bildirimle (özellikle soğuk) açılışta oturum çözülene ve gezinti ağacı kurulana dek beklenir; oturum yoksa
+  // yönlendirme bırakılır (giriş ekranını koruyucu yönetir). Kısa gecikme, koruyucunun açılıştaki kendi
+  // yönlendirmesi bitsin diye. Gecikme dolmadan bağımlılıklar değişirse zamanlayıcı yenilenir, dokunuş kaybolmaz.
+  useEffect(() => {
+    if (!tap?.route || navigatedTapRef.current === tap.key) return;
+    if (!isNavigationReady || isAuthLoading) return;
+    if (!isSignedIn) {
+      navigatedTapRef.current = tap.key;
+      return;
+    }
+    const route = tap.route;
     const timer = setTimeout(() => {
+      navigatedTapRef.current = tap.key;
       try {
         router.push(route as any);
       } catch (err) {
         logger.error("[InAppNotification] Error responding to notification tap:", err);
       }
-    }, 400);
+    }, 300);
     return () => clearTimeout(timer);
-  }, [lastResponse, router, userId, queryClient]);
+  }, [tap, isNavigationReady, isAuthLoading, isSignedIn, router]);
 
   // Uygulama açılınca / öne gelince ikon rozetini ve bildirim merkezini temizle.
   // Arka planda bir süre kaldıysa partnerin verileri de yenilenir (anlık bağlantı yalnızca profil/yıldızda var).
@@ -295,9 +315,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         notification={currentNotification}
         onDismiss={dismissNotification}
         onAction={(notif) => {
-          if (notif.route) {
-            router.push(notif.route as any);
-          }
+          const route = resolveNotificationRoute({ route: notif.route });
+          if (route) router.push(route as any);
         }}
       />
     </NotificationContext.Provider>

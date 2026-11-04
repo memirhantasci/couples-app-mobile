@@ -31,6 +31,7 @@ import { LockedHourglassBadge } from "@/components/letters/LockedHourglassBadge"
 import { LockedLetterPadlock, LockedLetterPill } from "@/components/letters/LockedLetterFeedback";
 import { toast } from "@/lib/toast";
 import { markLettersSeen } from "@/lib/letterArrival";
+import { requestReviewAtMoment } from "@/lib/storeReview";
 import { preloadBrokenSeals } from "@/lib/letterSeals";
 import { markLettersVisited } from "@/lib/widgetUnread";
 import { setCoupleWidgetUnread } from "@/utils/widgetBridge";
@@ -1180,6 +1181,10 @@ export default function LettersScreen() {
         letter={readingLetter}
         theme={theme}
         onClose={() => setReadingLetter(null)}
+        onFirstOpened={() => {
+          // Zamana kilitli mektubun mührü ilk kez kırıldı: duygusal an (demo hesapta istenmez)
+          if (!isDemoMode) void requestReviewAtMoment("letter_first_open");
+        }}
       />
       <LazyPermissionPrimingModal
         visible={priming.isVisible}

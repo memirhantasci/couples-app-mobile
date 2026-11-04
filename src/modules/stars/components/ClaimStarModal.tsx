@@ -56,6 +56,7 @@ import { SKY_SECTORS, type SectorConfig } from '../config/skySectors.data';
 import { UNCLAIMED_STAR_BRIGHTNESS } from '../canvas/macro/starStyle';
 import { useTranslation } from 'react-i18next';
 import { localizeServerError } from '@/lib/serverErrors';
+import { requestReviewAtMoment } from '@/lib/storeReview';
 import { StorySharePreview } from '@/components/share/StorySharePreview';
 import { StarCertificateStoryCard } from '@/components/share/StarCertificateStoryCard';
 import { FoilSeal, GOLD, GoldRule, Monogram, unitScale } from '@/components/share/storyDecor';
@@ -512,6 +513,8 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
       setClaimedStar(resultStar);
       setModalState('certificate');
       onClaimed?.(resultStar);
+      // En özel an: sertifika ekrandayken (kısa gecikmeyle) sistemin değerlendirme penceresi istenir
+      void requestReviewAtMoment('star_claimed');
       await hapticSuccess();
     }
   };

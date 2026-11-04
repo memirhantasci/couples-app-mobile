@@ -15,6 +15,7 @@ import { usePageTour } from "@/hooks/usePageTour";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { rainConfetti } from "@/lib/confettiRain";
 import { dayjs, todayString } from "@/lib/date";
+import { requestReviewAtMoment } from "@/lib/storeReview";
 import {
   DEFAULT_MEMORY_DESCRIPTIONS,
   DEFAULT_MEMORY_TITLES,
@@ -291,10 +292,12 @@ export default function MemoriesScreen() {
 
   const closeMilestone = useCallback(() => {
     if (milestone) AsyncStorage.setItem(milestone.key, "1");
+    // Yıl dönümü kutlaması görüldü (sıradan "bugün özel gün" kutlaması sayılmaz; demo hesapta istenmez)
+    if (milestone && milestone.years > 0 && !isDemoMode) void requestReviewAtMoment("anniversary");
     setMilestone(null);
     // Modal native olarak en üstte çizilir; konfeti, tören kapanınca Anılar ekranına yağar
     rainConfetti();
-  }, [milestone]);
+  }, [milestone, isDemoMode]);
 
   const handleDelete = (id: number) => {
     if (executeOrIntercept(
