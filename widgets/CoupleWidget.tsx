@@ -66,8 +66,17 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
   // ─── Metinler: uygulamanın seçili dilinde gelir; eski veride yoksa Türkçe varsayılana düşer ───
   const strings = props.strings || {};
   const L = (key: string, fallback: string) => (strings[key] ? strings[key] : fallback);
-  const fill = (template: string, vars: { [name: string]: string | number }) =>
-    template.replace(/\{(\w+)\}/g, (match: string, name: string) => (vars[name] !== undefined ? String(vars[name]) : match));
+  // DİKKAT: widget fonksiyonunun içinde (yorumlar dahil) ters eğik çizgi karakteri KULLANILAMAZ: ne düzenli
+  // ifade kaçışları ne de satır sonu dizileri. Widget kodu bir şablon dizesine gömülürken yalnızca
+  // ters tırnak ve dolar-süslü parantez kaçırılır; ters eğik çizgili diziler çözülüp bozulur. Eski düzenli
+  // ifade bu yüzden widget içinde yer tutucuları hiç yakalamıyordu ve ekranda {names} gibi kalıyordu.
+  const fill = (template: string, vars: { [name: string]: string | number }) => {
+    let out = template;
+    for (const name in vars) {
+      out = out.split('{' + name + '}').join(String(vars[name]));
+    }
+    return out;
+  };
 
   // ─── Renkler ───
   const BASE = '#170A20';
@@ -93,7 +102,17 @@ export function CoupleWidgetView(props: CoupleWidgetProps, env: WidgetEnvironmen
   const pad2 = (n: number) => (n < 10 ? '0' + n : '' + n);
   const todayKey = now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate());
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const group = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, L('thousandsSeparator', '.'));
+  // Binlik ayırıcı: sağdan üçlü gruplar (düzenli ifade yok, yukarıdaki nota bakın)
+  const group = (n: number) => {
+    const digits = String(n);
+    const separator = L('thousandsSeparator', '.');
+    let out = '';
+    for (let i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 === 0) out += separator;
+      out += digits.charAt(i);
+    }
+    return out;
+  };
 
   let start: Date | null = null;
   let days: number | null = null;

@@ -3,6 +3,7 @@ import { Directory, File, Paths } from "expo-file-system";
 import { dayjs } from "@/lib/date";
 import { logger } from "@/utils/logger";
 import i18n, { getCurrentLanguage, type AppLanguage } from "@/lib/i18n";
+import { withoutNulls } from "@/utils/widgetPayload";
 
 /**
  * Ana ekran widget'ı köprüsü (iOS: expo-widgets / WidgetKit, Android: yerel AppWidget).
@@ -191,9 +192,11 @@ async function removeAllAvatarFiles(): Promise<void> {
 
 // ─── Platforma gönderim ──────────────────────────────────────────────────────
 
-function pushToIos(payload: CoupleWidgetPayload): void {
+function pushToIos(fullPayload: CoupleWidgetPayload): void {
   const { coupleWidget } = require("../../widgets/CoupleWidget") as typeof import("../../widgets/CoupleWidget");
 
+  // UserDefaults null değerli kaydı sessizce yazmaz (bkz. widgetPayload): boş alanlar gönderilmez
+  const payload = withoutNulls(fullPayload);
   const now = new Date();
   const entries = [{ date: now, props: payload }];
   // Her gece yarısı için bir kayıt: widget gün sayısını kendi hesaplar (env.date kayıt tarihidir)
