@@ -59,7 +59,7 @@ import {
 import { safeStorage as AsyncStorage } from '@/lib/safeStorage';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
-import { DEMO_STAR_DETAILS, DEMO_STAR_EXOPLANETS } from '@/constants/demoData';
+import { DEMO_STAR_DETAILS, DEMO_STAR_EXOPLANETS, getDemoStarOwnerLabel } from '@/constants/demoData';
 import { starService, PremiumRequiredError } from '../api/starService';
 import { StarSparkManager } from '../services/StarSparkManager';
 import { MicroSystemCanvas } from '../canvas/MicroSystemCanvas';
@@ -1193,7 +1193,16 @@ export const OurStarScreen: React.FC = () => {
     const commonName = selectedMacroStar.is_mine ? starDetails?.common_name : selectedMacroStar.common_name;
     return selectedMacroStar.is_claimed && commonName ? `${commonName} · ${code}` : code;
   })();
-  const selectedStarOwnerLabel = selectedMacroStar?.is_claimed ? selectedMacroStar.owner_label ?? null : null;
+  // Kendi yıldızımızın kartı bazen sunucu etiketi olmayan bir kayıttan açılır (demo; "yıldızıma git" ile harita
+  // yüklenmeden açılan kart): isimler önce yüklü haritadaki kendi kaydından, demoda örnek çiftten alınır.
+  const selectedStarOwnerLabel = !selectedMacroStar?.is_claimed
+    ? null
+    : selectedMacroStar.owner_label ??
+      (selectedMacroStar.is_mine
+        ? isDemoMode
+          ? getDemoStarOwnerLabel()
+          : skyTiles.stars.find((s) => s.is_mine)?.owner_label ?? null
+        : null);
   const canReportSelectedStar =
     !!selectedMacroStar &&
     selectedMacroStar.is_claimed &&

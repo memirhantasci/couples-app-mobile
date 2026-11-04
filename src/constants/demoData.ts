@@ -894,6 +894,14 @@ const DEMO_STAR_DETAILS_EN: CoupleStarDetails = {
 
 export const DEMO_STAR_DETAILS: CoupleStarDetails = createLocalizedProxy(DEMO_STAR_DETAILS_TR, DEMO_STAR_DETAILS_EN);
 
+/**
+ * Demo yıldızın kartında başlığın altında görünen sahip çift etiketi. Gerçek hesaplarda bunu sunucu üretir
+ * (star_owner_label: "Ahmet 💕 Elif"); demoda sunucudan yıldız verisi gelmediği için ilk adlar burada verilir.
+ */
+export function getDemoStarOwnerLabel(): string {
+  return i18n?.language === "en" ? "Guest 💕 Sweetheart" : "Misafir 💕 Sevgilin";
+}
+
 // ─── STAR EXOPLANETS ────────────────────────────────────────────────────────
 const DEMO_STAR_EXOPLANETS_TR: StarExoplanetRecord[] = [
   {
