@@ -47,6 +47,9 @@ import { MoodSelector, MOODS } from "@/components/home/MoodSelector";
 import { DailyNoteCard } from "@/components/home/DailyNoteCard";
 import { MeetingCountdown, type Meeting } from "@/components/home/MeetingCountdown";
 import { PendingLettersBadge } from "@/components/home/PendingLettersCard";
+import { StarHibernationCard } from "@/components/home/StarHibernationCard";
+import { useCoupleStarSummary } from "@/hooks/useCoupleStarSummary";
+import { derivePremiumPhase } from "@/lib/premiumStatus";
 import { useHomeSpotlightTour } from "@/hooks/useHomeSpotlightTour";
 import { type SpotlightStep } from "@/components/tour/SpotlightTour";
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
@@ -65,7 +68,7 @@ import { syncCoupleWidget } from "@/utils/widgetBridge";
 import { fetchWidgetUnread } from "@/lib/widgetUnread";
 import { CoupleAvatarRing } from "@/components/home/CoupleAvatarRing";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
-import { LazySpotlightTour, LazyCoupleWrappedModal } from "@/components/ui/lazyMount";
+import { LazySpotlightTour, LazyCoupleWrappedModal, LazyPremiumPaywall, LazyStellarHibernationModal } from "@/components/ui/lazyMount";
 import { useTranslation } from "react-i18next";
 import { istanbulToday } from "@/lib/letterPolicy";
 
@@ -86,6 +89,26 @@ export default function HomeScreen() {
   const isPremium = (profile?.isPremium ?? false) || isDemoMode;
   const isFemale = profile?.gender === "female";
   const canSeePeriod = isFemale || isPremium;
+
+  // Kış uykusu: Premium'u biten çiftin yıldızı 14 gün koordinatında uyur; gökyüzüne girmeyen çift de görsün diye
+  // ana sayfada kalan günle birlikte sakin bir kart çıkar. Yıldızı olmayan çifte (uyuyacak yıldız yok) gösterilmez.
+  const starSummary = useCoupleStarSummary();
+  const hibernation = useMemo(
+    () =>
+      derivePremiumPhase({
+        isPremium: profile?.isPremium ?? false,
+        premiumExpiresAt: profile?.premiumExpiresAt,
+        graceUntil: profile?.graceUntil,
+      }),
+    [profile?.isPremium, profile?.premiumExpiresAt, profile?.graceUntil]
+  );
+  const isStarHibernating = !isDemoMode && hibernation.phase === "grace" && starSummary !== null;
+  const [isHibernationOpen, setIsHibernationOpen] = useState(false);
+  const [isHibernationPaywallOpen, setIsHibernationPaywallOpen] = useState(false);
+  const handleWakeStar = useCallback(() => {
+    setIsHibernationOpen(false);
+    setIsHibernationPaywallOpen(true);
+  }, []);
 
   // 🚀 Arka planda Aşk Takvimi verilerini önceden önbelleğe al (Prefetch)
   // Böylece Takvim sekmesine basıldığında sıfır bekleme süresiyle (0ms) açılır
@@ -757,6 +780,13 @@ export default function HomeScreen() {
             </View>
           </Reveal>
 
+          {/* ─── 4b. YILDIZ KIŞ UYKUSUNDA (yalnızca Premium bitmiş, yıldızı olan çiftte) ─── */}
+          {isStarHibernating && (
+            <Reveal index={4}>
+              <StarHibernationCard daysLeft={hibernation.graceDaysLeft} onPress={() => setIsHibernationOpen(true)} />
+            </Reveal>
+          )}
+
           {/* ─── 5. GÜNÜN SÖZÜ ─── */}
           <View style={[styles.quoteCard, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}>
             <View style={styles.quoteHeaderRow}>
@@ -841,6 +871,19 @@ export default function HomeScreen() {
           </Reveal>
         </KeyboardAwareScrollView>
       </View>
+      <LazyStellarHibernationModal
+        visible={isHibernationOpen && isStarHibernating}
+        starName={starSummary?.name ?? t("stars.defaultName")}
+        daysLeft={hibernation.graceDaysLeft}
+        onWake={handleWakeStar}
+        onClose={() => setIsHibernationOpen(false)}
+      />
+      <LazyPremiumPaywall
+        visible={isHibernationPaywallOpen}
+        onClose={() => setIsHibernationPaywallOpen(false)}
+        featureSource="exoplanet_view"
+        gender={profile?.gender}
+      />
       <LazySpotlightTour visible={isSpotlightVisible} steps={spotlightSteps} onClose={closeSpotlight} />
       <LazyCoupleWrappedModal
         visible={isWrappedVisible}

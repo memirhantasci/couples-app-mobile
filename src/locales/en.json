@@ -932,6 +932,12 @@
     "sweetieFallback": "Sweetie"
   },
   "home": {
+    "hibernation": {
+      "title": "Your star is hibernating",
+      "daysLeft_one": "{{count}} day left",
+      "daysLeft_other": "{{count}} days left",
+      "hint": "Tap to wake it"
+    },
     "greeting": {
       "morning": "Good Morning",
       "afternoon": "Good Afternoon",

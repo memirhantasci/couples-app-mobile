@@ -1,8 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useFocusEffect } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabase";
+import { useCoupleStarSummary } from "@/hooks/useCoupleStarSummary";
 import { RevenueCatService, type PremiumEntitlement } from "@/lib/revenuecat";
 import { derivePremiumPhase, type PremiumPhaseResult } from "@/lib/premiumStatus";
 
@@ -22,7 +21,6 @@ export interface PremiumDetails extends PremiumPhaseResult {
  */
 export function usePremiumDetails(): PremiumDetails {
   const { profile, isDemoMode } = useAuth();
-  const coupleId = profile?.coupleId ?? null;
 
   const [entitlement, setEntitlement] = useState<PremiumEntitlement | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -47,15 +45,7 @@ export function usePremiumDetails(): PremiumDetails {
     }, [reload])
   );
 
-  const { data: hasStar = false } = useQuery({
-    queryKey: ["couple_star_exists", coupleId],
-    enabled: !!coupleId && !isDemoMode,
-    staleTime: 60_000,
-    queryFn: async () => {
-      const { data } = await supabase.from("couple_stars").select("id").eq("couple_id", coupleId).maybeSingle();
-      return !!data;
-    },
-  });
+  const hasStar = useCoupleStarSummary() !== null;
 
   const phase = useMemo(
     () =>

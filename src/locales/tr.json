@@ -932,6 +932,12 @@
     "sweetieFallback": "Tatlım"
   },
   "home": {
+    "hibernation": {
+      "title": "Yıldızınız kış uykusunda",
+      "daysLeft_one": "Kalan: {{count}} gün",
+      "daysLeft_other": "Kalan: {{count}} gün",
+      "hint": "Uyandırmak için dokunun"
+    },
     "greeting": {
       "morning": "Günaydın",
       "afternoon": "Tünaydın",

@@ -9,6 +9,7 @@ import { OrigamiBirdAnimation } from "@/components/letters/OrigamiBirdAnimation"
 import { LetterReadingModal } from "@/components/letters/LetterReadingModal";
 import { SpotlightTour } from "@/components/tour/SpotlightTour";
 import { CoupleWrappedModal } from "@/components/wrapped/CoupleWrappedModal";
+import { StellarHibernationModal } from "@/modules/stars/components/StellarHibernationModal";
 
 /**
  * Pencere / örtü bileşenleri görünmezken bile her ekran açılışında baştan kurulup çiziliyordu
@@ -35,3 +36,4 @@ export const LazyOrigamiBirdAnimation = withLazyMount(OrigamiBirdAnimation);
 export const LazyLetterReadingModal = withLazyMount(LetterReadingModal);
 export const LazySpotlightTour = withLazyMount(SpotlightTour);
 export const LazyCoupleWrappedModal = withLazyMount(CoupleWrappedModal);
+export const LazyStellarHibernationModal = withLazyMount(StellarHibernationModal);
