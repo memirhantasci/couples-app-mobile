@@ -58,8 +58,13 @@ export function usePremiumDetails(): PremiumDetails {
   });
 
   const phase = useMemo(
-    () => derivePremiumPhase({ isPremium: profile?.isPremium ?? false, premiumExpiresAt: profile?.premiumExpiresAt }),
-    [profile?.isPremium, profile?.premiumExpiresAt]
+    () =>
+      derivePremiumPhase({
+        isPremium: profile?.isPremium ?? false,
+        premiumExpiresAt: profile?.premiumExpiresAt,
+        graceUntil: profile?.graceUntil,
+      }),
+    [profile?.isPremium, profile?.premiumExpiresAt, profile?.graceUntil]
   );
 
   return { ...phase, entitlement, hasStar, loading: !loaded, reload };

@@ -743,7 +743,7 @@
       },
       "grace": {
         "title": "Premium has ended",
-        "sub": "You have {{days}} days to keep your star"
+        "sub": "Your star is hibernating: {{days}} days"
       },
       "expired": {
         "title": "Your Premium has expired",
@@ -831,7 +831,8 @@
       "perk3": "Photo keepsakes for your days in the love calendar",
       "title": "Shared Gallery & Memory Archive",
       "description": "Keep the photos you take together in a shared cloud without limits, and immortalize them with their dates."
-    }
+    },
+    "lapsedNote": "Premium has ended: you can still view your photos and delete the ones you uploaded. Renew Premium to add new photos."
   },
   "demo": {
     "memories": {
@@ -1161,7 +1162,7 @@
       "confirm": "When you tap the button, the {{store}} payment confirmation screen opens; you confirm the payment there.",
       "withdrawal": "Because the digital service is made available immediately with your consent, the right of withdrawal does not apply under Article 15(1)(ğ) of the Distance Contracts Regulation. For mistaken or duplicate charges, {{store}} refund channels apply.",
       "shared": "The subscription is shared by both partners: when it ends (at the end of the canceled period), your partner's Premium ends too.",
-      "starGrace": "When Premium ends you have 14 days to renew. If you do not renew in that time, you lose your star's ownership, glow score, sparks and memory planets."
+      "starGrace": "When Premium ends your star enters a 14-day hibernation. If you don't renew in that time, its coordinate is released and your memory planets wait in the vault for 90 days; after that, full-size photos are deleted."
     }
   },
   "tabs": {
@@ -1781,7 +1782,8 @@
     },
     "premium": {
       "featureName": "Special Day with Photo",
-      "featureDescription": "You need to go Premium to add photos to your special days."
+      "featureDescription": "You need to go Premium to add photos to your special days.",
+      "editFeatureName": "Editing Special Days"
     },
     "milestone": {
       "title": "Happy {{years}}. Anniversary! ✨",
@@ -2676,7 +2678,8 @@
         "registeredOn": "Registered on {{date}}",
         "shareTitle": "Share Our Star Certificate",
         "fallbackMessage": "{{name}} is officially our star ✨"
-      }
+      },
+      "renameHibernating": "Your star is hibernating; its name can be changed once Premium is renewed. You can still set name visibility below."
     },
     "exoplanet": {
       "zoneHelp": "{{periodDesc}} · each memory circles in its own ring",
@@ -2874,6 +2877,15 @@
       "partnerHidden": "{{name}} shows their name only to couples you have a bond with (their own setting).",
       "preview": "Other couples see:",
       "loadFailed": "The setting couldn’t be loaded. Try closing and reopening the certificate."
+    },
+    "hibernation": {
+      "title": "Your star is hibernating",
+      "description": "Premium has ended, so your star has drifted into a 14-day sleep to keep its energy. It keeps its place in the sky; its inner world and the light bonds with your friends' stars rest until it wakes.",
+      "memoriesSafe": "Your memory planets and memories are safe; nothing has been deleted.",
+      "daysLeft_one": "{{count}} day left to wake it",
+      "daysLeft_other": "{{count}} days left to wake it",
+      "wake": "Wake Our Star",
+      "stayInSky": "Stay in the sky"
     }
   },
   "quotes": {
@@ -3552,7 +3564,7 @@
       "trial": "Trial",
       "ending": "Ending",
       "billingIssue": "Billing issue",
-      "grace": "Renewal window",
+      "grace": "Hibernation",
       "expired": "Expired",
       "lifetime": "Lifetime"
     },
@@ -3568,20 +3580,21 @@
       "lifetimeTitle": "Lifetime Premium",
       "lifetimeSub": "Every perk is unlocked for both of you.",
       "graceTitle": "Premium has ended",
-      "graceSub": "You have {{days}} days left to renew.",
+      "graceSub": "Your star is hibernating: {{days}} days left to renew.",
       "expiredTitle": "Your Premium has expired",
       "expiredSub": "Subscribe again to get your perks back."
     },
     "alert": {
       "graceTitle": "You have {{days}} days to renew",
-      "graceStarTitle": "{{days}} days left before you lose your star",
-      "graceBody": "Because Premium has ended, your star and Premium features are locked. If you do not renew by {{date}}, you permanently lose your star's ownership, glow score, sparks and memory planets. If you renew, everything continues as it was.",
+      "graceStarTitle": "{{days}} days left before you lose your star's coordinate",
+      "graceBody": "Because Premium has ended, your star is in a 14-day hibernation: it keeps its place in the sky, but its inner world and light bonds are frozen. You can still view your photos, letters and memories and delete anything you like. If you don't renew by {{date}}, the star's coordinate is released and your memory planets wait in the vault for 90 days. If you renew, everything continues as it was.",
       "expiredTitle": "Your renewal window has ended",
-      "expiredBody": "Because the subscription was not renewed during the renewal window, star ownership, glow score, sparks and memory planets were removed. If you subscribe again, you can claim a new star.",
+      "expiredBody": "Because the subscription was not renewed, your star's coordinate was released, and since the vault period has also ended, full-size photos were deleted (small previews remain in the gallery). Your letters, memories and notes are still here. If you subscribe again, you can claim a new star.",
       "billingTitle": "Payment failed",
       "billingBody": "Update your {{store}} payment method, otherwise the subscription may end.",
       "cancelledTitle": "Your subscription was canceled",
-      "cancelledBody": "Your Premium lasts until {{date}}. After that you have {{grace}} days to renew; if you do not, you lose your star's ownership, glow score and sparks."
+      "cancelledBody": "Your Premium lasts until {{date}}. After that your star enters a {{grace}}-day hibernation; if you don't renew in that time, its coordinate is released.",
+      "vaultBody": "Because the subscription was not renewed, your star's coordinate was released and its glow score and sparks were reset. Your memory planets and photos are safe in the vault until {{date}}: if you subscribe again and claim a star before then, your memory planets move to it unchanged. After that, full-size photos are permanently deleted; texts and small previews remain."
     },
     "details": {
       "title": "Subscription details",
@@ -3602,14 +3615,14 @@
       "button": "Manage or cancel subscription",
       "buttonSub": "Opens the {{store}} subscriptions page",
       "partnerNote": "This Premium comes from your partner's subscription. Only the person who started it can manage cancellation and payment settings.",
-      "cancelHint": "Cancellation is done in your {{store}} account. If you cancel, Premium lasts until the end of the current period; afterwards you get 14 days to renew.",
+      "cancelHint": "Cancellation is done in your {{store}} account. If you cancel, Premium lasts until the end of the current period; after that your star enters a 14-day hibernation.",
       "openFailed": "Couldn't open the subscriptions page. Go to Subscriptions in the {{store}} app."
     },
     "benefits": {
       "title": "What Premium includes",
       "star": {
         "title": "Your own star",
-        "body": "A star in the sky that is yours: your glow score, sparks and memory planets. After Premium ends you get {{days}} days to renew; if you don't, all of it is deleted."
+        "body": "A star in the sky that is yours: your glow score, sparks and memory planets. When Premium ends your star hibernates for {{days}} days; if not renewed, its coordinate is released and your memory planets wait in the vault for 90 days."
       },
       "shared": {
         "title": "One subscription for both",

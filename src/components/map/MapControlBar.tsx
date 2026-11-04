@@ -14,7 +14,8 @@ interface MapControlBarProps {
   isLight: boolean;
   /** Safe-area üst boşluğu (status bar / çentik). */
   topInset: number;
-  isPremium: boolean;
+  /** Fotoğraf pinleri sayılsın / filtrelensin mi (Premium ya da Premium bitse de gösterilecek fotoğraf var) */
+  showPhotos: boolean;
   photoCount: number;
   noteCount: number;
   meetingCount: number;
@@ -37,7 +38,7 @@ export function MapControlBar({
   accent,
   isLight,
   topInset,
-  isPremium,
+  showPhotos,
   photoCount,
   noteCount,
   meetingCount,
@@ -92,7 +93,7 @@ export function MapControlBar({
             numberOfLines={1}
           >
             {[
-              isPremium ? t("map.summary.photos", { count: photoCount }) : null,
+              showPhotos ? t("map.summary.photos", { count: photoCount }) : null,
               t("map.summary.notes", { count: noteCount }),
               t("map.summary.meetups", { count: meetingCount }),
             ]
@@ -150,7 +151,7 @@ export function MapControlBar({
       <MapFilterChips
         accent={accent}
         isLight={isLight}
-        isPremium={isPremium}
+        showPhotos={showPhotos}
         photoCount={photoCount}
         noteCount={noteCount}
         meetingCount={meetingCount}

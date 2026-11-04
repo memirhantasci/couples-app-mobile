@@ -885,6 +885,11 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                         </TouchableOpacity>
                       </View>
                     </View>
+                  ) : !isPremium ? (
+                    // Kış uykusunda isim değişmez; isimlerin görünürlüğü (aşağıdaki kart) değiştirilebilir
+                    <Text style={[styles.renameLockedText, { color: theme.textMuted }]}>
+                      {t('stars.claim.renameHibernating')}
+                    </Text>
                   ) : isNameLocked ? (
                     <Text style={[styles.renameLockedText, { color: theme.textMuted }]}>
                       {t('stars.claim.renameLocked', { date: dayjs(nameLockedUntil as string).locale(i18n.language).format('D MMMM') })}

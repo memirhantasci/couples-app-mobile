@@ -1,10 +1,12 @@
 /**
- * Premium durumunun saf (ekrandan bağımsız) çözümlemesi. Sunucudaki kural ile birebir aynıdır:
- * Premium bitince çifte yenilemesi için PREMIUM_GRACE_DAYS gün verilir; bu sürede yenilenmezse yıldızın
- * sahipliği, ışıltı skoru, kıvılcımlar ve anı gezegenleri silinir (bkz. release_lapsed_stars,
- * supabase/migrations/20261104000002_premium_lapse_star_release.sql).
+ * Premium durumunun saf (ekrandan bağımsız) çözümlemesi. Sunucudaki kural ile birebir aynıdır
+ * (supabase/migrations/20261104000003_subscription_lifecycle.sql):
+ * Premium bitince yıldız PREMIUM_GRACE_DAYS günlük kış uykusuna geçer (hiçbir şey silinmez). Yenilenmezse
+ * yıldızın koordinatı serbest kalır ve anı gezegenleri PREMIUM_VAULT_DAYS gün kasada bekler; kasa süresi de
+ * dolarsa tam boy fotoğraflar silinir. Sunucunun grace_until değeri varsa doğruluk kaynağı odur.
  */
 export const PREMIUM_GRACE_DAYS = 14;
+export const PREMIUM_VAULT_DAYS = 90;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -25,6 +27,8 @@ export interface PremiumPhaseInput {
   isPremium: boolean;
   /** Mağaza / promosyon bitişi; null = hiç yok ya da süresiz */
   premiumExpiresAt: string | null | undefined;
+  /** Sunucunun kış uykusu bitişi (couples.grace_until); varsa bitiş + 14 gün hesabının yerine geçer */
+  graceUntil?: string | null;
   now?: number;
 }
 
@@ -38,10 +42,13 @@ export interface PremiumPhaseResult {
   graceEndsAt: number | null;
 }
 
-export function derivePremiumPhase({ isPremium, premiumExpiresAt, now = Date.now() }: PremiumPhaseInput): PremiumPhaseResult {
+export function derivePremiumPhase({ isPremium, premiumExpiresAt, graceUntil, now = Date.now() }: PremiumPhaseInput): PremiumPhaseResult {
   const expiresAt = premiumExpiresAt ? Date.parse(premiumExpiresAt) : null;
   const validExpiry = expiresAt !== null && Number.isFinite(expiresAt) ? expiresAt : null;
-  const graceEndsAt = validExpiry === null ? null : validExpiry + PREMIUM_GRACE_DAYS * DAY_MS;
+  const serverGraceEnd = graceUntil ? Date.parse(graceUntil) : NaN;
+  const graceEndsAt = Number.isFinite(serverGraceEnd)
+    ? serverGraceEnd
+    : validExpiry === null ? null : validExpiry + PREMIUM_GRACE_DAYS * DAY_MS;
 
   if (isPremium) {
     if (validExpiry === null) return { phase: "lifetime", daysUntilEnd: null, graceDaysLeft: null, graceEndsAt: null };

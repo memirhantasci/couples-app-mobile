@@ -4,7 +4,7 @@ import { MemoryThread } from "@/components/memories/MemoryThread";
 import { MilestoneDateCircle } from "@/components/memories/MilestoneDateCircle";
 import { WashiCornerPair } from "@/components/memories/WashiTape";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { LazyDemoActionModal, LazyPageTourModal } from "@/components/ui/lazyMount";
+import { LazyDemoActionModal, LazyPageTourModal, LazyPremiumPaywall } from "@/components/ui/lazyMount";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -50,6 +50,9 @@ export default function MemoriesScreen() {
   const queryClient = useQueryClient();
   const [isEditMode, setIsEditMode] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [showPaywall, setShowPaywall] = useState(false);
+  // Özel günü düzenlemek Premium'dur; görüntülemek, silmek ve fotoğrafsız eklemek herkese açık
+  const isPremium = (profile?.isPremium ?? false) || isDemoMode;
   const insets = useSafeAreaInsets();
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("memories");
 
@@ -353,6 +356,10 @@ export default function MemoriesScreen() {
     )) {
       return;
     }
+    if (!isPremium) {
+      setShowPaywall(true);
+      return;
+    }
 
     router.push(openForm("/(tabs)/add-memory", {
       id: String(memory.id),
@@ -565,6 +572,11 @@ export default function MemoriesScreen() {
         message={milestone?.message}
         theme={theme}
         onClose={closeMilestone}
+      />
+      <LazyPremiumPaywall
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        featureName={t("memories.premium.editFeatureName")}
       />
       <LazyDemoActionModal
         visible={isDemoModalOpen}

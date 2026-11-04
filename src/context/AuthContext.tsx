@@ -32,6 +32,15 @@ const AUTH_INIT_TIMEOUT_MS = 8000;
 // Maximum time (ms) to wait for device auth check
 const DEVICE_AUTH_TIMEOUT_MS = 5000;
 
+/** Premium bitince: grace_period (kış uykusu, 14 gün) → vault (kasa, 90 gün) → free */
+export type SubscriptionStatus = "free" | "active" | "grace_period" | "vault";
+
+const SUBSCRIPTION_STATUSES: readonly SubscriptionStatus[] = ["free", "active", "grace_period", "vault"];
+
+function toSubscriptionStatus(value: unknown): SubscriptionStatus | null {
+  return SUBSCRIPTION_STATUSES.find((status) => status === value) ?? null;
+}
+
 export interface CoupleProfile {
   coupleId: number | null;   // integer — DB'de INTEGER tipinde
   meetDate: string | null;
@@ -46,6 +55,12 @@ export interface CoupleProfile {
   isPremium: boolean;
   /** Retained so an open app can react exactly when a timed entitlement ends. */
   premiumExpiresAt?: string | null;
+  /** Sunucudaki abonelik yaşam döngüsü (couples.subscription_status); migration öncesi önbellekte yoktur */
+  subscriptionStatus?: SubscriptionStatus | null;
+  /** Kış uykusunun bittiği an (yalnızca grace_period) */
+  graceUntil?: string | null;
+  /** Kasanın bittiği, tam boy fotoğrafların silineceği an (yalnızca vault) */
+  vaultUntil?: string | null;
   tokenBalance: number;
 }
 
@@ -113,7 +128,7 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
       gender, 
       couple_id,
       token_balance,
-      couples!users_couple_id_fkey(meet_date, relationship_start_date, member_count, is_premium, premium_expires_at, encryption_salt)
+      couples!users_couple_id_fkey(meet_date, relationship_start_date, member_count, is_premium, premium_expires_at, subscription_status, grace_until, vault_until, encryption_salt)
     `)
     .eq("id", userId)
     .maybeSingle();
@@ -166,6 +181,9 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
     gender: user.gender ?? null,
     isPremium: isPremiumActive,
     premiumExpiresAt: premiumExpiresAt ?? null,
+    subscriptionStatus: toSubscriptionStatus(coupleObj?.subscription_status),
+    graceUntil: coupleObj?.grace_until ?? null,
+    vaultUntil: coupleObj?.vault_until ?? null,
     tokenBalance: user.token_balance ?? 0,
   };
 }

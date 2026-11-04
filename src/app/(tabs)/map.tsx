@@ -104,7 +104,6 @@ export default function MapScreen() {
 
   const { photoPins, mapNotes, meetingPins, storyPins, isLoading } = useMapData({
     coupleId,
-    isPremium,
     isDemoMode,
   });
 
@@ -290,9 +289,9 @@ export default function MapScreen() {
           style: "destructive",
           onPress: async () => {
             if (!userId) return;
-            // Önce kayıt (yalnızca yükleyen), sonra depodaki dosyalar (tam boy + küçük resim)
+            // Yalnızca yükleyen siler; Premium gerekmez. Dosyaları sunucu kaldırır.
             try {
-              await deleteArchivedPhoto(photo, userId);
+              await deleteArchivedPhoto(photo);
               queryClient.invalidateQueries({ queryKey: ["map_photos", coupleId] });
               queryClient.invalidateQueries({ queryKey: ["photo_archive", coupleId] });
               queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
@@ -575,7 +574,7 @@ export default function MapScreen() {
         accent={theme.accent}
         isLight={isLight}
         topInset={insets.top}
-        isPremium={isPremium}
+        showPhotos={isPremium || photoPins.length > 0}
         photoCount={photoPins.length}
         noteCount={mapNotes.length}
         meetingCount={meetingPins.length}

@@ -106,10 +106,10 @@ export default function HomeScreen() {
   useEffect(() => {
     if (!coupleId && !isDemoMode) return;
     const timer = setTimeout(() => {
-      prefetchMainScreens(queryClient, { coupleId, userId, isPremium, isDemoMode });
+      prefetchMainScreens(queryClient, { coupleId, userId, isDemoMode });
     }, 1500);
     return () => clearTimeout(timer);
-  }, [queryClient, coupleId, userId, isPremium, isDemoMode]);
+  }, [queryClient, coupleId, userId, isDemoMode]);
 
   const [cachedScore, setCachedScore] = useState<LoveScoreResult | null>(null);
   const [isWrappedVisible, setIsWrappedVisible] = useState(false);

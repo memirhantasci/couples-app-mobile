@@ -21,7 +21,7 @@
  *    (anı gezegenleri). HUD burada temadan bağımsız koyu camdır.
  */
 
-import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -79,6 +79,8 @@ import { SKY_SECTORS } from '../config/skySectors.data';
 import { readStarCache, writeStarCache } from '../utils/starCache';
 import { MicroStarHeader } from './micro/MicroStarHeader';
 import { MicroSystemDock } from './micro/MicroSystemDock';
+import { StellarHibernationModal } from './StellarHibernationModal';
+import { derivePremiumPhase } from '@/lib/premiumStatus';
 import { PremiumPaywall } from '@/components/ui/PremiumPaywall';
 import type { PremiumFeatureSource } from '@/components/ui/PremiumPaywall.types';
 import { useCoupleAvatars } from '@/hooks/useCoupleAvatars';
@@ -140,6 +142,9 @@ const MICRO_HEADER_ESTIMATED_HEIGHT = 130;
 const MICRO_DOCK_ESTIMATED_HEIGHT = 190;
 /** Kapatılan anı gezegeninin hedef halkası bu kadar süre daha görünür kalır. */
 const PLANET_HIGHLIGHT_LINGER_MS = 2600;
+
+/** Kış uykusunda gökyüzüne çizilen ışık bağı yok; kayıtlar silinmez, yenilenince aynen döner */
+const FROZEN_CONNECTIONS: ActiveStarConnection[] = [];
 /** Yakalanan kayan yıldızın parıltısı görünsün diye dilek ekranı bu kadar sonra açılır. */
 const WISH_OPEN_DELAY_MS = 450;
 
@@ -332,6 +337,7 @@ export const OurStarScreen: React.FC = () => {
   const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
   const [isConnectionsModalOpen, setIsConnectionsModalOpen] = useState(false);
   const [premiumPaywallSource, setPremiumPaywallSource] = useState<PremiumFeatureSource | null>(null);
+  const [isHibernationOpen, setIsHibernationOpen] = useState(false);
 
   // Yıldız bağlantıları (canvas takımyıldızı çizgileri için)
   const [starConnections, setStarConnections] = useState<ActiveStarConnection[]>([]);
@@ -422,6 +428,39 @@ export const OurStarScreen: React.FC = () => {
     }
     action();
   }, [isAuthLoading, isDemoMode, isPremium, profile]);
+
+  // ─── KIŞ UYKUSU ─────────────────────────────────────────────────────
+  // Premium'u biten çiftin yıldızı koordinatında kalır ve gökyüzünden izlenir; ama sönüktür, içine
+  // (anı gezegenleri) girilemez ve ışık bağları çizilmez. Hiçbir kayıt silinmez: yenilenince aynen döner.
+  const isHibernating = !isDemoMode && !isAuthLoading && !!profile && !isPremium && starDetails !== null;
+  const hibernationDaysLeft = useMemo(
+    () =>
+      derivePremiumPhase({
+        isPremium: false,
+        premiumExpiresAt: profile?.premiumExpiresAt,
+        graceUntil: profile?.graceUntil,
+      }).graceDaysLeft,
+    [profile?.premiumExpiresAt, profile?.graceUntil]
+  );
+
+  /** Yıldızın içine geçer; kış uykusunda geçiş yerine uyku kartı açılır. */
+  const enterMicro = useCallback(() => {
+    if (isHibernating) {
+      hapticTap();
+      setSelectedMacroStar(null);
+      setIsHibernationOpen(true);
+      return;
+    }
+    hapticStamp();
+    setViewMode('micro');
+    setSelectedMacroStar(null);
+    setHighlightPlanetId(null);
+  }, [isHibernating]);
+
+  const handleWakeStar = useCallback(() => {
+    setIsHibernationOpen(false);
+    setPremiumPaywallSource('exoplanet_view');
+  }, []);
 
   // ─── AÇILIŞ SAHNESİ ────────────────────────────────────────────────
   // Tescilli yıldızı olan kullanıcıda (demo dahil) ekran, geniş gökyüzünden yıldızın parıltılı dış
@@ -642,6 +681,8 @@ export const OurStarScreen: React.FC = () => {
     const disposeTimer = setTimeout(() => {
       setSelectedPlanet(null);
       setExoplanetModalMode(null);
+      // Yıldızın içindeyken Premium biterse kış uykusu başlar: gökyüzüne dönülür
+      setViewMode('macro');
     }, 0);
     starService.getStarExoplanets(starDetails.star_id)
       .then(setExoplanets)
@@ -850,16 +891,17 @@ export const OurStarScreen: React.FC = () => {
     if (!starDetails && viewMode === 'macro') {
       return;
     }
-    const nextMode = viewMode === 'micro' ? 'macro' : 'micro';
+    // İçeri girişi sahnenin kendi açılış animasyonu ve ipucu karşılar; yalnızca çıkışta bildirim.
+    if (viewMode === 'macro') {
+      enterMicro();
+      return;
+    }
     hapticStamp();
-    setViewMode(nextMode);
+    setViewMode('macro');
     setSelectedMacroStar(null);
     setHighlightPlanetId(null);
-    // İçeri girişi sahnenin kendi açılış animasyonu ve ipucu karşılar; yalnızca çıkışta bildirim.
-    if (nextMode === 'macro') {
-      showToast(t('stars.screen.toasts.ascendedDome'));
-    }
-  }, [viewMode, starDetails, showToast, t]);
+    showToast(t('stars.screen.toasts.ascendedDome'));
+  }, [viewMode, starDetails, enterMicro, showToast, t]);
 
   // Ortam sesini aç/kapat (Kalıcı tercih + Genel ses ayarı denetimi)
   const handleToggleAmbient = useCallback(async () => {
@@ -1388,16 +1430,20 @@ export const OurStarScreen: React.FC = () => {
               isSearchModalOpen ||
               isConnectionRequestsOpen ||
               premiumPaywallSource !== null ||
-              isWishOpen
+              isWishOpen ||
+              isHibernationOpen
             }
-            connections={starConnections}
+            connections={isHibernating ? FROZEN_CONNECTIONS : starConnections}
             myStarCoords={
               starDetails
                 ? {
                     ra: Number(starDetails.ra),
                     dec: Number(starDetails.dec),
                     name: starDetails.custom_name || t('stars.defaultName'),
-                    luminosity: starLight ?? starDetails.luminosity_level ?? UNCLAIMED_STAR_BRIGHTNESS,
+                    // Kış uykusundaki yıldız sahipsiz bir yıldız kadar sönük parlar
+                    luminosity: isHibernating
+                      ? UNCLAIMED_STAR_BRIGHTNESS
+                      : starLight ?? starDetails.luminosity_level ?? UNCLAIMED_STAR_BRIGHTNESS,
                     base_color: starDetails.base_color,
                     spectral_type: starDetails.spectral_type,
                     catalog_id: starDetails.catalog_id,
@@ -1629,11 +1675,7 @@ export const OurStarScreen: React.FC = () => {
             <View style={styles.myStarActionsRow}>
               <TouchableOpacity
                 activeOpacity={0.85}
-                onPress={() => {
-                  hapticStamp();
-                  setViewMode('micro');
-                  setSelectedMacroStar(null);
-                }}
+                onPress={enterMicro}
                 style={styles.enterMicroBtn}
               >
                 <Orbit size={15} color="#030207" />
@@ -1953,6 +1995,7 @@ export const OurStarScreen: React.FC = () => {
           coupleId={coupleId || 999999}
           initialStar={starDetails}
           canRename={!isDemoMode}
+          isPremium={isPremium}
           onRenamed={handleStarRenamed}
           onClose={() => setIsCertificateModalOpen(false)}
           onSuccess={() => setIsCertificateModalOpen(false)}
@@ -2062,6 +2105,15 @@ export const OurStarScreen: React.FC = () => {
           });
         }}
       />
+      {starDetails && (
+        <StellarHibernationModal
+          visible={isHibernationOpen && isHibernating}
+          starName={starDetails.custom_name || t('stars.defaultName')}
+          daysLeft={hibernationDaysLeft}
+          onWake={handleWakeStar}
+          onClose={() => setIsHibernationOpen(false)}
+        />
+      )}
       <PremiumPaywall
         visible={premiumPaywallSource !== null}
         onClose={() => setPremiumPaywallSource(null)}

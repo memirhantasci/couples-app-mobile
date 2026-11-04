@@ -743,7 +743,7 @@
       },
       "grace": {
         "title": "Premium sona erdi",
-        "sub": "Yıldızını korumak için {{days}} günün var"
+        "sub": "Yıldızın kış uykusunda: {{days}} gün"
       },
       "expired": {
         "title": "Premium'un süresi doldu",
@@ -831,7 +831,8 @@
       "perk3": "Aşk takviminde fotoğraflı gün hatıraları",
       "title": "Ortak Galeri ve Anı Arşivi",
       "description": "Birlikte çektiğiniz fotoğrafları ortak bir bulutta sınırsızca saklayın, tarihleriyle ölümsüzleştirin."
-    }
+    },
+    "lapsedNote": "Premium sona erdi: fotoğraflarınıza bakabilir, kendi yüklediklerinizi silebilirsiniz. Yeni fotoğraf eklemek için Premium'u yenileyin."
   },
   "demo": {
     "memories": {
@@ -1161,7 +1162,7 @@
       "confirm": "Düğmeye dokunduğunda {{store}} ödeme onay ekranı açılır; ödemeyi orada onaylarsın.",
       "withdrawal": "Dijital hizmet, onayınla hemen kullanıma açıldığı için Mesafeli Sözleşmeler Yönetmeliği m.15/1-ğ uyarınca cayma hakkı kullanılamaz. Hatalı veya mükerrer tahsilat için {{store}} iade kanalları geçerlidir.",
       "shared": "Abonelik iki partner için ortaktır: abonelik sona erdiğinde (iptal edilen dönemin bitiminde) partnerinin Premium'u da sona erer.",
-      "starGrace": "Premium bittiğinde yenilemek için 14 gün süren olur. Bu sürede yenilemezsen yıldızının sahipliğini, ışıltı skorunu, kıvılcımlarını ve anı gezegenlerini kaybedersin."
+      "starGrace": "Premium bittiğinde yıldızın 14 günlük kış uykusuna geçer. Bu sürede yenilemezsen yıldızın koordinatı serbest kalır, anı gezegenlerin 90 gün kasada bekler; sonrasında tam boy fotoğraflar silinir."
     }
   },
   "tabs": {
@@ -1781,7 +1782,8 @@
     },
     "premium": {
       "featureName": "Fotoğraflı Özel Gün",
-      "featureDescription": "Özel günlerinize fotoğraf eklemek için Premium'a geçmeniz gerekmektedir."
+      "featureDescription": "Özel günlerinize fotoğraf eklemek için Premium'a geçmeniz gerekmektedir.",
+      "editFeatureName": "Özel Günü Düzenleme"
     },
     "milestone": {
       "title": "{{years}}. Yılımız Kutlu Olsun! ✨",
@@ -2676,7 +2678,8 @@
         "registeredOn": "Tescil tarihi · {{date}}",
         "shareTitle": "Yıldız Sertifikamızı Paylaş",
         "fallbackMessage": "{{name}} artık resmi olarak bizim yıldızımız ✨"
-      }
+      },
+      "renameHibernating": "Yıldızınız kış uykusunda; adı Premium yenilenince değiştirilebilir. İsimlerin görünürlüğünü yine de aşağıdan ayarlayabilirsiniz."
     },
     "exoplanet": {
       "zoneHelp": "{{periodDesc}} · her anı kendi halkasında döner",
@@ -2874,6 +2877,15 @@
       "partnerHidden": "{{name}} adını yalnızca bağ kurduğunuz çiftlere gösteriyor (kendi ayarı).",
       "preview": "Diğer çiftler şöyle görür:",
       "loadFailed": "Ayar yüklenemedi. Sertifikayı kapatıp yeniden açmayı dene."
+    },
+    "hibernation": {
+      "title": "Yıldızınız kış uykusunda",
+      "description": "Premium sona erdiği için yıldızınız enerjisini korumak üzere 14 günlük bir uykuya çekildi. Gökyüzündeki yerini koruyor; içi ve dost yıldızlarla ışık bağlarınız uyanana dek dinleniyor.",
+      "memoriesSafe": "Anı gezegenleriniz ve hatıralarınız güvende; hiçbiri silinmedi.",
+      "daysLeft_one": "Uyanması için {{count}} gün var",
+      "daysLeft_other": "Uyanması için {{count}} gün var",
+      "wake": "Yıldızımızı Uyandır",
+      "stayInSky": "Gökyüzünde kal"
     }
   },
   "quotes": {
@@ -3552,7 +3564,7 @@
       "trial": "Deneme",
       "ending": "Sona eriyor",
       "billingIssue": "Ödeme sorunu",
-      "grace": "Yenileme süresi",
+      "grace": "Kış uykusu",
       "expired": "Süresi doldu",
       "lifetime": "Süresiz"
     },
@@ -3568,20 +3580,21 @@
       "lifetimeTitle": "Süresiz Premium",
       "lifetimeSub": "İkiniz için tüm ayrıcalıklar açık.",
       "graceTitle": "Premium sona erdi",
-      "graceSub": "Yenilemek için {{days}} günün kaldı.",
+      "graceSub": "Yıldızın kış uykusunda: yenilemek için {{days}} günün kaldı.",
       "expiredTitle": "Premium'un süresi doldu",
       "expiredSub": "Yeniden abone olarak ayrıcalıklarına dönebilirsin."
     },
     "alert": {
       "graceTitle": "Yenilemek için {{days}} günün var",
-      "graceStarTitle": "Yıldızını kaybetmene {{days}} gün var",
-      "graceBody": "Premium sona erdiği için yıldız ve Premium özelliklerin kilitlendi. {{date}} tarihine kadar yenilemezsen yıldızının sahipliğini, ışıltı skorunu, kıvılcımlarını ve anı gezegenlerini kalıcı olarak kaybedersin. Yenilersen her şey olduğu gibi devam eder.",
+      "graceStarTitle": "Yıldızının koordinatını kaybetmene {{days}} gün var",
+      "graceBody": "Premium sona erdiği için yıldızın 14 günlük kış uykusunda: gökyüzündeki yerini koruyor, ama içi ve ışık bağların dondu. Fotoğraflarına, mektuplarına ve anılarına bakabilir, dilediğini silebilirsin. {{date}} tarihine kadar yenilemezsen yıldızın koordinatı serbest kalır ve anı gezegenlerin 90 gün kasada bekler. Yenilersen her şey olduğu gibi devam eder.",
       "expiredTitle": "Yenileme süren doldu",
-      "expiredBody": "Yenileme süresi içinde abonelik yenilenmediği için yıldız sahipliği, ışıltı skoru, kıvılcımlar ve anı gezegenleri kaldırıldı. Yeniden abone olursan yeni bir yıldız sahiplenebilirsin.",
+      "expiredBody": "Abonelik yenilenmediği için yıldızının koordinatı serbest bırakıldı; kasa süresi de dolduğu için tam boy fotoğraflar silindi (galeride küçük önizlemeleri kaldı). Mektupların, anıların ve notların duruyor. Yeniden abone olursan yeni bir yıldız sahiplenebilirsin.",
       "billingTitle": "Ödeme alınamadı",
       "billingBody": "{{store}} ödeme yöntemini güncelle; aksi halde abonelik sona erebilir.",
       "cancelledTitle": "Aboneliğin iptal edildi",
-      "cancelledBody": "Premium'un {{date}} tarihine kadar sürer. Sonrasında yenilemek için {{grace}} gün süren olur; bu sürede yenilemezsen yıldızının sahipliğini, ışıltı skorunu ve kıvılcımlarını kaybedersin."
+      "cancelledBody": "Premium'un {{date}} tarihine kadar sürer. Sonrasında yıldızın {{grace}} günlük kış uykusuna geçer; bu sürede yenilemezsen yıldızın koordinatı serbest kalır.",
+      "vaultBody": "Abonelik yenilenmediği için yıldızının koordinatı serbest bırakıldı, ışıltı skoru ve kıvılcımlar sıfırlandı. Anı gezegenlerin ve fotoğrafların {{date}} tarihine kadar kasada güvende: bu tarihe kadar yeniden abone olup bir yıldız sahiplenirsen anı gezegenlerin o yıldıza aynen aktarılır. Sonrasında tam boy fotoğraflar kalıcı olarak silinir; metinler ve küçük önizlemeler kalır."
     },
     "details": {
       "title": "Abonelik ayrıntıları",
@@ -3602,14 +3615,14 @@
       "button": "Aboneliği yönet veya iptal et",
       "buttonSub": "{{store}} abonelik sayfasını açar",
       "partnerNote": "Bu Premium partnerinin aboneliğinden geliyor. İptal ve ödeme ayarlarını yalnızca aboneliği başlatan kişi yönetebilir.",
-      "cancelHint": "İptal işlemi {{store}} hesabından yapılır. İptal ettiğinde mevcut dönemin sonuna kadar Premium'un sürer; sonrasında yenilemek için 14 gün süre verilir.",
+      "cancelHint": "İptal işlemi {{store}} hesabından yapılır. İptal ettiğinde mevcut dönemin sonuna kadar Premium'un sürer; sonrasında yıldızın 14 günlük kış uykusuna geçer.",
       "openFailed": "Abonelik sayfası açılamadı. {{store}} uygulamasından Abonelikler bölümüne gidebilirsin."
     },
     "benefits": {
       "title": "Premium ile neler var",
       "star": {
         "title": "Kendi yıldızınız",
-        "body": "Gökyüzünde size ait bir yıldız; ışıltı skorunuz, kıvılcımlarınız ve anı gezegenleriniz. Premium bittikten sonra yenilemeniz için {{days}} gün süre verilir; yenilemezseniz bunların hepsi silinir."
+        "body": "Gökyüzünde size ait bir yıldız; ışıltı skorunuz, kıvılcımlarınız ve anı gezegenleriniz. Premium bitince yıldızınız {{days}} gün kış uykusuna geçer; yenilenmezse koordinatı serbest kalır ve anı gezegenleriniz 90 gün kasada bekler."
       },
       "shared": {
         "title": "İkiniz için tek abonelik",

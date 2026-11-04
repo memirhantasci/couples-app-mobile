@@ -1,5 +1,4 @@
 import { supabase } from "@/lib/supabase";
-import { removeStoredFiles } from "@/lib/storageImages";
 import i18n from "@/lib/i18n";
 
 /** Galeri / harita / takvimde gösterilen bir fotoğrafın depolama yolları. */
@@ -10,18 +9,13 @@ export interface ArchivedPhotoFiles {
 }
 
 /**
- * Fotoğrafı siler: önce kayıt (yalnızca yükleyen silebilir), kayıt gerçekten silindiyse dosyalar.
- * Sıra önemli: dosyalar önce silinip kayıt silinemezse galeride açılmayan bir fotoğraf kalırdı.
+ * Fotoğrafı siler (yalnızca yükleyen). Premium gerekmez: silme hakkı abonelikten bağımsızdır
+ * (sunucuda delete_archived_photo). Tam boy görsel ve küçük resim, kayıt silinince sunucunun silme
+ * kuyruğundan depodan kaldırılır (bkz. migrations/20261104000003_subscription_lifecycle.sql).
  * Kayıt silinemezse hata fırlatır.
  */
-export async function deleteArchivedPhoto(photo: ArchivedPhotoFiles, userId: string) {
-  const { error, count } = await supabase
-    .from("photo_archive")
-    .delete({ count: "exact" })
-    .eq("id", photo.id)
-    .eq("user_id", userId);
+export async function deleteArchivedPhoto(photo: ArchivedPhotoFiles) {
+  const { data: deleted, error } = await supabase.rpc("delete_archived_photo", { p_photo_id: photo.id });
   if (error) throw error;
-  if (!count) throw new Error(i18n.t("photos.errors.deleteFailed"));
-
-  await removeStoredFiles("photos", [photo.storage_path, photo.thumb_path]);
+  if (deleted !== true) throw new Error(i18n.t("photos.errors.deleteFailed"));
 }

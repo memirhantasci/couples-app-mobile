@@ -9,7 +9,7 @@ import { useTranslation } from "react-i18next";
 interface MapFilterChipsProps {
   accent: string;
   isLight: boolean;
-  isPremium: boolean;
+  showPhotos: boolean;
   photoCount: number;
   noteCount: number;
   meetingCount: number;
@@ -29,7 +29,7 @@ interface FilterOption {
 export function MapFilterChips({
   accent,
   isLight,
-  isPremium,
+  showPhotos,
   photoCount,
   noteCount,
   meetingCount,
@@ -42,17 +42,17 @@ export function MapFilterChips({
     () => [
       {
         id: "all",
-        label: t("letters.filters.all", { total: (isPremium ? photoCount : 0) + noteCount + meetingCount }),
+        label: t("letters.filters.all", { total: (showPhotos ? photoCount : 0) + noteCount + meetingCount }),
         icon: Sparkles,
       },
-      // Fotoğraf pinleri yalnızca Premium kullanıcılara açık
-      ...(isPremium
+      // Fotoğraf filtresi yalnızca gösterilecek fotoğraf varsa (ya da Premium ile yüklenebilecekse)
+      ...(showPhotos
         ? [{ id: "photos" as const, label: t("map.filters.photos", { total: photoCount }), icon: Camera }]
         : []),
       { id: "notes", label: t("map.filters.notes", { total: noteCount }), icon: StickyNote },
       { id: "meetings", label: t("map.filters.meetups", { total: meetingCount }), icon: Calendar },
     ],
-    [isPremium, photoCount, noteCount, meetingCount, t],
+    [showPhotos, photoCount, noteCount, meetingCount, t],
   );
 
   return (

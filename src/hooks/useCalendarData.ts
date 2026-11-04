@@ -32,7 +32,7 @@ export function getCalendarQueryKey(
 }
 
 export async function fetchCalendarData(params: CalendarFetchParams) {
-  const { coupleId, userId, isPremium, canSeePeriod, isDemoMode, anchorMonth } = params;
+  const { coupleId, userId, canSeePeriod, isDemoMode, anchorMonth } = params;
   const today = todayString();
 
   if (isDemoMode) {
@@ -106,15 +106,14 @@ export async function fetchCalendarData(params: CalendarFetchParams) {
       .eq("couple_id", coupleId)
       .gte("date", startDate)
       .lte("date", endDate),
-    isPremium
-      ? supabase
-          .from("photo_archive")
-          .select("id, user_id, storage_path, thumb_path, title, description, taken_date, taken_time")
-          .eq("couple_id", coupleId)
-          .gte("taken_date", startDate)
-          .lte("taken_date", endDate)
-          .order("taken_time", { ascending: false })
-      : Promise.resolve({ data: [], error: null }),
+    // Fotoğraf yüklemek Premium'dur; Premium bitse de eski fotoğraflar görünür
+    supabase
+      .from("photo_archive")
+      .select("id, user_id, storage_path, thumb_path, title, description, taken_date, taken_time")
+      .eq("couple_id", coupleId)
+      .gte("taken_date", startDate)
+      .lte("taken_date", endDate)
+      .order("taken_time", { ascending: false }),
     supabase
       .from("meetings")
       .select("id, title, location_name, meeting_datetime, is_active, user_id")

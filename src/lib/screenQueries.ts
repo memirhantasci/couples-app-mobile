@@ -197,9 +197,9 @@ const PREFETCH_STALE_MS = 1000 * 60 * 5;
  */
 export function prefetchMainScreens(
   queryClient: QueryClient,
-  ctx: { coupleId: number | null; userId: string | null; isPremium: boolean; isDemoMode: boolean }
+  ctx: { coupleId: number | null; userId: string | null; isDemoMode: boolean }
 ) {
-  const { coupleId, userId, isPremium, isDemoMode } = ctx;
+  const { coupleId, userId, isDemoMode } = ctx;
   if (!isDemoMode && (!coupleId || !userId)) return;
 
   queryClient
@@ -227,15 +227,13 @@ export function prefetchMainScreens(
     })
     .catch(() => {});
 
-  // Fotoğraf arşivi Premium'dur: ücretsiz hesap için boşuna istek atılmaz
-  if (isPremium || isDemoMode) {
-    queryClient
-      .prefetchInfiniteQuery({
-        queryKey: photosQueryKey(coupleId, isDemoMode, "desc"),
-        initialPageParam: 0,
-        queryFn: ({ pageParam }) => fetchPhotosPage({ coupleId, pageParam, sortOrder: "desc", isDemoMode }),
-        staleTime: PREFETCH_STALE_MS,
-      })
-      .catch(() => {});
-  }
+  // Premium bitse de eski fotoğraflar görünür (Premium hiç olmamış çiftte liste boştur)
+  queryClient
+    .prefetchInfiniteQuery({
+      queryKey: photosQueryKey(coupleId, isDemoMode, "desc"),
+      initialPageParam: 0,
+      queryFn: ({ pageParam }) => fetchPhotosPage({ coupleId, pageParam, sortOrder: "desc", isDemoMode }),
+      staleTime: PREFETCH_STALE_MS,
+    })
+    .catch(() => {});
 }

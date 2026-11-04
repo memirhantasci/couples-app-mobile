@@ -620,6 +620,7 @@ export default function ProfileScreen() {
               theme={theme}
               isPremium={profile?.isPremium ?? false}
               premiumExpiresAt={profile?.premiumExpiresAt}
+              graceUntil={profile?.graceUntil}
               isDemoMode={isDemoMode}
               onPress={() => router.push("/premium" as any)}
             />

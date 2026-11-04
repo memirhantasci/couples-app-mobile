@@ -25,7 +25,6 @@ const NO_MEETINGS: MeetingPin[] = [];
 
 interface UseMapDataArgs {
   coupleId: number | null;
-  isPremium: boolean;
   isDemoMode: boolean;
 }
 
@@ -33,16 +32,17 @@ interface UseMapDataArgs {
 const MAX_MAP_PINS = 200;
 
 /**
- * Harita ekranının üç veri kaynağı: fotoğraf pinleri (yalnızca Premium), aşk notları ve buluşmalar.
+ * Harita ekranının üç veri kaynağı: fotoğraf pinleri, aşk notları ve buluşmalar. Fotoğraf yüklemek Premium'dur
+ * ama Premium bitse de çift eski fotoğraflarını görür (Premium hiç olmamış çiftte liste zaten boştur).
  * Ekran odaklandığında bayatlamış olanları yeniler (taze veri için ağ isteği yapılmaz).
  */
-export function useMapData({ coupleId, isPremium, isDemoMode }: UseMapDataArgs) {
+export function useMapData({ coupleId, isDemoMode }: UseMapDataArgs) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   // ─── 1. Fotoğraf Pinleri (description dahil) ──────────────────────────────
   const photosQuery = useQuery<PhotoPin[]>({
     queryKey: ["map_photos", coupleId, isDemoMode],
-    enabled: (!!coupleId && isPremium) || isDemoMode,
+    enabled: !!coupleId || isDemoMode,
     staleTime: 1000 * 30,
     queryFn: async () => {
       if (isDemoMode) {

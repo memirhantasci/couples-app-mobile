@@ -9,6 +9,8 @@ interface PremiumStatusCardProps {
   theme: AppTheme;
   isPremium: boolean;
   premiumExpiresAt: string | null | undefined;
+  /** Sunucunun kış uykusu bitişi (varsa) */
+  graceUntil?: string | null;
   /** Demo oturumunda Premium açık sayılır */
   isDemoMode?: boolean;
   onPress: () => void;
@@ -18,9 +20,9 @@ interface PremiumStatusCardProps {
  * Ayarlar ekranındaki Premium kısayolu: durumu tek bakışta gösterir ve Premium ekranına (abonelik yönetimi) götürür.
  * Yenileme süresi işlerken (14 gün) amber uyarı rengine döner ve kalan günü yazar.
  */
-export function PremiumStatusCard({ theme, isPremium, premiumExpiresAt, isDemoMode, onPress }: PremiumStatusCardProps) {
+export function PremiumStatusCard({ theme, isPremium, premiumExpiresAt, graceUntil, isDemoMode, onPress }: PremiumStatusCardProps) {
   const { t } = useTranslation();
-  const result = derivePremiumPhase({ isPremium, premiumExpiresAt });
+  const result = derivePremiumPhase({ isPremium, premiumExpiresAt, graceUntil });
   const phase = isDemoMode ? "active" : result.phase;
   const gold = theme.isLight ? "#A16207" : "#E6C055";
   const warn = phase === "grace";

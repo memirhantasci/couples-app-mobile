@@ -12,7 +12,7 @@ import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, Grid3X3, Grid2X2, Square, ArrowUpDown } from "lucide-react-native";
+import { Camera, Crown, Grid3X3, Grid2X2, Square, ArrowUpDown } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { openForm } from "@/lib/formEntry";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -49,7 +49,8 @@ export default function PhotosScreen() {
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
-  // Demo modunda premium kilitleri yoktur: tüm özellikler açık
+  // Demo modunda premium kilitleri yoktur: tüm özellikler açık. Premium yalnızca yeni fotoğraf eklemeyi açar;
+  // Premium bitse de çift eski fotoğraflarını görür ve kendi yüklediğini siler.
   const isPremium = (profile?.isPremium ?? false) || isDemoMode;
   const [showPaywall, setShowPaywall] = useState(false);
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("photos");
@@ -71,7 +72,7 @@ export default function PhotosScreen() {
     refetch,
   } = useInfiniteQuery({
     queryKey: photosQueryKey(coupleId, isDemoMode, sortOrder),
-    enabled: (!!coupleId && isPremium) || isDemoMode,
+    enabled: !!coupleId || isDemoMode,
     initialPageParam: 0,
     queryFn: ({ pageParam = 0 }) => fetchPhotosPage({ coupleId, pageParam, sortOrder, isDemoMode }),
     getNextPageParam: (lastPage, allPages) => {
@@ -88,7 +89,7 @@ export default function PhotosScreen() {
   // Anahtar ["photo_archive", coupleId] ile başladığı için yükleme / silme sonrası mevcut invalidate'ler bunu da yeniler.
   const { data: totalPhotoCount } = useQuery({
     queryKey: ["photo_archive", coupleId, "count", isDemoMode],
-    enabled: (!!coupleId && isPremium) || isDemoMode,
+    enabled: !!coupleId || isDemoMode,
     staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       if (isDemoMode) return DEMO_PHOTOS.length;
@@ -149,9 +150,9 @@ export default function PhotosScreen() {
           if (currentPhoto?.id === id) {
             setSelectedIndex(null);
           }
-          // Önce kayıt (yalnızca yükleyen), sonra depodaki dosyalar (tam boy + küçük resim)
+          // Yalnızca yükleyen siler; Premium gerekmez. Dosyaları (tam boy + küçük resim) sunucu kaldırır.
           try {
-            await deleteArchivedPhoto(photoToDelete, userId);
+            await deleteArchivedPhoto(photoToDelete);
             queryClient.invalidateQueries({ queryKey: ["photo_archive", coupleId] });
             queryClient.invalidateQueries({ queryKey: ["map_photos", coupleId] });
             queryClient.invalidateQueries({ queryKey: ["calendar_data"] });
@@ -214,7 +215,7 @@ export default function PhotosScreen() {
         } />
 
         {/* ─── KONTROL ÇUBUĞU (GÖRÜNÜM SEÇİCİ & YENİ YÜKLE) ─── */}
-        {isPremium && (
+        {(isPremium || photos.length > 0) && (
           <View style={styles.controlBar}>
             {/* Yükleme, başlıktaki kamera butonundadır; araç çubuğu dar telefonlarda taşmasın diye burada tekrarlanmaz */}
             {/* Tarih Sıralama Toggleu */}
@@ -258,10 +259,8 @@ export default function PhotosScreen() {
           </View>
         )}
 
-        {/* FOTOĞRAF LİSTESİ */}
-        {!isPremium ? (
-          <PhotosLockCard theme={theme} isLight={isLight} onUpgrade={() => setShowPaywall(true)} />
-        ) : isLoading ? (
+        {/* FOTOĞRAF LİSTESİ (kilit kartı yalnızca gösterilecek fotoğraf yoksa) */}
+        {isLoading ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', padding: 16, gap: 10, justifyContent: 'space-between' }}>
             <Skeleton height={160} borderRadius={18} style={{ width: '48%' }} />
             <Skeleton height={160} borderRadius={18} style={{ width: '48%' }} />
@@ -290,6 +289,19 @@ export default function PhotosScreen() {
               viewMode === "single" && styles.singleListGap,
             ]}
             showsVerticalScrollIndicator={false}
+            ListHeaderComponent={
+              isPremium ? null : (
+                <TouchableOpacity
+                  style={[styles.lapsedNote, { backgroundColor: theme.pillAccentBg }]}
+                  onPress={() => setShowPaywall(true)}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                >
+                  <Crown size={14} color={theme.accent} />
+                  <Text style={[styles.lapsedNoteText, { color: theme.textSecondary }]}>{t("photos.lapsedNote")}</Text>
+                </TouchableOpacity>
+              )
+            }
             renderItem={
               viewMode === "grid3"
                 ? renderGrid3Item
@@ -309,6 +321,8 @@ export default function PhotosScreen() {
               ) : null
             }
           />
+        ) : !isPremium ? (
+          <PhotosLockCard theme={theme} isLight={isLight} onUpgrade={() => setShowPaywall(true)} />
         ) : (
           <EmptyState
             illustrationType="photos"
@@ -446,6 +460,23 @@ const createStyles = (theme: AppTheme) => {
     },
     singleListGap: {
       gap: 16,
+    },
+
+    /* PREMIUM BİTTİ BİLGİSİ (görüntüleme ve silme serbest, ekleme Premium) */
+    lapsedNote: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: 14,
+      marginBottom: 12,
+    },
+    lapsedNoteText: {
+      flex: 1,
+      fontSize: 12.5,
+      lineHeight: 17,
+      fontFamily: "Inter_500Medium",
     },
 
     /* BOŞ DURUM */

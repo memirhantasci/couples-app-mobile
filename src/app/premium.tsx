@@ -36,7 +36,7 @@ import { dayjs } from "@/lib/date";
 import { RevenueCatService } from "@/lib/revenuecat";
 import { waitForServerPremium } from "@/lib/premiumSync";
 import { suppressPremiumCelebration } from "@/lib/premiumCelebration";
-import { PREMIUM_GRACE_DAYS } from "@/lib/premiumStatus";
+import { PREMIUM_GRACE_DAYS, PREMIUM_VAULT_DAYS } from "@/lib/premiumStatus";
 import { usePremiumDetails } from "@/hooks/usePremiumDetails";
 import { toast } from "@/lib/toast";
 import { appAlert } from "@/lib/dialog";
@@ -200,7 +200,25 @@ export default function PremiumScreen() {
         body: t("premiumHub.alert.graceBody", { date: graceEndDate }),
       };
     }
-    if (phase === "expired") return { tone: "info", title: t("premiumHub.alert.expiredTitle"), body: t("premiumHub.alert.expiredBody") };
+    if (phase === "expired") {
+      // Kasada: anı gezegenleri ve tam boy fotoğraflar kasa bitişine kadar bekler. Sunucu durumu 'free' ise
+      // kasa süresi de dolmuş, fotoğraflar tasfiye edilmiştir.
+      const vaultEnd =
+        profile?.subscriptionStatus === "free"
+          ? null
+          : profile?.vaultUntil
+            ? dayjs(profile.vaultUntil)
+            : graceEndsAt
+              ? dayjs(graceEndsAt).add(PREMIUM_VAULT_DAYS, "day")
+              : null;
+      return {
+        tone: "info",
+        title: t("premiumHub.alert.expiredTitle"),
+        body: vaultEnd
+          ? t("premiumHub.alert.vaultBody", { date: vaultEnd.format("D MMMM YYYY") })
+          : t("premiumHub.alert.expiredBody"),
+      };
+    }
     if (billingIssue) return { tone: "warn", title: t("premiumHub.alert.billingTitle"), body: t("premiumHub.alert.billingBody", { store: storeName }) };
     if (cancelled) {
       return { tone: "warn", title: t("premiumHub.alert.cancelledTitle"), body: t("premiumHub.alert.cancelledBody", { date: expiryDate, grace: PREMIUM_GRACE_DAYS }) };
