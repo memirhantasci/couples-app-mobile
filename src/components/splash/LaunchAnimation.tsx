@@ -373,6 +373,10 @@ function LaunchScene({ onFinished }: { onFinished: () => void }) {
   ]);
 
   const exitStartedRef = useRef(false);
+  const exitSafetyRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (exitSafetyRef.current) clearTimeout(exitSafetyRef.current);
+  }, []);
   useEffect(() => {
     if (!canExit || exitStartedRef.current) return;
     exitStartedRef.current = true;
@@ -386,6 +390,9 @@ function LaunchScene({ onFinished }: { onFinished: () => void }) {
         if (done) scheduleOnRN(onFinished);
       })
     );
+    // Güvenlik ağı: animasyon geri çağrısı gelmezse perde yarı saydam kalıp ekranı örtmesin. Bağımlılık
+    // değişince temizlenmesin diye ref'te tutulur (etki yeniden çalışınca erken döner).
+    exitSafetyRef.current = setTimeout(onFinished, duration + 1000);
   }, [canExit, reduceMotion, timeline, exit, onFinished]);
 
   const dimOpacity = timeline?.dimOpacity ?? 1;

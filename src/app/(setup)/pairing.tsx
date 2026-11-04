@@ -295,11 +295,16 @@ export default function PairingScreen() {
       t("setup.pairing.share.closing"),
     ].join("\n");
 
-    await Share.share({
-      title: t("setup.pairing.share.title"),
-      message: shareMessage,
-      url: inviteLink,
-    });
+    try {
+      await Share.share({
+        title: t("setup.pairing.share.title"),
+        message: shareMessage,
+        url: inviteLink,
+      });
+    } catch {
+      // Paylaşım penceresi açılamadı: kod ekranda ve kopyalama düğmesi yine kullanılabilir
+      return;
+    }
     // Davet gönderildi: partner katılınca haber alabilmek için bildirim iznini nazikçe iste
     await priming.maybePrompt();
   }

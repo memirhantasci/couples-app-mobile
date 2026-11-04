@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Modal,
-  Linking,
   type LayoutChangeEvent,
   type StyleProp,
   type TextStyle,
@@ -38,6 +37,7 @@ import { rainConfetti } from "@/lib/confettiRain";
 import { playCelebration } from "@/lib/soundEffects";
 import { useTranslation } from "react-i18next";
 import { markMeetingCelebrationSeen } from "@/lib/activeMeeting";
+import { openDirections as openMapDirections } from "@/components/map/openDirections";
 
 // Skia yalnızca native modül mevcutsa yüklenir (Expo Go vb. ortamlarda çökmesin);
 // yoksa kavuşma kartı dönen hale yerine yıldönümü ışıltısıyla sarılır.
@@ -123,8 +123,7 @@ export const MeetingCountdown = memo(function MeetingCountdown({ meeting, theme,
 
   const openDirections = () => {
     if (meeting.latitude && meeting.longitude) {
-      const url = `https://www.google.com/maps/dir/?api=1&destination=${meeting.latitude},${meeting.longitude}`;
-      Linking.openURL(url);
+      openMapDirections(meeting.latitude, meeting.longitude);
     }
   };
 

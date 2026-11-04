@@ -130,19 +130,29 @@ function DialogCard({ item }: { item: DialogItem }) {
     finishDialog(item.id, chosenButtonRef.current);
   }, [item.id]);
 
+  const safetyRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (safetyRef.current) clearTimeout(safetyRef.current);
+  }, []);
+
   const close = useCallback(
     (button: DialogButton | null) => {
       chosenButtonRef.current = button;
+      const duration = reduceMotion ? 100 : EXIT_MS;
       leave.set(
         withTiming(
           1,
-          { duration: reduceMotion ? 100 : EXIT_MS, easing: Easing.in(Easing.cubic) },
+          { duration, easing: Easing.in(Easing.cubic) },
           (done) => {
             "worklet";
             if (done) scheduleOnRN(finish);
           }
         )
       );
+      // Güvenlik ağı: animasyon geri çağrısı gelmezse diyalog ekranı kilitlemesin. finishDialog aynı
+      // diyalog için yalnızca bir kez çalışır; düğme işlemi iki kez tetiklenmez.
+      if (safetyRef.current) clearTimeout(safetyRef.current);
+      safetyRef.current = setTimeout(finish, duration + 1000);
     },
     [leave, reduceMotion, finish]
   );

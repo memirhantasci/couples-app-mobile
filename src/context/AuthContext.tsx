@@ -104,7 +104,7 @@ export function useAuth() {
 async function saveCachedProfile(p: CoupleProfile) {
   try {
     await AsyncStorage.setItem(CACHED_PROFILE_KEY, JSON.stringify(p));
-  } catch (e) {
+  } catch {
     // silent catch
   }
 }
@@ -114,7 +114,7 @@ async function getCachedProfile(): Promise<CoupleProfile | null> {
     const raw = await AsyncStorage.getItem(CACHED_PROFILE_KEY);
     if (!raw) return null;
     return JSON.parse(raw);
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -447,7 +447,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+    // Supabase bu geri çağrıyı oturum kilidinin içinde bekler: içinde Supabase sorgusu beklenirse sorgu
+    // aynı kilidi bekleyip kilitlenir. Bu yüzden geri çağrı senkron kalır, ağ işi dışarı ertelenir.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
       if (!mounted) return;
 
       // For the INITIAL_SESSION event that fires right after getSession,
@@ -500,12 +502,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         // For TOKEN_REFRESHED events, don't re-run device auth check
         if (event === 'TOKEN_REFRESHED') return;
-        // Check device auth for new sign-in or session recovery
-        await withTimeout(
-          checkDeviceAuth(newSession.user.id),
-          DEVICE_AUTH_TIMEOUT_MS,
-          false
-        );
+        // Check device auth for new sign-in or session recovery. Geri çağrı bittikten (kilit bırakıldıktan)
+        // sonra başlar; eskiden burada beklendiği için girişten sonra yönlendirme 5 sn zaman aşımına dek
+        // duruyordu.
+        const userId = newSession.user.id;
+        setTimeout(() => {
+          if (mounted) void checkDeviceAuth(userId);
+        }, 0);
       }
     });
 
@@ -551,7 +554,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Even on error, we must stop loading. Use cached profile if available.
         setIsLoading(false);
       });
-  }, [session?.user?.id, loadProfile]);
+  }, [isDemoMode, session?.user?.id, loadProfile]);
 
   const refreshProfile = useCallback(async (): Promise<CoupleProfile | null> => {
     // Demo profili sunucuda yoktur: yenileme, premium'lu örnek profili boş bir profille ezip
@@ -644,7 +647,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [session?.user?.id, profile?.coupleId, refreshProfile, queryClient]);
+  }, [isDemoMode, session?.user?.id, profile?.coupleId, refreshProfile, queryClient]);
 
   const foregroundRefreshInFlightRef = useRef(false);
 
@@ -765,7 +768,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     await supabase.auth.signOut();
-  }, [isDemoMode, exitDemoMode, signedInCoupleId]);
+  }, [isDemoMode, exitDemoMode, signedInCoupleId, session?.user?.id]);
 
   // Silinmek üzere olan hesapla giriş yapıldı (bkz. showPendingDeletionPrompt)
   const signOutRef = useRef(signOut);

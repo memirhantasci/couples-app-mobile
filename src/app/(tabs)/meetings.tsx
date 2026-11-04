@@ -11,10 +11,9 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
-  Platform,
-  Linking,
   Modal,
 } from "react-native";
+import { openDirections, openMapSearch } from "@/components/map/openDirections";
 import { appAlert } from "@/lib/dialog";
 import { DialogHost } from "@/components/ui/DialogHost";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
@@ -442,14 +441,9 @@ export default function MeetingsScreen() {
                         activeOpacity={0.8}
                         onPress={() => {
                           if (m.latitude && m.longitude) {
-                            const url = Platform.select({
-                              ios: `maps://app?daddr=${m.latitude},${m.longitude}`,
-                              android: `google.navigation:q=${m.latitude},${m.longitude}`
-                            }) || `https://www.google.com/maps/dir/?api=1&destination=${m.latitude},${m.longitude}`;
-                            Linking.openURL(url);
+                            openDirections(m.latitude, m.longitude);
                           } else if (m.location_name) {
-                            const encoded = encodeURIComponent(m.location_name);
-                            Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encoded}`);
+                            openMapSearch(m.location_name);
                           }
                         }}
                       >

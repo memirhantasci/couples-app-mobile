@@ -97,10 +97,14 @@ export function ReferralModal({ visible, onClose }: ReferralModalProps) {
 
   const handleShare = async () => {
     if (!data || !code) return;
-    await Share.share({
-      title: t("referral.modal.shareTitle"),
-      message: buildReferralShareMessage(t, { code, hasStar: data.hasStar, rewardDays: data.rewardDays }),
-    });
+    try {
+      await Share.share({
+        title: t("referral.modal.shareTitle"),
+        message: buildReferralShareMessage(t, { code, hasStar: data.hasStar, rewardDays: data.rewardDays }),
+      });
+    } catch {
+      // Paylaşım penceresi açılamadı: kod ve bağlantı kopyalama düğmeleri yine kullanılabilir
+    }
   };
 
   const sheetBg = isLight ? "#FFFFFF" : "#13131F";

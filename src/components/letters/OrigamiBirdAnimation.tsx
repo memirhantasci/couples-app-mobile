@@ -114,6 +114,9 @@ function FlightScene({
   }, [completed, onComplete]);
 
   useEffect(() => {
+    // Güvenlik ağı: animasyon geri çağrısı gelmezse perde ekranı örtüp kalmasın (finish bir kez çalışır)
+    const safety = setTimeout(finish, (reduceMotion ? 1750 : T.scrimOutDelay + T.scrimOutDuration) + 1500);
+
     if (reduceMotion) {
       // Hareket azaltma: sade bir belirme, kısa bekleme ve solma
       scrim.set(
@@ -130,7 +133,7 @@ function FlightScene({
       );
       paperIn.set(withTiming(1, { duration: 200 }));
       seal.set(withTiming(1, { duration: 200 }));
-      return;
+      return () => clearTimeout(safety);
     }
 
     scrim.set(
@@ -181,6 +184,7 @@ function FlightScene({
       )
     );
     return () => {
+      clearTimeout(safety);
       cancelAnimation(scrim);
       cancelAnimation(paperIn);
       cancelAnimation(seal);

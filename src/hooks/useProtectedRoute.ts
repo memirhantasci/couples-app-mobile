@@ -134,5 +134,5 @@ export function useProtectedRoute() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [session, isLoading, profile, isDeviceAuthorized, isDemoMode, segments, navigationState?.key]);
+  }, [session, isLoading, profile, isDeviceAuthorized, isDemoMode, segments, navigationState?.key, router]);
 }
