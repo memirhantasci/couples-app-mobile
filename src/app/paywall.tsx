@@ -14,7 +14,7 @@ import { LegalModal } from "@/components/legal/LegalModal";
 import { LegalDocType } from "@/constants/legalTexts";
 import { toast } from "@/lib/toast";
 import { suppressPremiumCelebration } from "@/lib/premiumCelebration";
-import { purchaseButtonLabel } from "@/lib/trialLabel";
+import { freeTrialDays, purchaseButtonLabel } from "@/lib/trialLabel";
 import { waitForServerPremium } from "@/lib/premiumSync";
 import type { TFunction } from "i18next";
 import { APP_NAME } from "@/constants/brand";
@@ -44,6 +44,29 @@ function getPackagePeriodLabel(packageType: string | undefined, t: TFunction): s
     default:
       return "";
   }
+}
+
+const ISO_PERIOD_PATTERN = /^P(d+)([WMY])$/;
+
+/**
+ * Fiyatın yanındaki dönem etiketi. Paket türü RevenueCat'te özel (CUSTOM) tanımlıysa mağazanın verdiği
+ * ISO 8601 abonelik süresinden (ör. "P1M") çıkarılır; böylece dönem bilgisi boş kalmaz.
+ */
+function getPeriodLabel(pkg: PurchasesPackage, t: TFunction): string {
+  const byType = getPackagePeriodLabel(pkg.packageType, t);
+  if (byType) return byType;
+  const match = ISO_PERIOD_PATTERN.exec(pkg.product.subscriptionPeriod ?? "");
+  if (!match) return "";
+  const count = Number(match[1]);
+  if (match[2] === "W" && count === 1) return t("paywall.periods.week");
+  if (match[2] === "Y" && count === 1) return t("paywall.periods.year");
+  if (match[2] === "M") {
+    if (count === 1) return t("paywall.periods.month");
+    if (count === 2) return t("paywall.periods.twoMonths");
+    if (count === 3) return t("paywall.periods.threeMonths");
+    if (count === 6) return t("paywall.periods.sixMonths");
+  }
+  return "";
 }
 
 export default function PaywallScreen() {
@@ -214,6 +237,13 @@ export default function PaywallScreen() {
         t("paywall.features.letters"),
       ];
 
+  // Satın alma özeti: seçili paketin fiyatı, dönemi, deneme sonrası tahsilatı ve iptal / cayma bilgisi
+  const storeName = Platform.OS === "ios" ? "App Store" : "Google Play";
+  const selectedPeriod = selectedPackage ? getPeriodLabel(selectedPackage, t) : "";
+  const selectedTrialDays = freeTrialDays(selectedPackage);
+  const selectedIsRecurring = !!selectedPackage && selectedPackage.packageType !== "LIFETIME";
+  const summaryTextStyle = [styles.summaryText, { color: theme.textSecondary }];
+
   return (
     <ScreenBackground>
       <ScrollView
@@ -323,7 +353,7 @@ export default function PaywallScreen() {
                       </Text>
                       <Text style={[styles.packagePrice, { color: isSelected ? theme.accent : theme.textSecondary }]}>
                         {pkg.product.priceString}{(() => {
-                          const period = getPackagePeriodLabel(pkg.packageType, t);
+                          const period = getPeriodLabel(pkg, t);
                           return period ? ` ${period}` : "";
                         })()}
                       </Text>
@@ -345,6 +375,37 @@ export default function PaywallScreen() {
                   </TouchableOpacity>
                 );
               })
+            )}
+
+            {selectedPackage && (
+              <View
+                style={[
+                  styles.summaryBox,
+                  {
+                    backgroundColor: isLight ? theme.unitBg : "rgba(255,255,255,0.05)",
+                    borderColor: isLight ? "rgba(0,0,0,0.08)" : theme.cardBorder,
+                  },
+                ]}
+              >
+                <Text style={[styles.summaryTitle, { color: theme.text }]}>{t("paywall.summary.title")}</Text>
+                <Text style={[styles.summaryPrice, { color: theme.text }]}>
+                  {t("paywall.summary.price", { price: selectedPackage.product.priceString, period: selectedPeriod }).trim()}
+                </Text>
+                {selectedIsRecurring && selectedTrialDays ? (
+                  <Text style={summaryTextStyle}>
+                    {t("paywall.summary.trial", {
+                      count: selectedTrialDays,
+                      price: selectedPackage.product.priceString,
+                      period: selectedPeriod,
+                    })}
+                  </Text>
+                ) : null}
+                {selectedIsRecurring ? (
+                  <Text style={summaryTextStyle}>{t("paywall.summary.renewal", { store: storeName })}</Text>
+                ) : null}
+                <Text style={summaryTextStyle}>{t("paywall.summary.confirm", { store: storeName })}</Text>
+                <Text style={summaryTextStyle}>{t("paywall.summary.withdrawal", { store: storeName })}</Text>
+              </View>
             )}
 
             {packages.length > 0 && (
@@ -394,7 +455,7 @@ export default function PaywallScreen() {
                 { borderTopColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" },
               ]}
             >
-              <Text style={[styles.legalNoticeText, { color: theme.textMuted }]}>
+              <Text style={[styles.legalNoticeText, { color: theme.textSecondary }]}>
                 {t("paywall.legalNotice")}
               </Text>
 
@@ -591,9 +652,29 @@ const styles = StyleSheet.create({
     gap: 12,
     alignItems: "center",
   },
+  summaryBox: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 16,
+    gap: 8,
+    marginTop: 4,
+  },
+  summaryTitle: {
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+  },
+  summaryPrice: {
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+  },
+  summaryText: {
+    fontSize: 13,
+    lineHeight: 19,
+    fontFamily: "Inter_400Regular",
+  },
   legalNoticeText: {
-    fontSize: 11,
-    lineHeight: 16,
+    fontSize: 12.5,
+    lineHeight: 18,
     textAlign: "center",
     fontFamily: "Inter_400Regular",
   },

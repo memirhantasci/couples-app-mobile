@@ -261,6 +261,21 @@ function truncate(text: string, max: number): string {
  * Uygulama içi kart (metadata) ve bildirime dokununca açılan ekranlar bu yükü okur;
  * ham "enc:..." değerlerinin oraya da sızmaması için savunma amaçlıdır.
  */
+/**
+ * Bildirim yükü (data) de push servislerinden geçer: ilaç adı ve doz durumu gibi sağlık ayrıntıları
+ * yüke konmaz. Alıcı uygulama bunları bildirimden değil, kendi veritabanı sorgusundan okur.
+ */
+const SENSITIVE_PUSH_DATA_KEYS = ["medicineName", "status"] as const;
+
+function stripSensitivePushData(data: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+  if (!data) return data;
+  const type = data.type;
+  if (type !== "medicine" && type !== "medicine_reminder" && type !== "period" && type !== "period_reminder") return data;
+  const copy = { ...data };
+  for (const key of SENSITIVE_PUSH_DATA_KEYS) delete copy[key];
+  return copy;
+}
+
 function cleanPayloadData(data: Record<string, unknown> | undefined): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(data ?? {})) {
@@ -356,21 +371,12 @@ export function formatMessagingStyleNotification(
     }
     case "medicine":
     case "medicine_reminder": {
-      title = `${name} 💊`;
-      subtitle = i18n.t("notifications.labels.medicineTracking");
-      channelId = "medicine_channel";
-      const medicineName = field(data?.medicineName);
-      if (data?.status === "DRANK") {
-        body = medicineName
-          ? i18n.t("notifications.push.medicine.drankWithName", { medicineName })
-          : i18n.t("notifications.push.medicine.drank");
-      } else {
-        body =
-          trimmedBody ||
-          (medicineName
-            ? i18n.t("notifications.push.medicine.dueWithName", { medicineName })
-            : i18n.t("notifications.push.medicine.due"));
-      }
+      // GİZLİLİK (KVKK m.6): ilaç adı ve doz durumu özel nitelikli sağlık verisidir; bildirim Expo / FCM / APNs
+      // üzerinden yurt dışı sunuculardan geçtiği için metne konmaz. Ayrıntı uygulama içinde görülür.
+      title = `${name} 💞`;
+      subtitle = i18n.t("notifications.push.neutral.subtitle");
+      channelId = "partner_messages";
+      body = i18n.t("notifications.push.neutral.body");
       break;
     }
     case "photo": {
@@ -423,10 +429,11 @@ export function formatMessagingStyleNotification(
       break;
     }
     case "period": {
-      title = `${name} 🌸`;
-      subtitle = i18n.t("notifications.push.period.subtitle");
+      // GİZLİLİK (KVKK m.6): döngü / regl bilgisi bildirim metnine konmaz (bkz. medicine durumu)
+      title = `${name} 💞`;
+      subtitle = i18n.t("notifications.push.neutral.subtitle");
       channelId = "partner_messages";
-      body = trimmedBody || i18n.t("notifications.push.period.body");
+      body = i18n.t("notifications.push.neutral.body");
       break;
     }
     case "gentle_care": {
@@ -692,7 +699,7 @@ export async function notifyPartner(coupleId: number, currentUserId: string, tit
     if (!tokens || tokens.length === 0) return;
 
     const payloadData = {
-      ...cleanPayloadData(data),
+      ...cleanPayloadData(stripSensitivePushData(data)),
       senderName: senderName || undefined,
     };
 

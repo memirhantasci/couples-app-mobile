@@ -1,10 +1,14 @@
 import React from "react";
-import { ShieldCheck, Lock, FileText, UserCheck, CreditCard } from "lucide-react-native";
+import { Linking } from "react-native";
+import * as Clipboard from "expo-clipboard";
+import { ShieldCheck, Lock, FileText, UserCheck, CreditCard, Mail } from "lucide-react-native";
 import type { AppTheme } from "@/lib/theme";
 import type { LegalDocType } from "@/constants/legalTexts";
 import { ModernSection } from "./ModernSection";
 import { SettingsRow } from "./SettingsRow";
 import { useTranslation } from "react-i18next";
+import { SUPPORT_EMAIL } from "@/constants/brand";
+import { toast } from "@/lib/toast";
 
 interface LegalDocsListProps {
   theme: AppTheme;
@@ -21,7 +25,19 @@ const LEGAL_ITEMS = [
 
 /** Yasal belgeler: varsayılan kapalı, açılınca kenardan kenara satır listesi. */
 export function LegalDocsList({ theme, onOpenDoc }: LegalDocsListProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  /** Destek / içerik ve telif bildirimi: posta uygulaması açılamazsa adres panoya kopyalanır. */
+  const openSupport = async () => {
+    const email = i18n.language === "en" ? SUPPORT_EMAIL.en : SUPPORT_EMAIL.tr;
+    try {
+      await Linking.openURL(`mailto:${email}?subject=${encodeURIComponent(t("legal.supportMail.subject"))}`);
+    } catch {
+      await Clipboard.setStringAsync(email).catch(() => {});
+      toast.info(t("legal.supportMail.copied", { email }));
+    }
+  };
+
   return (
     <ModernSection
       title={t("profile.legal.title")}
@@ -40,6 +56,13 @@ export function LegalDocsList({ theme, onOpenDoc }: LegalDocsListProps) {
           theme={theme}
         />
       ))}
+      <SettingsRow
+        icon={Mail}
+        title={t("legal.docs.support.title")}
+        subtitle={t("legal.docs.support.sub")}
+        onPress={openSupport}
+        theme={theme}
+      />
     </ModernSection>
   );
 }

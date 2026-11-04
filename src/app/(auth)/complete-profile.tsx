@@ -16,8 +16,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AlertCircle, ArrowRight, Sparkles, User as UserIcon } from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { localizeServerError } from "@/lib/serverErrors";
+import { recordTermsConsent } from "@/lib/consent";
+import { ConsentCheckbox } from "@/components/ui/ConsentCheckbox";
+import { LegalModal } from "@/components/legal/LegalModal";
+import type { LegalDocType } from "@/constants/legalTexts";
 
 type Gender = "male" | "female";
 
@@ -47,6 +51,11 @@ export default function CompleteProfileScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
 
+  // İlk sosyal girişte koşul onayı henüz kayıtlı değildir: işaretlenmemiş kutuyla açıkça alınır
+  const needsTerms = !metadata.terms_accepted_at;
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [legalDoc, setLegalDoc] = useState<LegalDocType | null>(null);
+
   const selected = GENDER_OPTIONS.find((g) => g.value === gender);
   const accent = selected?.color ?? "#D85870";
   const ctaColors = gender === "male"
@@ -67,6 +76,10 @@ export default function CompleteProfileScreen() {
       setError(t("auth.errors.noSession"));
       return;
     }
+    if (needsTerms && !acceptedTerms) {
+      setError(t("auth.errors.termsRequired"));
+      return;
+    }
 
     setIsSaving(true);
     setError("");
@@ -81,6 +94,7 @@ export default function CompleteProfileScreen() {
       if (updateError) throw updateError;
       if (!data || data.length === 0) throw new Error(t("auth.completeProfile.recordNotFound"));
 
+      if (needsTerms) await recordTermsConsent();
       await refreshProfile();
       router.replace("/(setup)/pairing");
     } catch (err: any) {
@@ -194,6 +208,31 @@ export default function CompleteProfileScreen() {
             </View>
           </View>
 
+          {needsTerms && (
+            <View style={styles.termsWrap}>
+              <ConsentCheckbox
+                checked={acceptedTerms}
+                onToggle={() => {
+                  setAcceptedTerms((v) => !v);
+                  if (error) setError("");
+                }}
+                accentColor={accent}
+                accessibilityLabel={t("auth.register.termsCheckboxA11y")}
+              >
+                <Text style={styles.termsText}>
+                  <Trans
+                    i18nKey="auth.register.termsCheckbox"
+                    components={{
+                      terms: <Text style={[styles.termsLink, { color: accent }]} onPress={() => setLegalDoc("terms")} />,
+                      privacy: <Text style={[styles.termsLink, { color: accent }]} onPress={() => setLegalDoc("privacy")} />,
+                      kvkk: <Text style={[styles.termsLink, { color: accent }]} onPress={() => setLegalDoc("kvkk")} />,
+                    }}
+                  />
+                </Text>
+              </ConsentCheckbox>
+            </View>
+          )}
+
           {!!error && (
             <View style={styles.errorBanner}>
               <AlertCircle size={18} color="#D85870" />
@@ -235,6 +274,13 @@ export default function CompleteProfileScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <LegalModal
+        visible={legalDoc !== null}
+        onClose={() => setLegalDoc(null)}
+        initialDoc={legalDoc ?? "terms"}
+        accentColor={accent}
+      />
     </LinearGradient>
   );
 }
@@ -372,6 +418,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 14,
     marginTop: 8,
+  },
+  termsWrap: {
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  termsText: {
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 19,
+  },
+  termsLink: {
+    fontFamily: "Inter_700Bold",
+    textDecorationLine: "underline",
   },
   secondaryBtnText: {
     color: "rgba(255,255,255,0.45)",

@@ -5,6 +5,15 @@ import i18n from "@/lib/i18n";
  * 6698 Sayılı KVKK, GDPR, Apple App Store Review Guidelines (3.1.2, 5.1.1) ve Google Play Politikalarına Uygun Metinler
  */
 
+/**
+ * Veri sorumlusunun tebligat adresi. Boş bırakılırsa metinlere yazılmaz; yayından önce doldurulmalıdır
+ * (KVKK Aydınlatma Yükümlülüğü Tebliği: veri sorumlusunun kimliği ve adresi). Doldurunca
+ * "node scripts/build-legal-pages.js" ile web sayfaları yeniden üretilir.
+ */
+const CONTROLLER_ADDRESS = "";
+const CONTROLLER_ADDRESS_TR = CONTROLLER_ADDRESS ? " · Adres: " + CONTROLLER_ADDRESS : "";
+const CONTROLLER_ADDRESS_EN = CONTROLLER_ADDRESS ? " · Address: " + CONTROLLER_ADDRESS : "";
+
 export type LegalDocType = "kvkk" | "privacy" | "terms" | "consent" | "subscription";
 
 export interface LegalDocument {
@@ -21,11 +30,11 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
     id: "kvkk",
     title: "KVKK Aydınlatma Metni",
     badge: "6698 Sayılı Kanun",
-    lastUpdated: "Ekim 2026",
+    lastUpdated: "Kasım 2026",
     summary: "Kişisel verilerinizin işlenme amaçları, toplanma yöntemleri, hukuki sebepleri ve 6698 Sayılı KVKK 11. madde kapsamındaki haklarınız hakkında bilgilendirme.",
     content: [
       "1. VERİ SORUMLUSU",
-      "Veri sorumlusu: Necati Taşcı (CoupleSky) · İletişim ve destek: destek@couplesky.app. CoupleSky (\"Uygulama\" veya \"Veri Sorumlusu\") olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu (\"KVKK\") ve ilgili mevzuat uyarınca, kullanıcılarımızın kişisel verilerinin güvenliğine ve gizliliğine azami hassasiyet göstermekteyiz. İşbu Aydınlatma Metni, mobil uygulamamız üzerinden toplanan kişisel verilerinizin hangi amaçlarla işlendiğini ve haklarınızı açıklamaktadır.",
+      "Veri sorumlusu: Necati Taşcı (CoupleSky)" + CONTROLLER_ADDRESS_TR + " · İletişim ve destek: destek@couplesky.app. CoupleSky (\"Uygulama\" veya \"Veri Sorumlusu\") olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu (\"KVKK\") ve ilgili mevzuat uyarınca, kullanıcılarımızın kişisel verilerinin güvenliğine ve gizliliğine azami hassasiyet göstermekteyiz. İşbu Aydınlatma Metni, mobil uygulamamız üzerinden toplanan kişisel verilerinizin hangi amaçlarla işlendiğini ve haklarınızı açıklamaktadır.",
 
       "2. İŞLENEN KİŞİSEL VERİ KATEGORİLERİ VE VERİ TÜRLERİ",
       "Uygulamamızın sunduğu çift anı defteri, zaman kilitli mektuplar, konum tabanlı buluşma planları ve sağlık/döngü takip fonksiyonları kapsamında aşağıdaki kişisel verileriniz işlenmektedir:\n" +
@@ -36,7 +45,8 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "• Özel Nitelikli Kişisel Veriler (Sağlık Bilgileri): Kadın kullanıcılar ve çiftleri için döngü/regl başlangıç ve tahmin tarihleri, günlük ilaç/vitamin saatleri ve takip kayıtları.\n" +
       "• Mesajlaşma ve Anı Verileri: Zaman kilitli mektuplar, günlük notları ve ruh hali (mood) seçimleri. (Bu veriler sunucuda şifreli olarak saklanmaktadır).\n" +
       "• Müşteri İşlem ve Finansal Bilgiler: RevenueCat ve uygulama mağazası (App Store / Google Play) üzerinden sağlanan anonim işlem tokenları, abonelik durumu, paket türü ve token bakiyesi.\n" +
-      "• Cihaz ve İşlem Güvenliği: Cihaz modeli, işletim sistemi versiyonu, push bildirim tokenları, benzersiz cihaz kimliği (UUID), son oturum açma zamanı ve güvenlik logları.\n" +
+      "• Cihaz ve İşlem Güvenliği: Cihaz modeli, işletim sistemi versiyonu, push bildirim tokenları, benzersiz cihaz kimliği (UUID), son oturum açma zamanı, güvenlik logları ve giriş / şifre sıfırlama denemelerini sınırlamak için IP adresi (en fazla 1 gün tutulur).\n" +
+      "• Hata Kayıtları: Uygulama hata verdiğinde hata mesajı, teknik yığın izi, uygulama sürümü, platform (iOS/Android) ve hesap kimliğiniz. Mektup, günlük gibi içerik bu kayıtlara yazılmaz; kayıtlar en fazla 30 gün saklanır.\n" +
       "• Reklam Verileri: Uygulamada gösterilen reklamlar için Google AdMob tarafından işlenen reklam kimliği ve reklam etkileşim verileri (yalnızca kişiselleştirilmemiş reklam talebi ile sınırlı).",
 
       "3. KİŞİSEL VERİLERİN İŞLENME AMAÇLARI",
@@ -53,22 +63,34 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "Kişisel verileriniz, kanunun emrettiği istisnalar haricinde hiçbir üçüncü tarafa reklam veya ticari amaçla satılmaz. Veriler yalnızca hizmetin ifası için aşağıdaki sağlayıcılarla paylaşılır. Bu sağlayıcıların bir kısmı yurt dışında yerleşiktir; veriler bu nedenle KVKK md. 9 kapsamında yurt dışına aktarılabilir:\n" +
       "• Supabase Inc.: Güvenli PostgreSQL veritabanı, şifreli depolama ve kimlik doğrulama altyapısı,\n" +
       "• RevenueCat Inc.: Uygulama içi satın alma, abonelik doğrulama ve iade altyapısı,\n" +
-      "• Google Cloud / Firebase & Expo Notifications: Push bildirimlerinin cihazınıza güvenle ulaştırılması,\n" +
+      "• Google Cloud / Firebase, Apple (APNs) & Expo Notifications: Push bildirimlerinin cihazınıza ulaştırılması (bildirim metinleri regl, döngü ya da ilaç gibi sağlık ayrıntısı içermez),\n" +
       "• Google LLC (AdMob ve Google Haritalar): reklam gösterimi ve harita hizmetleri,\n" +
-      "• Apple Inc. ve Google LLC: Apple ile giriş ve Google ile giriş hizmetleri,\n" +
-      "• Yetkili Kamu Kurum ve Kuruluşları: Yargı kararları veya yasal zorunluluklar halinde yetkili adli/idari makamlar.",
+      "• Apple Inc. ve Google LLC: Apple ile giriş ve Google ile giriş hizmetleri; cihaz üzerindeki adres arama (konum seçerken yazdığınız adres metni),\n" +
+      "• Expo (Expo Updates / EAS): Uygulama güncellemelerinin dağıtımı; güncelleme kontrolünde IP adresiniz, platform ve uygulama sürümü bilgileri,\n" +
+      "• OpenStreetMap Vakfı (Nominatim): Cihazın kendi adres arama servisi sonuç vermezse yedek olarak kullanılır; yalnızca adres arama kutusuna yazdığınız metin ve IP adresiniz,\n" +
+      "• Unsplash: Keşif (demo) modunda gösterilen örnek görseller; görseller yüklenirken IP adresiniz,\n" +
+      "• Yetkili Kamu Kurum ve Kuruluşları: Yargı kararları veya yasal zorunluluklar halinde yetkili adli/idari makamlar.\n\n" +
+      "Yurt dışına aktarım dayanağı: Yurt dışında yerleşik sağlayıcılara aktarım, KVKK md. 9 uyarınca Kişisel Verileri Koruma Kurulu'nun yeterlilik kararına, yeterlilik kararı yoksa md. 9'da sayılan uygun güvencelere (standart sözleşme, bağlayıcı şirket kuralları vb.) ya da kanunda öngörülen diğer hâllere dayanılarak yapılır. Hangi sağlayıcı için hangi dayanağın kullanıldığı bilgisini destek@couplesky.app adresinden talep edebilirsiniz.",
 
       "5. VERİ TOPLAMANIN YÖNTEMİ VE HUKUKİ SEBEPLERİ",
       "Verileriniz mobil uygulama arayüzü, kamera/galeri erişimi, cihaz sensörleri ve bildirim izinleri vasıtasıyla elektronik ortamda toplanır. Hukuki sebepler:\n" +
       "• KVKK md. 5/2-c: Bir sözleşmenin kurulması veya ifasıyla doğrudan doğruya ilgili olması (Kullanıcı Sözleşmesi),\n" +
       "• KVKK md. 5/2-f: Temel hak ve özgürlüklerinize zarar vermemek kaydıyla veri sorumlusunun meşru menfaatleri,\n" +
-      "• KVKK md. 5/1 ve md. 6/2: Sağlık verileri (regl/ilaç takibi), hassas konum verileri ve pazarlama/bildirim süreçleri için vermiş olduğunuz Açık Rıza.",
+      "• KVKK md. 6/2: Sağlık verileri (regl/ilaç takibi) için ilgili özelliğin ilk kullanımında, kayıttaki koşul onayından ayrı olarak onay kutusuyla verdiğiniz Açık Rıza. Konum bilgisi, cihazınızın konum iznini vermenize ve ilgili özelliği kullanmayı seçmenize bağlıdır.",
 
       "6. VERİLERİN GÜVENLİĞİ VE ŞİFRELEME (AES-256)",
       "CoupleSky, günlük notlarınızı ve mektuplarınızı veritabanına AES-256 ile şifrelenmiş olarak yazar. Şifreleme anahtarı, çiftinize özel ve sunucuda tutulan rastgele bir değerden uygulama içinde türetilir. Bu nedenle sistem uçtan uca şifreleme değildir: hizmeti işleten taraf olarak teknik olarak bu içeriklere erişebilecek konumdayız; içeriklerinizi pazarlama dahil hiçbir başka amaçla kullanmayız. Verilere erişim, Satır Düzeyi Güvenlik (RLS) kurallarıyla yalnızca oturum açmış ve ilgili çifte ait kullanıcılarla sınırlandırılmıştır. Ortak fotoğraflarınız özel depolama alanında tutulur ve yalnızca süreli, imzalı bağlantılarla gösterilir; profil fotoğrafınız (avatar) ise tahmin edilemez bir adreste herkese açık bir depolama alanında tutulur ve bu adresi bilen herkes tarafından görüntülenebilir. Tüm iletişim TLS ile şifrelidir.",
 
       "7. VERİ SAKLAMA VE SİLME (UNUTULMA HAKKI)",
-      "Profil > Hesap Yönetimi & Tehlike Bölgesi bölümünden hesabınızı silme talebinde bulunabilirsiniz. Talep 7 gün beklemeye alınır; bu süre içinde aynı hesapla giriş yaparak talebi iptal edebilirsiniz. 7 gün sonunda hesabınıza ait profil bilgileri, dosyalar, günlükler ve mektuplar sunuculardan geri döndürülemez biçimde silinir. Partneriniz kendi hesabıyla kullanmaya devam eder; ortak anılar ise her iki taraftan da silinir ve partneriniz çiftten ayrılmış olur. Partnerinize silme talebi, vazgeçilmesi ve silinme durumunda uygulama içi açıklama ve bildirimle bilgi verilir. Yedek kopyalar en geç 30 gün içinde otomatik olarak imha edilir.",
+      "Profil > Hesap Yönetimi & Tehlike Bölgesi bölümünden hesabınızı silme talebinde bulunabilirsiniz. Talep 7 gün beklemeye alınır; bu süre içinde aynı hesapla giriş yaparak talebi iptal edebilirsiniz. 7 gün sonunda hesabınıza ait profil bilgileri, dosyalar, günlükler ve mektuplar sunuculardan geri döndürülemez biçimde silinir. Partneriniz kendi hesabıyla kullanmaya devam eder; ortak anılar ise her iki taraftan da silinir ve partneriniz çiftten ayrılmış olur. Partnerinize silme talebi, vazgeçilmesi ve silinme durumunda uygulama içi açıklama ve bildirimle bilgi verilir. Yedek kopyalar en geç 30 gün içinde otomatik olarak imha edilir.\n\n" +
+      "Saklama süreleri:\n" +
+      "• Hesap, profil ve ortak içerikler: Hesabınız silinene kadar (silme talebinden 7 gün sonra silinir),\n" +
+      "• Hata kayıtları: en fazla 30 gün,\n" +
+      "• Giriş ve şifre sıfırlama deneme kayıtları (IP adresi dahil): en fazla 1 gün,\n" +
+      "• Bildirimin tekrar gönderilmesini önleyen kayıtlar: 14 gün,\n" +
+      "• Partnerinize gösterilen uygulama içi hesap bildirimleri: görüldükten 30 gün sonra,\n" +
+      "• Push bildirim tokenı: oturumunuz ve hesabınız süresince,\n" +
+      "• Üçüncü taraf sağlayıcılardaki kayıtlar (ör. RevenueCat, Expo, Google): sağlayıcının kendi saklama politikalarına tabidir.",
 
       "8. KVKK'NIN 11. MADDESİ KAPSAMINDAKİ HAKLARINIZ",
       "KVKK 11. maddesi uyarınca dilediğiniz zaman Veri Sorumlumuza başvurarak:\n" +
@@ -89,7 +111,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
     id: "privacy",
     title: "Gizlilik Politikası",
     badge: "Privacy Policy",
-    lastUpdated: "Ekim 2026",
+    lastUpdated: "Kasım 2026",
     summary: "Uygulamamızın veri toplama, işleme, koruma prensipleri ve gizliliğinizi nasıl koruduğumuzun detayları.",
     content: [
       "1. GİRİŞ VE TAAHHÜDÜMÜZ",
@@ -101,7 +123,8 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "• Yıldız (Gökyüzü): Yıldızınıza verdiğiniz ad ve çiftinizin baş harfleri diğer kullanıcılara görünür. İlk adınız yalnızca yıldız bağı kurduğunuz çiftlere ve siz Sertifika > İsimlerimiz bölümünden açıkça izin verirseniz tüm kullanıcılara gösterilir; bu izni istediğiniz an kapatabilirsiniz. Soyadınız, kullanıcı adınız ve e-posta adresiniz gösterilmez. Uygunsuz yıldız adları uygulama içinden bildirilebilir.\n" +
       "• Döngü ve Sağlık Verileri: Regl başlangıç tarihleri ve ilaç saatleri. Bu veriler yalnızca döngü tahmini ve size zamanında hatırlatıcı bildirim göndermek için işlenir.\n" +
       "• Konum Bilgileri: Yalnızca siz harita üzerinde bir buluşma noktası seçtiğinizde veya fotoğraflarınıza isteğe bağlı konum eklediğinizde alınır; arka planda sürekli konum takibi yapılmaz.\n" +
-      "• Üçüncü taraf hizmetler: Google AdMob (reklam), Google Haritalar (harita), Apple/Google ile giriş, Supabase (veritabanı), RevenueCat (abonelik) ve Expo (bildirim). Ayrıntılar için KVKK Aydınlatma Metni, 4. bölüm.",
+      "• Hata ve Güvenlik Kayıtları: Uygulama hata verdiğinde hata mesajı, teknik yığın izi, uygulama sürümü ve platform bilgisi (en fazla 30 gün); giriş denemelerini sınırlamak için IP adresi (en fazla 1 gün). İçerikleriniz bu kayıtlara yazılmaz.\n" +
+      "• Üçüncü taraf hizmetler: Google AdMob (reklam), Google Haritalar (harita), Apple/Google ile giriş, Supabase (veritabanı), RevenueCat (abonelik), Expo (bildirim ve uygulama güncellemeleri), OpenStreetMap Nominatim (yedek adres arama) ve Unsplash (keşif modundaki örnek görseller). Ayrıntılar ve yurt dışı aktarım bilgisi için KVKK Aydınlatma Metni, 4. bölüm.",
 
       "3. GÜVENLİK VE VERİ ŞİFRELEMESİ",
       "Tüm veri iletişimi SSL/TLS protokolleri ile şifreli olarak gerçekleşir. Özel günlükler ve mektuplar şifrelenmiş olarak depolanır. Ortak fotoğraflarınız özel depolamada tutulur; profil fotoğrafınız (avatar) ise tahmin edilemez bir adreste herkese açık depolamada tutulur ve adresi bilen herkes görüntüleyebilir. Oturum bilgileri cihazınızda uygulamanın yerel depolama alanında tutulur; cihazınızı kilit ekranıyla korumanız önerilir.",
@@ -124,7 +147,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
     id: "terms",
     title: "Kullanım Koşulları (EULA)",
     badge: "Kullanıcı Sözleşmesi",
-    lastUpdated: "Ekim 2026",
+    lastUpdated: "Kasım 2026",
     summary: "Uygulamayı kullanırken uyulması gereken genel kurallar, hesap güvenliği, çift eşleşmesi ve sorumluluk sınırları.",
     content: [
       "1. SÖZLEŞMENİN KABULÜ",
@@ -151,7 +174,18 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "Uygulama 'olduğu gibi' ve 'mevcut haliyle' sunulmaktadır. Mücbir sebepler, internet altyapı arızaları veya bakım çalışmaları nedeniyle yaşanabilecek geçici kesintilerden doğrudan veya dolaylı maddi/manevi zararlardan Veri Sorumlusu sorumlu tutulamaz.",
 
       "7. FESİH VE ASKIYA ALMA",
-      "İşbu koşullara aykırı hareket eden kullanıcıların hesapları önceden bildirim yapılmaksızın askıya alınabilir veya kalıcı olarak sonlandırılabilir."
+      "İşbu koşullara aykırı hareket eden kullanıcıların hesapları önceden bildirim yapılmaksızın askıya alınabilir veya kalıcı olarak sonlandırılabilir.",
+
+      "8. TELİF HAKKI VE İÇERİK BİLDİRİMİ",
+      "Uygulamaya yüklenen bir içeriğin (fotoğraf, profil fotoğrafı, yıldız adı, metin) telif hakkınızı ya da kişilik haklarınızı ihlal ettiğini veya hukuka aykırı ya da uygunsuz olduğunu düşünüyorsanız Profil > Yasal Bilgiler & Gizlilik > Destek ve İçerik Bildirimi satırından ya da destek@couplesky.app adresinden bildirim gönderebilirsiniz. Bildirimde şunlar yer almalıdır:\n" +
+      "• Adınız ve iletişim bilginiz,\n" +
+      "• İhlal edildiği ileri sürülen eser veya hakkın tanımı ile hak sahipliğinizin dayanağı,\n" +
+      "• İçeriğin uygulamadaki yeri (yıldız adı, kullanıcı adı, ekran görüntüsü vb.),\n" +
+      "• Bildirimin doğru olduğuna ve hak sahibi adına yetkiyle yapıldığına dair beyan.\n" +
+      "Bildirimler mümkün olan en kısa sürede incelenir; hukuka aykırı olduğu anlaşılan içerik kaldırılır ya da erişime kapatılır ve bildirimi yapan kişiye sonuç bildirilir. İhlali tekrarlayan hesaplar askıya alınabilir veya kapatılabilir. Yetkili makamların kararları saklıdır. Yıldız adları ayrıca uygulama içinden \"Bu Yıldızı Bildir\" ile bildirilebilir; birden fazla çiftin bildirdiği adlar herkesten gizlenir.",
+
+      "9. HİZMET SAĞLAYICI VE İLETİŞİM",
+      "Hizmet sağlayıcı: Necati Taşcı (CoupleSky)" + CONTROLLER_ADDRESS_TR + " · E-posta: destek@couplesky.app. Uygulamanın herkese açık alanları yıldız adı, çiftin baş harfleri, isteğe bağlı ilk ad ve profil fotoğrafıyla sınırlıdır; fotoğraf, mektup, günlük ve notlar yalnızca eşleşen çiftin erişimindedir. Yasal bildirimler ve resmi makam talepleri bu adrese iletilebilir."
     ]
   },
 
@@ -159,7 +193,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
     id: "consent",
     title: "Açık Rıza Metni",
     badge: "Özel Nitelikli Veri",
-    lastUpdated: "Ekim 2026",
+    lastUpdated: "Kasım 2026",
     summary: "Sağlık (döngü/regl) verileri, hassas konum verileri ve bildirim süreçlerine ilişkin açık rıza beyanı.",
     content: [
       "1. AÇIK RIZANIN KAPSAMI VE NİTELİĞİ",
@@ -169,10 +203,10 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "• Özel Nitelikli Kişisel Veri (Sağlık Bilgisi): Uygulama içerisindeki regl/döngü takvimi ve ilaç takibi modüllerinde girdiğim tarih, döngü uzunluğu, semptom ve ilaç kullanım verilerimin; döngü tahmini yapılması, hatırlatıcı bildirimler üretilmesi ve eşleştiğim partnerimin ekranında görüntülenmesi amacıyla işlenmesi,\n" +
       "• Lokasyon (Konum) Verisi: Harita üzerinden seçtiğim buluşma noktaları ve anılara eklediğim GPS koordinatlarının, harita üzerinde partnerime gösterilmesi ve ortak rota planlaması amacıyla işlenmesi,\n" +
       "• Çift Ortak Verisi: Yüklediğim anı fotoğrafları, aşk mektupları ve ruh hali durumlarının yalnızca eşleştiğim partnerimle paylaşılmak üzere şifreli sunucularda saklanması,\n" +
-      "• Bildirim Gönderimi: Önemli yıldönümleri, teslim edilen mektuplar ve ilaç hatırlatmaları için cihazıma anlık push bildirimi gönderilmesi.",
+      "• Bildirim Gönderimi: Önemli yıldönümleri, teslim edilen mektuplar ve partnerimin paylaştığı güncellemeler için cihazıma anlık push bildirimi gönderilmesi (bildirim metinlerinde regl, döngü ya da ilaç gibi sağlık ayrıntısı yer almaz).",
 
       "3. RIZANIN GERİ ALINMASI",
-      "İşbu Açık Rıza beyanımı dilediğim zaman uygulama içerisindeki Ayarlar bölümünden döngü/sağlık veya konum izinlerimi kapatarak ya da hesabımı silerek geri alabileceğimi biliyor ve kabul ediyorum."
+      "İşbu Açık Rıza beyanımı dilediğim zaman uygulama içerisindeki Ayarlar bölümünden döngü/sağlık veya konum izinlerimi kapatarak, Profil > Yasal Bilgiler bölümündeki Destek satırından talepte bulunarak ya da hesabımı silerek geri alabileceğimi biliyor ve kabul ediyorum."
     ]
   },
 
@@ -180,7 +214,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
     id: "subscription",
     title: "Abonelik ve İade Koşulları",
     badge: "App Store & Play Store",
-    lastUpdated: "Ekim 2026",
+    lastUpdated: "Kasım 2026",
     summary: "Premium abonelik, ücretsiz deneme (tanımlıysa), otomatik yenileme, iptal prosedürü ve iade şartları.",
     content: [
       "1. COUPLES PREMIUM ABONELİĞİ VE KAPSAMI",
@@ -195,7 +229,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
 
       "3. OTOMATİK YENİLEME VE ÜCRETLENDİRME (APPLE & GOOGLE EULA)",
       "• Satın alma onayıyla birlikte ödeme Apple Kimliği / Google Play hesabınızdan tahsil edilir.\n" +
-      "• Abonelik, mevcut abonelik döneminin bitiminden en az 24 saat önce kapatılmadığı sürece seçilen plan periyodunda (aylık veya yıllık) otomatik olarak yenilenir.\n" +
+      "• Abonelik, mevcut abonelik döneminin bitiminden en az 24 saat önce kapatılmadığı sürece seçilen plan periyodunda (mağazada ve satın alma ekranında gösterilen haftalık, aylık, yıllık vb. dönem) otomatik olarak yenilenir.\n" +
       "• Cari dönemin bitimine 24 saat kala yenileme ücreti hesabınızdan tahsil edilir ve yenileme tutarı net olarak belirtilir.",
 
       "4. ABONELİĞİ İPTAL ETME PROSEDÜRÜ",
@@ -205,7 +239,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "Aboneliğinizi iptal ettiğinizde, mevcut fatura döneminin sonuna kadar Premium haklarınızdan faydalanmaya devam edersiniz.",
 
       "5. CAYMA HAKKI VE İADE POLİTİKASI",
-      "Mesafeli Sözleşmeler Yönetmeliği'nin 15. maddesinin 1. fıkrasının (ğ) bendi uyarınca; 'Elektronik ortamda anında ifa edilen hizmetler veya tüketiciye anında teslim edilen gayrimaddi mallara ilişkin sözleşmelerde' cayma hakkı kullanılamaz. Bununla birlikte, hatalı veya mükerrer tahsilatlara ilişkin iade talepleri doğrudan Apple Destek (reportaproblem.apple.com) veya Google Play Destek platformları üzerinden yürütülmektedir."
+      "Mesafeli Sözleşmeler Yönetmeliği'nin 15. maddesinin 1. fıkrasının (ğ) bendi uyarınca; 'Elektronik ortamda anında ifa edilen hizmetler veya tüketiciye anında teslim edilen gayrimaddi mallara ilişkin sözleşmelerde' cayma hakkı kullanılamaz. Bununla birlikte, hatalı veya mükerrer tahsilatlara ilişkin iade talepleri doğrudan Apple Destek (reportaproblem.apple.com) veya Google Play Destek platformları üzerinden yürütülmektedir. Fiyat, yenileme periyodu, deneme sonrası tahsilat ve cayma bilgisi, satın almadan önce satın alma ekranında da gösterilir."
     ]
   }
 };
@@ -215,11 +249,11 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
     id: "kvkk",
     title: "Personal Data Protection & GDPR Clarification Text",
     badge: "GDPR & KVKK Compliant",
-    lastUpdated: "October 2026",
+    lastUpdated: "November 2026",
     summary: "Information on the processing purposes, collection methods, legal grounds of your personal data, and your rights under GDPR and Article 11 of Turkish Law No. 6698 (KVKK).",
     content: [
       "1. DATA CONTROLLER",
-      "Data Controller: NECATI TASCI (CoupleSky) · Contact & support: support@couplesky.app. As CoupleSky (\"App\" or \"Data Controller\"), under the relevant data protection legislations (GDPR and Turkish Law No. 6698), we place the highest priority on the security and privacy of our users' personal data. This Clarification Text explains the purposes for which your data collected via our mobile app is processed and outlines your statutory rights.",
+      "Data Controller: NECATI TASCI (CoupleSky)" + CONTROLLER_ADDRESS_EN + " · Contact & support: support@couplesky.app. As CoupleSky (\"App\" or \"Data Controller\"), under the relevant data protection legislations (GDPR and Turkish Law No. 6698), we place the highest priority on the security and privacy of our users' personal data. This Clarification Text explains the purposes for which your data collected via our mobile app is processed and outlines your statutory rights.",
 
       "2. CATEGORIES OF PROCESSED PERSONAL DATA AND DATA TYPES",
       "Within the scope of our shared couple journal, time-capsule sealed letters, location-based date planner, and health/menstrual cycle tracking features, the following personal data is processed:\n" +
@@ -230,7 +264,8 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "• Special Category Personal Data (Health Information): Menstrual cycle start dates, predicted cycle intervals, daily medication/vitamin hours and adherence logs.\n" +
       "• Messaging and Memory Content: Time-capsule letters, private daily notes, and mood selections (stored encrypted on our servers).\n" +
       "• Transaction and Financial Information: Anonymous transaction identifiers, subscription status, package type, and token balance processed via RevenueCat and app stores (App Store / Google Play).\n" +
-      "• Device and Operation Security: Device model, OS version, push notification tokens, unique device identifier (UUID), last login timestamp, and security logs.\n" +
+      "• Device and Operation Security: Device model, OS version, push notification tokens, unique device identifier (UUID), last login timestamp, security logs, and IP address used to rate-limit sign-in / password-reset attempts (kept for at most 1 day).\n" +
+      "• Error Logs: When the app errors, the error message, technical stack trace, app version, platform (iOS/Android) and your account identifier. Content such as letters or journal entries is not written to these logs; they are kept for at most 30 days.\n" +
       "• Advertising Data: Non-personalized advertising identifiers processed by Google AdMob for displayed in-app banners.",
 
       "3. PURPOSES OF PROCESSING PERSONAL DATA",
@@ -247,22 +282,34 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "Your personal data is never sold to third parties for advertising or commercial purposes. Data is shared strictly to perform our services with the following vetted providers, some of which are located internationally:\n" +
       "• Supabase Inc.: Secure PostgreSQL database, encrypted cloud storage, and authentication infrastructure,\n" +
       "• RevenueCat Inc.: In-app purchases, subscription entitlement verification, and receipt validation,\n" +
-      "• Google Cloud / Firebase & Expo Notifications: Reliable delivery of push notifications to your device,\n" +
+      "• Google Cloud / Firebase, Apple (APNs) & Expo Notifications: Delivery of push notifications to your device (notification text contains no health details such as period, cycle or medicine),\n" +
       "• Google LLC (AdMob & Google Maps): Map services and non-personalized advertising,\n" +
-      "• Apple Inc. & Google LLC: Sign in with Apple and Sign in with Google authentication services,\n" +
-      "• Competent Public Authorities: In response to lawful court orders or binding legal obligations.",
+      "• Apple Inc. & Google LLC: Sign in with Apple and Sign in with Google authentication services; on-device address search (the address text you type when choosing a location),\n" +
+      "• Expo (Expo Updates / EAS): Distribution of app updates; your IP address, platform and app version are sent when checking for updates,\n" +
+      "• OpenStreetMap Foundation (Nominatim): Used as a fallback when the device's own address search returns nothing; only the text you type in the address search box and your IP address are sent,\n" +
+      "• Unsplash: Sample images shown in explore (demo) mode; your IP address is visible while the images load,\n" +
+      "• Competent Public Authorities: In response to lawful court orders or binding legal obligations.\n\n" +
+      "Basis for transfers abroad: Transfers to providers located abroad are made under Article 9 of KVKK, relying on an adequacy decision of the Personal Data Protection Board, or, where there is none, on the appropriate safeguards listed in Article 9 (standard contract, binding corporate rules, etc.) or other cases provided by law. You can ask which basis is used for which provider at support@couplesky.app.",
 
       "5. DATA COLLECTION METHODS AND LEGAL GROUNDS",
       "Your data is collected electronically via app UI inputs, camera/gallery permissions, device sensors, and notification permissions. Legal grounds include:\n" +
       "• Contractual Necessity: Performance of the User Agreement and core service delivery,\n" +
       "• Legitimate Interests: Enhancing app security, preventing fraud, and optimizing stability without overriding fundamental user rights,\n" +
-      "• Explicit Consent: For health-related cycle/medicine logs, sensitive location pins, and marketing communications.",
+      "• Explicit Consent (KVKK Art. 6/2): For health-related cycle/medicine data, given with a separate tick box when you first use the feature, apart from the terms acceptance at sign-up. Location depends on your granting the device location permission and choosing to use the related feature.",
 
       "6. DATA SECURITY AND ENCRYPTION (AES-256)",
       "CoupleSky writes your daily notes and letters to the database encrypted with AES-256. The encryption key is derived inside the app from a random, couple-specific value kept on the server. This is therefore not end-to-end encryption: as the party operating the service we are technically able to access this content, and we do not use it for any other purpose, including marketing. Access is limited by Row-Level Security (RLS) rules to authenticated members of the relevant couple. Your shared photos are kept in private storage and displayed only through time-limited, signed links; your profile photo (avatar), however, is kept in public storage at an unguessable address and can be viewed by anyone who has that address. All traffic is encrypted with TLS.",
 
       "7. DATA RETENTION AND DELETION (RIGHT TO BE FORGOTTEN)",
-      "You can request permanent account deletion anytime from Profile > Account Management & Danger Zone. Deletion requests enter a 7-day safety grace period during which you can cancel by logging back in. After 7 days, all profile records, private journals, letters, and storage files are permanently and irreversibly purged from our servers. Shared memories are wiped for both sides, uncoupling your partner. Your partner is informed through an in-app explanation and a notification when you request deletion, when you cancel it, and when it is carried out. Backup copies are purged within 30 days.",
+      "You can request permanent account deletion anytime from Profile > Account Management & Danger Zone. Deletion requests enter a 7-day safety grace period during which you can cancel by logging back in. After 7 days, all profile records, private journals, letters, and storage files are permanently and irreversibly purged from our servers. Shared memories are wiped for both sides, uncoupling your partner. Your partner is informed through an in-app explanation and a notification when you request deletion, when you cancel it, and when it is carried out. Backup copies are purged within 30 days.\n\n" +
+      "Retention periods:\n" +
+      "• Account, profile and shared content: until your account is deleted (deleted 7 days after the request),\n" +
+      "• Error logs: at most 30 days,\n" +
+      "• Sign-in and password-reset attempt records (including IP address): at most 1 day,\n" +
+      "• Records that prevent duplicate notifications: 14 days,\n" +
+      "• In-app account notices shown to your partner: 30 days after they are seen,\n" +
+      "• Push notification token: for the life of your session and account,\n" +
+      "• Records held by third-party providers (e.g. RevenueCat, Expo, Google): subject to the provider's own retention policies.",
 
       "8. YOUR RIGHTS UNDER GDPR AND DATA PROTECTION LAWS",
       "You have the right at any time to:\n" +
@@ -283,7 +330,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
     id: "privacy",
     title: "Privacy Policy",
     badge: "Privacy Policy",
-    lastUpdated: "October 2026",
+    lastUpdated: "November 2026",
     summary: "Detailed guidelines on our data collection, processing, and protection principles, and how your couple privacy is strictly preserved.",
     content: [
       "1. INTRODUCTION AND OUR COMMITMENT",
@@ -295,7 +342,8 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "• Stars (Sky): Your star's name and your couple's initials are visible to other users. Your first name is shown only to couples you have a star bond with and, if you explicitly allow it under Certificate > Our Names, to all users; you can turn this off at any time. Your last name, username, and email address are never shown. Inappropriate star names can be reported in the app.\n" +
       "• Cycle and Health Data: Menstrual start dates and medication hours. Used solely to provide cycle predictions and timely reminders for you and your partner.\n" +
       "• Location Coordinates: Obtained only when you explicitly select a meeting point on the map or geotag a photo; no persistent background tracking is ever conducted.\n" +
-      "• Third-Party Infrastructure: Google AdMob, Google Maps, Apple/Google Sign-In, Supabase, RevenueCat, and Expo. For details, refer to Section 4 of our Clarification Text.",
+      "• Error and Security Logs: When the app errors, the error message, technical stack trace, app version and platform (at most 30 days); IP address used to rate-limit sign-in attempts (at most 1 day). Your content is not written to these logs.\n" +
+      "• Third-Party Infrastructure: Google AdMob, Google Maps, Apple/Google Sign-In, Supabase, RevenueCat, Expo (notifications and app updates), OpenStreetMap Nominatim (fallback address search) and Unsplash (sample images in explore mode). For details and information on transfers abroad, refer to Section 4 of our Clarification Text.",
 
       "3. SECURITY AND CRYPTOGRAPHIC ENCRYPTION",
       "All network traffic is encrypted via TLS/SSL protocols. Private letters and journal entries are encrypted before persistent storage. Shared photos are kept in private storage; your profile photo (avatar) is kept in public storage at an unguessable address and can be viewed by anyone who has that address. Session tokens reside in secure device storage; securing your device with biometric or passcode locks is strongly advised.",
@@ -318,7 +366,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
     id: "terms",
     title: "Terms of Use (EULA)",
     badge: "User Agreement",
-    lastUpdated: "October 2026",
+    lastUpdated: "November 2026",
     summary: "General rules, account safety, couple pairing mechanisms, intellectual property, and limitations of liability.",
     content: [
       "1. ACCEPTANCE OF TERMS",
@@ -345,7 +393,18 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "CoupleSky is provided on an \"AS IS\" and \"AS AVAILABLE\" basis. We cannot guarantee uninterrupted uptime due to maintenance, force majeure events, or network provider disruptions, and disclaim liability for indirect or consequential damages to the extent permitted by law.",
 
       "7. TERMINATION AND SUSPENSION",
-      "We reserve the right to suspend or terminate accounts that violate these Terms or present safety risks to other users without prior liability."
+      "We reserve the right to suspend or terminate accounts that violate these Terms or present safety risks to other users without prior liability.",
+
+      "8. COPYRIGHT AND CONTENT REPORTS",
+      "If you believe content uploaded to the app (photo, profile photo, star name, text) infringes your copyright or personality rights, or is unlawful or inappropriate, you can send a report from Profile > Legal Information & Privacy > Support & Content Reports or by email to support@couplesky.app. The report should include:\n" +
+      "• Your name and contact details,\n" +
+      "• A description of the work or right allegedly infringed and the basis of your ownership,\n" +
+      "• Where the content appears in the app (star name, username, screenshot, etc.),\n" +
+      "• A statement that the report is accurate and made with authority on behalf of the rights holder.\n" +
+      "Reports are reviewed as soon as possible; content found to be unlawful is removed or made inaccessible and the reporter is told the outcome. Accounts that repeatedly infringe may be suspended or closed. Decisions of competent authorities are reserved. Star names can also be reported in the app with \"Report This Star\"; names reported by several couples are hidden from everyone.",
+
+      "9. SERVICE PROVIDER AND CONTACT",
+      "Service provider: Necati Taşcı (CoupleSky)" + CONTROLLER_ADDRESS_EN + " · Email: support@couplesky.app. The app's public areas are limited to star names, couple initials, an optional first name and the profile photo; photos, letters, journal entries and notes are accessible only to the paired couple. Legal notices and official authority requests can be sent to this address."
     ]
   },
 
@@ -353,7 +412,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
     id: "consent",
     title: "Explicit Consent Statement",
     badge: "Special Category Data",
-    lastUpdated: "October 2026",
+    lastUpdated: "November 2026",
     summary: "Declaration of explicit consent regarding health (menstrual cycle / medication) data, sensitive location data, and push notification flows.",
     content: [
       "1. NATURE AND SCOPE OF EXPLICIT CONSENT",
@@ -363,10 +422,10 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "• Special Category Data (Health Information): Dates, cycle lengths, symptom notes, and medication schedules entered into the cycle and medicine tracker modules, processed to forecast menstrual cycles, generate reminders, and display synchronizations on my paired partner's screen,\n" +
       "• Geolocation Data: Coordinates selected for meeting points and GPS locations tagged onto photos, processed to display shared map markers and facilitate route planning,\n" +
       "• Shared Couple Content: Memory photos, love letters, and mood statuses stored in encrypted form strictly for sharing with my paired partner,\n" +
-      "• Push Notifications: Receiving instant notifications for approaching anniversaries, delivered letters, and medication schedules.",
+      "• Push Notifications: Receiving instant notifications for approaching anniversaries, delivered letters and updates my partner shares (notification text contains no health details such as period, cycle or medicine).",
 
       "3. WITHDRAWAL OF CONSENT",
-      "I understand and agree that I may withdraw this consent at any time by disabling health or location permissions within the app settings, or by requesting account deletion."
+      "I understand and agree that I may withdraw this consent at any time by disabling health or location permissions within the app settings, by writing to us from the Support row under Profile > Legal Information, or by requesting account deletion."
     ]
   },
 
@@ -374,7 +433,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
     id: "subscription",
     title: "Subscription & Refund Terms",
     badge: "App Store & Google Play",
-    lastUpdated: "October 2026",
+    lastUpdated: "November 2026",
     summary: "CoupleSky Premium subscription features, free trial duration (if defined), auto-renewal rules, cancellation steps, and statutory refund policies.",
     content: [
       "1. COUPLES PREMIUM SUBSCRIPTION & SHARED COVERAGE",
@@ -389,7 +448,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
 
       "3. AUTOMATIC RENEWAL AND BILLING (STANDARD STORE EULA)",
       "• Payment is charged to your Apple ID / Google Play Account upon confirmation of purchase.\n" +
-      "• Subscriptions automatically renew unless auto-renew is turned off at least 24 hours before the end of the current billing cycle (monthly or annual plan).\n" +
+      "• Subscriptions automatically renew unless auto-renew is turned off at least 24 hours before the end of the current billing cycle (the weekly, monthly, annual etc. period shown in the store and on the purchase screen).\n" +
       "• Your account will be charged for renewal within 24 hours prior to the end of the current period at the then-applicable renewal rate.",
 
       "4. SUBSCRIPTION CANCELLATION PROCEDURE",
@@ -399,7 +458,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "Upon cancellation, you will retain access to all Premium features until the conclusion of your active billing period.",
 
       "5. RIGHT OF WITHDRAWAL AND REFUND POLICY",
-      "Under applicable digital consumer regulations, statutory withdrawal rights do not apply once digital content or services have commenced with the consumer's consent. Refund requests for accidental or duplicate charges are administered directly by Apple Support (reportaproblem.apple.com) or Google Play Customer Support in accordance with store refund policies."
+      "Under applicable digital consumer regulations, statutory withdrawal rights do not apply once digital content or services have commenced with the consumer's consent. Refund requests for accidental or duplicate charges are administered directly by Apple Support (reportaproblem.apple.com) or Google Play Customer Support in accordance with store refund policies. The price, renewal period, post-trial charge and withdrawal information are also shown on the purchase screen before you buy."
     ]
   }
 };

@@ -45,7 +45,7 @@
     },
     "signOut": "Çıkış Yap",
     "login": {
-      "legalNotice": "Giriş yaparak <terms>Kullanım Koşulları</terms>, <privacy>Gizlilik Politikası</privacy> ve <kvkk>KVKK Metni</kvkk>’ni kabul etmiş sayılırsınız.",
+      "legalNotice": "Yasal metinler: <terms>Kullanım Koşulları</terms> · <privacy>Gizlilik Politikası</privacy> · <kvkk>KVKK Aydınlatma Metni</kvkk>",
       "tagline": "Aşkınızı belgelemenin ve büyütmenin en romantik yolu.",
       "taglineSub": "Birlikte unutulmaz anılar biriktirmek için ilk adımı atın.",
       "identifierLabel": "E-POSTA VEYA KULLANICI ADI",
@@ -54,7 +54,6 @@
       "googleContinue": "Google ile Devam Et"
     },
     "register": {
-      "legalNotice": "Hesap Oluştur’a ya da Apple / Google ile devam etmeye dokunarak <terms>Kullanım Koşulları</terms>, <privacy>Gizlilik Politikası</privacy> ve <kvkk>KVKK Aydınlatma Metni</kvkk>’ni kabul etmiş sayılırsınız.",
       "successCode": "Kayıt başarılı! Doğrulama kodunuz gönderildi.",
       "successSigningIn": "Kayıt başarılı! Giriş yapılıyor...",
       "inviteTitle": "Sevgilinin Davetiyle Katılıyorsun 💕",
@@ -68,7 +67,9 @@
       "genderMale": "Erkek ♂",
       "pairingCodeLabel": "EŞLEŞME KODU (İSTEĞE BAĞLI)",
       "pairingCodePlaceholder": "Örn. X7Y9Z2",
-      "emailLabel": "E-POSTA"
+      "emailLabel": "E-POSTA",
+      "termsCheckbox": "<terms>Kullanım Koşulları</terms>’nı ve <privacy>Gizlilik Politikası</privacy>’nı kabul ediyorum; <kvkk>KVKK Aydınlatma Metni</kvkk>’ni okudum.",
+      "termsCheckboxA11y": "Kullanım Koşulları ve Gizlilik Politikası’nı kabul ediyorum, KVKK Aydınlatma Metni’ni okudum"
     },
     "codeSentTo": "<email>{{email}}</email> adresine kod gönderdik",
     "errors": {
@@ -102,7 +103,8 @@
       "appleFailed": "Apple ile giriş yapılırken bir sorun oluştu.",
       "emailNotFound": "E-posta adresi bulunamadı.",
       "tooManyAttemptsPolite": "Çok fazla deneme yapıldı. Lütfen birkaç dakika sonra tekrar deneyin.",
-      "noSession": "Oturum bulunamadı. Lütfen tekrar giriş yapın."
+      "noSession": "Oturum bulunamadı. Lütfen tekrar giriş yapın.",
+      "termsRequired": "Devam etmek için Kullanım Koşulları, Gizlilik Politikası ve KVKK Aydınlatma Metni onay kutusunu işaretlemelisin."
     },
     "verifyDevice": {
       "sendFailedWithMessage": "Kod gönderilemedi: {{message}}",
@@ -247,6 +249,10 @@
           "emotional": "Sevgilin bugün biraz duygusal olduğunu paylaştı. Ona sıcacık bir mesaj yazmak ister misin? 🤍",
           "resting": "Sevgilin dinlendiğini paylaştı. Ona güzel bir ses kaydı ya da mesaj bırakmak ister misin? 🌸"
         }
+      },
+      "neutral": {
+        "subtitle": "Yeni Güncelleme",
+        "body": "Ortak alanınızda yeni bir güncelleme var. Görmek için dokun."
       }
     },
     "labels": {
@@ -1126,6 +1132,15 @@
     "feeling": {
       "subtitle": "Sevgilinin seninle paylaştığı özel duygusal anları, gün içindeki hislerini ve sana bıraktığı sinyalleri açmak için Premium'a geç.",
       "revealTitle": "Sevgilinden Özel Bir His 🤍"
+    },
+    "summary": {
+      "title": "Satın alma özeti",
+      "price": "Tutar: {{price}} {{period}}",
+      "trial_one": "{{count}} gün ücretsiz deneme süresi bittiğinde, iptal etmezsen {{price}} {{period}} hesabından otomatik olarak tahsil edilir.",
+      "trial_other": "{{count}} gün ücretsiz deneme süresi bittiğinde, iptal etmezsen {{price}} {{period}} hesabından otomatik olarak tahsil edilir.",
+      "renewal": "Abonelik, iptal edilmediği sürece her dönem sonunda aynı tutarla otomatik olarak yenilenir. Yenilemeden en az 24 saat önce {{store}} hesap ayarlarındaki Abonelikler bölümünden dilediğin zaman iptal edebilirsin.",
+      "confirm": "Düğmeye dokunduğunda {{store}} ödeme onay ekranı açılır; ödemeyi orada onaylarsın.",
+      "withdrawal": "Dijital hizmet, onayınla hemen kullanıma açıldığı için Mesafeli Sözleşmeler Yönetmeliği m.15/1-ğ uyarınca cayma hakkı kullanılamaz. Hatalı veya mükerrer tahsilat için {{store}} iade kanalları geçerlidir."
     }
   },
   "tabs": {
@@ -1901,6 +1916,10 @@
       "subscription": {
         "title": "Abonelik ve İade Şartları",
         "sub": "Mesafeli Satış, İptal ve Yenileme"
+      },
+      "support": {
+        "title": "Destek ve İçerik Bildirimi",
+        "sub": "Soru, şikayet, telif ve uygunsuz içerik bildirimi"
       }
     },
     "tabs": {
@@ -1915,6 +1934,23 @@
       "subtitle": "Mevzuat ve Kullanıcı Sözleşmeleri",
       "lastUpdated": "Son Güncelleme: {{date}}",
       "accept": "Okudum ve Anladım"
+    },
+    "healthConsent": {
+      "title": "Sağlık Verilerin İçin Açık Rızan",
+      "subtitle": "Regl / döngü ve ilaç takibi sağlık verisi içerir. Kişisel verilerin korunması mevzuatı gereği bu verileri işleyebilmemiz için açık rızana ihtiyacımız var.",
+      "point1": "Girdiğin döngü, regl tarihi ve ilaç bilgileri; takip, tahmin ve hatırlatma sunmak için işlenir.",
+      "point2": "Bu bilgiler eşleştiğin partnerinle paylaşılır. Partnerine giden bildirimlerde sağlık ayrıntısı yer almaz.",
+      "point3": "Verilerin reklam ya da pazarlama amacıyla kullanılmaz; yalnızca bu özellikleri sunmak için işlenir.",
+      "point4": "Veriler yurt dışındaki altyapı sağlayıcılarında (ör. Supabase) barındırılır; ayrıntılar KVKK Aydınlatma Metni’nde.",
+      "checkbox": "<consent>Açık Rıza Metni</consent>’ni okudum; sağlık (döngü / ilaç) verilerimin belirtilen amaçlarla işlenmesine ve eşleştiğim partnerimle paylaşılmasına açık rıza veriyorum.",
+      "checkboxA11y": "Sağlık verilerimin işlenmesine açık rıza veriyorum",
+      "accept": "Onayla ve Devam Et",
+      "decline": "Şimdi Değil",
+      "withdrawNote": "Rızanı dilediğin zaman geri alabilirsin: Profil > Yasal Bilgiler bölümündeki Destek satırından bize yaz ya da hesabını sil."
+    },
+    "supportMail": {
+      "subject": "CoupleSky - Destek / İçerik Bildirimi",
+      "copied": "Posta uygulaması açılamadı. E-posta adresi kopyalandı: {{email}}"
     }
   },
   "language": {

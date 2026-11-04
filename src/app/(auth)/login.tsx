@@ -23,6 +23,8 @@ import { getOrCreateDeviceId } from "@/utils/device";
 import { isDemoOrReviewerAccount } from "@/utils/demo";
 import { normalizePairingCode } from "@/lib/pairingCode";
 import { LegalModal } from "@/components/legal/LegalModal";
+import { ConsentCheckbox } from "@/components/ui/ConsentCheckbox";
+import { termsConsentMetadata } from "@/lib/consent";
 import { LegalDocType } from "@/constants/legalTexts";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
@@ -151,6 +153,9 @@ export default function LoginScreen() {
     if (initialMode === "register" || activeInviteCode) setMode("register");
     else if (initialMode === "login") setMode("login");
   }
+
+  // Kullanım Koşulları / Gizlilik / KVKK onayı: işaretlenmemiş başlar, kayıt ve sosyal kayıt için zorunludur
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   // Legal Modal States
   const [legalModalVisible, setLegalModalVisible] = useState(false);
@@ -395,6 +400,11 @@ export default function LoginScreen() {
   async function handleRegister() {
     clearErrors();
 
+    if (!acceptedTerms) {
+      setErrorMsg(t("auth.errors.termsRequired"));
+      return;
+    }
+
     const displayName = regDisplayName.trim();
     const username = normalizeUsername(regUsername);
 
@@ -456,6 +466,7 @@ export default function LoginScreen() {
             username,
             display_name: displayName,
             gender: regGender,
+            ...termsConsentMetadata(),
           }
         }
       });
@@ -581,6 +592,10 @@ export default function LoginScreen() {
 
   async function handleGoogleAuth() {
     if (isLoading) return;
+    if (mode === "register" && !acceptedTerms) {
+      setErrorMsg(t("auth.errors.termsRequired"));
+      return;
+    }
     setErrorMsg("");
     setSuccessMsg("");
     setIsLoading(true);
@@ -610,6 +625,10 @@ export default function LoginScreen() {
 
   async function handleAppleAuth() {
     if (isLoading) return;
+    if (mode === "register" && !acceptedTerms) {
+      setErrorMsg(t("auth.errors.termsRequired"));
+      return;
+    }
     setErrorMsg("");
     setSuccessMsg("");
     setIsLoading(true);
@@ -1058,6 +1077,32 @@ export default function LoginScreen() {
             </View>
           )}
 
+          {/* ─── Kayıt Modu: açık onay kutusu (Kullanım Koşulları, Gizlilik, KVKK Aydınlatma Metni) ─── */}
+          {mode === "register" && (
+            <View style={styles.registerLegalNotice}>
+              <ConsentCheckbox
+                checked={acceptedTerms}
+                onToggle={() => {
+                  setAcceptedTerms((v) => !v);
+                  if (errorMsg) setErrorMsg("");
+                }}
+                accentColor={activeAccent}
+                accessibilityLabel={t("auth.register.termsCheckboxA11y")}
+              >
+                <Text style={styles.termsCheckboxText}>
+                  <Trans
+                    i18nKey="auth.register.termsCheckbox"
+                    components={{
+                      terms: <Text style={[styles.legalLink, { color: activeAccent }]} onPress={() => openLegalDoc("terms")} />,
+                      privacy: <Text style={[styles.legalLink, { color: activeAccent }]} onPress={() => openLegalDoc("privacy")} />,
+                      kvkk: <Text style={[styles.legalLink, { color: activeAccent }]} onPress={() => openLegalDoc("kvkk")} />,
+                    }}
+                  />
+                </Text>
+              </ConsentCheckbox>
+            </View>
+          )}
+
           {/* ─── Modern CTA Butonu ─── */}
           <TouchableOpacity
             onPress={mode === "login" ? handleLogin : handleRegister}
@@ -1083,22 +1128,6 @@ export default function LoginScreen() {
               )}
             </LinearGradient>
           </TouchableOpacity>
-
-          {/* ─── Kayıt Modu Yasal Bilgilendirme (tek dokunuşla kabul) ─── */}
-          {mode === "register" && (
-            <View style={styles.registerLegalNotice}>
-              <Text style={styles.loginLegalText}>
-                <Trans
-                  i18nKey="auth.register.legalNotice"
-                  components={{
-                    terms: <Text style={[styles.legalLink, { color: activeAccent }]} onPress={() => openLegalDoc("terms")} />,
-                    privacy: <Text style={[styles.legalLink, { color: activeAccent }]} onPress={() => openLegalDoc("privacy")} />,
-                    kvkk: <Text style={[styles.legalLink, { color: activeAccent }]} onPress={() => openLegalDoc("kvkk")} />,
-                  }}
-                />
-              </Text>
-            </View>
-          )}
 
           {/* ─── Demo / Keşfet Modu Butonu ─── */}
           <View style={styles.demoDividerContainer}>
@@ -1392,7 +1421,14 @@ const styles = StyleSheet.create({
   },
   registerLegalNotice: {
     marginTop: 14,
+    marginBottom: 14,
     paddingHorizontal: 8,
+  },
+  termsCheckboxText: {
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 19,
   },
   socialGroup: {
     gap: 10,

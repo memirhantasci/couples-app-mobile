@@ -49,8 +49,9 @@ import type {
 } from "@/components/medicine/medicineTypes";
 import { useTranslation } from "react-i18next";
 import { localizeServerError } from "@/lib/serverErrors";
+import { HealthConsentGate } from "@/components/legal/HealthConsentGate";
 
-export default function MedicineScreen() {
+function MedicineScreenContent() {
   const { t, i18n } = useTranslation();
   const { profile, session, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
@@ -860,3 +861,12 @@ const createStyles = (theme: AppTheme) => {
     },
   });
 };
+
+/** Sağlık verisi işlendiği için ekran, ilk kullanımda açık rıza alınana kadar açılmaz (KVKK m.6). */
+export default function MedicineScreen() {
+  return (
+    <HealthConsentGate>
+      <MedicineScreenContent />
+    </HealthConsentGate>
+  );
+}
