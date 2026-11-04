@@ -37,7 +37,6 @@ import { Pulse } from "@/components/ui/Pulse";
 import { rainConfetti } from "@/lib/confettiRain";
 import { playCelebration } from "@/lib/soundEffects";
 import { useTranslation } from "react-i18next";
-import { scheduleOnRN } from "react-native-worklets";
 import { markMeetingCelebrationSeen } from "@/lib/activeMeeting";
 
 // Skia yalnızca native modül mevcutsa yüklenir (Expo Go vb. ortamlarda çökmesin);
@@ -288,6 +287,8 @@ function ReunionCard({
   const hug = useSharedValue(reduceMotion ? 1 : 0);
   const cardOpacity = useSharedValue(1);
   const celebrateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // State güncellemesi bir sonraki çizimde görünür; art arda hızlı dokunuşlar bu ref ile elenir
+  const celebratedRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -317,42 +318,36 @@ function ReunionCard({
     }, [playHug])
   );
 
+  /** Kart solarken kartı listeden kaldırır: animasyon bitince çağıran, JS zamanlayıcısıyla (worklet geri çağrısı değil). */
+  const fadeOutThenRemove = (fadeMs: number) => {
+    cardOpacity.set(withTiming(0, { duration: fadeMs, easing: Easing.out(Easing.quad) }));
+    if (celebrateTimerRef.current) clearTimeout(celebrateTimerRef.current);
+    celebrateTimerRef.current = setTimeout(() => onCelebrated?.(meetingId), fadeMs);
+  };
+
   const handleCelebrate = () => {
+    // Kutlama zaten başladı: ikinci dokunuş ses, konfeti ve kavuşma animasyonunu yeniden başlatmaz
+    // (üst üste binen ses / animasyon / konfeti uygulamayı çökertiyordu)
+    if (celebratedRef.current) return;
+    celebratedRef.current = true;
+    setCelebrated(true);
+
     playCelebration();
     rainConfetti();
     playHug();
 
-    if (!celebrated) {
-      setCelebrated(true);
-      // Yerel hafızaya hemen kaydet: kullanıcı uygulamadan çıksa bile artık görüldü sayılır
-      markMeetingCelebrationSeen(meetingId);
+    // Yerel hafızaya hemen kaydet: kullanıcı uygulamadan çıksa bile artık görüldü sayılır
+    markMeetingCelebrationSeen(meetingId);
 
-      if (celebrateTimerRef.current) clearTimeout(celebrateTimerRef.current);
-      // Konfetiler patladıktan sonra kart 3.5 sn ekranda kalıp nazikçe kapanır
-      celebrateTimerRef.current = setTimeout(() => {
-        cardOpacity.set(
-          withTiming(0, { duration: 350, easing: Easing.out(Easing.quad) }, (done) => {
-            "worklet";
-            if (done && onCelebrated) {
-              scheduleOnRN(() => onCelebrated(meetingId));
-            }
-          })
-        );
-      }, 3500);
-    }
+    if (celebrateTimerRef.current) clearTimeout(celebrateTimerRef.current);
+    // Konfetiler patladıktan sonra kart 3.5 sn ekranda kalıp nazikçe kapanır
+    celebrateTimerRef.current = setTimeout(() => fadeOutThenRemove(350), 3500);
   };
 
   const handleDismiss = () => {
+    celebratedRef.current = true;
     markMeetingCelebrationSeen(meetingId);
-    if (celebrateTimerRef.current) clearTimeout(celebrateTimerRef.current);
-    cardOpacity.set(
-      withTiming(0, { duration: 250, easing: Easing.out(Easing.quad) }, (done) => {
-        "worklet";
-        if (done && onCelebrated) {
-          scheduleOnRN(() => onCelebrated(meetingId));
-        }
-      })
-    );
+    fadeOutThenRemove(250);
   };
 
   const handleStageLayout = (event: LayoutChangeEvent) => setStageW(Math.round(event.nativeEvent.layout.width));

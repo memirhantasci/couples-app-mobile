@@ -123,13 +123,22 @@ export function ConfettiRainHost() {
     if (reduceMotion) return;
     let clearTimer: ReturnType<typeof setTimeout> | undefined;
     const unsubscribe = subscribeConfettiRain(() => {
-      if (clearTimer) clearTimeout(clearTimer);
+      // Yağmur sürerken gelen istek yok sayılır: çalışan 48 animasyonlu parçacığı söküp yenilerini
+      // kurmak (art arda dokunuşta) gereksiz yük ve çökme riskidir
+      if (clearTimer) return;
       setBurst({ id: Date.now(), particles: makeParticles(width) });
-      clearTimer = setTimeout(() => setBurst(null), LIFETIME_MS);
+      clearTimer = setTimeout(() => {
+        clearTimer = undefined;
+        setBurst(null);
+      }, LIFETIME_MS);
     });
     return () => {
       unsubscribe();
-      if (clearTimer) clearTimeout(clearTimer);
+      if (clearTimer) {
+        clearTimeout(clearTimer);
+        // Zamanlayıcı iptal edildiyse yağmur sonsuza dek kalmasın
+        setBurst(null);
+      }
     };
   }, [reduceMotion, width]);
 
