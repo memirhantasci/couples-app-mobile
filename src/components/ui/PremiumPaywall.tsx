@@ -69,6 +69,7 @@ export function PremiumPaywall({
   const resolvedFeatureDescription = featureDescription ?? resolvedFeature.description;
 
   const features = [
+    t("paywall.perks.star"),
     t("paywall.perks.letters"),
     t("paywall.perks.photos"),
     t("paywall.perks.period"),

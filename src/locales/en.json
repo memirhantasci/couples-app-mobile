@@ -728,6 +728,27 @@
       "description": "You can review what every page and feature in the app is for, from the beginning, anytime.",
       "openGuide": "Open This Page's Guide 💡",
       "reset": "Reset"
+    },
+    "premiumCard": {
+      "free": {
+        "title": "Go Premium",
+        "sub": "Your star, unlimited photos and letters"
+      },
+      "active": {
+        "title": "Premium Active",
+        "sub": "Manage your subscription, see your perks"
+      },
+      "lifetime": {
+        "sub": "Lifetime Premium"
+      },
+      "grace": {
+        "title": "Premium has ended",
+        "sub": "You have {{days}} days to keep your star"
+      },
+      "expired": {
+        "title": "Your Premium has expired",
+        "sub": "Subscribe again"
+      }
     }
   },
   "photos": {
@@ -1055,7 +1076,8 @@
       "periodMen": "Period calendar view for men",
       "pastPhotos": "Photos of past days in the calendar",
       "letters": "Write unlimited letters to the future",
-      "feelings": "Special feelings your partner shares with you"
+      "feelings": "Special feelings your partner shares with you",
+      "star": "Your own star: glow score, sparks and memory planets"
     },
     "subtitle": "One subscription for both of you",
     "storeUnavailable": "We can't connect to the store right now, or the plans couldn't be loaded. Please check your internet connection and try again.",
@@ -1107,7 +1129,8 @@
       "photos": "📸 Photo Gallery & Uploads",
       "period": "🩸 Period Calendar (Men's View)",
       "specialDays": "📅 Special Days with Photos",
-      "avatar": "👑 Custom Profile Photo"
+      "avatar": "👑 Custom Profile Photo",
+      "star": "⭐ Your Own Star"
     },
     "required": "Premium Required",
     "cancelAnytime": "Cancel anytime",
@@ -1137,7 +1160,8 @@
       "renewal": "The subscription renews automatically at the same price at the end of each period unless canceled. You can cancel any time, at least 24 hours before renewal, under Subscriptions in your {{store}} account settings.",
       "confirm": "When you tap the button, the {{store}} payment confirmation screen opens; you confirm the payment there.",
       "withdrawal": "Because the digital service is made available immediately with your consent, the right of withdrawal does not apply under Article 15(1)(ğ) of the Distance Contracts Regulation. For mistaken or duplicate charges, {{store}} refund channels apply.",
-      "shared": "The subscription is shared by both partners: when it ends (at the end of the canceled period), your partner's Premium ends too."
+      "shared": "The subscription is shared by both partners: when it ends (at the end of the canceled period), your partner's Premium ends too.",
+      "starGrace": "When Premium ends you have 14 days to renew. If you do not renew in that time, you lose your star's ownership, glow score, sparks and memory planets."
     }
   },
   "tabs": {
@@ -1500,6 +1524,10 @@
       "resetTitle": "Reset 🎉",
       "resetMessage": "The short intro tour will be shown again when you return to Home. You can reach other pages' guides with the ? button at the top right.",
       "restartTour": "Restart the Home Tour 🔄"
+    },
+    "premium": {
+      "title": "Premium",
+      "subtitle": "Subscription, perks and your star"
     }
   },
   "moods": {
@@ -3514,5 +3542,100 @@
     "photosDesc": "Choose a photo to hang your first memory together right here 📸",
     "memoriesTitle": "So Much Still to Collect Together",
     "memoriesDesc": "Seal every memory here, from the day you met to unforgettable trips ✨"
+  },
+  "premiumHub": {
+    "title": "Premium",
+    "subtitle": "Your subscription and perks",
+    "chip": {
+      "free": "Free",
+      "active": "Active",
+      "trial": "Trial",
+      "ending": "Ending",
+      "billingIssue": "Billing issue",
+      "grace": "Renewal window",
+      "expired": "Expired",
+      "lifetime": "Lifetime"
+    },
+    "hero": {
+      "freeTitle": "Grow your love with Premium",
+      "freeSub": "One subscription for both of you: your own star, unlimited photos and letters to the future.",
+      "activeTitle": "CoupleSky Premium",
+      "renewsSub": "Renews on {{date}}",
+      "untilSub": "Valid until {{date}}",
+      "endsSub": "Ends on {{date}}",
+      "trialSub": "Free trial ends on {{date}}",
+      "billingSub": "The last payment failed. Update your payment method.",
+      "lifetimeTitle": "Lifetime Premium",
+      "lifetimeSub": "Every perk is unlocked for both of you.",
+      "graceTitle": "Premium has ended",
+      "graceSub": "You have {{days}} days left to renew.",
+      "expiredTitle": "Your Premium has expired",
+      "expiredSub": "Subscribe again to get your perks back."
+    },
+    "alert": {
+      "graceTitle": "You have {{days}} days to renew",
+      "graceStarTitle": "{{days}} days left before you lose your star",
+      "graceBody": "Because Premium has ended, your star and Premium features are locked. If you do not renew by {{date}}, you permanently lose your star's ownership, glow score, sparks and memory planets. If you renew, everything continues as it was.",
+      "expiredTitle": "Your renewal window has ended",
+      "expiredBody": "Because the subscription was not renewed during the renewal window, star ownership, glow score, sparks and memory planets were removed. If you subscribe again, you can claim a new star.",
+      "billingTitle": "Payment failed",
+      "billingBody": "Update your {{store}} payment method, otherwise the subscription may end.",
+      "cancelledTitle": "Your subscription was canceled",
+      "cancelledBody": "Your Premium lasts until {{date}}. After that you have {{grace}} days to renew; if you do not, you lose your star's ownership, glow score and sparks."
+    },
+    "details": {
+      "title": "Subscription details",
+      "status": "Status",
+      "period": "Term",
+      "noEnd": "No end date",
+      "renewsOn": "Renews on",
+      "endsOn": "Ends on",
+      "daysLeft": "Days left",
+      "source": "Source",
+      "sourcePromo": "Promotion",
+      "sourcePartner": "Your partner's subscription or a promotion",
+      "coverage": "Coverage",
+      "coverageValue": "Shared by both of you"
+    },
+    "manage": {
+      "title": "Manage subscription",
+      "button": "Manage or cancel subscription",
+      "buttonSub": "Opens the {{store}} subscriptions page",
+      "partnerNote": "This Premium comes from your partner's subscription. Only the person who started it can manage cancellation and payment settings.",
+      "cancelHint": "Cancellation is done in your {{store}} account. If you cancel, Premium lasts until the end of the current period; afterwards you get 14 days to renew.",
+      "openFailed": "Couldn't open the subscriptions page. Go to Subscriptions in the {{store}} app."
+    },
+    "benefits": {
+      "title": "What Premium includes",
+      "star": {
+        "title": "Your own star",
+        "body": "A star in the sky that is yours: your glow score, sparks and memory planets. After Premium ends you get {{days}} days to renew; if you don't, all of it is deleted."
+      },
+      "shared": {
+        "title": "One subscription for both",
+        "body": "One of you subscribes, both of you are Premium."
+      },
+      "photos": {
+        "title": "Unlimited photos and gallery",
+        "body": "Add as many memories as you like to the shared gallery."
+      },
+      "letters": {
+        "title": "Unlimited letters to the future",
+        "body": "Write time-locked letters that open on the right day."
+      },
+      "calendar": {
+        "title": "Photos of past days",
+        "body": "See the photo memories of every day in the calendar."
+      },
+      "cycle": {
+        "title": "Cycle calendar view",
+        "body": "Follow your partner's cycle with understanding."
+      }
+    },
+    "cta": {
+      "upgrade": "Go Premium",
+      "renew": "Renew Premium"
+    },
+    "promo": "Use a Discount / Gift Code"
   }
 }

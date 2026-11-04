@@ -49,6 +49,7 @@ import { TabBarCustomizer } from "@/components/profile/TabBarCustomizer";
 import { PersonalInfoForm } from "@/components/profile/PersonalInfoForm";
 import { RelationshipDatesCard } from "@/components/profile/RelationshipDatesCard";
 import { PromoCodeCard } from "@/components/profile/PromoCodeCard";
+import { PremiumStatusCard } from "@/components/profile/PremiumStatusCard";
 import { SoundHapticsTestBox } from "@/components/profile/SoundHapticsTestBox";
 import { TourGuidesCard } from "@/components/profile/TourGuidesCard";
 import { LanguagePicker } from "@/components/profile/LanguagePicker";
@@ -611,6 +612,17 @@ export default function ProfileScreen() {
             isPaired={!!coupleId}
             tokenBalance={tokenBalance}
           />
+          </Reveal>
+
+          {/* ─── PREMIUM: durum, abonelik yönetimi, ayrıcalıklar ─── */}
+          <Reveal index={1}>
+            <PremiumStatusCard
+              theme={theme}
+              isPremium={profile?.isPremium ?? false}
+              premiumExpiresAt={profile?.premiumExpiresAt}
+              isDemoMode={isDemoMode}
+              onPress={() => router.push("/premium" as any)}
+            />
           </Reveal>
 
           {/* ─── TEMA & GÖRÜNÜM TERCİHİ ─── */}

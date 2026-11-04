@@ -85,6 +85,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "Profil > Hesap Yönetimi & Tehlike Bölgesi bölümünden hesabınızı silme talebinde bulunabilirsiniz. Talep 7 gün beklemeye alınır; bu süre içinde aynı hesapla giriş yaparak talebi iptal edebilirsiniz. 7 gün sonunda hesabınıza ait profil bilgileri, dosyalar, günlükler ve mektuplar sunuculardan geri döndürülemez biçimde silinir. Partneriniz kendi hesabıyla kullanmaya devam eder; ortak anılar ise her iki taraftan da silinir ve partneriniz çiftten ayrılmış olur. Partnerinize silme talebi, vazgeçilmesi ve silinme durumunda uygulama içi açıklama ve bildirimle bilgi verilir. Yedek kopyalar en geç 30 gün içinde otomatik olarak imha edilir.\n\n" +
       "Saklama süreleri:\n" +
       "• Hesap, profil ve ortak içerikler: Hesabınız silinene kadar (silme talebinden 7 gün sonra silinir),\n" +
+      "• Yıldız verileri (sahiplik, ışıltı skoru, kıvılcımlar, anı gezegenleri): Premium süresi bittikten 14 gün sonra yenilenmezse silinir,\n" +
       "• Hata kayıtları: en fazla 30 gün,\n" +
       "• Giriş ve şifre sıfırlama deneme kayıtları (IP adresi dahil): en fazla 1 gün,\n" +
       "• Bildirimin tekrar gönderilmesini önleyen kayıtlar: 14 gün,\n" +
@@ -222,7 +223,8 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "• Sınırsız fotoğraf yükleme ve ortak yüksek çözünürlüklü galeri,\n" +
       "• Döngü takibi ve ilgili hatırlatıcı bildirimleri,\n" +
       "• Zaman kilitli sınırsız mektup yazma ve ileri tarihli teslimatlar,\n" +
-      "• Fotoğraflı geçmiş takvim günleri ve özel gün sayaçları.",
+      "• Fotoğraflı geçmiş takvim günleri ve özel gün sayaçları,\n" +
+      "• Kendi yıldızınız: yıldız sahipliği, ışıltı skoru, kıvılcımlar ve anı gezegenleri (bkz. madde 6).",
 
       "2. ÜCRETSİZ DENEME SÜRESİ",
       "İlk kez Premium pakete geçen kullanıcılara mağazada ve uygulama içinde belirtilen süre boyunca ücretsiz deneme hakkı tanınabilir. Deneme süresi boyunca kullanıcıdan herhangi bir ücret tahsil edilmez. Deneme süresi sona ermeden en az 24 saat önce iptal edilmediği takdirde, seçilen paket ücreti üzerinden otomatik olarak ücretli aboneliğe geçiş yapılır.",
@@ -239,7 +241,11 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "Aboneliğinizi iptal ettiğinizde, mevcut fatura döneminin sonuna kadar Premium haklarınızdan faydalanmaya devam edersiniz. Abonelik iki partner için ortak olduğundan, abonelik sona erdiğinde (iptal edilen dönemin bitiminde) partnerinizin Premium hakları da sona erer.",
 
       "5. CAYMA HAKKI VE İADE POLİTİKASI",
-      "Mesafeli Sözleşmeler Yönetmeliği'nin 15. maddesinin 1. fıkrasının (ğ) bendi uyarınca; 'Elektronik ortamda anında ifa edilen hizmetler veya tüketiciye anında teslim edilen gayrimaddi mallara ilişkin sözleşmelerde' cayma hakkı kullanılamaz. Bununla birlikte, hatalı veya mükerrer tahsilatlara ilişkin iade talepleri doğrudan Apple Destek (reportaproblem.apple.com) veya Google Play Destek platformları üzerinden yürütülmektedir. Fiyat, yenileme periyodu, deneme sonrası tahsilat ve cayma bilgisi, satın almadan önce satın alma ekranında da gösterilir."
+      "Mesafeli Sözleşmeler Yönetmeliği'nin 15. maddesinin 1. fıkrasının (ğ) bendi uyarınca; 'Elektronik ortamda anında ifa edilen hizmetler veya tüketiciye anında teslim edilen gayrimaddi mallara ilişkin sözleşmelerde' cayma hakkı kullanılamaz. Bununla birlikte, hatalı veya mükerrer tahsilatlara ilişkin iade talepleri doğrudan Apple Destek (reportaproblem.apple.com) veya Google Play Destek platformları üzerinden yürütülmektedir. Fiyat, yenileme periyodu, deneme sonrası tahsilat ve cayma bilgisi, satın almadan önce satın alma ekranında da gösterilir.",
+
+      "6. PREMİUM BİTTİĞİNDE YILDIZ VE 14 GÜNLÜK YENİLEME SÜRESİ",
+      "Yıldız sahipliği, ışıltı skoru, kıvılcımlar ve anı gezegenleri Premium'a bağlıdır. Premium sona erdiğinde (iptal, ödemenin alınamaması ya da sürenin bitmesi) çifte yenilemesi için bitiş tarihinden itibaren 14 gün verilir. Bu sürede Premium özellikleri ve yıldız kilitli kalır ancak hiçbir şey silinmez; abonelik yenilenirse her şey olduğu gibi devam eder.\n\n" +
+      "14 gün içinde yenilenmezse yıldızın sahipliği kaldırılır (yıldız yeniden sahiplenilebilir hâle gelir), ışıltı skoru ve kıvılcımlar sıfırlanır, anı gezegenleri ve içindeki fotoğraflar kalıcı olarak silinir. Yeniden abone olunduğunda yeni bir yıldız sahiplenilebilir; silinen veriler geri getirilemez. Mektup, fotoğraf arşivi, günlük gibi diğer içerikler bu işlemden etkilenmez. Kalan süre uygulamada Profil > Premium ekranında gün gün gösterilir."
     ]
   }
 };
@@ -304,6 +310,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "You can request permanent account deletion anytime from Profile > Account Management & Danger Zone. Deletion requests enter a 7-day safety grace period during which you can cancel by logging back in. After 7 days, all profile records, private journals, letters, and storage files are permanently and irreversibly purged from our servers. Shared memories are wiped for both sides, uncoupling your partner. Your partner is informed through an in-app explanation and a notification when you request deletion, when you cancel it, and when it is carried out. Backup copies are purged within 30 days.\n\n" +
       "Retention periods:\n" +
       "• Account, profile and shared content: until your account is deleted (deleted 7 days after the request),\n" +
+      "• Star data (ownership, glow score, sparks, memory planets): deleted 14 days after Premium ends if not renewed,\n" +
       "• Error logs: at most 30 days,\n" +
       "• Sign-in and password-reset attempt records (including IP address): at most 1 day,\n" +
       "• Records that prevent duplicate notifications: 14 days,\n" +
@@ -441,7 +448,8 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "• Unlimited high-resolution photo uploads and shared cloud archive,\n" +
       "• Advanced cycle tracking and synchronized health notifications,\n" +
       "• Unlimited time-capsule letters with future scheduled unlocks,\n" +
-      "• Memory timeline with interactive anniversary countdowns.",
+      "• Memory timeline with interactive anniversary countdowns,\n" +
+      "• Your own star: star ownership, glow score, sparks and memory planets (see Section 6).",
 
       "2. FREE TRIAL PERIOD",
       "First-time subscribers may be eligible for a promotional free trial as displayed in the store paywall. No charges are billed during the trial. If the subscription is not canceled at least 24 hours prior to the end of the trial period, it will automatically convert into a paid recurring subscription.",
@@ -458,7 +466,11 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "Upon cancellation, you will retain access to all Premium features until the conclusion of your active billing period. Because the subscription is shared by both partners, your partner's Premium access also ends when the subscription ends (at the end of the canceled period).",
 
       "5. RIGHT OF WITHDRAWAL AND REFUND POLICY",
-      "Under applicable digital consumer regulations, statutory withdrawal rights do not apply once digital content or services have commenced with the consumer's consent. Refund requests for accidental or duplicate charges are administered directly by Apple Support (reportaproblem.apple.com) or Google Play Customer Support in accordance with store refund policies. The price, renewal period, post-trial charge and withdrawal information are also shown on the purchase screen before you buy."
+      "Under applicable digital consumer regulations, statutory withdrawal rights do not apply once digital content or services have commenced with the consumer's consent. Refund requests for accidental or duplicate charges are administered directly by Apple Support (reportaproblem.apple.com) or Google Play Customer Support in accordance with store refund policies. The price, renewal period, post-trial charge and withdrawal information are also shown on the purchase screen before you buy.",
+
+      "6. YOUR STAR WHEN PREMIUM ENDS AND THE 14-DAY RENEWAL WINDOW",
+      "Star ownership, glow score, sparks and memory planets depend on Premium. When Premium ends (cancellation, a failed payment or the end of the term), the couple gets 14 days from the end date to renew. During this window Premium features and the star stay locked, but nothing is deleted; if the subscription is renewed, everything continues as it was.\n\n" +
+      "If it is not renewed within 14 days, the star's ownership is removed (the star becomes claimable again), the glow score and sparks are reset, and the memory planets and the photos in them are permanently deleted. If you subscribe again you can claim a new star; deleted data cannot be restored. Other content such as letters, the photo archive and journals is not affected. The remaining time is shown day by day in the app under Profile > Premium."
     ]
   }
 };

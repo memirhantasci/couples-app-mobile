@@ -231,6 +231,7 @@ export default function PaywallScreen() {
       ]
     : [
         t("paywall.features.shared"),
+        t("paywall.features.star"),
         t("paywall.features.photos"),
         t("paywall.features.periodMen"),
         t("paywall.features.pastPhotos"),
@@ -404,6 +405,7 @@ export default function PaywallScreen() {
                   <Text style={summaryTextStyle}>{t("paywall.summary.renewal", { store: storeName })}</Text>
                 ) : null}
                 {selectedIsRecurring ? <Text style={summaryTextStyle}>{t("paywall.summary.shared")}</Text> : null}
+                {selectedIsRecurring ? <Text style={summaryTextStyle}>{t("paywall.summary.starGrace")}</Text> : null}
                 <Text style={summaryTextStyle}>{t("paywall.summary.confirm", { store: storeName })}</Text>
                 <Text style={summaryTextStyle}>{t("paywall.summary.withdrawal", { store: storeName })}</Text>
               </View>

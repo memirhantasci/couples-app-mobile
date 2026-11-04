@@ -728,6 +728,27 @@
       "description": "Uygulamadaki tüm sayfaların ve özelliklerin ne işe yaradığını dilediğiniz an baştan inceleyebilirsiniz.",
       "openGuide": "Bu Sayfanın Rehberini Aç 💡",
       "reset": "Sıfırlandı"
+    },
+    "premiumCard": {
+      "free": {
+        "title": "Premium'a Geç",
+        "sub": "Yıldızınız, sınırsız fotoğraf ve mektuplar"
+      },
+      "active": {
+        "title": "Premium Aktif",
+        "sub": "Aboneliğini yönet, ayrıcalıkları gör"
+      },
+      "lifetime": {
+        "sub": "Süresiz Premium"
+      },
+      "grace": {
+        "title": "Premium sona erdi",
+        "sub": "Yıldızını korumak için {{days}} günün var"
+      },
+      "expired": {
+        "title": "Premium'un süresi doldu",
+        "sub": "Yeniden abone ol"
+      }
     }
   },
   "photos": {
@@ -1055,7 +1076,8 @@
       "periodMen": "Erkekler için regl takvimi görünümü",
       "pastPhotos": "Takvimde geçmiş günlerin fotoğrafları",
       "letters": "Sınırsız geleceğe mektup yazma",
-      "feelings": "Sevgilinin seninle paylaştığı özel hisler"
+      "feelings": "Sevgilinin seninle paylaştığı özel hisler",
+      "star": "Kendi yıldızınız: ışıltı skoru, kıvılcımlar ve anı gezegenleri"
     },
     "subtitle": "İkiniz için de geçerli tek abonelik",
     "storeUnavailable": "Şu anda mağazaya bağlanılamıyor veya paketler yüklenemedi. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.",
@@ -1107,7 +1129,8 @@
       "photos": "📸 Fotoğraf Galerisi & Yükleme",
       "period": "🩸 Regl Takvimi (Erkek Görünümü)",
       "specialDays": "📅 Fotoğraflı Özel Günler",
-      "avatar": "👑 Özel Profil Fotoğrafı"
+      "avatar": "👑 Özel Profil Fotoğrafı",
+      "star": "⭐ Kendi Yıldızınız"
     },
     "required": "Premium Gerekli",
     "cancelAnytime": "İstediğin zaman iptal et",
@@ -1137,7 +1160,8 @@
       "renewal": "Abonelik, iptal edilmediği sürece her dönem sonunda aynı tutarla otomatik olarak yenilenir. Yenilemeden en az 24 saat önce {{store}} hesap ayarlarındaki Abonelikler bölümünden dilediğin zaman iptal edebilirsin.",
       "confirm": "Düğmeye dokunduğunda {{store}} ödeme onay ekranı açılır; ödemeyi orada onaylarsın.",
       "withdrawal": "Dijital hizmet, onayınla hemen kullanıma açıldığı için Mesafeli Sözleşmeler Yönetmeliği m.15/1-ğ uyarınca cayma hakkı kullanılamaz. Hatalı veya mükerrer tahsilat için {{store}} iade kanalları geçerlidir.",
-      "shared": "Abonelik iki partner için ortaktır: abonelik sona erdiğinde (iptal edilen dönemin bitiminde) partnerinin Premium'u da sona erer."
+      "shared": "Abonelik iki partner için ortaktır: abonelik sona erdiğinde (iptal edilen dönemin bitiminde) partnerinin Premium'u da sona erer.",
+      "starGrace": "Premium bittiğinde yenilemek için 14 gün süren olur. Bu sürede yenilemezsen yıldızının sahipliğini, ışıltı skorunu, kıvılcımlarını ve anı gezegenlerini kaybedersin."
     }
   },
   "tabs": {
@@ -1500,6 +1524,10 @@
       "resetTitle": "Sıfırlandı 🎉",
       "resetMessage": "Ana Sayfa'ya döndüğünüzde kısa tanıtım turu yeniden gösterilecek. Diğer sayfaların rehberine sağ üstteki ? butonundan ulaşabilirsiniz.",
       "restartTour": "Ana Sayfa Turunu Yeniden Başlat 🔄"
+    },
+    "premium": {
+      "title": "Premium",
+      "subtitle": "Abonelik, ayrıcalıklar ve yıldız"
     }
   },
   "moods": {
@@ -3514,5 +3542,100 @@
     "photosDesc": "Birlikte çekildiğiniz ilk anıyı buraya asmak için bir fotoğraf seçin 📸",
     "memoriesTitle": "Birlikte Biriktirilecek Çok Şey Var",
     "memoriesDesc": "İlk tanışma gününüzden unutulmaz tatillere kadar her anıyı buraya mühürleyin ✨"
+  },
+  "premiumHub": {
+    "title": "Premium",
+    "subtitle": "Aboneliğin ve ayrıcalıkların",
+    "chip": {
+      "free": "Ücretsiz",
+      "active": "Aktif",
+      "trial": "Deneme",
+      "ending": "Sona eriyor",
+      "billingIssue": "Ödeme sorunu",
+      "grace": "Yenileme süresi",
+      "expired": "Süresi doldu",
+      "lifetime": "Süresiz"
+    },
+    "hero": {
+      "freeTitle": "Aşkınızı Premium ile büyütün",
+      "freeSub": "İkiniz için tek abonelik: kendi yıldızınız, sınırsız fotoğraf ve geleceğe mektuplar.",
+      "activeTitle": "CoupleSky Premium",
+      "renewsSub": "{{date}} tarihinde yenilenecek",
+      "untilSub": "{{date}} tarihine kadar geçerli",
+      "endsSub": "{{date}} tarihinde sona erecek",
+      "trialSub": "Ücretsiz deneme {{date}} tarihinde bitiyor",
+      "billingSub": "Son ödeme alınamadı. Ödeme yöntemini güncelle.",
+      "lifetimeTitle": "Süresiz Premium",
+      "lifetimeSub": "İkiniz için tüm ayrıcalıklar açık.",
+      "graceTitle": "Premium sona erdi",
+      "graceSub": "Yenilemek için {{days}} günün kaldı.",
+      "expiredTitle": "Premium'un süresi doldu",
+      "expiredSub": "Yeniden abone olarak ayrıcalıklarına dönebilirsin."
+    },
+    "alert": {
+      "graceTitle": "Yenilemek için {{days}} günün var",
+      "graceStarTitle": "Yıldızını kaybetmene {{days}} gün var",
+      "graceBody": "Premium sona erdiği için yıldız ve Premium özelliklerin kilitlendi. {{date}} tarihine kadar yenilemezsen yıldızının sahipliğini, ışıltı skorunu, kıvılcımlarını ve anı gezegenlerini kalıcı olarak kaybedersin. Yenilersen her şey olduğu gibi devam eder.",
+      "expiredTitle": "Yenileme süren doldu",
+      "expiredBody": "Yenileme süresi içinde abonelik yenilenmediği için yıldız sahipliği, ışıltı skoru, kıvılcımlar ve anı gezegenleri kaldırıldı. Yeniden abone olursan yeni bir yıldız sahiplenebilirsin.",
+      "billingTitle": "Ödeme alınamadı",
+      "billingBody": "{{store}} ödeme yöntemini güncelle; aksi halde abonelik sona erebilir.",
+      "cancelledTitle": "Aboneliğin iptal edildi",
+      "cancelledBody": "Premium'un {{date}} tarihine kadar sürer. Sonrasında yenilemek için {{grace}} gün süren olur; bu sürede yenilemezsen yıldızının sahipliğini, ışıltı skorunu ve kıvılcımlarını kaybedersin."
+    },
+    "details": {
+      "title": "Abonelik ayrıntıları",
+      "status": "Durum",
+      "period": "Süre",
+      "noEnd": "Bitiş tarihi yok",
+      "renewsOn": "Yenilenme tarihi",
+      "endsOn": "Bitiş tarihi",
+      "daysLeft": "Kalan gün",
+      "source": "Kaynak",
+      "sourcePromo": "Promosyon",
+      "sourcePartner": "Partnerinin aboneliği ya da promosyon",
+      "coverage": "Kapsam",
+      "coverageValue": "İkiniz için ortak"
+    },
+    "manage": {
+      "title": "Abonelik yönetimi",
+      "button": "Aboneliği yönet veya iptal et",
+      "buttonSub": "{{store}} abonelik sayfasını açar",
+      "partnerNote": "Bu Premium partnerinin aboneliğinden geliyor. İptal ve ödeme ayarlarını yalnızca aboneliği başlatan kişi yönetebilir.",
+      "cancelHint": "İptal işlemi {{store}} hesabından yapılır. İptal ettiğinde mevcut dönemin sonuna kadar Premium'un sürer; sonrasında yenilemek için 14 gün süre verilir.",
+      "openFailed": "Abonelik sayfası açılamadı. {{store}} uygulamasından Abonelikler bölümüne gidebilirsin."
+    },
+    "benefits": {
+      "title": "Premium ile neler var",
+      "star": {
+        "title": "Kendi yıldızınız",
+        "body": "Gökyüzünde size ait bir yıldız; ışıltı skorunuz, kıvılcımlarınız ve anı gezegenleriniz. Premium bittikten sonra yenilemeniz için {{days}} gün süre verilir; yenilemezseniz bunların hepsi silinir."
+      },
+      "shared": {
+        "title": "İkiniz için tek abonelik",
+        "body": "Biriniz abone olur, ikiniz de Premium olursunuz."
+      },
+      "photos": {
+        "title": "Sınırsız fotoğraf ve galeri",
+        "body": "Ortak galeriye dilediğiniz kadar anı ekleyin."
+      },
+      "letters": {
+        "title": "Sınırsız geleceğe mektup",
+        "body": "Zaman kilitli mektuplar yazın, doğru günde açılsın."
+      },
+      "calendar": {
+        "title": "Geçmiş günlerin fotoğrafları",
+        "body": "Takvimde her günün fotoğraflı anılarını görün."
+      },
+      "cycle": {
+        "title": "Döngü takvimi görünümü",
+        "body": "Partnerinizin döngüsünü anlayışla takip edin."
+      }
+    },
+    "cta": {
+      "upgrade": "Premium'a Geç",
+      "renew": "Premium'u Yenile"
+    },
+    "promo": "İndirim / Hediye Kodu Kullan"
   }
 }

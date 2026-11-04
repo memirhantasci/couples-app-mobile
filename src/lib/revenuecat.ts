@@ -8,6 +8,21 @@ const API_KEYS = {
   google: process.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY || "goog_xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 };
 
+/** Bu hesabın mağaza aboneliğinden okunan Premium ayrıntıları. */
+export interface PremiumEntitlement {
+  /** Mevcut dönemin bitişi (ISO); süresiz hak için null */
+  expirationDate: string | null;
+  /** false: kullanıcı iptal etti, dönem sonunda bitecek */
+  willRenew: boolean;
+  isTrial: boolean;
+  /** "PLAY_STORE" | "APP_STORE" | "PROMOTIONAL" ... */
+  store: string;
+  productIdentifier: string;
+  hasBillingIssue: boolean;
+  /** Mağazanın abonelik yönetim sayfası (RevenueCat verir); yoksa null */
+  managementUrl: string | null;
+}
+
 /**
  * Premium durumu yalnızca sunucuda yazılır: RevenueCat webhook'u (supabase/functions/revenuecat-webhook)
  * çiftin Premium'unu günceller. İstemci durumu sunucuya bildirmez; yalnızca profili yeniler.
@@ -124,6 +139,27 @@ export class RevenueCatService {
       logger.error("Error restoring purchases", e);
       throw e;
     }
+  }
+
+  /**
+   * Bu hesabın kendi mağaza aboneliğinin ayrıntıları (Premium ekranı için). Hak başka bir kişiden
+   * (partner) ya da promosyondan geliyorsa bu hesabın aktif hakkı yoktur ve null döner.
+   */
+  static async getPremiumEntitlement(): Promise<PremiumEntitlement | null> {
+    const info = await this.getCustomerInfo();
+    if (!info) return null;
+    const active = info.entitlements.active;
+    const entitlement = active["Premium"] ?? active["couples_app_pro"];
+    if (!entitlement) return null;
+    return {
+      expirationDate: entitlement.expirationDate,
+      willRenew: entitlement.willRenew,
+      isTrial: entitlement.periodType === "TRIAL",
+      store: entitlement.store,
+      productIdentifier: entitlement.productIdentifier,
+      hasBillingIssue: !!entitlement.billingIssueDetectedAt,
+      managementUrl: info.managementURL,
+    };
   }
 
   static async getCustomerInfo() {

@@ -4,7 +4,7 @@ import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { X, Heart, Settings, Home, Pill, CalendarHeart, Droplet, MapPin, LogOut, ChevronRight, BookOpen, Mail, Images, Sparkles, Clock, ImagePlus, HelpCircle, Orbit } from "lucide-react-native";
+import { X, Heart, Settings, Home, Pill, CalendarHeart, Droplet, MapPin, LogOut, ChevronRight, BookOpen, Mail, Images, Sparkles, Clock, ImagePlus, HelpCircle, Orbit, Crown } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 
 import { dayjs, daysSince } from "@/lib/date";
@@ -423,6 +423,21 @@ export default function MenuScreen() {
                   <View style={styles.menuTextContainer}>
                     <Text style={styles.menuTitle}>{t("menu.guide.title")}</Text>
                     <Text style={styles.menuSub}>{t("menu.guide.subtitle")}</Text>
+                  </View>
+                  <ChevronRight color={theme.textMuted} size={18} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.menuItem, { backgroundColor: theme.cardBg }]}
+                  onPress={() => handleRoute("/premium")}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                    <Crown color={theme.accent} size={18} />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Text style={styles.menuTitle}>{t("menu.premium.title")}</Text>
+                    <Text style={styles.menuSub}>{t("menu.premium.subtitle")}</Text>
                   </View>
                   <ChevronRight color={theme.textMuted} size={18} />
                 </TouchableOpacity>
