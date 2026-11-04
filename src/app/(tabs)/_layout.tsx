@@ -20,7 +20,7 @@ import Animated, {
   withTiming,
   type SharedValue,
 } from "react-native-reanimated";
-import { greetTab } from "@/lib/hapticGreeting";
+import { hapticSelection } from "@/lib/soundEffects";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
 import { SafeAreaInsetsContext, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -124,9 +124,8 @@ function TabButton({ label, isFocused, icon, labelStyle, onPress }: TabButtonPro
   const reduceMotion = useReducedMotion();
   const squash = useSharedValue(0);
 
-  // Basışta titreşim yok: sekmeler arasında gezinirken sürekli titremesin. Her sekmenin tek seferlik
-  // "merhaba" titreşimi odağa gelişe bağlıdır (bkz. CustomTabBar).
   const handlePress = () => {
+    hapticSelection();
     if (!reduceMotion) {
       squash.set(withSequence(withTiming(1, { duration: 80 }), withSpring(0, { damping: 6, stiffness: 260 })));
     }
@@ -191,17 +190,8 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
       .filter(Boolean) as { route: any; config: (typeof allTabs)[0] }[];
   }, [enabledTabs, state.routes, tabLookup]);
 
-  const currentRouteName = state.routes[state.index]?.name;
-
-  // Her ana sekme açılıştan sonra ilk görüldüğünde bir kez "merhaba" titrer, sonraki geçişlerde sessizdir.
-  // Basışa değil odağa bağlıdır: kuş karşılamasından, bildirimden ya da kısayoldan gelinen sekme de selamlanır.
-  // Form rotaları (alt barda olmayanlar) selamlanmaz.
-  useEffect(() => {
-    if (!currentRouteName || !tabLookup[currentRouteName]) return;
-    return greetTab(currentRouteName);
-  }, [currentRouteName, tabLookup]);
-
   // Form / Alt rotalarda tab barı gizle (kaydet butonunun ve klavyenin üstünü kapatmasını önle)
+  const currentRouteName = state.routes[state.index]?.name;
   if (
     currentRouteName === "add-memory" ||
     currentRouteName === "add-photo" ||

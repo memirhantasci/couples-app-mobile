@@ -2,13 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import { usePathname, useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
-import {
-  fetchArrivedLetters,
-  markLettersSeen,
-  onLetterArrivalCheckRequested,
-  reportFirstArrivalCheck,
-  type ArrivedLetters,
-} from "@/lib/letterArrival";
+import { fetchArrivedLetters, markLettersSeen, onLetterArrivalCheckRequested, type ArrivedLetters } from "@/lib/letterArrival";
 import { IncomingLetterBird } from "./IncomingLetterBird";
 
 // Uygulama kabuğu (yazı tipleri, ilk ekran) otursun diye açılıştan sonra kısa bir bekleme
@@ -53,16 +47,11 @@ export function LetterArrivalHost() {
     checkingRef.current = true;
     try {
       const result = await fetchArrivedLetters(userId, coupleId);
-      if (!result) {
-        reportFirstArrivalCheck(false);
-        return false;
-      }
+      if (!result) return false;
 
       // Kullanıcı zaten mektuplar ekranındaysa listeyi görüyordur: sessizce görüldü say
       await markLettersSeen(userId, result.newestCreatedAt);
-      const onLetters = pathnameRef.current.includes("/letters");
-      reportFirstArrivalCheck(!onLetters);
-      if (onLetters) return true;
+      if (pathnameRef.current.includes("/letters")) return true;
 
       setArrival(result);
       return true;
