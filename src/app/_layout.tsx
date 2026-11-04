@@ -65,6 +65,11 @@ SplashScreen.setOptions({ duration: NATIVE_SPLASH_FADE_MS, fade: true });
 // yalnızca geliştirme modunda uyarı olarak gösteriyor. Uygulama koduyla ilgisiz, üretimde görünmez ve zararsız.
 LogBox.ignoreLogs(["Can't perform a React state update on a component that hasn't mounted yet"]);
 
+// react-native-keyboard-aware-scroll-view klavye açılınca bellekteki her scroll view'a haber verir; odaklanan
+// alan o scroll view'un dışındaysa (ör. bir Modal içinde ya da başka sekmede) alanı bulamayıp bunu yazar ve
+// o scroll view hiçbir şey yapmadan çıkar. İşlevi etkilemez, yalnızca geliştirme modunda kırmızı kutu açar.
+LogBox.ignoreLogs(["viewIsDescendantOf() noop"]);
+
 // Yakalanmamış JS hataları sunucuya raporlanır (üretimde çökme nedenlerini görebilmek için)
 installGlobalErrorReporting();
 
