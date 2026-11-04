@@ -80,7 +80,9 @@ import { readStarCache, writeStarCache } from '../utils/starCache';
 import { MicroStarHeader } from './micro/MicroStarHeader';
 import { MicroSystemDock } from './micro/MicroSystemDock';
 import { StellarHibernationModal } from './StellarHibernationModal';
+import { ReferralSkyInviteCard } from './ReferralSkyInviteCard';
 import { derivePremiumPhase } from '@/lib/premiumStatus';
+import { DEFAULT_REFERRAL_REWARD_DAYS, fetchReferralStarInvite, type ReferralStarInvite } from '@/lib/referral';
 import { PremiumPaywall } from '@/components/ui/PremiumPaywall';
 import type { PremiumFeatureSource } from '@/components/ui/PremiumPaywall.types';
 import { useCoupleAvatars } from '@/hooks/useCoupleAvatars';
@@ -461,6 +463,32 @@ export const OurStarScreen: React.FC = () => {
     setIsHibernationOpen(false);
     setPremiumPaywallSource('exoplanet_view');
   }, []);
+
+  // ─── ARKADAŞ ÇİFT DAVETİ ───────────────────────────────────────────
+  // Yıldızımız yokken davetle bağlı arkadaş çiftin yıldızı varsa onu gösteren kart. Yıldız seçilince
+  // iki yıldız arasındaki ışık bağını sunucu kendisi kurar (trg_couple_stars_referral_link).
+  const [referralInvite, setReferralInvite] = useState<ReferralStarInvite | null>(null);
+  const hasNoStar = starDetails === null;
+  useEffect(() => {
+    if (isDemoMode || !coupleId || isLoading || !hasNoStar) return;
+    let alive = true;
+    fetchReferralStarInvite()
+      .then((invite) => {
+        if (alive) setReferralInvite(invite);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [isDemoMode, coupleId, isLoading, hasNoStar]);
+
+  const handleFlyToReferralStar = useCallback(() => {
+    if (!referralInvite) return;
+    hapticTap();
+    setViewMode('macro');
+    setFlyToTarget({ centerRa: referralInvite.ra, centerDec: referralInvite.dec, zoom: 2.5, nonce: Date.now() });
+    showToast(t('referral.sky.pickNearby'));
+  }, [referralInvite, showToast, t]);
 
   // ─── AÇILIŞ SAHNESİ ────────────────────────────────────────────────
   // Tescilli yıldızı olan kullanıcıda (demo dahil) ekran, geniş gökyüzünden yıldızın parıltılı dış
@@ -1867,8 +1895,18 @@ export const OurStarScreen: React.FC = () => {
             starDetails !== null && !showHomeRadar && { justifyContent: 'flex-end' },
           ]}
         >
+          {/* YILDIZI OLMAYAN, DAVETLE BAĞLI ARKADAŞININ YILDIZI OLAN ÇİFT: TAKIMYILDIZI DAVETİ */}
+          {starDetails === null && referralInvite && (
+            <ReferralSkyInviteCard
+              invite={referralInvite}
+              showGift={referralInvite.invitedUs && isPremium}
+              rewardDays={DEFAULT_REFERRAL_REWARD_DAYS}
+              onFlyTo={handleFlyToReferralStar}
+            />
+          )}
+
           {/* YILDIZI OLMAYAN KULLANICI İÇİN: GÖK KUBBE REHBER KARTI */}
-          {starDetails === null && (
+          {starDetails === null && !referralInvite && (
             <View
               style={[
                 styles.onboardingGuideCard,

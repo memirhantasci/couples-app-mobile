@@ -21,6 +21,12 @@ import { configureAndroidNotificationChannel } from "@/lib/notifications";
 import { normalizePairingCode, translatePairingError } from "@/lib/pairingCode";
 import { navigateAfterAuth, releaseAuthFlow, setAuthFlowActive } from "@/lib/navigate";
 import { parseAppLink } from "@/lib/deepLinks";
+import {
+  PENDING_REFERRAL_CODE_KEY,
+  applyPendingReferralCode,
+  normalizeReferralCode,
+  translateReferralError,
+} from "@/lib/referral";
 import { toast } from "@/lib/toast";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 import { useTranslation } from "react-i18next";
@@ -84,7 +90,7 @@ const queryClient = new QueryClient({
 function RootLayoutNav() {
   const { isSignedIn, isLoading, isDemoMode, exitDemoMode, refreshProfile } = useAuth();
   const { theme, isLight } = useTheme();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   // Enforce role-based routing
   useProtectedRoute();
@@ -151,6 +157,22 @@ function RootLayoutNav() {
         pathname: "/(auth)/reset-password",
         params: { token_hash: link.tokenHash },
       });
+      return;
+    }
+
+    // Arkadaş çift daveti: kod saklanır; hesabı olmayan kullanıcıda eşleşme ekranı kayıttan sonra girer.
+    // Ödül yalnızca kodu giren kişi sevgilisiyle eşleşince verilir (sunucu).
+    if (link.kind === "refer") {
+      await AsyncStorage.setItem(PENDING_REFERRAL_CODE_KEY, normalizeReferralCode(link.code));
+      if (!isSignedIn) {
+        leaveDemo();
+        router.push({ pathname: "/(auth)/login", params: { initialMode: "register" } });
+        return;
+      }
+      const result = await applyPendingReferralCode();
+      if (result?.status === "rewarded") toast.success(t("referral.toasts.rewarded"), { emoji: "🎁" });
+      else if (result?.status) toast.success(t("referral.toasts.applied"), { emoji: "🎁" });
+      else if (result?.error) toast.warning(translateReferralError(result.error));
       return;
     }
 

@@ -3655,5 +3655,84 @@
       "renew": "Renew Premium"
     },
     "promo": "Use a Discount / Gift Code"
+  },
+  "referral": {
+    "card": {
+      "title": "Invite Our Couple Friends",
+      "sub": "For every friend couple who pairs up, you both get {{days}} days of Premium!",
+      "a11y": "Invite your couple friends and see your rewards"
+    },
+    "modal": {
+      "eyebrow": "Shine together",
+      "title": "Invite your couple friends",
+      "description": "When a friend who joined with your code pairs with their partner, both couples get {{days}} days of Premium. Downloading the app alone doesn't earn a reward.",
+      "codeLabel": "Your invite code",
+      "codeUnavailable": "Your invite code is created once you pair with your partner.",
+      "copyCode": "Copy code",
+      "copyLink": "Copy link",
+      "share": "Send invite",
+      "shareTitle": "CoupleSky invite",
+      "howTitle": "How it works",
+      "step1": "Share your code or invite link with your friends.",
+      "step2": "Your friend downloads the app and enters your invite code on the pairing screen.",
+      "step3": "The moment they pair with their partner, you both get {{days}} days of Premium and your stars link up in the sky.",
+      "subscriberNote": "If you already have a paid subscription, you each get {{tokens}} tokens instead of extra days.",
+      "quota": "{{used}}/{{quota}} invite rewards earned",
+      "quotaFull": "You've reached your invite reward limit; friends you invite still get their gift.",
+      "listTitle": "People you invited",
+      "empty": "No one has joined with your code yet. Invite your first couple friends!",
+      "loadFailed": "Couldn't load your invites.",
+      "inviteeFallback": "A friend"
+    },
+    "status": {
+      "rewarded": "Paired 🎉",
+      "pending": "Waiting for their partner ⏳",
+      "rejected": "Didn't meet the reward conditions"
+    },
+    "reward": {
+      "days": "+{{days}} days",
+      "tokens": "+{{tokens}} tokens",
+      "quotaReached": "Limit reached"
+    },
+    "enter": {
+      "title": "Did a friend invite you?",
+      "hint": "Enter their invite code; the moment you pair with your partner, you both get {{days}} days of Premium.",
+      "hintPaired": "Enter their invite code; you both get {{days}} days of Premium right away.",
+      "placeholder": "SKY-XXXXX",
+      "submit": "Use code",
+      "privacy": "When you enter the code, the inviting couple sees your name in their invite list; once both couples have a star, your stars link up.",
+      "appliedPending": "Invite code added 🎁 The moment you pair with your partner, you both get {{days}} days of Premium.",
+      "rewarded": "Your invite gift is active 🎁",
+      "rewardedFrom": "You earned your gift through {{name}}'s invite 🎁",
+      "rejected": "This invite didn't meet the reward conditions."
+    },
+    "toasts": {
+      "applied": "Invite code added! Once you pair with your partner, you both get Premium as a gift.",
+      "rewarded": "Your invite gift is active!",
+      "movedToReferral": "That's an invite code; we moved it to the invite code field."
+    },
+    "share": {
+      "introWithStar": "My partner and I picked our very own star in the sky on {{app}} ✨ Download it too; once you pair with your partner, we both get {{days}} days of Premium as a gift! 🎁",
+      "introNoStar": "My partner and I use {{app}}; all our memories and letters live there 💌 Download it too; once you pair with your partner, we both get {{days}} days of Premium as a gift! 🎁",
+      "codeLine": "Our invite code: {{code}}",
+      "howTo": "Don't forget to enter it in the “Invite code” field on the pairing screen 💫"
+    },
+    "sky": {
+      "title": "Your friends' star is waiting for you",
+      "bodyGift": "Use your {{days}}-day gift to pick your own star; once you're both in the sky, your constellation bond will shine.",
+      "bodyPlain": "Pick your own star; once you're both in the sky, your constellation bond will shine.",
+      "friendStar": "Their star: {{star}}",
+      "flyTo": "Show their star",
+      "flyToA11y": "Fly to your friends' star",
+      "pickNearby": "Tap a free star next to theirs to claim it ✨"
+    },
+    "errors": {
+      "invalidCode": "This invite code isn't valid. Check the code and try again.",
+      "selfCode": "You can't use your own invite code.",
+      "notEligible": "An invite code can only be entered within the first 7 days after creating your account.",
+      "alreadyReferred": "You've already used another invite code.",
+      "coupleAlreadyReferred": "An invite code has already been used in your couple.",
+      "generic": "Couldn't add the invite code right now. Please try again."
+    }
   }
 }

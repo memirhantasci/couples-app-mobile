@@ -15,6 +15,7 @@ const ALLOWED_ROUTES: ReadonlySet<string> = new Set([
   "/(tabs)/medicine",
   "/(tabs)/meetings",
   "/(tabs)/calendar",
+  "/(tabs)/profile",
   "/our-star",
 ]);
 
@@ -34,6 +35,7 @@ const TYPE_ROUTES: Readonly<Record<string, string>> = {
   milestone: "/(tabs)/home",
   anniversary_reminder: "/(tabs)/home",
   inactivity_reminder: "/(tabs)/home",
+  referral_reward: "/(tabs)/profile",
 };
 
 /** Bildirim yükünden (`request.content.data`) güvenle açılabilecek ekranı çözer; yoksa null. */

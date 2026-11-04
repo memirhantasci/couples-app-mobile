@@ -4,6 +4,7 @@ import * as Linking from "expo-linking";
  * Kök layout'un (handleDeepLink) kendisi işlediği uygulama bağlantıları:
  * - couplesapp://verify?token_hash=...&type=...   (e-posta doğrulama)
  * - couplesapp://invite?code=... / pair?code=...  (eşleşme daveti)
+ * - couplesapp://refer?code=...                    (arkadaş çift daveti, bkz. lib/referral)
  * - couplesapp://reset-password?token_hash=...     (şifre sıfırlama)
  *
  * +native-intent aynı ayrıştırıcıyla bu bağlantıları router'dan alır; aksi halde router `/verify`'ı
@@ -13,6 +14,7 @@ import * as Linking from "expo-linking";
 export type AppLink =
   | { readonly kind: "verify"; readonly tokenHash: string; readonly type: string }
   | { readonly kind: "invite"; readonly code: string }
+  | { readonly kind: "refer"; readonly code: string }
   | { readonly kind: "reset-password"; readonly tokenHash: string };
 
 export function parseAppLink(url: string): AppLink | null {
@@ -29,6 +31,10 @@ export function parseAppLink(url: string): AppLink | null {
   if (hostname === "invite" || hostname === "pair") {
     const code = param("code");
     return code ? { kind: "invite", code } : null;
+  }
+  if (hostname === "refer") {
+    const code = param("code");
+    return code ? { kind: "refer", code } : null;
   }
   if (hostname === "reset-password") {
     const tokenHash = param("token_hash");

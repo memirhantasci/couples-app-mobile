@@ -47,8 +47,7 @@ import { LegalModal } from "@/components/legal/LegalModal";
 import { PromoCodeModal } from "@/components/ui/PromoCodeModal";
 import { LazyDemoActionModal } from "@/components/ui/lazyMount";
 import type { LegalDocType } from "@/constants/legalTexts";
-
-const ANDROID_PACKAGE = "app.couplesky.mobile";
+import { ANDROID_PACKAGE } from "@/constants/brand";
 
 type Tone = "gold" | "warn" | "neutral";
 

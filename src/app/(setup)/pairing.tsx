@@ -19,7 +19,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth, type CoupleProfile } from "@/context/AuthContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Link, Share2, LogOut, Sparkles, Check, Copy } from "lucide-react-native";
+import { Link, Share2, LogOut, Sparkles, Check, Copy, Gift } from "lucide-react-native";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { navigateAfterAuth, releaseAuthFlow, setAuthFlowActive } from "@/lib/navigate";
 import { isDefinitivePairingError, normalizePairingCode, translatePairingError } from "@/lib/pairingCode";
@@ -27,6 +27,16 @@ import { useNotificationPriming } from "@/hooks/useNotificationPriming";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 import { PermissionPrimingModal } from "@/components/common/PermissionPrimingModal";
 import { PairingCelebrationModal } from "@/components/pairing/PairingCelebrationModal";
+import { ReferralCodeEntry } from "@/components/profile/ReferralCodeEntry";
+import { useReferralCodeEntry } from "@/hooks/useReferralCodeEntry";
+import {
+  DEFAULT_REFERRAL_REWARD_DAYS,
+  applyPendingReferralCode,
+  fetchReferralOverview,
+  looksLikeReferralCode,
+  translateReferralError,
+} from "@/lib/referral";
+import { toast } from "@/lib/toast";
 import { useTranslation } from "react-i18next";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -96,6 +106,23 @@ export default function PairingScreen() {
     refetchIntervalInBackground: false,
   });
 
+  // ─── Arkadaş çift daveti ───
+  // Kod burada tek başına ödül vermez: sevgiliyle eşleşildiği an sunucu iki çifte de ödül verir.
+  const referralQuery = useQuery({
+    queryKey: ["referral-overview", "pairing", userId],
+    queryFn: fetchReferralOverview,
+    enabled: !!userId && autoPairChecked,
+    staleTime: 0,
+  });
+  const { refetch: refetchReferral } = referralQuery;
+  const referral = useReferralCodeEntry(
+    useCallback(() => {
+      refetchReferral();
+    }, [refetchReferral])
+  );
+  const myReferral = referralQuery.data?.myReferral ?? null;
+  const canEnterReferral = !myReferral && !!referralQuery.data?.canEnterCode;
+
   // ─── Eşleşme kutlaması ───
   // Profil bu ekranda "eşleşmemiş"ten "eşleşti"ye döndüğü an kutlama başlar. Eşleşme hangi yoldan
   // gelirse gelsin (kod girişi, yoklama ya da partner katılınca realtime profil yenilemesi) aynı an
@@ -132,6 +159,7 @@ export default function PairingScreen() {
     staleTime: Infinity,
   });
 
+  const hadPendingReferral = myReferral?.status === "pending";
   const handleCelebrationComplete = useCallback(() => {
     if (!celebration || lockReleasedRef.current) return;
     lockReleasedRef.current = true;
@@ -139,7 +167,17 @@ export default function PairingScreen() {
     navigateAfterAuth(profile?.isPaired ? profile : celebration);
     releaseAuthFlow();
     setCelebrationDone(true);
-  }, [celebration, profile]);
+    // Davet koduyla gelindiyse eşleşme anında verilen hediye haber verilir (sunucu reddettiyse sessiz)
+    if (hadPendingReferral) {
+      fetchReferralOverview()
+        .then((overview) => {
+          if (overview.myReferral?.status === "rewarded") {
+            toast.success(t("referral.toasts.rewarded"), { emoji: "🎁", delay: 900 });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [celebration, profile, hadPendingReferral, t]);
 
   // Yönlendirme bu ekranı (ve kutlama katmanını) kapatır; kapatmazsa karanlık katman takılı kalmasın
   useEffect(() => {
@@ -213,6 +251,12 @@ export default function PairingScreen() {
   useEffect(() => {
     if (!userId) return;
     async function checkAutoPair() {
+      // Davet bağlantısıyla gelen arkadaş kodu eşleşmeden önce girilir: eşleşme anında ödül hemen işlesin
+      const pendingReferral = await applyPendingReferralCode().catch(() => null);
+      if (pendingReferral?.error && !pendingReferral.status) {
+        toast.warning(translateReferralError(pendingReferral.error));
+      }
+
       const stored = await AsyncStorage.getItem("@pending_invite_code");
       const pending = normalizePairingCode(params.code || stored);
       if (pending.length >= 4) {
@@ -519,8 +563,15 @@ export default function PairingScreen() {
 
             <TextInput
               value={inputCode}
-              onChangeText={(t) => {
-                setInputCode(normalizePairingCode(t));
+              onChangeText={(text) => {
+                // Arkadaşın davet kodu (SKY-XXXXX) bu kutuya yapıştırıldıysa davet kodu alanına taşınır
+                if (canEnterReferral && looksLikeReferralCode(text)) {
+                  referral.change(text);
+                  setInputCode("");
+                  toast.info(t("referral.toasts.movedToReferral"));
+                  return;
+                }
+                setInputCode(normalizePairingCode(text));
                 if (submitError) setSubmitError("");
               }}
               placeholder="XXXXXX"
@@ -578,6 +629,64 @@ export default function PairingScreen() {
               )}
             </TouchableOpacity>
           </View>
+
+          {/* ─── 2.1 ARKADAŞ ÇİFT DAVETİ: KOD GİRİŞİ YA DA EKLENMİŞ DAVET ─── */}
+          {myReferral ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                borderRadius: 20,
+                padding: 16,
+                backgroundColor: myReferral.status === "rejected" ? "rgba(255,255,255,0.03)" : "rgba(245, 158, 11, 0.1)",
+                marginBottom: 20,
+              }}
+            >
+              <Gift color={myReferral.status === "rejected" ? "rgba(255,255,255,0.5)" : "#F59E0B"} size={18} />
+              <Text
+                style={{
+                  flex: 1,
+                  color: myReferral.status === "rejected" ? "rgba(255,255,255,0.6)" : "#FCD34D",
+                  fontSize: 13,
+                  lineHeight: 19,
+                  fontFamily: "Inter_600SemiBold",
+                }}
+              >
+                {myReferral.status === "pending"
+                  ? t("referral.enter.appliedPending", { days: referralQuery.data?.rewardDays ?? DEFAULT_REFERRAL_REWARD_DAYS })
+                  : myReferral.status === "rewarded"
+                    ? t("referral.enter.rewarded")
+                    : t("referral.enter.rejected")}
+              </Text>
+            </View>
+          ) : canEnterReferral ? (
+            <View
+              style={{
+                borderRadius: 24,
+                padding: 20,
+                backgroundColor: "rgba(245, 158, 11, 0.06)",
+                marginBottom: 20,
+              }}
+            >
+              <ReferralCodeEntry
+                value={referral.value}
+                onChangeValue={referral.change}
+                onSubmit={referral.submit}
+                submitting={referral.submitting}
+                error={referral.error}
+                title={t("referral.enter.title")}
+                hint={t("referral.enter.hint", { days: referralQuery.data?.rewardDays ?? DEFAULT_REFERRAL_REWARD_DAYS })}
+                palette={{
+                  text: "#FFFFFF",
+                  textMuted: "rgba(255,255,255,0.5)",
+                  field: "rgba(0,0,0,0.3)",
+                  accent: "#F59E0B",
+                  error: "#F87171",
+                }}
+              />
+            </View>
+          ) : null}
 
           {/* ─── 3. BEKLEME ODASI: PARTNER KATILINCA NELER AÇILACAK? ─── */}
           <View

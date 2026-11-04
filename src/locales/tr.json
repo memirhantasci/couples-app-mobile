@@ -3655,5 +3655,84 @@
       "renew": "Premium'u Yenile"
     },
     "promo": "İndirim / Hediye Kodu Kullan"
+  },
+  "referral": {
+    "card": {
+      "title": "Çift Arkadaşlarımızı Davet Et",
+      "sub": "Sevgilisiyle eşleşen her arkadaş çift için ikinize de {{days}} gün Premium!",
+      "a11y": "Çift arkadaşlarınızı davet edin, ödülleri görün"
+    },
+    "modal": {
+      "eyebrow": "Birlikte parlayın",
+      "title": "Arkadaş çiftlerinizi davet edin",
+      "description": "Kodunuzla gelen arkadaşınız sevgilisiyle eşleştiği an iki çifte de {{days}} gün Premium hediye. Uygulamayı tek başına indirmek ödül kazandırmaz.",
+      "codeLabel": "Davet kodunuz",
+      "codeUnavailable": "Davet kodunuz sevgilinizle eşleştiğinizde oluşur.",
+      "copyCode": "Kodu kopyala",
+      "copyLink": "Bağlantıyı kopyala",
+      "share": "Davet gönder",
+      "shareTitle": "CoupleSky daveti",
+      "howTitle": "Nasıl işler?",
+      "step1": "Kodunuzu ya da davet bağlantınızı arkadaşlarınızla paylaşın.",
+      "step2": "Arkadaşınız uygulamayı indirir, eşleşme ekranında davet kodunuzu girer.",
+      "step3": "Sevgilisiyle eşleştikleri an ikinize de {{days}} gün Premium; yıldızlarınız da gökyüzünde birbirine bağlanır.",
+      "subscriberNote": "Zaten ücretli aboneyseniz süreniz yerine ikinize {{tokens}}'er jeton eklenir.",
+      "quota": "{{used}}/{{quota}} davet ödülü kazanıldı",
+      "quotaFull": "Davet ödülü sınırınız doldu; davet ettiğiniz arkadaşlar hediyelerini yine alır.",
+      "listTitle": "Davet ettikleriniz",
+      "empty": "Henüz kimse kodunuzla katılmadı. İlk arkadaş çiftinizi davet edin!",
+      "loadFailed": "Davet bilgileri yüklenemedi.",
+      "inviteeFallback": "Bir arkadaşınız"
+    },
+    "status": {
+      "rewarded": "Eşleşti 🎉",
+      "pending": "Sevgilisini bekliyor ⏳",
+      "rejected": "Ödül koşullarını karşılamadı"
+    },
+    "reward": {
+      "days": "+{{days}} gün",
+      "tokens": "+{{tokens}} jeton",
+      "quotaReached": "Sınır dolu"
+    },
+    "enter": {
+      "title": "Bir arkadaşınız mı davet etti?",
+      "hint": "Davet kodunu girin; sevgilinizle eşleştiğiniz an ikinize de {{days}} gün Premium hediye.",
+      "hintPaired": "Davet kodunu girin; ikinize de hemen {{days}} gün Premium hediye.",
+      "placeholder": "SKY-XXXXX",
+      "submit": "Kodu kullan",
+      "privacy": "Kodu girdiğinizde davet eden çift adınızı davet listesinde görür; iki çiftin de yıldızı olunca yıldızlarınız birbirine bağlanır.",
+      "appliedPending": "Davet kodunuz eklendi 🎁 Sevgilinizle eşleştiğiniz an ikinize de {{days}} gün Premium tanımlanır.",
+      "rewarded": "Davet hediyeniz tanımlandı 🎁",
+      "rewardedFrom": "{{name}} davetiyle hediyenizi kazandınız 🎁",
+      "rejected": "Bu davet ödül koşullarını karşılamadı."
+    },
+    "toasts": {
+      "applied": "Davet kodunuz eklendi! Sevgilinizle eşleştiğinizde ikinize de hediye Premium.",
+      "rewarded": "Davet hediyeniz tanımlandı!",
+      "movedToReferral": "Bu bir davet kodu; davet kodu alanına taşıdık."
+    },
+    "share": {
+      "introWithStar": "Sevgilimle {{app}}'da gökyüzünden kendimize bir yıldız seçtik ✨ Siz de indirin; sevgilinizle eşleşince ikimize de {{days}} gün hediye Premium veriyor! 🎁",
+      "introNoStar": "Sevgilimle {{app}}'ı kullanıyoruz; anılarımız ve mektuplarımız hep burada 💌 Siz de indirin; sevgilinizle eşleşince ikimize de {{days}} gün hediye Premium veriyor! 🎁",
+      "codeLine": "Davet kodumuz: {{code}}",
+      "howTo": "Eşleşme ekranındaki “Davet kodu” alanına girmeyi unutmayın 💫"
+    },
+    "sky": {
+      "title": "Arkadaşlarınızın yıldızı sizi bekliyor",
+      "bodyGift": "{{days}} günlük hediyenizle kendi yıldızınızı seçin; ikiniz de gökyüzünde olunca takımyıldızı bağınız parlasın.",
+      "bodyPlain": "Kendi yıldızınızı seçin; ikiniz de gökyüzünde olunca takımyıldızı bağınız parlasın.",
+      "friendStar": "Yıldızları: {{star}}",
+      "flyTo": "Yıldızlarını göster",
+      "flyToA11y": "Arkadaşlarınızın yıldızına uç",
+      "pickNearby": "Yanındaki boş yıldızlardan birine dokunup sahiplenin ✨"
+    },
+    "errors": {
+      "invalidCode": "Bu davet kodu geçersiz. Kodu kontrol edip tekrar deneyin.",
+      "selfCode": "Kendi davet kodunuzu kullanamazsınız.",
+      "notEligible": "Davet kodu yalnızca hesap açıldıktan sonraki ilk 7 gün içinde girilebilir.",
+      "alreadyReferred": "Daha önce başka bir davet kodu kullandınız.",
+      "coupleAlreadyReferred": "Çiftinizde zaten bir davet kodu kullanıldı.",
+      "generic": "Davet kodu şu an eklenemedi. Lütfen tekrar deneyin."
+    }
   }
 }

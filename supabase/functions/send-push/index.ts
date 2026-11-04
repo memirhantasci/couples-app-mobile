@@ -186,6 +186,23 @@ function S(lang: Lang) {
     noticeDissolvedBody: en
       ? "The data you shared (memories, letters, photos, diary entries) has been permanently deleted. Your own account is untouched and you can pair again any time."
       : "Birlikte oluşturduğunuz veriler (anılar, mektuplar, fotoğraflar, günlükler) kalıcı olarak silindi. Hesabın duruyor; istediğinde yeniden eşleşebilirsin.",
+    // Süre ve jeton miktarı: referral_reward_period() / referral_reward_tokens() (migration 20261104000006)
+    referralRewardTitle: en ? "🎁 Your invite paid off!" : "🎁 Davetiniz meyvesini verdi!",
+    referralRewardBody: (reward: string) => {
+      if (reward === "tokens") {
+        return en
+          ? "Your friends paired with their partner! 250 tokens each have been added for you both."
+          : "Arkadaşlarınız sevgilisiyle eşleşti! İkinize de 250'şer jeton hediye edildi.";
+      }
+      if (reward === "quota_reached") {
+        return en
+          ? "Your friends paired and received their 3-day Premium gift. You've reached your invite reward limit, so no extra reward was added this time."
+          : "Arkadaşlarınız eşleşti ve 3 günlük Premium hediyelerini aldı. Davet ödülü sınırınız dolduğu için bu kez size ödül eklenmedi.";
+      }
+      return en
+        ? "Your friends paired with their partner! You both got 3 days of Premium as a gift."
+        : "Arkadaşlarınız sevgilisiyle eşleşti! İkinize de 3 gün Premium hediye edildi.";
+    },
   };
 }
 
@@ -585,6 +602,34 @@ serve(async (req) => {
         }
       }
       return new Response("Pairing notifications sent.", { status: 200 });
+    }
+    // Davet ödüllendi: davet eden çifte haber (bkz. migration 20261104000006_couple_referrals)
+    else if (table === "couple_referrals" && type === "UPDATE" && record.status === "rewarded" && oldRecord?.status !== "rewarded") {
+      const reward = typeof record.referrer_reward === "string" ? record.referrer_reward : "none";
+      if (!record.referrer_couple_id || reward === "none") {
+        return new Response("No referrer to notify.", { status: 200 });
+      }
+      const { data: coupleUsers } = await supabase.from("users").select("id").eq("couple_id", record.referrer_couple_id);
+      const allMsgs: any[] = [];
+      for (const u of coupleUsers ?? []) {
+        const msgs = await sendToUser(supabase, u.id,
+          (lang) => {
+            const s = S(lang);
+            return { title: s.referralRewardTitle, body: s.referralRewardBody(reward), route: "/(tabs)/profile" };
+          },
+          { type: "referral_reward" }
+        );
+        allMsgs.push(...msgs);
+      }
+      if (allMsgs.length > 0) {
+        const referralResponse = await fetch(EXPO_PUSH_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json", "Accept-Encoding": "gzip, deflate" },
+          body: JSON.stringify(allMsgs),
+        });
+        await pruneDeadTokens(supabase, allMsgs, await referralResponse.json().catch(() => null));
+      }
+      return new Response("Referral notifications sent.", { status: 200 });
     }
 
     if (!message || partnerIntId === null) {

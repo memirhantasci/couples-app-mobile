@@ -50,6 +50,9 @@ import { PersonalInfoForm } from "@/components/profile/PersonalInfoForm";
 import { RelationshipDatesCard } from "@/components/profile/RelationshipDatesCard";
 import { PromoCodeCard } from "@/components/profile/PromoCodeCard";
 import { PremiumStatusCard } from "@/components/profile/PremiumStatusCard";
+import { ReferralCard } from "@/components/profile/ReferralCard";
+import { ReferralModal } from "@/components/profile/ReferralModal";
+import { DEFAULT_REFERRAL_REWARD_DAYS } from "@/lib/referral";
 import { SoundHapticsTestBox } from "@/components/profile/SoundHapticsTestBox";
 import { TourGuidesCard } from "@/components/profile/TourGuidesCard";
 import { LanguagePicker } from "@/components/profile/LanguagePicker";
@@ -93,6 +96,7 @@ export default function ProfileScreen() {
 
   // Premium Modal
   const [showPremiumSuccess, setShowPremiumSuccess] = useState(false);
+  const [referralOpen, setReferralOpen] = useState(false);
   const { isTourVisible, guide, openTour, closeTour } = usePageTour("profile");
   // Ekranın ilk karesinde yalnızca üst bölümler çizilir; kaydırınca görünen alt kartlar hemen ardından eklenir
   const showLowerSections = useDeferredReady();
@@ -626,6 +630,22 @@ export default function ProfileScreen() {
             />
           </Reveal>
 
+          {/* ─── ÇİFT ARKADAŞLARINI DAVET ET (eşleşmiş çift) ─── */}
+          {(!!profile?.isPaired || isDemoMode) && (
+            <Reveal index={1}>
+              <ReferralCard
+                theme={theme}
+                rewardDays={DEFAULT_REFERRAL_REWARD_DAYS}
+                onPress={() => {
+                  if (executeOrIntercept(() => {}, t("referral.card.title"), t("referral.card.sub", { days: DEFAULT_REFERRAL_REWARD_DAYS }))) {
+                    return;
+                  }
+                  setReferralOpen(true);
+                }}
+              />
+            </Reveal>
+          )}
+
           {/* ─── TEMA & GÖRÜNÜM TERCİHİ ─── */}
           <Reveal index={1}>
           <ThemePicker
@@ -722,6 +742,8 @@ export default function ProfileScreen() {
         visible={showPremiumSuccess}
         onClose={() => setShowPremiumSuccess(false)}
       />
+
+      {!isDemoMode && <ReferralModal visible={referralOpen} onClose={() => setReferralOpen(false)} />}
 
       <LegalModal
         visible={legalModalVisible}

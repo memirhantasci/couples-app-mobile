@@ -6,6 +6,7 @@ describe("resolveNotificationRoute", () => {
     expect(resolveNotificationRoute({ route: "/(tabs)/letters", type: "letter" })).toBe("/(tabs)/letters");
     expect(resolveNotificationRoute({ route: "/(tabs)/memories", type: "photo" })).toBe("/(tabs)/memories");
     expect(resolveNotificationRoute({ route: "/our-star" })).toBe("/our-star");
+    expect(resolveNotificationRoute({ route: "/(tabs)/profile", type: "referral_reward" })).toBe("/(tabs)/profile");
   });
 
   it("route yoksa türden çözer", () => {
@@ -14,6 +15,7 @@ describe("resolveNotificationRoute", () => {
     expect(resolveNotificationRoute({ type: "map" })).toBe("/(tabs)/map");
     expect(resolveNotificationRoute({ type: "period" })).toBe("/(tabs)/period-tracker");
     expect(resolveNotificationRoute({ type: "meeting_reminder" })).toBe("/(tabs)/meetings");
+    expect(resolveNotificationRoute({ type: "referral_reward" })).toBe("/(tabs)/profile");
   });
 
   it("listede olmayan route'u açmaz; türe düşer", () => {
