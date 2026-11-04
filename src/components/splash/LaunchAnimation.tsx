@@ -22,13 +22,13 @@ import { PlayfairDisplay_400Regular_Italic } from "@expo-google-fonts/playfair-d
 import { useAuth } from "@/context/AuthContext";
 import { useLanguageReady } from "@/hooks/useLanguageReady";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
-import { getHapticFeedbackEnabled, hapticStamp, hapticTap } from "@/lib/soundEffects";
 
 // ─── Açılış Animasyonu: "İki ruh, tek gökyüzü" ─────────────────────────────────
 // İlk kare native splash'ın (app.json → expo-splash-screen) birebir aynısıdır: koyu zemin, ortada logo.
 // Native splash ancak bu kare çizildikten sonra, üstte kısa bir solmayla kalkar; arada göz kırpması olmaz.
 // Gökyüzü kararır, iki yıldız iki yandan kavis çizerek süzülür ve logodaki parıltının olduğu noktada
-// birleşir: parlama, titreşim, dışa yayılan kırmızı şok dalgası; logo yeniden ışır.
+// birleşir: parlama, dışa yayılan kırmızı şok dalgası; logo yeniden ışır. Perde titreşim vermez: açılış
+// "merhaba" titreşimi ana sayfada verilir (bkz. hapticGreeting); orada ilk kurulum ve mektup kuşu hesaba katılır.
 // Kurulumdan sonraki ilk açılışta tam sürüm, sonraki soğuk açılışlarda kısa sürüm oynar. Sıcak açılışta
 // (arka plandan dönüş) JS ağacı yeniden kurulmadığından hiç oynamaz.
 // Oturum ve dil bu sırada arka planda çözülür; perde ancak ikisi de bitince (animasyon + oturum) solar.
@@ -76,7 +76,6 @@ interface Timeline {
   /** Animasyonun en kısa süresi; oturum da hazırsa perde bu anda solmaya başlar. */
   end: number;
   exitDuration: number;
-  haptic: () => Promise<void>;
 }
 
 // ─── Zaman Çizelgesi (ms, native splash kalktıktan sonra) ─────────────────────
@@ -85,7 +84,7 @@ interface Timeline {
 // 0.12 sn  arka planda yıldız tozu belirir
 // 0.2 sn   logo kararır ve hafifçe geri çekilir
 // 0.3 sn   iki yıldız iki yandan zıt kavisler çizerek süzülür
-// 1.18 sn  logodaki parıltıda birleşirler: parlama, titreşim, kırmızı şok dalgası, logo yeniden ışır
+// 1.18 sn  logodaki parıltıda birleşirler: parlama, kırmızı şok dalgası, logo yeniden ışır
 // 1.38 sn  "CoupleSky" yazısı yükselerek belirir
 // 1.9 sn   oturum da hazırsa perde solarak uygulamaya geçer
 const FULL: Timeline = {
@@ -105,7 +104,6 @@ const FULL: Timeline = {
   wordmarkAt: 1380,
   end: 1900,
   exitDuration: 420,
-  haptic: hapticStamp,
 };
 
 // Kısa sürüm (sonraki soğuk açılışlar): aynı hikâye, yıldızlar logonun hemen yanından başlar
@@ -127,7 +125,6 @@ const SHORT: Timeline = {
   wordmarkAt: null,
   end: 760,
   exitDuration: 320,
-  haptic: hapticTap,
 };
 
 /** Yavaş başlar, birleşme noktasına tam durmadan varır (hafif çarpışma hissi). */
@@ -243,8 +240,6 @@ function LaunchScene({ onFinished }: { onFinished: () => void }) {
     AsyncStorage.getItem(FULL_SEEN_KEY).then((seen) => {
       if (active) setTimeline(seen ? SHORT : FULL);
     });
-    // Birleşme anındaki titreşim gecikmesin: tercih şimdiden önbelleğe alınır
-    getHapticFeedbackEnabled();
     const imageFallback = setTimeout(() => setImageReady(true), IMAGE_FALLBACK_MS);
     const cap = setTimeout(() => setCapReached(true), MAX_WAIT_MS);
     return () => {
@@ -334,9 +329,7 @@ function LaunchScene({ onFinished }: { onFinished: () => void }) {
       })
     );
 
-    const haptic = setTimeout(T.haptic, mergeAt);
     return () => {
-      clearTimeout(haptic);
       cancelAnimation(progress);
       cancelAnimation(clock);
       cancelAnimation(sky);

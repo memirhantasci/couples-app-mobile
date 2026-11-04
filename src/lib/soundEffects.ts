@@ -446,27 +446,27 @@ export const playBubblePop = (options?: PlaySoundOptions) => playSoundEffect('bu
 /**
  * Letter sent / origami flight (whoosh & twinkle)
  */
-export const playLetterSend = () => playSoundEffect('letter_send');
+export const playLetterSend = (options?: PlaySoundOptions) => playSoundEffect('letter_send', options);
 
 /**
  * Medicine taken (DRANK), completed health routine (crystal chime)
  */
-export const playSuccessChime = () => playSoundEffect('success_chime');
+export const playSuccessChime = (options?: PlaySoundOptions) => playSoundEffect('success_chime', options);
 
 /**
  * Pin or memory sealed onto Love Map (soft wooden stamp tap)
  */
-export const playStampDrop = () => playSoundEffect('stamp_drop');
+export const playStampDrop = (options?: PlaySoundOptions) => playSoundEffect('stamp_drop', options);
 
 /**
  * Memory photo snapped or saved (camera shutter)
  */
-export const playCameraClick = () => playSoundEffect('camera_click');
+export const playCameraClick = (options?: PlaySoundOptions) => playSoundEffect('camera_click', options);
 
 /**
  * Love meter peak 90+ or relationship milestone celebration (harp glissando)
  */
-export const playCelebration = () => playSoundEffect('celebration');
+export const playCelebration = (options?: PlaySoundOptions) => playSoundEffect('celebration', options);
 
 // ─── Star Map Celestial Audio ───────────────────────────────────────────────
 

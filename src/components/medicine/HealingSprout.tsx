@@ -89,7 +89,8 @@ export const HealingSprout = memo(function HealingSprout({ taken, total }: Heali
         ? 1
         : withDelay(BLOOM_DELAY_MS, withSequence(withTiming(0, { duration: 0 }), withSpring(1, { damping: 7, stiffness: 160 })))
     );
-    const chime = setTimeout(() => playSuccessChime(), BLOOM_DELAY_MS);
+    // Yalnızca ses: dozu işaretleyen dokunuş (MedicineDoseCard) zaten titretti, çiçek açarken ikinci titreşim yok
+    const chime = setTimeout(() => playSuccessChime({ haptic: false }), BLOOM_DELAY_MS);
     return () => clearTimeout(chime);
   }, [stage, total, reduceMotion, bloom]);
 

@@ -34,7 +34,7 @@ import {
 } from "@/lib/dialog";
 import { useTheme } from "@/context/ThemeContext";
 import type { AppTheme } from "@/lib/theme";
-import { hapticError, hapticSuccess, hapticTap, hapticWarning } from "@/lib/soundEffects";
+import { hapticError, hapticSuccess, hapticWarning } from "@/lib/soundEffects";
 import { useTranslation } from "react-i18next";
 
 const EXIT_MS = 190;
@@ -55,6 +55,8 @@ const TONES: Record<DialogTone, ToneStyle> = {
   question: { color: ["#DB2777", "#F9A8D4"], Icon: HeartHandshake },
 };
 
+// Yalnızca dikkat gerektiren tonlar titretir; bilgi ve soru diyalogları sessiz açılır
+// (kullanıcı onları zaten kendi dokunuşuyla açmıştır)
 function fireHaptic(tone: DialogTone) {
   switch (tone) {
     case "success":
@@ -67,8 +69,6 @@ function fireHaptic(tone: DialogTone) {
     case "error":
       hapticError();
       break;
-    default:
-      hapticTap();
   }
 }
 

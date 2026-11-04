@@ -24,6 +24,33 @@ export function onLetterArrivalCheckRequested(listener: () => void): () => void 
   };
 }
 
+// Soğuk açılıştaki ilk kontrolün sonucu: kuş karşılaması kendi başına bir andır, ana sayfanın "merhaba"
+// titreşimi kuş uçacaksa susar (bkz. hapticGreeting) ve bunun için sonucu bekler.
+let firstCheckBird: boolean | null = null;
+const firstCheckWaiters = new Set<(bird: boolean) => void>();
+
+/** İlk kontrol bitince bir kez bildirilir (kuş gösterilecek mi); sonraki çağrılar yok sayılır. */
+export function reportFirstArrivalCheck(bird: boolean): void {
+  if (firstCheckBird !== null) return;
+  firstCheckBird = bird;
+  firstCheckWaiters.forEach((settle) => settle(bird));
+  firstCheckWaiters.clear();
+}
+
+/** İlk kontrolün sonucunu bekler; kontrol hiç çalışmazsa (misafir, eşleşme yok) süre dolunca false döner. */
+export function waitForFirstArrivalCheck(timeoutMs: number): Promise<boolean> {
+  if (firstCheckBird !== null) return Promise.resolve(firstCheckBird);
+  return new Promise((resolve) => {
+    const settle = (bird: boolean) => {
+      clearTimeout(timer);
+      firstCheckWaiters.delete(settle);
+      resolve(bird);
+    };
+    const timer = setTimeout(() => settle(false), timeoutMs);
+    firstCheckWaiters.add(settle);
+  });
+}
+
 const SEEN_KEY_PREFIX = "@letters_seen_at_";
 const EPOCH_ISO = "1970-01-01T00:00:00.000Z";
 const MAX_ARRIVALS = 10;

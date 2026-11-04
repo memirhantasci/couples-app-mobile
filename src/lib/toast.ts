@@ -17,7 +17,10 @@ export interface ToastOptions {
   duration?: number;
   /** Gösterimi ertele (ms). Bir modal kapanırken tetikleniyorsa kapanışı beklemek için. */
   delay?: number;
-  /** Gösterilirken dokunsal geri bildirim ver (varsayılan: true). Başka bir haptik zaten çalıyorsa false verin. */
+  /**
+   * Gösterilirken dokunsal geri bildirim ver. Varsayılan: başarı / uyarı / hata için true, bilgi için false
+   * (sadece bilgilendiren bir pil titretmez). Başka bir haptik zaten çalıyorsa false verin.
+   */
   haptic?: boolean;
   /** Tür ikonu yerine gösterilecek emoji. */
   emoji?: string;
@@ -111,7 +114,7 @@ function show(message: string, variant: ToastVariant, options: ToastOptions = {}
     variant,
     title: options.title,
     duration: resolveDuration(variant, text, options.duration),
-    haptic: options.haptic ?? true,
+    haptic: options.haptic ?? variant !== "info",
     emoji: options.emoji,
     onPress: options.onPress,
   };

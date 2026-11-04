@@ -85,7 +85,8 @@ export function useLoveJourney(mapRef: RefObject<MapView | null>) {
 
       const arrive = (index: number) => {
         setJourney({ stops, index, phase: "arrived" });
-        playStampDrop();
+        // Her durakta yalnızca ses: uzun bir turda her varışta titreşmek durmadan titretiyordu
+        playStampDrop({ haptic: false });
         schedule(() => {
           if (index < stops.length - 1) {
             fly(index + 1);

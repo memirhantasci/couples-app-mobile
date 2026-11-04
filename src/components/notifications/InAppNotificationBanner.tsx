@@ -7,7 +7,6 @@ import {
   Animated,
   PanResponder,
   Platform,
-  Vibration,
   Dimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -35,6 +34,7 @@ import {
   NOTIFICATION_THEMES,
 } from "@/types/notification";
 import { useTranslation } from "react-i18next";
+import { hapticTap } from "@/lib/soundEffects";
 
 interface InAppNotificationBannerProps {
   notification: InAppNotificationData | null;
@@ -90,16 +90,8 @@ export const InAppNotificationBanner: React.FC<InAppNotificationBannerProps> = (
   useEffect(() => {
     if (notification) {
 
-      // Light tactile vibration
-      try {
-        if (Platform.OS === "android") {
-          Vibration.vibrate([0, 50, 40, 60]);
-        } else {
-          Vibration.vibrate();
-        }
-      } catch {
-        // Fallback silently if vibration not allowed
-      }
+      // Tek hafif dokunuş; Vibration.vibrate kullanıcının "Titreşim" ayarını yok sayıyordu
+      hapticTap();
 
       // Spring in
       Animated.parallel([
