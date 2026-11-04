@@ -94,12 +94,13 @@ export default function AddMemoryScreen() {
       setShowPaywall(true);
       return;
     }
+    // Galeri hızlı açılsın diye (fotoğraf yükleme ekranıyla aynı ayarlar) kırpma ekranı (allowsEditing) ve seçim anında
+    // yeniden sıkıştırma (quality < 1) kullanılmaz: ikisi de seçiciyi yavaşlatır. Küçültme ve JPEG'e çevirme
+    // kayıt sırasında yapılır (bkz. handleSave); önizleme zaten çerçeveyi dolduracak şekilde ortadan kırpılır.
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 0.6,
-      // base64 burada okunmaz: tam çözünürlüklü görüntüyü bellekte base64'e çevirmek yerine kayıt sırasında
-      // küçültülmüş kopya yüklenir (bkz. handleSave)
+      quality: 1,
+      base64: false,
     });
 
     if (!result.canceled && result.assets[0]) {
@@ -139,12 +140,6 @@ export default function AddMemoryScreen() {
 
       // Upload image if a new one was selected
       if (localImage) {
-        if (localImage.fileSize && localImage.fileSize > 5 * 1024 * 1024) {
-           appAlert(t("memories.add.fileTooLargeTitle"), t("memories.add.fileTooLargeMessage"));
-           setLoading(false);
-           return;
-        }
-
         // Fotoğraf yüklenmeden önce en çok MEMORY_IMAGE_MAX_WIDTH genişliğe küçültülür ve JPEG'e çevrilir
         // (galeri yüklemesiyle aynı yaklaşım); daha küçük görüntü büyütülmez.
         const compressed = await ImageManipulator.manipulateAsync(
@@ -153,6 +148,12 @@ export default function AddMemoryScreen() {
           { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true }
         );
         if (!compressed.base64) throw new Error(t("memories.add.photoPrepFailed"));
+        // Yükleme sınırı (bucket 5 MB) küçültülmüş kopya için denetlenir; orijinal dosyanın boyutu önemli değil
+        if (compressed.base64.length * 0.75 > 5 * 1024 * 1024) {
+          appAlert(t("memories.add.fileTooLargeTitle"), t("memories.add.fileTooLargeMessage"));
+          setLoading(false);
+          return;
+        }
         const contentType = 'image/jpeg';
         const fileExt = 'jpg';
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
