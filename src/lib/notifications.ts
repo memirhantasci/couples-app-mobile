@@ -541,9 +541,20 @@ export interface LocalNotificationOptions {
   channelId?: string;
 }
 
+/** Bildirim izni verilmiş mi (izin penceresini açmaz). İzinsiz kurulan yerel bildirimler işletim sistemince reddedilir. */
+async function hasNotificationPermission(): Promise<boolean> {
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    return status === "granted";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Sunucuyu yormadan, yerel cihaz üzerinde günlük tekrarlanan bir bildirim kurar.
- * Özellikle ilaç hatırlatıcıları için kullanılır.
+ * Özellikle ilaç hatırlatıcıları için kullanılır. Bildirim kurulduysa true döner;
+ * izin yoksa ya da kurulamadıysa false (çağıran "kuruldu" diye işaretlememeli).
  */
 export async function scheduleDailyLocalNotification(
   id: string,
@@ -552,8 +563,10 @@ export async function scheduleDailyLocalNotification(
   hour: number,
   minute: number,
   options: LocalNotificationOptions = {}
-) {
+): Promise<boolean> {
   try {
+    if (!(await hasNotificationPermission())) return false;
+
     const cleanTitle = cleanNotificationText(title);
     const cleanBody = cleanNotificationText(body);
 
@@ -580,14 +593,18 @@ export async function scheduleDailyLocalNotification(
       },
     });
     logger.log(`[LocalPush] Scheduled daily notification ${id} at ${hour}:${minute}`);
+    return true;
   } catch (error) {
     logger.error("[LocalPush] Failed to schedule daily notification:", error);
+    return false;
   }
 }
 
 /**
  * Belirli bir gelecekteki tarihte çalışacak yerel bildirim kurar.
  * Regl yaklaşma, buluşma ve mektup kilidi hatırlatıcıları için kullanılır (Sunucu yormaz).
+ * Bildirim kurulduysa true döner; izin yoksa, tarih geçmişteyse ya da kurulamadıysa false
+ * (çağıran "kuruldu" diye işaretlememeli).
  */
 export async function scheduleDateLocalNotification(
   id: string,
@@ -595,15 +612,17 @@ export async function scheduleDateLocalNotification(
   body: string,
   triggerDate: Date,
   options: LocalNotificationOptions = {}
-) {
+): Promise<boolean> {
   try {
+    if (!(await hasNotificationPermission())) return false;
+
     const cleanTitle = cleanNotificationText(title);
     const cleanBody = cleanNotificationText(body);
 
     await cancelLocalNotification(id);
 
     // Geçmiş bir tarihse kurma
-    if (triggerDate.getTime() <= Date.now()) return;
+    if (triggerDate.getTime() <= Date.now()) return false;
 
     await Notifications.scheduleNotificationAsync({
       identifier: id,
@@ -622,8 +641,10 @@ export async function scheduleDateLocalNotification(
       },
     });
     logger.log(`[LocalPush] Scheduled date notification ${id} for ${triggerDate.toISOString()}`);
+    return true;
   } catch (error) {
     logger.error("[LocalPush] Failed to schedule date notification:", error);
+    return false;
   }
 }
 

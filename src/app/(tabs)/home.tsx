@@ -359,7 +359,7 @@ export default function HomeScreen() {
         const notifyDate = lastPeriodDate.add(26, "day").hour(10).minute(0).second(0).toDate();
         
         if (notifyDate.getTime() > Date.now()) {
-          await scheduleDateLocalNotification(
+          const scheduled = await scheduleDateLocalNotification(
             "period_approach_alert",
             t("home.periodAlert.title"),
             t("home.periodAlert.body"),
@@ -371,7 +371,8 @@ export default function HomeScreen() {
               data: { type: "period", route: "/(tabs)/period-tracker", actionLabel: t("notifications.actions.goToCycle") },
             }
           );
-          await AsyncStorage.setItem(cacheKey, scheduleStamp);
+          // Bildirim izni kapalıysa damga yazılmaz: izin sonradan açılınca bildirim yeniden kurulabilsin
+          if (scheduled) await AsyncStorage.setItem(cacheKey, scheduleStamp);
         }
       }
     }
