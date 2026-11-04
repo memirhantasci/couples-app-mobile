@@ -38,6 +38,84 @@ export async function setCachedLoveScore(coupleId: number, data: LoveScoreResult
   } catch {}
 }
 
+/** Aşk skorunun beslendiği aktivite özeti (sayılar; içerik değil). */
+interface CoupleActivity {
+  moodAuthors: number;
+  dailyAuthors: number;
+  calendarAuthors: number;
+  completedMeetings: number;
+  letterSenders: number;
+  photoRecent7d: boolean;
+  photoAny30d: boolean;
+}
+
+/**
+ * Sunucudaki puan günlüğünden okur (get_couple_love_activity). Günlük silinen, geçmiş güne yazılan ya da
+ * sahte kayıtlardan etkilenmez: ekle-sil-ekle, geçmişe not ve uydurma buluşma skoru oynatamaz.
+ * Fonksiyon henüz veritabanında yoksa (migration uygulanmadıysa) null döner ve eski yönteme düşülür.
+ */
+async function fetchActivityFromServerLog(): Promise<CoupleActivity | null> {
+  const { data, error } = await supabase.rpc("get_couple_love_activity");
+  if (error) return null;
+  const row = (Array.isArray(data) ? data[0] : data) as Record<string, number> | null;
+  return {
+    moodAuthors: Number(row?.mood_authors_today ?? 0),
+    dailyAuthors: Number(row?.daily_authors_today ?? 0),
+    calendarAuthors: Number(row?.calendar_authors_recent ?? 0),
+    completedMeetings: Number(row?.completed_meetings_recent ?? 0),
+    letterSenders: Number(row?.letter_senders_recent ?? 0),
+    photoRecent7d: Number(row?.photo_recent_7d ?? 0) > 0,
+    photoAny30d: Number(row?.photo_recent_30d ?? 0) > 0,
+  };
+}
+
+/** Eski yöntem (yalnızca sunucu fonksiyonu yoksa): canlı satırlardan sayar; manipülasyona açıktır. */
+async function fetchActivityFromLiveRows(
+  coupleId: number,
+  userIds: string[],
+  today: string,
+  sevenDaysAgo: string,
+  thirtyDaysAgo: string
+): Promise<CoupleActivity> {
+  const [meetingsRes, lettersRes, noteActivityRes, moodLogsRes, recentPhotosRes] = await Promise.all([
+    supabase
+      .from("meetings")
+      .select("id")
+      .eq("couple_id", coupleId)
+      .eq("is_active", true)
+      .lte("meeting_datetime", new Date().toISOString())
+      .gte("meeting_datetime", thirtyDaysAgo),
+    supabase.from("letters").select("id, sender_id").eq("couple_id", coupleId).gte("created_at", thirtyDaysAgo),
+    supabase.rpc("get_couple_note_activity", { p_today: today, p_since: sevenDaysAgo }),
+    userIds.length > 0
+      ? supabase.from("moods").select("id, user_id").in("user_id", userIds).eq("date", today)
+      : Promise.resolve({ data: [] as any[], error: null }),
+    supabase
+      .from("photo_archive")
+      .select("id, created_at")
+      .eq("couple_id", coupleId)
+      .gte("created_at", thirtyDaysAgo)
+      .order("created_at", { ascending: false })
+      .limit(10),
+  ]);
+  const queryError =
+    meetingsRes.error || lettersRes.error || noteActivityRes.error || moodLogsRes.error || recentPhotosRes.error;
+  if (queryError) throw queryError;
+
+  const noteActivity = Array.isArray(noteActivityRes.data) ? noteActivityRes.data[0] : noteActivityRes.data;
+  const photos = recentPhotosRes.data ?? [];
+  const sevenDaysAgoIso = dayjs().subtract(7, "day").toISOString();
+  return {
+    moodAuthors: new Set((moodLogsRes.data ?? []).map((m: any) => m.user_id)).size,
+    dailyAuthors: Number(noteActivity?.daily_authors_today ?? 0),
+    calendarAuthors: Number(noteActivity?.calendar_authors_recent ?? 0),
+    completedMeetings: (meetingsRes.data ?? []).length,
+    letterSenders: new Set((lettersRes.data ?? []).map((l: any) => l.sender_id)).size,
+    photoRecent7d: photos.some((p: any) => p.created_at >= sevenDaysAgoIso),
+    photoAny30d: photos.length > 0,
+  };
+}
+
 /**
  * Çiftin son 30 günlük ve bugünkü aktivitelerine bakarak 15-100 arası
  * dinamik, adil ve TAM SİMETRİK (her iki partner için %100 aynı) aşk puanı hesaplar.
@@ -92,16 +170,7 @@ export async function computeLoveScore(
     }
 
     // ── 1. Paralel Veritabanı Sorguları ─────────────────────────────────────────
-    const [
-      coupleRes,
-      meetingsRes,
-      lettersRes,
-      medicinesRes,
-      periodLogsRes,
-      noteActivityRes,
-      moodLogsRes,
-      recentPhotosRes,
-    ] = await Promise.all([
+    const [coupleRes, medicinesRes, periodLogsRes, activity] = await Promise.all([
       // Çiftin Premium Durumu (Parametre olarak gelmediyse DB'den teyit et)
       isPremium !== undefined
         ? Promise.resolve({ data: { is_premium: isPremium, premium_expires_at: null }, error: null })
@@ -110,21 +179,6 @@ export async function computeLoveScore(
             .select("is_premium, premium_expires_at")
             .eq("id", coupleId)
             .maybeSingle(),
-
-      // Buluşmalar (Son 30 günde veya gelecekte planlanmış aktif buluşmalar)
-      supabase
-        .from("meetings")
-        .select("id, meeting_datetime")
-        .eq("couple_id", coupleId)
-        .eq("is_active", true)
-        .gte("meeting_datetime", thirtyDaysAgo),
-
-      // Aşk Mektupları (Son 30 günde)
-      supabase
-        .from("letters")
-        .select("id, sender_id")
-        .eq("couple_id", coupleId)
-        .gte("created_at", thirtyDaysAgo),
 
       // Aktif İlaçlar
       supabase
@@ -137,41 +191,18 @@ export async function computeLoveScore(
       // hesaplanır. Satırlar okunsaydı ücretsiz erkek partner (RLS) bileşeni görmez, iki partner farklı skor görürdü.
       supabase.rpc("get_couple_period_activity", { p_since: sixtyDaysAgo, p_month_start: thisMonthStart }),
 
-      // Günlük Notlar (bugün) ve Takvim Notları (son 7 gün): yalnızca kaç partnerin yazdığı, sunucuda
-      // sayılır. Günlükler kişisel olduğundan satırlar okunsaydı her partner yalnızca kendi notunu görür,
-      // iki taraf farklı skor görür ve "ikisi de yazdı" puanı hiç verilemezdi.
-      supabase.rpc("get_couple_note_activity", { p_today: today, p_since: sevenDaysAgo }),
-
-      // Mood seçimi (Bugün)
-      userIds.length > 0
-        ? supabase
-            .from("moods")
-            .select("id, user_id")
-            .in("user_id", userIds)
-            .eq("date", today)
-        : Promise.resolve({ data: [] as any[], error: null }),
-
-      // Fotoğraf Arşivi (Son 30 günde)
-      supabase
-        .from("photo_archive")
-        .select("id, created_at")
-        .eq("couple_id", coupleId)
-        .gte("created_at", thirtyDaysAgo)
-        .order("created_at", { ascending: false })
-        .limit(10),
+      // Ruh hali, günlük, takvim notu, buluşma, mektup ve fotoğraf: sunucudaki puan günlüğünden (yalnızca
+      // sayılar). Günlükler kişisel olduğundan satırlar okunsaydı her partner yalnızca kendi notunu görür,
+      // iki taraf farklı skor görürdü; günlük ayrıca silme / geçmişe kayıt / uydurma buluşma hilelerine kapalıdır.
+      fetchActivityFromServerLog().then(
+        (fromLog) => fromLog ?? fetchActivityFromLiveRows(coupleId, userIds, today, sevenDaysAgo, thirtyDaysAgo)
+      ),
     ]);
 
     // Ağ hatasında Supabase fırlatmaz, { data: null, error } döner. Bu boş veriyle hesaplanan düşük
     // skor diskteki gerçek skorun üzerine yazılmasın: hata catch'e iletilir, önbellekteki skor kullanılır.
     const queryError =
-      coupleRes.error ||
-      meetingsRes.error ||
-      lettersRes.error ||
-      medicinesRes.error ||
-      periodLogsRes.error ||
-      noteActivityRes.error ||
-      moodLogsRes.error ||
-      recentPhotosRes.error;
+      coupleRes.error || medicinesRes.error || periodLogsRes.error;
     if (queryError) throw queryError;
 
     // Premium durumunu çift seviyesinde belirle
@@ -188,12 +219,10 @@ export async function computeLoveScore(
 
     // ── 1. Ruh Hali / Mood (Bugün) ─── Maks: 15
     maxEarnablePoints += 15;
-    const moodLogs = moodLogsRes.data ?? [];
-    const moodUsers = new Set(moodLogs.map((m) => m.user_id));
-    if (moodUsers.size >= 2) {
+    if (activity.moodAuthors >= 2) {
       earnedPoints += 15;
       breakdown["mood"] = 15;
-    } else if (moodUsers.size === 1) {
+    } else if (activity.moodAuthors === 1) {
       earnedPoints += 8;
       breakdown["mood"] = 8;
     } else {
@@ -202,35 +231,32 @@ export async function computeLoveScore(
 
     // ── 2. Günlük Notlar (Bugün) ─── Maks: 20
     maxEarnablePoints += 20;
-    const noteActivity = Array.isArray(noteActivityRes.data) ? noteActivityRes.data[0] : noteActivityRes.data;
-    const dailyAuthors = Number(noteActivity?.daily_authors_today ?? 0);
-    if (dailyAuthors >= 2) {
+    if (activity.dailyAuthors >= 2) {
       earnedPoints += 20;
       breakdown["daily_notes"] = 20;
-    } else if (dailyAuthors === 1) {
+    } else if (activity.dailyAuthors === 1) {
       earnedPoints += 10;
       breakdown["daily_notes"] = 10;
     } else {
       breakdown["daily_notes"] = 0;
     }
 
-    // ── 3. Takvim Notları (Son 7 gün) ─── Maks: 15
+    // ── 3. Takvim Notları (Son 7 gün; yalnızca bugün ya da ileri bir güne yazılanlar puan getirir) ─── Maks: 15
     maxEarnablePoints += 15;
-    const calendarAuthors = Number(noteActivity?.calendar_authors_recent ?? 0);
-    if (calendarAuthors >= 2) {
+    if (activity.calendarAuthors >= 2) {
       earnedPoints += 15;
       breakdown["calendar_notes"] = 15;
-    } else if (calendarAuthors === 1) {
+    } else if (activity.calendarAuthors === 1) {
       earnedPoints += 8;
       breakdown["calendar_notes"] = 8;
     } else {
       breakdown["calendar_notes"] = 0;
     }
 
-    // ── 4. Buluşmalar (Son 30 Gün veya Yaklaşan Buluşma) ─── Maks: 25
+    // ── 4. Buluşmalar (Son 30 günde GERÇEKLEŞEN, önceden planlanmış buluşma) ─── Maks: 25
+    // Yaklaşan buluşma puan getirmez: yoksa uydurma bir buluşma ekleyip silerek skor oynatılabilirdi.
     maxEarnablePoints += 25;
-    const meetings = meetingsRes.data ?? [];
-    if (meetings.length > 0) {
+    if (activity.completedMeetings > 0) {
       earnedPoints += 25;
       breakdown["meetings"] = 25;
     } else {
@@ -239,10 +265,8 @@ export async function computeLoveScore(
 
     // ── 5. Aşk Mektupları (Son 30 Gün) ─── Maks: 25
     maxEarnablePoints += 25;
-    const letters = lettersRes.data ?? [];
-    if (letters.length > 0) {
-      const senders = new Set(letters.map((l) => l.sender_id));
-      if (senders.size >= 2) {
+    if (activity.letterSenders > 0) {
+      if (activity.letterSenders >= 2) {
         earnedPoints += 25;
         breakdown["letters"] = 25;
       } else {
@@ -257,12 +281,10 @@ export async function computeLoveScore(
     // Ücretsiz kullanıcıların puanını ASLA düşürmez!
     if (isCouplePremium) {
       maxEarnablePoints += 15;
-      const recentPhotos = recentPhotosRes.data ?? [];
-      const hasRecent7d = recentPhotos.some((p) => p.created_at >= dayjs().subtract(7, "day").toISOString());
-      if (hasRecent7d) {
+      if (activity.photoRecent7d) {
         earnedPoints += 15;
         breakdown["photos"] = 15;
-      } else if (recentPhotos.length > 0) {
+      } else if (activity.photoAny30d) {
         earnedPoints += 8;
         breakdown["photos"] = 8;
       } else {
