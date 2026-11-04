@@ -403,6 +403,7 @@ export default function PaywallScreen() {
                 {selectedIsRecurring ? (
                   <Text style={summaryTextStyle}>{t("paywall.summary.renewal", { store: storeName })}</Text>
                 ) : null}
+                {selectedIsRecurring ? <Text style={summaryTextStyle}>{t("paywall.summary.shared")}</Text> : null}
                 <Text style={summaryTextStyle}>{t("paywall.summary.confirm", { store: storeName })}</Text>
                 <Text style={summaryTextStyle}>{t("paywall.summary.withdrawal", { store: storeName })}</Text>
               </View>

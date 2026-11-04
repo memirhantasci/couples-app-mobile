@@ -249,10 +249,6 @@
           "emotional": "Sevgilin bugün biraz duygusal olduğunu paylaştı. Ona sıcacık bir mesaj yazmak ister misin? 🤍",
           "resting": "Sevgilin dinlendiğini paylaştı. Ona güzel bir ses kaydı ya da mesaj bırakmak ister misin? 🌸"
         }
-      },
-      "neutral": {
-        "subtitle": "Yeni Güncelleme",
-        "body": "Ortak alanınızda yeni bir güncelleme var. Görmek için dokun."
       }
     },
     "labels": {
@@ -1140,7 +1136,8 @@
       "trial_other": "{{count}} gün ücretsiz deneme süresi bittiğinde, iptal etmezsen {{price}} {{period}} hesabından otomatik olarak tahsil edilir.",
       "renewal": "Abonelik, iptal edilmediği sürece her dönem sonunda aynı tutarla otomatik olarak yenilenir. Yenilemeden en az 24 saat önce {{store}} hesap ayarlarındaki Abonelikler bölümünden dilediğin zaman iptal edebilirsin.",
       "confirm": "Düğmeye dokunduğunda {{store}} ödeme onay ekranı açılır; ödemeyi orada onaylarsın.",
-      "withdrawal": "Dijital hizmet, onayınla hemen kullanıma açıldığı için Mesafeli Sözleşmeler Yönetmeliği m.15/1-ğ uyarınca cayma hakkı kullanılamaz. Hatalı veya mükerrer tahsilat için {{store}} iade kanalları geçerlidir."
+      "withdrawal": "Dijital hizmet, onayınla hemen kullanıma açıldığı için Mesafeli Sözleşmeler Yönetmeliği m.15/1-ğ uyarınca cayma hakkı kullanılamaz. Hatalı veya mükerrer tahsilat için {{store}} iade kanalları geçerlidir.",
+      "shared": "Abonelik iki partner için ortaktır: abonelik sona erdiğinde (iptal edilen dönemin bitiminde) partnerinin Premium'u da sona erer."
     }
   },
   "tabs": {
@@ -1939,7 +1936,7 @@
       "title": "Sağlık Verilerin İçin Açık Rızan",
       "subtitle": "Regl / döngü ve ilaç takibi sağlık verisi içerir. Kişisel verilerin korunması mevzuatı gereği bu verileri işleyebilmemiz için açık rızana ihtiyacımız var.",
       "point1": "Girdiğin döngü, regl tarihi ve ilaç bilgileri; takip, tahmin ve hatırlatma sunmak için işlenir.",
-      "point2": "Bu bilgiler eşleştiğin partnerinle paylaşılır. Partnerine giden bildirimlerde sağlık ayrıntısı yer almaz.",
+      "point2": "Bu bilgiler eşleştiğin partnerinle paylaşılır. Partnerine giden bildirimlerde ilaç adı ya da döngü durumu gibi ayrıntılar görünebilir; bildirimler Google, Apple ve Expo servislerinden geçer.",
       "point3": "Verilerin reklam ya da pazarlama amacıyla kullanılmaz; yalnızca bu özellikleri sunmak için işlenir.",
       "point4": "Veriler yurt dışındaki altyapı sağlayıcılarında (ör. Supabase) barındırılır; ayrıntılar KVKK Aydınlatma Metni’nde.",
       "checkbox": "<consent>Açık Rıza Metni</consent>’ni okudum; sağlık (döngü / ilaç) verilerimin belirtilen amaçlarla işlenmesine ve eşleştiğim partnerimle paylaşılmasına açık rıza veriyorum.",

@@ -249,10 +249,6 @@
           "emotional": "Your love shared that they're feeling a little emotional today. Would you like to write them a warm message? 🤍",
           "resting": "Your love shared that they're resting. Would you like to leave them a sweet voice note or message? 🌸"
         }
-      },
-      "neutral": {
-        "subtitle": "New Update",
-        "body": "There's a new update in your shared space. Tap to view."
       }
     },
     "labels": {
@@ -1140,7 +1136,8 @@
       "trial_other": "When the {{count}}-day free trial ends, {{price}} {{period}} is charged automatically unless you cancel.",
       "renewal": "The subscription renews automatically at the same price at the end of each period unless canceled. You can cancel any time, at least 24 hours before renewal, under Subscriptions in your {{store}} account settings.",
       "confirm": "When you tap the button, the {{store}} payment confirmation screen opens; you confirm the payment there.",
-      "withdrawal": "Because the digital service is made available immediately with your consent, the right of withdrawal does not apply under Article 15(1)(ğ) of the Distance Contracts Regulation. For mistaken or duplicate charges, {{store}} refund channels apply."
+      "withdrawal": "Because the digital service is made available immediately with your consent, the right of withdrawal does not apply under Article 15(1)(ğ) of the Distance Contracts Regulation. For mistaken or duplicate charges, {{store}} refund channels apply.",
+      "shared": "The subscription is shared by both partners: when it ends (at the end of the canceled period), your partner's Premium ends too."
     }
   },
   "tabs": {
@@ -1939,7 +1936,7 @@
       "title": "Your Explicit Consent for Health Data",
       "subtitle": "Cycle / period and medicine tracking involve health data. Under data protection law, we need your explicit consent before we can process it.",
       "point1": "The cycle, period dates and medicine details you enter are processed to provide tracking, predictions and reminders.",
-      "point2": "This information is shared with your paired partner. Notifications sent to your partner do not contain health details.",
+      "point2": "This information is shared with your paired partner. Notifications sent to your partner may show details such as a medicine name or cycle status; notifications pass through Google, Apple and Expo services.",
       "point3": "Your data is not used for advertising or marketing; it is processed only to provide these features.",
       "point4": "Data is hosted with infrastructure providers located abroad (e.g. Supabase); details are in the KVKK Disclosure Notice.",
       "checkbox": "I have read the <consent>Explicit Consent Statement</consent> and give my explicit consent to the processing of my health (cycle / medicine) data for the stated purposes and to its sharing with my paired partner.",

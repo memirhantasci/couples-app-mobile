@@ -61,9 +61,9 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
 
       "4. KİŞİSEL VERİLERİN AKTARILDIĞI TARAFLAR",
       "Kişisel verileriniz, kanunun emrettiği istisnalar haricinde hiçbir üçüncü tarafa reklam veya ticari amaçla satılmaz. Veriler yalnızca hizmetin ifası için aşağıdaki sağlayıcılarla paylaşılır. Bu sağlayıcıların bir kısmı yurt dışında yerleşiktir; veriler bu nedenle KVKK md. 9 kapsamında yurt dışına aktarılabilir:\n" +
-      "• Supabase Inc.: Güvenli PostgreSQL veritabanı, şifreli depolama ve kimlik doğrulama altyapısı,\n" +
+      "• Supabase Inc.: Güvenli PostgreSQL veritabanı, şifreli depolama ve kimlik doğrulama altyapısı (veriler Frankfurt / Almanya bölgesinde barındırılır),\n" +
       "• RevenueCat Inc.: Uygulama içi satın alma, abonelik doğrulama ve iade altyapısı,\n" +
-      "• Google Cloud / Firebase, Apple (APNs) & Expo Notifications: Push bildirimlerinin cihazınıza ulaştırılması (bildirim metinleri regl, döngü ya da ilaç gibi sağlık ayrıntısı içermez),\n" +
+      "• Google Cloud / Firebase, Apple (APNs) & Expo Notifications: Push bildirimlerinin cihazınıza ulaştırılması (bildirim metinleri partnerinizin paylaştığı ilaç adı, döngü durumu gibi sağlık ayrıntılarını içerebilir ve bu metinler söz konusu servislerden geçer),\n" +
       "• Google LLC (AdMob ve Google Haritalar): reklam gösterimi ve harita hizmetleri,\n" +
       "• Apple Inc. ve Google LLC: Apple ile giriş ve Google ile giriş hizmetleri; cihaz üzerindeki adres arama (konum seçerken yazdığınız adres metni),\n" +
       "• Expo (Expo Updates / EAS): Uygulama güncellemelerinin dağıtımı; güncelleme kontrolünde IP adresiniz, platform ve uygulama sürümü bilgileri,\n" +
@@ -182,7 +182,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "• İhlal edildiği ileri sürülen eser veya hakkın tanımı ile hak sahipliğinizin dayanağı,\n" +
       "• İçeriğin uygulamadaki yeri (yıldız adı, kullanıcı adı, ekran görüntüsü vb.),\n" +
       "• Bildirimin doğru olduğuna ve hak sahibi adına yetkiyle yapıldığına dair beyan.\n" +
-      "Bildirimler mümkün olan en kısa sürede incelenir; hukuka aykırı olduğu anlaşılan içerik kaldırılır ya da erişime kapatılır ve bildirimi yapan kişiye sonuç bildirilir. İhlali tekrarlayan hesaplar askıya alınabilir veya kapatılabilir. Yetkili makamların kararları saklıdır. Yıldız adları ayrıca uygulama içinden \"Bu Yıldızı Bildir\" ile bildirilebilir; birden fazla çiftin bildirdiği adlar herkesten gizlenir.",
+      "Bildirimler en geç 7 gün içinde incelenir; hukuka aykırı olduğu anlaşılan içerik kaldırılır ya da erişime kapatılır ve bildirimi yapan kişiye sonuç bildirilir. İhlali tekrarlayan hesaplar askıya alınabilir veya kapatılabilir. Yetkili makamların kararları saklıdır. Yıldız adları ayrıca uygulama içinden \"Bu Yıldızı Bildir\" ile bildirilebilir; birden fazla çiftin bildirdiği adlar herkesten gizlenir.",
 
       "9. HİZMET SAĞLAYICI VE İLETİŞİM",
       "Hizmet sağlayıcı: Necati Taşcı (CoupleSky)" + CONTROLLER_ADDRESS_TR + " · E-posta: destek@couplesky.app. Uygulamanın herkese açık alanları yıldız adı, çiftin baş harfleri, isteğe bağlı ilk ad ve profil fotoğrafıyla sınırlıdır; fotoğraf, mektup, günlük ve notlar yalnızca eşleşen çiftin erişimindedir. Yasal bildirimler ve resmi makam talepleri bu adrese iletilebilir."
@@ -203,7 +203,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "• Özel Nitelikli Kişisel Veri (Sağlık Bilgisi): Uygulama içerisindeki regl/döngü takvimi ve ilaç takibi modüllerinde girdiğim tarih, döngü uzunluğu, semptom ve ilaç kullanım verilerimin; döngü tahmini yapılması, hatırlatıcı bildirimler üretilmesi ve eşleştiğim partnerimin ekranında görüntülenmesi amacıyla işlenmesi,\n" +
       "• Lokasyon (Konum) Verisi: Harita üzerinden seçtiğim buluşma noktaları ve anılara eklediğim GPS koordinatlarının, harita üzerinde partnerime gösterilmesi ve ortak rota planlaması amacıyla işlenmesi,\n" +
       "• Çift Ortak Verisi: Yüklediğim anı fotoğrafları, aşk mektupları ve ruh hali durumlarının yalnızca eşleştiğim partnerimle paylaşılmak üzere şifreli sunucularda saklanması,\n" +
-      "• Bildirim Gönderimi: Önemli yıldönümleri, teslim edilen mektuplar ve partnerimin paylaştığı güncellemeler için cihazıma anlık push bildirimi gönderilmesi (bildirim metinlerinde regl, döngü ya da ilaç gibi sağlık ayrıntısı yer almaz).",
+      "• Bildirim Gönderimi: Önemli yıldönümleri, teslim edilen mektuplar ve partnerimin paylaştığı güncellemeler için cihazıma anlık push bildirimi gönderilmesi (bildirim metinlerinde ilaç adı, döngü durumu gibi sağlık ayrıntıları yer alabilir ve bu metinler Google, Apple ve Expo bildirim servislerinden geçer).",
 
       "3. RIZANIN GERİ ALINMASI",
       "İşbu Açık Rıza beyanımı dilediğim zaman uygulama içerisindeki Ayarlar bölümünden döngü/sağlık veya konum izinlerimi kapatarak, Profil > Yasal Bilgiler bölümündeki Destek satırından talepte bulunarak ya da hesabımı silerek geri alabileceğimi biliyor ve kabul ediyorum."
@@ -236,7 +236,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "Aboneliğinizi istediğiniz an hiçbir cezai şart olmaksızın iptal edebilirsiniz. İptal işlemi mobil uygulama üzerinden değil, mağaza hesap ayarlarınızdan yapılmalıdır:\n" +
       "• iOS (Apple App Store): iPhone Ayarlar > [Adınız] > Abonelikler > CoupleSky > Aboneliği İptal Et adımlarını takip ediniz.\n" +
       "• Android (Google Play Store): Google Play Uygulaması > Profil Simgesi > Ödemeler ve Abonelikler > Abonelikler > CoupleSky > İptal Et adımlarını takip ediniz.\n" +
-      "Aboneliğinizi iptal ettiğinizde, mevcut fatura döneminin sonuna kadar Premium haklarınızdan faydalanmaya devam edersiniz.",
+      "Aboneliğinizi iptal ettiğinizde, mevcut fatura döneminin sonuna kadar Premium haklarınızdan faydalanmaya devam edersiniz. Abonelik iki partner için ortak olduğundan, abonelik sona erdiğinde (iptal edilen dönemin bitiminde) partnerinizin Premium hakları da sona erer.",
 
       "5. CAYMA HAKKI VE İADE POLİTİKASI",
       "Mesafeli Sözleşmeler Yönetmeliği'nin 15. maddesinin 1. fıkrasının (ğ) bendi uyarınca; 'Elektronik ortamda anında ifa edilen hizmetler veya tüketiciye anında teslim edilen gayrimaddi mallara ilişkin sözleşmelerde' cayma hakkı kullanılamaz. Bununla birlikte, hatalı veya mükerrer tahsilatlara ilişkin iade talepleri doğrudan Apple Destek (reportaproblem.apple.com) veya Google Play Destek platformları üzerinden yürütülmektedir. Fiyat, yenileme periyodu, deneme sonrası tahsilat ve cayma bilgisi, satın almadan önce satın alma ekranında da gösterilir."
@@ -280,9 +280,9 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
 
       "4. PARTIES TO WHOM PERSONAL DATA IS TRANSFERRED",
       "Your personal data is never sold to third parties for advertising or commercial purposes. Data is shared strictly to perform our services with the following vetted providers, some of which are located internationally:\n" +
-      "• Supabase Inc.: Secure PostgreSQL database, encrypted cloud storage, and authentication infrastructure,\n" +
+      "• Supabase Inc.: Secure PostgreSQL database, encrypted cloud storage, and authentication infrastructure (data is hosted in the Frankfurt / Germany region),\n" +
       "• RevenueCat Inc.: In-app purchases, subscription entitlement verification, and receipt validation,\n" +
-      "• Google Cloud / Firebase, Apple (APNs) & Expo Notifications: Delivery of push notifications to your device (notification text contains no health details such as period, cycle or medicine),\n" +
+      "• Google Cloud / Firebase, Apple (APNs) & Expo Notifications: Delivery of push notifications to your device (notification text may include health details such as medicine name or cycle status that your partner shares, and passes through these services),\n" +
       "• Google LLC (AdMob & Google Maps): Map services and non-personalized advertising,\n" +
       "• Apple Inc. & Google LLC: Sign in with Apple and Sign in with Google authentication services; on-device address search (the address text you type when choosing a location),\n" +
       "• Expo (Expo Updates / EAS): Distribution of app updates; your IP address, platform and app version are sent when checking for updates,\n" +
@@ -401,7 +401,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "• A description of the work or right allegedly infringed and the basis of your ownership,\n" +
       "• Where the content appears in the app (star name, username, screenshot, etc.),\n" +
       "• A statement that the report is accurate and made with authority on behalf of the rights holder.\n" +
-      "Reports are reviewed as soon as possible; content found to be unlawful is removed or made inaccessible and the reporter is told the outcome. Accounts that repeatedly infringe may be suspended or closed. Decisions of competent authorities are reserved. Star names can also be reported in the app with \"Report This Star\"; names reported by several couples are hidden from everyone.",
+      "Reports are reviewed within 7 days at the latest; content found to be unlawful is removed or made inaccessible and the reporter is told the outcome. Accounts that repeatedly infringe may be suspended or closed. Decisions of competent authorities are reserved. Star names can also be reported in the app with \"Report This Star\"; names reported by several couples are hidden from everyone.",
 
       "9. SERVICE PROVIDER AND CONTACT",
       "Service provider: Necati Taşcı (CoupleSky)" + CONTROLLER_ADDRESS_EN + " · Email: support@couplesky.app. The app's public areas are limited to star names, couple initials, an optional first name and the profile photo; photos, letters, journal entries and notes are accessible only to the paired couple. Legal notices and official authority requests can be sent to this address."
@@ -422,7 +422,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "• Special Category Data (Health Information): Dates, cycle lengths, symptom notes, and medication schedules entered into the cycle and medicine tracker modules, processed to forecast menstrual cycles, generate reminders, and display synchronizations on my paired partner's screen,\n" +
       "• Geolocation Data: Coordinates selected for meeting points and GPS locations tagged onto photos, processed to display shared map markers and facilitate route planning,\n" +
       "• Shared Couple Content: Memory photos, love letters, and mood statuses stored in encrypted form strictly for sharing with my paired partner,\n" +
-      "• Push Notifications: Receiving instant notifications for approaching anniversaries, delivered letters and updates my partner shares (notification text contains no health details such as period, cycle or medicine).",
+      "• Push Notifications: Receiving instant notifications for approaching anniversaries, delivered letters and updates my partner shares (notification text may include health details such as medicine name or cycle status that your partner shares, and passes through these services).",
 
       "3. WITHDRAWAL OF CONSENT",
       "I understand and agree that I may withdraw this consent at any time by disabling health or location permissions within the app settings, by writing to us from the Support row under Profile > Legal Information, or by requesting account deletion."
@@ -455,7 +455,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "You can cancel your subscription at any time without cancellation fees. Cancellations must be performed through your store account settings rather than within the mobile app:\n" +
       "• iOS (Apple App Store): Go to iPhone Settings > [Your Name] > Subscriptions > CoupleSky > Cancel Subscription.\n" +
       "• Android (Google Play Store): Open Google Play Store > Profile Icon > Payments & Subscriptions > Subscriptions > CoupleSky > Cancel Subscription.\n" +
-      "Upon cancellation, you will retain access to all Premium features until the conclusion of your active billing period.",
+      "Upon cancellation, you will retain access to all Premium features until the conclusion of your active billing period. Because the subscription is shared by both partners, your partner's Premium access also ends when the subscription ends (at the end of the canceled period).",
 
       "5. RIGHT OF WITHDRAWAL AND REFUND POLICY",
       "Under applicable digital consumer regulations, statutory withdrawal rights do not apply once digital content or services have commenced with the consumer's consent. Refund requests for accidental or duplicate charges are administered directly by Apple Support (reportaproblem.apple.com) or Google Play Customer Support in accordance with store refund policies. The price, renewal period, post-trial charge and withdrawal information are also shown on the purchase screen before you buy."

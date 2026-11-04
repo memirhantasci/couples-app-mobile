@@ -94,21 +94,19 @@ async function languagesByToken(supabase: any, tokens: (string | null | undefine
 // ─────────────────────────────────────────────────────────────────────────────
 function S(lang: Lang) {
   const en = lang === "en";
-  // GİZLİLİK (KVKK m.6): ilaç adı, doz durumu ve döngü / regl bilgisi özel nitelikli sağlık verisidir. Bildirimler
-  // Expo / FCM / APNs üzerinden yurt dışı sunuculardan geçtiği için bu türlerin metni nötrdür; ayrıntı
-  // uygulama içinde görülür. Bu metinlere ilaç adı, regl ya da döngü ifadesi eklenmemelidir.
-  const neutralTitle = en ? "💞 Update from your partner" : "💞 Partnerinden güncelleme";
-  const neutralBody = en
-    ? "There's a new update in your shared space. Tap to view."
-    : "Ortak alanınızda yeni bir güncelleme var. Görmek için dokun.";
-  const neutralAction = en ? "View ✨" : "Görüntüle ✨";
   return {
     // Cron
-    medicineDueTitle: neutralTitle,
-    medicineDueBody: (_name: string) => neutralBody,
-    periodReminderTitle: neutralTitle,
-    periodReminderOwnBody: neutralBody,
-    periodReminderPartnerBody: (_name: string) => neutralBody,
+    medicineDueTitle: en ? "💊 Time for Medicine!" : "💊 İlaç Vakti!",
+    medicineDueBody: (name: string) =>
+      en
+        ? `It's time to take ${name ? `your ${name}` : "your medicine"}. Please mark it as taken.`
+        : `${name || "Hatırlatıcı"} ilacını içme vaktin geldi. Lütfen içtiğini işaretle.`,
+    periodReminderTitle: en ? "🩸 Period Reminder" : "🩸 Regl Hatırlatıcısı",
+    periodReminderOwnBody: en ? "Your period is expected in 2 days." : "Tahmini regl tarihine 2 gün kaldı.",
+    periodReminderPartnerBody: (name: string) =>
+      en
+        ? `${name}'s period is expected in 2 days. Get ready to support her 💕`
+        : `${name}'in tahmini regl tarihine 2 gün kaldı. Ona destek olmaya hazırlan 💕`,
     letterUnlockTitle: en ? "💌 Your Letter Is Unlocked!" : "💌 Mektubun Kilidi Açıldı!",
     letterUnlockBody: (sender: string, title: string) =>
       en
@@ -135,9 +133,10 @@ function S(lang: Lang) {
       : "Uygulamaya girmeyeli biraz zaman oldu, bugün partnerine küçük bir not bırakmak ister misin?",
 
     // Anlık (webhook)
-    medicineTakenTitle: neutralTitle,
-    medicineTakenBody: (_sender: string, _medicine: string) => neutralBody,
-    medicineTakenAction: neutralAction,
+    medicineTakenTitle: en ? "💊 Medicine Tracking" : "💊 İlaç Takibi",
+    medicineTakenBody: (sender: string, medicine: string) =>
+      en ? `${sender} took ${medicine ? `their ${medicine}` : "their daily medicine"} ✅` : `${sender} ${medicine || "günlük"} ilacını içti ✅`,
+    medicineTakenAction: en ? "Go to Medicine Tracking 💊" : "İlaç Takibine Git 💊",
     letterNewTitle: en ? "💌 New Letter" : "💌 Yeni Mektup",
     letterNewBody: (sender: string, unlockDate: string | null) =>
       en
@@ -148,9 +147,10 @@ function S(lang: Lang) {
           ? `${sender} sana geleceğe bir mektup yazdı! (${unlockDate} tarihinde açılacak)`
           : `${sender} sana bir mektup yazdı!`,
     letterNewAction: en ? "Go to Letters 💌" : "Mektuplara Git 💌",
-    periodStartedTitle: neutralTitle,
-    periodStartedBody: (_sender: string) => neutralBody,
-    periodStartedAction: neutralAction,
+    periodStartedTitle: en ? "🩸 Period Calendar" : "🩸 Regl Takvimi",
+    periodStartedBody: (sender: string) =>
+      en ? `${sender}'s period has started. Don't forget to support her 💕` : `${sender}'in regl dönemi başladı. Ona destek olmayı unutma 💕`,
+    periodStartedAction: en ? "Go to Cycle Tracking 🌸" : "Döngü Takibine Git 🌸",
     moodTitle: en ? "💭 Mood Update" : "💭 Mod Güncellemesi",
     moodBody: (sender: string, mood: string) => (en ? `${sender} is feeling ${mood} today` : `${sender} bugün kendini ${mood} hissediyor`),
     moodAction: en ? "Reply with a Hug 🫂" : "Sarılarak Yanıtla 🫂",
@@ -277,7 +277,7 @@ serve(async (req) => {
               to: r.push_token,
               sound: "default",
               title: s.medicineDueTitle,
-              body: s.medicineDueBody(""),
+              body: s.medicineDueBody(safePlaintextLabel(r.medicine_name, "")),
               data: { type: "medicine_reminder", medicineId: r.medicine_id, route: "/(tabs)/medicine" }
             });
           }
@@ -438,12 +438,13 @@ serve(async (req) => {
 
     if (table === "medicine_logs" && record.status === "DRANK" && (type === "INSERT" || (type === "UPDATE" && oldRecord.status !== "DRANK"))) {
       senderIntId = record.user_id;
+      const { data: medicine } = await supabase.from("medicines").select("name").eq("id", record.medicine_id).single();
       const { data: sender } = await supabase.from("users").select("display_name, couple_id").eq("id", senderIntId).single();
-      if (sender) {
-        // İlaç adı bildirime konmaz (sağlık verisi); bu yüzden medicines tablosu okunmaz
+      if (sender && medicine) {
+        const medicineName = safePlaintextLabel(medicine.name, "");
         message = (lang) => {
           const s = S(lang);
-          return { title: s.medicineTakenTitle, body: s.medicineTakenBody(sender.display_name, ""), type: "medicine", route: "/(tabs)/medicine", actionLabel: s.medicineTakenAction, channelId: "partner_messages" };
+          return { title: s.medicineTakenTitle, body: s.medicineTakenBody(sender.display_name, medicineName), type: "medicine", route: "/(tabs)/medicine", actionLabel: s.medicineTakenAction, channelId: "medicine_channel" };
         };
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;
