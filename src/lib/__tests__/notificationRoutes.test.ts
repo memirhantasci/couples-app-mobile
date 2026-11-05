@@ -16,6 +16,8 @@ describe("resolveNotificationRoute", () => {
     expect(resolveNotificationRoute({ type: "period" })).toBe("/(tabs)/period-tracker");
     expect(resolveNotificationRoute({ type: "meeting_reminder" })).toBe("/(tabs)/meetings");
     expect(resolveNotificationRoute({ type: "referral_reward" })).toBe("/(tabs)/profile");
+    expect(resolveNotificationRoute({ type: "vault_expiry_reminder" })).toBe("/premium");
+    expect(resolveNotificationRoute({ route: "/premium", type: "vault_expiry_reminder" })).toBe("/premium");
   });
 
   it("listede olmayan route'u açmaz; türe düşer", () => {

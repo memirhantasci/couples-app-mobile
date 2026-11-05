@@ -27,12 +27,14 @@ const DEDUPE_TTL_HOURS: Record<string, number> = {
   anniversary_reminder: 20,
   meeting_reminder: 24,
   inactivity_reminder: 168,
+  vault_expiry_reminder: 168,
 };
 
 async function dropAlreadySent(admin: any, job: string, messages: any[]): Promise<any[]> {
   const ttl = DEDUPE_TTL_HOURS[job];
   if (!ttl || messages.length === 0) return messages;
-  const keyOf = (m: any) => `${job}:${m.data?.letterId ?? m.data?.meetingId ?? ""}:${m.to}`;
+  // vaultStage: kasa uyarısının aşaması (7 gün / 1 gün); her aşama kişi başına bir kez gönderilir
+  const keyOf = (m: any) => `${job}:${m.data?.letterId ?? m.data?.meetingId ?? m.data?.vaultStage ?? ""}:${m.to}`;
   const keys = [...new Set(messages.map(keyOf))];
   const since = new Date(Date.now() - ttl * 60 * 60 * 1000).toISOString();
   const already = new Set<string>();
@@ -139,6 +141,15 @@ function S(lang: Lang) {
       en
         ? `Today is your ${years}-year anniversary! Here's to many more happy years together...`
         : `Bugün ${years}. ${type}nüz! Birlikte nice mutlu yıllara...`,
+    vaultExpiryTitle: en ? "📦 Your photos are about to be deleted" : "📦 Fotoğrafların silinmek üzere",
+    vaultExpiryBody: (stage: number, days: number) =>
+      en
+        ? stage === 1
+          ? "Your vault ends within a day. If you don't renew Premium, your full-size photos and profile photos will be permanently deleted. Your written memories and letters stay."
+          : `Your vault ends in ${days} days. If you don't renew Premium by then, your full-size photos and profile photos will be permanently deleted. Your written memories and letters stay.`
+        : stage === 1
+          ? "Kasa süren 1 günden az kalan sürede bitiyor. Premium'u yenilemezsen tam boy fotoğrafların ve profil fotoğrafların kalıcı olarak silinir. Yazılı anıların ve mektupların kalır."
+          : `Kasa süren ${days} gün içinde bitiyor. O zamana kadar Premium'u yenilemezsen tam boy fotoğrafların ve profil fotoğrafların kalıcı olarak silinir. Yazılı anıların ve mektupların kalır.`,
     inactivityTitle: en ? "🥺 We Miss You" : "🥺 Seni Özledik",
     inactivityBody: en
       ? "It's been a while since you opened the app. Would you like to leave your partner a little note today?"
@@ -402,6 +413,24 @@ serve(async (req) => {
               title: s.anniversaryTitle,
               body: s.anniversaryBody(r.years, r.anniversary_type),
               data: { type: "anniversary_reminder", route: "/(tabs)/home" }
+            });
+          }
+        }
+      }
+      else if (job === "vault_expiry_reminder") {
+        // Kasa süresi dolmak üzere olan çiftlerin üyeleri: 7 gün ve 1 gün kala (aşama başına bir kez, push_dedupe)
+        const { data: reminders, error } = await supabase.rpc("get_vault_expiry_reminders");
+        if (error) console.error("get_vault_expiry_reminders failed:", error.message);
+        if (reminders && !error) {
+          const langs = await languagesByToken(supabase, reminders.map((r: any) => r.push_token));
+          for (const r of reminders) {
+            const s = S(langs.get(r.push_token) ?? "tr");
+            pushMessages.push({
+              to: r.push_token,
+              sound: "default",
+              title: s.vaultExpiryTitle,
+              body: s.vaultExpiryBody(Number(r.stage), Number(r.days_left)),
+              data: { type: "vault_expiry_reminder", route: "/premium", vaultStage: Number(r.stage) }
             });
           }
         }
