@@ -1,5 +1,6 @@
 import dayjs, { type Dayjs } from "dayjs";
 import type { ParseKeys, TFunction } from "i18next";
+import { daysTogether, isDayMilestone } from "@/lib/milestoneDays";
 
 // ─── Özel Günler & Dinamik Selamlama ────────────────────────────────────────────
 // Saf fonksiyonlar (ağ / depolama yok): ana sayfa başlığı ve aşk sayacının altın ışıltısı
@@ -20,6 +21,8 @@ export interface SpecialDayState {
   isValentines: boolean;
   /** Bir sonraki sevgililik yıldönümü; sevgili olma tarihi yoksa / henüz gelmemişse null */
   anniversary: UpcomingAnniversary | null;
+  /** Bugün birlikte 100'ün katı bir gün (100., 200., ...) ise kaçıncı gün; değilse null */
+  dayMilestone: number | null;
   /** Aşk sayacının etrafında altın ışıltı gösterilsin mi */
   glow: boolean;
 }
@@ -62,8 +65,12 @@ export function getSpecialDayState(
     }
   }
 
-  const glow = isValentines || (anniversary !== null && anniversary.daysLeft <= ANNIVERSARY_GLOW_DAYS);
-  return { isValentines, anniversary, glow };
+  const elapsedDays = daysTogether(relationshipStartDate, now);
+  const dayMilestone = isDayMilestone(elapsedDays) ? elapsedDays : null;
+
+  const glow =
+    isValentines || dayMilestone !== null || (anniversary !== null && anniversary.daysLeft <= ANNIVERSARY_GLOW_DAYS);
+  return { isValentines, anniversary, dayMilestone, glow };
 }
 
 // ─── Selamlama ──────────────────────────────────────────────────────────────────
@@ -116,12 +123,15 @@ export function getGreeting(
   const base = { text: t(period.textKey), emoji: period.emoji };
   const anniversary = special.anniversary;
 
-  // Öncelik: yıldönümü günü > 14 Şubat > yaklaşan yıldönümü > ruh hali
+  // Öncelik: yıldönümü günü > 14 Şubat > 100'ün katı gün > yaklaşan yıldönümü > ruh hali
   if (anniversary && anniversary.daysLeft === 0) {
     return { ...base, emoji: "🥂", caption: t("home.caption.anniversaryToday", { years: anniversary.years }) };
   }
   if (special.isValentines) {
     return { ...base, emoji: "💘", caption: t("home.caption.valentines") };
+  }
+  if (special.dayMilestone !== null) {
+    return { ...base, emoji: "💯", caption: t("home.caption.dayMilestone", { days: special.dayMilestone }) };
   }
   if (anniversary && anniversary.daysLeft <= ANNIVERSARY_GLOW_DAYS) {
     const caption =

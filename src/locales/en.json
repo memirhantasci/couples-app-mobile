@@ -289,7 +289,9 @@
       "letterUnlockOne": "A letter of yours unlocked today! Tap to open 📜",
       "medicineTitle": "Medicine Time 💧",
       "meetingTitle": "Meetup Coming Up! ⏳",
-      "letterTitle": "Sealed Letter 💌"
+      "letterTitle": "Sealed Letter 💌",
+      "dayMilestoneTitle": "Day {{days}} Together 💯",
+      "dayMilestoneBody": "You've been together for {{days}} days. Tap to celebrate 💕"
     },
     "channels": {
       "general": "General Notifications ❤️",
@@ -971,7 +973,8 @@
       "anniversaryToday": "Today is your {{years}}-year anniversary, congratulations! 🥂",
       "valentines": "Happy Valentine's Day 💘",
       "anniversaryTomorrow": "Your {{years}}-year anniversary is tomorrow! 💛",
-      "anniversaryDaysLeft": "{{daysLeft}} days until your {{years}}-year anniversary 💛"
+      "anniversaryDaysLeft": "{{daysLeft}} days until your {{years}}-year anniversary 💛",
+      "dayMilestone": "Today is day {{days}} together, congratulations 💯"
     },
     "loveMeter": {
       "subtitle": {
@@ -1813,10 +1816,13 @@
       "memoryAnniversaryTitle": "{{title}} • {{years}} Year Anniversary! ✨",
       "memoryAnniversaryMessage": "Happy {{years}} year anniversary of \"{{title}}\"! Every moment of these {{days}} days together is priceless ❤️",
       "todaySpecialTitle": "Today is a Very Special Day! ✨",
+      "dayTitle": "Day {{days}} Together! 💯",
+      "dayMessage": "{{days}} days side by side, and every one of them was special. Here's to hundreds more ❤️",
       "todaySpecialMessage": "Our special day \"{{title}}\" was recorded today. Here's to many wonderful memories we will celebrate together, my love ❤️",
       "shareStory": "Share to Instagram Story",
       "story": {
         "kicker": "Our Anniversary",
+        "kickerDays": "Days Together",
         "years": "Year {{years}} Together",
         "days": "Day #{{days}}",
         "today": "Today Is Ours",

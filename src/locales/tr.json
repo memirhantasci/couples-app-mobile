@@ -289,7 +289,9 @@
       "letterUnlockOne": "Bugün bir mektubunun kilidi açıldı! Açmak için dokun 📜",
       "medicineTitle": "İlaç Vakti 💧",
       "meetingTitle": "Buluşma Yaklaşıyor! ⏳",
-      "letterTitle": "Mühürlü Mektup 💌"
+      "letterTitle": "Mühürlü Mektup 💌",
+      "dayMilestoneTitle": "Bugün {{days}}. Günümüz 💯",
+      "dayMilestoneBody": "Birlikte {{days}} gün oldu. Kutlamayı görmek için dokun 💕"
     },
     "channels": {
       "general": "Genel Bildirimler ❤️",
@@ -971,7 +973,8 @@
       "anniversaryToday": "Bugün {{years}}. yıl dönümünüz, kutlu olsun 🥂",
       "valentines": "Sevgililer Günün kutlu olsun 💘",
       "anniversaryTomorrow": "{{years}}. yıl dönümünüz yarın! 💛",
-      "anniversaryDaysLeft": "{{years}}. yıl dönümünüze {{daysLeft}} gün kaldı 💛"
+      "anniversaryDaysLeft": "{{years}}. yıl dönümünüze {{daysLeft}} gün kaldı 💛",
+      "dayMilestone": "Bugün birlikte {{days}}. günümüz, kutlu olsun 💯"
     },
     "loveMeter": {
       "subtitle": {
@@ -1813,10 +1816,13 @@
       "memoryAnniversaryTitle": "{{title}} • {{years}}. Yıl Dönümü! ✨",
       "memoryAnniversaryMessage": "\"{{title}}\" anımızın {{years}}. yıl dönümü kutlu olsun! Birlikte biriktirdiğimiz {{days}} günün her anı paha biçilemez ❤️",
       "todaySpecialTitle": "Bugün Çok Özel Bir Gün! ✨",
+      "dayTitle": "{{days}}. Günümüz Kutlu Olsun! 💯",
+      "dayMessage": "Birlikte {{days}} gün geçti ve her günü ayrı güzeldi. Nice yüzlerce güne sevgilim ❤️",
       "todaySpecialMessage": "\"{{title}}\" özel günümüz bugün kaydedildi. Birlikte kutlayacağımız nice güzel anılara sevgilim ❤️",
       "shareStory": "Instagram Story'de Paylaş",
       "story": {
         "kicker": "Yıldönümümüz",
+        "kickerDays": "Birlikte Geçen Günler",
         "years": "{{years}}. Yılımız",
         "days": "#{{days}} Gün",
         "today": "Bugün Bizim Günümüz",

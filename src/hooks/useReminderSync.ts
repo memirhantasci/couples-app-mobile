@@ -14,16 +14,17 @@ export function useReminderSync() {
   const { i18n } = useTranslation();
   const userId = session?.user?.id;
   const coupleId = profile?.coupleId;
+  const relationshipStartDate = profile?.relationshipStartDate;
 
   useEffect(() => {
     if (isDemoMode || !userId || !coupleId) return;
 
-    syncLocalReminders(userId, coupleId, { force: true });
+    syncLocalReminders(userId, coupleId, { force: true, relationshipStartDate });
 
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") syncLocalReminders(userId, coupleId);
+      if (state === "active") syncLocalReminders(userId, coupleId, { relationshipStartDate });
     });
     return () => subscription.remove();
-  // Dil değişince zorla eşitlenir: yerel hatırlatıcı metinleri yeni dilde yeniden kurulur
-  }, [userId, coupleId, isDemoMode, i18n.language]);
+  // Dil ya da ilişki tarihi değişince zorla eşitlenir: yerel hatırlatıcı metinleri yeni dilde / yeni tarihle yeniden kurulur
+  }, [userId, coupleId, relationshipStartDate, isDemoMode, i18n.language]);
 }

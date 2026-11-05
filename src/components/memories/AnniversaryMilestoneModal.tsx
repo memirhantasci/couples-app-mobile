@@ -51,6 +51,8 @@ interface AnniversaryMilestoneModalProps {
   title?: string;
   /** Özel mesaj (varsayılan: t("memories.milestone.message", { days })) */
   message?: string;
+  /** "days": birlikte 100'ün katı gün kutlaması (hikâye kartı yıldönümü yerine gün sayısını öne çıkarır) */
+  variant?: "anniversary" | "days";
   theme: AppTheme;
   /** Tören kapandıktan sonra çağrılır (görüldü kaydı ve konfeti üst bileşende) */
   onClose: () => void;
@@ -62,7 +64,7 @@ export function AnniversaryMilestoneModal({ visible, ...rest }: AnniversaryMiles
   return <MilestoneScene {...rest} />;
 }
 
-function MilestoneScene({ years, days, title, message, theme, onClose }: Omit<AnniversaryMilestoneModalProps, "visible">) {
+function MilestoneScene({ years, days, title, message, variant, theme, onClose }: Omit<AnniversaryMilestoneModalProps, "visible">) {
   const { t, i18n } = useTranslation();
   const displayTitle = title || t("memories.milestone.title", { years });
   const displayMessage = message || t("memories.milestone.message", { days });
@@ -80,8 +82,9 @@ function MilestoneScene({ years, days, title, message, theme, onClose }: Omit<An
         ? t("memories.milestone.story.days", { days })
         : t("memories.milestone.story.today");
   // Özel başlık bir anının kutlamasıdır: kartta anının adı görünür; sevgililik yıldönümünde gün sayısı ve ilk gün
-  const storySubtitle = title ?? (days > 0 ? t("memories.milestone.story.daysTogether", { count: days }) : null);
-  const startDate = !title ? profile?.relationshipStartDate : null;
+  const isDaysVariant = variant === "days";
+  const storySubtitle = isDaysVariant ? null : (title ?? (days > 0 ? t("memories.milestone.story.daysTogether", { count: days }) : null));
+  const startDate = !title || isDaysVariant ? profile?.relationshipStartDate : null;
   const storyDateLine = startDate
     ? t("memories.milestone.story.firstDay", { date: dayjs(startDate).locale(i18n.language).format("D MMMM YYYY") })
     : null;
@@ -205,7 +208,7 @@ function MilestoneScene({ years, days, title, message, theme, onClose }: Omit<An
           <MilestoneStoryCard
             width={width}
             cardRef={cardRef}
-            kicker={t("memories.milestone.story.kicker")}
+            kicker={isDaysVariant ? t("memories.milestone.story.kickerDays") : t("memories.milestone.story.kicker")}
             headline={storyHeadline}
             subtitle={storySubtitle}
             dateLine={storyDateLine}

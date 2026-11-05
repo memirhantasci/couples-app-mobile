@@ -28,6 +28,7 @@ import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { MEMORIES_PAGE_SIZE, fetchMemoriesPage, memoriesQueryKey } from "@/lib/screenQueries";
 import { localizeServerError } from "@/lib/serverErrors";
 import { getSpecialDayState } from "@/lib/specialDays";
+import { daysTogether, isDayMilestone } from "@/lib/milestoneDays";
 import { removeStoredFiles } from "@/lib/storageImages";
 import { supabase } from "@/lib/supabase";
 import type { AppTheme } from "@/lib/theme";
@@ -213,6 +214,8 @@ export default function MemoriesScreen() {
     years: number;
     days: number;
     key: string;
+    /** "days": birlikte 100'ün katı gün kutlaması */
+    variant?: "anniversary" | "days";
   }
 
   // ─── Yıldönümü / Özel Gün Karşılama Töreni (Milestone Reveal) ───
@@ -254,6 +257,19 @@ export default function MemoriesScreen() {
           years: anniversary.years,
           days,
           key: `@seen_anniversary_milestone_${anniversary.years}_${todayString()}`,
+        });
+      }
+
+      // 1b. Birlikte 100'ün katı gün (100., 200., ...); yıldönümü günü kendi töreniyle kutlandığından atlanır
+      const elapsedDays = daysTogether(relationshipStartDate, today);
+      if (isDayMilestone(elapsedDays) && !(anniversary && anniversary.daysLeft === 0)) {
+        candidates.push({
+          title: t("memories.milestone.dayTitle", { days: elapsedDays }),
+          message: t("memories.milestone.dayMessage", { days: elapsedDays }),
+          years: 0,
+          days: elapsedDays,
+          variant: "days",
+          key: `@seen_day_milestone_${elapsedDays}`,
         });
       }
 
@@ -581,6 +597,7 @@ export default function MemoriesScreen() {
         days={milestone?.days ?? 0}
         title={milestone?.title}
         message={milestone?.message}
+        variant={milestone?.variant}
         theme={theme}
         onClose={closeMilestone}
       />

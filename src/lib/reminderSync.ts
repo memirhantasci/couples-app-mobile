@@ -9,6 +9,7 @@ import {
   type LocalNotificationOptions,
 } from "@/lib/notifications";
 import i18n from "@/lib/i18n";
+import { nextDayMilestone } from "@/lib/milestoneDays";
 
 /**
  * Yerel (cihazda zamanlanan) hatırlatıcıların tek doğruluk kaynağı.
@@ -24,6 +25,10 @@ import i18n from "@/lib/i18n";
 const MEDICINE_PREFIX = "med_";
 const MEETING_PREFIX = "meeting_reminder_";
 const LETTER_PREFIX = "letter_unlock_";
+const DAY_MILESTONE_PREFIX = "day_milestone_";
+
+/** "Birlikte 100. gün" bildirimi, dönüm noktası gününün bu saatinde (yerel saat) gösterilir. */
+const DAY_MILESTONE_HOUR = 9;
 
 /** Mektup kilidi bildirimi, açılış gününün bu saatinde (yerel saat) gösterilir. */
 const LETTER_UNLOCK_HOUR = 9;
@@ -55,6 +60,12 @@ const letterUnlockOptions = (): LocalNotificationOptions => ({
   color: "#F5C563",
   channelId: "letters_channel",
   data: { type: "letter", route: "/(tabs)/letters", actionLabel: i18n.t("notifications.actions.openLetter") },
+});
+
+const dayMilestoneOptions = (): LocalNotificationOptions => ({
+  color: "#F5C563",
+  channelId: "partner_messages",
+  data: { type: "milestone", route: "/(tabs)/memories", actionLabel: i18n.t("notifications.actions.goToMemories") },
 });
 
 export const medicineReminderId = (medicineId: number | string, time: string) =>
@@ -217,6 +228,30 @@ async function syncLetterUnlocks(scheduled: ScheduledMap) {
   await cancelOrphans(scheduled, LETTER_PREFIX, keep);
 }
 
+/** Birlikte 100'ün katı gün (100., 200., ...) için sıradaki tek bildirimi kurar; eskileri temizler. */
+async function syncDayMilestone(startDate: string | null | undefined, scheduled: ScheduledMap) {
+  const keep = new Set<string>();
+  const next = nextDayMilestone(startDate);
+  if (next) {
+    const when = next.date.hour(DAY_MILESTONE_HOUR).minute(0).second(0).millisecond(0).toDate();
+    if (when.getTime() > Date.now()) {
+      const id = `${DAY_MILESTONE_PREFIX}${next.days}`;
+      keep.add(id);
+      const body = i18n.t("notifications.local.dayMilestoneBody", { days: next.days });
+      if (!dateUpToDate(scheduled.get(id), body, when)) {
+        await scheduleDateLocalNotification(
+          id,
+          i18n.t("notifications.local.dayMilestoneTitle", { days: next.days }),
+          body,
+          when,
+          dayMilestoneOptions()
+        );
+      }
+    }
+  }
+  await cancelOrphans(scheduled, DAY_MILESTONE_PREFIX, keep);
+}
+
 let inFlight: Promise<void> | null = null;
 let lastSyncAt = 0;
 let lastSyncKey = "";
@@ -226,10 +261,14 @@ let lastSyncKey = "";
  * Bildirim izni yoksa hiçbir şey kurmaz (izin penceresini ASLA kendisi açmaz).
  * Bir kaynak okunamazsa (ağ hatası vb.) o kaynağın mevcut bildirimlerine dokunulmaz.
  */
-export function syncLocalReminders(userId: string, coupleId: number, options: { force?: boolean } = {}): Promise<void> {
+export function syncLocalReminders(
+  userId: string,
+  coupleId: number,
+  options: { force?: boolean; relationshipStartDate?: string | null } = {}
+): Promise<void> {
   if (inFlight) return inFlight;
 
-  const key = `${userId}:${coupleId}`;
+  const key = `${userId}:${coupleId}:${options.relationshipStartDate ?? ""}`;
   if (!options.force && key === lastSyncKey && Date.now() - lastSyncAt < MIN_SYNC_INTERVAL_MS) {
     return Promise.resolve();
   }
@@ -248,11 +287,12 @@ export function syncLocalReminders(userId: string, coupleId: number, options: { 
         syncMedicines(userId, coupleId, scheduled),
         syncMeetings(coupleId, scheduled),
         syncLetterUnlocks(scheduled),
+        syncDayMilestone(options.relationshipStartDate, scheduled),
       ]);
 
       results.forEach((result, i) => {
         if (result.status === "rejected") {
-          logger.log(`[ReminderSync] ${["medicines", "meetings", "letters"][i]} skipped:`, result.reason?.message ?? result.reason);
+          logger.log(`[ReminderSync] ${["medicines", "meetings", "letters", "day milestone"][i]} skipped:`, result.reason?.message ?? result.reason);
         }
       });
     } catch (err) {
