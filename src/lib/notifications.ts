@@ -6,7 +6,6 @@ import { Platform } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { logger } from "@/utils/logger";
 import { decrypt } from "@/utils/crypto";
-import dayjs from "dayjs";
 import i18n, { getCurrentLanguage } from "@/lib/i18n";
 import { APP_NAME } from "@/constants/brand";
 
@@ -654,7 +653,7 @@ export async function scheduleDateLocalNotification(
 export async function cancelLocalNotification(id: string) {
   try {
     await Notifications.cancelScheduledNotificationAsync(id);
-  } catch (error) {
+  } catch {
     // Sessizce yut, henüz kurulmamış olabilir
   }
 }

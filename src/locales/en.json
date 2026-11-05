@@ -10,7 +10,17 @@
     "settings": "Settings",
     "camera": "Camera",
     "myLocation": "My location",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "previousPhoto": "Previous photo",
+    "nextPhoto": "Next photo",
+    "openPhoto": "Open photo",
+    "zoomPhoto": "Enlarge photo",
+    "viewGrid3": "Small grid view",
+    "viewGrid2": "Large grid view",
+    "viewSingle": "Single photo view",
+    "mapTheme": "Change map theme"
   },
   "partnerNotice": {
     "requested": {
@@ -479,6 +489,11 @@
       "unlock3": "📸 A map of the places you've been together and your shared memory album",
       "exploreDemo": "Explore the App in Demo Mode ✨",
       "exploreDemoHint": "(While you wait for your partner, you can safely explore all the app's features with the demo couple).",
+      "inviteLink": {
+        "title": "Pair with this invite?",
+        "message": "You opened an invite link: you're about to pair with the couple using code {{code}}. Your letters, memories and calendar will be shared with this person. Only confirm if it came from your partner.",
+        "confirm": "Pair"
+      },
       "celebration": {
         "title": "You're Together Now! 💕",
         "names": "{{me}} & {{partner}}",
@@ -1077,6 +1092,7 @@
     "restored": "Your purchases have been restored.",
     "noActiveSubscription": "No active subscription was found.",
     "restoreFailed": "Restore failed.",
+    "activationPending": "Your payment went through. Premium can take a few minutes to activate; if it doesn't, tap \"Restore Purchases\" or contact us.",
     "features": {
       "shared": "Shared Premium that applies to your partner too",
       "photos": "Unlimited photo uploads and gallery",
@@ -1948,6 +1964,10 @@
       "subscription": {
         "title": "Subscription & Refund Terms",
         "sub": "Distance Sales, Cancellation and Renewal"
+      },
+      "adsPrivacy": {
+        "title": "Ad Privacy Options",
+        "sub": "Review or withdraw your ad consent"
       },
       "support": {
         "title": "Support & Content Reports",

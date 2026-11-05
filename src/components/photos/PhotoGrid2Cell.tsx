@@ -23,6 +23,7 @@ function PhotoGrid2CellBase({ item, index, theme, onPress }: PhotoGrid2CellProps
 
   return (
     <TouchableOpacity
+      accessibilityRole="button" accessibilityLabel={t("a11y.openPhoto")}
       activeOpacity={0.88}
       onPress={() => onPress(index)}
       style={[

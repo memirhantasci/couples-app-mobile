@@ -34,7 +34,7 @@ export function PhotoLightboxModal({
   onNext,
   onDelete,
 }: PhotoLightboxModalProps) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const topInset = useRealTopInset();
   const currentPhoto = selectedIndex !== null && photos[selectedIndex] ? photos[selectedIndex] : null;
@@ -55,6 +55,7 @@ export function PhotoLightboxModal({
         {/* Lightbox Üst Bar */}
         <View style={[styles.lightboxHeader, { paddingTop: topInset + 10 }]}>
           <TouchableOpacity
+            accessibilityRole="button" accessibilityLabel={t("a11y.close")}
             onPress={onClose}
             style={styles.lightboxCloseBtn}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -73,6 +74,7 @@ export function PhotoLightboxModal({
 
           {isOwner ? (
             <TouchableOpacity
+              accessibilityRole="button" accessibilityLabel={t("a11y.delete")}
               onPress={() => currentPhoto && onDelete(currentPhoto.id)}
               style={styles.lightboxDeleteBtn}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -89,6 +91,7 @@ export function PhotoLightboxModal({
           {/* Önceki Fotoğraf Butonu */}
           {selectedIndex !== null && selectedIndex > 0 ? (
             <TouchableOpacity
+              accessibilityRole="button" accessibilityLabel={t("a11y.previousPhoto")}
               style={styles.lightboxNavLeftBtn}
               onPress={onPrev}
               activeOpacity={0.8}
@@ -109,6 +112,7 @@ export function PhotoLightboxModal({
           {/* Sonraki Fotoğraf Butonu */}
           {selectedIndex !== null && selectedIndex < photos.length - 1 ? (
             <TouchableOpacity
+              accessibilityRole="button" accessibilityLabel={t("a11y.nextPhoto")}
               style={styles.lightboxNavRightBtn}
               onPress={onNext}
               activeOpacity={0.8}

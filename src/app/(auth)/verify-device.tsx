@@ -58,7 +58,7 @@ export default function VerifyDeviceScreen() {
 
   useEffect(() => {
     const handleBackAction = () => {
-      supabase.auth.signOut().then(() => {
+      supabase.auth.signOut({ scope: "local" }).then(() => {
         setIsDeviceAuthorized(null);
         router.replace("/(auth)/login");
       });
@@ -150,7 +150,7 @@ export default function VerifyDeviceScreen() {
 
       // Route user correctly based on couple state (eşleşme ölçütü AuthContext ile aynı: 2 üye)
       navigateAfterAuth(await refreshProfile());
-    } catch (e: any) {
+    } catch {
       setErrorMsg(t("errors.unexpected"));
       setIsLoading(false);
     } finally {
@@ -196,7 +196,8 @@ export default function VerifyDeviceScreen() {
   }, [codeSent]);
 
   const handleBack = async () => {
-    await supabase.auth.signOut();
+    // Yeni cihazdan vazgeçmek, hesabın diğer (yetkili) cihazlardaki oturumlarını kapatmamalı
+    await supabase.auth.signOut({ scope: "local" });
     setIsDeviceAuthorized(null);
     router.replace("/(auth)/login");
   };

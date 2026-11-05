@@ -28,8 +28,10 @@ import {
   translateReferralError,
 } from "@/lib/referral";
 import { toast } from "@/lib/toast";
+import { appAlert } from "@/lib/dialog";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { ToastHost } from "@/components/ui/ToastHost";
 import { ConfettiRainHost } from "@/components/ui/ConfettiRainHost";
 import { OfflineBanner } from "@/components/ui/OfflineBanner";
@@ -90,10 +92,25 @@ const queryClient = new QueryClient({
   },
 });
 
+/** Davet bağlantısıyla eşleşmeden önce kullanıcıdan açık onay ister (vazgeçme / diyaloğu kapatma = false). */
+function confirmInviteJoin(code: string, t: TFunction): Promise<boolean> {
+  return new Promise((resolve) => {
+    appAlert(
+      t("setup.pairing.inviteLink.title"),
+      t("setup.pairing.inviteLink.message", { code }),
+      [
+        { text: t("common.cancel"), style: "cancel", onPress: () => resolve(false) },
+        { text: t("setup.pairing.inviteLink.confirm"), onPress: () => resolve(true) },
+      ],
+      { forceDialog: true, tone: "question", onDismiss: () => resolve(false) }
+    );
+  });
+}
+
 // ─── Inner layout: has access to AuthContext ──────────────────────────────────
 
 function RootLayoutNav() {
-  const { isSignedIn, isLoading, isDemoMode, exitDemoMode, refreshProfile } = useAuth();
+  const { isSignedIn, isLoading, isDemoMode, exitDemoMode, refreshProfile, profile } = useAuth();
   const { theme, isLight } = useTheme();
   const { t, i18n } = useTranslation();
 
@@ -148,6 +165,9 @@ function RootLayoutNav() {
     };
 
     if (link.kind === "verify") {
+      // Doğrulama bağlantısı yeni (henüz oturumsuz) bir hesap içindir. Oturum açıkken gelen bağlantı sessizce
+      // başka bir hesaba geçiş yaptırabileceğinden yok sayılır.
+      if (isSignedIn) return;
       leaveDemo();
       router.push({
         pathname: "/(auth)/verify",
@@ -183,9 +203,13 @@ function RootLayoutNav() {
 
     // Davet: kod hafızada tutulur; hesabı olmayan kullanıcıda doğrulama / eşleşme ekranı onu kullanır
     const code = normalizePairingCode(link.code);
-    await AsyncStorage.setItem("@pending_invite_code", code);
 
     if (isSignedIn) {
+      // `couplesapp://` bağlantısını herhangi bir uygulama ya da mesaj tetikleyebilir; eşleşmemiş kullanıcı
+      // onay vermeden bir başkasının bekleyen çiftine katılmasın (kendi bekleme çifti silinir).
+      // Zaten eşleşmiş kullanıcıda sunucu katılımı reddeder, onay sormaya gerek yok.
+      if (!profile?.isPaired && !(await confirmInviteJoin(code, t))) return;
+      await AsyncStorage.setItem("@pending_invite_code", code);
       // Katılım kendi yönlendirmesini yapar; koruyucu aynı anda ikinci bir yönlendirme yapmasın
       setAuthFlowActive(true);
       try {
@@ -214,6 +238,7 @@ function RootLayoutNav() {
       return;
     }
 
+    await AsyncStorage.setItem("@pending_invite_code", code);
     leaveDemo();
     router.push({
       pathname: "/(auth)/login",

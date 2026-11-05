@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { ActionCard } from "@/components/ui/ActionCard";
 import { Reveal } from "@/components/ui/Reveal";
 import { SegmentedControl } from "@/components/profile/SegmentedControl";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, Modal } from "react-native";
 import { ScreenHeader, ScreenHeaderButton } from "@/components/ui/ScreenHeader";
 import { appAlert, type DialogButton } from "@/lib/dialog";
@@ -68,7 +68,6 @@ export default function LettersScreen() {
   const { theme, isLight } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const queryClient = useQueryClient();
-  const today = todayString();
   const insets = useSafeAreaInsets();
 
   const coupleId = profile?.coupleId || null;

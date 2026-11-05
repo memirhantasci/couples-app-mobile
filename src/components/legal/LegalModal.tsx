@@ -22,7 +22,6 @@ import {
   Calendar,
 } from "lucide-react-native";
 import { getLegalDoc, LegalDocType } from "@/constants/legalTexts";
-import { getTheme } from "@/lib/theme";
 import { useTranslation } from "react-i18next";
 import type { ParseKeys } from "i18next";
 

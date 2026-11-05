@@ -49,9 +49,9 @@ const cleanContentText = (stored: string) => {
 
 export default function DailyNotesScreen() {
   const { t, i18n } = useTranslation();
-  const { session, profile, isDemoMode } = useAuth();
+  const { session, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
-  const { theme, isLight } = useTheme();
+  const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
   const insets = useSafeAreaInsets();

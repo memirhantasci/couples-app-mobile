@@ -2,6 +2,7 @@ import React from "react";
 import { TouchableOpacity, StyleSheet, Dimensions } from "react-native";
 import { StorageImage } from "@/components/common/StorageImage";
 import type { PhotoItem } from "./photoTypes";
+import { useTranslation } from "react-i18next";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -13,9 +14,11 @@ interface PhotoGrid3CellProps {
 
 // ─── 3 SÜTUNLU KOMPAKT IZGARA HÜCRESİ ────────────────────────────────────────
 function PhotoGrid3CellBase({ item, index, onPress }: PhotoGrid3CellProps) {
+  const { t } = useTranslation();
   const itemSize = (SCREEN_WIDTH - 32 - 12) / 3;
   return (
     <TouchableOpacity
+      accessibilityRole="button" accessibilityLabel={t("a11y.openPhoto")}
       activeOpacity={0.88}
       onPress={() => onPress(index)}
       style={[styles.grid3Box, { width: itemSize, height: itemSize }]}

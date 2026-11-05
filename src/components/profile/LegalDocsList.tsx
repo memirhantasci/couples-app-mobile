@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Linking } from "react-native";
 import * as Clipboard from "expo-clipboard";
-import { ShieldCheck, Lock, FileText, UserCheck, CreditCard, Mail } from "lucide-react-native";
+import { ShieldCheck, Lock, FileText, UserCheck, CreditCard, Mail, SlidersHorizontal } from "lucide-react-native";
 import type { AppTheme } from "@/lib/theme";
 import type { LegalDocType } from "@/constants/legalTexts";
 import { ModernSection } from "./ModernSection";
@@ -9,6 +9,7 @@ import { SettingsRow } from "./SettingsRow";
 import { useTranslation } from "react-i18next";
 import { SUPPORT_EMAIL } from "@/constants/brand";
 import { toast } from "@/lib/toast";
+import { isAdsPrivacyOptionsRequired, showAdsPrivacyOptions } from "@/lib/adsConsent";
 
 interface LegalDocsListProps {
   theme: AppTheme;
@@ -26,6 +27,18 @@ const LEGAL_ITEMS = [
 /** Yasal belgeler: varsayılan kapalı, açılınca kenardan kenara satır listesi. */
 export function LegalDocsList({ theme, onOpenDoc }: LegalDocsListProps) {
   const { t, i18n } = useTranslation();
+
+  // Reklam rızası geri alma girişi: yalnızca UMP bunu zorunlu tuttuğu bölgelerde (AB / Birleşik Krallık) görünür
+  const [adsPrivacyRequired, setAdsPrivacyRequired] = useState(false);
+  useEffect(() => {
+    let active = true;
+    isAdsPrivacyOptionsRequired().then((required) => {
+      if (active) setAdsPrivacyRequired(required);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   /** Destek / içerik ve telif bildirimi: posta uygulaması açılamazsa adres panoya kopyalanır. */
   const openSupport = async () => {
@@ -56,6 +69,15 @@ export function LegalDocsList({ theme, onOpenDoc }: LegalDocsListProps) {
           theme={theme}
         />
       ))}
+      {adsPrivacyRequired ? (
+        <SettingsRow
+          icon={SlidersHorizontal}
+          title={t("legal.docs.adsPrivacy.title")}
+          subtitle={t("legal.docs.adsPrivacy.sub")}
+          onPress={showAdsPrivacyOptions}
+          theme={theme}
+        />
+      ) : null}
       <SettingsRow
         icon={Mail}
         title={t("legal.docs.support.title")}

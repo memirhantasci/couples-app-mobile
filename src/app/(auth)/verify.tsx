@@ -23,6 +23,7 @@ import { ArrowLeft, Mail } from "lucide-react-native";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { getOrCreateDeviceId } from "@/utils/device";
 import { normalizePairingCode } from "@/lib/pairingCode";
+import { isVerifyLinkType, type VerifyLinkType } from "@/lib/deepLinks";
 import { useAuth, DEVICE_AUTH_CACHE_KEY } from "@/context/AuthContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -49,16 +50,16 @@ export default function VerifyScreen() {
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
   // ── Path B: Deep link auto-verify ────────────────────────────────────────
-  const isDeepLinkVerify = !!(params.token_hash && params.type);
+  const isDeepLinkVerify = !!(params.token_hash && isVerifyLinkType(params.type));
   const autoVerifyStartedRef = useRef(false);
   useEffect(() => {
-    if (params.token_hash && params.type && !autoVerifyStartedRef.current) {
+    if (params.token_hash && isVerifyLinkType(params.type) && !autoVerifyStartedRef.current) {
       autoVerifyStartedRef.current = true;
       handleDeepLinkVerify(params.token_hash, params.type);
     }
   }, [params.token_hash]);
 
-  async function handleDeepLinkVerify(token_hash: string, type: string) {
+  async function handleDeepLinkVerify(token_hash: string, type: VerifyLinkType) {
     setIsLoading(true);
     setErrorMsg("");
     // Doğrulama oturumu açar ve kendi yönlendirmesini yapar (routeUser); koruyucu araya girmesin
@@ -66,7 +67,7 @@ export default function VerifyScreen() {
     try {
       const { data, error } = await supabase.auth.verifyOtp({
         token_hash,
-        type: type as any,
+        type,
       });
 
       setIsLoading(false);

@@ -256,12 +256,10 @@ export const MALE_THEMES: readonly AppTheme[] = [
 // Global aktif durum (Hook dışında çağrılan legacy `getTheme` için)
 let globalGender: "female" | "male" = "female";
 let globalMode: ThemeMode = "current";
-let globalActiveTheme: AppTheme = FEMALE_CURRENT;
 
 export function setGlobalActiveTheme(gender: "female" | "male", mode: ThemeMode) {
   globalGender = gender;
   globalMode = mode;
-  globalActiveTheme = resolveTheme(gender, mode);
 }
 
 function resolveTheme(gender: "female" | "male", mode: ThemeMode): AppTheme {

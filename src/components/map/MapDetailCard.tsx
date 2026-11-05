@@ -144,6 +144,7 @@ function PhotoDetail({
 
       <View style={styles.photoPreviewRow}>
         <TouchableOpacity
+          accessibilityRole="button" accessibilityLabel={t("a11y.zoomPhoto")}
           onPress={() => onZoomPhoto(photo)}
           activeOpacity={0.85}
           style={styles.photoThumbContainer}

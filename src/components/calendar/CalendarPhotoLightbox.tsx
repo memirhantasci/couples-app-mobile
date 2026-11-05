@@ -20,7 +20,7 @@ interface CalendarPhotoLightboxProps {
 
 // ─── FOTOĞRAF TAM EKRAN (LIGHTBOX) MODALI ────────────────────────────────────
 export function CalendarPhotoLightbox({ photo, theme, getAuthorName, onClose }: CalendarPhotoLightboxProps) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const topInset = useRealTopInset();
 
@@ -37,6 +37,7 @@ export function CalendarPhotoLightbox({ photo, theme, getAuthorName, onClose }: 
         {/* Lightbox Üst Bar */}
         <View style={[styles.lightboxHeader, { paddingTop: topInset + 10 }]}>
           <TouchableOpacity
+            accessibilityRole="button" accessibilityLabel={t("a11y.close")}
             onPress={onClose}
             style={styles.lightboxCloseBtn}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}

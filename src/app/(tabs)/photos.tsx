@@ -11,20 +11,18 @@ import {
 import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { Camera, Crown, Grid3X3, Grid2X2, Square, ArrowUpDown } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { openForm } from "@/lib/formEntry";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { supabase } from "@/lib/supabase";
 import { deleteArchivedPhoto } from "@/lib/photoArchive";
 import { useAuth } from "@/context/AuthContext";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { usePageTour } from "@/hooks/usePageTour";
-import { DEMO_PHOTOS } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { PhotoGrid3Cell } from "@/components/photos/PhotoGrid3Cell";
 import { PhotoGrid2Cell } from "@/components/photos/PhotoGrid2Cell";
@@ -84,24 +82,6 @@ export default function PhotosScreen() {
   const photos = useMemo(() => {
     return data ? data.pages.flat() : [];
   }, [data]);
-
-  // Başlıktaki sayı yüklenen sayfa kadar değil, galerideki TOPLAM fotoğraf sayısıdır (ilk açılışta 12 görünüyordu).
-  // Anahtar ["photo_archive", coupleId] ile başladığı için yükleme / silme sonrası mevcut invalidate'ler bunu da yeniler.
-  const { data: totalPhotoCount } = useQuery({
-    queryKey: ["photo_archive", coupleId, "count", isDemoMode],
-    enabled: !!coupleId || isDemoMode,
-    staleTime: 1000 * 60 * 5,
-    queryFn: async () => {
-      if (isDemoMode) return DEMO_PHOTOS.length;
-      const { count, error } = await supabase
-        .from("photo_archive")
-        .select("id", { count: "exact", head: true })
-        .eq("couple_id", coupleId);
-      if (error) throw error;
-      return count ?? 0;
-    },
-  });
-  const photoCount = Math.max(totalPhotoCount ?? 0, photos.length);
 
   const currentPhoto = selectedIndex !== null && photos[selectedIndex] ? photos[selectedIndex] : null;
 
@@ -233,6 +213,8 @@ export default function PhotosScreen() {
             {/* Görünüm Modları: 3'lü, 2'li, 1'li */}
             <View style={styles.viewModePills}>
               <TouchableOpacity
+                accessibilityRole="button" accessibilityLabel={t("a11y.viewGrid3")}
+                accessibilityState={{ selected: viewMode === "grid3" }}
                 style={[styles.viewModeBtn, viewMode === "grid3" && { backgroundColor: theme.pillAccentBg }]}
                 onPress={() => setViewMode("grid3")}
                 hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
@@ -241,6 +223,8 @@ export default function PhotosScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
+                accessibilityRole="button" accessibilityLabel={t("a11y.viewGrid2")}
+                accessibilityState={{ selected: viewMode === "grid2" }}
                 style={[styles.viewModeBtn, viewMode === "grid2" && { backgroundColor: theme.pillAccentBg }]}
                 onPress={() => setViewMode("grid2")}
                 hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
@@ -249,6 +233,8 @@ export default function PhotosScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
+                accessibilityRole="button" accessibilityLabel={t("a11y.viewSingle")}
+                accessibilityState={{ selected: viewMode === "single" }}
                 style={[styles.viewModeBtn, viewMode === "single" && { backgroundColor: theme.pillAccentBg }]}
                 onPress={() => setViewMode("single")}
                 hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}

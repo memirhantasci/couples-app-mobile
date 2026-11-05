@@ -48,18 +48,17 @@ export class RevenueCatService {
 
   private static async configure() {
     try {
-      if (API_KEYS.apple.includes("xxxx") || API_KEYS.google.includes("xxxx")) {
-        logger.warn("RevenueCat API keys are not configured. Skipping initialization.");
+      // Yalnızca ÇALIŞILAN platformun anahtarı gerekir. Eskiden iki anahtar da tanımlı olmalıydı: iOS
+      // anahtarı henüz yokken Android derlemesinde de başlatma atlanıyor, paywall boş kalıyordu.
+      const apiKey =
+        Platform.OS === 'ios' ? API_KEYS.apple : Platform.OS === 'android' ? API_KEYS.google : null;
+      if (!apiKey || apiKey.includes("xxxx")) {
+        logger.warn(`RevenueCat API key is not configured for ${Platform.OS}. Skipping initialization.`);
         return;
       }
 
       Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.WARN);
-
-      if (Platform.OS === 'ios') {
-        Purchases.configure({ apiKey: API_KEYS.apple });
-      } else if (Platform.OS === 'android') {
-        Purchases.configure({ apiKey: API_KEYS.google });
-      }
+      Purchases.configure({ apiKey });
       this.isInitialized = true;
     } catch (e) {
       logger.error("Error initializing RevenueCat", e);

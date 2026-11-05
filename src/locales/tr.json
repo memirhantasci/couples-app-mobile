@@ -10,7 +10,17 @@
     "settings": "Ayarlar",
     "camera": "Kamera",
     "myLocation": "Konumum",
-    "refresh": "Yenile"
+    "refresh": "Yenile",
+    "previousMonth": "Önceki ay",
+    "nextMonth": "Sonraki ay",
+    "previousPhoto": "Önceki fotoğraf",
+    "nextPhoto": "Sonraki fotoğraf",
+    "openPhoto": "Fotoğrafı aç",
+    "zoomPhoto": "Fotoğrafı büyüt",
+    "viewGrid3": "Küçük ızgara görünümü",
+    "viewGrid2": "Geniş ızgara görünümü",
+    "viewSingle": "Tek fotoğraf görünümü",
+    "mapTheme": "Harita temasını değiştir"
   },
   "partnerNotice": {
     "requested": {
@@ -479,6 +489,11 @@
       "unlock3": "📸 Birlikte gezdiğiniz yerlerin haritası ve ortak anı albümünüz",
       "exploreDemo": "Uygulamayı Demo Modunda Keşfet ✨",
       "exploreDemoHint": "(Partnerini beklerken uygulamanın tüm özelliklerini demo çiftiyle güvenle keşfedebilirsin).",
+      "inviteLink": {
+        "title": "Davetle eşleşelim mi?",
+        "message": "Bir davet bağlantısı açtın: {{code}} kodlu çiftle eşleşmek üzeresin. Mektupların, anıların ve takvimin bu kişiyle ortak olacak. Yalnızca sevgilinden geldiyse onayla.",
+        "confirm": "Eşleş"
+      },
       "celebration": {
         "title": "Artık Birliktesiniz! 💕",
         "names": "{{me}} & {{partner}}",
@@ -1077,6 +1092,7 @@
     "restored": "Satın alımların geri yüklendi.",
     "noActiveSubscription": "Aktif bir aboneliğin bulunamadı.",
     "restoreFailed": "Geri yükleme başarısız oldu.",
+    "activationPending": "Ödemen alındı. Premium'un etkinleşmesi birkaç dakika sürebilir; gelmezse \"Satın Alımları Geri Yükle\"ye dokun ya da bizimle iletişime geç.",
     "features": {
       "shared": "Partnerin için de geçerli ortak Premium",
       "photos": "Sınırsız fotoğraf yükleme ve galeri",
@@ -1948,6 +1964,10 @@
       "subscription": {
         "title": "Abonelik ve İade Şartları",
         "sub": "Mesafeli Satış, İptal ve Yenileme"
+      },
+      "adsPrivacy": {
+        "title": "Reklam Gizlilik Seçenekleri",
+        "sub": "Reklam rızanı gözden geçir veya geri çek"
       },
       "support": {
         "title": "Destek ve İçerik Bildirimi",

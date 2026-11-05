@@ -249,6 +249,7 @@ export default function AddDailyNoteScreen() {
           fallbackRoute="/(tabs)/daily-notes"
           actions={
             <TouchableOpacity 
+            accessibilityRole="button" accessibilityLabel={t("common.save")}
             onPress={handleSave}
             disabled={isSubmitting || isLoadingNote || !content.trim()}
             style={[

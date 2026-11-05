@@ -6,13 +6,11 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { router, useLocalSearchParams } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { navigateAfterAuth, setAuthFlowActive, releaseAuthFlow } from "@/lib/navigate";
-import { registerForPushNotifications } from "@/lib/notifications";
 import { APP_NAME } from "@/constants/brand";
 import { useAuth, DEVICE_AUTH_CACHE_KEY } from "@/context/AuthContext";
 import { signInWithUsername } from "@/lib/authGateway";
 import { isValidUsername, normalizeUsername, USERNAME_MAX_LENGTH } from "@/lib/username";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
-import { logger } from "@/utils/logger";
 import { 
   Eye, EyeOff, Heart, Link, 
   AtSign, Lock, User, Mail, 
@@ -106,7 +104,6 @@ async function ensureDeviceAuthorized(userId: string, deviceId: string): Promise
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
-type Mode = "login" | "register";
 
 export default function LoginScreen() {
   const { t } = useTranslation();
@@ -201,7 +198,7 @@ export default function LoginScreen() {
             await AsyncStorage.removeItem(BRUTE_FORCE_KEY);
           }
         }
-      } catch (e) {
+      } catch {
         // ignore
       }
     }
@@ -389,7 +386,7 @@ export default function LoginScreen() {
       // Route user according to couple & profile status (eşleşme ölçütü AuthContext ile aynı: 2 üye;
       // tek kişilik bekleme çifti olan kullanıcı tarih ekranına gidip geri fırlatılmasın)
       navigateAfterAuth(await refreshProfile());
-    } catch (e: any) {
+    } catch {
       setErrorMsg(t("errors.unexpected"));
     } finally {
       releaseAuthFlow();
@@ -534,7 +531,7 @@ export default function LoginScreen() {
       setIsDeviceAuthorized(true);
       // Koruyucu kilitliyken yönlendirmeyi akışın kendisi yapar (eşleşme ekranı bekleyen kodu kullanır)
       navigateAfterAuth(await refreshProfile());
-    } catch (e: any) {
+    } catch {
       setErrorMsg(t("errors.unexpected"));
     } finally {
       releaseAuthFlow();

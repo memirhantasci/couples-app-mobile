@@ -19,7 +19,7 @@ interface PhotoSingleCellProps {
 
 // ─── 1 SÜTUNLU BÜYÜK HİKAYE KARTI ────────────────────────────────────────────
 function PhotoSingleCellBase({ item, index, isMine, theme, isLight, onPress, onDelete }: PhotoSingleCellProps) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const hasInfo = Boolean(item.title?.trim() || item.description?.trim());
 
   return (
@@ -42,6 +42,7 @@ function PhotoSingleCellBase({ item, index, isMine, theme, isLight, onPress, onD
 
         {isMine && (
           <TouchableOpacity
+            accessibilityRole="button" accessibilityLabel={t("a11y.delete")}
             style={styles.deleteBtn}
             onPress={() => onDelete(item.id)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -53,6 +54,7 @@ function PhotoSingleCellBase({ item, index, isMine, theme, isLight, onPress, onD
 
       {/* Fotoğraf Görseli (Tıklanınca Tam Ekran) */}
       <TouchableOpacity
+        accessibilityRole="button" accessibilityLabel={t("a11y.openPhoto")}
         activeOpacity={0.92}
         onPress={() => onPress(index)}
         style={styles.singleTouchable}

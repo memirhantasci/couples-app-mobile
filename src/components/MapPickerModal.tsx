@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions, ActivityIndicator, StatusBar, TextInput } from "react-native";
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, StatusBar, TextInput } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { showPermissionDeniedDialog } from "@/lib/permissions";
 import { DialogHost } from "@/components/ui/DialogHost";
@@ -14,7 +14,6 @@ import { useTheme } from "@/context/ThemeContext";
 import { isValidCoordinate, geocodeAddressString, formatGeocodedAddress } from "@/utils/exifHelper";
 import { useTranslation } from "react-i18next";
 
-const { width: SW, height: SH } = Dimensions.get("window");
 
 export interface LocationData {
   latitude: number;
@@ -427,6 +426,7 @@ export function MapPickerModal({
             {/* Sağ Aksiyon Butonları (Tema & GPS) */}
             <View style={styles.topActionsGroup}>
               <TouchableOpacity
+                accessibilityRole="button" accessibilityLabel={t("a11y.mapTheme")}
                 style={[
                   styles.topActionBtn,
                   {

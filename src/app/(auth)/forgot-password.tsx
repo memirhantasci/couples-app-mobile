@@ -54,7 +54,7 @@ export default function ForgotPasswordScreen() {
         pathname: "/(auth)/reset-password",
         params: { identifier: normalized },
       });
-    } catch (e) {
+    } catch {
       setErrorMsg(t("errors.unexpected"));
     } finally {
       setIsLoading(false);

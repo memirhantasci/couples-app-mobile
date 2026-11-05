@@ -767,7 +767,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Çıkış yine de tamamlanmalı
     }
 
-    await supabase.auth.signOut();
+    // Yalnızca BU cihazın oturumu kapanır: varsayılan "global" kapsam kullanıcının tüm cihazlardaki oturumunu
+    // sonlandırırdı (telefondan çıkış tabletteki oturumu da düşürürdü)
+    await supabase.auth.signOut({ scope: "local" });
   }, [isDemoMode, exitDemoMode, signedInCoupleId, session?.user?.id]);
 
   // Silinmek üzere olan hesapla giriş yapıldı (bkz. showPendingDeletionPrompt)

@@ -161,12 +161,23 @@ export default function PaywallScreen() {
 
     try {
       const customerInfo = await RevenueCatService.purchasePackage(selectedPackage);
+      if (!customerInfo && !RevenueCatService.isInitialized) {
+        // Mağaza bağlantısı hiç kurulamadı: sessizce hiçbir şey olmasın
+        toast.warning(t("paywall.storeUnavailable"));
+        return;
+      }
       const isEntitled = customerInfo && (typeof customerInfo.entitlements.active['Premium'] !== 'undefined' || typeof customerInfo.entitlements.active['couples_app_pro'] !== 'undefined');
       if (isEntitled) {
-        await waitForServerPremium(refreshProfile);
-        toast.success(t("paywall.activated"), { title: t("common.congratulations"), emoji: "👑", duration: 3400 });
-        handleBack();
-        revealSharedFeeling();
+        const serverPremium = await waitForServerPremium(refreshProfile);
+        if (serverPremium) {
+          toast.success(t("paywall.activated"), { title: t("common.congratulations"), emoji: "👑", duration: 3400 });
+          handleBack();
+          revealSharedFeeling();
+        } else {
+          // Ödeme alındı ama sunucu Premium'u henüz yazmadı (webhook gecikmesi): "aktif" denmez, durum dürüstçe anlatılır
+          toast.info(t("paywall.activationPending"), { duration: 7000 });
+          handleBack();
+        }
       }
     } catch (e: any) {
       appAlert(t("paywall.purchaseFailedTitle"), e.message || t("errors.generic"));
@@ -186,14 +197,19 @@ export default function PaywallScreen() {
       const customerInfo = await RevenueCatService.restorePurchases();
       const isEntitled = customerInfo && (typeof customerInfo.entitlements.active['Premium'] !== 'undefined' || typeof customerInfo.entitlements.active['couples_app_pro'] !== 'undefined');
       if (isEntitled) {
-        await waitForServerPremium(refreshProfile);
-        toast.success(t("paywall.restored"));
-        handleBack();
-        revealSharedFeeling();
+        const serverPremium = await waitForServerPremium(refreshProfile);
+        if (serverPremium) {
+          toast.success(t("paywall.restored"));
+          handleBack();
+          revealSharedFeeling();
+        } else {
+          toast.info(t("paywall.activationPending"), { duration: 7000 });
+          handleBack();
+        }
       } else {
         toast.info(t("paywall.noActiveSubscription"));
       }
-    } catch (e: any) {
+    } catch {
       appAlert(t("common.error"), t("paywall.restoreFailed"));
     } finally {
       setPurchasing(false);

@@ -166,9 +166,10 @@ export default function PremiumScreen() {
       const entitled =
         !!info && (typeof info.entitlements.active["Premium"] !== "undefined" || typeof info.entitlements.active["couples_app_pro"] !== "undefined");
       if (entitled) {
-        await waitForServerPremium(refreshProfile);
+        const serverPremium = await waitForServerPremium(refreshProfile);
         await details.reload();
-        toast.success(t("paywall.restored"));
+        if (serverPremium) toast.success(t("paywall.restored"));
+        else toast.info(t("paywall.activationPending"), { duration: 7000 });
       } else {
         toast.info(t("paywall.noActiveSubscription"));
       }

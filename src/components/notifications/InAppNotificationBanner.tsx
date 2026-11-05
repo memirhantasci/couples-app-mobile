@@ -8,7 +8,6 @@ import {
   PanResponder,
   Platform,
   Vibration,
-  Dimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -42,7 +41,6 @@ interface InAppNotificationBannerProps {
   onAction?: (notification: InAppNotificationData) => void;
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const AUTO_DISMISS_DURATION = 6500;
 
 export const InAppNotificationBanner: React.FC<InAppNotificationBannerProps> = ({

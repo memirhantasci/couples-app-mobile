@@ -232,7 +232,7 @@ function CalendarPane({
       onLayout={(e) => setMeasuredWidth(Math.floor(e.nativeEvent.layout.width))}
     >
       <View style={styles.calendarHeader}>
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.back")}
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.previousMonth")}
           onPress={() => shiftMonth(-1)}
           disabled={!canGoPrev || yearMode}
           style={[styles.navBtn, { backgroundColor: theme.unitBg, borderWidth: 1, borderColor: theme.cardBorder, opacity: canGoPrev && !yearMode ? 1 : 0.3 }]}
@@ -252,6 +252,7 @@ function CalendarPane({
         </TouchableOpacity>
 
         <TouchableOpacity
+          accessibilityRole="button" accessibilityLabel={t("a11y.nextMonth")}
           onPress={() => shiftMonth(1)}
           disabled={!canGoNext || yearMode}
           style={[styles.navBtn, { backgroundColor: theme.unitBg, borderWidth: 1, borderColor: theme.cardBorder, opacity: canGoNext && !yearMode ? 1 : 0.3 }]}

@@ -18,7 +18,7 @@ import { getSectorByCoords } from '../config/skySectors.data';
 import type { CoupleStarDetails } from '../types/star.types';
 import { useTranslation } from 'react-i18next';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const RADAR_SIZE = Math.min(SCREEN_WIDTH - 64, 300);
 
 export interface HomeRadarOverlayProps {

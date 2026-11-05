@@ -1,5 +1,4 @@
 import * as Location from "expo-location";
-import { dayjs } from "@/lib/date";
 import { logger } from "@/utils/logger";
 import i18n from "@/lib/i18n";
 import { getLocales } from "expo-localization";

@@ -66,7 +66,7 @@ export default function ResetPasswordScreen() {
       }
 
       setSuccess(true);
-    } catch (e) {
+    } catch {
       setError(t("errors.unexpected"));
     } finally {
       setIsLoading(false);

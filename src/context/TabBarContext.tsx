@@ -140,7 +140,7 @@ const MIN_TABS = 2;
 export function TabBarProvider({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
   const [enabledTabs, setEnabledTabs] = useState<TabKey[]>(DEFAULT_TABS);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [, setIsLoaded] = useState(false);
 
   // AsyncStorage'dan kayıtlı alt bar tercihlerini yükle
   useEffect(() => {
