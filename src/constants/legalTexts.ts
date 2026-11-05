@@ -174,7 +174,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "• Otomatik botlar veya scriptler ile veri çekmek (scraping).",
 
       "5. FİKRİ MÜLKİYET HAKLARI",
-      "Uygulamanın tasarımı, logoları, kodları, arayüz unsurları ve marka hakları Veri Sorumlusuna aittir. Yüklediğiniz fotoğrafların ve anıların telif hakları size aittir; ancak uygulamanın çalışması için gerekli teknik lisansı vermiş sayılırsınız.",
+      "Uygulamanın tasarımı, logoları, kodları, arayüz unsurları ve marka hakları Veri Sorumlusuna aittir. Yüklediğiniz fotoğrafların ve anıların telif hakları size aittir; ancak uygulamanın çalışması için gerekli teknik lisansı vermiş sayılırsınız. Gökyüzü haritasındaki gerçek yıldızların konum, parlaklık ve tür bilgileri HYG Veritabanı'ndan (Hipparcos, Yale Parlak Yıldız Kataloğu ve Gliese; https://www.astronexus.com/projects/hyg) alınmıştır. Bu veri Creative Commons Atıf-AynıLisanslaPaylaş 4.0 (CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/) lisansıyla sunulur; uygulamada seçilip dönüştürülerek kullanılmıştır.",
 
       "6. HİZMET KESİNTİLERİ VE SORUMLULUK REDDİ",
       "Uygulama 'olduğu gibi' ve 'mevcut haliyle' sunulmaktadır. Mücbir sebepler, internet altyapı arızaları veya bakım çalışmaları nedeniyle yaşanabilecek geçici kesintilerden doğrudan veya dolaylı maddi/manevi zararlardan Veri Sorumlusu sorumlu tutulamaz.",
@@ -414,7 +414,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "• Deploy automated scrapers, crawlers, or bots to harvest data.",
 
       "5. INTELLECTUAL PROPERTY RIGHTS",
-      "The application UI, designs, logos, artwork, and software code are owned exclusively by the Data Controller. You retain ownership of all photographs and text memories you upload, while granting the necessary technical license required to render the service.",
+      "The application UI, designs, logos, artwork, and software code are owned exclusively by the Data Controller. You retain ownership of all photographs and text memories you upload, while granting the necessary technical license required to render the service. The positions, brightness and types of the real stars on the sky map come from the HYG Database (Hipparcos, Yale Bright Star and Gliese catalogs; https://www.astronexus.com/projects/hyg), provided under the Creative Commons Attribution-ShareAlike 4.0 license (CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/); the data was selected and converted for use in the app.",
 
       "6. SERVICE AVAILABILITY AND DISCLAIMER OF WARRANTIES",
       "CoupleSky is provided on an \"AS IS\" and \"AS AVAILABLE\" basis. We cannot guarantee uninterrupted uptime due to maintenance, force majeure events, or network provider disruptions, and disclaim liability for indirect or consequential damages to the extent permitted by law.",
