@@ -2868,7 +2868,8 @@
       "ascendA11y": "Gök Kubbeye Çık",
       "enterStarA11y": "Yıldızın İçine Gir",
       "registeredStar": "Tescilli Yıldız",
-      "connectNamesNote": "Bağ kabul edilince iki çift birbirinin ilk adını görür."
+      "connectNamesNote": "Bağ kabul edilince iki çift birbirinin ilk adını görür.",
+      "ownerPhotos": "Yıldız sahiplerinin profil fotoğrafları"
     },
     "screen": {
       "toasts": {
@@ -2902,24 +2903,32 @@
     },
     "report": {
       "title": "Bu Yıldızı Bildir",
-      "message": "Yıldızın adı ya da görünen isimler uygunsuzsa bize bildir. Bu yıldızın adını ve isimlerini artık görmeyeceksin; birden fazla çift bildirirse ad herkesten gizlenir.",
+      "message": "Yıldızın adı, görünen isimler ya da profil fotoğrafları uygunsuzsa bize bildir. Bu yıldızın adını, isimlerini ve fotoğraflarını artık görmeyeceksin; birden fazla çift bildirirse herkesten gizlenir.",
       "confirm": "Bildir",
-      "done": "Teşekkürler, bildirimin alındı. Bu yıldızın adı artık sana gösterilmeyecek.",
+      "done": "Teşekkürler, bildirimin alındı. Bu yıldızın adı ve fotoğrafları artık sana gösterilmeyecek.",
       "failed": "Bildirim gönderilemedi. Lütfen tekrar dene.",
-      "a11y": "Yıldızı bildir"
+      "a11y": "Yıldızı bildir",
+      "signInRequired": "Bir yıldızı bildirmek için hesabınla giriş yapman gerekiyor."
     },
     "nameVisibility": {
-      "title": "İsimlerimiz",
-      "description": "Bağ kurduğunuz çiftler ilk adlarınızı görür. Diğer çiftler yalnızca baş harflerinizi görür.",
+      "title": "İsimlerimiz ve Fotoğraflarımız",
+      "description": "Bağ kurduğunuz çiftler ilk adlarınızı görür. Diğer çiftler ve uygulamayı hesapsız deneyenler yalnızca baş harflerinizi görür. Profil fotoğraflarınız yalnızca izin verirseniz gösterilir.",
       "toggle": "Adımı tüm çiftlere göster",
       "consentTitle": "Adın herkese görünsün mü?",
-      "consentMessage": "İlk adın ({{name}}) yıldız kartınızda CoupleSky’daki tüm kullanıcılara görünecek. Soyadın, kullanıcı adın ve e-postan asla gösterilmez. Bu izni istediğin an buradan kapatabilirsin.",
+      "consentMessage": "İlk adın ({{name}}) yıldız kartınızda CoupleSky’daki herkese (uygulamayı hesapsız deneyenler dahil) görünecek. Soyadın, kullanıcı adın ve e-postan asla gösterilmez. Bu izni istediğin an buradan kapatabilirsin.",
       "consentConfirm": "Evet, Göster",
       "saveFailed": "Ayar kaydedilemedi. Lütfen tekrar dene.",
       "partnerShown": "{{name}} adını tüm çiftlere açtı (kendi ayarı).",
       "partnerHidden": "{{name}} adını yalnızca bağ kurduğunuz çiftlere gösteriyor (kendi ayarı).",
       "preview": "Diğer çiftler şöyle görür:",
-      "loadFailed": "Ayar yüklenemedi. Sertifikayı kapatıp yeniden açmayı dene."
+      "loadFailed": "Ayar yüklenemedi. Sertifikayı kapatıp yeniden açmayı dene.",
+      "photoToggle": "Profil fotoğrafımı yıldız kartında göster",
+      "photoConsentTitle": "Profil fotoğrafın herkese görünsün mü?",
+      "photoConsentMessage": "Profil fotoğrafın yıldız kartınızda CoupleSky’daki herkese (bağ kurduğunuz çiftler ve uygulamayı hesapsız deneyenler dahil) görünecek. Bu izni istediğin an buradan kapatabilirsin. Fotoğrafını kaldırırsan ya da Premium sona ererse fotoğraf gösterilmez.",
+      "photoConsentConfirm": "Evet, Göster",
+      "photoNone": "Henüz profil fotoğrafın yok. Premium ile profilinden yüklediğinde, izin verdiysen burada görünür.",
+      "partnerPhotoShown": "{{name}} profil fotoğrafını yıldız kartında gösteriyor (kendi ayarı).",
+      "partnerPhotoHidden": "{{name}} profil fotoğrafını yıldız kartında göstermiyor (kendi ayarı)."
     },
     "hibernation": {
       "title": "Yıldızınız kış uykusunda",

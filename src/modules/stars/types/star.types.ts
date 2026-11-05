@@ -647,6 +647,10 @@ export interface StarNameVisibilityMember {
   readonly display_name: string | null;
   readonly username: string | null;
   readonly show_name_on_star: boolean;
+  /** Profil fotoğrafını kendi çifti dışındaki herkese yıldız kartında gösterme rızası (varsayılan kapalı). */
+  readonly show_avatar_on_star: boolean;
+  /** Yüklü profil fotoğrafı (Premium); yoksa null. */
+  readonly avatar_url: string | null;
 }
 
 

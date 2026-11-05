@@ -1,10 +1,12 @@
 /**
  * @file StarNameVisibilityCard.tsx
  * @module modules/stars/components
- * @description Yıldız sertifikasında "İsimlerimiz" ayarı.
+ * @description Yıldız sertifikasında "İsimlerimiz ve Fotoğraflarımız" ayarı.
  *
  * - Bağ kurulan çiftler her zaman ilk adları görür (bağ isteğinde bu söylenir).
- * - Diğer çiftler yalnızca baş harfleri görür; kişi AÇIKÇA izin verirse yalnızca onun ilk adı görünür.
+ * - Diğer çiftler ve demo ziyaretçiler yalnızca baş harfleri görür; kişi AÇIKÇA izin verirse yalnızca onun ilk adı görünür.
+ * - Profil fotoğrafı ayrı bir rızadır: açan kişinin fotoğrafı kendi çifti dışındaki herkese (bağlı çiftler ve demo
+ *   dahil) yıldız kartında görünür; Premium bitince ya da fotoğraf kaldırılınca gösterilmez.
  * - Rıza kişi başınadır: herkes yalnızca kendi adını açabilir, partnerin adı onun kendi ayarına bağlıdır.
  *   Varsayılan kapalıdır; açarken onay istenir, kapatmak tek dokunuştur.
  */
@@ -22,6 +24,9 @@ import type { StarNameVisibilityMember } from '../types/star.types';
 import { moderateStarName } from '../utils/nameModeration';
 
 const FIRST_NAME_MAX = 20;
+
+/** Kişi başına iki ayrı rıza: ilk ad ve profil fotoğrafı. */
+type VisibilityField = 'show_name_on_star' | 'show_avatar_on_star';
 
 /** Sunucudaki star_name_initial ile aynı kural: Türkçe öncelikli (i → İ, ı → I). */
 function serverInitial(text: string): string {
@@ -75,15 +80,19 @@ export function StarNameVisibilityCard() {
   const partner = members?.find((m) => m.id !== userId);
 
   const applyVisibility = useCallback(
-    async (visible: boolean) => {
+    async (field: VisibilityField, visible: boolean) => {
       if (!userId || saving) return;
       setSaving(true);
       // İyimser güncelleme: kayıt başarısız olursa eski değere döner
-      setMembers((prev) => prev?.map((m) => (m.id === userId ? { ...m, show_name_on_star: visible } : m)) ?? prev);
+      setMembers((prev) => prev?.map((m) => (m.id === userId ? { ...m, [field]: visible } : m)) ?? prev);
       try {
-        await starService.setMyStarNameVisibility(userId, visible);
+        if (field === 'show_name_on_star') {
+          await starService.setMyStarNameVisibility(userId, visible);
+        } else {
+          await starService.setMyStarAvatarVisibility(userId, visible);
+        }
       } catch (err) {
-        setMembers((prev) => prev?.map((m) => (m.id === userId ? { ...m, show_name_on_star: !visible } : m)) ?? prev);
+        setMembers((prev) => prev?.map((m) => (m.id === userId ? { ...m, [field]: !visible } : m)) ?? prev);
         // Kart sertifika modalının içinde: kök toast modalın arkasında kalır, hata diyalogla gösterilir
         appAlert(t('common.error'), localizeServerError(err, t('stars.nameVisibility.saveFailed')));
       } finally {
@@ -93,9 +102,10 @@ export function StarNameVisibilityCard() {
     [saving, t, userId]
   );
 
+  // Açmak açık rıza ister (onay penceresi); kapatmak tek dokunuştur
   const handleToggle = async (next: boolean) => {
     if (!next) {
-      applyVisibility(false);
+      applyVisibility('show_name_on_star', false);
       return;
     }
     const confirmed = await confirmDialog({
@@ -104,7 +114,21 @@ export function StarNameVisibilityCard() {
       confirmText: t('stars.nameVisibility.consentConfirm'),
       tone: 'question',
     });
-    if (confirmed) applyVisibility(true);
+    if (confirmed) applyVisibility('show_name_on_star', true);
+  };
+
+  const handlePhotoToggle = async (next: boolean) => {
+    if (!next) {
+      applyVisibility('show_avatar_on_star', false);
+      return;
+    }
+    const confirmed = await confirmDialog({
+      title: t('stars.nameVisibility.photoConsentTitle'),
+      message: t('stars.nameVisibility.photoConsentMessage'),
+      confirmText: t('stars.nameVisibility.photoConsentConfirm'),
+      tone: 'question',
+    });
+    if (confirmed) applyVisibility('show_avatar_on_star', true);
   };
 
   if (isDemoMode || !coupleId || !userId) return null;
@@ -147,6 +171,29 @@ export function StarNameVisibilityCard() {
               {partner.show_name_on_star
                 ? t('stars.nameVisibility.partnerShown', { name: firstNameOf(partner) })
                 : t('stars.nameVisibility.partnerHidden', { name: firstNameOf(partner) })}
+            </Text>
+          ) : null}
+
+          {/* Profil fotoğrafı: ayrı, kişi başına rıza */}
+          <View style={[styles.switchRow, styles.photoSwitchRow]}>
+            <Text style={[styles.switchLabel, { color: theme.text }]}>{t('stars.nameVisibility.photoToggle')}</Text>
+            <Switch
+              value={me.show_avatar_on_star}
+              onValueChange={handlePhotoToggle}
+              disabled={saving}
+              trackColor={{ false: isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.18)', true: '#F59E0B' }}
+              thumbColor="#FFFFFF"
+              accessibilityLabel={t('stars.nameVisibility.photoToggle')}
+            />
+          </View>
+          {!me.avatar_url ? (
+            <Text style={[styles.note, { color: theme.textMuted }]}>{t('stars.nameVisibility.photoNone')}</Text>
+          ) : null}
+          {partner ? (
+            <Text style={[styles.note, { color: theme.textMuted }]}>
+              {partner.show_avatar_on_star
+                ? t('stars.nameVisibility.partnerPhotoShown', { name: firstNameOf(partner) })
+                : t('stars.nameVisibility.partnerPhotoHidden', { name: firstNameOf(partner) })}
             </Text>
           ) : null}
           {preview ? (
@@ -199,6 +246,9 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: '600',
+  },
+  photoSwitchRow: {
+    marginTop: 6,
   },
   note: {
     fontSize: 11.5,

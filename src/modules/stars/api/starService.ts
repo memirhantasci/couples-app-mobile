@@ -828,7 +828,7 @@ export async function getStarNameVisibility(coupleId: number): Promise<StarNameV
   return withSmartRetry(async () => {
     const { data, error } = await supabase
       .from('users')
-      .select('id, display_name, username, show_name_on_star')
+      .select('id, display_name, username, show_name_on_star, show_avatar_on_star, avatar_url')
       .eq('couple_id', coupleId)
       .order('created_at', { ascending: true });
 
@@ -859,6 +859,63 @@ export async function setMyStarNameVisibility(userId: string, visible: boolean):
     if (!data || data.length === 0) {
       throw codedError('42501', i18n.t('stars.nameVisibility.saveFailed'));
     }
+  });
+}
+
+/**
+ * Kullanıcının kendi profil fotoğrafını, kendi çifti dışındaki herkese (demo ziyaretçiler dahil) yıldız kartında
+ * gösterme rızası (varsayılan kapalı). Yalnızca kendi satırı değişir; partnerin fotoğrafı onun kendi rızasına bağlıdır.
+ */
+export async function setMyStarAvatarVisibility(userId: string, visible: boolean): Promise<void> {
+  return withSmartRetry(async () => {
+    const { data, error } = await supabase
+      .from('users')
+      .update({ show_avatar_on_star: visible })
+      .eq('id', userId)
+      .select('id');
+
+    if (error) {
+      handleSupabaseError(error);
+    }
+    // RLS satırı eşleştirmezse hata dönmez; hiçbir satır güncellenmediyse ayar kaydedilmemiştir
+    if (!data || data.length === 0) {
+      throw codedError('42501', i18n.t('stars.nameVisibility.saveFailed'));
+    }
+  });
+}
+
+/** Profil fotoğraflarının durduğu herkese açık depolama kovası (lib/avatar ile aynı). */
+const OWNER_PHOTO_BUCKET = 'avatars';
+/** Sunucunun döndürdüğü yol yalnızca `<kullanıcı uuid>/avatar.jpg` biçiminde kabul edilir. */
+const OWNER_PHOTO_PATH = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/avatar\.jpg$/;
+
+interface StarOwnerPhotoRow {
+  readonly avatar_path: string | null;
+  readonly avatar_version: string | null;
+}
+
+/**
+ * Yıldız kartındaki sahip fotoğrafları (üye sırasıyla). Sunucu yalnızca fotoğrafını göstermeye açıkça izin veren
+ * üyelerinkini (kendi çiftimizde hepsini) döndürür; Premium'u bitmiş, bildirdiğimiz ya da bildirimle gizlenmiş
+ * yıldızlarda liste boştur. Sunucu adres değil depolama yolu verir; adres burada kendi depolamamızdan kurulur,
+ * böylece hiçbir zaman dış bir adres yüklenmez.
+ */
+export async function getStarOwnerPhotos(catalogId: number): Promise<string[]> {
+  return withSmartRetry(async () => {
+    const { data, error } = await supabase.rpc('get_star_owner_photos', { p_catalog_id: catalogId });
+
+    if (error) {
+      handleSupabaseError(error);
+    }
+
+    const urls: string[] = [];
+    for (const row of (data ?? []) as StarOwnerPhotoRow[]) {
+      if (!row.avatar_path || !OWNER_PHOTO_PATH.test(row.avatar_path)) continue;
+      const { publicUrl } = supabase.storage.from(OWNER_PHOTO_BUCKET).getPublicUrl(row.avatar_path).data;
+      const version = row.avatar_version && /^[0-9]{1,20}$/.test(row.avatar_version) ? row.avatar_version : null;
+      urls.push(version ? `${publicUrl}?v=${version}` : publicUrl);
+    }
+    return urls;
   });
 }
 
@@ -1097,6 +1154,8 @@ export const starService = {
   reportStar,
   getStarNameVisibility,
   setMyStarNameVisibility,
+  setMyStarAvatarVisibility,
+  getStarOwnerPhotos,
   getMyStarConnections,
   getPendingConnections,
   checkConnectionLimit,

@@ -23,10 +23,9 @@ export const SUGGESTED_STAR_ZOOM = 3.0;
 const SUGGESTED_STAR_ZOOM_STEPS = [SUGGESTED_STAR_ZOOM, 5.0, 7.0] as const;
 
 /**
- * Önerilen yıldıza uçulacak kamera yakınlığı. Gökyüzü, yakınlığa göre değişen bir kadir sınırından sönük boşta
- * yıldızları çizmez (starStyle.visibleMagnitudeLimit: 3.0'da 5.8, 7.0'da 9.0). Kamera çizilmeyen bir noktaya
- * uçmasın diye yıldızın tam görünür olduğu en uzak yakınlık seçilir; böylece katalog ileride daha sönük yıldızlarla
- * genişlese de öneri her zaman ekranda görünür.
+ * Önerilen yıldıza uçulacak kamera yakınlığı: yıldızın tam görünür olduğu en uzak yakınlık. Bugün her yıldız her
+ * yakınlıkta çizildiğinden (starStyle.visibleMagnitudeLimit) bu hep varsayılan yakınlıktır; uzak görünüm için
+ * ileride yeniden bir kadir sınırı konursa kamera yine çizilmeyen bir noktaya uçmaz.
  */
 export function suggestedStarZoom(magnitude: number): number {
   for (const zoom of SUGGESTED_STAR_ZOOM_STEPS) {

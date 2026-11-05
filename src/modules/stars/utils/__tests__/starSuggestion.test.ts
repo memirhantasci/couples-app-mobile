@@ -67,9 +67,9 @@ describe('suggestedStarZoom', () => {
     expect(suggestedStarZoom(5.76)).toBe(SUGGESTED_STAR_ZOOM);
   });
 
-  it('varsayılan yakınlıkta çizilmeyecek kadar sönük yıldızda daha yakına gider', () => {
-    expect(suggestedStarZoom(6.3)).toBeGreaterThan(SUGGESTED_STAR_ZOOM);
-    expect(suggestedStarZoom(6.5)).toBeGreaterThan(SUGGESTED_STAR_ZOOM);
+  it('her yıldız uzaktan da çizildiği için sönük yıldızlarda da varsayılan yakınlıkta kalır', () => {
+    expect(suggestedStarZoom(6.3)).toBe(SUGGESTED_STAR_ZOOM);
+    expect(suggestedStarZoom(6.5)).toBe(SUGGESTED_STAR_ZOOM);
   });
 
   it('her kadir için önerilen yıldız varış yakınlığında tam görünür (öneri boş bir noktaya uçurmaz)', () => {

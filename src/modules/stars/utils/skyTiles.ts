@@ -3,28 +3,30 @@ import type { ViewportStarItem } from '../types/star.types';
 /**
  * Sky tile pyramid for streaming stars from `get_stars_in_viewport`.
  *
- * Levels follow the RPC's LOD thresholds (zoom 1.5 and 4): each level asks
- * for a fainter magnitude limit, and finer levels use smaller tiles so one
- * call stays under the server's 300-row limit. Tiles of every level that
- * are already loaded stay usable, so zooming in only ever adds stars.
+ * The RPC returns every star in a tile whatever the zoom (all stars are
+ * visible from far away), so levels only pick the tile size: wide tiles far
+ * out (fewer calls for a large view), smaller ones closer in (less data for a
+ * small view). One call stays far under the server's 300-row limit (the
+ * densest 30° tile held 68 stars). Tiles of every level that are already
+ * loaded stay usable.
  */
 
 export interface SkyTileLevel {
   readonly sizeDeg: number;
-  /** `zoom_level` sent to the RPC; it selects the magnitude limit. */
+  /**
+   * `zoom_level` sent to the RPC. The current server ignores it; a value at or above 4 also gets
+   * every star from an older server version that still filtered faint stars by zoom.
+   */
   readonly rpcZoom: number;
 }
 
 export const SKY_TILE_LEVELS: readonly SkyTileLevel[] = [
-  { sizeDeg: 30, rpcZoom: 1 }, // zoom < 1.5   → magnitude ≤ 3.8
-  { sizeDeg: 15, rpcZoom: 2 }, // zoom < 4     → magnitude ≤ 5.8
-  { sizeDeg: 15, rpcZoom: 5 }, // zoom ≥ 4     → magnitude ≤ 9.0
+  { sizeDeg: 30, rpcZoom: 5 }, // zoom < 1.5: wide tiles
+  { sizeDeg: 15, rpcZoom: 5 }, // zoom ≥ 1.5
 ];
 
 export function tileLevelForZoom(zoom: number): number {
-  if (zoom < 1.5) return 0;
-  if (zoom < 4) return 1;
-  return 2;
+  return zoom < 1.5 ? 0 : 1;
 }
 
 export interface SkyBounds {

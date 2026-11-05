@@ -37,6 +37,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -1173,6 +1174,41 @@ export const OurStarScreen: React.FC = () => {
     };
   }, [isDemoMode, selectedIsFriend, selectedCatalogId]);
 
+  // ─── SEÇİLEN YILDIZIN SAHİP FOTOĞRAFLARI ────────────────────────────
+  // Kendi yıldızımızda çiftin fotoğrafları (Premium'a bağlı) doğrudan gösterilir. Başka çiftlerin yıldızında
+  // sunucu yalnızca fotoğrafını göstermeye AÇIKÇA izin veren üyelerinkini döndürür (demo ziyaretçiler dahil).
+  const [selectedOwnerPhotos, setSelectedOwnerPhotos] = useState<{ catalogId: number; urls: string[] } | null>(null);
+  const [failedOwnerPhotos, setFailedOwnerPhotos] = useState<readonly string[]>([]);
+  const selectedIsOthersStar =
+    !!selectedMacroStar &&
+    selectedMacroStar.is_claimed &&
+    !selectedMacroStar.is_mine &&
+    !selectedMacroStar.catalog_code?.startsWith('SOL-');
+  useEffect(() => {
+    if (!selectedIsOthersStar || selectedCatalogId == null) return;
+    let cancelled = false;
+    starService
+      .getStarOwnerPhotos(selectedCatalogId)
+      .then((urls) => {
+        if (!cancelled) setSelectedOwnerPhotos({ catalogId: selectedCatalogId, urls });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedIsOthersStar, selectedCatalogId]);
+  const selectedStarOwnerPhotos: readonly string[] = (() => {
+    if (!selectedMacroStar?.is_claimed) return [];
+    const urls = selectedMacroStar.is_mine
+      ? isDemoMode
+        ? []
+        : [myAvatarUrl, partnerAvatarUrl].filter((url): url is string => !!url)
+      : selectedOwnerPhotos?.catalogId === selectedMacroStar.catalog_id
+      ? selectedOwnerPhotos.urls
+      : [];
+    return urls.filter((url) => !failedOwnerPhotos.includes(url));
+  })();
+
   // ─── GÖKYÜZÜNDE SEÇİLEN YILDIZA BAĞLANTI İSTEĞİ GÖNDER ───────────────
   const handleConnectSelectedMacroStar = async () => {
     if (!selectedMacroStar || !starDetails) return;
@@ -1211,11 +1247,16 @@ export const OurStarScreen: React.FC = () => {
     }
   };
 
-  // Başka çiftin yıldızını bildir (uygunsuz ad / isim): bildiren kişi bu yıldızın adını ve isimlerini
-  // hemen görmez olur; yeterli bildirimle sunucu adı herkes için gizler.
+  // Başka çiftin yıldızını bildir (uygunsuz ad / isim / fotoğraf): bildiren kişi bu yıldızın adını, isimlerini ve
+  // fotoğraflarını hemen görmez olur; yeterli bildirimle sunucu bunları herkes için gizler. Demo ziyaretçi de
+  // içerikleri gördüğü için düğmeyi görür; bildirmek için giriş yapması gerektiği söylenir.
   const handleReportSelectedMacroStar = async () => {
     const star = selectedMacroStar;
-    if (!star || star.is_mine || !star.is_claimed || isDemoMode) return;
+    if (!star || star.is_mine || !star.is_claimed) return;
+    if (isDemoMode) {
+      appAlert(t('stars.report.title'), t('stars.report.signInRequired'));
+      return;
+    }
     const confirmed = await confirmDialog({
       title: t('stars.report.title'),
       message: t('stars.report.message'),
@@ -1226,6 +1267,7 @@ export const OurStarScreen: React.FC = () => {
     if (!confirmed) return;
     try {
       await starService.reportStar(star.catalog_id);
+      setSelectedOwnerPhotos(null);
       setSelectedMacroStar(null);
       refreshSkyTiles();
       showToast(t('stars.report.done'));
@@ -1269,7 +1311,6 @@ export const OurStarScreen: React.FC = () => {
     !!selectedMacroStar &&
     selectedMacroStar.is_claimed &&
     !selectedMacroStar.is_mine &&
-    !isDemoMode &&
     !selectedMacroStar.catalog_code?.startsWith('SOL-');
   const isSelectedStarBonded =
     !!selectedMacroStar &&
@@ -1692,14 +1733,48 @@ export const OurStarScreen: React.FC = () => {
                     </View>
                   )}
                 </View>
-                {/* 2. Sahip çift: kendi çiftimizde ve bağlı çiftlerde ilk adlar, diğerlerinde baş harfler */}
-                {selectedStarOwnerLabel ? (
-                  <Text
-                    style={[styles.macroStarOwner, { color: isLight ? theme.textSecondary : 'rgba(255, 255, 255, 0.82)' }]}
-                    numberOfLines={1}
-                  >
-                    {selectedStarOwnerLabel}
-                  </Text>
+                {/* 2. Sahip çift: kendi çiftimizde ve bağlı çiftlerde ilk adlar, diğerlerinde baş harfler
+                    (izin veren üyenin ilk adı); izin verilmişse profil fotoğrafları */}
+                {selectedStarOwnerLabel || selectedStarOwnerPhotos.length > 0 ? (
+                  <View style={styles.macroStarOwnerRow}>
+                    {selectedStarOwnerPhotos.length > 0 ? (
+                      <View
+                        style={styles.ownerPhotoStack}
+                        accessible
+                        accessibilityRole="image"
+                        accessibilityLabel={t('stars.card.ownerPhotos')}
+                      >
+                        {selectedStarOwnerPhotos.map((url, index) => (
+                          <Image
+                            key={url}
+                            source={{ uri: url }}
+                            style={[
+                              styles.ownerPhoto,
+                              { borderColor: isLight ? '#FFFFFF' : '#0A0818' },
+                              index > 0 && styles.ownerPhotoOverlap,
+                            ]}
+                            contentFit="cover"
+                            transition={150}
+                            onError={() =>
+                              setFailedOwnerPhotos((prev) => (prev.includes(url) ? prev : [...prev, url]))
+                            }
+                          />
+                        ))}
+                      </View>
+                    ) : null}
+                    {selectedStarOwnerLabel ? (
+                      <Text
+                        style={[
+                          styles.macroStarOwner,
+                          styles.macroStarOwnerText,
+                          { color: isLight ? theme.textSecondary : 'rgba(255, 255, 255, 0.82)' },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {selectedStarOwnerLabel}
+                      </Text>
+                    ) : null}
+                  </View>
                 ) : null}
                 {/* 3. Katalog kodu (en küçük) */}
                 {selectedStarCodeLine ? (
@@ -2588,6 +2663,28 @@ const styles = StyleSheet.create({
   macroStarOwner: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  macroStarOwnerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  macroStarOwnerText: {
+    flexShrink: 1,
+  },
+  ownerPhotoStack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ownerPhoto: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    backgroundColor: 'rgba(128, 128, 128, 0.25)',
+  },
+  ownerPhotoOverlap: {
+    marginLeft: -7,
   },
   macroStarCode: {
     fontSize: 10.5,

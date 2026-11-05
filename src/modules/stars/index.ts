@@ -30,6 +30,8 @@ export {
   getSectorsOverview,
   claimStarInSector,
   suggestAvailableStars,
+  setMyStarAvatarVisibility,
+  getStarOwnerPhotos,
   invalidateSectorsCache,
 } from './api/starService';
 

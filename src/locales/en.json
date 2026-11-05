@@ -2868,7 +2868,8 @@
       "ascendA11y": "Ascend to the Sky Dome",
       "enterStarA11y": "Enter the Star",
       "registeredStar": "Registered Star",
-      "connectNamesNote": "Once the bond is accepted, both couples see each other’s first names."
+      "connectNamesNote": "Once the bond is accepted, both couples see each other’s first names.",
+      "ownerPhotos": "Profile photos of the star’s owners"
     },
     "screen": {
       "toasts": {
@@ -2902,24 +2903,32 @@
     },
     "report": {
       "title": "Report This Star",
-      "message": "Let us know if the star’s name or the names shown are inappropriate. You won’t see this star’s name or names anymore; if several couples report it, the name is hidden from everyone.",
+      "message": "Let us know if the star’s name, the names shown or the profile photos are inappropriate. You won’t see this star’s name, names or photos anymore; if several couples report it, they are hidden from everyone.",
       "confirm": "Report",
-      "done": "Thanks, your report was received. You won’t see this star’s name anymore.",
+      "done": "Thanks, your report was received. You won’t see this star’s name or photos anymore.",
       "failed": "The report couldn’t be sent. Please try again.",
-      "a11y": "Report star"
+      "a11y": "Report star",
+      "signInRequired": "You need to sign in with your account to report a star."
     },
     "nameVisibility": {
-      "title": "Our Names",
-      "description": "Couples you have a bond with see your first names. Other couples only see your initials.",
+      "title": "Our Names & Photos",
+      "description": "Couples you have a bond with see your first names. Other couples and people trying the app without an account only see your initials. Your profile photos are shown only if you allow it.",
       "toggle": "Show my name to all couples",
       "consentTitle": "Show your name to everyone?",
-      "consentMessage": "Your first name ({{name}}) will be visible on your star card to all CoupleSky users. Your last name, username and email are never shown. You can turn this off here at any time.",
+      "consentMessage": "Your first name ({{name}}) will be visible on your star card to everyone on CoupleSky (including people trying the app without an account). Your last name, username and email are never shown. You can turn this off here at any time.",
       "consentConfirm": "Yes, Show",
       "saveFailed": "The setting couldn’t be saved. Please try again.",
       "partnerShown": "{{name}} shows their name to all couples (their own setting).",
       "partnerHidden": "{{name}} shows their name only to couples you have a bond with (their own setting).",
       "preview": "Other couples see:",
-      "loadFailed": "The setting couldn’t be loaded. Try closing and reopening the certificate."
+      "loadFailed": "The setting couldn’t be loaded. Try closing and reopening the certificate.",
+      "photoToggle": "Show my profile photo on our star card",
+      "photoConsentTitle": "Show your profile photo to everyone?",
+      "photoConsentMessage": "Your profile photo will be visible on your star card to everyone on CoupleSky (including couples you have a bond with and people trying the app without an account). You can turn this off here at any time. If you remove your photo or Premium ends, it is no longer shown.",
+      "photoConsentConfirm": "Yes, Show",
+      "photoNone": "You don’t have a profile photo yet. Once you upload one from your profile with Premium, it appears here if you allowed it.",
+      "partnerPhotoShown": "{{name}} shows their profile photo on the star card (their own setting).",
+      "partnerPhotoHidden": "{{name}} doesn’t show their profile photo on the star card (their own setting)."
     },
     "hibernation": {
       "title": "Your star is hibernating",

@@ -70,17 +70,19 @@ export function starCoreAlpha(light: number): number {
   return 0.3 + 0.7 * light;
 }
 
+/** Faintest magnitude any catalog star (real or virtual) can have; every star up to it is drawn. */
+const ALL_STARS_MAGNITUDE_LIMIT = 9.0;
+
 /**
- * Faintest unclaimed magnitude shown at a zoom. It rises smoothly through the
- * RPC's limits (3.8 below zoom 1.5, 5.8 below 4, then 9.0) as the matching
- * tile level loads, so more stars fade in while zooming instead of popping.
+ * Faintest unclaimed magnitude shown at a zoom. Every star is shown from every
+ * zoom, also from far away (get_stars_in_viewport no longer filters by
+ * magnitude either), so the limit no longer depends on the zoom. It used to
+ * hide faint stars far out (3.8 below zoom 1.5, 5.8 below 4); the parameter is
+ * kept so callers need not change if a far-out limit is ever needed again.
  */
-export function visibleMagnitudeLimit(zoom: number): number {
+export function visibleMagnitudeLimit(_zoom: number): number {
   'worklet';
-  const logZoom = Math.log(zoom);
-  const toMedium = smoothstep(Math.log(1.5), Math.log(2.6), logZoom);
-  const toHigh = smoothstep(Math.log(4), Math.log(7), logZoom);
-  return 3.8 + 2.0 * toMedium + 3.2 * toHigh;
+  return ALL_STARS_MAGNITUDE_LIMIT;
 }
 
 /** How much a fully lit star's brightness swings, as a fraction of its base opacity. */
