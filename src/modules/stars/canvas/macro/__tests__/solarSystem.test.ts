@@ -1,5 +1,5 @@
 /// <reference types="jest" />
-import { MIN_ZOOM, pxPerDegree, pxPerRaDegree } from '../skyProjection';
+import { RA_STRETCH, pxPerDegree } from '../skyProjection';
 import {
   MOON_OFFSET_DEG,
   ORRERY_BODIES,
@@ -7,6 +7,8 @@ import {
   ORRERY_MARKER_GLOW_PX,
   ORRERY_RADIUS_DEG,
   ORRERY_SECONDS_PER_YEAR,
+  ORRERY_SPACING_HEIGHT_PX,
+  ORRERY_SPACING_ZOOM,
   ORRERY_TILT,
   SOLAR_SYSTEM_OBJECTS,
   SUN_CORONA_SCALE,
@@ -83,9 +85,8 @@ describe('güneş sistemi: gerçek konum ve hızlar', () => {
     for (const dt of [0, 7_000, 60_000, 333_000]) {
       const e = orreryBodyPosition(earth, ORRERY_EPOCH_MS + dt);
       const m = orreryBodyPosition(moon, ORRERY_EPOCH_MS + dt);
-      // Yatay orrery derecesine çevirerek (yatay genişleme geri alınmış) uzaklık sabit
-      const h = (pxPerRaDegree(1, 800) / pxPerDegree(1, 800)) * Math.cos((-8 * Math.PI) / 180);
-      const dxDeg = (m.ra - e.ra) * h;
+      // Ekran uzaklığı (yatay genişleme dahil) orrery derecesine çevrilir: sabit kalmalı
+      const dxDeg = ((m.ra - e.ra) * Math.cos((-8 * Math.PI) / 180)) ;
       const dyDeg = (m.dec - e.dec) / ORRERY_TILT;
       expect(Math.hypot(dxDeg, dyDeg)).toBeCloseTo(MOON_OFFSET_DEG, 3);
     }
@@ -107,11 +108,10 @@ describe('güneş sistemi: gerçek konum ve hızlar', () => {
 });
 
 describe('güneş sistemi: açı kilitlemeden üst üste binmeme', () => {
-  // Referans telefon (yükseklik 740 dp), en geniş açı (MIN_ZOOM). Daha yakın zoom'da aralık büyür.
-  const HEIGHT = 740;
-  // En kötü hiza dikeydir: yatay genişleme geri alındığı için yatayda 1 orrery derecesi dikeyden kısa değil
-  const pxPerOrreryDegVertical = pxPerDegree(MIN_ZOOM, HEIGHT) * ORRERY_TILT;
-  const pxPerOrreryDegHorizontal = pxPerDegree(MIN_ZOOM, HEIGHT);
+  // Referans telefon (740 dp) ve referans zoom (0.8); daha yakın zoom'da aralık büyür.
+  // En kötü hiza dikeydir: yatay eksen RA_STRETCH kat geniş olduğundan dikey en dar eksendir.
+  const pxPerOrreryDegVertical = pxPerDegree(ORRERY_SPACING_ZOOM, ORRERY_SPACING_HEIGHT_PX) * ORRERY_TILT;
+  const pxPerOrreryDegHorizontal = pxPerDegree(ORRERY_SPACING_ZOOM, ORRERY_SPACING_HEIGHT_PX) * RA_STRETCH;
   const worst = Math.min(pxPerOrreryDegVertical, pxPerOrreryDegHorizontal);
   type Body = keyof typeof ORRERY_MARKER_GLOW_PX;
   /** İki işaretin merkezleri arasında gereken en az mesafe (parıltıların dörtte üçü + 2 px). */
@@ -137,7 +137,7 @@ describe('güneş sistemi: açı kilitlemeden üst üste binmeme', () => {
   });
 
   it('Merkür Güneş’in parlak koronasının dışında kalır', () => {
-    const coronaPx = orrerySunRadiusPx(MIN_ZOOM) * SUN_CORONA_SCALE;
+    const coronaPx = orrerySunRadiusPx(ORRERY_SPACING_ZOOM) * SUN_CORONA_SCALE;
     expect(ORRERY_RADIUS_DEG.mercury * worst).toBeGreaterThanOrEqual(coronaPx / 2 + ORRERY_MARKER_GLOW_PX.mercury);
   });
 

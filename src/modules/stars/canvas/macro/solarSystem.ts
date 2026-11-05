@@ -1,6 +1,5 @@
 import type { ViewportStarItem } from '../../types/star.types';
 import { solarBodyName } from '../../utils/solarNames';
-import { RA_STRETCH } from './skyProjection';
 
 /**
  * Güneş Sistemi cisimleri (rendered locally, never fetched from the catalog).
@@ -190,7 +189,7 @@ const ORRERY_CENTER_RA = 270;
 const ORRERY_CENTER_DEC = -8;
 
 /** Yörünge düzlemine eğik bakış: dikey eksen bu oranda basılır (1 = tam tepeden). */
-export const ORRERY_TILT = 0.9;
+export const ORRERY_TILT = 0.8;
 
 /**
  * Dünya'nın bir yılının kaç saniyede geçtiği. Bütün cisimler aynı hızlandırmayı paylaşır, yani gerçek
@@ -221,16 +220,24 @@ export const ORRERY_MARKER_GLOW_PX = {
  * Dünya ile komşuları arasında Ay'ın yörüngesi için ayrıca pay bırakılır. Bkz. solarSystem testi.
  */
 export const ORRERY_RADIUS_DEG = {
-  mercury: 3.7,
-  venus: 4.9,
-  earth: 7.8,
-  mars: 11.0,
-  jupiter: 13.4,
-  saturn: 16.2,
-  uranus: 18.6,
-  neptune: 20.7,
-  pluto: 22.2,
+  mercury: 4.1,
+  venus: 5.4,
+  earth: 8.6,
+  mars: 12.1,
+  jupiter: 14.8,
+  saturn: 18.0,
+  uranus: 20.7,
+  neptune: 23.1,
+  pluto: 24.8,
 } as const;
+
+/**
+ * Zoom ve ekran yüksekliği, işaretlerin ayrı kalma garantisinin verildiği referanstır. Daha uzakta
+ * (MIN_ZOOM 0.2'ye kadar) bütün sistem birkaç on piksele sığar ve piksel boyutunda sabit işaretler
+ * kaçınılmaz olarak birbirine yaklaşır; gezegenler yakınlaşınca ayrılır.
+ */
+export const ORRERY_SPACING_ZOOM = 0.8;
+export const ORRERY_SPACING_HEIGHT_PX = 740;
 
 /** Güneş işaretinin ölçeği (piksel): yakınlaştıkça hafifçe büyür. Korona bunun 2,8 katına uzanır. */
 export function orrerySunRadiusPx(zoom: number): number {
@@ -241,13 +248,14 @@ export function orrerySunRadiusPx(zoom: number): number {
 export const SUN_CORONA_SCALE = 2.8;
 
 /** Ay'ın Dünya'ya görsel uzaklığı (orrery derecesi): Dünya'nın parıltısından açıkça ayrı durur. */
-export const MOON_OFFSET_DEG = 1.7;
+export const MOON_OFFSET_DEG = 1.9;
 
 /**
- * Orrery süsleyici bir disktir: dünyanın yatay genişlemesi (RA_STRETCH) burada geri alınır, yoksa
- * halkalar yassı bir banda dönüşür. Böylece ekranda yatay 1 orrery derecesi = dikey 1°.
+ * Orrery de haritayla birlikte yatayda RA_STRETCH kat geniştir: halkalar geniş, yatay duran elipslerdir
+ * (ekranda yatay 1 orrery derecesi = RA_STRETCH × dikey 1°). Dikey hiza en dar eksen olduğundan ayrılma
+ * garantisi dikeye göre verilir.
  */
-const RA_PER_ORRERY_DEG = 1 / (Math.cos(ORRERY_CENTER_DEC * DEG) * RA_STRETCH);
+const RA_PER_ORRERY_DEG = 1 / Math.cos(ORRERY_CENTER_DEC * DEG);
 
 type OrreryPlanet = keyof typeof ORRERY_RADIUS_DEG;
 const ORRERY_PLANETS = Object.keys(ORRERY_RADIUS_DEG) as OrreryPlanet[];

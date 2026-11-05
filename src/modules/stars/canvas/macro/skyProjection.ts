@@ -15,11 +15,11 @@
  */
 
 /**
- * Widest view (zoom out limit): 75° of declination on screen. Wide enough to see a broad
- * panorama of the (horizontally stretched) sky on one screen, without zooming so far out that
- * most of the screen shows the empty space beyond the poles.
+ * Widest view (zoom out limit): 300° of declination on screen, so the whole sky and many more
+ * stars fit at once. Past about 0.33 the screen is taller than the sky (180°) and shows empty
+ * space above and below the poles; the camera is then held on the equator (see decLimit).
  */
-export const MIN_ZOOM = 0.8;
+export const MIN_ZOOM = 0.2;
 export const MAX_ZOOM = 35;
 /** Vertical field of view in degrees at zoom 1. */
 export const BASE_FOV_DEG = 60;

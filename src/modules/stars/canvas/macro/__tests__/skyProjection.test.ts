@@ -24,9 +24,9 @@ const HEIGHT = 844;
 const camera: SkyCamera = { ra: 100, dec: 10, zoom: 1.2 };
 
 describe('yatayda genişletilmiş gökyüzü haritası', () => {
-  it('en geniş açı 0.8: ekrana 75° yükseklikte ferah bir panorama sığar', () => {
-    expect(MIN_ZOOM).toBe(0.8);
-    expect(BASE_FOV_DEG / MIN_ZOOM).toBeCloseTo(75, 6);
+  it('en geniş açı 0.2: ekrana tüm gökyüzü ve çok daha fazla yıldız sığar', () => {
+    expect(MIN_ZOOM).toBe(0.2);
+    expect(BASE_FOV_DEG / MIN_ZOOM).toBeCloseTo(300, 6);
   });
 
   it('en geniş açıda yakınlaştırma sınırı ve lastik direnci pürüzsüz çalışır', () => {
@@ -37,10 +37,13 @@ describe('yatayda genişletilmiş gökyüzü haritası', () => {
     expect(atLimit).toBeCloseTo(Math.log(0.9), 9);
     expect(past).toBeLessThan(0);
     expect(Math.abs(past)).toBeLessThan(Math.abs(atLimit));
-    expect(clampZoom(0.5)).toBe(MIN_ZOOM);
-    // Kutup sınırı en geniş açıda da ekranı kutbun ötesindeki boşlukla doldurmaz
-    expect(decLimit(MIN_ZOOM)).toBeGreaterThan(0);
-    expect(decLimit(MIN_ZOOM) + BASE_FOV_DEG / (2 * MIN_ZOOM)).toBeLessThanOrEqual(90 + 12 + 1e-9);
+    expect(clampZoom(0.1)).toBe(MIN_ZOOM);
+    expect(clampZoom(0.5)).toBe(0.5);
+    // Ekran gökyüzünden uzunsa kamera ekvatorda tutulur (iki kutbun ötesindeki boşluğa kaymaz);
+    // kutbun ötesine taşma sınırı yakınlaştıkça yeniden serbestleşir
+    expect(decLimit(MIN_ZOOM)).toBe(0);
+    expect(decLimit(0.5)).toBeGreaterThan(0);
+    expect(decLimit(2)).toBeCloseTo(90 + 12 - BASE_FOV_DEG / 4, 6);
   });
 
   it('yatay ölçek dikeyin RA_STRETCH katı; dikey ölçek değişmedi', () => {
@@ -78,7 +81,7 @@ describe('yatayda genişletilmiş gökyüzü haritası', () => {
     // En geniş açıda bir ekran genişliği artık eskisinin RA_STRETCH'te biri kadar gökyüzü
     const widest: SkyCamera = { ra: 0, dec: 0, zoom: MIN_ZOOM };
     const screensPerTurn = 360 / (camera.ra - panStep({ ...widest, ra: camera.ra }, WIDTH, 0, HEIGHT).ra);
-    expect(screensPerTurn).toBeGreaterThan(18);
+    expect(screensPerTurn).toBeGreaterThan(5);
   });
 
   it('iki parmakla yakınlaştırmada parmak altındaki nokta yerinde kalır', () => {
@@ -105,7 +108,8 @@ describe('yatayda genişletilmiş gökyüzü haritası', () => {
   });
 
   it('kutup sınırları (dikey) yatay genişlemeden etkilenmez', () => {
-    expect(decLimit(MIN_ZOOM)).toBeCloseTo(90 + 12 - BASE_FOV_DEG / (2 * MIN_ZOOM), 6);
+    expect(decLimit(1)).toBeCloseTo(90 + 12 - BASE_FOV_DEG / 2, 6);
+    expect(decLimit(MIN_ZOOM)).toBe(0);
   });
 
   it('yıldıza dokunma, yıldızın çizildiği yere isabet eder', () => {
