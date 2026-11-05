@@ -25,7 +25,8 @@ import {
 } from './connectionStrands';
 import type { SkyOverlay } from './skyOverlay';
 import { pxPerDegree, pxPerRaDegree, shortestRaDelta, type SkyCamera } from './skyProjection';
-import { orreryBodyPosition, orrerySunRadiusPx } from './solarSystem';
+import { orreryBodyPosition, orreryMarkerScale, orrerySunRadiusPx } from './solarSystem';
+import { placeSolarLabels, type LabelBody } from './solarLabels';
 import { colorOf, glowShader, STAR_FADE_MS, type StarField, type StarRender } from './starField';
 import {
   MAGNITUDE_FADE,
@@ -641,22 +642,95 @@ function sunRadius(zoom: number): number {
   return orrerySunRadiusPx(zoom);
 }
 
-/** Screen position of a solar-system body right now: planets and the moon orbit, the sun stays put. */
-function solarScreenPoint(view: FrameView, body: SkyOverlay['solar'][number], nowMs: number): { x: number; y: number } {
-  'worklet';
-  if (body.orreryIndex < 0) return { x: screenX(view, body.ra), y: screenY(view, body.dec) };
-  const position = orreryBodyPosition(body.orreryIndex, nowMs);
-  return { x: screenX(view, position.ra), y: screenY(view, position.dec) };
+/** Planet labels fade in once the solar system is large enough to read. The sun's label always shows. */
+const PLANET_LABEL_FADE = [0.32, 0.45] as const;
+
+/** Where a solar-system body is on screen this frame, and how big its marker is drawn. */
+interface SolarPoint {
+  readonly x: number;
+  readonly y: number;
+  /** Visual radius used to keep labels clear of the marker. */
+  readonly radius: number;
 }
 
-function drawSolarSystem(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, nowMs: number) {
+/**
+ * Screen position of every solar-system body right now (planets and the moon orbit, the sun stays
+ * put) and its marker radius at this zoom. Computed once per frame for drawing and labels.
+ */
+function solarPoints(view: FrameView, overlay: SkyOverlay, nowMs: number): SolarPoint[] {
   'worklet';
-  const radius = sunRadius(view.camera.zoom);
+  const markerScale = orreryMarkerScale(view.camera.zoom);
+  const sun = sunRadius(view.camera.zoom) * markerScale;
+  const points: SolarPoint[] = [];
   for (const body of overlay.solar) {
-    const { x, y } = solarScreenPoint(view, body, nowMs);
-    if (!isOnScreen(view, x, y, body.isSun ? radius * 2.8 : 40)) continue;
-    drawAt(canvas, body.picture, x, y, body.isSun ? radius : 1);
+    let ra = body.ra;
+    let dec = body.dec;
+    if (body.orreryIndex >= 0) {
+      const position = orreryBodyPosition(body.orreryIndex, nowMs);
+      ra = position.ra;
+      dec = position.dec;
+    }
+    points.push({
+      x: screenX(view, ra),
+      y: screenY(view, dec),
+      radius: body.isSun ? sun : body.glowPx * markerScale * 0.75,
+    });
   }
+  return points;
+}
+
+function drawSolarSystem(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, points: readonly SolarPoint[]) {
+  'worklet';
+  // Far out, markers shrink with the zoom so the rings' spacing still keeps them apart
+  const markerScale = orreryMarkerScale(view.camera.zoom);
+  const sun = sunRadius(view.camera.zoom) * markerScale;
+  overlay.solar.forEach((body, index) => {
+    const { x, y } = points[index];
+    if (!isOnScreen(view, x, y, body.isSun ? sun * 2.8 : 40)) return;
+    drawAt(canvas, body.picture, x, y, body.isSun ? sun : markerScale);
+  });
+}
+
+/**
+ * Solar-system labels without overlaps (see placeSolarLabels). Planet labels fade in with the zoom;
+ * the sun's label always shows.
+ */
+function drawSolarLabels(
+  canvas: SkCanvas,
+  view: FrameView,
+  overlay: SkyOverlay,
+  paints: StarPaints,
+  points: readonly SolarPoint[],
+) {
+  'worklet';
+  const planetAlpha = smoothstep(PLANET_LABEL_FADE[0], PLANET_LABEL_FADE[1], view.camera.zoom);
+  const bodies: LabelBody[] = [];
+  overlay.solar.forEach((body, index) => {
+    const point = points[index];
+    const labelled =
+      body.label !== null && (body.isSun || planetAlpha > 0.01) && isOnScreen(view, point.x, point.y, 120);
+    bodies.push({
+      x: point.x,
+      y: point.y,
+      radius: point.radius,
+      label: labelled ? { width: body.labelWidth, top: body.labelTop, bottom: body.labelBottom } : null,
+      always: body.isSun,
+    });
+  });
+  const placements = placeSolarLabels(bodies);
+
+  // The sun's label first, at full opacity; planet labels together in one faded layer
+  overlay.solar.forEach((body, index) => {
+    const placement = placements[index];
+    if (body.isSun && placement && body.label) drawAt(canvas, body.label, placement.x, placement.y);
+  });
+  const fading = planetAlpha < 0.998;
+  if (fading) beginAlphaLayer(canvas, paints, planetAlpha);
+  overlay.solar.forEach((body, index) => {
+    const placement = placements[index];
+    if (!body.isSun && placement && body.label) drawAt(canvas, body.label, placement.x, placement.y);
+  });
+  if (fading) canvas.restore();
 }
 
 /** Her gezegenin yörüngesi: Güneş merkezli silik elips. Tamamen ekran dışındakiler atlanır. */
@@ -694,7 +768,7 @@ function drawHero(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, animSe
   canvas.restore();
 }
 
-function drawLabels(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, paints: StarPaints, nowMs: number) {
+function drawLabels(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, paints: StarPaints, solar: readonly SolarPoint[]) {
   'worklet';
   const zoom = view.camera.zoom;
   const { scale, scaleX } = view;
@@ -723,13 +797,7 @@ function drawLabels(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, pain
     }
   }
 
-  const radius = sunRadius(zoom);
-  for (const body of overlay.solar) {
-    if (!body.label) continue;
-    const { x, y } = solarScreenPoint(view, body, nowMs);
-    if (!isOnScreen(view, x, y, 120)) continue;
-    drawAt(canvas, body.label, x, y + (body.isSun ? radius : 0) + body.labelOffsetY);
-  }
+  drawSolarLabels(canvas, view, overlay, paints, solar);
 
   if (hero?.label) {
     const x = screenX(view, hero.ra);
@@ -770,9 +838,10 @@ export function drawSkyFrame(
   }
   drawStars(canvas, view, field, clock, animSeconds, paints);
   if (overlay) {
-    drawSolarSystem(canvas, view, overlay, meteors.nowMs);
+    const solar = solarPoints(view, overlay, meteors.nowMs);
+    drawSolarSystem(canvas, view, overlay, solar);
     drawHero(canvas, view, overlay, animSeconds);
-    drawLabels(canvas, view, overlay, paints, meteors.nowMs);
+    drawLabels(canvas, view, overlay, paints, solar);
   }
   drawMeteors(canvas, view, paints, meteors);
 }

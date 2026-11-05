@@ -24,9 +24,13 @@ const HEIGHT = 844;
 const camera: SkyCamera = { ra: 100, dec: 10, zoom: 1.2 };
 
 describe('yatayda genişletilmiş gökyüzü haritası', () => {
-  it('en geniş açı 0.2: ekrana tüm gökyüzü ve çok daha fazla yıldız sığar', () => {
+  it('en geniş açı 0.2: gökyüzü (kutuptan kutba 180°) ekran yüksekliğini tam doldurur', () => {
     expect(MIN_ZOOM).toBe(0.2);
-    expect(BASE_FOV_DEG / MIN_ZOOM).toBeCloseTo(300, 6);
+    expect(BASE_FOV_DEG / MIN_ZOOM).toBeCloseTo(180, 6);
+    // Ekvatora bakarken iki kutup tam ekranın üst ve alt kenarında
+    const widest: SkyCamera = { ra: 0, dec: 0, zoom: MIN_ZOOM };
+    expect(worldToScreenY(90, widest, HEIGHT)).toBeCloseTo(0, 6);
+    expect(worldToScreenY(-90, widest, HEIGHT)).toBeCloseTo(HEIGHT, 6);
   });
 
   it('en geniş açıda yakınlaştırma sınırı ve lastik direnci pürüzsüz çalışır', () => {
@@ -43,7 +47,12 @@ describe('yatayda genişletilmiş gökyüzü haritası', () => {
     // kutbun ötesine taşma sınırı yakınlaştıkça yeniden serbestleşir
     expect(decLimit(MIN_ZOOM)).toBe(0);
     expect(decLimit(0.5)).toBeGreaterThan(0);
-    expect(decLimit(2)).toBeCloseTo(90 + 12 - BASE_FOV_DEG / 4, 6);
+    // Kutup taşma payı yakınlaştıkça geri gelir ama gökyüzü ekranı doldururken sıfırdır (siyah şerit yok)
+    expect(decLimit(1)).toBeCloseTo(90 + 12 - BASE_FOV_DEG / 2, 6);
+    for (const zoom of [MIN_ZOOM, 0.21, 0.25, 0.3]) {
+      const halfFov = BASE_FOV_DEG / (2 * zoom);
+      expect(decLimit(zoom) + halfFov).toBeLessThanOrEqual(Math.max(90, 180 - halfFov) + 1e-9);
+    }
   });
 
   it('yatay ölçek dikeyin RA_STRETCH katı; dikey ölçek değişmedi', () => {

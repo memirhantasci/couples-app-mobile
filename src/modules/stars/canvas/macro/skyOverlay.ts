@@ -42,7 +42,12 @@ export interface SolarItem extends PositionedPicture {
    */
   readonly orreryIndex: number;
   readonly label: SkPicture | null;
-  readonly labelOffsetY: number;
+  /** Marker glow radius in px at full scale (0 for the sun, which uses its zoom-dependent radius). */
+  readonly glowPx: number;
+  /** Label box, for collision-free placement: width, and top/bottom relative to the drawing point. */
+  readonly labelWidth: number;
+  readonly labelTop: number;
+  readonly labelBottom: number;
 }
 
 export interface ClaimedLabelItem {
@@ -579,42 +584,62 @@ export function buildSkyOverlay({
     }
   }
 
+  // Etiketler çakışmasız yerleştirilebilsin diye her etiketin kutusu ölçülür
+  const solarGeometry = (code: string, name: string) => {
+    if (code === 'SOL-SUN') {
+      return {
+        glowPx: 0,
+        labelWidth: textWidth(name, SUN_PILL.text) + SUN_PILL.paddingX * 2,
+        labelTop: SUN_PILL.top,
+        labelBottom: SUN_PILL.top + SUN_PILL.height,
+      };
+    }
+    const key = code.slice(4).toLowerCase() as keyof typeof ORRERY_MARKER_GLOW_PX;
+    return {
+      glowPx: ORRERY_MARKER_GLOW_PX[key] ?? 6,
+      labelWidth: textWidth(name, { ...SMALL_TEXT, color: '#FFFFFF' }),
+      // Düz metin taban çizgisinde çizilir: üstü ~harf boyu, altı inen harfler
+      labelTop: -SMALL_TEXT.size,
+      labelBottom: 3,
+    };
+  };
+
   const solar: SolarItem[] = [];
   for (const object of solarObjects) {
     const solarName = solarBodyName(object.catalog_code) ?? '';
     switch (object.catalog_code) {
       case 'SOL-SUN':
-        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.sunMarker, isSun: true, label: pill(solarName, SUN_PILL, 'sun'), labelOffsetY: 18 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.sunMarker, isSun: true, label: pill(solarName, SUN_PILL, 'sun'), ...solarGeometry(object.catalog_code, solarName) });
         break;
       case 'SOL-MERCURY':
-        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.mercuryMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#CBD5E1' }), labelOffsetY: -16 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.mercuryMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#CBD5E1' }), ...solarGeometry(object.catalog_code, solarName) });
         break;
       case 'SOL-VENUS':
-        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.venusMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#FDE68A' }), labelOffsetY: 18 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.venusMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#FDE68A' }), ...solarGeometry(object.catalog_code, solarName) });
         break;
       case 'SOL-EARTH':
-        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.earthMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#93C5FD' }), labelOffsetY: 18 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.earthMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#93C5FD' }), ...solarGeometry(object.catalog_code, solarName) });
         break;
       case 'SOL-MOON':
-        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.moonMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#CBD5E1' }), labelOffsetY: -16 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.moonMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#CBD5E1' }), ...solarGeometry(object.catalog_code, solarName) });
         break;
       case 'SOL-MARS':
-        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.marsMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#FCA5A5' }), labelOffsetY: 16 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.marsMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#FCA5A5' }), ...solarGeometry(object.catalog_code, solarName) });
         break;
       case 'SOL-JUPITER':
-        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.jupiterMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#FDE68A' }), labelOffsetY: 22 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.jupiterMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#FDE68A' }), ...solarGeometry(object.catalog_code, solarName) });
         break;
       case 'SOL-SATURN':
-        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.saturnMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#FEF08A' }), labelOffsetY: 20 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.saturnMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#FEF08A' }), ...solarGeometry(object.catalog_code, solarName) });
         break;
       case 'SOL-URANUS':
-        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.uranusMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#A5F3FC' }), labelOffsetY: 18 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.uranusMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#A5F3FC' }), ...solarGeometry(object.catalog_code, solarName) });
         break;
       case 'SOL-NEPTUNE':
-        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.neptuneMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#93C5FD' }), labelOffsetY: 18 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.neptuneMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#93C5FD' }), ...solarGeometry(object.catalog_code, solarName) });
         break;
       case 'SOL-PLUTO':
-        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.plutoMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#E9D5FF' }), labelOffsetY: 14 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.plutoMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#E9D5FF' }), ...solarGeometry(object.catalog_code, solarName) });
         break;
       default:
         break;

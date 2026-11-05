@@ -1,7 +1,9 @@
 /// <reference types="jest" />
-import { RA_STRETCH, pxPerDegree } from '../skyProjection';
+import { MIN_ZOOM, RA_STRETCH, pxPerDegree } from '../skyProjection';
 import {
   MOON_OFFSET_DEG,
+  ORRERY_CENTER_DEC,
+  ORRERY_CENTER_RA,
   ORRERY_BODIES,
   ORRERY_EPOCH_MS,
   ORRERY_MARKER_GLOW_PX,
@@ -10,12 +12,15 @@ import {
   ORRERY_SPACING_HEIGHT_PX,
   ORRERY_SPACING_ZOOM,
   ORRERY_TILT,
+  SOLAR_CLEARANCE,
   SOLAR_SYSTEM_OBJECTS,
   SUN_CORONA_SCALE,
   heliocentricLongitudeRad,
+  isInsideSolarSystem,
   orbitalPeriodDays,
   orreryBodyPosition,
   orreryIndexOf,
+  orreryMarkerScale,
   orrerySunRadiusPx,
   solarSystemObjectsAt,
 } from '../solarSystem';
@@ -141,9 +146,51 @@ describe('güneş sistemi: açı kilitlemeden üst üste binmeme', () => {
     expect(ORRERY_RADIUS_DEG.mercury * worst).toBeGreaterThanOrEqual(coronaPx / 2 + ORRERY_MARKER_GLOW_PX.mercury);
   });
 
+  it('uzaklaştıkça işaretler orantılı küçüldüğü için ayrışma en geniş açıda (0.2) da korunur', () => {
+    for (const zoom of [MIN_ZOOM, 0.3, 0.45]) {
+      const scale = orreryMarkerScale(zoom);
+      const vertical = pxPerDegree(zoom, ORRERY_SPACING_HEIGHT_PX) * ORRERY_TILT;
+      for (let i = 1; i < PLANETS.length; i += 1) {
+        const gapPx = (ORRERY_RADIUS_DEG[PLANETS[i]] - ORRERY_RADIUS_DEG[PLANETS[i - 1]]) * vertical;
+        expect(gapPx).toBeGreaterThanOrEqual(needPx(PLANETS[i - 1], PLANETS[i]) * scale - 1e-9);
+      }
+    }
+    expect(orreryMarkerScale(ORRERY_SPACING_ZOOM)).toBe(1);
+    expect(orreryMarkerScale(3)).toBe(1);
+  });
+
   it('halkalar içten dışa sıralı', () => {
     for (let i = 1; i < PLANETS.length; i += 1) {
       expect(ORRERY_RADIUS_DEG[PLANETS[i]]).toBeGreaterThan(ORRERY_RADIUS_DEG[PLANETS[i - 1]]);
     }
+  });
+});
+
+describe('güneş sistemi bölgesi', () => {
+  it('sunucudaki is_in_solar_system_zone istemciyle aynı elipsi kullanır', () => {
+    // Jest proje kökünde çalışır; Node tipleri projede olmadığından fs Jest üzerinden alınır
+    const nodeFs = jest.requireActual('fs') as { readFileSync(file: string, encoding: 'utf8'): string };
+    const sql = nodeFs.readFileSync(`${process.cwd()}/supabase/migrations/20261106000000_solar_system_zone.sql`, 'utf8');
+    const ra =
+      /p_ra - (\d+(?:\.\d+)?)\) % 360\) \+ 540\) % 360\) - 180\)::float8\) \/ \(([\d.]+)::float8 \/ cos\(radians\((\d+)::float8\)\) \* ([\d.]+)\)/.exec(
+        sql,
+      );
+    const dec = /\(p_dec::float8 \+ (\d+)\) \/ \(([\d.]+)::float8 \* ([\d.]+) \* ([\d.]+)\)/.exec(sql);
+    expect(ra).not.toBeNull();
+    expect(dec).not.toBeNull();
+    expect(Number(ra![1])).toBe(ORRERY_CENTER_RA);
+    expect(Number(ra![2])).toBe(ORRERY_RADIUS_DEG.pluto);
+    expect(-Number(ra![3])).toBe(ORRERY_CENTER_DEC);
+    expect(Number(ra![4])).toBe(SOLAR_CLEARANCE);
+    expect(-Number(dec![1])).toBe(ORRERY_CENTER_DEC);
+    expect(Number(dec![2])).toBe(ORRERY_RADIUS_DEG.pluto);
+    expect(Number(dec![3])).toBe(ORRERY_TILT);
+    expect(Number(dec![4])).toBe(SOLAR_CLEARANCE);
+  });
+
+  it('çevredeki tescilli yıldızlar (MyLove, Love) sistemin dışında kalır; merkez içeride', () => {
+    expect(isInsideSolarSystem(250.8417, -18.4556)).toBe(false);
+    expect(isInsideSolarSystem(286.4271, -21.1114)).toBe(false);
+    expect(isInsideSolarSystem(ORRERY_CENTER_RA, ORRERY_CENTER_DEC)).toBe(true);
   });
 });

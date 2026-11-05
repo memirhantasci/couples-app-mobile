@@ -185,8 +185,8 @@ export function heliocentricLongitudeRad(planet: string, date: Date): number {
 // ─── Gök haritasındaki derli toplu güneş sistemi (orrery) ───────────────────
 
 /** Gök haritasında Güneş'in durduğu nokta (sistemin merkezi). */
-const ORRERY_CENTER_RA = 270;
-const ORRERY_CENTER_DEC = -8;
+export const ORRERY_CENTER_RA = 270;
+export const ORRERY_CENTER_DEC = -8;
 
 /** Yörünge düzlemine eğik bakış: dikey eksen bu oranda basılır (1 = tam tepeden). */
 export const ORRERY_TILT = 0.8;
@@ -220,23 +220,30 @@ export const ORRERY_MARKER_GLOW_PX = {
  * Dünya ile komşuları arasında Ay'ın yörüngesi için ayrıca pay bırakılır. Bkz. solarSystem testi.
  */
 export const ORRERY_RADIUS_DEG = {
-  mercury: 4.1,
-  venus: 5.4,
-  earth: 8.6,
-  mars: 12.1,
-  jupiter: 14.8,
-  saturn: 18.0,
-  uranus: 20.7,
-  neptune: 23.1,
-  pluto: 24.8,
+  mercury: 3.3,
+  venus: 4.4,
+  earth: 7.0,
+  mars: 9.8,
+  jupiter: 12.0,
+  saturn: 14.5,
+  uranus: 16.7,
+  neptune: 18.6,
+  pluto: 20.0,
 } as const;
 
 /**
- * Zoom ve ekran yüksekliği, işaretlerin ayrı kalma garantisinin verildiği referanstır. Daha uzakta
- * (MIN_ZOOM 0.2'ye kadar) bütün sistem birkaç on piksele sığar ve piksel boyutunda sabit işaretler
- * kaçınılmaz olarak birbirine yaklaşır; gezegenler yakınlaşınca ayrılır.
+ * Aralıkların hesaplandığı referans zoom ve ekran yüksekliği. Bu zoom'un altında işaretler ve Güneş
+ * zoom ile ORANTILI küçülür (orreryMarkerScale), aralıklar da aynı oranda küçüldüğünden ayrılma
+ * garantisi en geniş açıya (MIN_ZOOM) kadar korunur. Üstünde işaretler sabit boyutta, aralıklar büyür.
+ * Sistemin gökyüzündeki ayak izi (Plüton 20°) çevredeki tescilli yıldızları yutmayacak kadar küçüktür.
  */
-export const ORRERY_SPACING_ZOOM = 0.8;
+export const ORRERY_SPACING_ZOOM = 0.6;
+
+/** İşaretlerin ve Güneş'in çizim ölçeği: referans zoom'un altında zoom ile orantılı küçülür. */
+export function orreryMarkerScale(zoom: number): number {
+  'worklet';
+  return Math.min(1, zoom / ORRERY_SPACING_ZOOM);
+}
 export const ORRERY_SPACING_HEIGHT_PX = 740;
 
 /** Güneş işaretinin ölçeği (piksel): yakınlaştıkça hafifçe büyür. Korona bunun 2,8 katına uzanır. */
@@ -248,7 +255,7 @@ export function orrerySunRadiusPx(zoom: number): number {
 export const SUN_CORONA_SCALE = 2.8;
 
 /** Ay'ın Dünya'ya görsel uzaklığı (orrery derecesi): Dünya'nın parıltısından açıkça ayrı durur. */
-export const MOON_OFFSET_DEG = 1.9;
+export const MOON_OFFSET_DEG = 1.5;
 
 /**
  * Orrery de haritayla birlikte yatayda RA_STRETCH kat geniştir: halkalar geniş, yatay duran elipslerdir
@@ -343,8 +350,12 @@ export const ORRERY_ORBITS = {
   })),
 } as const;
 
-/** Dış yörüngenin (Plüton) dışında bırakılan pay: yıldızlar halkaya yapışık durmasın. */
-const SOLAR_CLEARANCE = 1.06;
+/**
+ * Dış yörüngenin (Plüton) dışında bırakılan pay: yıldızlar halkaya yapışık durmasın. Sunucudaki
+ * is_in_solar_system_zone aynı elipsi kullanır (bölgedeki yıldızlar önerilmez/verilmez); biri
+ * değişirse ikisi birlikte değişmeli (solarSystem testi karşılaştırır).
+ */
+export const SOLAR_CLEARANCE = 1.06;
 
 /**
  * Nokta, güneş sisteminin (en dış yörüngenin) içinde mi? Bu alanda gezegenlerden başka hiçbir yıldız
