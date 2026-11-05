@@ -1000,7 +1000,7 @@
       "opensTomorrow": "Opens tomorrow",
       "opensInDays": "In {{daysLeft}} days",
       "title": "Pending Letters",
-      "letterFrom": "Letter from {{name}}",
+      "letterFrom": "Letter from {{from}}",
       "closeEyes": "Close your eyes and wait for the time… 🔒",
       "opensOn": "Opens on {{date}}"
     },

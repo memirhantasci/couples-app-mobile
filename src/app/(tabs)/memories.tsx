@@ -138,12 +138,15 @@ export default function MemoriesScreen() {
           });
         }
 
+        let seedFailed = false;
         if (memoriesToInsert.length > 0) {
-          await supabase.from("memories").insert(memoriesToInsert);
-          hasUpdated = true;
+          const { error: seedError } = await supabase.from("memories").insert(memoriesToInsert);
+          if (seedError) seedFailed = true;
+          else hasUpdated = true;
         }
 
-        await AsyncStorage.setItem(storageKey, "1");
+        // Ekleme başarısız olduysa (ağ / yetki) işaret konmaz: sonraki açılışta yeniden denenir
+        if (!seedFailed) await AsyncStorage.setItem(storageKey, "1");
       }
 
       if (hasUpdated) {

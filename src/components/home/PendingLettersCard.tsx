@@ -15,6 +15,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { ChevronRight, Mail } from "lucide-react-native";
 import { dayjs } from "@/lib/date";
+import { withAblative } from "@/lib/turkishSuffix";
 import { AppTheme } from "@/lib/theme";
 import { UserAvatar } from "@/components/avatar/UserAvatar";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
@@ -204,7 +205,7 @@ export const PendingLettersCard = memo(function PendingLettersCard({
               {/* İsim + önizleme + tarih */}
               <View style={styles.textBlock}>
                 <Text style={[styles.senderName, { color: theme.text }]} numberOfLines={1}>
-                  {t("home.pending.letterFrom", { name })}
+                  {t("home.pending.letterFrom", { from: i18n.language === "tr" ? withAblative(name) : name })}
                 </Text>
                 <Text style={[styles.previewText, { color: theme.textMuted }]} numberOfLines={1}>
                   {t("home.pending.closeEyes")}

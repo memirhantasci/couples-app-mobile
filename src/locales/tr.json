@@ -1000,7 +1000,7 @@
       "opensTomorrow": "Yarın açılıyor",
       "opensInDays": "{{daysLeft}} gün sonra",
       "title": "Bekleyen Mektuplar",
-      "letterFrom": "{{name}}'dan Mektup",
+      "letterFrom": "{{from}} Mektup",
       "closeEyes": "Gözlerini kapat ve zamanı bekle… 🔒",
       "opensOn": "{{date}} tarihinde açılacak"
     },

@@ -60,6 +60,18 @@ async function dropAlreadySent(admin: any, job: string, messages: any[]): Promis
 // ─────────────────────────────────────────────────────────────────────────────
 type Lang = "tr" | "en";
 const toLang = (value: unknown): Lang => (value === "en" ? "en" : "tr");
+
+// Türkçe tamlayan eki ad sonuna göre değişir (Ayşe'nin, Burak'ın, Cem'in). Aynı kural: src/lib/turkishSuffix.ts
+function trGenitive(name: string): string {
+  const lower = name.replace(/İ/g, "i").replace(/I/g, "ı").toLowerCase();
+  const letters = lower.replace(/[^a-zçğıöşüâîû]/g, "");
+  if (!letters) return name;
+  const vowels = "aeıioöuüâîû";
+  const endsWithVowel = vowels.includes(letters[letters.length - 1]);
+  const lastVowel = [...letters].reverse().find((ch) => vowels.includes(ch)) ?? "e";
+  const vowel = "aıâ".includes(lastVowel) ? "ı" : "eiî".includes(lastVowel) ? "i" : "ouû".includes(lastVowel) ? "u" : "ü";
+  return `${name}'${endsWithVowel ? "n" : ""}${vowel}n`;
+}
 const localeOf = (lang: Lang) => (lang === "en" ? "en-US" : "tr-TR");
 
 interface TokenRow {
@@ -106,7 +118,7 @@ function S(lang: Lang) {
     periodReminderPartnerBody: (name: string) =>
       en
         ? `${name}'s period is expected in 2 days. Get ready to support her 💕`
-        : `${name}'in tahmini regl tarihine 2 gün kaldı. Ona destek olmaya hazırlan 💕`,
+        : `${trGenitive(name)} tahmini regl tarihine 2 gün kaldı. Ona destek olmaya hazırlan 💕`,
     letterUnlockTitle: en ? "💌 Your Letter Is Unlocked!" : "💌 Mektubun Kilidi Açıldı!",
     letterUnlockBody: (sender: string, title: string) =>
       en
@@ -114,8 +126,8 @@ function S(lang: Lang) {
           ? `The letter "${title}" that ${sender} wrote you is unlocked today! Read it now.`
           : `The surprise letter ${sender} wrote you is unlocked today! Read it now.`
         : title
-          ? `${sender}'in sana yazdığı "${title}" mektubunun kilidi bugün açıldı! Hemen oku.`
-          : `${sender}'in sana yazdığı sürpriz mektubun kilidi bugün açıldı! Hemen oku.`,
+          ? `${trGenitive(sender)} sana yazdığı "${title}" mektubunun kilidi bugün açıldı! Hemen oku.`
+          : `${trGenitive(sender)} sana yazdığı sürpriz mektubun kilidi bugün açıldı! Hemen oku.`,
     meetingSoonTitle: en ? "⏳ Upcoming Meetup" : "⏳ Yaklaşan Buluşma",
     meetingSoonBody: (title: string) =>
       en
@@ -149,7 +161,7 @@ function S(lang: Lang) {
     letterNewAction: en ? "Go to Letters 💌" : "Mektuplara Git 💌",
     periodStartedTitle: en ? "🩸 Period Calendar" : "🩸 Regl Takvimi",
     periodStartedBody: (sender: string) =>
-      en ? `${sender}'s period has started. Don't forget to support her 💕` : `${sender}'in regl dönemi başladı. Ona destek olmayı unutma 💕`,
+      en ? `${sender}'s period has started. Don't forget to support her 💕` : `${trGenitive(sender)} regl dönemi başladı. Ona destek olmayı unutma 💕`,
     periodStartedAction: en ? "Go to Cycle Tracking 🌸" : "Döngü Takibine Git 🌸",
     moodTitle: en ? "💭 Mood Update" : "💭 Mod Güncellemesi",
     moodBody: (sender: string, mood: string) => (en ? `${sender} is feeling ${mood} today` : `${sender} bugün kendini ${mood} hissediyor`),
