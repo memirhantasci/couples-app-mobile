@@ -2272,7 +2272,11 @@
     "history": {
       "title": "PAST DAILY TRACKING (LAST 14 DAYS)",
       "empty": "There are no past medicine records.",
-      "entry": "{{name}} • {{taken}}/{{total}} Taken ({{times}})"
+      "entry": "{{name}} • {{taken}}/{{total}} Taken ({{times}})",
+      "allTaken": "All Taken",
+      "dosesTaken": "{{taken}}/{{total}} Doses",
+      "showMore": "Show More ({{count}} more days)",
+      "showLess": "Show Less"
     },
     "streak": {
       "title": "{{count}}-Day Streak! 🔥",

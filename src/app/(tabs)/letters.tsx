@@ -502,7 +502,7 @@ export default function LettersScreen() {
       readableName(personObj?.display_name) || readableName(personObj?.username) || t("letters.myLoveHeart");
     const personAvatarUrl = getAvatarUrl(itemType === "received" ? letter.sender_id : letter.receiver_id);
 
-    let relativeDate = dayjs(letter.created_at).format("DD MMMM YYYY");
+    let relativeDate = dayjs(letter.created_at).locale(i18n.language).format("DD MMMM YYYY");
     if (dayjs(letter.created_at).isSame(dayjs(), 'day')) relativeDate = t("common.today");
 
     // Kilitli (henüz açılamayan) mektubun içeriği hiç çözülmez; açılabilir olanlar önbellekten gelir
@@ -604,7 +604,11 @@ export default function LettersScreen() {
                 />
               ) : (
                 <View style={styles.unlockedBadge}>
-                  <Unlock size={13} color="#22c55e" />
+                  {itemType === "sent" && isLockedDate ? (
+                    <LockKeyhole size={12} color={isLight ? "#15803D" : "#22c55e"} />
+                  ) : (
+                    <Unlock size={12} color={isLight ? "#15803D" : "#22c55e"} />
+                  )}
                   <Text style={styles.unlockedBadgeText}>
                     {itemType === "sent"
                       ? isLockedDate
@@ -616,8 +620,7 @@ export default function LettersScreen() {
               )}
             </View>
 
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text style={[styles.cardDate, { color: theme.textMuted }]}>{relativeDate}</Text>
+            <View style={styles.cardActionsRow}>
               {canOpen && itemType === "received" && <ChevronRight size={14} color={theme.textMuted} />}
               {canOpen && itemType === "sent" && (
                 <ChevronDown
@@ -646,12 +649,15 @@ export default function LettersScreen() {
             {canOpen ? letter.title : t("letters.card.lockedTitle")}
           </Text>
 
-          {/* Gönderen / Alıcı Bilgisi */}
+          {/* Gönderen / Alıcı Bilgisi & Yazılma Tarihi */}
           <View style={styles.personRow}>
-            <UserAvatar uri={personAvatarUrl} name={personName} size={22} borderWidth={1} />
-            <Text style={[styles.personText, { color: theme.textSecondary }]}>
-              {itemType === "received" ? t("letters.card.from", { personName }) : t("letters.card.to", { personName })}
-            </Text>
+            <View style={styles.personInfoLeft}>
+              <UserAvatar uri={personAvatarUrl} name={personName} size={22} borderWidth={1} />
+              <Text style={[styles.personText, { color: theme.textSecondary }]} numberOfLines={1}>
+                {itemType === "received" ? t("letters.card.from", { personName }) : t("letters.card.to", { personName })}
+              </Text>
+            </View>
+            <Text style={[styles.cardDate, { color: theme.textMuted }]}>{relativeDate}</Text>
           </View>
 
           {/* Kapalı Durumdayken Kısa Önizleme */}
@@ -1306,9 +1312,18 @@ const createStyles = (theme: AppTheme) => {
       marginBottom: 8,
     },
     badgeContainer: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: 6,
+      marginRight: 8,
+    },
+    cardActionsRow: {
       flexDirection: "row",
       alignItems: "center",
       gap: 6,
+      flexShrink: 0,
     },
     directionBadge: {
       flexDirection: "row",
@@ -1333,6 +1348,7 @@ const createStyles = (theme: AppTheme) => {
       borderRadius: 10,
       borderWidth: 1,
       borderColor: "rgba(34,197,94,0.25)",
+      maxWidth: "100%",
     },
     unlockedBadgeText: {
       color: isLight ? "#15803D" : "#22c55e",
@@ -1340,9 +1356,10 @@ const createStyles = (theme: AppTheme) => {
       fontFamily: "Inter_600SemiBold",
     },
     cardDate: {
-      fontSize: 12,
+      fontSize: 11.5,
       fontFamily: "Inter_400Regular",
       color: isLight ? theme.textMuted : "rgba(255,255,255,0.4)",
+      flexShrink: 0,
     },
     cardTitle: {
       fontSize: 16,
@@ -1354,13 +1371,22 @@ const createStyles = (theme: AppTheme) => {
     personRow: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 6,
+      justifyContent: "space-between",
+      gap: 8,
       marginBottom: 8,
+    },
+    personInfoLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      flex: 1,
+      marginRight: 8,
     },
     personText: {
       fontSize: 12.5,
       fontFamily: "Inter_500Medium",
       color: isLight ? theme.textSecondary : "rgba(255,255,255,0.6)",
+      flexShrink: 1,
     },
     previewText: {
       fontSize: 13,

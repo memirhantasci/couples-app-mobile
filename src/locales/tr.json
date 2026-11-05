@@ -2272,7 +2272,11 @@
     "history": {
       "title": "GEÇMİŞ GÜNLÜK TAKİP (SON 14 GÜN)",
       "empty": "Geçmiş ilaç kaydı bulunmuyor.",
-      "entry": "{{name}} • {{taken}}/{{total}} Alındı ({{times}})"
+      "entry": "{{name}} • {{taken}}/{{total}} Alındı ({{times}})",
+      "allTaken": "Tümü Alındı",
+      "dosesTaken": "{{taken}}/{{total}} Doz",
+      "showMore": "Daha Fazlasını Gör ({{count}} gün daha)",
+      "showLess": "Daha Az Göster"
     },
     "streak": {
       "title": "{{count}} Günlük Seri! 🔥",
