@@ -33,32 +33,14 @@ DROP POLICY IF EXISTS "Insert own sent letters" ON public.letters;
 REVOKE INSERT ON public.letters FROM anon, authenticated;
 
 -- ────────────────────────────────────────────────────────────────────────────
--- 2. meetings, calendar_notes: UPDATE sonrası couple_id de kendi çifti olmalı
+-- 2. calendar_notes: UPDATE sonrası couple_id de kendi çifti olmalı
+--    (canlıdaki politika adı "calendar_notes_update"; meetings_update USING (couple_id = ...) ile zaten güvenli)
 -- ────────────────────────────────────────────────────────────────────────────
-DO $$
-DECLARE
-  t text;
-BEGIN
-  FOREACH t IN ARRAY ARRAY['meetings', 'calendar_notes']
-  LOOP
-    IF EXISTS (
-      SELECT 1 FROM pg_policies
-       WHERE schemaname = 'public' AND tablename = t AND policyname = 'Update own data'
-    ) AND EXISTS (
-      SELECT 1 FROM information_schema.columns
-       WHERE table_schema = 'public' AND table_name = t AND column_name = 'user_id'
-    ) AND EXISTS (
-      SELECT 1 FROM information_schema.columns
-       WHERE table_schema = 'public' AND table_name = t AND column_name = 'couple_id'
-    ) THEN
-      EXECUTE format('DROP POLICY "Update own data" ON public.%I', t);
-      EXECUTE format(
-        'CREATE POLICY "Update own data" ON public.%I FOR UPDATE TO authenticated USING (user_id = (SELECT auth.uid())) WITH CHECK (user_id = (SELECT auth.uid()) AND couple_id = (SELECT public.get_my_couple_id()))',
-        t
-      );
-    END IF;
-  END LOOP;
-END $$;
+DROP POLICY IF EXISTS "calendar_notes_update" ON public.calendar_notes;
+CREATE POLICY "calendar_notes_update" ON public.calendar_notes
+  FOR UPDATE TO authenticated
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()) AND couple_id = (SELECT public.get_my_couple_id()));
 
 -- ────────────────────────────────────────────────────────────────────────────
 -- 3. earn_tokens: günlük sınır eşzamanlı çağrıyla aşılamasın
