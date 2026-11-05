@@ -24,7 +24,7 @@ import {
   type StrandResources,
 } from './connectionStrands';
 import type { SkyOverlay } from './skyOverlay';
-import { pxPerDegree, shortestRaDelta, type SkyCamera } from './skyProjection';
+import { pxPerDegree, pxPerRaDegree, shortestRaDelta, type SkyCamera } from './skyProjection';
 import { colorOf, glowShader, STAR_FADE_MS, type StarField, type StarRender } from './starField';
 import {
   MAGNITUDE_FADE,
@@ -215,14 +215,17 @@ export function createStarPaints(): StarPaints {
 
 interface FrameView {
   readonly camera: SkyCamera;
+  /** Pixels per degree of declination (vertical). */
   readonly scale: number;
+  /** Pixels per degree of right ascension (horizontal, RA_STRETCH wider). */
+  readonly scaleX: number;
   readonly width: number;
   readonly height: number;
 }
 
 function screenX(view: FrameView, ra: number): number {
   'worklet';
-  return view.width / 2 + shortestRaDelta(view.camera.ra, ra) * view.scale;
+  return view.width / 2 + shortestRaDelta(view.camera.ra, ra) * view.scaleX;
 }
 
 function screenY(view: FrameView, dec: number): number {
@@ -235,11 +238,11 @@ function isOnScreen(view: FrameView, x: number, y: number, margin: number): bool
   return x >= -margin && x <= view.width + margin && y >= -margin && y <= view.height + margin;
 }
 
-function drawAt(canvas: SkCanvas, picture: SkPicture, x: number, y: number, scale = 1) {
+function drawAt(canvas: SkCanvas, picture: SkPicture, x: number, y: number, scale = 1, scaleY = scale) {
   'worklet';
   canvas.save();
   canvas.translate(x, y);
-  if (scale !== 1) canvas.scale(scale, scale);
+  if (scale !== 1 || scaleY !== 1) canvas.scale(scale, scaleY);
   canvas.drawPicture(picture);
   canvas.restore();
 }
@@ -363,7 +366,7 @@ function drawStars(
   paints: StarPaints,
 ) {
   'worklet';
-  const { camera, scale, width, height } = view;
+  const { camera, scale, scaleX, width, height } = view;
   const zoom = camera.zoom;
   const style: StarFrameStyle = {
     zoomBonus: starZoomBonus(zoom),
@@ -371,17 +374,19 @@ function drawStars(
     glow: smoothstep(GLOW_BLEND[0], GLOW_BLEND[1], zoom),
     detail: smoothstep(DETAIL_BLEND[0], DETAIL_BLEND[1], zoom),
   };
-  const halfWidthDeg = width / 2 / scale;
+  const halfWidthDeg = width / 2 / scaleX;
   const halfHeightDeg = height / 2 / scale;
-  // Largest star radius (a fully lit one) plus its reach.
-  const marginDeg = (MAX_STAR_BASE_RADIUS_PX * style.zoomBonus * 2.5 + STAR_REACH_PX) / scale;
+  // Largest star radius (a fully lit one) plus its reach, per axis.
+  const marginPx = MAX_STAR_BASE_RADIUS_PX * style.zoomBonus * 2.5 + STAR_REACH_PX;
+  const marginDeg = marginPx / scale;
+  const marginRaDeg = marginPx / scaleX;
 
   for (const cell of field.cells) {
     if (cell.minDec - marginDeg > camera.dec + halfHeightDeg) continue;
     if (cell.maxDec + marginDeg < camera.dec - halfHeightDeg) continue;
     const cellHalfWidth = (cell.maxRa - cell.minRa) / 2;
     const cellOffset = Math.abs(shortestRaDelta(camera.ra, cell.minRa + cellHalfWidth));
-    if (cellOffset - cellHalfWidth - marginDeg > halfWidthDeg) continue;
+    if (cellOffset - cellHalfWidth - marginRaDeg > halfWidthDeg) continue;
 
     for (const star of cell.stars) {
       const visibility = star.claimed
@@ -393,7 +398,7 @@ function drawStars(
       const opacity = visibility * fade * twinkle;
       if (opacity <= 0.01) continue;
 
-      const x = width / 2 + shortestRaDelta(camera.ra, star.ra) * scale;
+      const x = width / 2 + shortestRaDelta(camera.ra, star.ra) * scaleX;
       const y = height / 2 - (star.dec - camera.dec) * scale;
       const reach = star.radius * style.zoomBonus * 2.5 + STAR_REACH_PX;
       if (x < -reach || x > width + reach || y < -reach || y > height + reach) continue;
@@ -406,12 +411,14 @@ function drawStars(
 
 function drawMilkyWay(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay) {
   'worklet';
+  // Stretched sideways with the world, so the band stays continuous across the wide map
   for (const band of overlay.milkyWay) {
     const radius = band.radiusDeg * view.scale;
+    const radiusX = band.radiusDeg * view.scaleX;
     const x = screenX(view, band.ra);
     const y = screenY(view, band.dec);
-    if (!isOnScreen(view, x, y, radius)) continue;
-    drawAt(canvas, band.picture, x, y, radius);
+    if (!isOnScreen(view, x, y, Math.max(radius, radiusX))) continue;
+    drawAt(canvas, band.picture, x, y, radiusX, radius);
   }
 }
 
@@ -419,10 +426,11 @@ function drawNebulae(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay) {
   'worklet';
   for (const nebula of overlay.nebulae) {
     const radius = nebula.radiusDeg * view.scale;
+    const radiusX = nebula.radiusDeg * view.scaleX;
     const x = screenX(view, nebula.ra);
     const y = screenY(view, nebula.dec);
-    if (!isOnScreen(view, x, y, radius)) continue;
-    drawAt(canvas, nebula.picture, x, y, radius);
+    if (!isOnScreen(view, x, y, Math.max(radius, radiusX))) continue;
+    drawAt(canvas, nebula.picture, x, y, radiusX, radius);
   }
 }
 
@@ -459,11 +467,11 @@ function drawSectorLabels(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay
 function drawConstellations(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay) {
   'worklet';
   const segments = overlay.constellations;
-  const { width, height, scale } = view;
+  const { width, height, scale, scaleX } = view;
   for (let index = 0; index + 3 < segments.length; index += 4) {
     const x1 = screenX(view, segments[index]);
     const y1 = screenY(view, segments[index + 1]);
-    const x2 = x1 + shortestRaDelta(segments[index], segments[index + 2]) * scale;
+    const x2 = x1 + shortestRaDelta(segments[index], segments[index + 2]) * scaleX;
     const y2 = y1 - (segments[index + 3] - segments[index + 1]) * scale;
     if ((x1 < 0 && x2 < 0) || (x1 > width && x2 > width) || (y1 < 0 && y2 < 0) || (y1 > height && y2 > height)) continue;
     canvas.drawLine(x1, y1, x2, y2, overlay.constellationPaint);
@@ -488,12 +496,12 @@ function drawConnectionLines(
   'worklet';
   const hero = overlay.hero;
   if (!hero || overlay.connections.length === 0) return;
-  const { width, height, scale } = view;
+  const { width, height, scale, scaleX } = view;
   const x1 = screenX(view, hero.ra);
   const y1 = screenY(view, hero.dec);
 
   for (const connection of overlay.connections) {
-    const x2 = x1 + shortestRaDelta(hero.ra, connection.ra) * scale;
+    const x2 = x1 + shortestRaDelta(hero.ra, connection.ra) * scaleX;
     const y2 = y1 - (connection.dec - hero.dec) * scale;
     if ((x1 < 0 && x2 < 0) || (x1 > width && x2 > width) || (y1 < 0 && y2 < 0) || (y1 > height && y2 > height)) continue;
     drawConnectionStrands(
@@ -650,7 +658,7 @@ function drawOrbits(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, pain
   const cx = screenX(view, orbits.ra);
   const cy = screenY(view, orbits.dec);
   for (const ring of orbits.rings) {
-    const rx = ring.rx * view.scale;
+    const rx = ring.rx * view.scaleX;
     const ry = ring.ry * view.scale;
     if (cx + rx < 0 || cx - rx > view.width || cy + ry < 0 || cy - ry > view.height) continue;
     // The recording canvas copies the rect, so the next ring can reuse it.
@@ -680,7 +688,7 @@ function drawHero(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, animSe
 function drawLabels(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, paints: StarPaints) {
   'worklet';
   const zoom = view.camera.zoom;
-  const { scale } = view;
+  const { scale, scaleX } = view;
 
   const claimedAlpha = smoothstep(CLAIMED_LABEL_FADE[0], CLAIMED_LABEL_FADE[1], zoom);
   if (claimedAlpha > 0.002 && overlay.claimedLabels.length > 0) {
@@ -700,7 +708,7 @@ function drawLabels(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, pain
     const heroY = screenY(view, hero.dec);
     for (const connection of overlay.connections) {
       if (!connection.label) continue;
-      const x = heroX + shortestRaDelta(hero.ra, connection.ra) * scale;
+      const x = heroX + shortestRaDelta(hero.ra, connection.ra) * scaleX;
       const y = heroY - (connection.dec - hero.dec) * scale;
       if (isOnScreen(view, x, y, 120)) drawAt(canvas, connection.label, x, y + 22);
     }
@@ -736,7 +744,13 @@ export function drawSkyFrame(
   height: number,
 ) {
   'worklet';
-  const view: FrameView = { camera, scale: pxPerDegree(camera.zoom, height), width, height };
+  const view: FrameView = {
+    camera,
+    scale: pxPerDegree(camera.zoom, height),
+    scaleX: pxPerRaDegree(camera.zoom, height),
+    width,
+    height,
+  };
   if (overlay) {
     canvas.drawPicture(overlay.background);
     drawMilkyWay(canvas, view, overlay);

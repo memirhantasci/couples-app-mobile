@@ -26,7 +26,7 @@
  * or one right after another.
  */
 
-import { pxPerDegree, shortestRaDelta, type SkyCamera } from './skyProjection';
+import { pxPerDegree, pxPerRaDegree, shortestRaDelta, type SkyCamera } from './skyProjection';
 import { smoothstep } from './starStyle';
 
 /** One meteor launches per slot: 1000 / 2381 ≈ 0.42 launches per second over the whole map. */
@@ -168,12 +168,13 @@ export function meteorSegment(
 
   const tail = Math.max(0, head - event.tail);
   const scale = pxPerDegree(camera.zoom, height);
+  const scaleX = pxPerRaDegree(camera.zoom, height);
   const headRa = event.startRa + event.deltaRa * head;
   const headDec = event.startDec + event.deltaDec * head;
-  const headX = width / 2 + shortestRaDelta(camera.ra, headRa) * scale;
+  const headX = width / 2 + shortestRaDelta(camera.ra, headRa) * scaleX;
   const headY = height / 2 - (headDec - camera.dec) * scale;
   // The tail is placed relative to the head (unwrapped), so a streak crossing RA 0° never tears.
-  const tailX = headX - event.deltaRa * (head - tail) * scale;
+  const tailX = headX - event.deltaRa * (head - tail) * scaleX;
   const tailY = headY + event.deltaDec * (head - tail) * scale;
 
   const fade = smoothstep(0, EDGE_FADE, head) * (1 - smoothstep(1 - EDGE_FADE, 1, head));

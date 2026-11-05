@@ -29,8 +29,8 @@ import {
   BASE_FOV_DEG,
   clampDec,
   clampZoom,
-  MIN_ZOOM,
   normalizeRa,
+  RA_STRETCH,
   skyBoundsForCamera,
   skyBoundsForMotion,
 } from './macro/skyProjection';
@@ -117,7 +117,7 @@ function toCameraState(ra: number, dec: number, zoom: number, width: number, hei
     centerRa: normalizeRa(ra),
     centerDec: dec,
     zoom,
-    fovRa: fovDec * (width / height),
+    fovRa: (fovDec * (width / height)) / RA_STRETCH,
     fovDec,
     viewportWidth: width,
     viewportHeight: height,
@@ -231,7 +231,7 @@ function MacroSkyCanvasSkia({
   const fontProvider = useFonts(LABEL_FONTS);
 
   const [initial] = useState(() => {
-    const zoom = clampZoom(initialCamera?.zoom ?? MIN_ZOOM);
+    const zoom = clampZoom(initialCamera?.zoom ?? 1.2);
     return { ra: initialCamera?.centerRa ?? 180, dec: clampDec(initialCamera?.centerDec ?? 0, zoom), zoom };
   });
 

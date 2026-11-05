@@ -3,21 +3,19 @@
  * no React Native imports, so it runs on the UI thread and in Node tests alike.
  *
  * World space is equirectangular in degrees (x = right ascension, y = -dec).
- * A camera maps it to screen pixels with one uniform scale,
- * `pxPerDegree = zoom * viewportHeight / BASE_FOV_DEG`, which is exactly the
- * projection the previous renderer used, so positions are unchanged.
+ * A camera maps dec to screen pixels with `pxPerDegree = zoom * viewportHeight
+ * / BASE_FOV_DEG` and right ascension with `pxPerRaDegree`, which is
+ * RA_STRETCH times wider: the world is a wide panoramic band, so stars spread
+ * out horizontally and a full turn of the sky takes several swipes. Star
+ * coordinates themselves never change. Every screen <-> world conversion must
+ * use the matching scale per axis (x: pxPerRaDegree, y: pxPerDegree).
  *
  * Camera RA is intentionally unbounded (a long pan may reach 1000°); wrap it
  * with `normalizeRa` only when reporting it outside the renderer.
  */
 
-/**
- * Widest view. It used to be 0.6 (100° of sky on screen, the whole sky in about two swipes),
- * which looked crowded once every star was shown from far away. At 1.6 the map is drawn about
- * 2.7 times bigger: a full turn takes five to six swipes and the stars are spread out. Star
- * coordinates never change; raise or lower this to make the widest view bigger or smaller.
- */
-export const MIN_ZOOM = 1.6;
+/** Widest view (zoom out limit): 100° of declination on screen. */
+export const MIN_ZOOM = 0.6;
 export const MAX_ZOOM = 35;
 /** Vertical field of view in degrees at zoom 1. */
 export const BASE_FOV_DEG = 60;
@@ -38,9 +36,24 @@ export interface SkyBoundsWithZoom {
   readonly zoomLevel: number;
 }
 
+/**
+ * How much wider the world is horizontally than vertically. 1 would be the
+ * plain sky map (a full turn in about two swipes at the widest view); 2.7 makes
+ * the sky a wide panoramic band: a full turn takes five to six swipes and stars
+ * are 2.7 times further apart sideways. The single knob for the map's width.
+ */
+export const RA_STRETCH = 2.7;
+
+/** Screen pixels per degree of declination (vertical). */
 export function pxPerDegree(zoom: number, viewportHeight: number): number {
   'worklet';
   return (zoom * viewportHeight) / BASE_FOV_DEG;
+}
+
+/** Screen pixels per degree of right ascension (horizontal): RA_STRETCH times pxPerDegree. */
+export function pxPerRaDegree(zoom: number, viewportHeight: number): number {
+  'worklet';
+  return pxPerDegree(zoom, viewportHeight) * RA_STRETCH;
 }
 
 export function normalizeRa(ra: number): number {
@@ -79,7 +92,7 @@ export function clampDec(dec: number, zoom: number): number {
 
 export function worldToScreenX(ra: number, camera: SkyCamera, width: number, height: number): number {
   'worklet';
-  return width / 2 + shortestRaDelta(camera.ra, ra) * pxPerDegree(camera.zoom, height);
+  return width / 2 + shortestRaDelta(camera.ra, ra) * pxPerRaDegree(camera.zoom, height);
 }
 
 export function worldToScreenY(dec: number, camera: SkyCamera, height: number): number {
@@ -98,7 +111,7 @@ export function screenToWorld(
   'worklet';
   const scale = pxPerDegree(camera.zoom, height);
   return {
-    ra: camera.ra + (x - width / 2) / scale,
+    ra: camera.ra + (x - width / 2) / pxPerRaDegree(camera.zoom, height),
     dec: camera.dec - (y - height / 2) / scale,
   };
 }
@@ -120,7 +133,7 @@ export function cameraAnchoredAt(
   'worklet';
   const scale = pxPerDegree(zoom, height);
   return {
-    ra: anchorRa - (x - width / 2) / scale,
+    ra: anchorRa - (x - width / 2) / pxPerRaDegree(zoom, height),
     dec: clampDec(anchorDec + (y - height / 2) / scale, zoom),
     zoom,
   };
@@ -192,7 +205,7 @@ export function panStep(camera: SkyCamera, deltaX: number, deltaY: number, heigh
   const scale = pxPerDegree(camera.zoom, height);
   const decStep = resistDecStep(camera.dec, deltaY / scale, camera.zoom, height);
   return {
-    ra: camera.ra - deltaX / scale,
+    ra: camera.ra - deltaX / pxPerRaDegree(camera.zoom, height),
     dec: clampElasticDec(camera.dec + decStep, camera.zoom, height),
     zoom: camera.zoom,
   };
@@ -231,7 +244,7 @@ export function pinchStep(
   const decBound = Math.min(elasticDecBound(zoom, height), decLimit(zoom) + overshootPx / scale);
   const dec = anchor.dec + (focalY - height / 2) / scale;
   return {
-    ra: anchor.ra - (focalX - width / 2) / scale,
+    ra: anchor.ra - (focalX - width / 2) / pxPerRaDegree(zoom, height),
     dec: Math.max(-decBound, Math.min(decBound, dec)),
     zoom,
   };
@@ -252,7 +265,7 @@ export function skyBoundsForCamera(
 ): SkyBoundsWithZoom {
   'worklet';
   const fovDec = (BASE_FOV_DEG / zoom) * padding;
-  const fovRa = fovDec * (width / height);
+  const fovRa = (fovDec * (width / height)) / RA_STRETCH;
   return {
     minRa: normalizeRa(ra - fovRa / 2),
     maxRa: normalizeRa(ra + fovRa / 2),
@@ -278,7 +291,7 @@ export function skyBoundsForMotion(
 ): SkyBoundsWithZoom {
   'worklet';
   const fovDec = (BASE_FOV_DEG / zoom) * 1.5;
-  const fovRa = fovDec * (width / height);
+  const fovRa = (fovDec * (width / height)) / RA_STRETCH;
   const maxShift = fovDec * 2;
   const shiftRa = Math.max(-maxShift, Math.min(maxShift, raVelocity * lookaheadSec));
   const shiftDec = Math.max(-maxShift, Math.min(maxShift, decVelocity * lookaheadSec));

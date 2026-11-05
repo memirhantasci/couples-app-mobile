@@ -12,6 +12,7 @@ import {
   clampDec,
   clampZoom,
   pxPerDegree,
+  pxPerRaDegree,
   shortestRaDelta,
   type SkyCamera,
 } from './skyProjection';
@@ -60,7 +61,7 @@ export function createFlightPlan(
   const deltaDec = toDec - from.dec;
 
   // Spans are measured in degrees: the larger viewport side at each zoom.
-  const w0 = Math.max(width, height) / pxPerDegree(from.zoom, height);
+  const w0 = Math.max(width / pxPerRaDegree(from.zoom, height), height / pxPerDegree(from.zoom, height));
   const w1 = (w0 * from.zoom) / toZoom;
   const u1 = Math.sqrt(deltaRa * deltaRa + deltaDec * deltaDec);
   const rho2 = RHO * RHO;

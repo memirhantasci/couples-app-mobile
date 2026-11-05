@@ -23,6 +23,7 @@ import {
   panStep,
   pinchStep,
   pxPerDegree,
+  pxPerRaDegree,
   screenToWorld,
   type SkyCamera,
 } from './skyProjection';
@@ -111,7 +112,7 @@ function resolveCamera(sources: CameraSources, width: number, height: number): S
     const zoom = sources.baseZoom.get();
     const scale = pxPerDegree(zoom, height);
     return {
-      ra: sources.baseRa.get() - sources.flingX.get() / scale,
+      ra: sources.baseRa.get() - sources.flingX.get() / pxPerRaDegree(zoom, height),
       dec: sources.baseDec.get() + sources.flingY.get() / scale,
       zoom,
     };

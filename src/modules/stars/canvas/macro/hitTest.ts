@@ -1,5 +1,5 @@
 import type { ViewportStarItem } from '../../types/star.types';
-import { pxPerDegree, shortestRaDelta, type SkyCamera } from './skyProjection';
+import { pxPerDegree, pxPerRaDegree, shortestRaDelta, type SkyCamera } from './skyProjection';
 import { starLight, starRadius, UNCLAIMED_STAR_BRIGHTNESS } from './starStyle';
 
 const MIN_TOUCH_RADIUS = 52;
@@ -19,11 +19,12 @@ export function hitTestSky(
   candidates: readonly ViewportStarItem[],
 ): ViewportStarItem | null {
   const scale = pxPerDegree(camera.zoom, height);
+  const scaleX = pxPerRaDegree(camera.zoom, height);
   let nearest: ViewportStarItem | null = null;
   let nearestDistance = Infinity;
 
   for (const star of candidates) {
-    const starX = width / 2 + shortestRaDelta(camera.ra, star.ra) * scale;
+    const starX = width / 2 + shortestRaDelta(camera.ra, star.ra) * scaleX;
     const starY = height / 2 - (star.dec - camera.dec) * scale;
     const isSolar = star.catalog_code.startsWith('SOL-');
     const sizeFactor = star.catalog_code === 'SOL-SUN' ? 3 : star.is_mine ? 1.6 : 1;

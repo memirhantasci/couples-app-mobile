@@ -19,18 +19,11 @@ describe('tüm yıldızlar uzaktan da görünür', () => {
   });
 });
 
-describe('en geniş açı', () => {
-  it('harita eskisinden (0.6) en az 2.5 kat büyük: tam tur 5-6 kaydırma sürer', () => {
-    expect(MIN_ZOOM / 0.6).toBeGreaterThanOrEqual(2.5);
-  });
-});
-
 describe('gökyüzü karoları', () => {
   it('uzakta geniş, yakında küçük karo kullanır', () => {
     expect(SKY_TILE_LEVELS[tileLevelForZoom(1.0)].sizeDeg).toBe(30);
     expect(SKY_TILE_LEVELS[tileLevelForZoom(1.49)].sizeDeg).toBe(30);
-    // En geniş açı (MIN_ZOOM) bile ekrana az gökyüzü sığdırır: küçük karolar yeterli
-    expect(SKY_TILE_LEVELS[tileLevelForZoom(MIN_ZOOM)].sizeDeg).toBe(15);
+    expect(SKY_TILE_LEVELS[tileLevelForZoom(MIN_ZOOM)].sizeDeg).toBe(30);
     expect(SKY_TILE_LEVELS[tileLevelForZoom(1.5)].sizeDeg).toBe(15);
     expect(SKY_TILE_LEVELS[tileLevelForZoom(MAX_ZOOM)].sizeDeg).toBe(15);
   });
