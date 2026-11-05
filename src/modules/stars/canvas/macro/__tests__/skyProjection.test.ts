@@ -5,7 +5,9 @@ import {
   BASE_FOV_DEG,
   MIN_ZOOM,
   RA_STRETCH,
+  clampZoom,
   decLimit,
+  resistZoomStep,
   panStep,
   pinchStep,
   pxPerDegree,
@@ -22,8 +24,23 @@ const HEIGHT = 844;
 const camera: SkyCamera = { ra: 100, dec: 10, zoom: 1.2 };
 
 describe('yatayda genişletilmiş gökyüzü haritası', () => {
-  it('en geniş açı eski esnekliğinde (0.6): kullanıcı özgürce uzaklaşabilir', () => {
-    expect(MIN_ZOOM).toBe(0.6);
+  it('en geniş açı 0.8: ekrana 75° yükseklikte ferah bir panorama sığar', () => {
+    expect(MIN_ZOOM).toBe(0.8);
+    expect(BASE_FOV_DEG / MIN_ZOOM).toBeCloseTo(75, 6);
+  });
+
+  it('en geniş açıda yakınlaştırma sınırı ve lastik direnci pürüzsüz çalışır', () => {
+    // Sınırın içinde uzaklaşma serbest, sınırın ötesinde giderek sönümlenir ama hiç ters yöne dönmez
+    expect(resistZoomStep(1.2, Math.log(0.9))).toBeCloseTo(Math.log(0.9), 9);
+    const atLimit = resistZoomStep(MIN_ZOOM, Math.log(0.9));
+    const past = resistZoomStep(MIN_ZOOM / 1.15, Math.log(0.9));
+    expect(atLimit).toBeCloseTo(Math.log(0.9), 9);
+    expect(past).toBeLessThan(0);
+    expect(Math.abs(past)).toBeLessThan(Math.abs(atLimit));
+    expect(clampZoom(0.5)).toBe(MIN_ZOOM);
+    // Kutup sınırı en geniş açıda da ekranı kutbun ötesindeki boşlukla doldurmaz
+    expect(decLimit(MIN_ZOOM)).toBeGreaterThan(0);
+    expect(decLimit(MIN_ZOOM) + BASE_FOV_DEG / (2 * MIN_ZOOM)).toBeLessThanOrEqual(90 + 12 + 1e-9);
   });
 
   it('yatay ölçek dikeyin RA_STRETCH katı; dikey ölçek değişmedi', () => {

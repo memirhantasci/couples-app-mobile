@@ -1,21 +1,30 @@
 import type { ViewportStarItem } from '../../types/star.types';
 import { solarBodyName } from '../../utils/solarNames';
+import { RA_STRETCH } from './skyProjection';
 
 /**
  * Güneş Sistemi cisimleri (rendered locally, never fetched from the catalog).
  *
- * Gök haritasında `computeSolarSystemLayout` kullanılır: Güneş merkezde, gezegenler
- * Güneş etrafındaki GERÇEK güncel açılarında ama sıkıştırılmış uzaklıklarda — birbirlerine
- * bitişmeyecek kadar aralıklı, yine de hafifçe uzaklaşınca tek ekrana sığacak kadar derli
- * toplu. Ay Dünya'nın yanındadır.
+ * Gök haritasında derli toplu bir "orrery" çizilir: Güneş merkezde, her gezegen kendi halkasında.
+ *   • Açılar: uygulama açıldığı anda her gezegenin GERÇEK güneş merkezli ekliptik boylamı (JPL
+ *     "Keplerian Elements for Approximate Positions of the Major Planets", 1800–2050 tablosu). Hiçbir
+ *     açı yapay olarak sabitlenmez.
+ *   • Hareket: her gezegen kendi GERÇEK yörünge periyoduyla orantılı hızda döner (periyot JPL ortalama
+ *     boylam değişim hızından türetilir: Merkür ~88 gün, Venüs ~225, Dünya ~365, Mars ~687, Jüpiter
+ *     ~11,9 yıl …). Gerçek hızda hareket görünmeyeceği için zaman hızlandırılır: Dünya'nın bir yılı
+ *     ORRERY_SECONDS_PER_YEAR saniye sürer; oranlar değişmez. Ay, Dünya'nın etrafında kendi gerçek
+ *     (yıldızıl) periyoduyla döner.
+ *   • Üst üste binmeme: açılar kilitlenmez; halkaların radyal aralıkları (ORRERY_RADIUS_DEG), bakış
+ *     eğimi (ORRERY_TILT) ve işaret parıltı boyutları (ORRERY_MARKER_GLOW_PX) birlikte seçilir: en
+ *     geniş açıda (MIN_ZOOM) bile komşu iki cisim aynı yöne hizalandığında işaretleri ayrı kalır.
  *
- * Açılar uygulama açılışındaki tarih için JPL "Keplerian Elements for Approximate
- * Positions of the Major Planets" (1800–2050 tablosu) ile hesaplanır; Ay düşük
- * hassasiyetli seriyle (~1–2°). `computeSolarSystemPositions` ise cisimlerin gerçek
- * gökyüzü RA/Dec'ini verir (doğrulama ve ileride gerçek gökyüzü görünümü için).
+ * Konum her karede duvar saatinden hesaplanır (`orreryBodyPosition`); çizim, dokunma ve aramadan uçuş
+ * aynı fonksiyonu kullandığından gezegene dokunulan yer ile çizildiği yer hep aynıdır.
+ * `computeSolarSystemPositions` ise cisimlerin gerçek gökyüzü RA/Dec'ini verir (doğrulama için).
  */
 
 const DEG = Math.PI / 180;
+const TAU = Math.PI * 2;
 const OBLIQUITY_J2000 = 23.43928 * DEG;
 
 /** [a (AU), e, I, L, ϖ (enberi boylamı), Ω (düğüm boylamı)] ve yüzyıllık değişim hızları. */
@@ -119,9 +128,12 @@ function eclipticToEquatorial({ x, y, z }: Vec3): { ra: number; dec: number } {
   };
 }
 
+/** Ay'ın ortalama boylamındaki günlük değişim (derece/gün): yıldızıl ay ≈ 27,32 gün. */
+const MOON_LONGITUDE_RATE_DEG_PER_DAY = 13.176396;
+
 /** Ay'ın yer merkezli ekliptik yönü (düşük hassasiyet, ~1–2°). */
 function moonDirection(daysSinceJ2000: number): Vec3 {
-  const meanLongitude = 218.316 + 13.176396 * daysSinceJ2000;
+  const meanLongitude = 218.316 + MOON_LONGITUDE_RATE_DEG_PER_DAY * daysSinceJ2000;
   const meanAnomaly = (134.963 + 13.064993 * daysSinceJ2000) * DEG;
   const latitudeArgument = (93.272 + 13.22935 * daysSinceJ2000) * DEG;
   const longitude = (meanLongitude + 6.289 * Math.sin(meanAnomaly)) * DEG;
@@ -159,51 +171,166 @@ export function computeSolarSystemPositions(date: Date = new Date()): Record<str
   return positions;
 }
 
-// ─── Gök haritasındaki derli toplu güneş sistemi ────────────────────────────
+/** Bir gezegenin gerçek yörünge periyodu (gün), JPL ortalama boylam değişim hızından. */
+export function orbitalPeriodDays(planet: string): number {
+  return 360 / (ELEMENTS[planet].rate[3] / 36525);
+}
+
+/** Uygulama açılışındaki gerçek güneş merkezli ekliptik boylam (radyan). */
+export function heliocentricLongitudeRad(planet: string, date: Date): number {
+  const centuries = (julianDay(date) - 2451545.0) / 36525;
+  const helio = heliocentricPosition(ELEMENTS[planet], centuries);
+  return Math.atan2(helio.y, helio.x);
+}
+
+// ─── Gök haritasındaki derli toplu güneş sistemi (orrery) ───────────────────
 
 /** Gök haritasında Güneş'in durduğu nokta (sistemin merkezi). */
-const ORRERY_CENTER = { ra: 270, dec: -8 } as const;
-/**
- * Güneş'ten görsel uzaklıklar (derece). Gerçek oranlar (Merkür 0.4 AU … Plüton 39 AU)
- * sıkıştırılmıştır: bütün sistem ~38° çapında, gök kubbede tek ekranda (hafif uzaklaşılınca)
- * görülebilir. Gezegen işaretleri ekran pikseli cinsinden SABİT boyuttadır (yakınlaşınca
- * büyümez) — komşu kuşaklar arası fark bu yüzden en geniş iki işaretin (Jüpiter + Satürn,
- * ~40px parıltı) bile üst üste binmeyeceği kadar geniş tutulur.
- */
-const ORRERY_RADIUS_DEG: Record<string, number> = {
-  mercury: 4.2,
-  venus: 6.0,
-  earth: 8.1,
-  mars: 10.2,
-  jupiter: 12.5,
-  saturn: 14.6,
-  uranus: 16.4,
-  neptune: 18.0,
-  pluto: 19.6,
-};
-/**
- * Merkür, Venüs ve Dünya şu an Güneş'in aynı tarafında (~42–49°) olduğundan küçültülmüş ekranda
- * Ay ile birlikte üst üste biniyordu. Bu iki iç gezegen sabit açıya sabitlenir: Merkür Güneş'in tam
- * sağında (0°), Venüs sol altında (225°). Diğer gezegenler gerçek güncel açılarını korur.
- */
-const PINNED_ANGLE_DEG: Record<string, number> = {
-  mercury: 0,
-  venus: 225,
-};
-/** Ay'ın Dünya'ya görsel uzaklığı (derece): Dünya'nın geniş parıltısından (16px) açıkça ayrı durur. */
-const MOON_OFFSET_DEG = 1.7;
-/** Yörünge düzlemine hafif eğik bakış: dikey eksen bu oranda basılır. */
-const ORRERY_TILT = 0.8;
+const ORRERY_CENTER_RA = 270;
+const ORRERY_CENTER_DEC = -8;
+
+/** Yörünge düzlemine eğik bakış: dikey eksen bu oranda basılır (1 = tam tepeden). */
+export const ORRERY_TILT = 0.9;
 
 /**
- * Gezegen yörüngeleri: Güneş'in etrafında, gezegenlerin durduğu kuşaklarla AYNI elips (aynı yarıçap,
- * aynı eğim ve RA boylam düzeltmesi). Gök haritasında silik birer halka olarak çizilir.
+ * Dünya'nın bir yılının kaç saniyede geçtiği. Bütün cisimler aynı hızlandırmayı paylaşır, yani gerçek
+ * hız oranları korunur: Merkür ~2,4 dk, Ay ~45 sn, Mars ~19 dk, Jüpiter ~2 sa, Plüton ~41 sa'de bir tur.
+ */
+export const ORRERY_SECONDS_PER_YEAR = 600;
+const SIDEREAL_YEAR_DAYS = 365.256363;
+
+/** Gezegen işaretlerinin ekran pikseli cinsinden parıltı yarıçapı (yakınlaşınca büyümez). */
+export const ORRERY_MARKER_GLOW_PX = {
+  mercury: 5,
+  venus: 6,
+  earth: 12,
+  moon: 5,
+  mars: 9,
+  jupiter: 16,
+  saturn: 14,
+  uranus: 11,
+  neptune: 11,
+  pluto: 4,
+} as const;
+
+/**
+ * Güneş'ten görsel uzaklıklar ("orrery derecesi": ekranda dikey 1° ile aynı uzunluk). Gerçek oranlar
+ * (Merkür 0.4 AU … Plüton 39 AU) sıkıştırılmıştır. Aralıklar işaret boyutlarından hesaplanmıştır:
+ * en geniş açıda (MIN_ZOOM) ve referans telefon yüksekliğinde, komşu iki halkadaki cisimler aynı yöne
+ * hizalandığında (en kötü durum: dikey hiza, ORRERY_TILT ile basık eksen) işaretleri ayrı kalır.
+ * Dünya ile komşuları arasında Ay'ın yörüngesi için ayrıca pay bırakılır. Bkz. solarSystem testi.
+ */
+export const ORRERY_RADIUS_DEG = {
+  mercury: 3.7,
+  venus: 4.9,
+  earth: 7.8,
+  mars: 11.0,
+  jupiter: 13.4,
+  saturn: 16.2,
+  uranus: 18.6,
+  neptune: 20.7,
+  pluto: 22.2,
+} as const;
+
+/** Güneş işaretinin ölçeği (piksel): yakınlaştıkça hafifçe büyür. Korona bunun 2,8 katına uzanır. */
+export function orrerySunRadiusPx(zoom: number): number {
+  'worklet';
+  return Math.max(16, 20 * Math.min(3, 1 + (zoom - 1) * 0.12));
+}
+/** Güneş koronasının işaret ölçeğine oranı (skyOverlay sunMarker ile aynı). */
+export const SUN_CORONA_SCALE = 2.8;
+
+/** Ay'ın Dünya'ya görsel uzaklığı (orrery derecesi): Dünya'nın parıltısından açıkça ayrı durur. */
+export const MOON_OFFSET_DEG = 1.7;
+
+/**
+ * Orrery süsleyici bir disktir: dünyanın yatay genişlemesi (RA_STRETCH) burada geri alınır, yoksa
+ * halkalar yassı bir banda dönüşür. Böylece ekranda yatay 1 orrery derecesi = dikey 1°.
+ */
+const RA_PER_ORRERY_DEG = 1 / (Math.cos(ORRERY_CENTER_DEC * DEG) * RA_STRETCH);
+
+type OrreryPlanet = keyof typeof ORRERY_RADIUS_DEG;
+const ORRERY_PLANETS = Object.keys(ORRERY_RADIUS_DEG) as OrreryPlanet[];
+
+export interface OrreryBody {
+  readonly code: string;
+  /** Merkezden (Güneş ya da Ay için Dünya) uzaklık, orrery derecesi. */
+  readonly radiusDeg: number;
+  /** ORRERY_EPOCH_MS anındaki gerçek açı (radyan). */
+  readonly angle0: number;
+  /** Açısal hız (radyan / gerçek saniye), gerçek periyotla orantılı. */
+  readonly radPerSec: number;
+  /** Ay: Dünya'nın etrafında döner. */
+  readonly aroundEarth: boolean;
+}
+
+/** Açıların gerçek olduğu an: uygulamanın açıldığı an (her iki iş parçacığında aynı sabit). */
+export const ORRERY_EPOCH_MS = Date.now();
+
+function buildOrreryBodies(epochMs: number): OrreryBody[] {
+  const date = new Date(epochMs);
+  const days = julianDay(date) - 2451545.0;
+  const secondsPerDay = ORRERY_SECONDS_PER_YEAR / SIDEREAL_YEAR_DAYS;
+  const bodies: OrreryBody[] = ORRERY_PLANETS.map((name) => ({
+    code: `SOL-${name.toUpperCase()}`,
+    radiusDeg: ORRERY_RADIUS_DEG[name],
+    angle0: heliocentricLongitudeRad(name, date),
+    radPerSec: TAU / (orbitalPeriodDays(name) * secondsPerDay),
+    aroundEarth: false,
+  }));
+  const moon = moonDirection(days);
+  bodies.push({
+    code: 'SOL-MOON',
+    radiusDeg: MOON_OFFSET_DEG,
+    angle0: Math.atan2(moon.y, moon.x),
+    radPerSec: TAU / ((360 / MOON_LONGITUDE_RATE_DEG_PER_DAY) * secondsPerDay),
+    aroundEarth: true,
+  });
+  return bodies;
+}
+
+/** Hareketli cisimler (Güneş hariç). Sırası `orreryIndexOf` ile bulunur. */
+export const ORRERY_BODIES: readonly OrreryBody[] = buildOrreryBodies(ORRERY_EPOCH_MS);
+const EARTH_INDEX = ORRERY_BODIES.findIndex((body) => body.code === 'SOL-EARTH');
+
+/** Cismin ORRERY_BODIES içindeki sırası; Güneş ve bilinmeyen kodlar için -1 (sabit). */
+export function orreryIndexOf(code: string): number {
+  return ORRERY_BODIES.findIndex((body) => body.code === code);
+}
+
+/**
+ * Bir orrery cisminin verilen duvar saati anındaki (ms) gök haritası konumu. UI thread'de her karede
+ * ve JS thread'de (dokunma, arama) aynı sonucu verir.
+ */
+export function orreryBodyPosition(index: number, nowMs: number): { ra: number; dec: number } {
+  'worklet';
+  const body = ORRERY_BODIES[index];
+  const t = (nowMs - ORRERY_EPOCH_MS) / 1000;
+  let originRa = ORRERY_CENTER_RA;
+  let originDec = ORRERY_CENTER_DEC;
+  if (body.aroundEarth) {
+    const earth = ORRERY_BODIES[EARTH_INDEX];
+    const earthAngle = earth.angle0 + earth.radPerSec * t;
+    originRa += Math.cos(earthAngle) * earth.radiusDeg * RA_PER_ORRERY_DEG;
+    originDec += Math.sin(earthAngle) * earth.radiusDeg * ORRERY_TILT;
+  }
+  const angle = body.angle0 + body.radPerSec * t;
+  const ra = originRa + Math.cos(angle) * body.radiusDeg * RA_PER_ORRERY_DEG;
+  return {
+    ra: ((ra % 360) + 360) % 360,
+    dec: originDec + Math.sin(angle) * body.radiusDeg * ORRERY_TILT,
+  };
+}
+
+/**
+ * Gezegen yörüngeleri: Güneş'in etrafında, gezegenlerin döndüğü halkalarla AYNI elips (aynı yarıçap,
+ * aynı eğim ve yatay düzeltme). Gök haritasında silik birer halka olarak çizilir.
  */
 export const ORRERY_ORBITS = {
-  ra: ORRERY_CENTER.ra,
-  dec: ORRERY_CENTER.dec,
+  ra: ORRERY_CENTER_RA,
+  dec: ORRERY_CENTER_DEC,
   rings: Object.values(ORRERY_RADIUS_DEG).map((radius) => ({
-    rx: radius / Math.cos((ORRERY_CENTER.dec * Math.PI) / 180),
+    rx: radius * RA_PER_ORRERY_DEG,
     ry: radius * ORRERY_TILT,
   })),
 } as const;
@@ -224,33 +351,15 @@ export function isInsideSolarSystem(ra: number, dec: number): boolean {
   return x * x + y * y <= 1;
 }
 
-/**
- * Gök haritası için güneş sistemi yerleşimi: Güneş merkezde, her gezegen Güneş etrafındaki
- * GERÇEK güncel açısında (güneş merkezli ekliptik boylamı), ancak sıkıştırılmış uzaklıkta.
- * Ay, Dünya'nın hemen yanında gerçek yönündedir. Böylece cisimler ne düz bir sıra halinde
- * dizilir ne de bütün gökyüzüne dağılır.
- */
-export function computeSolarSystemLayout(date: Date = new Date()): Record<string, { ra: number; dec: number }> {
-  const days = julianDay(date) - 2451545.0;
-  const centuries = days / 36525;
-  const cosCenterDec = Math.cos(ORRERY_CENTER.dec * DEG);
-  const place = (angleRad: number, radiusDeg: number, originRa: number = ORRERY_CENTER.ra, originDec: number = ORRERY_CENTER.dec) => ({
-    ra: round4(normalizeDegrees(originRa + (Math.cos(angleRad) * radiusDeg) / cosCenterDec)),
-    dec: round4(originDec + Math.sin(angleRad) * radiusDeg * ORRERY_TILT),
-  });
-
+/** Verilen andaki gök haritası yerleşimi: Güneş merkezde, gezegenler ve Ay o anki açılarında. */
+export function computeSolarSystemLayout(nowMs: number = Date.now()): Record<string, { ra: number; dec: number }> {
   const layout: Record<string, { ra: number; dec: number }> = {
-    'SOL-SUN': { ra: ORRERY_CENTER.ra, dec: ORRERY_CENTER.dec },
+    'SOL-SUN': { ra: ORRERY_CENTER_RA, dec: ORRERY_CENTER_DEC },
   };
-  for (const name of Object.keys(ORRERY_RADIUS_DEG)) {
-    const helio = heliocentricPosition(ELEMENTS[name], centuries);
-    const pinned = PINNED_ANGLE_DEG[name];
-    const angle = pinned !== undefined ? pinned * DEG : Math.atan2(helio.y, helio.x);
-    layout[`SOL-${name.toUpperCase()}`] = place(angle, ORRERY_RADIUS_DEG[name]);
-  }
-  const moon = moonDirection(days);
-  const earth = layout['SOL-EARTH'];
-  layout['SOL-MOON'] = place(Math.atan2(moon.y, moon.x), MOON_OFFSET_DEG, earth.ra, earth.dec);
+  ORRERY_BODIES.forEach((body, index) => {
+    const position = orreryBodyPosition(index, nowMs);
+    layout[body.code] = { ra: round4(position.ra), dec: round4(position.dec) };
+  });
   return layout;
 }
 
@@ -381,15 +490,24 @@ const SOLAR_BODIES: readonly SolarBody[] = [
   },
 ];
 
-const POSITIONS_AT_LAUNCH = computeSolarSystemLayout();
-
-/** Uygulama açılışındaki gerçek dizilimle (derli toplu yerleşimde) Güneş Sistemi cisimleri. */
-export const SOLAR_SYSTEM_OBJECTS: ViewportStarItem[] = SOLAR_BODIES.map((body) => {
-  const item = { ...body, ...POSITIONS_AT_LAUNCH[body.catalog_code] } as ViewportStarItem;
+function makeSolarObject(body: SolarBody, position: { ra: number; dec: number }): ViewportStarItem {
+  const item = { ...body, ...position } as ViewportStarItem;
   // Adlar her okunduğunda geçerli dilde çözülür (kopyalama anında geçerli dil kullanılır)
   Object.defineProperties(item, {
     common_name: { get: () => solarBodyName(body.catalog_code), enumerable: true, configurable: true },
     custom_name: { get: () => solarBodyName(body.catalog_code) ?? '', enumerable: true, configurable: true },
   });
   return item;
-});
+}
+
+/** Verilen andaki konumlarıyla Güneş Sistemi cisimleri (dokunma ve aramadan uçuş için). */
+export function solarSystemObjectsAt(nowMs: number = Date.now()): ViewportStarItem[] {
+  const layout = computeSolarSystemLayout(nowMs);
+  return SOLAR_BODIES.map((body) => makeSolarObject(body, layout[body.catalog_code]));
+}
+
+/**
+ * Uygulama açılışındaki konumlarıyla Güneş Sistemi cisimleri (kimlik, ad, renk kaynağı). Gezegenler
+ * hareket ettiğinden güncel konum gereken yerde `solarSystemObjectsAt` kullanılır.
+ */
+export const SOLAR_SYSTEM_OBJECTS: ViewportStarItem[] = solarSystemObjectsAt(ORRERY_EPOCH_MS);

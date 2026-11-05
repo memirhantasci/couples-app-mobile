@@ -64,7 +64,8 @@ import { DEMO_STAR_DETAILS, DEMO_STAR_EXOPLANETS, getDemoStarOwnerLabel } from '
 import { starService, PremiumRequiredError } from '../api/starService';
 import { StarSparkManager } from '../services/StarSparkManager';
 import { MicroSystemCanvas } from '../canvas/MicroSystemCanvas';
-import { MacroSkyCanvas, SOLAR_SYSTEM_OBJECTS, computeBounds } from '../canvas/MacroSkyCanvas';
+import { MacroSkyCanvas, computeBounds, solarSystemObjectsAt } from '../canvas/MacroSkyCanvas';
+import { MIN_ZOOM } from '../canvas/macro/skyProjection';
 import { UNCLAIMED_STAR_BRIGHTNESS } from '../canvas/macro/starStyle';
 import { suggestedStarZoom } from '../utils/starSuggestion';
 import { StarInfoBadge } from './StarInfoBadge';
@@ -135,7 +136,8 @@ const REALTIME_RECONCILIATION_WINDOW_MS = 5000;
 
 // Yıldız ekranının açılış sahnesi: önce geniş gökyüzü (uzayın ihtişamı), sonra yıldızın
 // parıltılı dış görünümüne süzülüş. İçeri girmek kullanıcının "Yıldızın İçine Gir" seçimidir.
-const SKY_OVERVIEW_ZOOM = 1.2;
+// En geniş açıdan (MIN_ZOOM, 0.8) açılır: önce ferah panorama, sonra yıldıza süzülüş.
+const SKY_OVERVIEW_ZOOM = MIN_ZOOM;
 const STAR_EXTERIOR_ZOOM = 3.0;
 const STAR_INTRO_FLIGHT_MS = 1600;
 
@@ -2316,7 +2318,8 @@ export const OurStarScreen: React.FC = () => {
           setViewMode('macro');
 
           // 1. Check if it matches a solar system body (Güneş, gezegenler, Ay)
-          const solarObj = SOLAR_SYSTEM_OBJECTS.find(
+          // Gezegenler döner: seçildiği andaki konumları alınır
+          const solarObj = solarSystemObjectsAt(Date.now()).find(
             (s) => s.catalog_code === item.catalog_code
           );
           // 2. Check if already loaded in the streamed sky tiles
@@ -2350,8 +2353,8 @@ export const OurStarScreen: React.FC = () => {
           }
 
           setFlyToTarget({
-            centerRa: Number(item.ra),
-            centerDec: Number(item.dec),
+            centerRa: Number(solarObj ? solarObj.ra : item.ra),
+            centerDec: Number(solarObj ? solarObj.dec : item.dec),
             // Güneş Sistemi cisminde daha uzaktan bak: ~38° çapındaki tüm sistem ekrana sığsın.
             zoom: solarObj ? 1.3 : 2.5,
             nonce: Date.now(),

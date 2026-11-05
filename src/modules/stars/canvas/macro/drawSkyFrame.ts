@@ -25,6 +25,7 @@ import {
 } from './connectionStrands';
 import type { SkyOverlay } from './skyOverlay';
 import { pxPerDegree, pxPerRaDegree, shortestRaDelta, type SkyCamera } from './skyProjection';
+import { orreryBodyPosition, orrerySunRadiusPx } from './solarSystem';
 import { colorOf, glowShader, STAR_FADE_MS, type StarField, type StarRender } from './starField';
 import {
   MAGNITUDE_FADE,
@@ -636,15 +637,23 @@ function drawMeteors(canvas: SkCanvas, view: FrameView, paints: StarPaints, mete
 
 function sunRadius(zoom: number): number {
   'worklet';
-  return Math.max(16, 20 * Math.min(3, 1 + (zoom - 1) * 0.12));
+  // Tek kaynak solarSystem'de: gezegen halkalarının Güneş'ten uzaklığı bu boyuta göre hesaplanır
+  return orrerySunRadiusPx(zoom);
 }
 
-function drawSolarSystem(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay) {
+/** Screen position of a solar-system body right now: planets and the moon orbit, the sun stays put. */
+function solarScreenPoint(view: FrameView, body: SkyOverlay['solar'][number], nowMs: number): { x: number; y: number } {
+  'worklet';
+  if (body.orreryIndex < 0) return { x: screenX(view, body.ra), y: screenY(view, body.dec) };
+  const position = orreryBodyPosition(body.orreryIndex, nowMs);
+  return { x: screenX(view, position.ra), y: screenY(view, position.dec) };
+}
+
+function drawSolarSystem(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, nowMs: number) {
   'worklet';
   const radius = sunRadius(view.camera.zoom);
   for (const body of overlay.solar) {
-    const x = screenX(view, body.ra);
-    const y = screenY(view, body.dec);
+    const { x, y } = solarScreenPoint(view, body, nowMs);
     if (!isOnScreen(view, x, y, body.isSun ? radius * 2.8 : 40)) continue;
     drawAt(canvas, body.picture, x, y, body.isSun ? radius : 1);
   }
@@ -685,7 +694,7 @@ function drawHero(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, animSe
   canvas.restore();
 }
 
-function drawLabels(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, paints: StarPaints) {
+function drawLabels(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, paints: StarPaints, nowMs: number) {
   'worklet';
   const zoom = view.camera.zoom;
   const { scale, scaleX } = view;
@@ -717,8 +726,7 @@ function drawLabels(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, pain
   const radius = sunRadius(zoom);
   for (const body of overlay.solar) {
     if (!body.label) continue;
-    const x = screenX(view, body.ra);
-    const y = screenY(view, body.dec);
+    const { x, y } = solarScreenPoint(view, body, nowMs);
     if (!isOnScreen(view, x, y, 120)) continue;
     drawAt(canvas, body.label, x, y + (body.isSun ? radius : 0) + body.labelOffsetY);
   }
@@ -762,9 +770,9 @@ export function drawSkyFrame(
   }
   drawStars(canvas, view, field, clock, animSeconds, paints);
   if (overlay) {
-    drawSolarSystem(canvas, view, overlay);
+    drawSolarSystem(canvas, view, overlay, meteors.nowMs);
     drawHero(canvas, view, overlay, animSeconds);
-    drawLabels(canvas, view, overlay, paints);
+    drawLabels(canvas, view, overlay, paints, meteors.nowMs);
   }
   drawMeteors(canvas, view, paints, meteors);
 }

@@ -14,8 +14,12 @@
  * with `normalizeRa` only when reporting it outside the renderer.
  */
 
-/** Widest view (zoom out limit): 100° of declination on screen. */
-export const MIN_ZOOM = 0.6;
+/**
+ * Widest view (zoom out limit): 75° of declination on screen. Wide enough to see a broad
+ * panorama of the (horizontally stretched) sky on one screen, without zooming so far out that
+ * most of the screen shows the empty space beyond the poles.
+ */
+export const MIN_ZOOM = 0.8;
 export const MAX_ZOOM = 35;
 /** Vertical field of view in degrees at zoom 1. */
 export const BASE_FOV_DEG = 60;

@@ -10,7 +10,7 @@ import { CONSTELLATION_LINES } from '../../config/constellationLines.data';
 import { SKY_SECTORS_LIST } from '../../config/skySectors.data';
 import { Skia } from '../skiaBridge';
 import { colorOf } from './starField';
-import { ORRERY_ORBITS } from './solarSystem';
+import { ORRERY_MARKER_GLOW_PX, ORRERY_ORBITS, orreryIndexOf } from './solarSystem';
 import i18n from '@/lib/i18n';
 import { solarBodyName } from '../../utils/solarNames';
 import { starActivity, starLight, UNCLAIMED_STAR_BRIGHTNESS } from './starStyle';
@@ -36,6 +36,11 @@ export interface NebulaItem extends PositionedPicture {
 export interface SolarItem extends PositionedPicture {
   /** The sun's marker is unit-sized and scales with zoom. */
   readonly isSun: boolean;
+  /**
+   * Index in ORRERY_BODIES: the body orbits and its position is computed every frame
+   * (orreryBodyPosition). -1 for the sun, which stays at the centre (ra/dec).
+   */
+  readonly orreryIndex: number;
   readonly label: SkPicture | null;
   readonly labelOffsetY: number;
 }
@@ -388,45 +393,45 @@ export function createStaticOverlayAssets(width: number, height: number): Static
   }, 4);
 
   const earthMarker = record((canvas) => {
-    canvas.drawCircle(0, 0, 16, glowPaint('#38BDF8', 16, [0, 0.45, 1], [0.6, 0.35, 0]));
+    canvas.drawCircle(0, 0, ORRERY_MARKER_GLOW_PX.earth, glowPaint('#38BDF8', ORRERY_MARKER_GLOW_PX.earth, [0, 0.45, 1], [0.6, 0.35, 0]));
     canvas.drawCircle(0, 0, 4.5, fillPaint('#38BDF8'));
     canvas.drawCircle(0, 0, 1.8, fillPaint('#FFFFFF'));
   });
 
   const venusMarker = record((canvas) => {
-    canvas.drawCircle(0, 0, 6, fillPaint('rgba(251, 191, 36, 0.5)'));
+    canvas.drawCircle(0, 0, ORRERY_MARKER_GLOW_PX.venus, fillPaint('rgba(251, 191, 36, 0.5)'));
     canvas.drawCircle(0, 0, 3.5, fillPaint('#FFE5C2'));
   });
 
   const moonMarker = record((canvas) => {
-    canvas.drawCircle(0, 0, 5, fillPaint('rgba(226, 232, 240, 0.5)'));
+    canvas.drawCircle(0, 0, ORRERY_MARKER_GLOW_PX.moon, fillPaint('rgba(226, 232, 240, 0.5)'));
     canvas.drawCircle(0, 0, 2.8, fillPaint('#E2E8F0'));
   });
 
   const mercuryMarker = record((canvas) => {
-    canvas.drawCircle(0, 0, 5, fillPaint('rgba(203, 213, 225, 0.4)'));
+    canvas.drawCircle(0, 0, ORRERY_MARKER_GLOW_PX.mercury, fillPaint('rgba(203, 213, 225, 0.4)'));
     canvas.drawCircle(0, 0, 2.5, fillPaint('#CBD5E1'));
   });
 
   const marsMarker = record((canvas) => {
-    canvas.drawCircle(0, 0, 10, glowPaint('#EF4444', 10, [0, 0.5, 1], [0.5, 0.2, 0]));
+    canvas.drawCircle(0, 0, ORRERY_MARKER_GLOW_PX.mars, glowPaint('#EF4444', ORRERY_MARKER_GLOW_PX.mars, [0, 0.5, 1], [0.5, 0.2, 0]));
     canvas.drawCircle(0, 0, 3.8, fillPaint('#EF4444'));
     canvas.drawCircle(0, 0, 1.2, fillPaint('#FCA5A5'));
   });
 
   const jupiterMarker = record((canvas) => {
-    canvas.drawCircle(0, 0, 22, glowPaint('#F59E0B', 22, [0, 0.5, 1], [0.5, 0.2, 0]));
+    canvas.drawCircle(0, 0, ORRERY_MARKER_GLOW_PX.jupiter, glowPaint('#F59E0B', ORRERY_MARKER_GLOW_PX.jupiter, [0, 0.5, 1], [0.5, 0.2, 0]));
     canvas.drawCircle(0, 0, 7.5, fillPaint('#F59E0B'));
     canvas.drawCircle(0, 0, 5.0, fillPaint('#FDE68A'));
     canvas.drawCircle(0, 0, 2.0, fillPaint('#FFFFFF'));
   });
 
   const saturnMarker = record((canvas) => {
-    canvas.drawCircle(0, 0, 18, glowPaint('#FDE047', 18, [0, 0.5, 1], [0.4, 0.15, 0]));
+    canvas.drawCircle(0, 0, ORRERY_MARKER_GLOW_PX.saturn, glowPaint('#FDE047', ORRERY_MARKER_GLOW_PX.saturn, [0, 0.5, 1], [0.4, 0.15, 0]));
     // Tilted ring
     canvas.save();
     canvas.rotate(-25, 0, 0);
-    canvas.drawOval(Skia.XYWHRect(-12, -4, 24, 8), strokePaint('rgba(253, 224, 71, 0.8)', 1.8));
+    canvas.drawOval(Skia.XYWHRect(-10.5, -3.5, 21, 7), strokePaint('rgba(253, 224, 71, 0.8)', 1.6));
     canvas.restore();
     // Planet body
     canvas.drawCircle(0, 0, 5.5, fillPaint('#EAB308'));
@@ -434,19 +439,19 @@ export function createStaticOverlayAssets(width: number, height: number): Static
   });
 
   const uranusMarker = record((canvas) => {
-    canvas.drawCircle(0, 0, 14, glowPaint('#22D3EE', 14, [0, 0.5, 1], [0.45, 0.18, 0]));
+    canvas.drawCircle(0, 0, ORRERY_MARKER_GLOW_PX.uranus, glowPaint('#22D3EE', ORRERY_MARKER_GLOW_PX.uranus, [0, 0.5, 1], [0.45, 0.18, 0]));
     canvas.drawCircle(0, 0, 4.8, fillPaint('#06B6D4'));
     canvas.drawCircle(0, 0, 1.8, fillPaint('#CFFAFE'));
   });
 
   const neptuneMarker = record((canvas) => {
-    canvas.drawCircle(0, 0, 14, glowPaint('#3B82F6', 14, [0, 0.5, 1], [0.5, 0.2, 0]));
+    canvas.drawCircle(0, 0, ORRERY_MARKER_GLOW_PX.neptune, glowPaint('#3B82F6', ORRERY_MARKER_GLOW_PX.neptune, [0, 0.5, 1], [0.5, 0.2, 0]));
     canvas.drawCircle(0, 0, 4.8, fillPaint('#2563EB'));
     canvas.drawCircle(0, 0, 1.8, fillPaint('#BFDBFE'));
   });
 
   const plutoMarker = record((canvas) => {
-    canvas.drawCircle(0, 0, 4, fillPaint('rgba(192, 132, 252, 0.4)'));
+    canvas.drawCircle(0, 0, ORRERY_MARKER_GLOW_PX.pluto, fillPaint('rgba(192, 132, 252, 0.4)'));
     canvas.drawCircle(0, 0, 2.0, fillPaint('#C084FC'));
   });
 
@@ -579,37 +584,37 @@ export function buildSkyOverlay({
     const solarName = solarBodyName(object.catalog_code) ?? '';
     switch (object.catalog_code) {
       case 'SOL-SUN':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.sunMarker, isSun: true, label: pill(solarName, SUN_PILL, 'sun'), labelOffsetY: 18 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.sunMarker, isSun: true, label: pill(solarName, SUN_PILL, 'sun'), labelOffsetY: 18 });
         break;
       case 'SOL-MERCURY':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.mercuryMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#CBD5E1' }), labelOffsetY: -16 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.mercuryMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#CBD5E1' }), labelOffsetY: -16 });
         break;
       case 'SOL-VENUS':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.venusMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#FDE68A' }), labelOffsetY: 18 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.venusMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#FDE68A' }), labelOffsetY: 18 });
         break;
       case 'SOL-EARTH':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.earthMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#93C5FD' }), labelOffsetY: 18 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.earthMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#93C5FD' }), labelOffsetY: 18 });
         break;
       case 'SOL-MOON':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.moonMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#CBD5E1' }), labelOffsetY: -16 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.moonMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#CBD5E1' }), labelOffsetY: -16 });
         break;
       case 'SOL-MARS':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.marsMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#FCA5A5' }), labelOffsetY: 16 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.marsMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#FCA5A5' }), labelOffsetY: 16 });
         break;
       case 'SOL-JUPITER':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.jupiterMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#FDE68A' }), labelOffsetY: 22 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.jupiterMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#FDE68A' }), labelOffsetY: 22 });
         break;
       case 'SOL-SATURN':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.saturnMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#FEF08A' }), labelOffsetY: 20 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.saturnMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#FEF08A' }), labelOffsetY: 20 });
         break;
       case 'SOL-URANUS':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.uranusMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#A5F3FC' }), labelOffsetY: 18 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.uranusMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#A5F3FC' }), labelOffsetY: 18 });
         break;
       case 'SOL-NEPTUNE':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.neptuneMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#93C5FD' }), labelOffsetY: 18 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.neptuneMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#93C5FD' }), labelOffsetY: 18 });
         break;
       case 'SOL-PLUTO':
-        solar.push({ ra: object.ra, dec: object.dec, picture: assets.plutoMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#E9D5FF' }), labelOffsetY: 14 });
+        solar.push({ ra: object.ra, dec: object.dec, orreryIndex: orreryIndexOf(object.catalog_code), picture: assets.plutoMarker, isSun: false, label: plain(solarName, { ...SMALL_TEXT, color: '#E9D5FF' }), labelOffsetY: 14 });
         break;
       default:
         break;
