@@ -6,13 +6,14 @@ import i18n from "@/lib/i18n";
  */
 
 /**
- * Veri sorumlusunun tebligat adresi. Boş bırakılırsa metinlere yazılmaz; yayından önce doldurulmalıdır
+ * Veri sorumlusunun tebligat adresi. Boş bırakılırsa metinlere yazılmaz.
  * (KVKK Aydınlatma Yükümlülüğü Tebliği: veri sorumlusunun kimliği ve adresi). Doldurunca
  * "node scripts/build-legal-pages.js" ile web sayfaları yeniden üretilir.
  */
-const CONTROLLER_ADDRESS = "";
-const CONTROLLER_ADDRESS_TR = CONTROLLER_ADDRESS ? " · Adres: " + CONTROLLER_ADDRESS : "";
-const CONTROLLER_ADDRESS_EN = CONTROLLER_ADDRESS ? " · Address: " + CONTROLLER_ADDRESS : "";
+const CONTROLLER_ADDRESS_TR_TEXT = "Küçükbakkalköy Mah. Sümer Sok. No:8, Ataşehir / İstanbul";
+const CONTROLLER_ADDRESS_EN_TEXT = "Küçükbakkalköy Mah., Sümer Sok. No:8, Ataşehir, Istanbul, Türkiye";
+const CONTROLLER_ADDRESS_TR = CONTROLLER_ADDRESS_TR_TEXT ? " · Adres: " + CONTROLLER_ADDRESS_TR_TEXT : "";
+const CONTROLLER_ADDRESS_EN = CONTROLLER_ADDRESS_EN_TEXT ? " · Address: " + CONTROLLER_ADDRESS_EN_TEXT : "";
 
 export type LegalDocType = "kvkk" | "privacy" | "terms" | "consent" | "subscription";
 
@@ -47,7 +48,7 @@ export const LEGAL_DOCS_TR: Record<LegalDocType, LegalDocument> = {
       "• Müşteri İşlem ve Finansal Bilgiler: RevenueCat ve uygulama mağazası (App Store / Google Play) üzerinden sağlanan anonim işlem tokenları, abonelik durumu, paket türü ve token bakiyesi.\n" +
       "• Cihaz ve İşlem Güvenliği: Cihaz modeli, işletim sistemi versiyonu, push bildirim tokenları, benzersiz cihaz kimliği (UUID), son oturum açma zamanı, güvenlik logları ve giriş / şifre sıfırlama denemelerini sınırlamak için IP adresi (en fazla 1 gün tutulur).\n" +
       "• Hata Kayıtları: Uygulama hata verdiğinde hata mesajı, teknik yığın izi, uygulama sürümü, platform (iOS/Android) ve hesap kimliğiniz. Mektup, günlük gibi içerik bu kayıtlara yazılmaz; kayıtlar en fazla 30 gün saklanır.\n" +
-      "• Reklam Verileri: Uygulamada gösterilen reklamlar için Google AdMob tarafından işlenen reklam kimliği ve reklam etkileşim verileri (yalnızca kişiselleştirilmemiş reklam talebi ile sınırlı).",
+      "• Reklam Verileri: Uygulamada gösterilen reklamlar için Google AdMob tarafından işlenen reklam kimliği ve reklam etkileşim verileri (yalnızca kişiselleştirilmemiş reklam talebi ile sınırlı). Uygulama sizi diğer uygulama ve web siteleri arasında takip etmez; bu amaçla izleme izni (ATT) istenmez.",
 
       "3. KİŞİSEL VERİLERİN İŞLENME AMAÇLARI",
       "Kişisel verileriniz aşağıdaki amaçlarla (\"Amaçlar\") KVKK'nın 5. ve 6. maddelerine uygun olarak işlenmektedir:\n" +
@@ -287,7 +288,7 @@ export const LEGAL_DOCS_EN: Record<LegalDocType, LegalDocument> = {
       "• Transaction and Financial Information: Anonymous transaction identifiers, subscription status, package type, and token balance processed via RevenueCat and app stores (App Store / Google Play).\n" +
       "• Device and Operation Security: Device model, OS version, push notification tokens, unique device identifier (UUID), last login timestamp, security logs, and IP address used to rate-limit sign-in / password-reset attempts (kept for at most 1 day).\n" +
       "• Error Logs: When the app errors, the error message, technical stack trace, app version, platform (iOS/Android) and your account identifier. Content such as letters or journal entries is not written to these logs; they are kept for at most 30 days.\n" +
-      "• Advertising Data: Non-personalized advertising identifiers processed by Google AdMob for displayed in-app banners.",
+      "• Advertising Data: Advertising identifiers and ad interaction data processed by Google AdMob for the rewarded ads shown in the app (limited to non-personalized ad requests). The app does not track you across other apps and websites, and no tracking permission (ATT) is requested.",
 
       "3. PURPOSES OF PROCESSING PERSONAL DATA",
       "Your personal data is processed in accordance with applicable data protection principles for the following purposes:\n" +
