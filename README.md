@@ -24,13 +24,14 @@ Ortam değişkenleri üretim derlemelerinde EAS ortamından gelir (`eas.json` �
 | `src/modules/stars` | Ortak yıldız / gökyüzü modülü (Skia) |
 | `src/locales` | `tr.json` / `en.json` (tip güvenli çeviri anahtarları) |
 | `supabase/migrations` | Veritabanı şeması, RLS ve RPC'ler (dosya adı sırasıyla uygulanır) |
-| `supabase/functions` | Edge Function'lar: `auth-gateway`, `send-push`, `process-account-deletions`, `revenuecat-webhook` |
+| `supabase/functions` | Edge Function'lar: `auth-gateway`, `send-push`, `process-account-deletions`, `revenuecat-webhook`, `storage-purge` (abonelik kasası tasfiyesi), `report-alert` (isteğe bağlı: yıldız bildirimi e-postası, kurulum için kendi README'si) |
 | `plugins`, `widgets` | Android / iOS ana ekran widget'ları |
 | `docs/legal` | Mağaza formları için herkese açık yasal sayfalar (`node scripts/build-legal-pages.js` ile üretilir) |
 
 ## Yayın notları
 
 - Premium durumunu yalnızca `revenuecat-webhook` yazar (`REVENUECAT_WEBHOOK_SECRET`, `--no-verify-jwt` ile dağıtılır).
+- Migration'lar canlı veritabanına `supabase db push` ile DEĞİL, dosya dosya (`supabase db query --linked -f ...`) uygulanır: canlıdaki migration geçmişi tablosu eksiktir, `db push` her şeyi yeniden dener. Taban şema (ilk tablolar) bu klasörde yoktur; `supabase db dump --schema public` ile alınmadan sıfırdan kurulum yapılamaz.
 - Yerel (native) bağımlılık, eklenti ya da izin değişince `app.json` içindeki `version` artırılmalıdır
   (`runtimeVersion` politikası `appVersion`); aksi halde OTA güncellemesi eski ikilik dosyalarda hata verir.
 - `docs/legal` değiştiyse sayfaları yeniden üretip yayınlayın.
