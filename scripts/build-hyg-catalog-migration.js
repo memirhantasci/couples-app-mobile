@@ -3,15 +3,17 @@
  * HYG Database'ten gerçek yıldız seçip `celestial_catalog` için SQL migration üretir.
  *
  *   node scripts/build-hyg-catalog-migration.js \
- *     --hyg      <hygdata_v42.csv>            (https://www.astronexus.com/downloads/catalogs/hygdata_v42.csv.gz)
- *     --existing <canlı katalog dışa aktarımı.json>   ([{ catalog_code, ra, dec }, ...])
- *     --count    1500
- *     --out      supabase/migrations/<dosya>.sql
+ *     --hyg            <hygdata_v42.csv>                (https://www.astronexus.com/downloads/catalogs/hygdata_v42.csv.gz)
+ *     --existing       <canlı katalog dışa aktarımı.json>  ([{ catalog_code, ra, dec }, ...])
+ *     --count          1500
+ *     --min-separation 1.0                              (derece; varsayılan 1.0)
+ *     --out            supabase/migrations/<dosya>.sql
  *
  * Seçim kuralı (deterministik, aynı girdiyle aynı çıktı):
  *   1. Hipparcos numarası (HIP) olan, çok yıldızlı sistemin birincil bileşeni, kadiri <= 6.5, spektral türü bilinen yıldızlar
  *   2. Katalogda `HIP-<numara>` kodu zaten var olanlar atlanır
- *   3. En parlaktan başlanır; zaten kataloğda olan ya da seçilmiş bir yıldızın 0.05° yakınındaki yıldız atlanır
+ *   3. En parlaktan başlanır; kataloğdaki ya da seçilmiş herhangi bir yıldıza `--min-separation` dereceden yakın olan atlanır
+ *      (haritada yıldızlar dip dibe gelmesin: mevcut yıldızların konumu bilerek ayarlıdır, onlara dokunulmaz)
  *   4. İstenen sayıya ulaşınca durur
  *
  * CSV içeriği güvenilmeyen VERİ olarak ele alınır: SQL'e yazılan her alan katı bir karakter listesinden geçer.
@@ -29,10 +31,10 @@ function arg(name, fallback) {
 const hygPath = arg("hyg");
 const existingPath = arg("existing");
 const count = Number(arg("count", "1500"));
-const mode = arg("mode", "expand"); // expand: yeni yıldız ekle | repair: mevcut yanlış verili yıldızları düzelt
+const minSeparation = Number(arg("min-separation", "1.0"));
 const outPath = arg("out");
-if (!hygPath || !existingPath || !outPath || !Number.isInteger(count) || count < 1 || !["expand", "repair"].includes(mode)) {
-  console.error("Kullanım: --hyg <csv> --existing <json> --out <sql> [--mode expand --count <n> | --mode repair]");
+if (!hygPath || !existingPath || !outPath || !Number.isInteger(count) || count < 1 || !(minSeparation > 0)) {
+  console.error("Kullanım: --hyg <csv> --existing <json> --out <sql> [--count <n>] [--min-separation <derece>]");
   process.exit(1);
 }
 
@@ -96,96 +98,11 @@ function angularSeparation(a, b) {
 
 // ─── Aday havuzu ──────────────────────────────────────────────────────────────
 const existing = JSON.parse(fs.readFileSync(existingPath, "utf8"));
+// Güneş Sistemi nesneleri (SOL-*) harita üzerinde ayrı çizilir; yıldız aralığı hesabına girmez
 const existingCodes = new Set(existing.map((row) => row.catalog_code));
-const existingPoints = existing.map((row) => ({ ra: Number(row.ra), dec: Number(row.dec) }));
-
-// Aynı yıldız sayılma eşiği: bu mesafeden yakın iki satır aynı yıldız kabul edilir
-const MIN_SEPARATION_DEG = 0.05;
-
-// ─── Onarım modu: mevcut HIP satırlarının verisini HYG'den düzelt ─────────────────
-// Kod (HIP numarası) kimliktir; konum, kadir, spektral tür ve renk yetkili kaynaktan alınır. Tescilli satırlara dokunulmaz.
-if (mode === "repair") {
-  const truthByHip = new Map();
-  for (let i = 1; i < lines.length; i++) {
-    const f = parseLine(lines[i]);
-    const hip = f[col.hip] ? Number(f[col.hip]) : null;
-    if (!Number.isInteger(hip) || hip <= 0 || truthByHip.has(hip)) continue;
-    const mag = Number(f[col.mag]);
-    const ra = Number(f[col.ra]) * 15;
-    const dec = Number(f[col.dec]);
-    if (![mag, ra, dec].every(Number.isFinite) || ra < 0 || ra >= 360 || dec < -90 || dec > 90) continue;
-    truthByHip.set(hip, { mag, ra, dec, spect: cleanSpect(f[col.spect]) });
-  }
-  const fixes = [];
-  const skippedClaimed = [];
-  let notInHyg = 0;
-  let correct = 0;
-  for (const row of existing) {
-    const match = /^HIP-(\d+)$/.exec(row.catalog_code);
-    if (!match) continue;
-    const truth = truthByHip.get(Number(match[1]));
-    if (!truth) {
-      notInHyg++;
-      continue;
-    }
-    const moved = angularSeparation({ ra: Number(row.ra), dec: Number(row.dec) }, truth);
-    const wrong = moved > MIN_SEPARATION_DEG || Math.abs(Number(row.mag) - truth.mag) > 0.15;
-    if (!wrong) {
-      correct++;
-      continue;
-    }
-    if (row.is_claimed) {
-      skippedClaimed.push(row.catalog_code);
-      continue;
-    }
-    const spect = truth.spect || cleanSpect(row.spectral_type) || "G2V";
-    fixes.push({ code: row.catalog_code, ...truth, spect, moved });
-  }
-  fixes.sort((a, b) => a.code.localeCompare(b.code, "en", { numeric: true }));
-  const quote = (text) => `'${String(text).replace(/'/g, "''")}'`;
-  const repairRows = fixes.map(
-    (s) => `  (${quote(s.code)}, ${s.ra.toFixed(4)}, ${s.dec.toFixed(4)}, ${s.mag.toFixed(2)}, ${quote(s.spect)}, ${quote(colorFor(s.spect))})`
-  );
-  const REPAIR_ROW_OK = /^ {2}\('HIP-\d+', \d{1,3}\.\d{4}, -?\d{1,2}\.\d{4}, -?\d{1,2}\.\d{2}, '[A-Za-z0-9.+/:()\- ]{1,16}', '#[0-9A-F]{6}'\)$/;
-  for (const row of repairRows) if (!REPAIR_ROW_OK.test(row)) throw new Error(`Beklenmeyen satır biçimi: ${row}`);
-  const moves = fixes.map((s) => s.moved).sort((a, b) => a - b);
-  const median = moves[Math.floor(moves.length / 2)] || 0;
-  const repairSql = `-- ============================================================================
--- İSTEĞE BAĞLI ONARIM (migration klasöründe DEĞİLDİR, kendiliğinden uygulanmaz): ${path.basename(outPath)}
--- Kataloğdaki yanlış verili ${fixes.length} yıldızın konum, kadir, spektral tür ve rengini HYG'den düzeltir
--- ============================================================================
--- Sorun: Mevcut ${correct + fixes.length + skippedClaimed.length} HIP kodlu yıldızdan ${correct} tanesi HYG Database ile uyuşuyor (konum <= ${MIN_SEPARATION_DEG}°, kadir farkı <= 0.15);
--- ${fixes.length + skippedClaimed.length} tanesinin konumu ya da parlaklığı o HIP numarasının gerçek yıldızından farklı (medyan konum farkı ${median.toFixed(1)}°, en büyük ${(moves[moves.length - 1] || 0).toFixed(1)}°).
--- Çözüm: HIP numarası kimlik kabul edilir; veri HYG'deki o numaralı yıldızdan alınır. Satır kimliği (id), kodu ve sektör dışındaki
--- hiçbir alan değişmez; sektör yeniden hesaplanır. Tescilli yıldızlara dokunulmaz (${skippedClaimed.length} yıldız atlandı: ${skippedClaimed.join(", ") || "-"}).
--- Önkoşul: 20261105000002_catalog_expansion_hyg_1500.sql (public.sky_sector_for_position).
--- Veri kaynağı ve lisans: HYG Database v4.2 — https://www.astronexus.com/projects/hyg — CC BY-SA 4.0
---
--- Dikkat: Bu işlem yıldızların haritadaki yerini değiştirir (yalnızca sahipsiz olanlar). Uygulamadan önce katalog yedeği alın.
--- ============================================================================
-
-BEGIN;
-
-UPDATE public.celestial_catalog AS c
-   SET ra = v.ra,
-       "dec" = v.dec,
-       magnitude = v.mag,
-       spectral_type = v.spect,
-       base_color = v.color,
-       sector_id = public.sky_sector_for_position(v.ra, v.dec)
-  FROM (VALUES
-${repairRows.join(",\n")}
-  ) AS v(code, ra, dec, mag, spect, color)
- WHERE c.catalog_code = v.code
-   AND c.is_claimed = FALSE;
-
-COMMIT;
-`;
-  fs.writeFileSync(outPath, repairSql);
-  console.log(`Yazıldı: ${outPath}`);
-  console.log(`  doğru: ${correct}  düzeltilecek: ${fixes.length}  tescilli (atlandı): ${skippedClaimed.length}  HYG'de olmayan: ${notInHyg}  medyan kayma: ${median.toFixed(1)}°`);
-  process.exit(0);
-}
+const existingPoints = existing
+  .filter((row) => !String(row.catalog_code).startsWith("SOL-"))
+  .map((row) => ({ ra: Number(row.ra), dec: Number(row.dec) }));
 
 const candidates = [];
 for (let i = 1; i < lines.length; i++) {
@@ -206,20 +123,28 @@ for (let i = 1; i < lines.length; i++) {
 candidates.sort((a, b) => a.mag - b.mag || a.hip - b.hip);
 
 // ─── Seçim ────────────────────────────────────────────────────────────────────
+const isTooClose = (star, points) =>
+  points.some((p) => Math.abs(p.dec - star.dec) < minSeparation && angularSeparation(p, star) < minSeparation);
+
 const chosen = [];
 let skippedClose = 0;
 for (const star of candidates) {
   if (chosen.length >= count) break;
-  const tooClose =
-    existingPoints.some((p) => Math.abs(p.dec - star.dec) < MIN_SEPARATION_DEG && angularSeparation(p, star) < MIN_SEPARATION_DEG) ||
-    chosen.some((p) => Math.abs(p.dec - star.dec) < MIN_SEPARATION_DEG && angularSeparation(p, star) < MIN_SEPARATION_DEG);
-  if (tooClose) {
+  if (isTooClose(star, existingPoints) || isTooClose(star, chosen)) {
     skippedClose++;
     continue;
   }
   chosen.push(star);
 }
 if (chosen.length < count) throw new Error(`Yeterli aday yok: ${chosen.length}/${count}`);
+
+// Kendi kendini doğrula: hiçbir seçilmiş yıldız bir başkasına ya da mevcut bir yıldıza eşikten yakın olamaz
+let nearestChosen = Infinity;
+for (let i = 0; i < chosen.length; i++) {
+  for (const p of existingPoints) nearestChosen = Math.min(nearestChosen, angularSeparation(chosen[i], p));
+  for (let j = i + 1; j < chosen.length; j++) nearestChosen = Math.min(nearestChosen, angularSeparation(chosen[i], chosen[j]));
+}
+if (nearestChosen < minSeparation) throw new Error(`Aralık kuralı ihlal edildi: ${nearestChosen}`);
 chosen.sort((a, b) => a.hip - b.hip);
 
 // ─── SQL ──────────────────────────────────────────────────────────────────────
@@ -250,8 +175,10 @@ const sql = `-- ================================================================
 -- Bu migration'ı üreten betik: scripts/build-hyg-catalog-migration.js (aynı girdiyle aynı çıktıyı verir).
 --
 -- Seçim: Hipparcos numarası olan, birincil bileşen, kadiri <= 6.5, spektral türü bilinen yıldızlar; katalogda
--- HIP-<numara> kodu zaten olanlar ve kataloktaki bir yıldıza 0.05° içindekiler atlandı; en parlaktan başlanarak
--- ${chosen.length} yıldız alındı. Kadir aralığı: ${magMin.toFixed(2)} – ${magMax.toFixed(2)}; adlı yıldız: ${named}.
+-- HIP-<numara> kodu zaten olanlar atlandı; en parlaktan başlanarak, kataloğdaki ya da seçilmiş herhangi bir yıldıza
+-- ${minSeparation}° den yakın olanlar atlanarak ${chosen.length} yıldız alındı (yıldızlar dip dibe gelmesin; mevcut yıldızların
+-- konumuna dokunulmaz). Gerçekleşen en yakın komşu mesafesi: ${nearestChosen.toFixed(2)}°.
+-- Kadir aralığı: ${magMin.toFixed(2)} – ${magMax.toFixed(2)}; adlı yıldız: ${named}.
 -- Her yıldız gökyüzünün tamamından gelir (sektör kutularının dışı dahil); sektör, 20260910_sky_sectors ile
 -- aynı kuralla atanır (en küçük kutu, yoksa 15° sağ açıklık dilimi).
 --
@@ -308,4 +235,6 @@ COMMIT;
 
 fs.writeFileSync(outPath, sql);
 console.log(`Yazıldı: ${outPath}`);
-console.log(`  yıldız: ${chosen.length}  kadir: ${magMin.toFixed(2)}–${magMax.toFixed(2)}  adlı: ${named}  yakınlık nedeniyle atlanan: ${skippedClose}  aday havuzu: ${candidates.length}`);
+console.log(
+  `  yıldız: ${chosen.length}  kadir: ${magMin.toFixed(2)}–${magMax.toFixed(2)}  adlı: ${named}  en yakın komşu: ${nearestChosen.toFixed(2)}°  aralık nedeniyle atlanan: ${skippedClose}  aday havuzu: ${candidates.length}`
+);

@@ -35,4 +35,4 @@ Ortam değişkenleri üretim derlemelerinde EAS ortamından gelir (`eas.json` �
 - Yerel (native) bağımlılık, eklenti ya da izin değişince `app.json` içindeki `version` artırılmalıdır
   (`runtimeVersion` politikası `appVersion`); aksi halde OTA güncellemesi eski ikilik dosyalarda hata verir.
 - `docs/legal` değiştiyse sayfaları yeniden üretip yayınlayın.
-- Gökyüzü kataloğu (`celestial_catalog`) HYG Database verisinden (CC BY-SA 4.0) beslenir; yeni yıldız üretmek için `scripts/build-hyg-catalog-migration.js` (`--mode expand`), mevcut yanlış verili satırları düzeltmek için `--mode repair` kullanılır. `supabase/optional/` altındaki dosyalar kendiliğinden uygulanmaz, karar bekleyen onarımlardır.
+- Gökyüzü kataloğu (`celestial_catalog`) HYG Database verisinden (CC BY-SA 4.0) beslenir; yeni yıldız üretmek için `scripts/build-hyg-catalog-migration.js` kullanılır (mevcut yıldızların konumuna dokunmaz, yeni yıldızlar mevcut ve birbirlerinden en az 1° uzakta seçilir).

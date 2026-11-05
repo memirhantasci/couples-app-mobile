@@ -6,7 +6,8 @@
 --    • Eskiden gökkubbede (kadir <= p_mag_max) boşta yıldız kalmayınca P0003 hatası veriyordu: o noktadan sonra yeni
 --      çift hiç yıldız alamıyordu. Artık önce gerçek katalog yıldızı aranır (öncekiyle aynı sarmal arama); bulunamazsa
 --      tüm gökyüzünde rastgele bir noktada prosedürel "sanal" yıldız üretilir (claim_star_in_sector ile aynı üretim
---      kuralı: VIRT-<sektör>-<epoch>-<uuid> kodu, ağırlıklı Anakol dağılımı). Sanal yıldız da diğerleri gibi sahiplenilir,
+--      kuralı: VIRT-<sektör>-<epoch>-<uuid> kodu, ağırlıklı Anakol dağılımı; konum, yıldızlar dip dibe gelmesin diye başka yıldızlara en az
+--      1° (olmazsa 0.5°) uzakta seçilir). Sanal yıldız da diğerleri gibi sahiplenilir,
 --      Premium biterse serbest kalır ve başka çift tarafından yeniden alınabilir.
 --    • Güneş Sistemi nesneleri (SOL-*) rastgele tescil adayı olamaz. Canlı veritabanında bu satırlar is_claimed = FALSE
 --      ve kadirleri <= 6.5 olduğundan, bir çifte rastgele "Güneş" ya da "Ay" tescil edilebiliyordu.
@@ -47,6 +48,8 @@ DECLARE
   v_spec             VARCHAR(16);
   v_color            VARCHAR(9);
   v_mag              NUMERIC(4,2);
+  v_try              INTEGER;
+  v_min_gap          NUMERIC;
 BEGIN
   -- ── 1. Kimlik ve Çift Doğrulaması ──
   v_caller_couple_id := public.get_my_couple_id();
@@ -102,9 +105,23 @@ BEGIN
 
   -- ── 6. Gökkubbede boşta gerçek yıldız kalmadıysa: sanal yıldız üret (hata verme) ──
   IF v_catalog_id IS NULL THEN
-    -- Küre üzerinde düzgün dağılım: dec = asin(2u - 1)
-    v_gen_ra  := ROUND((random() * 359.9999)::numeric, 4);
-    v_gen_dec := ROUND(degrees(asin(2 * random() - 1))::numeric, 4);
+    -- Küre üzerinde düzgün dağılım (dec = asin(2u - 1)). Yıldızlar dip dibe gelmesin: önce herhangi bir yıldıza en az 1°,
+    -- bulunamazsa 0.5° uzaklıkta bir nokta aranır (12 + 12 deneme); hepsi başarısız olursa son nokta kullanılır.
+    FOR v_try IN 1..24 LOOP
+      v_gen_ra  := ROUND((random() * 359.9999)::numeric, 4);
+      v_gen_dec := ROUND(degrees(asin(2 * random() - 1))::numeric, 4);
+      v_min_gap := CASE WHEN v_try <= 12 THEN 1.0 ELSE 0.5 END;
+      EXIT WHEN NOT EXISTS (
+        SELECT 1
+          FROM public.celestial_catalog AS near_star
+         WHERE near_star.catalog_code NOT LIKE 'SOL-%'
+           AND near_star."dec" BETWEEN v_gen_dec - v_min_gap AND v_gen_dec + v_min_gap
+           AND degrees(acos(least(1::float8, greatest(-1::float8,
+                 sin(radians(near_star."dec"::float8)) * sin(radians(v_gen_dec::float8)) +
+                 cos(radians(near_star."dec"::float8)) * cos(radians(v_gen_dec::float8)) *
+                 cos(radians((near_star.ra - v_gen_ra)::float8)))))) < v_min_gap
+      );
+    END LOOP;
     v_sector_id := public.sky_sector_for_position(v_gen_ra, v_gen_dec);
     SELECT code3 INTO v_code3 FROM public.sky_sectors WHERE id = v_sector_id;
 
