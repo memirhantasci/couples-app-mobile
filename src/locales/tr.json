@@ -2826,6 +2826,18 @@
       "pluto": "Evrenin ucunda bile olsa birbirini asla unutmayan kalplerin simgesi.",
       "fallback": "Güneş Sistemimizin kadim bir yolcusu ✨"
     },
+    "suggest": {
+      "cta": "Bize bir yıldız öner ✨",
+      "finding": "Yıldız aranıyor…",
+      "another": "Başka bir yıldız öner",
+      "a11y": "Boşta bir yıldız öner",
+      "badge": "✨ Size önerdiğimiz yıldız. Beğenmezseniz başkasını önerebiliriz ya da gökyüzünden kendi yıldızınızı seçebilirsiniz.",
+      "toast": "Size boşta bir yıldız önerdik. İsterseniz kendi yıldızınızı da seçebilirsiniz ✨",
+      "failed": "Öneri alınamadı. Bağlantınızı kontrol edip tekrar deneyin.",
+      "noneTitle": "Boşta gerçek yıldız kalmadı",
+      "noneBody": "Gökyüzündeki tüm gerçek yıldızlar tescillendi. İsterseniz sizin için yepyeni bir yıldız doğuralım: aşkınıza özel, gökyüzünde kendi yerinde parlar.",
+      "bornNew": "Yeni yıldız doğur ✨"
+    },
     "card": {
       "mysterious": "Gizemli ✨",
       "activityPoints_one": "{{count}} aktivite puanı",
@@ -2850,7 +2862,7 @@
       "requestPending": "⏳ Bu yıldıza bağlantı isteği gönderildi; onay bekleniyor.",
       "connectStar": "Yıldızımızı Bağla ✨",
       "pickTitle": "Aşkınızın Yıldızını Seçin ✨",
-      "pickBody": "Gökyüzünde özgürce gezinin; aşkınıza layık boşta parıldayan bir yıldıza dokunup \"Bu Yıldızı Seç\" ile çiftinize tescil edin.",
+      "pickBody": "Size boşta parıldayan bir yıldız önerebiliriz. İsterseniz gökyüzünde özgürce gezinip kendi yıldızınızı da seçebilirsiniz: boşta bir yıldıza dokunup \"Bu Yıldızı Seç\" demeniz yeterli.",
       "backToStarA11y": "Yıldızımıza Dön",
       "backToStar": "Yıldızımıza Dön ✨",
       "ascendA11y": "Gök Kubbeye Çık",

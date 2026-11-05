@@ -14,6 +14,7 @@
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/utils/logger';
 import i18n from '@/lib/i18n';
+import { toSuggestedViewportStar, type SuggestedStarRow } from '../utils/starSuggestion';
 import type {
   ActiveStarConnection,
   ClaimRandomStarParams,
@@ -36,6 +37,7 @@ import type {
   StarSystemMapPlanet,
   StarSearchResult,
   CelestialSearchResult,
+  SuggestAvailableStarsParams,
   ViewportStarItem,
   WishStatus,
 } from '../types/star.types';
@@ -1035,6 +1037,33 @@ export async function claimStarInSector(
 }
 
 /**
+ * Boşta (sahipsiz) gerçek yıldızlardan rastgele birkaçını önerir (`suggest_available_stars`). Gökyüzü kalabalıklaşınca
+ * kullanıcı boş yıldızı tek tek aramak zorunda kalmasın diye; öneri bağlayıcı değildir, tescil her zamanki gibi
+ * `claimSpecificStar` ile yapılır. `excludeCatalogIds`: zaten gösterilenler (tekrar önerilmez). Boşta yıldız kalmadıysa boş dizi döner.
+ */
+export async function suggestAvailableStars(
+  params: SuggestAvailableStarsParams = {},
+): Promise<ViewportStarItem[]> {
+  return withSmartRetry(async () => {
+    const { data, error } = await supabase.rpc('suggest_available_stars', {
+      p_limit: params.limit ?? 1,
+      p_exclude: params.excludeCatalogIds ? [...params.excludeCatalogIds] : [],
+    });
+
+    if (error) {
+      handleSupabaseError(error);
+    }
+
+    const stars: ViewportStarItem[] = [];
+    for (const row of (data ?? []) as SuggestedStarRow[]) {
+      const star = toSuggestedViewportStar(row);
+      if (star) stars.push(star);
+    }
+    return stars;
+  });
+}
+
+/**
  * Sektör önbelleğini temizler (tescil sonrası güncel veri çekmek için).
  */
 export function invalidateSectorsCache(): void {
@@ -1078,6 +1107,7 @@ export const starService = {
   makeWish,
   getSectorsOverview,
   claimStarInSector,
+  suggestAvailableStars,
   invalidateSectorsCache,
 };
 

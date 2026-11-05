@@ -2826,6 +2826,18 @@
       "pluto": "The symbol of hearts that never forget each other, even at the edge of the universe.",
       "fallback": "An ancient traveler of our Solar System ✨"
     },
+    "suggest": {
+      "cta": "Suggest a star for us ✨",
+      "finding": "Finding a star…",
+      "another": "Suggest another star",
+      "a11y": "Suggest an available star",
+      "badge": "✨ A star we picked for you. Don't like it? We can suggest another, or you can pick your own from the sky.",
+      "toast": "We found you an available star. You can also pick your own ✨",
+      "failed": "Couldn't get a suggestion. Check your connection and try again.",
+      "noneTitle": "No free real star left",
+      "noneBody": "Every real star in the sky has been claimed. We can create a brand-new star for you instead: it shines in a place of its own, just for your love.",
+      "bornNew": "Create a new star ✨"
+    },
     "card": {
       "mysterious": "Mysterious ✨",
       "activityPoints_one": "{{count}} activity point",
@@ -2850,7 +2862,7 @@
       "requestPending": "⏳ A connection request was sent to this star; awaiting approval.",
       "connectStar": "Connect Our Star ✨",
       "pickTitle": "Choose the Star of Your Love ✨",
-      "pickBody": "Roam the sky freely; tap an available, sparkling star worthy of your love and register it to your couple with \"Choose This Star\".",
+      "pickBody": "We can suggest an available, sparkling star for you. Or, if you prefer, roam the sky freely and choose your own: just tap an available star and select \"Choose This Star\".",
       "backToStarA11y": "Return to Our Star",
       "backToStar": "Return to Our Star ✨",
       "ascendA11y": "Ascend to the Sky Dome",

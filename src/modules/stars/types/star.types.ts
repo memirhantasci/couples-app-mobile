@@ -260,6 +260,16 @@ export interface GetStarsViewportParams {
  * `get_stars_in_viewport` sorgusundan dönen satır tipi.
  * 2D Canvas render motoruna doğrudan beslenir.
  */
+/**
+ * `suggest_available_stars` RPC parametreleri (bkz. starService.suggestAvailableStars).
+ */
+export interface SuggestAvailableStarsParams {
+  /** Kaç öneri (1-5, varsayılan 1) */
+  readonly limit?: number;
+  /** Zaten gösterilen yıldızların catalog_id listesi: tekrar önerilmez */
+  readonly excludeCatalogIds?: readonly number[];
+}
+
 export interface ViewportStarItem {
   readonly catalog_id: number;
   readonly catalog_code: string;

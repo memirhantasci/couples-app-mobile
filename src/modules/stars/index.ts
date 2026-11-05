@@ -29,6 +29,7 @@ export {
   makeWish,
   getSectorsOverview,
   claimStarInSector,
+  suggestAvailableStars,
   invalidateSectorsCache,
 } from './api/starService';
 

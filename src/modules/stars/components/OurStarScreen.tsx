@@ -65,6 +65,7 @@ import { StarSparkManager } from '../services/StarSparkManager';
 import { MicroSystemCanvas } from '../canvas/MicroSystemCanvas';
 import { MacroSkyCanvas, SOLAR_SYSTEM_OBJECTS, computeBounds } from '../canvas/MacroSkyCanvas';
 import { UNCLAIMED_STAR_BRIGHTNESS } from '../canvas/macro/starStyle';
+import { suggestedStarZoom } from '../utils/starSuggestion';
 import { StarInfoBadge } from './StarInfoBadge';
 import { ClaimStarModal } from './ClaimStarModal';
 import { StarDemoAuthModal } from './StarDemoAuthModal';
@@ -105,7 +106,7 @@ import type {
 } from '../types/star.types';
 import { useTranslation } from 'react-i18next';
 import { localizeServerError } from '@/lib/serverErrors';
-import { confirmDialog } from '@/lib/dialog';
+import { appAlert, confirmDialog } from '@/lib/dialog';
 import type { ParseKeys, TFunction } from 'i18next';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -356,6 +357,11 @@ export const OurStarScreen: React.FC = () => {
   const [cameraRa, setCameraRa] = useState(180);
   const [cameraDec, setCameraDec] = useState(0);
   const [flyToTarget, setFlyToTarget] = useState<FlyToTarget | undefined>(undefined);
+  // Yıldız önerisi: şu an önerilen yıldız, arama sürüyor mu ve bu oturumda gösterilenler (tekrar önerilmesin)
+  const [suggestedStarId, setSuggestedStarId] = useState<number | null>(null);
+  const [isSuggestingStar, setIsSuggestingStar] = useState(false);
+  const suggestingRef = useRef(false);
+  const suggestedIdsRef = useRef<number[]>([]);
 
   // Eve Dönüş Radarı Hesaplaması
   const myStarRa = starDetails ? Number(starDetails.ra) : 0;
@@ -489,6 +495,62 @@ export const OurStarScreen: React.FC = () => {
     setFlyToTarget({ centerRa: referralInvite.ra, centerDec: referralInvite.dec, zoom: 2.5, nonce: Date.now() });
     showToast(t('referral.sky.pickNearby'));
   }, [referralInvite, showToast, t]);
+
+  // ─── YILDIZ ÖNERİSİ ─────────────────────────────────────────────────
+  // Gökyüzü dolunca boş bir yıldızı tek tek dokunarak aramak yorucu olur: boşta bir gerçek yıldız önerilir, kamera ona
+  // uçar ve kartı açılır. Öneri bağlayıcı değildir; kullanıcı başkasını isteyebilir ya da gökyüzünden kendi yıldızını seçebilir.
+  // Boşta gerçek yıldız kalmadıysa yepyeni (sanal) bir yıldız doğurmak önerilir.
+  const handleSuggestStar = useCallback(async () => {
+    if (suggestingRef.current || isDemoMode || !coupleId) return;
+    suggestingRef.current = true;
+    setIsSuggestingStar(true);
+    hapticTap();
+    try {
+      let [star] = await starService.suggestAvailableStars({ excludeCatalogIds: suggestedIdsRef.current });
+      if (!star && suggestedIdsRef.current.length > 0) {
+        // Gösterdiklerimiz dışında yıldız kalmadı: liste sıfırlanıp bir kez daha denenir
+        suggestedIdsRef.current = [];
+        [star] = await starService.suggestAvailableStars();
+      }
+      if (!star) {
+        appAlert(t('stars.suggest.noneTitle'), t('stars.suggest.noneBody'), [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('stars.suggest.bornNew'),
+            onPress: () => {
+              // Adsız tescil penceresi: sunucu yeni bir yıldız doğurur
+              setClaimTargetStar(null);
+              setClaimSectorId(null);
+              setIsClaimModalOpen(true);
+            },
+          },
+        ]);
+        return;
+      }
+      suggestedIdsRef.current = [...suggestedIdsRef.current, star.catalog_id];
+      setSuggestedStarId(star.catalog_id);
+      setViewMode('macro');
+      // Yıldızın kadirine göre, çizildiği bir yakınlığa uçulur; varış karoları uçuş sırasında hazır olsun
+      const zoom = suggestedStarZoom(star.magnitude);
+      prefetchSkyTiles(
+        computeBounds({
+          centerRa: star.ra,
+          centerDec: star.dec,
+          zoom,
+          viewportWidth: SCREEN_WIDTH,
+          viewportHeight: SCREEN_HEIGHT,
+        })
+      );
+      setFlyToTarget({ centerRa: star.ra, centerDec: star.dec, zoom, nonce: Date.now() });
+      setSelectedMacroStar(star);
+      showToast(t('stars.suggest.toast'));
+    } catch {
+      showToast(t('stars.suggest.failed'));
+    } finally {
+      suggestingRef.current = false;
+      setIsSuggestingStar(false);
+    }
+  }, [isDemoMode, coupleId, prefetchSkyTiles, showToast, t]);
 
   // ─── AÇILIŞ SAHNESİ ────────────────────────────────────────────────
   // Tescilli yıldızı olan kullanıcıda (demo dahil) ekran, geniş gökyüzünden yıldızın parıltılı dış
@@ -1749,19 +1811,44 @@ export const OurStarScreen: React.FC = () => {
               <Text style={styles.claimThisStarBtnText}>{t('stars.card.chooseStar')}</Text>
             </TouchableOpacity>
           ) : !selectedMacroStar.is_claimed && starDetails === null ? (
-            // Kullanıcının yıldızı yok ve yıldız boşta: sahiplenme butonu
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => {
-                setClaimTargetStar(selectedMacroStar);
-                setSelectedMacroStar(null);
-                setIsClaimModalOpen(true);
-              }}
-              style={styles.claimThisStarBtn}
-            >
-              <Sparkles size={14} color="#030207" />
-              <Text style={styles.claimThisStarBtnText}>{t('stars.card.chooseStar')}</Text>
-            </TouchableOpacity>
+            // Kullanıcının yıldızı yok ve yıldız boşta: sahiplenme butonu (+ öneri bağlantısı)
+            <View style={styles.claimActionBlock}>
+              {selectedMacroStar.catalog_id === suggestedStarId ? (
+                <Text style={[styles.suggestedCaption, { color: isLight ? '#92400E' : '#FDE68A' }]}>
+                  {t('stars.suggest.badge')}
+                </Text>
+              ) : null}
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => {
+                  setClaimTargetStar(selectedMacroStar);
+                  setSelectedMacroStar(null);
+                  setIsClaimModalOpen(true);
+                }}
+                style={styles.claimThisStarBtn}
+              >
+                <Sparkles size={14} color="#030207" />
+                <Text style={styles.claimThisStarBtnText}>{t('stars.card.chooseStar')}</Text>
+              </TouchableOpacity>
+              {coupleId && !isDemoMode ? (
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={handleSuggestStar}
+                  disabled={isSuggestingStar}
+                  style={styles.suggestAnotherBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('stars.suggest.a11y')}
+                >
+                  <Text style={[styles.suggestAnotherText, { color: theme.textSecondary }]}>
+                    {isSuggestingStar
+                      ? t('stars.suggest.finding')
+                      : selectedMacroStar.catalog_id === suggestedStarId
+                      ? t('stars.suggest.another')
+                      : t('stars.suggest.cta')}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
           ) : !selectedMacroStar.is_claimed && starDetails !== null ? (
             // Kullanıcının zaten yıldızı var ama boş yıldıza tıklandı: yıldız bilgisi + nazik bilgilendirme
             <View
@@ -1784,7 +1871,8 @@ export const OurStarScreen: React.FC = () => {
               {t('stars.card.takenByOther')}
             </Text>
           ) : starDetails === null ? (
-            // Başkasının tescilli yıldızı ama kullanıcının kendi yıldızı henüz yok
+            // Başkasının tescilli yıldızı ama kullanıcının kendi yıldızı henüz yok (+ boşta yıldız önerisi)
+            <View style={styles.claimActionBlock}>
             <View
               style={[
                 styles.alreadyOwnedBanner,
@@ -1798,6 +1886,21 @@ export const OurStarScreen: React.FC = () => {
               <Text style={[styles.alreadyOwnedText, isLight && { color: '#92400E' }]}>
                 {t('stars.card.needStarFirst')}
               </Text>
+            </View>
+            {coupleId && !isDemoMode ? (
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={handleSuggestStar}
+                disabled={isSuggestingStar}
+                style={styles.suggestAnotherBtn}
+                accessibilityRole="button"
+                accessibilityLabel={t('stars.suggest.a11y')}
+              >
+                <Text style={[styles.suggestAnotherText, { color: theme.textSecondary }]}>
+                  {isSuggestingStar ? t('stars.suggest.finding') : t('stars.suggest.cta')}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
             </View>
           ) : isSelectedStarBonded ? (
             // Zaten bağlı yıldız
@@ -1937,6 +2040,34 @@ export const OurStarScreen: React.FC = () => {
               <Text style={[styles.onboardingGuideSubtitle, { color: theme.textSecondary, marginBottom: 0 }]}>
                 {t('stars.card.pickBody')}
               </Text>
+
+              {/* Kendi yıldızını seçmek isteyen gökyüzünde gezinir; istemeyen için biz bir yıldız öneririz */}
+              {coupleId && !isDemoMode ? (
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={handleSuggestStar}
+                  disabled={isSuggestingStar}
+                  style={[styles.onboardingRadarBtn, { marginTop: 12 }]}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('stars.suggest.a11y')}
+                >
+                  <LinearGradient
+                    colors={['#0284C7', '#4F46E5']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.radarLaunchGradient}
+                  >
+                    {isSuggestingStar ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Sparkles size={15} color="#FFFFFF" />
+                    )}
+                    <Text style={styles.radarLaunchBtnText}>
+                      {isSuggestingStar ? t('stars.suggest.finding') : t('stars.suggest.cta')}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              ) : null}
             </View>
           )}
 
@@ -2565,6 +2696,25 @@ const styles = StyleSheet.create({
     color: '#030207',
     fontSize: 13,
     fontWeight: '700',
+  },
+  claimActionBlock: {
+    gap: 8,
+  },
+  suggestedCaption: {
+    fontSize: 11.5,
+    lineHeight: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  suggestAnotherBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+  },
+  suggestAnotherText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
   claimedInfoText: {
     color: 'rgba(255, 255, 255, 0.5)',
