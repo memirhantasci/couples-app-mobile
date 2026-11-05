@@ -11,7 +11,13 @@
  * with `normalizeRa` only when reporting it outside the renderer.
  */
 
-export const MIN_ZOOM = 0.6;
+/**
+ * Widest view. It used to be 0.6 (100° of sky on screen, the whole sky in about two swipes),
+ * which looked crowded once every star was shown from far away. At 1.6 the map is drawn about
+ * 2.7 times bigger: a full turn takes five to six swipes and the stars are spread out. Star
+ * coordinates never change; raise or lower this to make the widest view bigger or smaller.
+ */
+export const MIN_ZOOM = 1.6;
 export const MAX_ZOOM = 35;
 /** Vertical field of view in degrees at zoom 1. */
 export const BASE_FOV_DEG = 60;

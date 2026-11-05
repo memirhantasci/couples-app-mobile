@@ -66,6 +66,7 @@ import { StarSparkManager } from '../services/StarSparkManager';
 import { MicroSystemCanvas } from '../canvas/MicroSystemCanvas';
 import { MacroSkyCanvas, SOLAR_SYSTEM_OBJECTS, computeBounds } from '../canvas/MacroSkyCanvas';
 import { UNCLAIMED_STAR_BRIGHTNESS } from '../canvas/macro/starStyle';
+import { MIN_ZOOM } from '../canvas/macro/skyProjection';
 import { suggestedStarZoom } from '../utils/starSuggestion';
 import { StarInfoBadge } from './StarInfoBadge';
 import { ClaimStarModal } from './ClaimStarModal';
@@ -135,7 +136,8 @@ const REALTIME_RECONCILIATION_WINDOW_MS = 5000;
 
 // Yıldız ekranının açılış sahnesi: önce geniş gökyüzü (uzayın ihtişamı), sonra yıldızın
 // parıltılı dış görünümüne süzülüş. İçeri girmek kullanıcının "Yıldızın İçine Gir" seçimidir.
-const SKY_OVERVIEW_ZOOM = 1.2;
+// En geniş açıdan (MIN_ZOOM) açılır; daha uzağa çıkılamaz.
+const SKY_OVERVIEW_ZOOM = MIN_ZOOM;
 const STAR_EXTERIOR_ZOOM = 3.0;
 const STAR_INTRO_FLIGHT_MS = 1600;
 
