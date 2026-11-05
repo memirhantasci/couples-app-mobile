@@ -33,7 +33,8 @@ export default function ResetPasswordScreen() {
       setError(t("auth.reset.codeRequired"));
       return;
     }
-    if (newPassword.length < 8) {
+    // Şifre sunucuya kenar boşlukları kırpılarak gider; uzunluk da kırpılmış haliyle sayılır
+    if (newPassword.trim().length < 8) {
       setError(t("auth.reset.passwordTooShort"));
       return;
     }
@@ -169,7 +170,8 @@ export default function ResetPasswordScreen() {
           <Text style={labelStyle}>{t("auth.reset.codeLabel")}</Text>
           <TextInput
             value={otpCode}
-            onChangeText={setOtpCode}
+            onChangeText={(value) => setOtpCode(value.replace(/[^0-9]/g, "").slice(0, 10))}
+            maxLength={10}
             placeholder="000000"
             placeholderTextColor="rgba(255,255,255,0.3)"
             keyboardType="number-pad"

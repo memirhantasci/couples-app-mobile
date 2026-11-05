@@ -425,7 +425,7 @@ export default function LoginScreen() {
       setErrorMsg(t("auth.errors.emailInvalid"));
       return;
     }
-    if (!regPassword.trim() || regPassword.length < 8) {
+    if (regPassword.trim().length < 8) {
       setErrorMsg(t("auth.errors.passwordTooShort"));
       return;
     }

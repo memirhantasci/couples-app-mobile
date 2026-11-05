@@ -20,6 +20,7 @@ import {
   dayOfYear,
   todayString,
 } from "@/lib/date";
+import { estimateCycleLength, getPeriodStarts } from "@/lib/periodCycle";
 import { getQuoteForDay } from "@/lib/quotes";
 import {
   MEETING_CELEBRATION_HOURS,
@@ -345,18 +346,22 @@ export default function HomeScreen() {
         .select("date")
         .eq("user_id", partnerData.id)
         .order("date", { ascending: false })
-        .limit(1);
+        .limit(14);
 
       if (periodLogs && periodLogs.length > 0) {
-        const logDateStr = periodLogs[0].date;
-        // Damga tarih + dil: dil değişince bildirim yeni dilde yeniden kurulur
-        const scheduleStamp = `${logDateStr}|${i18n.language}`;
+        // Döngü ekranıyla aynı hesap: son başlangıç + tahmini döngü uzunluğu (sabit 28 gün varsayılmaz)
+        const starts = getPeriodStarts(periodLogs.map((log) => log.date));
+        const logDateStr = starts[starts.length - 1];
+        const cycleLength = estimateCycleLength(starts);
+        // Damga başlangıç + döngü + dil: bunlardan biri değişince bildirim yeniden kurulur
+        const scheduleStamp = `${logDateStr}|${cycleLength}|${i18n.language}`;
         if (lastScheduledDate === scheduleStamp) {
           return; // Zaten bu döngü için bildirim zamanlandı
         }
 
         const lastPeriodDate = dayjs(logDateStr);
-        const notifyDate = lastPeriodDate.add(26, "day").hour(10).minute(0).second(0).toDate();
+        // Bildirim metni "2 gün içinde": beklenen başlangıçtan 2 gün önce, sabah 10:00
+        const notifyDate = lastPeriodDate.add(cycleLength - 2, "day").hour(10).minute(0).second(0).toDate();
         
         if (notifyDate.getTime() > Date.now()) {
           const scheduled = await scheduleDateLocalNotification(
