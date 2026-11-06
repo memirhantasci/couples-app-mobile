@@ -101,7 +101,7 @@ export default function PhotosScreen() {
   };
 
   // Fotoğraf Sil
-  const handleDelete = useCallback((id: number) => {
+  const handleDelete = useCallback((id: string) => {
     if (executeOrIntercept(
       () => {},
       t("demo.prompts.deletePhoto.title"),

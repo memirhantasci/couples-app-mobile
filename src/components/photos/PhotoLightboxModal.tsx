@@ -20,7 +20,7 @@ interface PhotoLightboxModalProps {
   onClose: () => void;
   onPrev: () => void;
   onNext: () => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: string) => void;
 }
 
 // ─── ULTRA MODERN TAM EKRAN LIGHTBOX MODALI ──────────────────────────────────

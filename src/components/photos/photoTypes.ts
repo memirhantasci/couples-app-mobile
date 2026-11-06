@@ -1,5 +1,5 @@
 export interface PhotoItem {
-  id: number;
+  id: string;
   /** "photos" bucket'ındaki tam boy görselin yolu (`<couple_id>/...`); demo verisinde tam URL. */
   storage_path: string;
   /** Galeri ızgarası için küçük resmin yolu; yoksa tam boy görsel kullanılır. */

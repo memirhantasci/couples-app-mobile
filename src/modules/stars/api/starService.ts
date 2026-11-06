@@ -1086,6 +1086,14 @@ export async function claimStarInSector(
     });
 
     if (error) {
+      // claim_star_in_sector kodları diğer RPC'lerden farklı anlam taşır: P0004 "çiftin zaten yıldızı var",
+      // P0002 "geçersiz sektör" demektir (kıvılcım bekleme süresi ya da "yıldızı başkası aldı" değil).
+      if (error.code === 'P0004') {
+        throw codedError('P0005', i18n.t('stars.errors.alreadyHasStar'));
+      }
+      if (error.code === 'P0002') {
+        throw codedError('P0002', i18n.t('stars.claim.errors.cosmicGlitch'));
+      }
       handleSupabaseError(error);
     }
 

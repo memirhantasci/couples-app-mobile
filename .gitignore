@@ -60,3 +60,4 @@ eas.json
 # Supabase CLI temp files & logs
 supabase/.temp/
 *.log
+couplesky-*.json

@@ -2276,7 +2276,9 @@
       "allTaken": "Tümü Alındı",
       "dosesTaken": "{{taken}}/{{total}} Doz",
       "showMore": "Daha Fazlasını Gör ({{count}} gün daha)",
-      "showLess": "Daha Az Göster"
+      "showLess": "Daha Az Göster",
+      "dayCount_one": "{{count}} gün",
+      "dayCount_other": "{{count}} gün"
     },
     "streak": {
       "title": "{{count}} Günlük Seri! 🔥",

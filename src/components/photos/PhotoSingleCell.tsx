@@ -14,7 +14,7 @@ interface PhotoSingleCellProps {
   theme: AppTheme;
   isLight: boolean;
   onPress: (index: number) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: string) => void;
 }
 
 // ─── 1 SÜTUNLU BÜYÜK HİKAYE KARTI ────────────────────────────────────────────

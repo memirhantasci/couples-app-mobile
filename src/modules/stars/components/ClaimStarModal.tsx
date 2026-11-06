@@ -493,9 +493,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
 
     if (errorOccurred) {
       const errCode = errorOccurred?.code;
-      const isAlreadyOwnedErr =
-        errCode === 'P0005' ||
-        (errorOccurred?.message || '').includes('zaten bir yıldızınız var');
+      const isAlreadyOwnedErr = errCode === 'P0005';
 
       setIsP0005Error(isAlreadyOwnedErr);
       setModalState('error');
@@ -506,7 +504,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
           ? t('stars.errors.alreadyHasStar')
           : errCode === 'P0003'
           ? t('stars.claim.errors.noFreeStar')
-          : errorOccurred.message || t('stars.claim.errors.cosmicGlitch')
+          : localizeServerError(errorOccurred, t('stars.claim.errors.cosmicGlitch'))
       );
       await hapticError();
     } else if (resultStar) {

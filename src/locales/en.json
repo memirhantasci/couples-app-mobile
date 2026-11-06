@@ -2276,7 +2276,9 @@
       "allTaken": "All Taken",
       "dosesTaken": "{{taken}}/{{total}} Doses",
       "showMore": "Show More ({{count}} more days)",
-      "showLess": "Show Less"
+      "showLess": "Show Less",
+      "dayCount_one": "{{count}} day",
+      "dayCount_other": "{{count}} days"
     },
     "streak": {
       "title": "{{count}}-Day Streak! 🔥",

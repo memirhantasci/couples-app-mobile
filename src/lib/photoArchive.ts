@@ -3,7 +3,8 @@ import i18n from "@/lib/i18n";
 
 /** Galeri / harita / takvimde gösterilen bir fotoğrafın depolama yolları. */
 export interface ArchivedPhotoFiles {
-  id: number;
+  /** Gerçek kayıtlarda photo_archive.id (uuid); demo verisinde sayı. */
+  id: string | number;
   storage_path: string;
   thumb_path?: string | null;
 }

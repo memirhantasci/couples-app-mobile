@@ -47,7 +47,7 @@ export function MedicineHistoryList({ theme, historyGrouped, sortedDates }: Medi
       <View style={styles.headerRow}>
         <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t("medicine.history.title")}</Text>
         <Text style={[styles.daysCounter, { color: theme.textMuted }]}>
-          {`${sortedDates.length} ${t("common.days", { defaultValue: "gün" })}`}
+          {t("medicine.history.dayCount", { count: sortedDates.length })}
         </Text>
       </View>
 
