@@ -58,63 +58,6 @@ export function PromoCodeForm({
     const code = promoCode.trim().toUpperCase();
     if (!code) return;
 
-    if (code === "FREEMIRHAN") {
-      setPromoLoading(true);
-      suppressPremiumCelebration();
-      try {
-        const { error: rpcError } = await supabase.rpc("set_premium_status", {
-          p_is_premium: true,
-          p_expires_at: null,
-        });
-
-        if (!rpcError) {
-          await refreshProfile();
-          setPromoCode("");
-          onPremiumSuccess();
-          return;
-        }
-
-        const { data: promoData, error: promoError } = await supabase.rpc("redeem_promo_code", { p_code: code });
-        if (!promoError && promoData?.success !== false) {
-          await refreshProfile();
-          setPromoCode("");
-          onPremiumSuccess();
-          return;
-        }
-
-        appAlert(t("common.error"), localizeServerError(rpcError ?? promoError, t("profile.promo.activateFailed")));
-      } catch (err: any) {
-        appAlert(t("common.error"), localizeServerError(err, t("profile.promo.actionFailed")));
-      } finally {
-        setPromoLoading(false);
-      }
-      return;
-    }
-
-    if (code === "DELETEMIRHAN") {
-      setPromoLoading(true);
-      try {
-        const { error: rpcError } = await supabase.rpc("set_premium_status", {
-          p_is_premium: false,
-          p_expires_at: null,
-        });
-
-        if (!rpcError) {
-          await refreshProfile();
-          setPromoCode("");
-          toast.info(t("profile.promo.ended"));
-          return;
-        }
-
-        appAlert(t("common.error"), localizeServerError(rpcError, t("profile.promo.cancelFailed")));
-      } catch (err: any) {
-        appAlert(t("common.error"), localizeServerError(err, t("profile.promo.actionFailed")));
-      } finally {
-        setPromoLoading(false);
-      }
-      return;
-    }
-
     setPromoLoading(true);
     suppressPremiumCelebration();
     try {
