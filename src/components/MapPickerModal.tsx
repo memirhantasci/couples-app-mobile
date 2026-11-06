@@ -831,7 +831,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
-    elevation: 4,
     zIndex: 10,
   },
   hintPillText: {
@@ -852,7 +851,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.45,
     shadowRadius: 18,
-    elevation: 25,
     zIndex: 999,
   },
   detailCardBody: {

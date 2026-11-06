@@ -296,7 +296,6 @@ const styles = StyleSheet.create({
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 10,
-    elevation: 8,
   },
   blurWrapper: {
     paddingHorizontal: 14,

@@ -2440,7 +2440,6 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.3,
     shadowRadius: 6,
-    elevation: 4,
   },
   badgeWrapper: {
     flex: 1,
@@ -2458,7 +2457,6 @@ const styles = StyleSheet.create({
     shadowColor: '#EC4899',
     shadowOpacity: 0.2,
     shadowRadius: 6,
-    elevation: 4,
   },
   cosmicBagBadge: {
     position: 'absolute',
@@ -2499,7 +2497,6 @@ const styles = StyleSheet.create({
     shadowColor: '#F59E0B',
     shadowOpacity: 0.2,
     shadowRadius: 10,
-    elevation: 8,
   },
   toastText: {
     color: '#FCD34D',
@@ -2530,7 +2527,6 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.35,
     shadowRadius: 8,
-    elevation: 6,
   },
   returnHomeBtn: {
     height: 44,
@@ -2568,7 +2564,6 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.5,
     shadowRadius: 10,
-    elevation: 6,
     gap: 10,
   },
   macroStarCardMine: {
@@ -2934,7 +2929,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 16,
-    elevation: 8,
   },
   onboardingGuideHeader: {
     flexDirection: 'row',
@@ -3010,7 +3004,6 @@ const styles = StyleSheet.create({
     shadowColor: '#F59E0B',
     shadowOpacity: 0.2,
     shadowRadius: 10,
-    elevation: 8,
   },
   instructionBannerText: {
     color: '#FCD34D',

@@ -356,7 +356,6 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(255, 255, 255, 0.12)",
-    elevation: 24,
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.45,

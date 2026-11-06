@@ -192,7 +192,6 @@ export default function CompleteProfileScreen() {
                         shadowOpacity: 0.2,
                         shadowRadius: 16,
                         shadowOffset: { width: 0, height: 0 },
-                        elevation: 8,
                       },
                     ]}
                   >

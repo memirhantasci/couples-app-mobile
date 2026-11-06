@@ -405,7 +405,6 @@ export default function PairingScreen() {
               shadowOffset: { width: 0, height: 12 },
               shadowOpacity: 0.2,
               shadowRadius: 24,
-              elevation: 6,
               marginBottom: 24,
             }}
           >
