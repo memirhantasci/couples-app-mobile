@@ -59,7 +59,7 @@ import { LanguagePicker } from "@/components/profile/LanguagePicker";
 import { LegalDocsList } from "@/components/profile/LegalDocsList";
 import { AccountActionsCard } from "@/components/profile/AccountActionsCard";
 import dayjs from "dayjs";
-import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
+import { LazyPageTourModal, LazyDemoActionModal, LazyWatchAdModal } from "@/components/ui/lazyMount";
 import { useTranslation } from "react-i18next";
 import { localizeServerError } from "@/lib/serverErrors";
 
@@ -75,6 +75,7 @@ export default function ProfileScreen() {
 
   const [displayName, setDisplayName] = useState("");
   const [initialDisplayName, setInitialDisplayName] = useState("");
+  const [showAdModal, setShowAdModal] = useState(false);
   const [nameError, setNameError] = useState(false);
   const [gender, setGender] = useState<"male" | "female">("female");
   const [initialGender, setInitialGender] = useState<"male" | "female">("female");
@@ -615,6 +616,7 @@ export default function ProfileScreen() {
             isPremium={isPremium}
             isPaired={!!coupleId}
             tokenBalance={tokenBalance}
+            onEarnTokens={() => setShowAdModal(true)}
           />
           </Reveal>
 
@@ -757,6 +759,11 @@ export default function ProfileScreen() {
         onClose={() => setIsDemoModalOpen(false)}
         title={modalConfig.title}
         description={modalConfig.description}
+      />
+      <LazyWatchAdModal
+        visible={showAdModal}
+        onClose={() => setShowAdModal(false)}
+        onSuccess={() => setShowAdModal(false)}
       />
     </ScreenBackground>
   );

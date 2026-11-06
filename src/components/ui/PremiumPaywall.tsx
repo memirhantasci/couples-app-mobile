@@ -190,22 +190,33 @@ export function PremiumPaywall({
                   {t("paywall.tokenBalance", { currentBalance: tokenOption.currentBalance })}
                 </Text>
               </TouchableOpacity>
+            </View>
+          )}
 
-              {onWatchAd && (
-                <TouchableOpacity
-                  style={[
-                    styles.adBtn,
-                    {
-                      backgroundColor: isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.04)",
-                      borderColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)",
-                    },
-                  ]}
-                  onPress={onWatchAd}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.adBtnText, { color: theme.textSecondary }]}>{t("paywall.watchAd")}</Text>
-                </TouchableOpacity>
+          {/* Reklam İzle Seçeneği */}
+          {onWatchAd && (
+            <View style={[styles.adSection, !tokenOption && styles.tokenSection]}>
+              {!tokenOption && (
+                <View style={styles.dividerRow}>
+                  <View style={[styles.dividerLine, { backgroundColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]} />
+                  <Text style={[styles.dividerText, { color: theme.textMuted }]}>{t("common.or")}</Text>
+                  <View style={[styles.dividerLine, { backgroundColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]} />
+                </View>
               )}
+              <TouchableOpacity
+                style={[
+                  styles.adBtn,
+                  {
+                    backgroundColor: isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.04)",
+                    borderColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)",
+                    marginTop: tokenOption ? 10 : 0,
+                  },
+                ]}
+                onPress={onWatchAd}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.adBtnText, { color: theme.textSecondary }]}>{t("paywall.watchAd")}</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -354,6 +365,9 @@ const styles = StyleSheet.create({
   tokenBalance: {
     fontSize: 11,
     fontFamily: "Inter_500Medium",
+  },
+  adSection: {
+    width: "100%",
   },
   adBtn: {
     width: "100%",

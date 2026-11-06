@@ -8,7 +8,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { RevenueCatService } from "@/lib/revenuecat";
 import { PurchasesPackage } from "react-native-purchases";
-import { X, Crown, Check, ShieldCheck, Gift } from "lucide-react-native";
+import { X, Crown, Check, ShieldCheck, Gift, Coins } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LegalModal } from "@/components/legal/LegalModal";
 import { LegalDocType } from "@/constants/legalTexts";
@@ -18,7 +18,7 @@ import { freeTrialDays, purchaseButtonLabel } from "@/lib/trialLabel";
 import { waitForServerPremium } from "@/lib/premiumSync";
 import type { TFunction } from "i18next";
 import { APP_NAME } from "@/constants/brand";
-import { LazyDemoActionModal } from "@/components/ui/lazyMount";
+import { LazyDemoActionModal, LazyWatchAdModal } from "@/components/ui/lazyMount";
 import { PromoCodeModal } from "@/components/ui/PromoCodeModal";
 import { useTranslation } from "react-i18next";
 
@@ -98,6 +98,7 @@ export default function PaywallScreen() {
 
   const [demoPromptVisible, setDemoPromptVisible] = useState(false);
   const [codeModalVisible, setCodeModalVisible] = useState(false);
+  const [adModalVisible, setAdModalVisible] = useState(false);
   const [legalModalVisible, setLegalModalVisible] = useState(false);
   const [selectedLegalDoc, setSelectedLegalDoc] = useState<LegalDocType>("subscription");
 
@@ -467,6 +468,25 @@ export default function PaywallScreen() {
               </Text>
             </TouchableOpacity>
 
+            {/* Reklam izleyerek jeton kazanma seçeneği */}
+            <TouchableOpacity
+              style={[styles.restoreBtn, { marginTop: 6 }]}
+              onPress={() => setAdModalVisible(true)}
+              disabled={purchasing}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+            >
+              <Coins color={isLight ? "#B7791F" : "#E6C055"} size={16} />
+              <Text
+                style={[styles.restoreText, { color: isLight ? "#B7791F" : "#E6C055", flexShrink: 1 }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+              >
+                {t("paywall.watchAd", "🎬 Reklam İzleyerek +25 Token Kazan")}
+              </Text>
+            </TouchableOpacity>
+
             {/* Yasal Abonelik ve İade Bilgilendirmesi */}
             <View
               style={[
@@ -513,6 +533,11 @@ export default function PaywallScreen() {
         onClose={() => setLegalModalVisible(false)}
         initialDoc={selectedLegalDoc}
         accentColor={theme.accent}
+      />
+      <LazyWatchAdModal
+        visible={adModalVisible}
+        onClose={() => setAdModalVisible(false)}
+        onSuccess={() => setAdModalVisible(false)}
       />
     </ScreenBackground>
   );

@@ -1,7 +1,7 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Crown, Heart } from "lucide-react-native";
+import { Crown, Heart, Plus } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import type { AppTheme } from "@/lib/theme";
 import { EditableAvatar } from "@/components/avatar/EditableAvatar";
@@ -12,10 +12,11 @@ interface ProfileHeroProps {
   isPremium: boolean;
   isPaired: boolean;
   tokenBalance: number;
+  onEarnTokens?: () => void;
 }
 
 /** Ayarlar ekranının üstündeki profil kartı: büyük avatar + isim ve üç hızlı istatistik. */
-export function ProfileHero({ theme, name, isPremium, isPaired, tokenBalance }: ProfileHeroProps) {
+export function ProfileHero({ theme, name, isPremium, isPaired, tokenBalance, onEarnTokens }: ProfileHeroProps) {
   const { t } = useTranslation();
   const gold = theme.isLight ? "#A16207" : "#E6C055";
   const dividerColor = theme.isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)";
@@ -37,10 +38,33 @@ export function ProfileHero({ theme, name, isPremium, isPaired, tokenBalance }: 
       </View>
 
       <View style={[styles.stats, { borderTopColor: dividerColor }]}>
-        <View style={styles.stat}>
-          <Text style={[styles.statValue, { color: gold }]}>🪙 {tokenBalance}</Text>
+        <TouchableOpacity
+          style={styles.stat}
+          onPress={onEarnTokens}
+          disabled={!onEarnTokens}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`${tokenBalance} ${t("profile.stats.tokens")}`}
+        >
+          <View style={styles.statValueRow}>
+            <Text style={[styles.statValue, { color: gold }]}>🪙 {tokenBalance}</Text>
+            {onEarnTokens && (
+              <View
+                style={[
+                  styles.plusBadge,
+                  {
+                    backgroundColor: theme.isLight
+                      ? "rgba(161, 98, 7, 0.12)"
+                      : "rgba(230, 192, 85, 0.18)",
+                  },
+                ]}
+              >
+                <Plus size={10} color={gold} strokeWidth={3} />
+              </View>
+            )}
+          </View>
           <Text style={[styles.statLabel, { color: theme.textMuted }]}>{t("profile.stats.tokens")}</Text>
-        </View>
+        </TouchableOpacity>
 
         <View style={[styles.statDivider, { backgroundColor: dividerColor }]} />
 
@@ -102,6 +126,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
+  },
+  plusBadge: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
   statValue: {
     fontSize: 16,
