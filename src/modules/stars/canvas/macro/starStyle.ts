@@ -6,7 +6,7 @@
  * A star's look never follows its catalog magnitude: unclaimed stars all
  * shine with the same low, steady light, and a claimed star only grows
  * brighter as its couple's activity feeds it. Magnitude is used solely to
- * decide which stars are loaded/shown at a zoom (level of detail).
+ * decide which stars are shown at a zoom (level of detail, visibleMagnitudeLimit).
  */
 
 /**
@@ -70,19 +70,36 @@ export function starCoreAlpha(light: number): number {
   return 0.3 + 0.7 * light;
 }
 
-/** Faintest magnitude any catalog star (real or virtual) can have; every star up to it is drawn. */
-const ALL_STARS_MAGNITUDE_LIMIT = 9.0;
-
 /**
- * Faintest unclaimed magnitude shown at a zoom. Every star is shown from every
- * zoom, also from far away (get_stars_in_viewport no longer filters by
- * magnitude either), so the limit no longer depends on the zoom. It used to
- * hide faint stars far out (3.8 below zoom 1.5, 5.8 below 4); the parameter is
- * kept so callers need not change if a far-out limit is ever needed again.
+ * Level of detail: faintest unclaimed magnitude shown at a zoom, as knots
+ * (zoom, magnitude) interpolated in log(zoom) so the reveal feels even while
+ * pinching. Measured on the live catalog (2026-11-06, ~2,020 unclaimed stars):
+ * mag ≤ 4.1 ≈ 560 stars (the brightest guide stars, widest view),
+ * ≤ 4.6 ≈ 990, ≤ 5.2 ≈ 1,900, ≤ 5.8 = every real star; virtual stars
+ * (≤ 6.5) and everything else are in by zoom 2.5. Claimed stars ignore this
+ * (starVisibility), so a couple's own and partner's star always show.
  */
-export function visibleMagnitudeLimit(_zoom: number): number {
+export const MAGNITUDE_LIMIT_KNOTS: readonly (readonly [number, number])[] = [
+  [0.2, 4.1],
+  [0.5, 4.6],
+  [1.0, 5.2],
+  [1.5, 5.8],
+  [2.5, 9.0],
+];
+
+export function visibleMagnitudeLimit(zoom: number): number {
   'worklet';
-  return ALL_STARS_MAGNITUDE_LIMIT;
+  const knots = MAGNITUDE_LIMIT_KNOTS;
+  if (zoom <= knots[0][0]) return knots[0][1];
+  for (let i = 1; i < knots.length; i += 1) {
+    const [z1, m1] = knots[i];
+    if (zoom <= z1) {
+      const [z0, m0] = knots[i - 1];
+      const t = Math.log(zoom / z0) / Math.log(z1 / z0);
+      return m0 + (m1 - m0) * t;
+    }
+  }
+  return knots[knots.length - 1][1];
 }
 
 /** How much a fully lit star's brightness swings, as a fraction of its base opacity. */
@@ -105,7 +122,7 @@ export function twinkleFactor(light: number, ra: number, dec: number, animSecond
 }
 
 /** Magnitudes over which a star fades out past the visible limit. */
-export const MAGNITUDE_FADE = 0.35;
+export const MAGNITUDE_FADE = 0.4;
 
 /** 0…1 visibility of a star at a zoom; claimed stars always show. */
 export function starVisibility(magnitude: number, claimed: boolean, zoom: number): number {

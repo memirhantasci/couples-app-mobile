@@ -239,10 +239,21 @@ export const ORRERY_RADIUS_DEG = {
  */
 export const ORRERY_SPACING_ZOOM = 0.6;
 
-/** İşaretlerin ve Güneş'in çizim ölçeği: referans zoom'un altında zoom ile orantılı küçülür. */
+/**
+ * İşaretlerin ve Güneş'in en küçük çizim ölçeği. Daha da uzaklaşınca gezegenler küçülmeyi bırakır:
+ * en geniş açıda (0.2) bile renkleri ve Satürn'ün halkasıyla tanınır kalır, toz tanesine dönmez.
+ * Bu ölçekte yatay hizadaki komşular yine ayrıdır; yalnız tam dikey hizadaki (seyrek, geçici)
+ * komşuların parıltıları birbirine değebilir. Bkz. solarSystem testi.
+ */
+export const ORRERY_MIN_MARKER_SCALE = 0.6;
+
+/**
+ * İşaretlerin ve Güneş'in çizim ölçeği: referans zoom'un altında zoom ile orantılı küçülür, ama
+ * ORRERY_MIN_MARKER_SCALE'in altına inmez.
+ */
 export function orreryMarkerScale(zoom: number): number {
   'worklet';
-  return Math.min(1, zoom / ORRERY_SPACING_ZOOM);
+  return Math.max(ORRERY_MIN_MARKER_SCALE, Math.min(1, zoom / ORRERY_SPACING_ZOOM));
 }
 export const ORRERY_SPACING_HEIGHT_PX = 740;
 

@@ -7,6 +7,7 @@ import {
   ORRERY_BODIES,
   ORRERY_EPOCH_MS,
   ORRERY_MARKER_GLOW_PX,
+  ORRERY_MIN_MARKER_SCALE,
   ORRERY_RADIUS_DEG,
   ORRERY_SECONDS_PER_YEAR,
   ORRERY_SPACING_HEIGHT_PX,
@@ -146,8 +147,9 @@ describe('güneş sistemi: açı kilitlemeden üst üste binmeme', () => {
     expect(ORRERY_RADIUS_DEG.mercury * worst).toBeGreaterThanOrEqual(coronaPx / 2 + ORRERY_MARKER_GLOW_PX.mercury);
   });
 
-  it('uzaklaştıkça işaretler orantılı küçüldüğü için ayrışma en geniş açıda (0.2) da korunur', () => {
-    for (const zoom of [MIN_ZOOM, 0.3, 0.45]) {
+  it('uzaklaştıkça işaretler orantılı küçülür; taban ölçeğe kadar her hizada ayrışma korunur', () => {
+    const floorZoom = ORRERY_SPACING_ZOOM * ORRERY_MIN_MARKER_SCALE;
+    for (const zoom of [floorZoom, 0.45]) {
       const scale = orreryMarkerScale(zoom);
       const vertical = pxPerDegree(zoom, ORRERY_SPACING_HEIGHT_PX) * ORRERY_TILT;
       for (let i = 1; i < PLANETS.length; i += 1) {
@@ -157,6 +159,20 @@ describe('güneş sistemi: açı kilitlemeden üst üste binmeme', () => {
     }
     expect(orreryMarkerScale(ORRERY_SPACING_ZOOM)).toBe(1);
     expect(orreryMarkerScale(3)).toBe(1);
+  });
+
+  it('en geniş açıda (0.2) gezegenler toz tanesine dönmez: taban ölçekte kalır ve yatay komşular ayrıdır', () => {
+    expect(orreryMarkerScale(MIN_ZOOM)).toBe(ORRERY_MIN_MARKER_SCALE);
+    expect(orreryMarkerScale(0.3)).toBe(ORRERY_MIN_MARKER_SCALE);
+    // En küçük gezegen bile arka plandaki sahipsiz bir yıldızdan (en geniş açıda ~2 px) belirgin büyük
+    const smallest = Math.min(...Object.values(ORRERY_MARKER_GLOW_PX)) * ORRERY_MIN_MARKER_SCALE;
+    expect(smallest).toBeGreaterThanOrEqual(2.4);
+    expect(ORRERY_MARKER_GLOW_PX.jupiter * ORRERY_MIN_MARKER_SCALE).toBeGreaterThanOrEqual(9);
+    const horizontal = pxPerDegree(MIN_ZOOM, ORRERY_SPACING_HEIGHT_PX) * RA_STRETCH;
+    for (let i = 1; i < PLANETS.length; i += 1) {
+      const gapPx = (ORRERY_RADIUS_DEG[PLANETS[i]] - ORRERY_RADIUS_DEG[PLANETS[i - 1]]) * horizontal;
+      expect(gapPx).toBeGreaterThanOrEqual(needPx(PLANETS[i - 1], PLANETS[i]) * ORRERY_MIN_MARKER_SCALE);
+    }
   });
 
   it('halkalar içten dışa sıralı', () => {
