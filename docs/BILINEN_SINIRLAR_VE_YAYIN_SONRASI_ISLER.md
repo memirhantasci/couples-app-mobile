@@ -15,8 +15,8 @@ Bitmeyenler:
   (App ID `app.couplesky.mobile`), sonra `supabase secrets set APPLE_TEAM_ID=VN8ZPYP3B7 APPLE_KEY_ID=<KeyID> APPLE_PRIVATE_KEY="$(cat AuthKey_XXXX.p8)"`.
   Test: Apple ile giriş yap, `apple_auth_tokens`'ta satır oluştuğunu gör, hesabı sil, Apple Kimliği ayarlarında uygulamanın kalktığını doğrula.
 - **Depo gizliliği:** GitHub deposu `memirhantasci/couples-app-mobile` herkese açıksa private yap; geçmişte `.env` ve
-  `google-services.json` var. Google Cloud'da Maps ve Firebase anahtarlarını paket adı/SHA-1 ile kısıtla; sohbette görünen
-  RevenueCat `sk_` anahtarını yenile.
+  `google-services.json` var. Sohbette görünen RevenueCat `sk_` anahtarını yenile.
+  (Google Cloud Maps ve Firebase Android anahtarları 2026-11-08'de paket adı + SHA-1 ile kısıtlandı; Play imza SHA-1'i Firebase'e eklendi.)
 - **Supabase panel (kod dışı, durumu doğrulanamadı):** minimum şifre 8, Site URL ve `couplesapp://` yönlendirmeleri, özel SMTP +
   OTP şablonunda `{{ .Token }}`, günlük yedek (Pro plan), sızdırılmış şifre koruması.
 - **E-posta (kod dışı):** destek@ ve support@couplesky.app kutuları; alan adına SPF, DKIM, DMARC (OTP ve destek postası spama düşmesin).
@@ -28,6 +28,7 @@ Bitmeyenler:
   yorumu (açık nokta 1) için ürün sahibi onayı.
 
 ### Yayından sonra (2-4 hafta)
+- **Maps anahtarını couplesapp94 hesabına taşı:** Maps Production Key şu an emirhanekin52 hesabındaki `project-a4ab81ef…` projesinde (fatura hesabı orada). Anahtar projeler arası taşınmaz: couplesky-c50c5'e fatura hesabı bağla, yeni anahtar oluştur (aynı paket+SHA-1 kısıtı), `app.json` anahtarını değiştir, yeni Android build al, eskiyi sil.
 - **Ödüllü reklam SSV (Y-3):** reklam token'ı istemci beyanına dayanıyor; günde 25 sınırı var. AdMob Server-Side Verification ekle.
 - **iOS ATT / SKAdNetwork (G-19):** `app.json` AdMob eklentisinde `skAdNetworkItems` yok (reklam gelirini ve atfı etkiler).
 - **Promosyon kodu kalıntısı:** Uygulamadan kaldırıldı ve `promo_codes` boş, ama `redeem_promo_code` RPC'si ve tablolar duruyor;
