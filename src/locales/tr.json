@@ -81,8 +81,8 @@
       "pairingCodeLabel": "EŞLEŞME KODU (İSTEĞE BAĞLI)",
       "pairingCodePlaceholder": "Örn. X7Y9Z2",
       "emailLabel": "E-POSTA",
-      "termsCheckbox": "<terms>Kullanım Koşulları</terms>’nı ve <privacy>Gizlilik Politikası</privacy>’nı kabul ediyorum; <kvkk>KVKK Aydınlatma Metni</kvkk>’ni okudum.",
-      "termsCheckboxA11y": "Kullanım Koşulları ve Gizlilik Politikası’nı kabul ediyorum, KVKK Aydınlatma Metni’ni okudum"
+      "termsCheckbox": "16 yaşından büyük olduğumu onaylıyorum. <terms>Kullanım Koşulları</terms>’nı ve <privacy>Gizlilik Politikası</privacy>’nı kabul ediyorum; <kvkk>KVKK Aydınlatma Metni</kvkk>’ni okudum.",
+      "termsCheckboxA11y": "16 yaşından büyük olduğumu onaylıyorum, Kullanım Koşulları ve Gizlilik Politikası’nı kabul ediyorum, KVKK Aydınlatma Metni’ni okudum"
     },
     "codeSentTo": "<email>{{email}}</email> adresine kod gönderdik",
     "errors": {
@@ -117,7 +117,7 @@
       "emailNotFound": "E-posta adresi bulunamadı.",
       "tooManyAttemptsPolite": "Çok fazla deneme yapıldı. Lütfen birkaç dakika sonra tekrar deneyin.",
       "noSession": "Oturum bulunamadı. Lütfen tekrar giriş yapın.",
-      "termsRequired": "Devam etmek için Kullanım Koşulları, Gizlilik Politikası ve KVKK Aydınlatma Metni onay kutusunu işaretlemelisin."
+      "termsRequired": "Devam etmek için 16 yaşından büyük olduğunu onaylamalı ve Kullanım Koşulları, Gizlilik Politikası ve KVKK Aydınlatma Metni onay kutusunu işaretlemelisin."
     },
     "verifyDevice": {
       "sendFailedWithMessage": "Kod gönderilemedi: {{message}}",

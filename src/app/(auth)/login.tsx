@@ -648,6 +648,14 @@ export default function LoginScreen() {
       if (error) throw error;
       if (!data.user) throw new Error(t("auth.errors.signInFailed"));
 
+      // Hesap silinirken Apple bağlantısını iptal edebilmek için authorizationCode sunucuya verilir (Apple şartı).
+      // Giriş akışını bekletmez ve başarısızlığı giriş için sorun değildir.
+      if (credential.authorizationCode) {
+        void supabase.functions
+          .invoke("apple-link", { body: { authorizationCode: credential.authorizationCode } })
+          .catch(() => {});
+      }
+
       // Apple adı yalnızca ilk girişte verir; profil tamamlama ekranı önerebilsin diye metadata'ya yaz
       if (credential.fullName) {
         const fullName = AppleAuthentication.formatFullName(credential.fullName).trim();

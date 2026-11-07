@@ -9,9 +9,11 @@ maddeleri güncel kod ve canlı veritabanıyla tek tek karşılaştırıldı; bi
 Bitmeyenler:
 
 ### Yayından önce
-- **Sign in with Apple token iptali (2-5):** Uygulamada Apple ile giriş var (`login.tsx`). Hesap silinirken Apple'a token revoke
-  çağrısı gitmiyor (`process-account-deletions` yapmıyor). Apple bunu şart koşar. `.p8` anahtarı ve Services ID gerekir.
-- **Kayıtta yaş onayı (G-21):** Yasal metinler 16 yaş sınırı beyan ediyor, kayıt ekranında "16 yaşından büyüğüm" onayı yok.
+- **Sign in with Apple token iptali (2-5): KOD HAZIR, anahtar bekliyor.** `apple-link` Edge Function + `apple_auth_tokens` tablosu +
+  `process-account-deletions` içindeki iptal adımı canlıda; istemci girişte authorizationCode'u gönderiyor (yeni build ister).
+  Apple anahtarı tanımlanana kadar iptal adımı atlanır. Yapılacak: Apple Developer > Keys > "Sign in with Apple" anahtarı oluştur
+  (App ID `app.couplesky.mobile`), sonra `supabase secrets set APPLE_TEAM_ID=VN8ZPYP3B7 APPLE_KEY_ID=<KeyID> APPLE_PRIVATE_KEY="$(cat AuthKey_XXXX.p8)"`.
+  Test: Apple ile giriş yap, `apple_auth_tokens`'ta satır oluştuğunu gör, hesabı sil, Apple Kimliği ayarlarında uygulamanın kalktığını doğrula.
 - **Depo gizliliği:** GitHub deposu `memirhantasci/couples-app-mobile` herkese açıksa private yap; geçmişte `.env` ve
   `google-services.json` var. Google Cloud'da Maps ve Firebase anahtarlarını paket adı/SHA-1 ile kısıtla; sohbette görünen
   RevenueCat `sk_` anahtarını yenile.

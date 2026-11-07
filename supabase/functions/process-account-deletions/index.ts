@@ -7,6 +7,7 @@
 //
 // Talepler: kullanıcının kendi isteği (7 gün sonra) ya da hareketsiz eşleşmemiş hesap (reason = 'inactive',
 // schedule_inactive_account_deletions açar). Her talep için sıra:
+//   0. Sign in with Apple ile girmiş kullanıcının Apple bağlantısı iptal edilir (_shared/apple.ts, apple_auth_tokens)
 //   1. Dosyalar (SQL ile silmek dosyayı depoda sahipsiz bırakır):
 //        • silenin avatarı her zaman
 //        • çiftte başka kimse yoksa çiftin klasörleri (photos/memories/couple-memories/<couple_id>/)
@@ -20,6 +21,7 @@
 
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { syncVerifiedPremium } from "../_shared/revenuecat.ts";
+import { isAppleConfigured, revokeAppleToken } from "../_shared/apple.ts";
 
 const BATCH_SIZE = 20;
 const LIST_PAGE_SIZE = 1000;
@@ -75,6 +77,19 @@ async function deleteAccount(admin: SupabaseClient, userId: string): Promise<voi
     .eq("id", userId)
     .maybeSingle();
   if (profileError) throw new Error(`Profil okunamadı: ${profileError.message}`);
+
+  // 0. Apple ile giriş: kullanıcının Apple'daki bağlantısı, veriler silinmeden ÖNCE iptal edilir (App Review 5.1.1(v)).
+  //    Refresh token purge_account_data ile birlikte silineceği için sonraya bırakılamaz. Apple anahtarları tanımlı değilse
+  //    ya da kullanıcı Apple ile girmemişse adım atlanır; iptal başarısız olursa talep kalır ve bir sonraki saatte yeniden denenir.
+  if (isAppleConfigured()) {
+    const { data: appleRow, error: appleError } = await admin
+      .from("apple_auth_tokens")
+      .select("refresh_token")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (appleError) throw new Error(`Apple token okunamadı: ${appleError.message}`);
+    if (appleRow?.refresh_token) await revokeAppleToken(appleRow.refresh_token);
+  }
 
   // 1. Dosyalar. Profil satırı önceki bir denemede silinmişse çift verisi de silinmiştir.
   await removeFolder(admin, AVATAR_BUCKET, userId);

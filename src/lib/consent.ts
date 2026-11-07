@@ -19,6 +19,8 @@ export function termsConsentMetadata(): Record<string, string> {
   return {
     terms_accepted_at: new Date().toISOString(),
     terms_accepted_version: TERMS_CONSENT_VERSION,
+    // Aynı onay kutusu 16 yaş sınırını da onaylatır (yasal metinlerdeki yaş beyanı)
+    age_confirmed_16: "true",
   };
 }
 

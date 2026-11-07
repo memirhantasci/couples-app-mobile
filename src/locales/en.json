@@ -81,8 +81,8 @@
       "pairingCodeLabel": "PAIRING CODE (OPTIONAL)",
       "pairingCodePlaceholder": "e.g. X7Y9Z2",
       "emailLabel": "EMAIL ADDRESS",
-      "termsCheckbox": "I accept the <terms>Terms of Use</terms> and the <privacy>Privacy Policy</privacy>, and I have read the <kvkk>KVKK Disclosure Notice</kvkk>.",
-      "termsCheckboxA11y": "I accept the Terms of Use and Privacy Policy and have read the KVKK Disclosure Notice"
+      "termsCheckbox": "I confirm that I am over 16 years old. I accept the <terms>Terms of Use</terms> and the <privacy>Privacy Policy</privacy>, and I have read the <kvkk>KVKK Disclosure Notice</kvkk>.",
+      "termsCheckboxA11y": "I confirm I am over 16 years old, I accept the Terms of Use and Privacy Policy and have read the KVKK Disclosure Notice"
     },
     "codeSentTo": "We sent a code to <email>{{email}}</email>",
     "errors": {
@@ -117,7 +117,7 @@
       "emailNotFound": "Email address not found.",
       "tooManyAttemptsPolite": "Too many attempts. Please wait a few minutes and try again.",
       "noSession": "No session found. Please sign in again.",
-      "termsRequired": "To continue, please tick the box accepting the Terms of Use and Privacy Policy and confirming you read the KVKK Disclosure Notice."
+      "termsRequired": "To continue, please tick the box confirming you are over 16 and accepting the Terms of Use and Privacy Policy, and that you read the KVKK Disclosure Notice."
     },
     "verifyDevice": {
       "sendFailedWithMessage": "The code couldn't be sent: {{message}}",
