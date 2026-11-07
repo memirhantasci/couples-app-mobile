@@ -2,6 +2,47 @@
 
 Son güncelleme: 2026-11-07
 
+## 0. Eski denetim raporlarından kalan açık işler (2026-11-07 kontrolü)
+
+`DENETIM_GECE_TARAMASI.md` ve `KAPSAMLI_SATIS_ONCESI_DENETIM_RAPORU.md` (30 Ekim) ile `WEB_SITESI_YASAL_METIN_GUNCELLEMELERI.md`
+maddeleri güncel kod ve canlı veritabanıyla tek tek karşılaştırıldı; biten her şey için dosya silindi (git geçmişinde duruyor).
+Bitmeyenler:
+
+### Yayından önce
+- **Sign in with Apple token iptali (2-5):** Uygulamada Apple ile giriş var (`login.tsx`). Hesap silinirken Apple'a token revoke
+  çağrısı gitmiyor (`process-account-deletions` yapmıyor). Apple bunu şart koşar. `.p8` anahtarı ve Services ID gerekir.
+- **Kayıtta yaş onayı (G-21):** Yasal metinler 16 yaş sınırı beyan ediyor, kayıt ekranında "16 yaşından büyüğüm" onayı yok.
+- **Depo gizliliği:** GitHub deposu `memirhantasci/couples-app-mobile` herkese açıksa private yap; geçmişte `.env` ve
+  `google-services.json` var. Google Cloud'da Maps ve Firebase anahtarlarını paket adı/SHA-1 ile kısıtla; sohbette görünen
+  RevenueCat `sk_` anahtarını yenile.
+- **Supabase panel (kod dışı, durumu doğrulanamadı):** minimum şifre 8, Site URL ve `couplesapp://` yönlendirmeleri, özel SMTP +
+  OTP şablonunda `{{ .Token }}`, günlük yedek (Pro plan), sızdırılmış şifre koruması.
+- **E-posta (kod dışı):** destek@ ve support@couplesky.app kutuları; alan adına SPF, DKIM, DMARC (OTP ve destek postası spama düşmesin).
+- **Android bildirim kimlik bilgisi:** yeni paket adı için Firebase uygulaması + FCM anahtarı EAS'e tanımlı mı teyit et
+  (Android push'u buna bağlı).
+- **Gerçek cihaz testi:** Kotlin ve iOS widget'ları hiç denenmedi; UMP rıza formu, satın alma sandbox'ı, push (ön plan/arka plan/kapalı),
+  silme talebi → vazgeçme → silinme akışı, eşleşme kodu deneme sınırı, ilaç hatırlatıcıları, Android 15 16 KB sayfa uyumu.
+- **Hesap silme / Premium tasarımı** (`docs/HESAP_SILME_VE_PREMIUM_TASARIMI.md`): gerçek cihazda test; "kademeli silmede Premium"
+  yorumu (açık nokta 1) için ürün sahibi onayı.
+
+### Yayından sonra (2-4 hafta)
+- **Ödüllü reklam SSV (Y-3):** reklam token'ı istemci beyanına dayanıyor; günde 25 sınırı var. AdMob Server-Side Verification ekle.
+- **iOS ATT / SKAdNetwork (G-19):** `app.json` AdMob eklentisinde `skAdNetworkItems` yok (reklam gelirini ve atfı etkiler).
+- **Promosyon kodu kalıntısı:** Uygulamadan kaldırıldı ve `promo_codes` boş, ama `redeem_promo_code` RPC'si ve tablolar duruyor;
+  istemci yetkisini kaldır ya da sil. (`max_uses` kontrolü kilitsiz, ama aktif kod yok.)
+- **Mektup açılış bildirimi (G-30, G-15):** yerel bildirim 09:00, mektup Türkiye 00:00'da açılıyor; sunucu bildirimi kapalı,
+  bildirim yalnızca cihaz senkronuna bağlı.
+- **Cihaz doğrulama yalnızca istemci kapısı (G-17):** sunucuda zorlanmıyor; "güvenlik" diye sunma ya da gateway'de zorunlu kıl.
+- **Ölü bağlantı (G-27):** `couplesapp://reset-password?token_hash=...` kullanılmıyor, kaldırılabilir.
+- **Derleme ortamları (G-28):** `eas.json` development ve preview profilleri de `production` ortamını kullanıyor (canlı Supabase ve
+  RevenueCat); ayrı bir test projesi gerekirse ayır.
+- **Doğrulanmadı:** `auth-gateway` kova tüketme/kilitleme (G-24), `send-push` küçük sorunları (G-25), test kapsamı (G-32),
+  `MaterialSymbols` fontu 973 KB (G-33).
+- **Diğer:** Sentry/çökme izleme hesabı; `icon.png` sol üst silik çerçeve; ~22 ikon düğmesinde belirsiz erişilebilirlik etiketi;
+  taban şema dökümü (`supabase db dump`; repoda taban migration yok, `20260907_*` dosyaları önek çakışmalı); büyük dosyalar
+  (`OurStarScreen.tsx` vb.); Unsplash demo görselleri çevrimiçi; Nominatim yedeği (kullanıcı artınca ücretli geocoding);
+  `report-alert` Edge Function'ı repoda duruyor ama kurulmadı (vazgeçilmişti): sil ya da kur.
+
 ## 1. Zaman kilitli mektup: kilit yalnızca istemci tarafında (öncelikli)
 
 **Durum:** Alıcı, kilidi henüz açılmamış (`unlock_date` gelecekte) bir mektubun satırını, şifreli içerik dahil,
