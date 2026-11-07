@@ -19,6 +19,7 @@ import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { useSoloGate } from "@/lib/soloGate";
 import { cancelLocalNotification, notifyPartner } from "@/lib/notifications";
 import { scheduleMedicineReminder, medicineReminderId, syncLocalReminders } from "@/lib/reminderSync";
 import { useNotificationPriming } from "@/hooks/useNotificationPriming";
@@ -54,6 +55,7 @@ import { HealthConsentGate } from "@/components/legal/HealthConsentGate";
 function MedicineScreenContent() {
   const { t, i18n } = useTranslation();
   const { profile, session, isDemoMode } = useAuth();
+  const soloGate = useSoloGate();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -233,6 +235,8 @@ function MedicineScreenContent() {
     )) {
       return false;
     }
+    // Tek kalan ilaç takibini yalnızca Premium ile kullanır (sunucu da zorlar)
+    if (soloGate.blockSoloWrite()) return false;
     updateLogMutation.mutate({ medicineId, status, timeSlot });
     return true;
   };
@@ -261,6 +265,7 @@ function MedicineScreenContent() {
     }
 
     const editingMedicineId = values.editingId;
+    if (soloGate.blockSoloWrite()) return "error";
 
     try {
       let targetUserId = userId;

@@ -29,4 +29,16 @@ describe("localizeServerError", () => {
     i18n.language = "tr";
     expect(localizeServerError({ message: "Bu kodu zaten kullandınız" }, "FALLBACK")).toBe("Bu kodu zaten kullandınız");
   });
+
+  it("tek kalan kısıt kodlarını her dilde kodsuz, çevrilmiş metne eşler", () => {
+    for (const language of ["en", "tr"]) {
+      i18n.language = language;
+      expect(
+        localizeServerError({ message: "PARTNER_REQUIRED: Bu özellik için bir partnerle eşleşmen gerekiyor." }, "FALLBACK")
+      ).toBe("T[solo.partnerRequired.message]");
+      expect(
+        localizeServerError({ message: "SOLO_PREMIUM_REQUIRED: Partnerin olmadan kayıt eklemek için Premium gerekir." }, "FALLBACK")
+      ).toBe("T[solo.premiumRequired.message]");
+    }
+  });
 });

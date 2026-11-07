@@ -10,6 +10,7 @@ import {
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { useSoloGate } from "@/lib/soloGate";
 import { todayString } from "@/lib/date";
 import { useQueryClient } from "@tanstack/react-query";
 import { logger } from "@/utils/logger";
@@ -42,6 +43,7 @@ interface MoodSelectorProps {
 export const MoodSelector = memo(function MoodSelector({ currentMood, theme }: MoodSelectorProps) {
   const { t } = useTranslation();
   const { session, profile } = useAuth();
+  const soloGate = useSoloGate();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const queryClient = useQueryClient();
 
@@ -149,6 +151,8 @@ export const MoodSelector = memo(function MoodSelector({ currentMood, theme }: M
     )) {
       return;
     }
+    // Tek kalan ruh halini yalnızca Premium ile kaydeder (sunucu da zorlar)
+    if (soloGate.blockSoloWrite()) return;
     if (loading || !userId) return;
     setLoading(true);
 

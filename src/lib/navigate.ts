@@ -39,6 +39,11 @@ export function navigateAfterAuth(profile: Partial<CoupleProfile> | null) {
     router.replace("/(auth)/complete-profile");
     return;
   }
+  // Tek kalan (partneri hesabını sildi) uygulamada kalır; yeni eşleşmeyi kendisi başlatır
+  if (profile?.isSolo) {
+    router.replace("/(tabs)/home");
+    return;
+  }
   if (!profile || !profile.isPaired) {
     router.replace("/(setup)/pairing");
     return;

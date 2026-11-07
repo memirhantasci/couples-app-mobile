@@ -25,15 +25,15 @@
   "partnerNotice": {
     "requested": {
       "title": "Your partner wants to delete their account",
-      "body": "Your partner has requested to delete their account; it will be deleted on {{date}}.\n\nIf it is deleted, the memories, letters, photos, diary entries and star you created together will be permanently deleted. Your own account and profile are not deleted, and you can pair again any time.\n\nYour partner can still change their mind until then. If there is anything you want to keep, you may want to save a copy to your device now."
+      "body": "Your partner has requested to delete their account; it will be deleted on {{date}}.\n\nIf it is deleted, everything they created (letters they wrote, photos they uploaded, special days they added, their diary) will be deleted. Everything you created and your account stay. Your star and its planets will also be deleted.\n\nThey can still change their mind until then."
     },
     "cancelled": {
       "title": "Your partner changed their mind",
-      "body": "Your partner cancelled the account deletion request. Your shared memories, letters and photos are still here."
+      "body": "Your partner cancelled their account deletion. Everything stays as it is."
     },
     "dissolved": {
       "title": "Your partner deleted their account",
-      "body": "Your partner deleted their account. For privacy reasons, the data you created together (memories, letters, photos, diary entries, star) has been permanently deleted and cannot be recovered.\n\nYour own account and profile are untouched. You can pair again with a new pairing code whenever you like."
+      "body": "Your partner deleted their account. Everything they created has been deleted; everything you created is still here. Your star and its planets have been deleted. You can pair with someone new."
     },
     "ok": "Got it"
   },
@@ -51,7 +51,10 @@
       "pendingMessage": "There's a deletion request for this account: your account and all data belonging to your relationship will be permanently deleted on {{deletionDay}}.\n\nIf you'd like to keep using your account, cancel the deletion.",
       "cancel": "Cancel Deletion",
       "cancelFailed": "The deletion couldn't be canceled. Check your connection and try again.",
-      "canceled": "Deletion canceled. Welcome back 💕"
+      "canceled": "Deletion canceled. Welcome back 💕",
+      "autoCancelledTitle": "Your deletion request was cancelled",
+      "autoCancelledMessage": "Your account was about to be deleted; because you signed in again, your deletion request was cancelled. Your account and data are safe. Your partner has been told you changed your mind.",
+      "inactiveCancelledMessage": "Your account was going to be deleted because it hadn't been used for a long time. Since you opened the app, the deletion was cancelled and your account is safe."
     },
     "signOut": "Sign Out",
     "login": {
@@ -441,7 +444,8 @@
       "futureDate": "You can't pick a date in the future.",
       "meetAfterRelationship": "The day you met can't come after the day you became a couple.",
       "relationshipDateRequired": "Please set the date your relationship began.",
-      "datesChangeLimit": "You've used all your date changes for this period."
+      "datesChangeLimit": "You've used all your date changes for this period.",
+      "deletionPending": "An account that is about to be deleted can't pair with someone new."
     },
     "dates": {
       "partnerSavedToast": "Your partner saved your relationship date as {{date}}; your counter started from that day. If it's wrong, you can fix it under Profile › Relationship Dates.",
@@ -664,10 +668,14 @@
     },
     "delete": {
       "title": "⚠️ Delete Your Account",
-      "message": "Your account and all photos, letters, journals and memories belonging to your relationship will be permanently deleted after 7 days. Your partner's account remains, but the shared data will be deleted for them too.\n\nYou can cancel the deletion by signing in with the same account within these 7 days.\n\nIf you have an active subscription, you must also cancel it separately through the App Store or Google Play.",
+      "message": "Your account will be permanently deleted after 7 days. Everything you created (letters you wrote, photos you uploaded, special days you added, your diary) will be deleted. Your partner's account and what they created stay. Your star and its planets will be deleted. If you bought Premium, it also ends for your partner.\n\nIf you sign in again within these 7 days, the deletion is cancelled automatically.\n\nDeleting your account does not cancel your subscription; cancel it separately in the App Store or Google Play.",
       "confirm": "Yes, Delete My Account",
       "requestFailed": "The deletion request couldn't be created. Check your connection and try again.",
-      "scheduledMessage": "Your account and all your data will be permanently deleted on {{deletionDay}}. If you change your mind, you can sign in until then and cancel the deletion."
+      "scheduledMessage": "Your account will be permanently deleted on {{deletionDay}}. If you change your mind, just sign in before then: the deletion is cancelled automatically.",
+      "subscriptionTitle": "You have an active subscription",
+      "subscriptionMessage": "Deleting your account does not cancel your subscription; you will keep being charged. Cancel it from your subscriptions page in the App Store or Google Play.\n\nYou can cancel your subscription first and then delete your account.",
+      "manageSubscription": "Manage Subscription",
+      "continue": "Continue Anyway"
     },
     "subtitle": "Profile & Account Preferences ⚙️",
     "stats": {
@@ -1188,6 +1196,30 @@
       "withdrawal": "Because the digital service is made available immediately with your consent, the right of withdrawal does not apply under Article 15(1)(ğ) of the Distance Contracts Regulation. For mistaken or duplicate charges, {{store}} refund channels apply.",
       "shared": "The subscription is shared by both partners: when it ends (at the end of the canceled period), your partner's Premium ends too.",
       "starGrace": "When Premium ends your star enters a 14-day hibernation. If you don't renew in that time, its coordinate is released and your memory planets wait in the vault for 90 days; after that, full-size photos are deleted."
+    },
+    "ui": {
+      "eyebrow": "MADE FOR COUPLES",
+      "featuresTitle": "What Premium unlocks",
+      "plans": {
+        "monthly": "Monthly",
+        "annual": "Annual",
+        "lifetime": "Lifetime",
+        "other": "Premium"
+      },
+      "badge": {
+        "bestValue": "MOST POPULAR",
+        "save": "Save {{percent}}%",
+        "oneTime": "One-time"
+      },
+      "perMonth": "{{price}} / month",
+      "trialPill_one": "{{count}} day free",
+      "trialPill_other": "{{count}} days free",
+      "lifetimeNote": "Pay once, access forever",
+      "trust": "Cancel anytime",
+      "sharedChip": "One subscription for two",
+      "detailsShow": "Purchase & cancellation details",
+      "detailsHide": "Hide details",
+      "choosePlan": "Choose your plan"
     }
   },
   "tabs": {
@@ -1597,7 +1629,8 @@
       "keptLetter": "The letter will be kept 💛",
       "deletedBoth": "The letter was deleted for both of you",
       "approvalSaved": "Your approval was saved; the letter will be deleted on {{date}}",
-      "sealed": "Your letter has been sealed and entrusted to the future ✨"
+      "sealed": "Your letter has been sealed and entrusted to the future ✨",
+      "deleted": "Letter deleted"
     },
     "push": {
       "deleteRequestBody": "Asking for your approval to delete a letter.",
@@ -1637,7 +1670,8 @@
       "requestDeletion": "Request Deletion",
       "title": "Letter Options ✉️",
       "messageReceived": "Hiding doesn't delete the letter, it only affects your list. Deleting is only possible after it opens, with your partner's approval.",
-      "messageSent": "Hiding doesn't delete the letter, it only affects your list; you can bring it back anytime."
+      "messageSent": "Hiding doesn't delete the letter, it only affects your list; you can bring it back anytime.",
+      "deleteNow": "Delete Letter"
     },
     "myLoveHeart": "My Love ❤️",
     "note": {
@@ -1736,7 +1770,18 @@
       "reseal": "Break the Seal Again 🕯️"
     },
     "lockedPillTime_one": "Sealed with love... Opens in {{count}} day ⏳",
-    "lockedPillTime_other": "Sealed with love... Opens in {{count}} days ⏳"
+    "lockedPillTime_other": "Sealed with love... Opens in {{count}} days ⏳",
+    "adCard": {
+      "title": "Watch an ad, earn letter credit",
+      "sub": "Each ad gives +25 tokens. {{balance}}/{{cost}} tokens for a letter",
+      "readyTitle": "You have enough tokens for a letter",
+      "readySub": "Watch another ad to save up more"
+    },
+    "deleteNow": {
+      "title": "Delete letter",
+      "message": "The recipient's account was deleted, so there is no one to approve. The letter will be permanently deleted.",
+      "confirm": "Yes, Delete"
+    }
   },
   "memories": {
     "defaults": {
@@ -3787,5 +3832,34 @@
       "coupleAlreadyReferred": "An invite code has already been used in your couple.",
       "generic": "Couldn't add the invite code right now. Please try again."
     }
+  },
+  "solo": {
+    "newPairing": {
+      "title": "New pairing",
+      "body": "Your partner deleted their account. Everything you created is still here. To pair with someone new, share your code or enter theirs.",
+      "yourCode": "YOUR NEW PAIRING CODE",
+      "share": "Share Code",
+      "enterCode": "Enter Code"
+    },
+    "partnerRequired": {
+      "title": "A partner is needed",
+      "message": "You need to pair with a partner for this feature.",
+      "cta": "Go to Pairing"
+    },
+    "premiumRequired": {
+      "title": "Premium needed",
+      "message": "Adding entries without a partner requires Premium. With Premium you can keep using mood, diary, calendar and map notes, medicine and period tracking.",
+      "cta": "See Premium"
+    },
+    "banner": {
+      "title": "This feature needs a partner",
+      "body": "You need to pair with a partner for this feature. Your own earlier entries stay right here."
+    },
+    "pairing": {
+      "subtitle": "Share your code or enter theirs to pair with someone new. Once you pair, only what you save from then on is shared; your earlier entries stay visible only to you.",
+      "backToApp": "Back to the App"
+    },
+    "loveMeterSubtitle": "Starts fresh with a new pairing",
+    "wishPartnerRequired": "You need to pair with a partner to make a wish 💫"
   }
 }

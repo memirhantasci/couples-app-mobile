@@ -7,6 +7,9 @@ import i18n from "@/lib/i18n";
  * Her kural: mesajda geçen ayırt edici ifade(ler) → çeviri anahtarı. Özelden genele sıralıdır.
  */
 const RULES: readonly (readonly [readonly string[], ParseKeys])[] = [
+  // Tek kalan / eşleşmemiş kullanıcı (trg_solo_write_guard)
+  [["PARTNER_REQUIRED"], "solo.partnerRequired.message"],
+  [["SOLO_PREMIUM_REQUIRED"], "solo.premiumRequired.message"],
   // Premium / token
   [["Mektup mühürlemek için en az 100 Token"], "serverErrors.tokensOrPremium"],
   [["Yetersiz token bakiyesi"], "serverErrors.tokensInsufficient"],
@@ -97,6 +100,8 @@ export function mapServerMessage(message: string): string | null {
 export function localizeServerError(error: unknown, fallback: string): string {
   const message = messageOf(error).trim();
   if (!message) return fallback;
+  // Kodlu tek kalan mesajları ("PARTNER_REQUIRED: ...") her dilde kodsuz, çevrilmiş metinle gösterilir
+  if (/\b(PARTNER_REQUIRED|SOLO_PREMIUM_REQUIRED)\b/.test(message)) return mapServerMessage(message) ?? fallback;
   // Sunucu metni zaten Türkçe: Türkçe arayüzde olduğu gibi (ayrıntısıyla) gösterilir
   if (i18n.language === "tr") return message;
   const mapped = mapServerMessage(message);

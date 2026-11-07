@@ -108,8 +108,8 @@ export const ALL_TAB_DEFINITIONS: TabItemDefinition[] = [
 export const DEFAULT_TABS: TabKey[] = [
   "home",
   "calendar",
-  "map",
   "letters",
+  "profile",
 ];
 
 interface TabBarContextValue {

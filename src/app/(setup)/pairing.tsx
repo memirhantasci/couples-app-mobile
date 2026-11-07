@@ -19,7 +19,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth, type CoupleProfile } from "@/context/AuthContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Link, Share2, LogOut, Sparkles, Check, Copy, Gift } from "lucide-react-native";
+import { Link, Share2, LogOut, Sparkles, Check, Copy, Gift, ChevronLeft } from "lucide-react-native";
+import { syncStorePremium } from "@/lib/premiumContinuity";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { navigateAfterAuth, releaseAuthFlow, setAuthFlowActive } from "@/lib/navigate";
 import { isDefinitivePairingError, normalizePairingCode, translatePairingError } from "@/lib/pairingCode";
@@ -86,6 +87,8 @@ export default function PairingScreen() {
   const queryClient = useQueryClient();
   const { session, profile, refreshProfile, signOut, enterDemoMode, isDemoMode } = useAuth();
   const userId = session?.user?.id;
+  // Partneri hesabını silmiş, yeni biriyle eşleşmek için buraya kendisi gelen kullanıcı
+  const isSolo = !!profile?.isSolo;
   const params = useLocalSearchParams<{ code?: string }>();
 
   const [inputCode, setInputCode] = useState(normalizePairingCode(params.code));
@@ -207,8 +210,11 @@ export default function PairingScreen() {
     if (!fresh?.isPaired) {
       // Profil henüz okunamadı; bir sonraki yoklamada tekrar denenir
       finishingRef.current = false;
+      return;
     }
-  }, [refreshProfile]);
+    // Yeni çift: iki tarafın mağaza aboneliği (varsa) sunucuda doğrulanıp bu çifte yazılır
+    if (userId) syncStorePremium(userId, { force: true }).catch(() => {});
+  }, [refreshProfile, userId]);
 
   useEffect(() => {
     if (status?.isPaired) finishPairing();
@@ -391,7 +397,7 @@ export default function PairingScreen() {
                 lineHeight: 22,
               }}
             >
-              {t("setup.pairing.subtitle")}
+              {isSolo ? t("solo.pairing.subtitle") : t("setup.pairing.subtitle")}
             </Text>
           </View>
 
@@ -723,7 +729,9 @@ export default function PairingScreen() {
             ))}
           </View>
 
-          {/* ─── 4. DEMO MODU İLE TEST ET BUTONU ─── */}
+          {/* ─── 4. DEMO MODU İLE TEST ET BUTONU (tek kalan kendi hesabını zaten kullanıyor) ─── */}
+          {!isSolo && (
+          <>
           <TouchableOpacity
             onPress={() => {
               enterDemoMode();
@@ -759,10 +767,17 @@ export default function PairingScreen() {
           >
             {t("setup.pairing.exploreDemoHint")}
           </Text>
+          </>
+          )}
 
-          {/* ─── 5. ÇIKIŞ / GERİ DÖN BUTONU ─── */}
+          {/* ─── 5. ÇIKIŞ / GERİ DÖN BUTONU (tek kalan uygulamaya geri döner) ─── */}
           <TouchableOpacity
             onPress={async () => {
+              if (isSolo) {
+                if (router.canGoBack()) router.back();
+                else router.replace("/(tabs)/profile");
+                return;
+              }
               try {
                 await signOut();
               } catch (e) {
@@ -778,9 +793,13 @@ export default function PairingScreen() {
               marginBottom: 30,
             }}
           >
-            <LogOut color="rgba(255,255,255,0.4)" size={16} />
+            {isSolo ? (
+              <ChevronLeft color="rgba(255,255,255,0.4)" size={16} />
+            ) : (
+              <LogOut color="rgba(255,255,255,0.4)" size={16} />
+            )}
             <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 13.5, fontFamily: "Inter_600SemiBold" }}>
-              {t("auth.reset.backToSignIn")}
+              {isSolo ? t("solo.pairing.backToApp") : t("auth.reset.backToSignIn")}
             </Text>
           </TouchableOpacity>
         </ScrollView>

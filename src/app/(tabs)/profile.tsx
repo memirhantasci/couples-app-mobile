@@ -5,7 +5,12 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  Linking,
+  Platform,
 } from "react-native";
+import { RevenueCatService } from "@/lib/revenuecat";
+import { ANDROID_PACKAGE } from "@/constants/brand";
+import { NewPairingCard } from "@/components/profile/NewPairingCard";
 import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
@@ -48,7 +53,6 @@ import { ThemePicker } from "@/components/profile/ThemePicker";
 import { TabBarCustomizer } from "@/components/profile/TabBarCustomizer";
 import { PersonalInfoForm } from "@/components/profile/PersonalInfoForm";
 import { RelationshipDatesCard } from "@/components/profile/RelationshipDatesCard";
-import { PromoCodeCard } from "@/components/profile/PromoCodeCard";
 import { PremiumStatusCard } from "@/components/profile/PremiumStatusCard";
 import { ReferralCard } from "@/components/profile/ReferralCard";
 import { ReferralModal } from "@/components/profile/ReferralModal";
@@ -494,9 +498,9 @@ export default function ProfileScreen() {
     ]);
   }
 
-  // Hesap Silme: sunucuda 7 gün sonrası için talep açılır, tüm cihazlarda oturum kapanır.
-  // Silmeyi saatlik bir sunucu işi yapar (dosyalar, veriler, hesap); bu süre içinde aynı
-  // hesapla giriş yapan kullanıcıya silmeyi iptal etme seçeneği sunulur (AuthContext).
+  // Hesap Silme: sunucuda 7 gün sonrası için talep açılır, bu cihazda oturum kapanır.
+  // Silmeyi saatlik bir sunucu işi yapar (silenin dosyaları, verileri, hesabı; partnerin her şeyi kalır).
+  // Bu süre içinde aynı hesapla giriş yapılırsa silme kendiliğinden iptal olur (AuthContext).
   async function handleDeleteAccount() {
     if (executeOrIntercept(
       () => {},
@@ -505,6 +509,37 @@ export default function ProfileScreen() {
     )) {
       return;
     }
+    // Hesabı silmek mağaza aboneliğini iptal etmez: aktif aboneliği olan önce uyarılır (zorlama yok)
+    setDeleteLoading(true);
+    const entitlement = await RevenueCatService.getPremiumEntitlement().catch(() => null);
+    setDeleteLoading(false);
+    if (entitlement && entitlement.willRenew && entitlement.store !== "PROMOTIONAL") {
+      const manageUrl =
+        entitlement.managementUrl ||
+        (Platform.OS === "ios"
+          ? "https://apps.apple.com/account/subscriptions"
+          : `https://play.google.com/store/account/subscriptions?package=${ANDROID_PACKAGE}`);
+      appAlert(
+        t("profile.delete.subscriptionTitle"),
+        t("profile.delete.subscriptionMessage"),
+        [
+          { text: t("common.cancel"), style: "cancel" },
+          {
+            text: t("profile.delete.manageSubscription"),
+            onPress: () => {
+              Linking.openURL(manageUrl).catch(() => {});
+            },
+          },
+          { text: t("profile.delete.continue"), style: "destructive", onPress: showDeleteConfirmation },
+        ],
+        { forceDialog: true, tone: "warning" }
+      );
+      return;
+    }
+    showDeleteConfirmation();
+  }
+
+  function showDeleteConfirmation() {
     appAlert(
       t("profile.delete.title"),
       t("profile.delete.message"),
@@ -528,18 +563,9 @@ export default function ProfileScreen() {
     }
 
     const deletionDay = dayjs(scheduledFor as string).format("D MMMM YYYY");
-    // Partner ortak anıların silineceğini önceden bilsin (oturum kapanmadan gönderilmeli)
-    if (profile?.coupleId && profile.isPaired) {
-      await notifyPartner(
-        profile.coupleId,
-        userId,
-        t("profile.push.deleteTitle"),
-        t("profile.push.deleteBody", { deletionDay }),
-        { type: "account_deletion" }
-      );
-    }
-
-    await signOut();
+    // Partnere haber (bildirim ve uygulama içi açıklama) sunucudan gider: request_account_deletion
+    // partner_notices'a yazar. Push token'ı silinmez: silmeye 3 gün ve 1 gün kala hatırlatma bu cihaza gelir.
+    await signOut({ keepPushToken: true });
     setDeleteLoading(false);
     router.replace("/(auth)/login");
     appAlert(
@@ -608,13 +634,18 @@ export default function ProfileScreen() {
           extraScrollHeight={130}
           keyboardShouldPersistTaps="handled"
         >
+          {/* ─── YENİ EŞLEŞME (partneri hesabını silen kullanıcı; en üstte, beklemeden) ─── */}
+          {!!profile?.isSolo && !isDemoMode && (
+            <NewPairingCard theme={theme} userId={session?.user?.id} />
+          )}
+
           {/* ─── PROFİL & İSTATİSTİK KARTI ─── */}
           <Reveal scope="profile" index={0}>
           <ProfileHero
             theme={theme}
             name={displayName || t("common.userFallback")}
             isPremium={isPremium}
-            isPaired={!!coupleId}
+            isPaired={!!coupleId && !profile?.isSolo}
             tokenBalance={tokenBalance}
             onEarnTokens={() => setShowAdModal(true)}
           />
@@ -692,8 +723,8 @@ export default function ProfileScreen() {
                 onSave={handleUpdateProfile}
               />
 
-              {/* ─── İLİŞKİ TARİHLERİ ─── */}
-              {coupleId && (
+              {/* ─── İLİŞKİ TARİHLERİ (tek kalanda yok: yeni eşleşmede yeniden girilir) ─── */}
+              {coupleId && !profile?.isSolo && (
                 <RelationshipDatesCard
                   theme={theme}
                   isLight={isLight}
@@ -707,15 +738,6 @@ export default function ProfileScreen() {
                   onSave={handleUpdateDates}
                 />
               )}
-
-              {/* ─── PROMOSYON KODLARI ─── */}
-              <PromoCodeCard
-                theme={theme}
-                isLight={isLight}
-                executeOrIntercept={executeOrIntercept}
-                refreshProfile={refreshProfile}
-                onPremiumSuccess={() => setShowPremiumSuccess(true)}
-              />
 
               {/* ─── SES & DOKUNSAL EFEKTLER (AUDIO & HAPTICS) ─── */}
               <SoundHapticsTestBox theme={theme} isLight={isLight} />

@@ -15,6 +15,7 @@ import { DialogHost } from "@/components/ui/DialogHost";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
+import { useSoloGate } from "@/lib/soloGate";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
@@ -41,6 +42,7 @@ import { HealthConsentGate } from "@/components/legal/HealthConsentGate";
 function PeriodTrackerScreenContent() {
   const { t, i18n } = useTranslation();
   const { session, profile, isDemoMode } = useAuth();
+  const soloGate = useSoloGate();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -196,6 +198,8 @@ function PeriodTrackerScreenContent() {
 
   async function savePeriodStart(dateStr: string) {
     if (!userId) return;
+    // Tek kalan regl takvimini yalnızca Premium ile kullanır (sunucu da zorlar)
+    if (soloGate.blockSoloWrite()) return;
     const { error } = await supabase.from("period_logs").insert({
       user_id: userId,
       date: dateStr,

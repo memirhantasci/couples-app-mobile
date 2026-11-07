@@ -9,6 +9,7 @@ import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
 import "@/lib/calendarLocale";
 import { useAuth } from "@/context/AuthContext";
+import { useSoloGate } from "@/lib/soloGate";
 import { supabase } from "@/lib/supabase";
 import { useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
@@ -71,6 +72,7 @@ export { CALENDAR_COLORS };
 export default function CalendarScreen() {
   const { t, i18n } = useTranslation();
   const { session, profile, isDemoMode } = useAuth();
+  const soloGate = useSoloGate();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -268,6 +270,8 @@ export default function CalendarScreen() {
       setShowNoteModal(false);
       return;
     }
+    // Tek kalan takvim notunu yalnızca Premium ile kaydeder (sunucu da zorlar)
+    if (soloGate.blockSoloWrite()) return;
 
     if (!coupleId || !userId || saving) return;
     setSaving(true);

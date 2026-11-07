@@ -318,7 +318,7 @@ export default function HomeScreen() {
   // ─── Dinamik Aşk Puanı (Çift için %100 simetrik ve adil) ─────────────────────
   const { data: loveScoreData, isLoading: isLoveScoreLoading } = useQuery({
     queryKey: ["love_score", coupleId, today, isDemoMode, profile?.isPremium],
-    enabled: !!coupleId || isDemoMode,
+    enabled: (!!coupleId && !profile?.isSolo) || isDemoMode,
     initialData: (coupleId ? getCachedLoveScoreSync(coupleId) : null) || cachedScore || undefined,
     staleTime: 1000 * 60 * 5,
     queryFn: async () => {
@@ -407,15 +407,22 @@ export default function HomeScreen() {
   const partnerDisplayName =
     dashboardData?.partner?.display_name || dashboardData?.partner?.username || t("common.partnerFallback");
   const quote = useMemo(() => getQuoteForDay(doy, t), [doy, t]);
-  const activeLoveScore = isDemoMode 
+  // Tek kalınca (partner hesabını sildi) aşk ölçer yeni eşleşmeye kadar 0; sunucu da yalnızca eşleşme
+  // anından sonraki etkinliği sayar (get_couple_love_activity)
+  const isSolo = !isDemoMode && !!profile?.isSolo;
+  const activeLoveScore = isDemoMode
     ? { score: 96 }
-    : (loveScoreData || cachedScore);
+    : isSolo
+      ? { score: 0 }
+      : (loveScoreData || cachedScore);
   const loveMeter = activeLoveScore?.score;
   const loveSubtitle = isDemoMode
     ? t("home.loveMeter.demoSubtitle")
-    : loveMeter !== undefined
-      ? getLoveScoreSubtitle(loveMeter, t)
-      : undefined;
+    : isSolo
+      ? t("solo.loveMeterSubtitle")
+      : loveMeter !== undefined
+        ? getLoveScoreSubtitle(loveMeter, t)
+        : undefined;
   const dateLabel = useMemo(() => dayjs().locale(i18n.language).format("D MMMM, dddd"), [i18n.language]);
 
   // ─── Dinamik selamlama + özel günler (yıldönümüne ≤3 gün kala ve 14 Şubat'ta altın ışıltı) ───

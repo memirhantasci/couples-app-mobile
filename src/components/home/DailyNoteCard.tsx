@@ -17,6 +17,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { useSoloGate } from "@/lib/soloGate";
 import { todayString } from "@/lib/date";
 import { encrypt } from "@/utils/crypto";
 import { sanitize } from "@/utils/sanitize";
@@ -48,6 +49,7 @@ interface DailyNoteCardProps {
 export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }: DailyNoteCardProps) {
   const { t } = useTranslation();
   const { session, profile } = useAuth();
+  const soloGate = useSoloGate();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -74,6 +76,8 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
     )) {
       return;
     }
+    // Tek kalan günlüğünü yalnızca Premium ile yazar (sunucu da zorlar)
+    if (soloGate.blockSoloWrite()) return;
     if (saved || submitting || !content.trim() || !session?.user?.id) return;
     setSubmitting(true);
 

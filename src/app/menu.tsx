@@ -19,12 +19,14 @@ import { useDemoAction } from "@/hooks/useDemoAction";
 import { EditableAvatar } from "@/components/avatar/EditableAvatar";
 import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
 import { useTranslation } from "react-i18next";
+import { useSoloGate } from "@/lib/soloGate";
 
 export default function MenuScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { profile, session, signOut, isDemoMode, exitDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
+  const soloGate = useSoloGate();
   const { theme, isLight } = useTheme();
   const styles = React.useMemo(() => getMenuStyles(theme, isLight), [theme, isLight]);
   const insets = useSafeAreaInsets();
@@ -256,6 +258,8 @@ export default function MenuScreen() {
                 )) {
                   return;
                 }
+                // Fotoğraf eşleşmiş çiftlere özel (tek kalan Premium olsa bile)
+                if (soloGate.blockPartnerFeature()) return;
                 if (!profile?.isPremium) {
                   handleRoute("/paywall");
                   return;

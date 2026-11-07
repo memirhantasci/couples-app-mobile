@@ -107,7 +107,15 @@ export function useProtectedRoute() {
         // Prevent authorized users from going back to login/auth pages
         const isTryingToAccessAuth = inAuthGroup;
 
-        if (!profile.isPaired) {
+        if (profile.isSolo) {
+          // Tek kalan (partneri hesabını sildi): uygulamada gezinir, kendi verisini okur. Tarihler sıfırlandığı
+          // için tarih ekranına atılmaz; yeni eşleşme için eşleşme ekranına kendi isteğiyle gidebilir
+          // (Ayarlar'daki "Yeni eşleşme" kartı).
+          const onPairing = currentRoute.includes("pairing");
+          if (isTryingToAccessAuth || isAtRoot || (inSetupGroup && !onPairing)) {
+            router.replace("/(tabs)/home");
+          }
+        } else if (!profile.isPaired) {
           // Role: Paired yet? NO
           // They must complete the pairing step.
           if (!currentRoute.includes("pairing")) {

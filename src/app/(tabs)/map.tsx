@@ -52,6 +52,7 @@ import type {
 } from "@/components/map/mapTypes";
 import { MAP_THEME_STYLES, isLightMapTheme } from "@/constants/mapStyles";
 import { useAuth } from "@/context/AuthContext";
+import { useSoloGate } from "@/lib/soloGate";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 import { useMapData } from "@/hooks/useMapData";
@@ -81,6 +82,7 @@ export default function MapScreen() {
   // Durum çubuğunu yalnızca görünür sekme yönetir (dondurulmuş sekmenin eski StatusBar kaydı kalmasın)
   const isFocused = useIsFocused();
   const { session, profile, isDemoMode } = useAuth();
+  const soloGate = useSoloGate();
   const {
     executeOrIntercept,
     isDemoModalOpen,
@@ -255,6 +257,8 @@ export default function MapScreen() {
       setPendingCoord(null);
       return;
     }
+    // Tek kalan haritaya not yalnızca Premium ile bırakır (sunucu da zorlar)
+    if (soloGate.blockSoloWrite()) return;
     if (!pendingCoord || !text.trim()) return;
     saveNoteMutation.mutate({
       lat: pendingCoord.latitude,

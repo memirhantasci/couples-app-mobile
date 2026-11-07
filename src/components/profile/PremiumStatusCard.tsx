@@ -24,9 +24,9 @@ export function PremiumStatusCard({ theme, isPremium, premiumExpiresAt, graceUnt
   const { t } = useTranslation();
   const result = derivePremiumPhase({ isPremium, premiumExpiresAt, graceUntil });
   const phase = isDemoMode ? "active" : result.phase;
-  const gold = theme.isLight ? "#A16207" : "#E6C055";
   const warn = phase === "grace";
-  const tint = warn ? "#F59E0B" : phase === "active" || phase === "lifetime" ? gold : theme.accent;
+  // Uygulamanın tema rengi: arayüz bütünlüğü için altın/sarı yok; yalnızca uyarı (kış uykusu) amber kalır
+  const tint = warn ? "#F59E0B" : theme.accent;
 
   const title =
     phase === "grace"
@@ -62,8 +62,8 @@ export function PremiumStatusCard({ theme, isPremium, premiumExpiresAt, graceUnt
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      <View style={[styles.iconTile, { backgroundColor: `${tint}26`, borderColor: `${tint}55` }]}>
-        {warn ? <AlertTriangle size={22} color={tint} /> : <Crown size={22} color={tint} fill={`${tint}33`} />}
+      <View style={[styles.iconTile, { backgroundColor: tint, borderColor: `${tint}99` }]}>
+        {warn ? <AlertTriangle size={22} color="#FFFFFF" /> : <Crown size={22} color="#FFFFFF" fill="rgba(255,255,255,0.28)" />}
       </View>
       <View style={styles.texts}>
         <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>

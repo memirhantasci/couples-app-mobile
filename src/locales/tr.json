@@ -25,15 +25,15 @@
   "partnerNotice": {
     "requested": {
       "title": "Partnerin hesabını silmek istiyor",
-      "body": "Partnerin hesabını silmek için talepte bulundu; hesabı {{date}} tarihinde silinecek.\n\nSilinirse birlikte oluşturduğunuz anılar, mektuplar, fotoğraflar, günlükler ve yıldızınız kalıcı olarak silinir. Kendi hesabın ve profilin silinmez, istediğinde yeniden eşleşebilirsin.\n\nO zamana kadar partnerin vazgeçebilir. Saklamak istediğin bir şey varsa şimdiden bir kopyasını cihazına kaydetmeyi düşünebilirsin."
+      "body": "Partnerin hesabını silmek için talepte bulundu; hesabı {{date}} tarihinde silinecek.\n\nSilinirse onun oluşturduğu her şey (yazdığı mektuplar, yüklediği fotoğraflar, eklediği özel günler, günlükleri) silinir. Senin oluşturduklarının hepsi ve hesabın durur. Yıldızınız ve içindeki gezegenler de silinir.\n\nO zamana kadar partnerin vazgeçebilir."
     },
     "cancelled": {
       "title": "Partnerin vazgeçti",
-      "body": "Partnerin hesabını silme talebinden vazgeçti. Ortak anılarınız, mektuplarınız ve fotoğraflarınız yerinde duruyor."
+      "body": "Partnerin hesabını silme talebinden vazgeçti. Her şey yerinde duruyor."
     },
     "dissolved": {
       "title": "Partnerin hesabını sildi",
-      "body": "Partnerin hesabını sildi. Gizlilik gereği birlikte oluşturduğunuz veriler (anılar, mektuplar, fotoğraflar, günlükler, yıldız) kalıcı olarak silindi ve geri getirilemez.\n\nSenin hesabın ve profilin duruyor. İstediğinde yeni bir eşleşme koduyla yeniden eşleşebilirsin."
+      "body": "Partnerin hesabını sildi. Onun oluşturduğu her şey silindi; senin oluşturduklarının hepsi duruyor. Yıldızınız ve içindeki gezegenler silindi. Yeni biriyle eşleşebilirsin."
     },
     "ok": "Anladım"
   },
@@ -51,7 +51,10 @@
       "pendingMessage": "Bu hesap için silme talebi var: hesabın ve ilişkinize ait tüm veriler {{deletionDay}} tarihinde kalıcı olarak silinecek.\n\nHesabını kullanmaya devam etmek istiyorsan silmeyi iptal et.",
       "cancel": "Silmeyi İptal Et",
       "cancelFailed": "Silme iptal edilemedi. Bağlantını kontrol edip tekrar dene.",
-      "canceled": "Silme işlemi iptal edildi. Tekrar hoş geldin 💕"
+      "canceled": "Silme işlemi iptal edildi. Tekrar hoş geldin 💕",
+      "autoCancelledTitle": "Silme talebin iptal edildi",
+      "autoCancelledMessage": "Hesabın silinmek üzereydi; tekrar giriş yaptığın için silme talebin iptal edildi. Hesabın ve verilerin yerinde duruyor. Partnerine de vazgeçtiğin bildirildi.",
+      "inactiveCancelledMessage": "Uzun süredir kullanılmadığı için hesabın silinecekti. Uygulamayı açtığın için silme iptal edildi; hesabın yerinde duruyor."
     },
     "signOut": "Çıkış Yap",
     "login": {
@@ -441,7 +444,8 @@
       "futureDate": "Gelecek bir tarih seçemezsiniz.",
       "meetAfterRelationship": "Tanışma tarihi, sevgili olma tarihinden sonra olamaz.",
       "relationshipDateRequired": "Lütfen sevgililik tarihinizi belirleyin.",
-      "datesChangeLimit": "Bu dönemki tarih değişikliği haklarınızı kullandınız."
+      "datesChangeLimit": "Bu dönemki tarih değişikliği haklarınızı kullandınız.",
+      "deletionPending": "Silinmek üzere olan bir hesapla yeni eşleşme yapılamaz."
     },
     "dates": {
       "partnerSavedToast": "Partnerin ilişki tarihinizi {{date}} olarak kaydetti; sayacınız bu günden başladı. Yanlışsa Profil › İlişki Tarihleri'nden düzeltebilirsiniz.",
@@ -664,10 +668,14 @@
     },
     "delete": {
       "title": "⚠️ Hesabını Sil",
-      "message": "Hesabın ve ilişkinize ait tüm fotoğraflar, mektuplar, günlükler ve anılar 7 gün sonra kalıcı olarak silinir. Partnerinin hesabı kalır ancak ortak veriler onun için de silinir.\n\nBu 7 gün içinde aynı hesapla giriş yaparak silmeyi iptal edebilirsin.\n\nAktif bir aboneliğin varsa App Store veya Google Play üzerinden ayrıca iptal etmelisin.",
+      "message": "Hesabın 7 gün sonra kalıcı olarak silinir. Senin oluşturduğun her şey (yazdığın mektuplar, yüklediğin fotoğraflar, eklediğin özel günler, günlüklerin) silinir. Partnerinin hesabı ve onun oluşturdukları kalır. Yıldızınız ve içindeki gezegenler silinir. Premium'u sen aldıysan partnerinde de biter.\n\nBu 7 gün içinde tekrar giriş yaparsan silme kendiliğinden iptal olur.\n\nHesabını silmek aboneliğini iptal etmez; aboneliğini App Store veya Google Play'den ayrıca iptal etmelisin.",
       "confirm": "Evet, Hesabımı Sil",
       "requestFailed": "Silme talebi oluşturulamadı. Lütfen bağlantını kontrol edip tekrar dene.",
-      "scheduledMessage": "Hesabın ve tüm verilerin {{deletionDay}} tarihinde kalıcı olarak silinecek. Fikrini değiştirirsen bu tarihe kadar giriş yapıp silmeyi iptal edebilirsin."
+      "scheduledMessage": "Hesabın {{deletionDay}} tarihinde kalıcı olarak silinecek. Fikrini değiştirirsen bu tarihe kadar giriş yapman yeterli: silme kendiliğinden iptal olur.",
+      "subscriptionTitle": "Aktif bir aboneliğin var",
+      "subscriptionMessage": "Hesabını silmek aboneliğini iptal etmez; ödemeler devam eder. Aboneliğini App Store veya Google Play'deki abonelik sayfandan iptal etmelisin.\n\nİstersen önce aboneliğini iptal et, sonra hesabını sil.",
+      "manageSubscription": "Aboneliği Yönet",
+      "continue": "Yine de Devam Et"
     },
     "subtitle": "Profil & Hesap Tercihleri ⚙️",
     "stats": {
@@ -1188,6 +1196,30 @@
       "withdrawal": "Dijital hizmet, onayınla hemen kullanıma açıldığı için Mesafeli Sözleşmeler Yönetmeliği m.15/1-ğ uyarınca cayma hakkı kullanılamaz. Hatalı veya mükerrer tahsilat için {{store}} iade kanalları geçerlidir.",
       "shared": "Abonelik iki partner için ortaktır: abonelik sona erdiğinde (iptal edilen dönemin bitiminde) partnerinin Premium'u da sona erer.",
       "starGrace": "Premium bittiğinde yıldızın 14 günlük kış uykusuna geçer. Bu sürede yenilemezsen yıldızın koordinatı serbest kalır, anı gezegenlerin 90 gün kasada bekler; sonrasında tam boy fotoğraflar silinir."
+    },
+    "ui": {
+      "eyebrow": "ÇİFTLERE ÖZEL",
+      "featuresTitle": "Premium ile neler açılır",
+      "plans": {
+        "monthly": "Aylık",
+        "annual": "Yıllık",
+        "lifetime": "Ömür Boyu",
+        "other": "Premium"
+      },
+      "badge": {
+        "bestValue": "EN POPÜLER",
+        "save": "%{{percent}} tasarruf",
+        "oneTime": "Tek seferlik"
+      },
+      "perMonth": "aylık {{price}}",
+      "trialPill_one": "{{count}} gün ücretsiz",
+      "trialPill_other": "{{count}} gün ücretsiz",
+      "lifetimeNote": "Tek ödeme, süresiz erişim",
+      "trust": "İstediğin zaman iptal et",
+      "sharedChip": "İki kişi için tek abonelik",
+      "detailsShow": "Satın alma ve iptal detayları",
+      "detailsHide": "Detayları gizle",
+      "choosePlan": "Planını seç"
     }
   },
   "tabs": {
@@ -1597,7 +1629,8 @@
       "keptLetter": "Mektup saklanmaya devam edecek 💛",
       "deletedBoth": "Mektup ikiniz için de silindi",
       "approvalSaved": "Onayın kaydedildi; mektup {{date}} tarihinde silinecek",
-      "sealed": "Mektubun mühürlendi ve geleceğe emanet edildi ✨"
+      "sealed": "Mektubun mühürlendi ve geleceğe emanet edildi ✨",
+      "deleted": "Mektup silindi"
     },
     "push": {
       "deleteRequestBody": "Bir mektubun silinmesi için onayını istiyor.",
@@ -1637,7 +1670,8 @@
       "requestDeletion": "Silinmesini İste",
       "title": "Mektup Seçenekleri ✉️",
       "messageReceived": "Gizlemek mektubu silmez, yalnızca senin listeni etkiler. Silmek ise açılıştan sonra partnerinin onayıyla mümkündür.",
-      "messageSent": "Gizlemek mektubu silmez, yalnızca senin listeni etkiler; dilediğin an geri getirebilirsin."
+      "messageSent": "Gizlemek mektubu silmez, yalnızca senin listeni etkiler; dilediğin an geri getirebilirsin.",
+      "deleteNow": "Mektubu Sil"
     },
     "myLoveHeart": "Sevgilim ❤️",
     "note": {
@@ -1736,7 +1770,18 @@
       "reseal": "Mührü Tekrar Kır 🕯️"
     },
     "lockedPillTime_one": "Bu mektup sevgiyle mühürlendi... Açılış: {{count}} gün sonra ⏳",
-    "lockedPillTime_other": "Bu mektup sevgiyle mühürlendi... Açılış: {{count}} gün sonra ⏳"
+    "lockedPillTime_other": "Bu mektup sevgiyle mühürlendi... Açılış: {{count}} gün sonra ⏳",
+    "adCard": {
+      "title": "Reklam izle, mektup hakkı kazan",
+      "sub": "Her reklam +25 token. Mektup için {{balance}}/{{cost}} token",
+      "readyTitle": "Mektup için yeterli tokenin var",
+      "readySub": "İstersen bir reklam daha izleyip biriktirebilirsin"
+    },
+    "deleteNow": {
+      "title": "Mektubu sil",
+      "message": "Bu mektubun alıcısının hesabı silindi; onay bekleyecek kimse yok. Mektup kalıcı olarak silinecek.",
+      "confirm": "Evet, Sil"
+    }
   },
   "memories": {
     "defaults": {
@@ -3787,5 +3832,34 @@
       "coupleAlreadyReferred": "Çiftinizde zaten bir davet kodu kullanıldı.",
       "generic": "Davet kodu şu an eklenemedi. Lütfen tekrar deneyin."
     }
+  },
+  "solo": {
+    "newPairing": {
+      "title": "Yeni eşleşme",
+      "body": "Partnerin hesabını sildi. Senin oluşturduklarının hepsi duruyor. Yeni biriyle eşleşmek için kodunu paylaş ya da onun kodunu gir.",
+      "yourCode": "YENİ EŞLEŞME KODUN",
+      "share": "Kodu Paylaş",
+      "enterCode": "Kod Gir"
+    },
+    "partnerRequired": {
+      "title": "Partner gerekiyor",
+      "message": "Bu özellik için bir partnerle eşleşmen gerekiyor.",
+      "cta": "Eşleşmeye Git"
+    },
+    "premiumRequired": {
+      "title": "Premium gerekiyor",
+      "message": "Partnerin olmadan kayıt eklemek için Premium gerekir. Premium ile ruh hali, günlük, takvim ve harita notları, ilaç ve regl takibini kullanmaya devam edebilirsin.",
+      "cta": "Premium'a Göz At"
+    },
+    "banner": {
+      "title": "Bu özellik için partner gerekiyor",
+      "body": "Bu özellik için bir partnerle eşleşmen gerekiyor. Kendi eski kayıtların burada durmaya devam ediyor."
+    },
+    "pairing": {
+      "subtitle": "Yeni biriyle eşleşmek için kodunu paylaş ya da onun kodunu gir. Eşleştiğinizde yalnızca bundan sonra kaydettikleriniz ortak görünür; eski kayıtlarını yalnızca sen görürsün.",
+      "backToApp": "Uygulamaya Dön"
+    },
+    "loveMeterSubtitle": "Yeni bir eşleşmeyle sıfırdan başlar",
+    "wishPartnerRequired": "Dilek tutmak için bir partnerle eşleşmen gerekiyor 💫"
   }
 }

@@ -28,13 +28,16 @@ const DEDUPE_TTL_HOURS: Record<string, number> = {
   meeting_reminder: 24,
   inactivity_reminder: 168,
   vault_expiry_reminder: 168,
+  // Aşama (3 gün / 1 gün; 7 gün / 1 gün) ve silinme günü anahtarda: her aşama kişi başına bir kez
+  account_deletion_reminder: 120,
+  inactive_account_reminder: 240,
 };
 
 async function dropAlreadySent(admin: any, job: string, messages: any[]): Promise<any[]> {
   const ttl = DEDUPE_TTL_HOURS[job];
   if (!ttl || messages.length === 0) return messages;
   // vaultStage: kasa uyarısının aşaması (7 gün / 1 gün); her aşama kişi başına bir kez gönderilir
-  const keyOf = (m: any) => `${job}:${m.data?.letterId ?? m.data?.meetingId ?? m.data?.vaultStage ?? ""}:${m.to}`;
+  const keyOf = (m: any) => `${job}:${m.data?.letterId ?? m.data?.meetingId ?? m.data?.vaultStage ?? m.data?.dedupeStage ?? ""}:${m.to}`;
   const keys = [...new Set(messages.map(keyOf))];
   const since = new Date(Date.now() - ttl * 60 * 60 * 1000).toISOString();
   const already = new Set<string>();
@@ -150,6 +153,27 @@ function S(lang: Lang) {
         : stage === 1
           ? "Kasa süren 1 günden az kalan sürede bitiyor. Premium'u yenilemezsen tam boy fotoğrafların ve profil fotoğrafların kalıcı olarak silinir. Yazılı anıların ve mektupların kalır."
           : `Kasa süren ${days} gün içinde bitiyor. O zamana kadar Premium'u yenilemezsen tam boy fotoğrafların ve profil fotoğrafların kalıcı olarak silinir. Yazılı anıların ve mektupların kalır.`,
+    // Hesap silme hatırlatması (silmeye 3 gün ve 1 gün kala)
+    deletionSelfTitle: en ? "⏳ Your account is being deleted" : "⏳ Hesabın siliniyor",
+    deletionSelfBody: (days: number) =>
+      en
+        ? days <= 1
+          ? "Your account will be permanently deleted tomorrow. To cancel, just sign in to the app."
+          : `Your account will be permanently deleted in ${days} days. To cancel, just sign in to the app.`
+        : days <= 1
+          ? "Hesabın yarın kalıcı olarak silinecek. Vazgeçmek için uygulamaya giriş yapman yeterli."
+          : `Hesabın ${days} gün sonra kalıcı olarak silinecek. Vazgeçmek için uygulamaya giriş yapman yeterli.`,
+    deletionPartnerTitle: en ? "💔 Your partner's account is being deleted" : "💔 Partnerinin hesabı siliniyor",
+    deletionPartnerBody: (days: number) =>
+      en
+        ? `Your partner's account will be deleted ${days <= 1 ? "tomorrow" : `in ${days} days`}. What they created will be deleted; everything you created stays.`
+        : `Partnerinin hesabı ${days <= 1 ? "yarın" : `${days} gün sonra`} silinecek. Onun oluşturdukları silinecek; senin oluşturduklarının hepsi duracak.`,
+    // Hareketsiz (eşleşmemiş) hesap temizliği: 7 gün ve 1 gün kala
+    inactiveAccountTitle: en ? "🌙 Your account will be deleted" : "🌙 Hesabın silinecek",
+    inactiveAccountBody: (days: number) =>
+      en
+        ? `You haven't opened the app for a long time, so your account will be deleted ${days <= 1 ? "tomorrow" : `in ${days} days`}. Just open the app to keep it.`
+        : `Uzun süredir uygulamayı açmadığın için hesabın ${days <= 1 ? "yarın" : `${days} gün sonra`} silinecek. Hesabını korumak için uygulamayı açman yeterli.`,
     inactivityTitle: en ? "🥺 We Miss You" : "🥺 Seni Özledik",
     inactivityBody: en
       ? "It's been a while since you opened the app. Would you like to leave your partner a little note today?"
@@ -201,14 +225,14 @@ function S(lang: Lang) {
     noticeRequestedTitle: en ? "💔 Your partner wants to delete their account" : "💔 Partnerin hesabını silmek istiyor",
     noticeRequestedBody: (date: string) =>
       en
-        ? `Their account is scheduled for deletion on ${date}. If it is deleted, the memories, letters, photos and diary entries you share will be permanently deleted too. They can still change their mind until then.`
-        : `Hesabı ${date} tarihinde silinecek. Silinirse birlikte oluşturduğunuz anılar, mektuplar, fotoğraflar ve günlükler de kalıcı olarak silinir. O zamana kadar partnerin vazgeçebilir.`,
+        ? `Their account is scheduled for deletion on ${date}. If it is deleted, everything they created will be deleted; everything you created stays. They can still change their mind until then.`
+        : `Hesabı ${date} tarihinde silinecek. Silinirse onun oluşturduğu her şey silinir; senin oluşturduklarının hepsi durur. O zamana kadar partnerin vazgeçebilir.`,
     noticeCancelledTitle: en ? "💞 Your partner changed their mind" : "💞 Partnerin vazgeçti",
-    noticeCancelledBody: en ? "They cancelled the account deletion. Your shared memories are safe." : "Hesabını silmekten vazgeçti. Ortak anılarınız yerinde duruyor.",
+    noticeCancelledBody: en ? "They cancelled the account deletion. Everything stays as it is." : "Hesabını silmekten vazgeçti. Her şey yerinde duruyor.",
     noticeDissolvedTitle: en ? "Your partner deleted their account" : "Partnerin hesabını sildi",
     noticeDissolvedBody: en
-      ? "The data you shared (memories, letters, photos, diary entries) has been permanently deleted. Your own account is untouched and you can pair again any time."
-      : "Birlikte oluşturduğunuz veriler (anılar, mektuplar, fotoğraflar, günlükler) kalıcı olarak silindi. Hesabın duruyor; istediğinde yeniden eşleşebilirsin.",
+      ? "Everything they created has been deleted; everything you created is still here. Your star and its planets have been deleted. You can pair with someone new."
+      : "Onun oluşturduğu her şey silindi; senin oluşturduklarının hepsi duruyor. Yıldızınız ve içindeki gezegenler silindi. Yeni biriyle eşleşebilirsin.",
     // Süre ve jeton miktarı: referral_reward_period() / referral_reward_tokens() (migration 20261104000006)
     referralRewardTitle: en ? "🎁 Your invite paid off!" : "🎁 Davetiniz meyvesini verdi!",
     referralRewardBody: (reward: string) => {
@@ -252,6 +276,10 @@ interface PushMessage {
 type MessageBuilder = (lang: Lang) => PushMessage;
 
 async function sendToUser(supabase: any, intUserId: number | string, build: MessageBuilder, data: any = {}): Promise<any[]> {
+  // Silinmek üzere olan hesap (oturumu kapalı) yalnızca kendi silme hatırlatmasını alır (cron işi), partnerin
+  // etkinlik bildirimlerini değil
+  const { data: pending } = await supabase.from("account_deletion_requests").select("user_id").eq("user_id", intUserId).maybeSingle();
+  if (pending) return [];
   const rows = await getTokensByUserId(supabase, intUserId);
   return rows.map(({ token, lang }) => {
     const message = build(lang);
@@ -431,6 +459,53 @@ serve(async (req) => {
               title: s.vaultExpiryTitle,
               body: s.vaultExpiryBody(Number(r.stage), Number(r.days_left)),
               data: { type: "vault_expiry_reminder", route: "/premium", vaultStage: Number(r.stage) }
+            });
+          }
+        }
+      }
+      else if (job === "account_deletion_reminder") {
+        // Silmeye 3 gün ve 1 gün kala: silinecek kişiye (vazgeçmek için giriş yap) ve partnerine
+        const { data: reminders, error } = await supabase.rpc("get_account_deletion_reminders");
+        if (error) console.error("get_account_deletion_reminders failed:", error.message);
+        if (reminders && !error) {
+          const langs = await languagesByToken(supabase, reminders.map((r: any) => r.push_token));
+          for (const r of reminders) {
+            const s = S(langs.get(r.push_token) ?? "tr");
+            const days = Number(r.days_left);
+            const self = r.audience === "self";
+            pushMessages.push({
+              to: r.push_token,
+              sound: "default",
+              title: self ? s.deletionSelfTitle : s.deletionPartnerTitle,
+              body: self ? s.deletionSelfBody(days) : s.deletionPartnerBody(days),
+              channelId: "partner_messages",
+              data: {
+                type: "general",
+                route: self ? "/(auth)/login" : "/(tabs)/home",
+                dedupeStage: `${r.audience}:${r.stage}:${String(r.scheduled_for).slice(0, 10)}`,
+              }
+            });
+          }
+        }
+      }
+      else if (job === "inactive_account_reminder") {
+        // Hareketsiz eşleşmemiş hesap: silmeye 7 gün ve 1 gün kala
+        const { data: reminders, error } = await supabase.rpc("get_inactive_account_reminders");
+        if (error) console.error("get_inactive_account_reminders failed:", error.message);
+        if (reminders && !error) {
+          const langs = await languagesByToken(supabase, reminders.map((r: any) => r.push_token));
+          for (const r of reminders) {
+            const s = S(langs.get(r.push_token) ?? "tr");
+            pushMessages.push({
+              to: r.push_token,
+              sound: "default",
+              title: s.inactiveAccountTitle,
+              body: s.inactiveAccountBody(Number(r.days_left)),
+              data: {
+                type: "general",
+                route: "/(tabs)/home",
+                dedupeStage: `${r.stage}:${String(r.due_at).slice(0, 10)}`,
+              }
             });
           }
         }
@@ -616,7 +691,7 @@ serve(async (req) => {
         if (record.kind === "deletion_cancelled") {
           return { title: s.noticeCancelledTitle, body: s.noticeCancelledBody, type: "general", route: "/(tabs)/home", extra };
         }
-        return { title: s.noticeDissolvedTitle, body: s.noticeDissolvedBody, type: "general", route: "/(tabs)/home", extra };
+        return { title: s.noticeDissolvedTitle, body: s.noticeDissolvedBody, type: "general", route: "/(tabs)/profile", extra };
       };
     }
     else if (table === "couples" && type === "UPDATE" && record.is_paired === true && oldRecord?.is_paired !== true) {

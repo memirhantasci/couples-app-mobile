@@ -59,6 +59,7 @@ import {
 } from '@/lib/soundEffects';
 import { safeStorage as AsyncStorage } from '@/lib/safeStorage';
 import { useAuth } from '@/context/AuthContext';
+import { useSoloGate } from '@/lib/soloGate';
 import { useTheme } from '@/context/ThemeContext';
 import { DEMO_STAR_DETAILS, DEMO_STAR_EXOPLANETS, getDemoStarOwnerLabel } from '@/constants/demoData';
 import { starService, PremiumRequiredError } from '../api/starService';
@@ -259,6 +260,7 @@ export const OurStarScreen: React.FC = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { profile, session, isDemoMode, isLoading: isAuthLoading } = useAuth();
+  const soloGate = useSoloGate();
   const { theme, isLight } = useTheme();
   const coupleId = profile?.coupleId ?? null;
   const isPremium = isDemoMode || profile?.isPremium === true;
@@ -504,6 +506,8 @@ export const OurStarScreen: React.FC = () => {
   // Boşta gerçek yıldız kalmadıysa yepyeni (sanal) bir yıldız doğurmak önerilir.
   const handleSuggestStar = useCallback(async () => {
     if (suggestingRef.current || isDemoMode || !coupleId) return;
+    // Yıldız yalnızca eşleşmiş çiftlere: tek kalan Premium olsa bile yıldız alamaz
+    if (soloGate.blockPartnerFeature()) return;
     suggestingRef.current = true;
     setIsSuggestingStar(true);
     hapticTap();
@@ -552,7 +556,7 @@ export const OurStarScreen: React.FC = () => {
       suggestingRef.current = false;
       setIsSuggestingStar(false);
     }
-  }, [isDemoMode, coupleId, prefetchSkyTiles, showToast, t]);
+  }, [isDemoMode, coupleId, prefetchSkyTiles, showToast, t, soloGate]);
 
   // ─── AÇILIŞ SAHNESİ ────────────────────────────────────────────────
   // Tescilli yıldızı olan kullanıcıda (demo dahil) ekran, geniş gökyüzünden yıldızın parıltılı dış
@@ -1045,6 +1049,11 @@ export const OurStarScreen: React.FC = () => {
 
   const handleMeteorCaught = async () => {
     if (isWishOpen || wishOpenTimerRef.current || isCheckingWishRef.current) return;
+    // Dilek çiftin yıldızına yazılır: tek kalan gökyüzünde gezinir ama dilek tutamaz
+    if (soloGate.isSolo) {
+      showToast(t('solo.wishPartnerRequired'));
+      return;
+    }
     // Ekrandan çıkıp geri gelince hak sıfırlanmasın: durum yüklenmediyse önce sunucuya sorulur
     isCheckingWishRef.current = true;
     const usedToday = await dailyWish.checkUsedToday();
@@ -1897,6 +1906,7 @@ export const OurStarScreen: React.FC = () => {
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={() => {
+                  if (soloGate.blockPartnerFeature()) return;
                   setClaimTargetStar(selectedMacroStar);
                   setSelectedMacroStar(null);
                   setIsClaimModalOpen(true);

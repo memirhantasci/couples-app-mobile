@@ -1,6 +1,8 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from "react-native";
 import { Crown, Sparkles, X, Zap } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { PREMIUM_GOLD } from "@/components/premium/PaywallHero";
 import { useTheme } from "@/context/ThemeContext";
 import { useRouter } from "expo-router";
 import type { PremiumFeatureSource, PremiumPaywallProps as BasePremiumPaywallProps } from "./PremiumPaywall.types";
@@ -31,6 +33,7 @@ export function PremiumPaywall({
   const { t } = useTranslation();
   const { theme, isLight } = useTheme();
   const router = useRouter();
+  const gold = isLight ? "#A16207" : "#E6C055";
 
   const featureCopy: Record<PremiumFeatureSource, { name: string; description: string; cta: string }> = {
     general: {
@@ -85,8 +88,8 @@ export function PremiumPaywall({
             styles.container,
             {
               backgroundColor: theme.cardBg,
-              borderColor: isLight ? theme.inputBorder : theme.cardBorder,
-              shadowColor: isLight ? "#000" : theme.accent,
+              borderColor: isLight ? "rgba(161,98,7,0.35)" : "rgba(230,185,74,0.35)",
+              shadowColor: isLight ? "#000" : "#E6B94A",
             },
           ]}
         >
@@ -106,9 +109,9 @@ export function PremiumPaywall({
           </TouchableOpacity>
 
           {/* Crown Icon */}
-          <View style={[styles.crownCircle, { backgroundColor: `${theme.accent}18` }]}>
-            <Crown color={theme.accent} size={32} />
-          </View>
+          <LinearGradient colors={PREMIUM_GOLD} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.crownCircle}>
+            <Crown color="#3A2A06" size={32} strokeWidth={2.2} />
+          </LinearGradient>
 
           {/* Title */}
           <Text style={[styles.title, { color: theme.text }]}>{t("paywall.required")}</Text>
@@ -116,7 +119,7 @@ export function PremiumPaywall({
             <Trans
               i18nKey="paywall.featureGate"
               values={{ feature: resolvedFeatureName }}
-              components={{ feature: <Text style={{ fontFamily: "Inter_700Bold", color: theme.accent }} /> }}
+              components={{ feature: <Text style={{ fontFamily: "Inter_700Bold", color: gold }} /> }}
             />
           </Text>
 
@@ -126,7 +129,7 @@ export function PremiumPaywall({
           <View style={styles.featuresList}>
             {features.map((f, i) => (
               <View key={i} style={styles.featureRow}>
-                <Sparkles color={theme.accent} size={14} />
+                <Sparkles color={gold} size={14} />
                 <Text style={[styles.featureText, { color: theme.text }]}>{f}</Text>
               </View>
             ))}
@@ -134,15 +137,18 @@ export function PremiumPaywall({
 
           {/* CTA Button */}
           <TouchableOpacity
-            style={[styles.ctaBtn, { backgroundColor: theme.accent }]}
+            style={styles.ctaWrap}
             onPress={() => {
               onClose();
               router.push("/paywall");
             }}
-            activeOpacity={0.8}
+            activeOpacity={0.88}
+            accessibilityRole="button"
           >
-            <Crown color="#fff" size={20} />
-            <Text style={styles.ctaBtnText}>{resolvedFeature.cta}</Text>
+            <LinearGradient colors={PREMIUM_GOLD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ctaBtn}>
+              <Crown color="#3A2A06" size={20} strokeWidth={2.4} />
+              <Text style={styles.ctaBtnText}>{resolvedFeature.cta}</Text>
+            </LinearGradient>
           </TouchableOpacity>
 
           <Text style={[styles.trialText, { color: theme.textMuted }]}>
@@ -155,7 +161,7 @@ export function PremiumPaywall({
             }}
             style={{ marginTop: 6 }}
           >
-            <Text style={[styles.eulaLink, { color: theme.accent }]}>
+            <Text style={[styles.eulaLink, { color: gold }]}>
               {t("paywall.eulaLink")}
             </Text>
           </TouchableOpacity>
@@ -259,9 +265,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   crownCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
@@ -300,22 +306,26 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     fontFamily: "Inter_600SemiBold",
   },
+  ctaWrap: {
+    width: "100%",
+    borderRadius: 18,
+    shadowColor: "#E6B94A",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    elevation: 8,
+  },
   ctaBtn: {
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    padding: 15,
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    paddingVertical: 16,
+    borderRadius: 18,
   },
   ctaBtnText: {
-    color: "#fff",
+    color: "#3A2A06",
     fontFamily: "Inter_700Bold",
     fontSize: 16,
     letterSpacing: -0.2,

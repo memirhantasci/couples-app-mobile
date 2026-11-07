@@ -11,12 +11,9 @@ interface ReferralCardProps {
   onPress: () => void;
 }
 
-const ROSE = "#EC4899";
-const GOLD = "#F59E0B";
-
 /**
  * Ayarlar ekranındaki "Çift Arkadaşlarımızı Davet Et" hediye kartı: davet penceresini (ReferralModal) açar.
- * Gül-altın parıltısı Premium kartının altın tonundan ayrışır.
+ * Tema rengini kullanır (arayüz bütünlüğü); Premium kartından dolu yerine yarı saydam ikon karesiyle ayrışır.
  */
 export function ReferralCard({ theme, rewardDays, onPress }: ReferralCardProps) {
   const { t } = useTranslation();
@@ -30,21 +27,21 @@ export function ReferralCard({ theme, rewardDays, onPress }: ReferralCardProps) 
       accessibilityRole="button"
       accessibilityLabel={`${title}. ${sub}`}
       accessibilityHint={t("referral.card.a11y")}
-      style={[styles.card, { backgroundColor: theme.cardBg, borderColor: `${ROSE}55`, ...theme.cardShadow }]}
+      style={[styles.card, { backgroundColor: theme.cardBg, borderColor: `${theme.accent}40`, ...theme.cardShadow }]}
     >
       <LinearGradient
         pointerEvents="none"
-        colors={[`${ROSE}2E`, `${GOLD}14`, `${GOLD}00`]}
+        colors={[`${theme.accent}22`, `${theme.accent}0D`, `${theme.accent}00`]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      <Sparkles pointerEvents="none" size={14} color={`${GOLD}AA`} style={styles.sparkleTop} />
-      <Sparkles pointerEvents="none" size={10} color={`${ROSE}99`} style={styles.sparkleBottom} />
+      <Sparkles pointerEvents="none" size={14} color={`${theme.accent}99`} style={styles.sparkleTop} />
+      <Sparkles pointerEvents="none" size={10} color={`${theme.accent}77`} style={styles.sparkleBottom} />
 
-      <LinearGradient colors={[ROSE, GOLD]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.iconTile}>
-        <Gift size={22} color="#FFFFFF" />
-      </LinearGradient>
+      <View style={[styles.iconTile, { backgroundColor: `${theme.accent}26`, borderColor: `${theme.accent}55` }]}>
+        <Gift size={22} color={theme.accent} />
+      </View>
       <View style={styles.texts}>
         <Text style={[styles.title, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
           {title}
@@ -75,13 +72,9 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 16,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: ROSE,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
   texts: { flex: 1, gap: 2 },
   title: { fontSize: 16, fontFamily: "Inter_700Bold", letterSpacing: -0.3 },

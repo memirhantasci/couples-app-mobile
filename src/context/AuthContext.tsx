@@ -4,6 +4,7 @@ import { syncPushTokenIfPermitted } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { RevenueCatService } from "@/lib/revenuecat";
+import { syncStorePremium, touchLastSeen } from "@/lib/premiumContinuity";
 import { clearStarCache } from "@/modules/stars/utils/starCache";
 import { clearSharedSkyTiles } from "@/modules/stars/hooks/useSkyTileStream";
 import React, { createContext, useCallback, useContext, useEffect, useEffectEvent, useState, useMemo, useRef } from "react";
@@ -17,7 +18,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { clearCoupleWidget } from "@/utils/widgetBridge";
 import { appAlert } from "@/lib/dialog";
 import { toast } from "@/lib/toast";
-import { dayjs } from "@/lib/date";
 
 import { Platform, AppState } from "react-native"; // 24 hours
 import { DEMO_PROFILE, DEMO_SESSION, prefetchDemoImages } from "@/constants/demoData";
@@ -46,6 +46,11 @@ export interface CoupleProfile {
   meetDate: string | null;
   relationshipStartDate: string | null;
   isPaired: boolean;
+  /**
+   * Tek kalan: daha önce eşleşmiş, partneri hesabını silmiş (çiftte artık yalnızca bu kişi var).
+   * Uygulamada gezinir ve kendi verisini okur; eşleşme ekranına zorlanmaz (bkz. useProtectedRoute).
+   */
+  isSolo?: boolean;
   hasDates: boolean;
   /** Sosyal girişle gelip cinsiyeti henüz seçmemiş kullanıcı (profil tamamlama gerekir). Yalnızca satır başarıyla okunduysa true olabilir. */
   needsProfileSetup?: boolean;
@@ -76,7 +81,8 @@ interface AuthContextValue {
   checkDeviceAuth: (userId: string) => Promise<boolean>;
   /** Profili sunucudan yeniden çeker ve güncel hâlini döndürür (oturum yoksa null). */
   refreshProfile: () => Promise<CoupleProfile | null>;
-  signOut: () => Promise<void>;
+  /** keepPushToken: hesap silme talebinde cihaz, silme hatırlatmalarını almaya devam etsin */
+  signOut: (options?: { keepPushToken?: boolean }) => Promise<void>;
   isDemoMode: boolean;
   enterDemoMode: () => void;
   exitDemoMode: () => void;
@@ -128,7 +134,7 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
       gender, 
       couple_id,
       token_balance,
-      couples!users_couple_id_fkey(meet_date, relationship_start_date, member_count, is_premium, premium_expires_at, subscription_status, grace_until, vault_until, encryption_salt)
+      couples!users_couple_id_fkey(meet_date, relationship_start_date, member_count, paired_at, is_premium, premium_expires_at, subscription_status, grace_until, vault_until, encryption_salt)
     `)
     .eq("id", userId)
     .maybeSingle();
@@ -169,11 +175,14 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
   // Tanışma tarihi opsiyonel: sevgili olma tarihi yeterli ya da kullanıcı "Daha Sonra Belirle" demiş olmalı
   const datesSkipped = await isDatesSkipped(userId);
 
+  const isPaired = !!(user.couple_id && coupleObj?.member_count >= 2);
   return {
     coupleId: parsedCoupleId,
     meetDate: coupleObj?.meet_date ?? null,
     relationshipStartDate: coupleObj?.relationship_start_date ?? null,
-    isPaired: !!(user.couple_id && coupleObj?.member_count >= 2),
+    isPaired,
+    // Eşleşme anı dolu ama partner yok: partneri hesabını silmiş
+    isSolo: !!user.couple_id && !isPaired && !!coupleObj?.paired_at,
     hasDates: !!coupleObj?.relationship_start_date || datesSkipped,
     needsProfileSetup: !user.gender,
     displayName: user.display_name || user.username || null,
@@ -189,38 +198,39 @@ async function fetchProfile(userId: string): Promise<CoupleProfile> {
 }
 
 /**
- * Silme talebi bekleyen hesap: silme ancak kullanıcının kendi açık seçimiyle iptal edilir
- * (sessizce değil). Diyalog kapatılamaz; ya silme iptal edilir ya oturum kapanır.
+ * Silme talebi bekleyen hesapla giriş yapıldı: talep OTOMATİK iptal edilir ve kullanıcı bilgilendirilir
+ * (docs/HESAP_SILME_VE_PREMIUM_TASARIMI.md madde 1). Partnere "vazgeçti" bildirimini sunucu bırakır.
+ * Hareketsizlik nedeniyle açılmış talep de (uzun süre açılmayan eşleşmemiş hesap) aynı şekilde kalkar.
+ * Ağ hatasında birkaç kez yeniden denenir; olmazsa bir sonraki açılışta yeniden bakılır.
  */
-function showPendingDeletionPrompt(scheduledFor: string, signOut: () => Promise<void>) {
-  const deletionDay = dayjs(scheduledFor).format("D MMMM YYYY");
+async function cancelPendingDeletion(reason: string | null, attempt = 0): Promise<boolean> {
+  let failed = false;
+  try {
+    const { data, error } = await supabase.rpc("cancel_account_deletion");
+    if (error) failed = true;
+    // Bu arada başka bir cihazdan iptal edilmiş: söylenecek bir şey yok
+    else if (data === false) return false;
+  } catch {
+    // Ağ katmanı hatası (fırlatılan) da aynı şekilde ele alınır; yakalanmamış Promise reddi oluşmasın
+    failed = true;
+  }
+  if (failed) {
+    if (attempt < 2) {
+      await new Promise((resolve) => setTimeout(resolve, 4000 * (attempt + 1)));
+      return cancelPendingDeletion(reason, attempt + 1);
+    }
+    toast.error(i18n.t("auth.deletion.cancelFailed"));
+    return false;
+  }
   appAlert(
-    i18n.t("auth.deletion.pendingTitle"),
-    i18n.t("auth.deletion.pendingMessage", { deletionDay }),
-    [
-      { text: i18n.t("auth.signOut"), style: "cancel", onPress: () => { signOut().catch(() => {}); } },
-      {
-        text: i18n.t("auth.deletion.cancel"),
-        onPress: async () => {
-          let failed = false;
-          try {
-            const { error } = await supabase.rpc("cancel_account_deletion");
-            failed = !!error;
-          } catch {
-            // Ağ katmanı hatası (fırlatılan) da aynı şekilde ele alınır; yakalanmamış Promise reddi oluşmasın
-            failed = true;
-          }
-          if (failed) {
-            toast.error(i18n.t("auth.deletion.cancelFailed"));
-            showPendingDeletionPrompt(scheduledFor, signOut);
-            return;
-          }
-          toast.success(i18n.t("auth.deletion.canceled"));
-        },
-      },
-    ],
-    { cancelable: false, forceDialog: true, tone: "warning" }
+    i18n.t("auth.deletion.autoCancelledTitle"),
+    reason === "inactive"
+      ? i18n.t("auth.deletion.inactiveCancelledMessage")
+      : i18n.t("auth.deletion.autoCancelledMessage"),
+    [{ text: i18n.t("common.ok") }],
+    { forceDialog: true, tone: "info", emoji: "💞" }
   );
+  return true;
 }
 
 /**
@@ -434,9 +444,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!mounted) return;
 
         if (freshProfile) {
-          // Non-blocking background syncs
-          RevenueCatService.logIn(userId).catch(() => {});
+          // Non-blocking background syncs. Mağaza aboneliği güncel çifte yazılır (günde bir; bkz. premiumContinuity)
+          RevenueCatService.logIn(userId)
+            .then(() => syncStorePremium(userId))
+            .catch(() => {});
           syncPushTokenIfPermitted(userId).catch(() => {});
+          touchLastSeen();
         }
         setIsLoading(false);
       }
@@ -545,9 +558,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then(() => {
         setIsLoading(false);
 
-        // Non-blocking background syncs
-        RevenueCatService.logIn(userId).catch(() => {});
+        // Non-blocking background syncs. Yeni giriş: mağaza satın almaları beklemeden senkronlanır (aynı
+        // Apple/Google hesabıyla yeniden kayıt olan kişinin kalan Premium süresi yeni hesaba gelsin)
+        RevenueCatService.logIn(userId)
+          .then(() => syncStorePremium(userId, { force: true }))
+          .catch(() => {});
         syncPushTokenIfPermitted(userId).catch(() => {});
+        touchLastSeen();
       })
       .catch((err) => {
         logger.error("fetchProfile error:", err);
@@ -691,6 +708,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (nextState !== 'active') return;
       // Demo oturumunda yenilenecek bir sunucu profili yok
       if (isDemoModeRef.current) return;
+      // Hareketsiz hesap temizliği için son açılış (en fazla 6 saatte bir yazılır)
+      touchLastSeen();
 
       const observedExpiresAt = profile?.premiumExpiresAt;
       const expiryMs = observedExpiresAt ? Date.parse(observedExpiresAt) : Number.POSITIVE_INFINITY;
@@ -722,7 +741,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [profile?.premiumExpiresAt, refreshProfile]);
 
   const signedInCoupleId = profile?.coupleId ?? null;
-  const signOut = useCallback(async () => {
+  const signOut = useCallback(async (options?: { keepPushToken?: boolean }) => {
     if (isDemoMode) {
       exitDemoMode();
       return;
@@ -758,13 +777,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // ve cihazın push kaydını temizle. Aksi halde aynı telefonda başka hesap açıldığında önceki
     // kullanıcının ilaç alarmları çalar ve partner bildirimleri bu telefona düşmeye devam eder.
     await Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
-    try {
-      const { data: { session: current } } = await supabase.auth.getSession();
-      if (current?.user?.id) {
-        await supabase.from("push_tokens").delete().eq("user_id", current.user.id);
+    // Hesap silme talebinde token kalır: silmeye 3 gün ve 1 gün kala "vazgeçmek için giriş yap" hatırlatması
+    // bu cihaza gelir. Sunucu bu sürede hesaba başka bildirim göndermez.
+    if (!options?.keepPushToken) {
+      try {
+        const { data: { session: current } } = await supabase.auth.getSession();
+        if (current?.user?.id) {
+          await supabase.from("push_tokens").delete().eq("user_id", current.user.id);
+        }
+      } catch {
+        // Çıkış yine de tamamlanmalı
       }
-    } catch {
-      // Çıkış yine de tamamlanmalı
     }
 
     // Yalnızca BU cihazın oturumu kapanır: varsayılan "global" kapsam kullanıcının tüm cihazlardaki oturumunu
@@ -772,13 +795,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut({ scope: "local" });
   }, [isDemoMode, exitDemoMode, signedInCoupleId, session?.user?.id]);
 
-  // Silinmek üzere olan hesapla giriş yapıldı (bkz. showPendingDeletionPrompt)
-  const signOutRef = useRef(signOut);
-  useEffect(() => {
-    signOutRef.current = signOut;
-  }, [signOut]);
-  const promptPendingDeletion = useEffectEvent((scheduledFor: string) => {
-    showPendingDeletionPrompt(scheduledFor, () => signOutRef.current());
+  // Silinmek üzere olan hesapla giriş yapıldı (bkz. cancelPendingDeletion)
+  const handlePendingDeletion = useEffectEvent((reason: string | null) => {
+    cancelPendingDeletion(reason)
+      .then((cancelled) => {
+        if (cancelled) refreshProfile().catch(() => {});
+      })
+      .catch(() => {});
   });
 
   const deletionCheckedForUser = useRef<string | null>(null);
@@ -796,13 +819,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     supabase
       .from("account_deletion_requests")
-      .select("scheduled_for")
+      .select("scheduled_for, reason")
       .eq("user_id", userId)
       .maybeSingle()
       .then(({ data, error }) => {
         // Hata (ör. ağ) durumunda kullanıcı engellenmez; bir sonraki açılışta yeniden bakılır
         if (cancelled || error || !data?.scheduled_for) return;
-        promptPendingDeletion(data.scheduled_for);
+        handlePendingDeletion(typeof data.reason === "string" ? data.reason : null);
       });
     return () => {
       cancelled = true;

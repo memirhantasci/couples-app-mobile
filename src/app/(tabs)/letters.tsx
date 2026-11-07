@@ -5,6 +5,8 @@ import { SegmentedControl } from "@/components/profile/SegmentedControl";
 import { useFocusEffect } from "expo-router";
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, Modal } from "react-native";
 import { ScreenHeader, ScreenHeaderButton } from "@/components/ui/ScreenHeader";
+import { SoloFeatureBanner } from "@/components/common/SoloFeatureBanner";
+import { useSoloGate } from "@/lib/soloGate";
 import { appAlert, type DialogButton } from "@/lib/dialog";
 import { DialogHost } from "@/components/ui/DialogHost";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
@@ -40,6 +42,7 @@ import { useNotificationPriming } from "@/hooks/useNotificationPriming";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { fetchLetters, lettersQueryKey, LETTERS_PAGE_SIZE } from "@/lib/screenQueries";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
+import { LetterAdCard } from "@/components/letters/LetterAdCard";
 import { LazyPremiumPaywall, LazyPageTourModal, LazyDemoActionModal, LazyWatchAdModal, LazyPermissionPrimingModal, LazyDateTimePickerSheet, LazyOrigamiBirdAnimation, LazyLetterReadingModal } from "@/components/ui/lazyMount";
 import type { ReadableLetter } from "@/components/letters/LetterReadingModal";
 import { deletionRequestOpensAt, deletionRetryAt, isHiddenBy, letterDeletableAt, letterDeletionState, letterUnlockAt } from "@/lib/letterPolicy";
@@ -65,6 +68,7 @@ export default function LettersScreen() {
   const { t, i18n } = useTranslation();
   const { session, profile, refreshProfile, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
+  const soloGate = useSoloGate();
   const { theme, isLight } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const queryClient = useQueryClient();
@@ -199,6 +203,8 @@ export default function LettersScreen() {
     )) {
       return;
     }
+    // Mektup bir partnere yazılır (tek kalan Premium olsa bile)
+    if (soloGate.blockPartnerFeature()) return;
     // Partner varsa alıcıyı otomatik seç
     if (users && users.length === 1 && !receiverId) {
       setReceiverId(String(users[0].id));
@@ -404,6 +410,27 @@ export default function LettersScreen() {
     );
   };
 
+  // Alıcısız mektup (alıcının hesabı silindi): sunucu isteği beklemeden siler (request_letter_deletion)
+  const handleDeleteWithoutReceiver = (letter: any) => {
+    appAlert(
+      t("letters.deleteNow.title"),
+      t("letters.deleteNow.message"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("letters.deleteNow.confirm"),
+          style: "destructive",
+          onPress: () =>
+            runLetterAction(letter.id, async () => {
+              const { error } = await supabase.rpc("request_letter_deletion", { p_letter_id: letter.id });
+              if (error) throw error;
+              toast.success(t("letters.toasts.deleted"));
+            }),
+        },
+      ]
+    );
+  };
+
   const handleRequestDeletion = (letter: any, isLocked: boolean) => {
     if (isLocked) {
       appAlert(
@@ -458,7 +485,10 @@ export default function LettersScreen() {
         ? { text: t("letters.options.unhide"), onPress: () => handleSetHidden(letter, false) }
         : { text: t("letters.hideFromList"), onPress: () => handleSetHidden(letter, true) },
     ];
-    if (itemType === "sent") {
+    if (itemType === "sent" && !letter.receiver_id) {
+      // Alıcının hesabı silinmiş: onay bekleyecek kimse yok, gönderen mektubu doğrudan siler
+      buttons.push({ text: t("letters.options.deleteNow"), style: "destructive", onPress: () => handleDeleteWithoutReceiver(letter) });
+    } else if (itemType === "sent") {
       const deletion = letterDeletionState(letter);
       buttons.push(
         deletion === "pending" || deletion === "approved"
@@ -787,6 +817,16 @@ export default function LettersScreen() {
               <PenLine color={theme.accent} size={19} />
             </ScreenHeaderButton>
         } />
+
+        {/* Tek kalan: mektup eşleşme ister; kendi yazdığı eski mektuplar aşağıda durur */}
+        <SoloFeatureBanner style={{ marginHorizontal: 16, marginBottom: 10 }} />
+
+        {/* Premium olmayanlar için: reklam izleyerek mektup token'ı kazanma kartı */}
+        {!isPremium && (
+          <View style={styles.topActionContainer}>
+            <LetterAdCard theme={theme} tokenBalance={tokenBalance} onPress={() => setShowAdModal(true)} />
+          </View>
+        )}
 
         {/* ÜSTTE HIZLI MEKTUP YAZ BUTONU */}
         <View style={styles.topActionContainer}>

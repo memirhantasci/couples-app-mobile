@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { AppState } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { useRouter } from "expo-router";
 import dayjs from "dayjs";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -24,7 +25,8 @@ const QUERY_KEY = "partner_notices";
  */
 export function PartnerNoticeHost() {
   const { t, i18n } = useTranslation();
-  const { session, isSignedIn, isDemoMode } = useAuth();
+  const { session, isSignedIn, isDemoMode, refreshProfile } = useAuth();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const userId = session?.user?.id;
   const enabled = isSignedIn && !isDemoMode && !!userId;
@@ -88,6 +90,24 @@ export function PartnerNoticeHost() {
       message = t("partnerNotice.dissolved.body");
       emoji = "🕊️";
       tone = "warning";
+      // Partner silindi: profil "tek kalan"a dönsün, Ayarlar'daki "Yeni eşleşme" kartına götürülebilsin
+      refreshProfile().catch(() => {});
+      appAlert(
+        title,
+        message,
+        [
+          { text: t("partnerNotice.ok"), style: "cancel", onPress: acknowledge },
+          {
+            text: t("solo.newPairing.title"),
+            onPress: () => {
+              acknowledge();
+              router.push("/(tabs)/profile");
+            },
+          },
+        ],
+        { cancelable: false, forceDialog: true, tone, emoji }
+      );
+      return;
     }
 
     appAlert(title, message, [{ text: t("partnerNotice.ok"), onPress: acknowledge }], {
@@ -96,7 +116,7 @@ export function PartnerNoticeHost() {
       tone,
       emoji,
     });
-  }, [notice, queryClient, t, i18n.language]);
+  }, [notice, queryClient, t, i18n.language, refreshProfile, router]);
 
   return null;
 }

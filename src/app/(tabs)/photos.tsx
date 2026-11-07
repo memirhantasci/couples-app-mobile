@@ -1,5 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { ScreenHeader, ScreenHeaderButton } from "@/components/ui/ScreenHeader";
+import { SoloFeatureBanner } from "@/components/common/SoloFeatureBanner";
+import { useSoloGate } from "@/lib/soloGate";
 import {
   View,
   Text,
@@ -40,6 +42,7 @@ export default function PhotosScreen() {
   const router = useRouter();
   const { session, profile, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
+  const soloGate = useSoloGate();
   const { theme, isLight } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const queryClient = useQueryClient();
@@ -93,6 +96,8 @@ export default function PhotosScreen() {
     )) {
       return;
     }
+    // Fotoğraf eşleşmiş çiftlere özel (tek kalan Premium olsa bile)
+    if (soloGate.blockPartnerFeature()) return;
     if (!isPremium) {
       setShowPaywall(true);
       return;
@@ -193,6 +198,9 @@ export default function PhotosScreen() {
               <Camera color={theme.accent} size={19} />
             </ScreenHeaderButton>
         } />
+
+        {/* Tek kalan: fotoğraf eşleşme ister; eski fotoğrafları aşağıda durmaya devam eder */}
+        <SoloFeatureBanner style={{ marginHorizontal: 16, marginBottom: 10 }} />
 
         {/* ─── KONTROL ÇUBUĞU (GÖRÜNÜM SEÇİCİ & YENİ YÜKLE) ─── */}
         {(isPremium || photos.length > 0) && (

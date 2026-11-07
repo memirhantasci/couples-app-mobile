@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, Platform } from "react-native";
+import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withTiming } from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
 import { appAlert } from "@/lib/dialog";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { isGentleCareFeeling } from "@/lib/gentleCare";
@@ -8,7 +10,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { RevenueCatService } from "@/lib/revenuecat";
 import { PurchasesPackage } from "react-native-purchases";
-import { X, Crown, Check, ShieldCheck, Gift, Coins } from "lucide-react-native";
+import { X, ShieldCheck, Coins, ChevronDown, Users, Star, Images, HeartPulse, CalendarHeart, Mail, Sparkles, type LucideIcon } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LegalModal } from "@/components/legal/LegalModal";
 import { LegalDocType } from "@/constants/legalTexts";
@@ -19,8 +21,44 @@ import { waitForServerPremium } from "@/lib/premiumSync";
 import type { TFunction } from "i18next";
 import { APP_NAME } from "@/constants/brand";
 import { LazyDemoActionModal, LazyWatchAdModal } from "@/components/ui/lazyMount";
-import { PromoCodeModal } from "@/components/ui/PromoCodeModal";
 import { useTranslation } from "react-i18next";
+import { PaywallHero, PREMIUM_GOLD } from "@/components/premium/PaywallHero";
+import { PlanCard } from "@/components/premium/PlanCard";
+
+const PACKAGE_ORDER = ["ANNUAL", "MONTHLY", "LIFETIME"];
+const sortPackages = (pkgs: PurchasesPackage[]) =>
+  [...pkgs].sort((a, b) => {
+    const ia = PACKAGE_ORDER.indexOf(a.packageType);
+    const ib = PACKAGE_ORDER.indexOf(b.packageType);
+    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+  });
+
+const PLAN_KEY: Record<string, "monthly" | "annual" | "lifetime" | "other"> = {
+  MONTHLY: "monthly",
+  ANNUAL: "annual",
+  LIFETIME: "lifetime",
+};
+
+/** Satın alma düğmesinin üzerinden geçen yavaş ışık süpürmesi (hareketi azalt açıkken durur). */
+function Shimmer({ reduce }: { reduce: boolean }) {
+  const p = useSharedValue(0);
+  useEffect(() => {
+    if (reduce) return;
+    p.set(withDelay(900, withRepeat(withTiming(1, { duration: 2200, easing: Easing.inOut(Easing.quad) }), -1)));
+  }, [reduce, p]);
+  const style = useAnimatedStyle(() => ({ transform: [{ translateX: -160 + p.get() * 560 }, { skewX: "-18deg" }] }));
+  if (reduce) return null;
+  return (
+    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { width: 90 }, style]}>
+      <LinearGradient
+        colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.42)", "rgba(255,255,255,0)"]}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={StyleSheet.absoluteFill}
+      />
+    </Animated.View>
+  );
+}
 
 
 // `t` parametre olarak alınır: ekran render sırasında çağırır, dil değişince etiket yenilenir.
@@ -95,9 +133,10 @@ export default function PaywallScreen() {
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
 
   const [demoPromptVisible, setDemoPromptVisible] = useState(false);
-  const [codeModalVisible, setCodeModalVisible] = useState(false);
   const [adModalVisible, setAdModalVisible] = useState(false);
   const [legalModalVisible, setLegalModalVisible] = useState(false);
   const [selectedLegalDoc, setSelectedLegalDoc] = useState<LegalDocType>("subscription");
@@ -109,9 +148,10 @@ export default function PaywallScreen() {
 
   const fetchOfferings = useCallback(async () => {
     const pkgs = await RevenueCatService.getOfferings();
-    setPackages(pkgs);
-    if (pkgs.length > 0) {
-      setSelectedPackage(pkgs[0]); // default to first package (often annual)
+    const sorted = sortPackages(pkgs);
+    setPackages(sorted);
+    if (sorted.length > 0) {
+      setSelectedPackage(sorted[0]); // yıllık paket önde: önerilen plan varsayılan seçili gelir
     }
     setLoading(false);
   }, []);
@@ -217,43 +257,37 @@ export default function PaywallScreen() {
     }
   };
 
-  // "İndirim Kodun mu Var?": iOS'ta Apple'ın kendi teklif kodu sayfası (App Store 3.1.1 uyumlu yol; abonelik
-  // açılınca sunucu premium'u yazar, global kutlama gösterilir). Android'de uygulama içi kod penceresi.
-  const handleUseCode = () => {
-    if (isDemoMode) {
-      setDemoPromptVisible(true);
-      return;
-    }
-    if (Platform.OS === "ios") {
-      RevenueCatService.presentCodeRedemptionSheet();
-      return;
-    }
-    setCodeModalVisible(true);
-  };
-
-  const handleCodePremium = () => {
-    setCodeModalVisible(false);
-    toast.success(t("paywall.activated"), { title: t("common.congratulations"), emoji: "👑", duration: 3400 });
-    handleBack();
-    revealSharedFeeling();
-  };
-
-  const features = isFeelingContext
+  type Feature = { text: string; Icon: LucideIcon };
+  const features: Feature[] = isFeelingContext
     ? [
-        t("paywall.features.feelings"),
-        t("paywall.features.shared"),
-        t("paywall.features.photos"),
-        t("paywall.features.pastPhotos"),
-        t("paywall.features.letters"),
+        { text: t("paywall.features.feelings"), Icon: Sparkles },
+        { text: t("paywall.features.shared"), Icon: Users },
+        { text: t("paywall.features.photos"), Icon: Images },
+        { text: t("paywall.features.pastPhotos"), Icon: CalendarHeart },
+        { text: t("paywall.features.letters"), Icon: Mail },
       ]
     : [
-        t("paywall.features.shared"),
-        t("paywall.features.star"),
-        t("paywall.features.photos"),
-        t("paywall.features.periodMen"),
-        t("paywall.features.pastPhotos"),
-        t("paywall.features.letters"),
+        { text: t("paywall.features.shared"), Icon: Users },
+        { text: t("paywall.features.star"), Icon: Star },
+        { text: t("paywall.features.photos"), Icon: Images },
+        { text: t("paywall.features.periodMen"), Icon: HeartPulse },
+        { text: t("paywall.features.pastPhotos"), Icon: CalendarHeart },
+        { text: t("paywall.features.letters"), Icon: Mail },
       ];
+
+  const gold = isLight ? "#A16207" : "#E6C055";
+  const cardBg = isLight ? theme.unitBg : "rgba(255,255,255,0.05)";
+  const hairline = isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.10)";
+
+  // Yıllık paketin aylığa göre tasarruf yüzdesi (fiyatlar mağazanın para biriminde, oran aynıdır)
+  const monthlyPkg = packages.find((p) => p.packageType === "MONTHLY");
+  const savePercent = (pkg: PurchasesPackage) => {
+    if (pkg.packageType !== "ANNUAL" || !monthlyPkg) return 0;
+    const full = monthlyPkg.product.price * 12;
+    if (!(full > 0)) return 0;
+    const pct = Math.round((1 - pkg.product.price / full) * 100);
+    return pct >= 5 ? pct : 0;
+  };
 
   // Satın alma özeti: seçili paketin fiyatı, dönemi, deneme sonrası tahsilatı ve iptal / cayma bilgisi
   const storeName = Platform.OS === "ios" ? "App Store" : "Google Play";
@@ -262,150 +296,128 @@ export default function PaywallScreen() {
   const selectedIsRecurring = !!selectedPackage && selectedPackage.packageType !== "LIFETIME";
   const summaryTextStyle = [styles.summaryText, { color: theme.textSecondary }];
 
+
   return (
     <ScreenBackground>
+      {/* Üstte altın ışıma: sayfaya "premium" hissini veren tek büyük renk */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={isLight ? ["rgba(230,185,74,0.30)", "rgba(230,185,74,0)"] : ["rgba(230,185,74,0.22)", "rgba(230,185,74,0)"]}
+        style={styles.topGlow}
+      />
       <ScrollView
         contentContainerStyle={[
           styles.container,
-          { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 40 },
+          { paddingTop: insets.top + 12, paddingBottom: insets.bottom + (packages.length > 0 ? 170 : 40) },
         ]}
         showsVerticalScrollIndicator={false}
       >
-        
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} style={styles.closeBtn} onPress={handleBack} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={t("a11y.close")}
+          style={styles.closeBtn}
+          onPress={handleBack}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
           <View
             style={[
               styles.closeBtnCircle,
               {
-                backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.1)",
+                backgroundColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.10)",
                 borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.14)",
               },
             ]}
           >
-            <X color={theme.text} size={20} />
+            <X color={theme.text} size={19} />
           </View>
         </TouchableOpacity>
 
-        <View style={styles.header}>
-          <View style={[styles.crownCircle, { backgroundColor: `${theme.accent}22`, shadowColor: theme.accent, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 8 }]}>
-            <Crown color={theme.accent} size={48} />
-          </View>
-          {isFeelingContext ? (
-            <View style={[styles.feelingPill, { backgroundColor: `${theme.accent}1F`, borderColor: `${theme.accent}55` }]}>
-              <Text style={[styles.feelingPillText, { color: theme.accent }]}>
-                {t("notifications.push.gentleCare.lockedTitle")}
-              </Text>
-            </View>
-          ) : null}
-          <Text style={[styles.title, { color: theme.text }]}>{APP_NAME} Premium</Text>
-          <Text style={[styles.subtitle, isFeelingContext && styles.feelingSubtitle, { color: theme.textSecondary }]}>
-            {isFeelingContext ? t("paywall.feeling.subtitle") : t("paywall.subtitle")}
-          </Text>
-        </View>
+        <PaywallHero
+          eyebrow={isFeelingContext ? t("notifications.push.gentleCare.lockedTitle") : t("paywall.ui.eyebrow")}
+          title={`${APP_NAME} Premium`}
+          subtitle={isFeelingContext ? t("paywall.feeling.subtitle") : t("paywall.subtitle")}
+          textColor={theme.text}
+          subtitleColor={theme.textSecondary}
+          goldText={gold}
+          isLight={isLight}
+        />
 
-        <View
-          style={[
-            styles.featuresBox,
-            {
-              backgroundColor: isLight ? theme.unitBg : "rgba(255,255,255,0.06)",
-            },
-          ]}
-        >
-          {features.map((f, i) => (
-            <View key={i} style={styles.featureRow}>
-              <View style={[styles.checkCircle, { backgroundColor: theme.accent }]}>
-                <Check color="#fff" size={14} />
-              </View>
-              <Text style={[styles.featureText, { color: theme.text }]}>{f}</Text>
+        <View style={[styles.featuresBox, { backgroundColor: cardBg, borderColor: hairline }]}>
+          <Text style={[styles.sectionLabel, { color: gold }]}>{t("paywall.ui.featuresTitle")}</Text>
+          {features.map(({ text, Icon }, i) => (
+            <View key={i} style={[styles.featureRow, i === features.length - 1 && { marginBottom: 0 }]}>
+              <LinearGradient colors={PREMIUM_GOLD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.featureIcon}>
+                <Icon color="#3A2A06" size={16} strokeWidth={2.4} />
+              </LinearGradient>
+              <Text style={[styles.featureText, { color: theme.text }]}>{text}</Text>
             </View>
           ))}
         </View>
 
         {loading ? (
-          <ActivityIndicator color={theme.accent} size="large" style={{ marginTop: 40 }} />
+          <ActivityIndicator color={gold} size="large" style={{ marginTop: 40 }} />
         ) : (
           <View style={styles.packagesContainer}>
             {packages.length === 0 ? (
-              <View
-                style={{
-                  padding: 20,
-                  alignItems: "center",
-                  backgroundColor: isLight ? theme.unitBg : "rgba(255,255,255,0.05)",
-                  borderRadius: 16,
-                  borderWidth: 1,
-                  borderColor: theme.cardBorder,
-                }}
-              >
-                <Text style={{ color: theme.textSecondary, textAlign: "center", marginBottom: 12, fontSize: 13.5 }}>
+              <View style={[styles.unavailable, { backgroundColor: cardBg, borderColor: hairline }]}>
+                <Text style={{ color: theme.textSecondary, textAlign: "center", marginBottom: 14, fontSize: 13.5, lineHeight: 20 }}>
                   {t("paywall.storeUnavailable")}
                 </Text>
                 <View style={{ flexDirection: "row", gap: 10 }}>
-                  <TouchableOpacity onPress={retryOfferings} style={{ paddingVertical: 8, paddingHorizontal: 16, backgroundColor: theme.accent, borderRadius: 8 }}>
-                    <Text style={{ color: "#fff", fontWeight: "bold" }}>{t("common.tryAgain")}</Text>
+                  <TouchableOpacity onPress={retryOfferings} style={[styles.smallBtn, { backgroundColor: gold }]}>
+                    <Text style={{ color: "#fff", fontFamily: "Inter_700Bold" }}>{t("common.tryAgain")}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={handleBack} style={{ paddingVertical: 8, paddingHorizontal: 16, borderWidth: 1, borderColor: theme.cardBorder, borderRadius: 8 }}>
-                    <Text style={{ color: theme.textSecondary, fontWeight: "bold" }}>{t("paywall.goBack")}</Text>
+                  <TouchableOpacity onPress={handleBack} style={[styles.smallBtn, { borderWidth: 1, borderColor: hairline }]}>
+                    <Text style={{ color: theme.textSecondary, fontFamily: "Inter_700Bold" }}>{t("paywall.goBack")}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             ) : (
-              packages.map((pkg) => {
-                const isSelected = selectedPackage?.identifier === pkg.identifier;
-                return (
-                  <TouchableOpacity
-                    key={pkg.identifier}
-                    activeOpacity={0.8}
-                    style={[
-                      styles.packageCard,
-                      {
-                        backgroundColor: theme.cardBg,
-                        borderColor: isSelected ? theme.accent : isLight ? "rgba(0,0,0,0.08)" : theme.cardBorder,
-                        shadowColor: isLight ? "#000" : theme.accent,
-                      },
-                    ]}
-                    onPress={() => setSelectedPackage(pkg)}
-                  >
-                    <View style={styles.packageInfo}>
-                      <Text style={[styles.packageTitle, { color: theme.text }]}>
-                        {pkg.product.title.replace(/\s*\((?:Couples App|CoupleSky)\)/, "")}
-                      </Text>
-                      <Text style={[styles.packagePrice, { color: isSelected ? theme.accent : theme.textSecondary }]}>
-                        {pkg.product.priceString}{(() => {
-                          const period = getPeriodLabel(pkg, t);
-                          return period ? ` ${period}` : "";
-                        })()}
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.radioOuter,
-                        {
-                          borderColor: isSelected
-                            ? theme.accent
-                            : isLight
-                            ? "rgba(0,0,0,0.2)"
-                            : "rgba(255,255,255,0.25)",
-                        },
-                      ]}
-                    >
-                      {isSelected && <View style={[styles.radioInner, { backgroundColor: theme.accent }]} />}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })
+              <>
+                <Text style={[styles.sectionLabel, { color: gold, marginBottom: 0, marginLeft: 4 }]}>{t("paywall.ui.choosePlan")}</Text>
+                {packages.map((pkg) => {
+                  const planKey = PLAN_KEY[pkg.packageType] ?? "other";
+                  const trial = freeTrialDays(pkg);
+                  const save = savePercent(pkg);
+                  const perMonth = pkg.packageType === "ANNUAL" ? pkg.product.pricePerMonthString : null;
+                  const captionParts: string[] = [];
+                  if (perMonth) captionParts.push(t("paywall.ui.perMonth", { price: perMonth }));
+                  if (save) captionParts.push(t("paywall.ui.badge.save", { percent: save }));
+                  if (pkg.packageType === "LIFETIME") captionParts.push(t("paywall.ui.lifetimeNote"));
+                  return (
+                    <PlanCard
+                      key={pkg.identifier}
+                      title={t(`paywall.ui.plans.${planKey}`)}
+                      price={pkg.product.priceString}
+                      period={pkg.packageType === "LIFETIME" ? "" : getPeriodLabel(pkg, t)}
+                      caption={captionParts.join(" · ") || undefined}
+                      badge={
+                        pkg.packageType === "ANNUAL"
+                          ? t("paywall.ui.badge.bestValue")
+                          : pkg.packageType === "LIFETIME"
+                          ? t("paywall.ui.badge.oneTime")
+                          : undefined
+                      }
+                      badgeStrong={pkg.packageType === "ANNUAL"}
+                      trial={trial ? t("paywall.ui.trialPill", { count: trial }) : undefined}
+                      selected={selectedPackage?.identifier === pkg.identifier}
+                      onPress={() => setSelectedPackage(pkg)}
+                      isLight={isLight}
+                      colors={{ text: theme.text, textSecondary: theme.textSecondary, cardBg, border: hairline, gold }}
+                    />
+                  );
+                })}
+
+                <View style={[styles.sharedChip, { backgroundColor: `${gold}12`, borderColor: `${gold}40` }]}>
+                  <Users size={14} color={gold} />
+                  <Text style={[styles.sharedChipText, { color: gold }]}>{t("paywall.ui.sharedChip")}</Text>
+                </View>
+              </>
             )}
 
+            {/* Satın alma ve iptal bilgisi: mağaza kuralı gereği ekranda erişilebilir, ama sayfayı boğmasın diye açılır */}
             {selectedPackage && (
-              <View
-                style={[
-                  styles.summaryBox,
-                  {
-                    backgroundColor: isLight ? theme.unitBg : "rgba(255,255,255,0.05)",
-                    borderColor: isLight ? "rgba(0,0,0,0.08)" : theme.cardBorder,
-                  },
-                ]}
-              >
-                <Text style={[styles.summaryTitle, { color: theme.text }]}>{t("paywall.summary.title")}</Text>
+              <View style={[styles.summaryBox, { backgroundColor: cardBg, borderColor: hairline }]}>
                 <Text style={[styles.summaryPrice, { color: theme.text }]}>
                   {t("paywall.summary.price", { price: selectedPackage.product.priceString, period: selectedPeriod }).trim()}
                 </Text>
@@ -418,97 +430,69 @@ export default function PaywallScreen() {
                     })}
                   </Text>
                 ) : null}
-                {selectedIsRecurring ? (
-                  <Text style={summaryTextStyle}>{t("paywall.summary.renewal", { store: storeName })}</Text>
+                <TouchableOpacity
+                  onPress={() => setDetailsOpen((v) => !v)}
+                  style={styles.detailsToggle}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: detailsOpen }}
+                >
+                  <Text style={[styles.detailsToggleText, { color: gold }]}>
+                    {detailsOpen ? t("paywall.ui.detailsHide") : t("paywall.ui.detailsShow")}
+                  </Text>
+                  <ChevronDown color={gold} size={15} style={detailsOpen ? { transform: [{ rotate: "180deg" }] } : undefined} />
+                </TouchableOpacity>
+                {detailsOpen ? (
+                  <View style={{ gap: 8 }}>
+                    {selectedIsRecurring ? <Text style={summaryTextStyle}>{t("paywall.summary.renewal", { store: storeName })}</Text> : null}
+                    {selectedIsRecurring ? <Text style={summaryTextStyle}>{t("paywall.summary.shared")}</Text> : null}
+                    {selectedIsRecurring ? <Text style={summaryTextStyle}>{t("paywall.summary.starGrace")}</Text> : null}
+                    <Text style={summaryTextStyle}>{t("paywall.summary.confirm", { store: storeName })}</Text>
+                    <Text style={summaryTextStyle}>{t("paywall.summary.withdrawal", { store: storeName })}</Text>
+                  </View>
                 ) : null}
-                {selectedIsRecurring ? <Text style={summaryTextStyle}>{t("paywall.summary.shared")}</Text> : null}
-                {selectedIsRecurring ? <Text style={summaryTextStyle}>{t("paywall.summary.starGrace")}</Text> : null}
-                <Text style={summaryTextStyle}>{t("paywall.summary.confirm", { store: storeName })}</Text>
-                <Text style={summaryTextStyle}>{t("paywall.summary.withdrawal", { store: storeName })}</Text>
               </View>
             )}
 
-            {packages.length > 0 && (
+            {/* İkincil eylemler: tek satırda eşit üç çip. Geri yükleme her zaman erişilebilir (Apple 3.1.1) */}
+            <View style={styles.chipRow}>
               <TouchableOpacity
-                style={[styles.ctaBtn, { backgroundColor: theme.accent }, purchasing && { opacity: 0.7 }]}
-                onPress={handlePurchase}
-                disabled={purchasing || !selectedPackage}
-                activeOpacity={0.85}
+                style={[styles.chip, { borderColor: hairline, backgroundColor: cardBg }]}
+                onPress={handleRestore}
+                disabled={purchasing}
+                accessibilityRole="button"
               >
-                {purchasing ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.ctaBtnText}>{purchaseButtonLabel(selectedPackage, t)}</Text>
-                )}
+                <ShieldCheck color={theme.textSecondary} size={15} />
+                <Text style={[styles.chipText, { color: theme.textSecondary }]} numberOfLines={2}>
+                  {t("paywall.restore")}
+                </Text>
               </TouchableOpacity>
-            )}
-
-            {/* Paketler yüklenemese de her zaman görünür (Apple 3.1.1: geri yükleme her zaman erişilebilir olmalı) */}
-            <TouchableOpacity style={styles.restoreBtn} onPress={handleRestore} disabled={purchasing}>
-              <ShieldCheck color={theme.textMuted} size={16} />
-              <Text style={[styles.restoreText, { color: theme.textMuted }]}>{t("paywall.restore")}</Text>
-            </TouchableOpacity>
-
-            {/* Geri yüklemenin hemen altında tek satır; her platformda ve paketler yüklenmese de görünür */}
-            <TouchableOpacity
-              style={[styles.restoreBtn, { marginTop: 6 }]}
-              onPress={handleUseCode}
-              disabled={purchasing}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-            >
-              <Gift color={theme.accent} size={16} />
-              <Text
-                style={[styles.restoreText, { color: theme.accent, flexShrink: 1 }]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.85}
+              <TouchableOpacity
+                style={[styles.chip, { borderColor: hairline, backgroundColor: cardBg }]}
+                onPress={() => setAdModalVisible(true)}
+                disabled={purchasing}
+                accessibilityRole="button"
               >
-                {t("paywall.redeemCode")}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Reklam izleyerek jeton kazanma seçeneği */}
-            <TouchableOpacity
-              style={[styles.restoreBtn, { marginTop: 6 }]}
-              onPress={() => setAdModalVisible(true)}
-              disabled={purchasing}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-            >
-              <Coins color={isLight ? "#B7791F" : "#E6C055"} size={16} />
-              <Text
-                style={[styles.restoreText, { color: isLight ? "#B7791F" : "#E6C055", flexShrink: 1 }]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.85}
-              >
-                {t("paywall.watchAd", "🎬 Reklam İzleyerek +25 Token Kazan")}
-              </Text>
-            </TouchableOpacity>
+                <Coins color={isLight ? "#B7791F" : "#E6C055"} size={15} />
+                <Text style={[styles.chipText, { color: isLight ? "#B7791F" : "#E6C055" }]} numberOfLines={2}>
+                  {t("paywall.watchAd", "🎬 Reklam İzleyerek +25 Token Kazan").replace(/^🎬\s*/, "")}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             {/* Yasal Abonelik ve İade Bilgilendirmesi */}
-            <View
-              style={[
-                styles.legalNoticeContainer,
-                { borderTopColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" },
-              ]}
-            >
-              <Text style={[styles.legalNoticeText, { color: theme.textSecondary }]}>
-                {t("paywall.legalNotice")}
-              </Text>
-
+            <View style={[styles.legalNoticeContainer, { borderTopColor: hairline }]}>
+              <Text style={[styles.legalNoticeText, { color: theme.textSecondary }]}>{t("paywall.legalNotice")}</Text>
               <View style={styles.legalLinksRow}>
                 <TouchableOpacity onPress={() => openLegal("terms")}>
-                  <Text style={[styles.legalLinkText, { color: theme.accent }]}>{t("paywall.links.terms")}</Text>
+                  <Text style={[styles.legalLinkText, { color: gold }]}>{t("paywall.links.terms")}</Text>
                 </TouchableOpacity>
                 <Text style={[styles.legalLinkDot, { color: theme.textMuted }]}>•</Text>
                 <TouchableOpacity onPress={() => openLegal("privacy")}>
-                  <Text style={[styles.legalLinkText, { color: theme.accent }]}>{t("paywall.links.privacy")}</Text>
+                  <Text style={[styles.legalLinkText, { color: gold }]}>{t("paywall.links.privacy")}</Text>
                 </TouchableOpacity>
                 <Text style={[styles.legalLinkDot, { color: theme.textMuted }]}>•</Text>
                 <TouchableOpacity onPress={() => openLegal("subscription")}>
-                  <Text style={[styles.legalLinkText, { color: theme.accent }]}>{t("paywall.links.subscription")}</Text>
+                  <Text style={[styles.legalLinkText, { color: gold }]}>{t("paywall.links.subscription")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -516,23 +500,49 @@ export default function PaywallScreen() {
         )}
       </ScrollView>
 
+      {/* Sabit satın alma çubuğu: plan ne kadar aşağı kaydırılırsa kaydırılsın düğme her zaman ekranda */}
+      {!loading && packages.length > 0 && (
+        <View pointerEvents="box-none" style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]}>
+          <LinearGradient
+            pointerEvents="none"
+            colors={isLight ? ["rgba(255,255,255,0)", "rgba(255,255,255,0.96)"] : ["rgba(8,12,24,0)", "rgba(8,12,24,0.96)"]}
+            style={StyleSheet.absoluteFill}
+          />
+          <TouchableOpacity
+            onPress={handlePurchase}
+            disabled={purchasing || !selectedPackage}
+            activeOpacity={0.88}
+            accessibilityRole="button"
+            style={[styles.ctaWrap, purchasing && { opacity: 0.75 }]}
+          >
+            <LinearGradient colors={PREMIUM_GOLD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ctaBtn}>
+              {purchasing ? (
+                <ActivityIndicator color="#3A2A06" />
+              ) : (
+                <Text style={styles.ctaBtnText}>{purchaseButtonLabel(selectedPackage, t)}</Text>
+              )}
+              <Shimmer reduce={reduceMotion} />
+            </LinearGradient>
+          </TouchableOpacity>
+          <Text style={[styles.trustText, { color: theme.textSecondary }]}>
+            {selectedPackage && selectedPackage.packageType !== "LIFETIME"
+              ? `${t("paywall.ui.trust")} · ${storeName}`
+              : t("paywall.ui.badge.oneTime")}
+          </Text>
+        </View>
+      )}
+
       <LazyDemoActionModal
         visible={demoPromptVisible}
         onClose={() => setDemoPromptVisible(false)}
         title={t("paywall.accountRequiredTitle")}
         description={t("paywall.accountRequiredDescription")}
       />
-      <PromoCodeModal
-        visible={codeModalVisible}
-        onClose={() => setCodeModalVisible(false)}
-        refreshProfile={refreshProfile}
-        onPremiumSuccess={handleCodePremium}
-      />
       <LegalModal
         visible={legalModalVisible}
         onClose={() => setLegalModalVisible(false)}
         initialDoc={selectedLegalDoc}
-        accentColor={theme.accent}
+        accentColor={gold}
       />
       <LazyWatchAdModal
         visible={adModalVisible}
@@ -544,197 +554,63 @@ export default function PaywallScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  closeBtn: {
-    alignSelf: "flex-end",
-  },
-  closeBtnCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
+  topGlow: { position: "absolute", top: 0, left: 0, right: 0, height: 420 },
+  container: { paddingHorizontal: 20 },
+  closeBtn: { alignSelf: "flex-end" },
+  closeBtnCircle: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, justifyContent: "center", alignItems: "center" },
+  sectionLabel: { fontSize: 11.5, fontFamily: "Inter_700Bold", letterSpacing: 1.4, textTransform: "uppercase", marginBottom: 16 },
+  featuresBox: { padding: 20, borderRadius: 24, borderWidth: 1, marginBottom: 26 },
+  featureRow: { flexDirection: "row", alignItems: "center", marginBottom: 14 },
+  featureIcon: { width: 32, height: 32, borderRadius: 11, justifyContent: "center", alignItems: "center", marginRight: 14 },
+  featureText: { fontSize: 15, lineHeight: 20, fontFamily: "Inter_600SemiBold", flex: 1, letterSpacing: -0.2 },
+  packagesContainer: { gap: 4 },
+  unavailable: { padding: 20, alignItems: "center", borderRadius: 18, borderWidth: 1 },
+  smallBtn: { paddingVertical: 9, paddingHorizontal: 18, borderRadius: 10 },
+  sharedChip: {
+    flexDirection: "row",
     alignItems: "center",
-  },
-  header: {
-    alignItems: "center",
-    marginTop: 10,
-    marginBottom: 28,
-  },
-  crownCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 32,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 32,
-    fontFamily: "Inter_700Bold",
-    marginBottom: 8,
-    letterSpacing: -1,
-  },
-  subtitle: {
-    fontSize: 16,
-    letterSpacing: -0.2,
-  },
-  feelingSubtitle: {
-    fontSize: 14.5,
-    lineHeight: 21,
-    textAlign: "center",
-    paddingHorizontal: 8,
-  },
-  feelingPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 14,
+    alignSelf: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
     borderWidth: 1,
-    marginBottom: 12,
+    marginTop: 14,
   },
-  feelingPillText: {
-    fontSize: 12.5,
-    fontFamily: "Inter_700Bold",
-  },
-  featuresBox: {
-    padding: 22,
-    borderRadius: 26,
-    marginBottom: 28,
-  },
-  featureRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  checkCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  featureText: {
-    fontSize: 15,
-    fontFamily: "Inter_600SemiBold",
+  sharedChipText: { fontSize: 12.5, fontFamily: "Inter_600SemiBold" },
+  summaryBox: { borderRadius: 18, borderWidth: 1, padding: 16, gap: 8, marginTop: 16 },
+  summaryPrice: { fontSize: 15, fontFamily: "Inter_700Bold" },
+  summaryText: { fontSize: 12.5, lineHeight: 18, fontFamily: "Inter_400Regular" },
+  detailsToggle: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start", paddingVertical: 2 },
+  detailsToggleText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  chipRow: { flexDirection: "row", gap: 8, marginTop: 18 },
+  chip: {
     flex: 1,
-  },
-  packagesContainer: {
-    gap: 12,
-  },
-  packageCard: {
-    flexDirection: "row",
+    minHeight: 58,
     alignItems: "center",
-    justifyContent: "space-between",
-    padding: 20,
-    borderRadius: 24,
-    borderWidth: 2,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  packageInfo: {
-    flex: 1,
-  },
-  packageTitle: {
-    fontSize: 16.5,
-    fontFamily: "Inter_700Bold",
-    marginBottom: 4,
-  },
-  packagePrice: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  radioOuter: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
     justifyContent: "center",
-    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 10,
+    borderRadius: 16,
+    borderWidth: 1,
   },
-  radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  ctaBtn: {
-    paddingVertical: 19,
+  chipText: { fontSize: 11.5, lineHeight: 14, fontFamily: "Inter_600SemiBold", textAlign: "center" },
+  legalNoticeContainer: { marginTop: 22, paddingTop: 16, borderTopWidth: 1, gap: 12, alignItems: "center" },
+  legalNoticeText: { fontSize: 12, lineHeight: 17, textAlign: "center", fontFamily: "Inter_400Regular" },
+  legalLinksRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: 6 },
+  legalLinkText: { fontSize: 11.5, fontFamily: "Inter_600SemiBold", textDecorationLine: "underline" },
+  legalLinkDot: { fontSize: 11 },
+  bottomBar: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 36 },
+  ctaWrap: {
     borderRadius: 30,
-    alignItems: "center",
-    marginTop: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowColor: "#E6B94A",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 18,
+    elevation: 10,
   },
-  ctaBtnText: {
-    color: "#fff",
-    fontSize: 17,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: -0.2,
-  },
-  restoreBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    marginTop: 20,
-  },
-  restoreText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  legalNoticeContainer: {
-    marginTop: 24,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    gap: 12,
-    alignItems: "center",
-  },
-  summaryBox: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 16,
-    gap: 8,
-    marginTop: 4,
-  },
-  summaryTitle: {
-    fontSize: 14,
-    fontFamily: "Inter_700Bold",
-  },
-  summaryPrice: {
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
-  },
-  summaryText: {
-    fontSize: 13,
-    lineHeight: 19,
-    fontFamily: "Inter_400Regular",
-  },
-  legalNoticeText: {
-    fontSize: 12.5,
-    lineHeight: 18,
-    textAlign: "center",
-    fontFamily: "Inter_400Regular",
-  },
-  legalLinksRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    flexWrap: "wrap",
-    gap: 6,
-  },
-  legalLinkText: {
-    fontSize: 11.5,
-    fontFamily: "Inter_600SemiBold",
-    textDecorationLine: "underline",
-  },
-  legalLinkDot: {
-    fontSize: 11,
-  },
+  ctaBtn: { height: 60, borderRadius: 30, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  ctaBtnText: { color: "#3A2A06", fontSize: 18, fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
+  trustText: { textAlign: "center", fontSize: 12, marginTop: 9, fontFamily: "Inter_500Medium" },
 });

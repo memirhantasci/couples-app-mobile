@@ -3,6 +3,8 @@ import { ActionCard } from "@/components/ui/ActionCard";
 import { Reveal } from "@/components/ui/Reveal";
 import { Pulse } from "@/components/ui/Pulse";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { SoloFeatureBanner } from "@/components/common/SoloFeatureBanner";
+import { useSoloGate } from "@/lib/soloGate";
 import {
   View,
   Text,
@@ -52,6 +54,7 @@ export default function MeetingsScreen() {
   const { t, i18n } = useTranslation();
   const { session, profile, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
+  const soloGate = useSoloGate();
   const { theme, isLight } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const queryClient = useQueryClient();
@@ -303,6 +306,9 @@ export default function MeetingsScreen() {
         {/* HEADER */}
         <ScreenHeader title={t("menu.meetups.title")} subtitle={t("meetings.subtitle")} onOpenTour={openTour} />
 
+        {/* Tek kalan: buluşma eşleşme ister; kendi eski planları aşağıda durur */}
+        <SoloFeatureBanner style={{ marginHorizontal: 16, marginBottom: 10 }} />
+
         <ScrollView 
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 140 }]}
           showsVerticalScrollIndicator={false}
@@ -321,6 +327,8 @@ export default function MeetingsScreen() {
               )) {
                 return;
               }
+              // Buluşma bir partnerle planlanır (tek kalan Premium olsa bile)
+              if (soloGate.blockPartnerFeature()) return;
               handleCancelEdit();
               setShowFormModal(true);
             }}

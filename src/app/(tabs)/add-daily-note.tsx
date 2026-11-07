@@ -5,6 +5,7 @@ import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet,
 import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useAuth } from "@/context/AuthContext";
+import { useSoloGate } from "@/lib/soloGate";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { formEntryOf } from "@/lib/formEntry";
@@ -39,6 +40,7 @@ const cleanPageText = (text: string) =>
 export default function AddDailyNoteScreen() {
   const { t, i18n } = useTranslation();
   const { session } = useAuth();
+  const soloGate = useSoloGate();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
   const { theme, isLight } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -183,6 +185,8 @@ export default function AddDailyNoteScreen() {
     }
 
     if (!userId) return;
+    // Tek kalan günlüğünü yalnızca Premium ile yazar (sunucu da zorlar)
+    if (soloGate.blockSoloWrite()) return;
 
     setIsSubmitting(true);
     try {

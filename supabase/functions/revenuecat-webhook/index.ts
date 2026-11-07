@@ -18,8 +18,15 @@
 //   supabase functions deploy revenuecat-webhook --no-verify-jwt
 //
 // RevenueCat app_user_id, istemcinin `Purchases.logIn(userId)` ile verdiği Supabase kullanıcı UUID'sidir.
+//
+// Premium'u kimin aldığı (couples.premium_owner_id) apply_revenuecat_event içinde olaydaki kullanıcıdan yazılır;
+// alan kişi hesabını silerse partnerdeki Premium biter (docs/HESAP_SILME_VE_PREMIUM_TASARIMI.md madde 4).
+// TRANSFER: satın alma başka bir kullanıcıya aktarıldı (ör. hesabını silip aynı Apple/Google hesabıyla yeniden
+// kayıt olan kişi "satın alımları geri yükle" yaptı). Yeni kullanıcının hakkı RevenueCat v2 REST ile doğrulanıp
+// onun çiftine yazılır (bkz. _shared/revenuecat.ts; REVENUECAT_SECRET_KEY gerekir).
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { syncVerifiedPremium } from "../_shared/revenuecat.ts";
 
 const ENTITLEMENTS = new Set(["Premium", "couples_app_pro"]);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -27,7 +34,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 /** apply_revenuecat_event dönüşleri */
 const LIFECYCLE_RESULTS = ["granted", "kept_lifetime", "lapsed", "kept", "ignored", "no_couple"] as const;
 type LifecycleResult = (typeof LIFECYCLE_RESULTS)[number];
-type WebhookResult = LifecycleResult | "test" | "other_entitlement" | "no_user";
+type WebhookResult = LifecycleResult | "test" | "other_entitlement" | "no_user" | "transferred";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -39,6 +46,7 @@ interface RevenueCatEvent {
   original_app_user_id?: string;
   aliases?: string[];
   entitlement_ids?: string[] | null;
+  transferred_to?: string[] | null;
   expiration_at_ms?: number | null;
   cancel_reason?: string | null;
 }
@@ -79,6 +87,12 @@ function storeExpiration(event: RevenueCatEvent): string | null {
 async function applyEvent(event: RevenueCatEvent): Promise<WebhookResult> {
   const type = event.type ?? "";
   if (type === "TEST") return "test";
+
+  if (type === "TRANSFER") {
+    const targets = (event.transferred_to ?? []).filter((id): id is string => typeof id === "string" && UUID_PATTERN.test(id));
+    for (const userId of targets) await syncVerifiedPremium(admin, userId);
+    return "transferred";
+  }
 
   // Başka bir hakka ait olay (varsa) yok sayılır
   if (event.entitlement_ids && !event.entitlement_ids.some(id => ENTITLEMENTS.has(id))) return "other_entitlement";

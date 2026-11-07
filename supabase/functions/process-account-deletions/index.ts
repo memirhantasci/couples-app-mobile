@@ -1,16 +1,25 @@
-// Süresi dolan hesap silme taleplerini işler (bkz. migrations/20261022000000_account_deletion.sql).
+// Süresi dolan hesap silme taleplerini işler (bkz. migrations/20261022000000_account_deletion.sql ve
+// 20261107000003_account_deletion_partner_stays.sql, tasarım: docs/HESAP_SILME_VE_PREMIUM_TASARIMI.md).
 //
-// Saatlik pg_cron işi bu fonksiyonu çağırır. Yalnızca `scheduled_for` zamanı geçmiş talepler
-// işlendiği için erken ya da tekrar çağrılması zararsızdır; yetkilendirme service_role veya webhook secret ile yapılır:
+// Saatlik pg_cron işi bu fonksiyonu çağırır. Yalnızca `scheduled_for` zamanı geçmiş talepler işlendiği için
+// erken ya da tekrar çağrılması zararsızdır; yetkilendirme service_role veya webhook secret ile yapılır:
 //   supabase functions deploy process-account-deletions --no-verify-jwt
 //
-// Her talep için sıra:
-//   1. Storage API ile dosyalar (SQL ile silmek dosyayı depoda sahipsiz bırakır)
-//   2. purge_account_data(): kişisel ve ortak veritabanı kayıtları
+// Talepler: kullanıcının kendi isteği (7 gün sonra) ya da hareketsiz eşleşmemiş hesap (reason = 'inactive',
+// schedule_inactive_account_deletions açar). Her talep için sıra:
+//   1. Dosyalar (SQL ile silmek dosyayı depoda sahipsiz bırakır):
+//        • silenin avatarı her zaman
+//        • çiftte başka kimse yoksa çiftin klasörleri (photos/memories/couple-memories/<couple_id>/)
+//        • partner kalıyorsa yalnızca silenin dosyaları: kayıtları silinince tetikleyiciler silme kuyruğuna
+//          yazar (storage-purge siler); partnerin dosyalarına dokunulmaz
+//   2. purge_account_data(): silenin verisi; partner kalıyorsa çift onun çifti olarak kalır
 //   3. auth.admin.deleteUser(): hesabın kendisi (talep satırı da cascade ile silinir)
+//   4. Partner kaldıysa ve Premium'u silen almışsa partnerdeki Premium bitti: partnerin KENDİ aboneliği
+//      mağazadan doğrulanır ve varsa yeniden yazılır (ikisi ayrı abonelik aldıysa partnerinki sürer)
 // Bir adım başarısız olursa talep kalır, hata kaydedilir ve bir sonraki saatte yeniden denenir.
 
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
+import { syncVerifiedPremium } from "../_shared/revenuecat.ts";
 
 const BATCH_SIZE = 20;
 const LIST_PAGE_SIZE = 1000;
@@ -53,6 +62,12 @@ async function removeFolder(admin: SupabaseClient, bucket: string, prefix: strin
   return files.length;
 }
 
+interface PurgeResult {
+  mode?: "dissolved" | "couple_deleted" | "no_couple";
+  remaining_user_ids?: string[];
+  dissolve?: { premium_ended?: boolean } | null;
+}
+
 async function deleteAccount(admin: SupabaseClient, userId: string): Promise<void> {
   const { data: profile, error: profileError } = await admin
     .from("users")
@@ -65,19 +80,40 @@ async function deleteAccount(admin: SupabaseClient, userId: string): Promise<voi
   await removeFolder(admin, AVATAR_BUCKET, userId);
   const coupleId = profile?.couple_id;
   if (coupleId !== null && coupleId !== undefined) {
-    for (const bucket of COUPLE_BUCKETS) {
-      await removeFolder(admin, bucket, String(coupleId));
+    const { count, error: membersError } = await admin
+      .from("users")
+      .select("id", { count: "exact", head: true })
+      .eq("couple_id", coupleId)
+      .neq("id", userId);
+    if (membersError) throw new Error(`Çift üyeleri okunamadı: ${membersError.message}`);
+    // Partner kalıyorsa klasöre dokunulmaz: yalnızca silenin dosyaları kuyruktan silinir
+    if ((count ?? 0) === 0) {
+      for (const bucket of COUPLE_BUCKETS) {
+        await removeFolder(admin, bucket, String(coupleId));
+      }
     }
   }
 
   // 2. Veritabanı
-  const { error: purgeError } = await admin.rpc("purge_account_data", { p_user_id: userId });
+  const { data: purge, error: purgeError } = await admin.rpc("purge_account_data", { p_user_id: userId });
   if (purgeError) throw new Error(`Veritabanı temizlenemedi: ${purgeError.message}`);
 
   // 3. Hesap. Eşzamanlı bir çalıştırma zaten silmişse sorun değil.
   const { error: authError } = await admin.auth.admin.deleteUser(userId);
   if (authError && authError.status !== 404) {
     throw new Error(`Hesap silinemedi: ${authError.message}`);
+  }
+
+  // 4. Partnerin kendi aboneliği (hata silmeyi geri almaz; uygulama açılışında da yeniden denenir)
+  const result = (purge ?? {}) as PurgeResult;
+  if (result.mode === "dissolved" && result.dissolve?.premium_ended) {
+    for (const remainingId of result.remaining_user_ids ?? []) {
+      try {
+        await syncVerifiedPremium(admin, remainingId);
+      } catch (cause) {
+        console.error(`[account-deletion] partner Premium doğrulanamadı:`, cause instanceof Error ? cause.message : cause);
+      }
+    }
   }
 }
 

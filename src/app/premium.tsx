@@ -18,7 +18,6 @@ import {
   ChevronRight,
   CreditCard,
   Crown,
-  Gift,
   HeartPulse,
   Images,
   Info,
@@ -44,7 +43,6 @@ import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Reveal } from "@/components/ui/Reveal";
 import { LegalModal } from "@/components/legal/LegalModal";
-import { PromoCodeModal } from "@/components/ui/PromoCodeModal";
 import { LazyDemoActionModal } from "@/components/ui/lazyMount";
 import type { LegalDocType } from "@/constants/legalTexts";
 import { ANDROID_PACKAGE } from "@/constants/brand";
@@ -69,7 +67,6 @@ export default function PremiumScreen() {
 
   const [busy, setBusy] = useState(false);
   const [demoPromptVisible, setDemoPromptVisible] = useState(false);
-  const [codeModalVisible, setCodeModalVisible] = useState(false);
   const [legalDoc, setLegalDoc] = useState<LegalDocType | null>(null);
 
   const { phase, entitlement, hasStar, daysUntilEnd, graceDaysLeft, graceEndsAt } = details;
@@ -178,15 +175,6 @@ export default function PremiumScreen() {
     } finally {
       setBusy(false);
     }
-  };
-
-  const handleUseCode = () => {
-    if (guardDemo()) return;
-    if (Platform.OS === "ios") {
-      RevenueCatService.presentCodeRedemptionSheet();
-      return;
-    }
-    setCodeModalVisible(true);
   };
 
   // ── Uyarı kartı ───────────────────────────────────────────────────────────
@@ -415,15 +403,6 @@ export default function PremiumScreen() {
               onPress={handleRestore}
               loading={busy}
             />
-            <View style={[styles.divider, { backgroundColor: hairline }]} />
-            <ActionRow
-              icon={Gift}
-              title={t("premiumHub.promo")}
-              accent={theme.accent}
-              textColor={theme.text}
-              mutedColor={theme.textMuted}
-              onPress={handleUseCode}
-            />
           </View>
         </Reveal>
 
@@ -450,15 +429,6 @@ export default function PremiumScreen() {
         onClose={() => setDemoPromptVisible(false)}
         title={t("paywall.accountRequiredTitle")}
         description={t("paywall.accountRequiredDescription")}
-      />
-      <PromoCodeModal
-        visible={codeModalVisible}
-        onClose={() => setCodeModalVisible(false)}
-        refreshProfile={refreshProfile}
-        onPremiumSuccess={() => {
-          setCodeModalVisible(false);
-          toast.success(t("paywall.activated"), { title: t("common.congratulations"), emoji: "👑", duration: 3400 });
-        }}
       />
       <LegalModal
         visible={legalDoc !== null}

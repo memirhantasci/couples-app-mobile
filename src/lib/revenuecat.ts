@@ -86,18 +86,6 @@ export class RevenueCatService {
     }
   }
 
-  static async presentCodeRedemptionSheet() {
-    await this.initialize();
-    if (!this.isInitialized) return;
-    if (Platform.OS === 'ios') {
-      try {
-        await Purchases.presentCodeRedemptionSheet();
-      } catch (e) {
-        logger.error("Error presenting code redemption sheet", e);
-      }
-    }
-  }
-
   static async getOfferings() {
     await this.initialize();
     if (!this.isInitialized) return [];
@@ -125,6 +113,23 @@ export class RevenueCatService {
         throw e;
       }
       return null;
+    }
+  }
+
+  /**
+   * Mağaza satın almalarını kullanıcıya göstermeden RevenueCat'e iletir (geri yükleme penceresi açmaz).
+   * Hesabını silip aynı Apple/Google hesabıyla yeniden kayıt olan kişinin aboneliği böylece yeni hesaba
+   * aktarılır; hakkı sunucu doğrular (bkz. src/lib/premiumContinuity.ts).
+   */
+  static async syncPurchases(): Promise<boolean> {
+    await this.initialize();
+    if (!this.isInitialized) return false;
+    try {
+      await Purchases.syncPurchases();
+      return true;
+    } catch (e) {
+      logger.warn("Error syncing purchases", e);
+      return false;
     }
   }
 

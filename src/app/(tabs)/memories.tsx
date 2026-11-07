@@ -7,6 +7,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { LazyDemoActionModal, LazyPageTourModal } from "@/components/ui/lazyMount";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { SoloFeatureBanner } from "@/components/common/SoloFeatureBanner";
+import { useSoloGate } from "@/lib/soloGate";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -65,6 +67,7 @@ export default function MemoriesScreen() {
   const router = useRouter();
   const { profile, session, isDemoMode } = useAuth();
   const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
+  const soloGate = useSoloGate();
   const { theme, isLight } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const queryClient = useQueryClient();
@@ -382,6 +385,8 @@ export default function MemoriesScreen() {
     )) {
       return;
     }
+    // Özel günler eşleşmiş çiftlere özel (tek kalan Premium olsa bile)
+    if (soloGate.blockPartnerFeature()) return;
     router.push(openForm("/(tabs)/add-memory"));
   };
 
@@ -393,6 +398,7 @@ export default function MemoriesScreen() {
     )) {
       return;
     }
+    if (soloGate.blockPartnerFeature()) return;
     router.push(openForm("/(tabs)/add-memory", {
       id: String(memory.id),
       title: memory.title,
@@ -526,6 +532,9 @@ export default function MemoriesScreen() {
           </TouchableOpacity>
         }
       />
+
+      {/* Tek kalan: özel günler eşleşme ister; kendi eski özel günleri aşağıda durur */}
+      <SoloFeatureBanner style={{ marginHorizontal: 16, marginBottom: 10 }} />
 
       {isLoading ? (
         <View style={{ gap: 16, marginTop: 40, paddingHorizontal: 20 }}>
