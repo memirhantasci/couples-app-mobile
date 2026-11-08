@@ -4,7 +4,7 @@ import { Platform } from "react-native";
 import i18n from "@/lib/i18n";
 import { supabase } from "@/lib/supabase";
 import { safeStorage } from "@/lib/safeStorage";
-import { ANDROID_PACKAGE, APP_NAME } from "@/constants/brand";
+import { ANDROID_PACKAGE, APPLE_APP_ID, APP_NAME } from "@/constants/brand";
 
 /**
  * Çift Arkadaşını Davet Et. Kuralların ve ödüllerin tek kaynağı sunucudur
@@ -137,6 +137,22 @@ export function buildReferralInviteLink(code: string): string {
 }
 
 /**
+ * App Store sayfası. iOS'ta Play Install Referrer gibi bir kurulum kanalı yoktur: kod bağlantıyla taşınamaz,
+ * arkadaş kodu paylaşım metninden eşleşme ekranına yapıştırır (looksLikeReferralCode bunu davet kodu olarak tanır).
+ */
+export function buildReferralIosLink(): string {
+  return `https://apps.apple.com/app/id${APPLE_APP_ID}`;
+}
+
+/**
+ * Arkadaşın telefonu bilinmediği için iki mağaza bağlantısı birlikte verilir; paylaşım metni ve "bağlantıyı
+ * kopyala" düğmesi bunu kullanır. Platform adları dil bağımsızdır.
+ */
+export function buildReferralStoreLinks(code: string): string {
+  return [`Android: ${buildReferralInviteLink(code)}`, `iPhone: ${buildReferralIosLink()}`].join("\n");
+}
+
+/**
  * Play Install Referrer metninden davet kodunu çıkarır ("utm_source=referral&utm_content=SKYT4MAU"). Play bu
  * metnin tam bir URL olmayabileceğini söylüyor: yalnızca anahtar=değer çiftlerine bakılır. Organik kurulumlar
  * ("utm_source=google-play&utm_medium=organic") ve başka kampanyalar null döner.
@@ -182,7 +198,7 @@ export function buildReferralShareMessage(
     t("referral.share.codeLine", { code: formatReferralCode(code) }),
     t("referral.share.howTo"),
     "",
-    buildReferralInviteLink(code),
+    buildReferralStoreLinks(code),
   ].join("\n");
 }
 

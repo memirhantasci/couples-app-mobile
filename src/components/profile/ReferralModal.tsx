@@ -24,8 +24,8 @@ import { useReferralCodeEntry } from "@/hooks/useReferralCodeEntry";
 import { hapticSuccess } from "@/lib/soundEffects";
 import {
   DEFAULT_REFERRAL_REWARD_DAYS,
-  buildReferralInviteLink,
   buildReferralShareMessage,
+  buildReferralStoreLinks,
   fetchReferralOverview,
   formatReferralCode,
   type ReferralInvitee,
@@ -185,7 +185,7 @@ export function ReferralModal({ visible, onClose }: ReferralModalProps) {
                           label={t("referral.modal.copyLink")}
                           done={copied === "link"}
                           icon="link"
-                          onPress={() => copy("link", buildReferralInviteLink(code))}
+                          onPress={() => copy("link", buildReferralStoreLinks(code))}
                         />
                       </View>
 

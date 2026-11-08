@@ -2,6 +2,7 @@ import type { ReactNode, RefObject } from "react";
 import { PixelRatio, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Circle, Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
+import { SITE_DOMAIN } from "@/constants/brand";
 import { GOLD, GoldLine, GoldMark, seeded, sparklePath, type StoryScale } from "./storyDecor";
 
 export type { StoryScale } from "./storyDecor";
@@ -17,6 +18,9 @@ const DESIGN_HEIGHT = 640;
 const SAFE_TOP = 78;
 const SAFE_BOTTOM = 96;
 const SIDE_PADDING = 28;
+
+/** Altbilgideki indirme çağrısı: "App Store · Google Play · couplesky.app" */
+const STORY_CTA_TEXT = `App Store · Google Play · ${SITE_DOMAIN}`;
 
 // Kart, tam 1080×1920 piksel tutacak boyda (dp) çizilir ve ekranda yalnızca küçültülerek gösterilir. Böylece
 // dışa aktarma 1:1 yakalanır; ekrandaki önizlemeyi büyütmekten doğan bulanıklık olmaz. Küçültme, yakalanan
@@ -132,10 +136,14 @@ export function StoryCard({ width, cardRef, tone = "rose", children }: StoryCard
   );
 }
 
-/** Altın CoupleSky imzası ve "Certified on CoupleSky" onay çizgisi. */
+/**
+ * Altın CoupleSky imzası, "Certified on CoupleSky" onay çizgisi ve indirme çağrısı. Görsele gömülü bir bağlantı
+ * dokunulamaz; bu yüzden çağrı, izleyicinin arayıp bulabileceği düz metindir: alan adı (iki platforma da
+ * yönlendiren sayfa) ve mağaza adları. Dil bağımsızdır, çeviri gerektirmez.
+ */
 function StoryFooter({ s }: { s: StoryScale }) {
   return (
-    <View style={{ alignItems: "center", paddingTop: s(12) }}>
+    <View style={{ alignItems: "center", paddingTop: s(8) }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: s(6) }}>
         <GoldMark size={s(14)} />
         <Text style={{ color: GOLD.ink, fontSize: s(10), fontFamily: "Inter_700Bold", letterSpacing: s(3.6), paddingLeft: s(3.6) }}>
@@ -147,6 +155,12 @@ function StoryFooter({ s }: { s: StoryScale }) {
         <Text style={{ color: GOLD.soft, fontSize: s(9.5), fontFamily: "PlayfairDisplay_400Regular_Italic" }}>Certified on CoupleSky</Text>
         <GoldLine fade="right" style={{ width: s(42), height: s(0.8) }} />
       </View>
+      <Text
+        numberOfLines={1}
+        style={{ color: GOLD.soft, fontSize: s(8.4), lineHeight: s(11), fontFamily: "Inter_600SemiBold", letterSpacing: s(0.9), marginTop: s(6), opacity: 0.85 }}
+      >
+        {STORY_CTA_TEXT}
+      </Text>
     </View>
   );
 }

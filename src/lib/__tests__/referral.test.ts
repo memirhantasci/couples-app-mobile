@@ -6,7 +6,9 @@ import {
   applyPendingReferralCode,
   applyReferralCode,
   buildReferralInviteLink,
+  buildReferralIosLink,
   buildReferralShareMessage,
+  buildReferralStoreLinks,
   cleanReferralInput,
   formatReferralCode,
   isDefinitiveReferralError,
@@ -91,6 +93,14 @@ describe("davet kodu biçimi", () => {
     expect(decodeURIComponent(link.split("referrer=")[1])).toBe("utm_source=referral&utm_content=SKYT4MAU");
   });
 
+  it("iOS bağlantısı yalnızca mağaza sayfasıdır (kod taşımaz); iki mağaza bağlantısı birlikte verilir", () => {
+    expect(buildReferralIosLink()).toBe("https://apps.apple.com/app/id6829036716");
+    const both = buildReferralStoreLinks("sky-t4mau").split("\n");
+    expect(both).toHaveLength(2);
+    expect(both[0]).toBe(`Android: ${buildReferralInviteLink("SKYT4MAU")}`);
+    expect(both[1]).toBe("iPhone: https://apps.apple.com/app/id6829036716");
+  });
+
   it("paylaşım metni kodu, nasıl yapılır satırını ve bağlantıyı içerir; yıldız durumuna göre giriş seçer", () => {
     const t = ((key: string, options?: Record<string, unknown>) =>
       options ? `${key}:${JSON.stringify(options)}` : key) as unknown as TFunction;
@@ -98,7 +108,8 @@ describe("davet kodu biçimi", () => {
     expect(withStar).toContain("referral.share.introWithStar");
     expect(withStar).toContain('"code":"SKY-T4MAU"');
     expect(withStar).toContain("referral.share.howTo");
-    expect(withStar).toContain("https://play.google.com/store/apps/details?id=app.couplesky.mobile");
+    expect(withStar).toContain("Android: https://play.google.com/store/apps/details?id=app.couplesky.mobile");
+    expect(withStar).toContain("iPhone: https://apps.apple.com/app/id6829036716");
     expect(buildReferralShareMessage(t, { code: "SKYT4MAU", hasStar: false, rewardDays: 3 })).toContain(
       "referral.share.introNoStar"
     );
