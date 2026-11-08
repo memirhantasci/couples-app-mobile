@@ -27,6 +27,7 @@ Bitmeyenler:
   yorumu (açık nokta 1) için ürün sahibi onayı.
 
 ### Yayından sonra (2-4 hafta)
+- **Tekrar gönder geri sayımı arka planda duruyor (TestFlight'ta görüldü, 2026-11-08):** `src/app/(auth)/verify-device.tsx:52-57` sayacı her saniye `setTimeout` ile bir azaltıyor; uygulama arka plana gidince iOS JS'i durdurduğundan geri dönünce sayaç kaldığı yerden (ör. 45) devam ediyor, oysa gerçekte süre geçmiş. Çözüm: sayacı azaltmak yerine bitiş zamanını (`Date.now()+60000`) saklayıp her tikte `bitiş - şimdi` hesapla. Ayrıca `verify.tsx:213` (e-posta kod ekranı) "tekrar gönder"de istemci tarafı bekleme sayacı yok, yalnızca Supabase'in kendi sınırı var; aynı bitiş-zamanı mantığıyla ekle. Yeni build ister.
 - **Maps anahtarını couplesapp94 hesabına taşı:** Maps Production Key şu an emirhanekin52 hesabındaki `project-a4ab81ef…` projesinde (fatura hesabı orada). Anahtar projeler arası taşınmaz: couplesky-c50c5'e fatura hesabı bağla, yeni anahtar oluştur (aynı paket+SHA-1 kısıtı), `app.json` anahtarını değiştir, yeni Android build al, eskiyi sil.
 - **Ödüllü reklam SSV (Y-3):** reklam token'ı istemci beyanına dayanıyor; günde 25 sınırı var. AdMob Server-Side Verification ekle.
 - **iOS ATT / SKAdNetwork (G-19):** `app.json` AdMob eklentisinde `skAdNetworkItems` yok (reklam gelirini ve atfı etkiler).
