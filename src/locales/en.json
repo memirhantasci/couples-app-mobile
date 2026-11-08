@@ -1132,6 +1132,16 @@
         "name": "This feature",
         "description": "Unlock every special memory space with Premium."
       },
+      "starConnect": {
+        "name": "Star Bonds",
+        "description": "Premium is required to bond with other couples' stars and to accept incoming requests.",
+        "cta": "Go Premium"
+      },
+      "starRename": {
+        "name": "Renaming Your Star",
+        "description": "Renew Premium to rename your star and let it shine again.",
+        "cta": "Go Premium"
+      },
       "starClaim": {
         "name": "Claiming a Star",
         "description": "Claim your star and make it shine in the sky together.",
@@ -2372,6 +2382,7 @@
       "premiumRequired": "This action requires an active Premium membership.",
       "needStar": "You need to claim a star before you can connect.",
       "maxConnections": "You've reached the maximum limit of 3 star connections.",
+      "starNotAcceptingBonds": "This star isn't accepting new bonds right now.",
       "connectionExists": "There's already an active or pending connection with this star.",
       "requestAnswered": "This connection request has already been answered.",
       "renameCooldown": "Your name change allowance hasn't renewed yet.",
@@ -2689,6 +2700,7 @@
       "currentBonds": "Our Current Connections ({{activeConnectionCount}}/3)",
       "noBonds": "You don't have a constellation bond with another couple's star yet.",
       "pendingTitle": "Our Requests Awaiting Approval ({{outgoingPendingCount}})",
+      "incomingTitle": "Requests Sent to Us ({{incomingPendingCount}})",
       "awaiting": "Waiting for the other couple's approval…",
       "cancelRequestA11y": "Cancel request"
     },

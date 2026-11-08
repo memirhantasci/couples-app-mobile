@@ -61,6 +61,7 @@ import { StorySharePreview } from '@/components/share/StorySharePreview';
 import { StarCertificateStoryCard } from '@/components/share/StarCertificateStoryCard';
 import { FoilSeal, GOLD, GoldRule, Monogram, unitScale } from '@/components/share/storyDecor';
 import { useStoryCouple } from '@/hooks/useStoryCouple';
+import { PremiumPaywall } from '@/components/ui/PremiumPaywall';
 
 // ============================================================================
 // TİPLER VE SABİTLER
@@ -88,7 +89,6 @@ export interface ClaimStarModalProps {
   readonly preSelectedSectorId?: string;
   /** UI guard only; the claim RPC independently enforces this entitlement. */
   readonly isPremium?: boolean;
-  readonly onPremiumRequired?: () => void;
   readonly onClose?: () => void;
   /**
    * Tescil sunucuda tamamlandığı AN çağrılır (sertifika henüz açıkken): ekran yıldızı hemen tanısın.
@@ -256,7 +256,6 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
   preSelectedStar,
   preSelectedSectorId,
   isPremium = false,
-  onPremiumRequired,
   onClose,
   onClaimed,
   onSuccess,
@@ -277,6 +276,9 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
   );
   // Sertifikanın Instagram hikâyesi önizlemesi ve karttaki çift monogramı / isimleri
   const [isStoryOpen, setIsStoryOpen] = useState(false);
+  // Premium değilken 'Tescille': paywall bu modalın İÇİNDE açılır (kardeş Modal arkada kalıyordu)
+  const [isPaywallOpen, setIsPaywallOpen] = useState(false);
+  const [paywallSource, setPaywallSource] = useState<'star_claim' | 'star_rename'>('star_claim');
   const couple = useStoryCouple(visible && modalState === 'certificate');
 
   // preSelectedStar varken scanning süresi kısaltılır (0.8s vs 1.5s)
@@ -412,7 +414,8 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
   // Yıldız sahiplenme tetikleyicisi
   const handleStartClaim = async () => {
     if (!isPremium) {
-      onPremiumRequired?.();
+      setPaywallSource('star_claim');
+      setIsPaywallOpen(true);
       return;
     }
     const trimmed = customName.trim();
@@ -888,9 +891,27 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                     </View>
                   ) : !isPremium ? (
                     // Kış uykusunda isim değişmez; isimlerin görünürlüğü (aşağıdaki kart) değiştirilebilir
-                    <Text style={[styles.renameLockedText, { color: theme.textMuted }]}>
-                      {t('stars.claim.renameHibernating')}
-                    </Text>
+                    <>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setPaywallSource('star_rename');
+                          setIsPaywallOpen(true);
+                        }}
+                        activeOpacity={0.8}
+                        style={[
+                          styles.renameLink,
+                          { borderColor: isLight ? 'rgba(217, 119, 6, 0.35)' : 'rgba(251, 191, 36, 0.35)' },
+                        ]}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('stars.claim.editNameA11y')}
+                      >
+                        <Pencil size={12} color={isLight ? '#B45309' : '#FBBF24'} />
+                        <Text style={[styles.renameLinkText, { color: isLight ? '#B45309' : '#FBBF24' }]}>{t('stars.claim.editName')}</Text>
+                      </TouchableOpacity>
+                      <Text style={[styles.renameLockedText, { color: theme.textMuted }]}>
+                        {t('stars.claim.renameHibernating')}
+                      </Text>
+                    </>
                   ) : isNameLocked ? (
                     <Text style={[styles.renameLockedText, { color: theme.textMuted }]}>
                       {t('stars.claim.renameLocked', { date: dayjs(nameLockedUntil as string).locale(i18n.language).format('D MMMM') })}
@@ -1008,6 +1029,12 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
         />
       ) : null}
       {/* Modal açıkken diyaloglar (ör. isim görünürlüğü onayı) kök host'un değil bu modalın içinde çizilir */}
+      <PremiumPaywall
+        visible={visible && isPaywallOpen}
+        onClose={() => setIsPaywallOpen(false)}
+        onUpgrade={onClose}
+        featureSource={paywallSource}
+      />
       <DialogHost embedded visible={visible} />
     </Modal>
   );

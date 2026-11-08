@@ -287,7 +287,8 @@ export default function LettersScreen() {
               text: t("common.discoverPremium"), 
               onPress: () => {
                 setShowWriteModal(false);
-                setShowPaywall(true);
+                // Yazma modalı kapanırken ikinci bir Modal hemen açılamaz (iOS): paywall kapanış bitince açılır
+                setTimeout(() => setShowPaywall(true), 450);
               } 
             }
           ]
@@ -303,7 +304,8 @@ export default function LettersScreen() {
   const confirmAndSave = () => {
     if (!isPremium && tokenBalance < 100) {
       setShowWriteModal(false);
-      setShowPaywall(true);
+      // Yazma modalı kapanırken ikinci bir Modal hemen açılamaz (iOS): paywall kapanış bitince açılır
+      setTimeout(() => setShowPaywall(true), 450);
       return;
     }
 

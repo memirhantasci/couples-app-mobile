@@ -24,7 +24,8 @@ import { hapticSelection, hapticSuccess, hapticWarning, hapticError } from '@/li
 import { Bell, Sparkles, X, Check, CheckCircle2, AlertCircle } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/context/ThemeContext';
-import { starService } from '../api/starService';
+import { starService, PremiumRequiredError } from '../api/starService';
+import { PremiumPaywall } from '@/components/ui/PremiumPaywall';
 import type { PendingConnectionDetail } from '../types/star.types';
 import { useTranslation } from 'react-i18next';
 import { localizeServerError } from '@/lib/serverErrors';
@@ -47,6 +48,8 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
   const { theme, isLight } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  // Premium'suz kabul: paywall bu modalın İÇİNDE açılır (kardeş Modal arkada kalırdı)
+  const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const incomingRequests = pendingRequests.filter((p) => p.is_incoming);
@@ -98,6 +101,10 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
       } catch (err: any) {
         if (Platform.OS !== 'web') {
           hapticError();
+        }
+        if (err instanceof PremiumRequiredError) {
+          setIsPaywallOpen(true);
+          return;
         }
         setFeedbackMessage({
           type: 'error',
@@ -282,6 +289,12 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
             </ScrollView>
           </View>
         </View>
+        <PremiumPaywall
+          visible={modalVisible && isPaywallOpen}
+          onClose={() => setIsPaywallOpen(false)}
+          onUpgrade={handleClose}
+          featureSource="star_connect"
+        />
       </Modal>
     </>
   );

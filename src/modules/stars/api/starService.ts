@@ -156,6 +156,11 @@ function handleSupabaseError(error: any): never {
     throw codedError('P0012', i18n.t('stars.errors.connectionExists'));
   }
 
+  // P0015: Karşı çiftin Premium'u yok; abonelik durumu açığa çıkmadan genel mesaj
+  if (error?.code === 'P0015') {
+    throw codedError('P0015', i18n.t('stars.errors.starNotAcceptingBonds'));
+  }
+
   // P0014: İstek zaten yanıtlanmış
   if (error?.code === 'P0014') {
     throw codedError('P0014', i18n.t('stars.errors.requestAnswered'));

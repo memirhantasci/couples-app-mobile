@@ -60,7 +60,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase';
-import { starService } from '../api/starService';
+import { starService, PremiumRequiredError } from '../api/starService';
+import { PremiumPaywall } from '@/components/ui/PremiumPaywall';
 import {
   PAIRING_CODE_LENGTH,
   extractPairingCode,
@@ -135,6 +136,8 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
 
   // Tekil işlem yükleniyor durumu
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  // Premium'suz bağ isteği/kabul: paywall bu modalın İÇİNDE açılır (kardeş Modal arkada kalırdı)
+  const [isPaywallOpen, setIsPaywallOpen] = useState(false);
 
   // ─── VERİ YÜKLEME ──────────────────────────────────────────────────
   // Yükleme durumunu çağıran açar (açılışta render sırasında, eylem sonrası loadData içinde);
@@ -270,6 +273,10 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
       } catch (err: any) {
         if (Platform.OS !== 'web') {
           hapticError();
+        }
+        if (err instanceof PremiumRequiredError) {
+          setIsPaywallOpen(true);
+          return false;
         }
         setErrorMessage(localizeServerError(err, t('stars.connect.errors.requestFailed')));
         return false;
@@ -417,8 +424,41 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
     [loadData, onConnectionChanged, t]
   );
 
+  // ─── GELEN İSTEĞİ KABUL / RED ──────────────────────────────────────
+  const handleRespondIncoming = useCallback(
+    async (connectionId: string, accept: boolean, starName: string) => {
+      setActionLoadingId(connectionId);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+      try {
+        await starService.respondToConnection(connectionId, accept);
+        if (Platform.OS !== 'web') {
+          hapticSuccess();
+        }
+        setSuccessMessage(
+          accept ? t('stars.connectionBadge.accepted', { starName }) : t('stars.connectionBadge.declined')
+        );
+        await loadData();
+        onConnectionChanged?.();
+      } catch (err: any) {
+        if (Platform.OS !== 'web') {
+          hapticError();
+        }
+        if (err instanceof PremiumRequiredError) {
+          setIsPaywallOpen(true);
+          return;
+        }
+        setErrorMessage(localizeServerError(err, t('stars.connect.errors.actionFailed')));
+      } finally {
+        setActionLoadingId(null);
+      }
+    },
+    [loadData, onConnectionChanged, t]
+  );
+
   const isLimitReached = activeConnections.length >= 3;
-  /** Karşı çiftin onayını bekleyen, bizim gönderdiğimiz istekler (gelenler üst çubuktaki rozetten yönetilir). */
+  const incomingPending = pendingConnections.filter((p) => p.is_incoming);
+  /** Karşı çiftin onayını bekleyen, bizim gönderdiğimiz istekler (gelenler ayrı bölümde, kabul/reddet ile yönetilir). */
   const outgoingPending = pendingConnections.filter((p) => !p.is_incoming);
   const canSubmitCode = isCompletePairingCode(friendCode) && !isLimitReached && !isConnectingByCode;
 
@@ -627,6 +667,66 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
             extraScrollHeight={24}
             keyboardShouldPersistTaps="handled"
           >
+            {/* ─── GELEN İSTEKLER: her sekmede en üstte, kabul / reddet ─── */}
+            {hasLoaded && incomingPending.length > 0 && (
+              <View style={styles.pendingSection}>
+                <View style={styles.sectionHeaderRow}>
+                  <Sparkles size={15} color={isLight ? '#B45309' : '#FBBF24'} />
+                  <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+                    {t('stars.connect.incomingTitle', { incomingPendingCount: incomingPending.length })}
+                  </Text>
+                </View>
+                {incomingPending.map((request) => {
+                  const isActionLoading = actionLoadingId === request.connection_id;
+                  return (
+                    <View
+                      key={request.connection_id}
+                      style={[styles.incomingCard, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder }]}
+                    >
+                      <Text style={[styles.incomingPromptText, { color: theme.text }]}>
+                        <Text style={styles.incomingStarName}>“{request.other_star_name}”</Text>
+                        {request.other_owner_label ? ` (${request.other_owner_label})` : ''}{' '}
+                        {t('stars.connectionBadge.wantsToConnect')}
+                      </Text>
+                      <Text style={[styles.pendingHintText, { color: theme.textMuted }]}>
+                        {t('stars.connectionBadge.namesNote')}
+                      </Text>
+                      <View style={styles.incomingActions}>
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          disabled={isActionLoading}
+                          onPress={() => handleRespondIncoming(request.connection_id, true, request.other_star_name)}
+                          style={styles.incomingAcceptBtn}
+                        >
+                          {isActionLoading ? (
+                            <ActivityIndicator size="small" color="#FFFFFF" />
+                          ) : (
+                            <Text style={styles.incomingAcceptText}>{t('stars.connectionBadge.accept')}</Text>
+                          )}
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          disabled={isActionLoading}
+                          onPress={() => handleRespondIncoming(request.connection_id, false, request.other_star_name)}
+                          style={[
+                            styles.incomingRejectBtn,
+                            {
+                              backgroundColor: isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.08)',
+                              borderColor: theme.cardBorder,
+                            },
+                          ]}
+                        >
+                          <Text style={[styles.incomingRejectText, { color: theme.textSecondary }]}>
+                            {t('stars.connectionBadge.decline')}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
             {isLoading && !hasLoaded ? (
               <View style={styles.loadingBox}>
                 <ActivityIndicator size="large" color={theme.accent} />
@@ -1066,6 +1166,12 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
         </View>
       </KeyboardAvoidingView>
       {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
+      <PremiumPaywall
+        visible={visible && isPaywallOpen}
+        onClose={() => setIsPaywallOpen(false)}
+        onUpgrade={onClose}
+        featureSource="star_connect"
+      />
       <DialogHost embedded visible={visible} />
     </Modal>
   );
@@ -1287,6 +1393,50 @@ const styles = StyleSheet.create({
   },
   pendingSection: {
     gap: 10,
+  },
+  incomingCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 14,
+    gap: 8,
+  },
+  incomingPromptText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  incomingStarName: {
+    color: '#FBBF24',
+    fontWeight: '700',
+  },
+  incomingActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 2,
+  },
+  incomingAcceptBtn: {
+    flex: 1,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#D97706',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  incomingAcceptText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  incomingRejectBtn: {
+    height: 38,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  incomingRejectText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   pendingHintText: {
     fontSize: 11.5,

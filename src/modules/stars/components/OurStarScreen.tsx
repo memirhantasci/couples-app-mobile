@@ -1157,10 +1157,6 @@ export const OurStarScreen: React.FC = () => {
     refreshMyBrightness();
   }, [isDemoMode, showToast, refreshMyBrightness, t]);
 
-  const handleExoplanetPremiumRequired = useCallback(() => {
-    handlePremiumAction('exoplanet_view', () => {});
-  }, [handlePremiumAction]);
-
   // ─── SEÇİLEN BAĞLI YILDIZIN GERÇEK IŞIĞI ────────────────────────────
   // Gök kubbe karosu bağlı yıldızın ışığını zaten taşır; puanı ayrıca sorulur.
   // Bağlı olmayan yıldızlar için sunucu gerçek değeri hiç vermez (gizemli ışık).
@@ -1250,6 +1246,10 @@ export const OurStarScreen: React.FC = () => {
     } catch (err: any) {
       if (Platform.OS !== 'web') {
         hapticError();
+      }
+      if (err instanceof PremiumRequiredError) {
+        setPremiumPaywallSource('star_connect');
+        return;
       }
       showToast(localizeServerError(err, t('stars.screen.toasts.requestFailed')));
     } finally {
@@ -1681,7 +1681,7 @@ export const OurStarScreen: React.FC = () => {
         <SectorHUD
           centerRa={cameraRa}
           centerDec={cameraDec}
-          topInset={insets.top + 54}
+          topInset={insets.top + 50}
           onPress={() => setIsAtlasModalOpen(true)}
         />
       )}
@@ -2218,7 +2218,6 @@ export const OurStarScreen: React.FC = () => {
           onClaimed={handleStarClaimed}
           onSuccess={handleClaimSuccess}
           isPremium={isPremium}
-          onPremiumRequired={() => handlePremiumAction('star_claim', () => {})}
         />
       )}
 
@@ -2248,7 +2247,6 @@ export const OurStarScreen: React.FC = () => {
           onPlanetUpdated={handlePlanetUpdated}
           onPlanetDeleted={handlePlanetDeleted}
           isPremium={isPremium}
-          onPremiumRequired={handleExoplanetPremiumRequired}
         />
       )}
 

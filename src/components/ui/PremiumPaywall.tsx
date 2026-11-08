@@ -19,6 +19,8 @@ interface PremiumPaywallProps extends BasePremiumPaywallProps {
     onUseTokens: () => void;
   };
   onWatchAd?: () => void;      // Reklam izle butonu (ileride)
+  /** Yükseltme düğmesine basılınca, /paywall'a gitmeden önce: üstte açık bir modal varsa onu kapatır. */
+  onUpgrade?: () => void;
 }
 
 export function PremiumPaywall({
@@ -29,10 +31,16 @@ export function PremiumPaywall({
   featureSource = "general",
   tokenOption,
   onWatchAd,
+  onUpgrade,
 }: PremiumPaywallProps) {
   const { t } = useTranslation();
   const { theme, isLight } = useTheme();
   const router = useRouter();
+  const goUpgrade = () => {
+    onClose();
+    onUpgrade?.();
+    router.push("/paywall");
+  };
   const gold = isLight ? "#A16207" : "#E6C055";
 
   const featureCopy: Record<PremiumFeatureSource, { name: string; description: string; cta: string }> = {
@@ -45,6 +53,16 @@ export function PremiumPaywall({
       name: t("paywall.copy.starClaim.name"),
       description: t("paywall.copy.starClaim.description"),
       cta: t("paywall.copy.starClaim.cta"),
+    },
+    star_connect: {
+      name: t("paywall.copy.starConnect.name"),
+      description: t("paywall.copy.starConnect.description"),
+      cta: t("paywall.copy.starConnect.cta"),
+    },
+    star_rename: {
+      name: t("paywall.copy.starRename.name"),
+      description: t("paywall.copy.starRename.description"),
+      cta: t("paywall.copy.starRename.cta"),
     },
     exoplanet_create: {
       name: t("paywall.copy.exoplanetCreate.name"),
@@ -138,10 +156,7 @@ export function PremiumPaywall({
           {/* CTA Button */}
           <TouchableOpacity
             style={styles.ctaWrap}
-            onPress={() => {
-              onClose();
-              router.push("/paywall");
-            }}
+            onPress={goUpgrade}
             activeOpacity={0.88}
             accessibilityRole="button"
           >
@@ -155,10 +170,7 @@ export function PremiumPaywall({
             {t("paywall.cancelAnytime")}
           </Text>
           <TouchableOpacity 
-            onPress={() => {
-              onClose();
-              router.push("/paywall");
-            }}
+            onPress={goUpgrade}
             style={{ marginTop: 6 }}
           >
             <Text style={[styles.eulaLink, { color: gold }]}>

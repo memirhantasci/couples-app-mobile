@@ -78,6 +78,8 @@ import type {
 } from '../types/star.types';
 import { useTranslation } from 'react-i18next';
 import { localizeServerError } from '@/lib/serverErrors';
+import { PremiumPaywall } from '@/components/ui/PremiumPaywall';
+import type { PremiumFeatureSource } from '@/components/ui/PremiumPaywall.types';
 import type { ParseKeys, TFunction } from 'i18next';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -135,7 +137,6 @@ export interface ExoplanetModalProps {
   readonly onPlanetDeleted?: (planetId: string) => void;
   /** Second-line UI guard; all mutations are also gated by backend RPCs. */
   readonly isPremium?: boolean;
-  readonly onPremiumRequired?: () => void;
   /**
    * İnceleme modunda `selectedPlanet` yalnızca harita verisinden kurulmuş bir önizlemedir;
    * ayrıntılar (fotoğraf, hikâye, tarih) sunucudan gelene kadar düzenle/sil kapalıdır.
@@ -159,13 +160,15 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
   onPlanetUpdated,
   onPlanetDeleted,
   isPremium = false,
-  onPremiumRequired,
   isLoadingDetails = false,
 }: ExoplanetModalProps) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { session } = useAuth();
   const currentUserId = session?.user?.id ?? '';
+
+  // Premium değilken paywall bu modalın İÇİNDE açılır (kardeş Modal arkada kalıyordu)
+  const [paywallSource, setPaywallSource] = useState<PremiumFeatureSource | null>(null);
 
   // Aktif mod (Prop ile başlar, 'view' içinden 'edit'e geçebilir)
   const [activeMode, setActiveMode] = useState<'view' | 'edit' | 'create'>(mode);
@@ -214,7 +217,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
   // aşağıdaki senkronizasyon bloğu çalışmaz; form burada doldurulur.
   const startEditing = () => {
     if (!isPremium) {
-      onPremiumRequired?.();
+      setPaywallSource('exoplanet_create');
       return;
     }
     if (!selectedPlanet) return;
@@ -286,7 +289,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
 
   const handlePickPhotos = async () => {
     if (!isPremium) {
-      onPremiumRequired?.();
+      setPaywallSource('exoplanet_create');
       return;
     }
     if (totalPhotosCount >= 5) {
@@ -411,7 +414,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
   // ─── GEZEGEN OLUŞTURMA (Create Modu) ──────────────────────────────
   const handleCreatePlanet = async () => {
     if (!isPremium) {
-      onPremiumRequired?.();
+      setPaywallSource('exoplanet_create');
       return;
     }
     if (isCheckingLimit) {
@@ -510,7 +513,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
   const handleUpdatePlanet = async () => {
     if (!selectedPlanet) return;
     if (!isPremium) {
-      onPremiumRequired?.();
+      setPaywallSource('exoplanet_create');
       return;
     }
 
@@ -679,8 +682,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                 <TouchableOpacity
                   activeOpacity={0.88}
                   onPress={() => {
-                    onClose();
-                    onPremiumRequired?.();
+                    setPaywallSource('exoplanet_view');
                   }}
                   style={styles.primaryBtn}
                 >
@@ -1176,6 +1178,12 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
         )}
       </KeyboardAvoidingView>
       {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
+      <PremiumPaywall
+        visible={visible && paywallSource !== null}
+        onClose={() => setPaywallSource(null)}
+        onUpgrade={onClose}
+        featureSource={paywallSource ?? undefined}
+      />
       <DialogHost embedded visible={visible} />
     </Modal>
   );

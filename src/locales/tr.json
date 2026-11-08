@@ -1132,6 +1132,16 @@
         "name": "Bu özellik",
         "description": "Premium ile birlikte tüm özel anı alanlarına erişin."
       },
+      "starConnect": {
+        "name": "Yıldız bağı kurma",
+        "description": "Başka çiftlerin yıldızlarıyla bağ kurmak ve gelen istekleri kabul etmek için Premium gerekir.",
+        "cta": "Premium'a Geç"
+      },
+      "starRename": {
+        "name": "Yıldız adını değiştirme",
+        "description": "Yıldızınızın adını değiştirmek için Premium'u yenileyin; yıldızınız yeniden parlasın.",
+        "cta": "Premium'a Geç"
+      },
       "starClaim": {
         "name": "Yıldız sahiplenme",
         "description": "Yıldızınızı sahiplenin ve gökyüzünde birlikte parlatın.",
@@ -2372,6 +2382,7 @@
       "premiumRequired": "Bu işlem için aktif Premium üyelik gereklidir.",
       "needStar": "Bağlantı kurabilmek için önce bir yıldız sahiplenmelisiniz.",
       "maxConnections": "Maksimum 3 yıldız bağlantısı sınırına ulaşıldı.",
+      "starNotAcceptingBonds": "Bu yıldız şu an yeni bağ kabul etmiyor.",
       "connectionExists": "Bu yıldızla zaten aktif veya bekleyen bir bağlantı mevcut.",
       "requestAnswered": "Bu bağlantı isteği zaten yanıtlanmış.",
       "renameCooldown": "İsim değiştirme hakkınız henüz yenilenmedi.",
@@ -2689,6 +2700,7 @@
       "currentBonds": "Mevcut Bağlantılarımız ({{activeConnectionCount}}/3)",
       "noBonds": "Henüz başka bir çiftin yıldızıyla takımyıldızı bağınız bulunmuyor.",
       "pendingTitle": "Onay Bekleyen İsteklerimiz ({{outgoingPendingCount}})",
+      "incomingTitle": "Bize Gelen İstekler ({{incomingPendingCount}})",
       "awaiting": "Karşı çiftin onayı bekleniyor…",
       "cancelRequestA11y": "İsteği iptal et"
     },

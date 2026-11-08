@@ -44,11 +44,9 @@ export const SectorHUD: React.FC<SectorHUDProps> = ({
     [centerRa, centerDec],
   );
 
-  const raDisplay = Math.round(centerRa * 10) / 10;
-  const decDisplay = Math.round(centerDec * 10) / 10;
-  const decSign = decDisplay >= 0 ? '+' : '';
-
   const pillBg = isLight ? 'rgba(255, 255, 255, 0.92)' : 'rgba(15, 15, 25, 0.85)';
+  // Tek başına (üst çubuğun dışında) duran küçük sürüm gökyüzündeki yıldız adlarını örtmesin diye yarı saydamdır
+  const compactBg = isLight ? 'rgba(255, 255, 255, 0.55)' : 'rgba(15, 15, 25, 0.45)';
   const separatorBg = isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.18)';
 
   if (embedded) {
@@ -80,26 +78,21 @@ export const SectorHUD: React.FC<SectorHUDProps> = ({
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.7}
-      style={[styles.container, { top: topInset + 8 }]}
+      style={[styles.container, { top: topInset }]}
       accessibilityLabel={t('stars.hud.openAtlasA11y', { name: t(sector.nameKey) })}
     >
       <View
         style={[
           styles.pill,
           {
-            backgroundColor: pillBg,
+            backgroundColor: compactBg,
             borderColor: sector.themeColor + (isLight ? '90' : '60'),
           },
         ]}
       >
-        <Compass size={13} color={sector.themeColor} strokeWidth={2.2} />
-        <Text style={styles.sectorSymbol}>{sector.symbol}</Text>
-        <Text style={[styles.sectorName, { color: sector.themeColor }]}>
+        <Text style={styles.compactSymbol}>{sector.symbol}</Text>
+        <Text style={[styles.compactName, { color: sector.themeColor }]} numberOfLines={1}>
           {t(sector.nameKey)}
-        </Text>
-        <View style={[styles.coordSeparator, { backgroundColor: separatorBg }]} />
-        <Text style={[styles.coords, { color: theme.textSecondary }]}>
-          {raDisplay}° / {decSign}{decDisplay}°
         </Text>
       </View>
     </TouchableOpacity>
@@ -116,14 +109,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 20,
-    borderWidth: 1.2,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    gap: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    gap: 4,
+  },
+  compactSymbol: {
+    fontSize: 11,
+  },
+  compactName: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   embeddedPill: {
     flexDirection: 'row',
