@@ -61,3 +61,6 @@ eas.json
 supabase/.temp/
 *.log
 couplesky-*.json
+
+# Gizli anahtarlar (asla commit'leme)
+.secrets/
