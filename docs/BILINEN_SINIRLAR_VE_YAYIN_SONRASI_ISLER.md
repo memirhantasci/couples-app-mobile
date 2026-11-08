@@ -15,8 +15,7 @@ Bitmeyenler:
   (App ID `app.couplesky.mobile`), sonra `supabase secrets set APPLE_TEAM_ID=VN8ZPYP3B7 APPLE_KEY_ID=<KeyID> APPLE_PRIVATE_KEY="$(cat AuthKey_XXXX.p8)"`.
   Test: Apple ile giriş yap, `apple_auth_tokens`'ta satır oluştuğunu gör, hesabı sil, Apple Kimliği ayarlarında uygulamanın kalktığını doğrula.
 - **Depo gizliliği:** GitHub deposu `memirhantasci/couples-app-mobile` herkese açıksa private yap; geçmişte `.env` ve
-  `google-services.json` var. Sohbette görünen RevenueCat `sk_` anahtarını yenile.
-  (Google Cloud Maps ve Firebase Android anahtarları 2026-11-08'de paket adı + SHA-1 ile kısıtlandı; Play imza SHA-1'i Firebase'e eklendi.)
+  `google-services.json` var. (Google Cloud Maps ve Firebase Android anahtarları 2026-11-08'de paket adı + SHA-1 ile kısıtlandı; Play imza SHA-1'i Firebase'e eklendi.)
 - **Supabase panel (kod dışı, durumu doğrulanamadı):** minimum şifre 8, Site URL ve `couplesapp://` yönlendirmeleri, özel SMTP +
   OTP şablonunda `{{ .Token }}`, günlük yedek (Pro plan), sızdırılmış şifre koruması.
 - **E-posta (kod dışı):** destek@ ve support@couplesky.app kutuları; alan adına SPF, DKIM, DMARC (OTP ve destek postası spama düşmesin).
