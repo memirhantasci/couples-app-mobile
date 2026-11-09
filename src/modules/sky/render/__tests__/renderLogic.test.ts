@@ -1,5 +1,8 @@
 /// <reference types="jest" />
+import * as Astronomy from "astronomy-engine";
+
 import { computeSky } from "../../astronomy";
+import { projectHorizontal } from "../../astronomy/projection";
 import { SKY_STAR_NAMES } from "../../data/skyStarNames.data";
 import { CHART_BAND, CHART_CENTER, CHART_HORIZON_RADIUS, directionMarkers } from "../chartGeometry";
 import { MAX_STAR_LABELS, placeStarLabels, type LabelStar } from "../labelPlacement";
@@ -198,14 +201,92 @@ describe("Ay evresi çizimi", () => {
     expect(moonShape(0, 0, 10, 0.8, false).litPath).toBe("M 0 -10 A 10 10 0 0 0 0 10 A 6.000000000000001 10 0 0 0 0 -10 Z");
   });
 
-  it("güney yarım kürede yön terstir", () => {
-    expect(moonShape(0, 0, 10, 0.3, true, true).litOnRight).toBe(false);
-    expect(moonShape(0, 0, 10, 0.3, false, true).litOnRight).toBe(true);
+  it("aydınlık yan yarım küreye bağlı değildir: imzada hemisfer yoktur", () => {
+    expect(moonShape.length).toBe(5);
   });
 
   it("aralık dışı aydınlanma sıkıştırılır", () => {
     expect(moonShape(0, 0, 10, -1, true).kind).toBe("none");
     expect(moonShape(0, 0, 10, 2, true).kind).toBe("full");
+  });
+});
+
+describe("Ay'ın aydınlık yanı Güneş'e dönüktür (astronomy-engine ile bağımsız doğrulama)", () => {
+  type Vector = [number, number, number];
+  const DEG = Math.PI / 180;
+  const unit = (altitude: number, azimuth: number): Vector => [Math.cos(altitude * DEG) * Math.cos(azimuth * DEG), Math.cos(altitude * DEG) * Math.sin(azimuth * DEG), Math.sin(altitude * DEG)];
+  const chartX = ([north, east, up]: Vector) => projectHorizontal(Math.asin(up) / DEG, Math.atan2(east, north) / DEG).x;
+
+  const horizonOf = (body: Astronomy.Body, date: Date, observer: Astronomy.Observer) => {
+    const equator = Astronomy.Equator(body, date, observer, true, true);
+    return Astronomy.Horizon(date, observer, equator.ra, equator.dec);
+  };
+
+  /** Haritada Ay'dan Güneş'e giden büyük çemberin başlangıç yönünün yatay bileşeni: artıysa Güneş sağ taraftadır. */
+  function towardSunX(date: Date, latitude: number, longitude: number): { x: number; moonAltitude: number } {
+    const observer = new Astronomy.Observer(latitude, longitude, 0);
+    const moon = horizonOf(Astronomy.Body.Moon, date, observer);
+    const sun = horizonOf(Astronomy.Body.Sun, date, observer);
+    const m = unit(moon.altitude, moon.azimuth);
+    const s = unit(sun.altitude, sun.azimuth);
+    const cos = m[0] * s[0] + m[1] * s[1] + m[2] * s[2];
+    const toward: Vector = [s[0] - cos * m[0], s[1] - cos * m[1], s[2] - cos * m[2]];
+    const size = Math.hypot(...toward);
+    const raw: Vector = [m[0] + (0.01 * toward[0]) / size, m[1] + (0.01 * toward[1]) / size, m[2] + (0.01 * toward[2]) / size];
+    const length = Math.hypot(...raw);
+    return { x: chartX([raw[0] / length, raw[1] / length, raw[2] / length]) - chartX(m), moonAltitude: moon.altitude };
+  }
+
+  const PLACES = [
+    { label: "İstanbul", latitude: 41.0082, longitude: 28.9784 },
+    { label: "New York", latitude: 40.7128, longitude: -74.006 },
+    { label: "Sidney", latitude: -33.8688, longitude: 151.2093 },
+    { label: "Cape Town", latitude: -33.92, longitude: 18.42 },
+    { label: "Santiago", latitude: -33.45, longitude: -70.67 },
+  ];
+
+  it.each(PLACES)("$label: büyüyen ve küçülen Ay'da gerçek motorla aydınlık yan Güneş tarafında", ({ latitude, longitude }) => {
+    const seen = { waxing: 0, waning: 0 };
+    // Küçülen Ay gece geç doğar: sabaha karşı da bakılır
+    for (const time of ["22:00", "04:00"]) {
+      for (let day = 0; day < 120; day += 2) {
+        const date = new Date(Date.UTC(2025, 0, 1 + day)).toISOString().slice(0, 10);
+        const sky = computeSky({ latitude, longitude, date, time });
+        const { illumination, waxing, altitude } = sky.moon;
+        if (altitude < 15 || illumination < 0.1 || illumination > 0.9) continue;
+        const { x, moonAltitude } = towardSunX(new Date(sky.utcIso), latitude, longitude);
+        expect(Math.abs(moonAltitude - altitude)).toBeLessThan(2); // iki motor aynı Ay'a bakıyor
+        expect(moonShape(0, 0, 10, illumination, waxing).litOnRight).toBe(x > 0);
+        seen[waxing ? "waxing" : "waning"]++;
+      }
+    }
+    expect(seen.waxing).toBeGreaterThan(2);
+    expect(seen.waning).toBeGreaterThan(2);
+  });
+
+  it("iki yıl boyunca, iki yarım kürede kural neredeyse her saatte doğrudur; eski hemisfer kuralı güneyde yanlıştı", () => {
+    const score = { north: [0, 0], south: [0, 0], southOld: [0, 0] };
+    const start = Date.UTC(2024, 0, 1);
+    for (const { latitude, longitude } of PLACES) {
+      for (let step = 0; step < 730; step++) {
+        const date = new Date(start + step * 24 * 3600 * 1000 + 3 * 3600 * 1000 * (step % 8));
+        const { x, moonAltitude } = towardSunX(date, latitude, longitude);
+        if (moonAltitude <= 0) continue;
+        const phase = Astronomy.MoonPhase(date);
+        const illumination = (1 - Math.cos(phase * DEG)) / 2;
+        if (illumination < 0.01 || illumination > 0.99) continue;
+        const waxing = phase < 180;
+        const correct = moonShape(0, 0, 10, illumination, waxing).litOnRight === x > 0;
+        const bucket = latitude < 0 ? score.south : score.north;
+        bucket[correct ? 0 : 1]++;
+        if (latitude < 0) score.southOld[(waxing !== true) === x > 0 ? 0 : 1]++;
+      }
+    }
+    const ratio = ([good, bad]: number[]) => good / (good + bad);
+    if (process.env.SKY_REPORT) console.log(`Ay limbi: ${JSON.stringify({ north: ratio(score.north), south: ratio(score.south), southOld: ratio(score.southOld) })}`);
+    expect(ratio(score.north)).toBeGreaterThan(0.95);
+    expect(ratio(score.south)).toBeGreaterThan(0.95);
+    expect(ratio(score.southOld)).toBeLessThan(0.1);
   });
 });
 

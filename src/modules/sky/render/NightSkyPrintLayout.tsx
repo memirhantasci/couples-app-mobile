@@ -24,11 +24,10 @@ export interface NightSkyPrintLayoutProps {
   highlight?: SkyChartHighlight;
   /** "Yıldızımız" cümlesi; boşsa satır kalkar */
   starLine?: string | null;
-  southern?: boolean;
 }
 
 /** 3:4 baskı düzeni (Premium): indirme çağrısı yok, altta yalnızca küçük veri atfı. */
-export function NightSkyPrintLayout({ width, cardRef, sky, dateLine, placeName, names, title, subtitle, highlight, starLine, southern }: NightSkyPrintLayoutProps) {
+export function NightSkyPrintLayout({ width, cardRef, sky, dateLine, placeName, names, title, subtitle, highlight, starLine }: NightSkyPrintLayoutProps) {
   const { t } = useTranslation();
   const { chartLabels, moonLine } = usePosterTexts(sky.moon);
   const place = cleanLine(placeName);
@@ -58,7 +57,7 @@ export function NightSkyPrintLayout({ width, cardRef, sky, dateLine, placeName, 
         ) : null}
 
         <View style={{ marginTop: s(rows.chart.marginTop) }}>
-          <SkyChart sky={sky} size={s(layout.chartSize)} labels={chartLabels} highlight={highlight} southern={southern} />
+          <SkyChart sky={sky} size={s(layout.chartSize)} labels={chartLabels} highlight={highlight} />
         </View>
 
         <PosterLine width={lineWidth} height={s(rows.date.height)} marginTop={s(rows.date.marginTop)} fontSize={s(11)} fontFamily="Inter_600SemiBold" color={GOLD.ink} letterSpacing={s(0.5)}>

@@ -231,8 +231,33 @@ describe("uyarı seçimi", () => {
     expect(selectWarnings(base)).toEqual([]);
   });
 
-  it("gece olmayan her alacakaranlık evresi 'daylight' verir", () => {
-    for (const twilight of ["day", "civil", "nautical", "astronomical"] as const) expect(selectWarnings(withPatch({ twilight }))).toEqual(["daylight"]);
+  it("kademeler: gündüz/sivil güçlü, deniz yumuşak, astronomik/gece uyarısız", () => {
+    expect(selectWarnings(withPatch({ twilight: "day" }))).toEqual(["daylight"]);
+    expect(selectWarnings(withPatch({ twilight: "civil" }))).toEqual(["daylight"]);
+    expect(selectWarnings(withPatch({ twilight: "nautical" }))).toEqual(["twilight"]);
+    expect(selectWarnings(withPatch({ twilight: "astronomical" }))).toEqual([]);
+    expect(selectWarnings(withPatch({ twilight: "night" }))).toEqual([]);
+  });
+
+  it("gerçek motor: İstanbul'da yaz akşamı 22:00 astronomik alacakaranlıktır ve uyarı çıkmaz", () => {
+    const summer = computeSky({ latitude: 41.0082, longitude: 28.9784, date: "2025-06-21", time: "22:00" });
+    expect(summer.sun.twilight).toBe("astronomical");
+    expect(selectWarnings(summer)).toEqual([]);
+  });
+
+  it("gerçek motor: İstanbul'da 2025 boyunca 22:00'de hiç gündüz uyarısı çıkmaz, yanlış uyarı kalkar", () => {
+    const counts: Record<string, number> = { day: 0, civil: 0, nautical: 0, astronomical: 0, night: 0 };
+    let warned = 0;
+    for (let day = 0; day < 365; day++) {
+      const date = formatYmd(new Date(2025, 0, 1 + day));
+      const sky = computeSky({ latitude: 41.0082, longitude: 28.9784, date, time: "22:00" });
+      counts[sky.sun.twilight]++;
+      if (selectWarnings(sky).length > 0) warned++;
+    }
+    if (process.env.SKY_REPORT) console.log(`İstanbul 22:00, 2025: ${JSON.stringify(counts)}; yeni uyarı ${warned} gün`);
+    expect(counts.day + counts.civil).toBe(0);
+    expect(counts.astronomical).toBeGreaterThan(80); // eski kuralın yanlış uyarı verdiği günler
+    expect(warned).toBe(counts.nautical);
   });
 
   it("gerçek öğle saati", () => {

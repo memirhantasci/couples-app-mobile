@@ -343,7 +343,6 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
                       width={Math.min(windowWidth - 64, 250)}
                       sky={computed.sky}
                       dateLine={dateLine}
-                      place={place}
                       placeName={posterPlaceName}
                       names={couple.names}
                       title={premiumTitle}
@@ -497,7 +496,6 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
               title={premiumTitle}
               highlight={highlight}
               starLine={starLine}
-              southern={place.latitude < 0}
             />
           )}
         />
@@ -507,7 +505,7 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
         <PrintSharePreview
           visible={showPrint}
           onClose={() => setShowPrint(false)}
-          layout={{ sky: computed.sky, dateLine, placeName: posterPlaceName, names: couple.names, title: premiumTitle, highlight, starLine, southern: place.latitude < 0 }}
+          layout={{ sky: computed.sky, dateLine, placeName: posterPlaceName, names: couple.names, title: premiumTitle, highlight, starLine }}
         />
       ) : null}
     </Modal>
@@ -515,9 +513,9 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
 }
 
 /** Önizleme adımındaki küçük kart (paylaşılan görsel StorySharePreview'dakidir). */
-function NightSkyCard({ width, sky, dateLine, place, placeName, names, title, highlight, starLine }: { width: number; sky: SkyResult; dateLine: string; place: SkyPlace; placeName: string | null; names: string | null; title: string | null; highlight?: SkyChartHighlight; starLine: string | null }) {
+function NightSkyCard({ width, sky, dateLine, placeName, names, title, highlight, starLine }: { width: number; sky: SkyResult; dateLine: string; placeName: string | null; names: string | null; title: string | null; highlight?: SkyChartHighlight; starLine: string | null }) {
   const cardRef = useRef<View>(null);
-  return <NightSkyStoryCard width={width} cardRef={cardRef} sky={sky} dateLine={dateLine} placeName={placeName} names={names} title={title} highlight={highlight} starLine={starLine} southern={place.latitude < 0} />;
+  return <NightSkyStoryCard width={width} cardRef={cardRef} sky={sky} dateLine={dateLine} placeName={placeName} names={names} title={title} highlight={highlight} starLine={starLine} />;
 }
 
 function Heading({ title, hint, color, muted }: { title: string; hint: string; color: string; muted: string }) {

@@ -26,12 +26,11 @@ export interface NightSkyStoryCardProps {
   highlight?: SkyChartHighlight;
   /** "Yıldızımız" cümlesi; boşsa satır kalkar */
   starLine?: string | null;
-  southern?: boolean;
   tone?: StoryTone;
 }
 
 /** 9:16 gece gökyüzü kartı. Altbilgi ve indirme çağrısı StoryCard'dandır. */
-export function NightSkyStoryCard({ width, cardRef, sky, dateLine, placeName, names, title, kicker, highlight, starLine, southern, tone = "azure" }: NightSkyStoryCardProps) {
+export function NightSkyStoryCard({ width, cardRef, sky, dateLine, placeName, names, title, kicker, highlight, starLine, tone = "azure" }: NightSkyStoryCardProps) {
   const { t } = useTranslation();
   const { chartLabels, moonLine } = usePosterTexts(sky.moon);
   const place = cleanLine(placeName);
@@ -61,7 +60,7 @@ export function NightSkyStoryCard({ width, cardRef, sky, dateLine, placeName, na
             </PosterLine>
 
             <View style={{ marginTop: s(rows.chart.marginTop) }}>
-              <SkyChart sky={sky} size={s(layout.chartSize)} labels={chartLabels} highlight={highlight} southern={southern} />
+              <SkyChart sky={sky} size={s(layout.chartSize)} labels={chartLabels} highlight={highlight} />
             </View>
 
             <PosterLine width={lineWidth} height={s(rows.date.height)} marginTop={s(rows.date.marginTop)} fontSize={s(12)} fontFamily="Inter_600SemiBold" color={GOLD.ink} letterSpacing={s(0.5)}>

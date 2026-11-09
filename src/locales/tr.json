@@ -4015,6 +4015,7 @@
       },
       "warnings": {
         "daylight": "Bu saatte gökyüzü aydınlıktı: yıldızlar çıplak gözle görünmezdi, poster yine de çizildi.",
+        "twilight": "Bu saatte alacakaranlıktı: sönük yıldızlar çıplak gözle görünmezdi, poster yine de çizildi.",
         "gap": "Seçtiğin saat o gün yaz saati geçişine denk geliyor ve o gün hiç yaşanmadı; geçişten sonraki saat kullanıldı.",
         "overlap": "Seçtiğin saat o gün yaz saati geçişinde iki kez yaşandı; ilk geçiş kullanıldı.",
         "deviceTimeZone": "Bu yerin saat dilimi bulunamadı, telefonunun saat dilimi kullanıldı; gökyüzü kayabilir."

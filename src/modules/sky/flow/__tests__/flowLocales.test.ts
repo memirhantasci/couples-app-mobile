@@ -26,7 +26,7 @@ describe("sky.flow metinleri (TR/EN)", () => {
     const flow = strings.sky.flow;
     for (const id of ["meet", "relationship", "custom"]) expect(flow.date.option[id]).toBeTruthy();
     for (const reason of ["missing", "future", "outOfRange"]) expect(flow.date.reason[reason]).toBeTruthy();
-    for (const key of ["daylight", "gap", "overlap", "deviceTimeZone"]) expect(flow.warnings[key]).toBeTruthy();
+    for (const key of ["daylight", "twilight", "gap", "overlap", "deviceTimeZone"]) expect(flow.warnings[key]).toBeTruthy();
     for (const key of ["invalidDate", "invalidTime", "invalidLocation", "outOfRange", "generic"]) expect(flow.errors[key]).toBeTruthy();
     for (const key of ["nameLabel", "namePlaceholder", "nameHint", "lastPlace", "unnamedHint"]) expect(flow.place[key]).toBeTruthy();
     expect(flow.place.lastPlace).toContain("{{name}}");

@@ -4015,6 +4015,7 @@
       },
       "warnings": {
         "daylight": "The sky was still bright at that hour: stars wouldn't have been visible to the naked eye. The poster is drawn anyway.",
+        "twilight": "It was twilight at that hour: fainter stars wouldn't have been visible to the naked eye. The poster is drawn anyway.",
         "gap": "The time you chose falls in that day's daylight-saving jump and never happened; the time after the jump was used.",
         "overlap": "The time you chose happened twice during that day's daylight-saving change; the first one was used.",
         "deviceTimeZone": "We couldn't find this place's time zone and used your phone's, so the sky may be off."

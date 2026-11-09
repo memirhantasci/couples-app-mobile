@@ -36,15 +36,13 @@ export interface SkyChartProps {
   labels: SkyChartLabels;
   /** Altın halkayla çizilecek yıldız ("yıldızımız") */
   highlight?: SkyChartHighlight;
-  /** Güney yarım kürede Ay'ın aydınlık yanı ters olur */
-  southern?: boolean;
 }
 
 /**
  * Dairesel gökyüzü. Yazılar RN `Text` ile SVG'nin üstüne biner: react-native-svg `Text` özel yazı tipini
  * platformlar arasında tutarsız çizer. Skia bilerek yok: view-shot Skia tuvalini Android'de güvenilir yakalamaz.
  */
-export function SkyChart({ sky, size, labels, highlight, southern = false }: SkyChartProps) {
+export function SkyChart({ sky, size, labels, highlight }: SkyChartProps) {
   const unit = size / CHART_VIEWBOX;
 
   const { batches, segmentsPath, placedLabels, moon, highlightPoint } = useMemo(() => {
@@ -60,10 +58,10 @@ export function SkyChart({ sky, size, labels, highlight, southern = false }: Sky
       batches: buildStarBatches(sky.stars),
       segmentsPath: buildSegmentsPath(sky.segments),
       placedLabels: placeStarLabels(sky.stars, SKY_STAR_NAMES, { obstacles, priority: highlight }),
-      moon: showMoon ? { x: moonX, y: moonY, shape: moonShape(moonX, moonY, MOON_RADIUS, sky.moon.illumination, sky.moon.waxing, southern) } : null,
+      moon: showMoon ? { x: moonX, y: moonY, shape: moonShape(moonX, moonY, MOON_RADIUS, sky.moon.illumination, sky.moon.waxing) } : null,
       highlightPoint: highlighted ? { x: toChartCoordinate(highlighted.x), y: toChartCoordinate(highlighted.y) } : null,
     };
-  }, [sky, highlight, southern]);
+  }, [sky, highlight]);
 
   const labelFontSize = LABEL_FONT_SIZE * CHART_HORIZON_RADIUS * unit;
   const directionFontSize = CHART_BAND * 0.68 * unit;

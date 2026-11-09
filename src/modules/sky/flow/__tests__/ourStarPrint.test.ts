@@ -1,9 +1,12 @@
 /// <reference types="jest" />
 import { computeSky, findStarPosition, type SkyRequest } from "../../astronomy";
-import { cleanStarLabel, describeOurStar, MAX_MAGNITUDE_DIFFERENCE, MAX_STAR_LABEL, magnitudesAgree, parseHipCode } from "../ourStar";
+import { SKY_STARS } from "../../data/skyStars.data";
+import { angularSeparationDeg, cleanStarLabel, describeOurStar, MAX_ANGULAR_SEPARATION_DEG, MAX_MAGNITUDE_DIFFERENCE, MAX_STAR_LABEL, magnitudesAgree, parseHipCode, positionsAgree } from "../ourStar";
 import { captureWithFallback, parseAttemptWidth, PRINT_SIZES, sizesAfterCrash } from "../printExport";
 
 const REQUEST: SkyRequest = { latitude: 41.0082, longitude: 28.9784, date: "2025-02-14", time: "22:00" };
+/** Sirius'un uygulamadaki konumu (demo yıldızıyla aynı) */
+const SIRIUS_POSITION = { ra: 101.2875, dec: -16.7161 };
 
 describe("yıldız kodu ayrıştırma", () => {
   it("yalnızca HIP-<pozitif tam sayı>", () => {
@@ -39,7 +42,7 @@ describe("etiket kısaltma", () => {
 });
 
 describe("cümle mantığı", () => {
-  const star = { catalog_code: "HIP-32349", custom_name: "Bizim", magnitude: -1.44 };
+  const star = { catalog_code: "HIP-32349", custom_name: "Bizim", magnitude: -1.44, ...SIRIUS_POSITION };
   const at = (altitude: number, azimuth = 180) => () => ({ altitude, azimuth, aboveHorizon: altitude > 0 });
 
   it("gece, üstte: halka ve yön", () => {
@@ -55,9 +58,14 @@ describe("cümle mantığı", () => {
     expect(result?.sentence.key).toBe("below");
   });
 
-  it.each(["day", "civil", "nautical", "astronomical"] as const)("aydınlık (%s): ayrı cümle", (twilight) => {
+  it.each(["day", "civil", "nautical"] as const)("gökyüzü kararmamış (%s): ayrı cümle", (twilight) => {
     expect(describeOurStar(star, REQUEST, twilight, at(30))?.sentence.key).toBe("aboveDaylight");
     expect(describeOurStar(star, REQUEST, twilight, at(-30))?.sentence.key).toBe("belowDaylight");
+  });
+
+  it.each(["astronomical", "night"] as const)("karanlık (%s): gündüz varyantı kullanılmaz", (twilight) => {
+    expect(describeOurStar(star, REQUEST, twilight, at(30))?.sentence.key).toBe("above");
+    expect(describeOurStar(star, REQUEST, twilight, at(-30))?.sentence.key).toBe("below");
   });
 
   it("ufkun hemen üstü 0° yazılmaz", () => {
@@ -65,7 +73,7 @@ describe("cümle mantığı", () => {
   });
 
   it("özel ad yoksa katalog adı", () => {
-    expect(describeOurStar({ catalog_code: "HIP-32349", custom_name: "  ", magnitude: -1.44 }, REQUEST, "night", at(30))?.highlight?.label).toBe("Sirius");
+    expect(describeOurStar({ ...star, custom_name: "  " }, REQUEST, "night", at(30))?.highlight?.label).toBe("Sirius");
   });
 
   it("yıldız yok, sanal, Güneş sistemi: cümle yok ve konum aranmaz", () => {
@@ -95,7 +103,7 @@ describe("cümle mantığı", () => {
 
 describe("kadir kimlik denetimi", () => {
   const at = () => ({ altitude: 30, azimuth: 180, aboveHorizon: true });
-  const sirius = (magnitude: unknown) => describeOurStar({ catalog_code: "HIP-32349", custom_name: "Bizim", magnitude }, REQUEST, "night", at);
+  const sirius = (magnitude: unknown) => describeOurStar({ catalog_code: "HIP-32349", custom_name: "Bizim", magnitude, ...SIRIUS_POSITION }, REQUEST, "night", at);
 
   it("eşik 0,15'tir", () => {
     expect(MAX_MAGNITUDE_DIFFERENCE).toBe(0.15);
@@ -127,8 +135,8 @@ describe("kadir kimlik denetimi", () => {
 
   it("kadir eksik ya da NaN ise cümle ve halka yok, konum aranmaz", () => {
     const find = jest.fn(at);
-    expect(describeOurStar({ catalog_code: "HIP-32349" }, REQUEST, "night", find)).toBeNull();
-    expect(describeOurStar({ catalog_code: "HIP-32349", magnitude: NaN }, REQUEST, "night", find)).toBeNull();
+    expect(describeOurStar({ catalog_code: "HIP-32349", ...SIRIUS_POSITION }, REQUEST, "night", find)).toBeNull();
+    expect(describeOurStar({ catalog_code: "HIP-32349", magnitude: NaN, ...SIRIUS_POSITION }, REQUEST, "night", find)).toBeNull();
     expect(find).not.toHaveBeenCalled();
   });
 
@@ -137,7 +145,95 @@ describe("kadir kimlik denetimi", () => {
   });
 
   it("uyuşmazlık aydınlık saatte de cümleyi kaldırır", () => {
-    expect(describeOurStar({ catalog_code: "HIP-32349", magnitude: 0.5 }, REQUEST, "day", at)).toBeNull();
+    expect(describeOurStar({ catalog_code: "HIP-32349", magnitude: 0.5, ...SIRIUS_POSITION }, REQUEST, "day", at)).toBeNull();
+  });
+});
+
+describe("konum kimlik denetimi", () => {
+  const at = () => ({ altitude: 30, azimuth: 180, aboveHorizon: true });
+  const real = { ra: 101.287, dec: -16.716 };
+
+  it("açısal mesafe: bilinen değerler, RA sarması ve kutup", () => {
+    expect(angularSeparationDeg(10, 20, 10, 20)).toBe(0);
+    expect(angularSeparationDeg(10, 0, 11, 0)).toBeCloseTo(1, 9);
+    expect(angularSeparationDeg(359.5, 0, 0.5, 0)).toBeCloseTo(1, 9);
+    expect(angularSeparationDeg(0, 60, 180, 60)).toBeCloseTo(60, 6);
+    expect(angularSeparationDeg(10, 90, 200, 90)).toBeCloseTo(0, 6);
+  });
+
+  it.each([
+    ["aynı konum", 101.287, -16.716, true],
+    ["kaydırılmış (0,96°, Wezen örneği)", 102.287, -16.716, true],
+    ["sınırın hemen içi", 101.287, -15.72, true],
+    ["sınırın hemen dışı", 101.287, -15.71, false],
+    ["uzak", 101.287, 40, false],
+    ["sayısal metin", "101.287", "-16.716", true],
+    ["NaN ra", NaN, -16.716, false],
+    ["NaN dec", 101.287, NaN, false],
+    ["eksik ra", undefined, -16.716, false],
+    ["null dec (0 sayılmaz)", 101.287, null, false],
+    ["boş metin", "", "", false],
+  ])("%s", (_name, ra, dec, expected) => {
+    expect(positionsAgree(ra, dec, real)).toBe(expected);
+  });
+
+  it("katalogda yoksa false", () => {
+    expect(positionsAgree(101.287, -16.716, undefined)).toBe(false);
+  });
+
+  it("kadir uyuşsa da konum uyuşmazsa ya da yoksa cümle ve halka yok, konum aranmaz", () => {
+    const find = jest.fn(at);
+    const base = { catalog_code: "HIP-32349", custom_name: "Bizim", magnitude: -1.44 };
+    expect(describeOurStar({ ...base, ra: 101.2875, dec: 10 }, REQUEST, "night", find)).toBeNull();
+    expect(describeOurStar(base, REQUEST, "night", find)).toBeNull();
+    expect(describeOurStar({ ...base, ra: NaN, dec: NaN }, REQUEST, "night", find)).toBeNull();
+    expect(find).not.toHaveBeenCalled();
+  });
+
+  describe("uygulamadaki gerçek yıldızlarla (migration verisi)", () => {
+    const { readFileSync } = jest.requireActual<{ readFileSync: (path: string, encoding: string) => string }>("fs");
+    const ROW = /\(\s*'HIP-(\d+)'\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,/g;
+    const HYG_FILE = "supabase/migrations/20261105000002_catalog_expansion_hyg_1500.sql";
+    const FILES = ["supabase/migrations/20260906_create_star_system.sql", "supabase/migrations/20260907_seed_hipparcos_stars.sql", HYG_FILE];
+    const stars = FILES.flatMap((file) =>
+      Array.from(readFileSync(file, "utf8").matchAll(ROW), (m) => ({ file, hip: Number(m[1]), ra: Number(m[2]), dec: Number(m[3]), magnitude: Number(m[4]) }))
+    );
+    const catalog = new Map(SKY_STARS.map((row) => [row[0], row]));
+    const inCatalog = stars.filter((star) => catalog.has(star.hip));
+    const magnitudePassed = inCatalog.filter((star) => magnitudesAgree(star.magnitude, catalog.get(star.hip)![3]));
+    const accepted = (star: (typeof stars)[number]) => describeOurStar({ catalog_code: `HIP-${star.hip}`, ...star }, REQUEST, "night", at) !== null;
+    const separation = (star: (typeof stars)[number]) => angularSeparationDeg(star.ra, star.dec, catalog.get(star.hip)![1], catalog.get(star.hip)![2]);
+
+    // Kadiri uyan ama konumu gerçek yıldızdan >1° uzak olan kayıtlar (inceleme bulgusu: 35'i 3°'den uzak)
+    const WRONG_STARS = [
+      8102, 10670, 12387, 12770, 17358, 17797, 18532, 19587, 20889, 24305, 28103, 30122, 42911, 43409, 45556, 49583, 49593, 51839, 57399, 70327, 71284, 71860, 74824,
+      77622, 80582, 82080, 82729, 83207, 85822, 88794, 90496, 92689, 93825, 95501, 97496, 113881, 113963,
+    ];
+
+    it("eşik 1°'dir", () => {
+      expect(MAX_ANGULAR_SEPARATION_DEG).toBe(1);
+    });
+
+    it("kadir kapısının geçirdiği yanlış yıldızlar yeniden üretilir ve konum kapısında elenir", () => {
+      expect(stars).toHaveLength(2024);
+      expect(magnitudePassed).toHaveLength(1694);
+      const rejected = magnitudePassed.filter((star) => !accepted(star)).map((star) => star.hip).sort((a, b) => a - b);
+      expect(rejected).toEqual(WRONG_STARS);
+      expect(magnitudePassed.filter((star) => separation(star) > 3)).toHaveLength(35);
+      if (process.env.SKY_REPORT) console.log(`Elenen ${rejected.length}, kalan ${magnitudePassed.length - rejected.length}`);
+    });
+
+    it("HYG genişlemesinin tamamı geçer; kaydırılmış gerçek yıldızlar geçer", () => {
+      expect(stars.filter((star) => star.file === HYG_FILE && accepted(star))).toHaveLength(1500);
+      const wezen = stars.find((star) => star.hip === 34444)!;
+      expect(separation(wezen)).toBeCloseTo(0.96, 1);
+      expect(accepted(wezen)).toBe(true);
+    });
+
+    it("kadir kapısından geçemeyen hiçbir yıldız geçmez", () => {
+      const failedMagnitude = inCatalog.filter((star) => !magnitudePassed.includes(star));
+      expect(failedMagnitude.filter(accepted)).toHaveLength(0);
+    });
   });
 });
 

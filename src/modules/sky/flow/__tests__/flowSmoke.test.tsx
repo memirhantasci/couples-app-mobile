@@ -231,7 +231,6 @@ describe("akış duman testi", () => {
       const card = root.findAllByType(NightSkyStoryCard)[0].props;
       expect(card.placeName).toBeNull();
       expect(card.dateLine).toBe("20 Mayıs 2023");
-      expect(card.southern).toBe(true); // Sidney: enlem < 0
     });
 
     it("ücretsiz: özel başlık kilitli, kart varsayılan başlıkla çizilir, dokununca paywall açılır", async () => {
@@ -270,10 +269,13 @@ describe("akış duman testi", () => {
       expect(root.findAllByType(NightSkyStoryCard)[0].props.highlight).toBeUndefined();
       mockStar = { catalog_code: "VIRT-ORI-1-ABC", custom_name: "Sanal" };
       expect((await toPreview(false)).findAllByType(NightSkyStoryCard)[0].props.starLine).toBeNull();
-      mockStar = { catalog_code: "HIP-11767", custom_name: "Bizim", magnitude: 1.97 };
+      const polaris = { catalog_code: "HIP-11767", custom_name: "Bizim", magnitude: 1.97, ra: 37.946, dec: 89.264 };
+      mockStar = polaris;
       const withStar = (await toPreview(false)).findAllByType(NightSkyStoryCard)[0].props;
       expect(withStar.starLine).toMatch(/^sky\.poster\.star\./);
-      mockStar = { catalog_code: "HIP-11767", custom_name: "Bizim", magnitude: 4 };
+      mockStar = { ...polaris, magnitude: 4 };
+      expect((await toPreview(false)).findAllByType(NightSkyStoryCard)[0].props.starLine).toBeNull();
+      mockStar = { ...polaris, dec: 60 };
       expect((await toPreview(false)).findAllByType(NightSkyStoryCard)[0].props.starLine).toBeNull();
       mockStar = undefined;
     });

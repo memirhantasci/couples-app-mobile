@@ -1,4 +1,4 @@
-import { SkyInputError, type SkyInputErrorCode, type SkyRequest, type SkyResult } from "../astronomy";
+import { SkyInputError, type SkyInputErrorCode, type SkyRequest, type SkyResult, type SkyTwilight } from "../astronomy";
 import { shortenPlaceName } from "./placeName";
 
 export { cleanPlaceName, MAX_PLACE_NAME, shortenPlaceName } from "./placeName";
@@ -169,7 +169,18 @@ export function formatDateLine(date: string, time: string, timeKnown: boolean, f
 
 // ─── Doğruluk uyarıları ───────────────────────────────────────────────────────
 
-export type SkyWarningKey = "daylight" | "gap" | "overlap" | "deviceTimeZone";
+export type SkyWarningKey = "daylight" | "twilight" | "gap" | "overlap" | "deviceTimeZone";
+
+export type SkyDarkness = "bright" | "dim" | "dark";
+
+/**
+ * Yıldız görmek açısından gökyüzü: gündüz ve sivil alacakaranlık aydınlıktır, deniz alacakaranlığında sönük yıldızlar
+ * görünmez, astronomik alacakaranlık (−12°…−18°) çıplak göz için zaten karanlık gece sayılır.
+ */
+export function skyDarkness(twilight: SkyTwilight): SkyDarkness {
+  if (twilight === "day" || twilight === "civil") return "bright";
+  return twilight === "nautical" ? "dim" : "dark";
+}
 
 /** Motor sonucundan gösterilecek uyarılar; sıra sabit (en önemli önce). */
 export function selectWarnings(result: SkyResult): SkyWarningKey[] {
@@ -177,7 +188,9 @@ export function selectWarnings(result: SkyResult): SkyWarningKey[] {
   if (result.timeZoneSource === "device") warnings.push("deviceTimeZone");
   if (result.timeAmbiguity === "gap") warnings.push("gap");
   if (result.timeAmbiguity === "overlap") warnings.push("overlap");
-  if (result.sun.twilight !== "night") warnings.push("daylight");
+  const darkness = skyDarkness(result.sun.twilight);
+  if (darkness === "bright") warnings.push("daylight");
+  if (darkness === "dim") warnings.push("twilight");
   return warnings;
 }
 
