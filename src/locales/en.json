@@ -3978,11 +3978,15 @@
       },
       "place": {
         "question": "Where were you?",
-        "hint": "A city is enough, no address needed. The place stays on this phone only; it isn't saved online or shared.",
+        "hint": "A city is enough, no address needed. The place you pick isn't sent to our servers; only the place name below appears on the poster.",
         "pick": "Pick a place on the map",
         "change": "Tap to change the place",
         "unnamed": "Place selected",
         "unnamedHint": "No place name: the poster won't show a place line",
+        "nameLabel": "Place name on the poster",
+        "namePlaceholder": "E.g. Paris, France",
+        "nameHint": "This name appears on the image you share. Leave it blank to hide the place line.",
+        "lastPlace": "Last time: {{name}}",
         "mapTitle": "Where were you?"
       },
       "time": {

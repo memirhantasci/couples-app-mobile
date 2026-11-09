@@ -28,6 +28,10 @@ describe("sky.flow metinleri (TR/EN)", () => {
     for (const reason of ["missing", "future", "outOfRange"]) expect(flow.date.reason[reason]).toBeTruthy();
     for (const key of ["daylight", "gap", "overlap", "deviceTimeZone"]) expect(flow.warnings[key]).toBeTruthy();
     for (const key of ["invalidDate", "invalidTime", "invalidLocation", "outOfRange", "generic"]) expect(flow.errors[key]).toBeTruthy();
+    for (const key of ["nameLabel", "namePlaceholder", "nameHint", "lastPlace", "unnamedHint"]) expect(flow.place[key]).toBeTruthy();
+    expect(flow.place.lastPlace).toContain("{{name}}");
+    expect(flow.place.hint).not.toMatch(/yalnızca bu telefonda|only on this phone|stays on this phone/i);
+    expect(flow.place.hint).toMatch(/sunucumuza gönderilmez|isn't sent to our servers/);
     expect(flow.stepOf).toContain("{{current}}");
     expect(flow.stepOf).toContain("{{total}}");
     expect(flow.time.unknownNote).toContain("{{time}}");

@@ -55,6 +55,18 @@ describe("render duman testi", () => {
     expect(textsOf(empty)).toHaveLength(full.length - 2);
   });
 
+  it("yer adı yoksa iki düzende de yer satırı çizilmez", () => {
+    const base = { width: 300, cardRef: createRef<View>(), sky, dateLine: "x" };
+    const storyWith = textsOf(render(<NightSkyStoryCard {...base} placeName="Kadıköy, İstanbul" />));
+    const storyWithout = textsOf(render(<NightSkyStoryCard {...base} placeName={null} />));
+    expect(storyWith).toContain("Kadıköy, İstanbul");
+    expect(storyWithout).toHaveLength(storyWith.length - 1);
+    const printWith = textsOf(render(<NightSkyPrintLayout {...base} placeName="Kadıköy, İstanbul" />));
+    const printWithout = textsOf(render(<NightSkyPrintLayout {...base} placeName={null} />));
+    expect(printWith).toContain("Kadıköy, İstanbul");
+    expect(printWithout).toHaveLength(printWith.length - 1);
+  });
+
   it("uzun metinler tek satırda küçülür", () => {
     const longName = "Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch, Galler, Birleşik Krallık";
     const root = render(<NightSkyStoryCard width={300} cardRef={createRef<View>()} sky={sky} dateLine="x" placeName={longName} />);

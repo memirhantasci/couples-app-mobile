@@ -1,4 +1,7 @@
 import { SkyInputError, type SkyInputErrorCode, type SkyRequest, type SkyResult } from "../astronomy";
+import { shortenPlaceName } from "./placeName";
+
+export { cleanPlaceName, MAX_PLACE_NAME, shortenPlaceName } from "./placeName";
 
 // ─── Tarih ────────────────────────────────────────────────────────────────────
 
@@ -99,7 +102,6 @@ export interface SkyPlace {
 export const DEMO_SKY_PLACE: SkyPlace = { latitude: 41.0082, longitude: 28.9784, name: "İstanbul" };
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
-const MAX_PLACE_NAME = 80;
 
 export function isValidTime(value: unknown): value is string {
   return typeof value === "string" && TIME_PATTERN.test(value);
@@ -119,16 +121,18 @@ export function isValidPlace(place: { latitude: unknown; longitude: unknown }): 
   );
 }
 
-export function cleanPlaceName(name: unknown): string | null {
-  if (typeof name !== "string") return null;
-  const trimmed = name.trim().slice(0, MAX_PLACE_NAME);
-  return trimmed || null;
-}
-
-/** MapPickerModal'ın LocationData'sından yer. Geçersiz koordinatta null. */
-export function placeFromLocation(location: { latitude: number; longitude: number; locationName?: string }): SkyPlace | null {
+/**
+ * MapPickerModal'ın LocationData'sından yer. Geçersiz koordinatta null.
+ * Ad paylaşılan görsele gider: ilçe/şehir düzeyine indirilir. `unresolvedNames`, harita seçicinin adres
+ * çözülemeyince koyduğu yer tutucu metinlerdir; gerçek bir yer adı olmadıkları için posterde görünmezler.
+ */
+export function placeFromLocation(
+  location: { latitude: number; longitude: number; locationName?: string },
+  unresolvedNames: readonly string[] = []
+): SkyPlace | null {
   if (!isValidPlace(location)) return null;
-  return { latitude: location.latitude, longitude: location.longitude, name: cleanPlaceName(location.locationName) };
+  const raw = location.locationName?.trim() ?? "";
+  return { latitude: location.latitude, longitude: location.longitude, name: unresolvedNames.includes(raw) ? null : shortenPlaceName(raw) };
 }
 
 export function timeFromDate(date: Date): string {

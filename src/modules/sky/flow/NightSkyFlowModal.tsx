@@ -19,6 +19,7 @@ import { NightSkyStoryCard, type SkyChartHighlight } from "../render";
 import {
   buildDateOptions,
   buildSkyRequest,
+  cleanPlaceName,
   dateFromTime,
   DEFAULT_SKY_TIME,
   DEMO_SKY_PLACE,
@@ -27,6 +28,7 @@ import {
   formatDateLine,
   formatYmd,
   gateFor,
+  MAX_PLACE_NAME,
   MAX_TITLE_LENGTH,
   parseYmd,
   placeFromLocation,
@@ -85,6 +87,8 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
   );
   const [choice, setChoice] = useState<SkyDateChoice>(() => defaultDateChoice(options, initialDateChoice));
   const [place, setPlace] = useState<SkyPlace | null>(isDemoMode ? DEMO_SKY_PLACE : null);
+  // Koordinat saklanmadığından yer her açılışta yeniden seçilir; önceki adı yalnızca hatırlatmadır
+  const [lastPlaceName, setLastPlaceName] = useState<string | null>(null);
   const [time, setTime] = useState(DEFAULT_SKY_TIME);
   const [timeKnown, setTimeKnown] = useState(true);
   const [title, setTitle] = useState(EMPTY_SKY_PREFS.title);
@@ -103,7 +107,7 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
     let cancelled = false;
     loadSkyPrefs().then((prefs) => {
       if (cancelled) return;
-      setPlace((current) => current ?? prefs.place);
+      setLastPlaceName(prefs.placeName);
       setTime(prefs.time);
       setTimeKnown(prefs.timeKnown);
       setTitle(prefs.title);
@@ -117,6 +121,8 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
   const chosenDate = resolveChosenDate(options, choice);
   const canAdvance = step === 0 ? chosenDate !== null : step === 1 ? place !== null : true;
   const premiumTitle = effectiveTitle(title, gateFor("customTitle", user) === "allow");
+  // Kullanıcı alanı yazarken boşluk girebilsin diye durumda ham tutulur; posterin gördüğü temizlenmişidir
+  const posterPlaceName = cleanPlaceName(place?.name);
 
   // Gökyüzü yalnızca önizleme adımında hesaplanır
   const computed = useMemo<{ sky: SkyResult | null; errorKey: string | null }>(() => {
@@ -130,8 +136,8 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
 
   useEffect(() => {
     if (isDemoMode || step !== STEP_COUNT - 1 || !prefsLoaded.current) return;
-    saveSkyPrefs({ place, time, timeKnown, title });
-  }, [isDemoMode, step, place, time, timeKnown, title]);
+    saveSkyPrefs({ placeName: posterPlaceName, time, timeKnown, title });
+  }, [isDemoMode, step, posterPlaceName, time, timeKnown, title]);
 
   // Yıldız verisi akışı bekletmez: gelene kadar cümlesiz çizilir. Yıldızı olmayan çift ya da hata: cümle yok.
   const coupleId = profile?.coupleId ?? null;
@@ -256,16 +262,36 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
                 <MapPin size={22} color={theme.accent} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.optionTitle, { color: theme.text }]} numberOfLines={2}>
-                    {place ? (place.name ?? t("sky.flow.place.unnamed")) : t("sky.flow.place.pick")}
+                    {place ? t("sky.flow.place.unnamed") : t("sky.flow.place.pick")}
                   </Text>
                   {place ? (
-                    <Text style={[styles.optionSub, { color: theme.textSecondary }]}>
-                      {place.name ? t("sky.flow.place.change") : t("sky.flow.place.unnamedHint")}
+                    <Text style={[styles.optionSub, { color: theme.textSecondary }]}>{t("sky.flow.place.change")}</Text>
+                  ) : lastPlaceName ? (
+                    <Text style={[styles.optionSub, { color: theme.textSecondary }]} numberOfLines={2}>
+                      {t("sky.flow.place.lastPlace", { name: lastPlaceName })}
                     </Text>
                   ) : null}
                 </View>
                 {place ? <Check size={18} color={theme.accent} /> : null}
               </TouchableOpacity>
+              {place ? (
+                <>
+                  <View style={[styles.option, card]}>
+                    <TextInput
+                      value={place.name ?? ""}
+                      onChangeText={(text) => setPlace((current) => (current ? { ...current, name: text.slice(0, MAX_PLACE_NAME) } : current))}
+                      maxLength={MAX_PLACE_NAME}
+                      placeholder={t("sky.flow.place.namePlaceholder")}
+                      placeholderTextColor={muted}
+                      accessibilityLabel={t("sky.flow.place.nameLabel")}
+                      style={[styles.input, { color: theme.text }]}
+                    />
+                  </View>
+                  <Text style={[styles.note, { color: theme.textSecondary }]}>
+                    {posterPlaceName ? t("sky.flow.place.nameHint") : t("sky.flow.place.unnamedHint")}
+                  </Text>
+                </>
+              ) : null}
             </>
           )}
 
@@ -318,6 +344,7 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
                       sky={computed.sky}
                       dateLine={dateLine}
                       place={place}
+                      placeName={posterPlaceName}
                       names={couple.names}
                       title={premiumTitle}
                       highlight={highlight}
@@ -407,9 +434,10 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
         visible={showMap}
         onClose={() => setShowMap(false)}
         title={t("sky.flow.place.mapTitle")}
-        initialLocation={place ? { latitude: place.latitude, longitude: place.longitude, locationName: place.name ?? undefined } : undefined}
+        initialLocation={place ? { latitude: place.latitude, longitude: place.longitude, locationName: posterPlaceName ?? undefined } : undefined}
         onSelectLocation={(location) => {
-          const next = placeFromLocation(location);
+          // Harita seçici bu metinleri "adres çözülemedi" anlamında koyar; ekranda kalır, postere gitmez
+          const next = placeFromLocation(location, [t("map.picker.selected"), t("map.picker.markedPoint"), t("map.customLocation")]);
           if (next) setPlace(next);
           setShowMap(false);
         }}
@@ -464,7 +492,7 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
               cardRef={cardRef}
               sky={computed.sky as SkyResult}
               dateLine={dateLine}
-              placeName={place.name}
+              placeName={posterPlaceName}
               names={couple.names}
               title={premiumTitle}
               highlight={highlight}
@@ -479,7 +507,7 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
         <PrintSharePreview
           visible={showPrint}
           onClose={() => setShowPrint(false)}
-          layout={{ sky: computed.sky, dateLine, placeName: place.name, names: couple.names, title: premiumTitle, highlight, starLine, southern: place.latitude < 0 }}
+          layout={{ sky: computed.sky, dateLine, placeName: posterPlaceName, names: couple.names, title: premiumTitle, highlight, starLine, southern: place.latitude < 0 }}
         />
       ) : null}
     </Modal>
@@ -487,9 +515,9 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
 }
 
 /** Önizleme adımındaki küçük kart (paylaşılan görsel StorySharePreview'dakidir). */
-function NightSkyCard({ width, sky, dateLine, place, names, title, highlight, starLine }: { width: number; sky: SkyResult; dateLine: string; place: SkyPlace; names: string | null; title: string | null; highlight?: SkyChartHighlight; starLine: string | null }) {
+function NightSkyCard({ width, sky, dateLine, place, placeName, names, title, highlight, starLine }: { width: number; sky: SkyResult; dateLine: string; place: SkyPlace; placeName: string | null; names: string | null; title: string | null; highlight?: SkyChartHighlight; starLine: string | null }) {
   const cardRef = useRef<View>(null);
-  return <NightSkyStoryCard width={width} cardRef={cardRef} sky={sky} dateLine={dateLine} placeName={place.name} names={names} title={title} highlight={highlight} starLine={starLine} southern={place.latitude < 0} />;
+  return <NightSkyStoryCard width={width} cardRef={cardRef} sky={sky} dateLine={dateLine} placeName={placeName} names={names} title={title} highlight={highlight} starLine={starLine} southern={place.latitude < 0} />;
 }
 
 function Heading({ title, hint, color, muted }: { title: string; hint: string; color: string; muted: string }) {

@@ -20,6 +20,7 @@ import {
   placeFromLocation,
   resolveChosenDate,
   selectWarnings,
+  shortenPlaceName,
   skyErrorKey,
   timeFromDate,
   todayString,
@@ -108,11 +109,68 @@ describe("yer ve saat", () => {
     expect(placeFromLocation({ latitude: 999, longitude: 0 })).toBeNull();
   });
 
+  it("adres çözülemeyince gelen yer tutucu postere yer adı olarak gitmez", () => {
+    const placeholders = ["Seçilen Konum", "Harita Üzerinde İşaretlenen Nokta", "Özel Konum"];
+    for (const locationName of placeholders) expect(placeFromLocation({ latitude: 41, longitude: 29, locationName }, placeholders)?.name).toBeNull();
+    expect(placeFromLocation({ latitude: 41, longitude: 29, locationName: " Seçilen Konum " }, placeholders)?.name).toBeNull();
+    expect(placeFromLocation({ latitude: 41, longitude: 29, locationName: "Kadıköy, İstanbul" }, placeholders)?.name).toBe("Kadıköy, İstanbul");
+  });
+
+  it("tam adres ilçe/şehir düzeyine iner", () => {
+    expect(placeFromLocation({ latitude: 41, longitude: 29, locationName: "Moda Caddesi No:12, Caferağa Mah., Kadıköy, İstanbul" })?.name).toBe("Kadıköy, İstanbul");
+  });
+
   it("saat biçimi ve gidiş-dönüş", () => {
     expect(isValidTime("22:00")).toBe(true);
     for (const bad of ["24:00", "9:00", "22:60", "", null, 2200]) expect(isValidTime(bad)).toBe(false);
     expect(timeFromDate(dateFromTime("07:05"))).toBe("07:05");
     expect(timeFromDate(dateFromTime("bozuk"))).toBe(DEFAULT_SKY_TIME);
+  });
+});
+
+describe("adres kısaltma", () => {
+  it.each([
+    // formatGeocodedAddress'in Türkçe çıktıları
+    ["Moda Caddesi No:12, Caferağa Mah., Kadıköy, İstanbul", "Kadıköy, İstanbul"],
+    ["Bağdat Cd. No:150/3, Kadıköy, İstanbul", "Kadıköy, İstanbul"],
+    ["Atatürk Blv. 45/7, Çankaya/Ankara", "Çankaya, Ankara"],
+    ["Galata Kulesi, Bereketzade Mah., Beyoğlu, İstanbul", "Beyoğlu, İstanbul"],
+    ["İSTİKLAL CADDESİ, BEYOĞLU", "BEYOĞLU"],
+    ["1234. Sk. No:5, Bornova, İzmir", "Bornova, İzmir"],
+    // Posta kodlu, ülkeli biçim
+    ["Caferağa, Moda Cd. No:12, 34710 Kadıköy/İstanbul, Türkiye", "Kadıköy, İstanbul"],
+    ["İstanbul, Türkiye", "İstanbul"],
+    // Yedek arama servisi "sokak, şehir" verebilir
+    ["Moda Caddesi, İstanbul", "İstanbul"],
+    ["Kadıköy, İstanbul", "Kadıköy, İstanbul"],
+    ["İstanbul", "İstanbul"],
+    // Yabancı biçimler
+    ["1600 Amphitheatre Pkwy, Amphitheatre Parkway No:1600, Santa Clara County, Mountain View, United States", "Mountain View, United States"],
+    ["221B Baker St, London NW1 6XE, UK", "London, UK"],
+    ["Hauptstraße 5, 10115 Berlin, Germany", "Berlin, Germany"],
+    ["350 5th Ave, New York, NY 10118, USA", "New York, USA"],
+    ["10 Rue de Rivoli, Rue de Rivoli No:10, 4e Arrondissement Mah., Paris, France", "Paris, France"],
+    ["Rua Augusta, São Paulo, SP, Brazil", "São Paulo, Brazil"],
+    ["Keizersgracht 1, 1015 CJ Amsterdam, Netherlands", "Amsterdam, Netherlands"],
+    // "St." şehir adının başındaysa sokak değildir
+    ["St. Louis, MO 63101, USA", "St. Louis, USA"],
+  ])("%s", (raw, expected) => {
+    expect(shortenPlaceName(raw)).toBe(expected);
+  });
+
+  it.each(["Moda Cd. No:12", "Hauptstraße 5", "Moda Cd. No:12 Kadıköy İstanbul", "", "   ", null, undefined, 42])("yalnızca sokak düzeyi ya da geçersiz: %p → null", (raw) => {
+    expect(shortenPlaceName(raw)).toBeNull();
+  });
+
+  it("kapı numarası, posta kodu hiçbir biçimde kalmaz", () => {
+    for (const raw of ["Moda Caddesi No:12, Kadıköy, İstanbul", "34710 Kadıköy, İstanbul", "Hauptstraße 5, 10115 Berlin", "221B Baker St, London NW1 6XE"]) {
+      expect(shortenPlaceName(raw)).not.toMatch(/\d/);
+    }
+  });
+
+  it("tekrar eden parça bir kez yazılır, uzun sonuç sınırlanır", () => {
+    expect(shortenPlaceName("Kadıköy, kadıköy, İstanbul")).toBe("Kadıköy, İstanbul");
+    expect(shortenPlaceName(`${"a".repeat(60)}, ${"b".repeat(60)}`)).toHaveLength(80);
   });
 });
 

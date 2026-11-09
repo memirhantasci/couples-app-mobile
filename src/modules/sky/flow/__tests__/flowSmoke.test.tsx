@@ -9,6 +9,8 @@ let mockStoredPrefs: string | null = null;
 let mockStar: Record<string, unknown> | undefined;
 const mockPrint = jest.fn((props: Record<string, unknown>) => (void props, null));
 const mockPaywall = jest.fn((props: Record<string, unknown>) => (void props, null));
+const mockMap = jest.fn((props: Record<string, unknown>) => (void props, null));
+const mockSetItem = jest.fn(async (key: string, value: string) => void [key, value]);
 
 jest.mock("@/context/AuthContext", () => ({ useAuth: () => mockAuth }));
 jest.mock("@/context/ThemeContext", () => ({
@@ -37,14 +39,14 @@ jest.mock("lucide-react-native", () => new Proxy({}, { get: (_target, name) => (
 jest.mock("@/lib/storageImages", () => ({ useStorageImage: () => null }));
 jest.mock("@/lib/textCase", () => ({ caseLocale: () => "tr" }));
 jest.mock("@/components/memories/WashiTape", () => ({ WashiTape: () => null, WASHI_COLORS: {} }));
-jest.mock("@/components/MapPickerModal", () => ({ MapPickerModal: () => null }));
+jest.mock("@/components/MapPickerModal", () => ({ MapPickerModal: (props: Record<string, unknown>) => mockMap(props) }));
 jest.mock("@/components/share/StorySharePreview", () => ({ StorySharePreview: () => null }));
 jest.mock("@/components/ui/lazyMount", () => ({ LazyDateTimePickerSheet: () => null, LazyPremiumPaywall: (props: Record<string, unknown>) => mockPaywall(props) }));
 jest.mock("@/lib/date", () => {
   jest.requireActual("dayjs/locale/tr");
   return { dayjs: jest.requireActual("dayjs") };
 });
-jest.mock("@/lib/safeStorage", () => ({ safeStorage: { getItem: async () => mockStoredPrefs, setItem: async () => {}, removeItem: async () => {} } }));
+jest.mock("@/lib/safeStorage", () => ({ safeStorage: { getItem: async () => mockStoredPrefs, setItem: (key: string, value: string) => mockSetItem(key, value), removeItem: async () => {} } }));
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key, i18n: { language: "tr" } }) }));
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -73,6 +75,12 @@ const press = (node: { props: Record<string, any> }) =>
   });
 
 const PROFILE = { meetDate: "2023-05-20", relationshipStartDate: "2023-06-01", isPremium: false };
+
+/** Harita seçicinin onayını taklit eder (2. adımda). */
+const pickOnMap = (location: { latitude: number; longitude: number; locationName?: string }) =>
+  TestRenderer.act(() => {
+    (mockMap.mock.calls.at(-1)?.[0].onSelectLocation as (value: typeof location) => void)(location);
+  });
 
 // İlk render modülleri yükler; tam paket koşusunda yük altında 5 sn aşılabiliyor
 jest.setTimeout(30000);
@@ -131,15 +139,86 @@ describe("akış duman testi", () => {
     expect(buttonByLabel(root, "sky.flow.preview.share").props.disabled).toBe(false);
   });
 
+  describe("yer adı ve gizlilik (2. adım)", () => {
+    const SYDNEY = { latitude: -33.8688, longitude: 151.2093 };
+
+    async function atPlaceStep() {
+      mockAuth = { profile: PROFILE, isDemoMode: false };
+      const { root } = await mount();
+      press(buttonByLabel(root, "sky.flow.next"));
+      return root;
+    }
+    const toLast = (root: Root) => {
+      press(buttonByLabel(root, "sky.flow.next"));
+      press(buttonByLabel(root, "sky.flow.next"));
+      return root.findAllByType(NightSkyStoryCard)[0].props;
+    };
+
+    afterEach(() => {
+      mockStoredPrefs = null;
+      mockSetItem.mockClear();
+    });
+
+    it("kayıtlı eski koordinat yüklenmez, yer yeniden seçilmeden ilerlenmez; önceki ad hatırlatılır", async () => {
+      mockStoredPrefs = JSON.stringify({ place: { ...SYDNEY, name: "Sidney" }, placeName: "Kadıköy, İstanbul", time: "21:00", timeKnown: true, title: "" });
+      const root = await atPlaceStep();
+      expect(buttonByLabel(root, "sky.flow.next").props.disabled).toBe(true);
+      expect(root.findAllByType(TextInput)).toHaveLength(0);
+      expect(texts(root)).toContain("sky.flow.place.lastPlace");
+    });
+
+    it("tam adres posterde ilçe/şehir olur ve alanda düzenlenebilir", async () => {
+      const root = await atPlaceStep();
+      pickOnMap({ ...SYDNEY, locationName: "Moda Caddesi No:12, Caferağa Mah., Kadıköy, İstanbul" });
+      expect(root.findAllByType(TextInput)[0].props.value).toBe("Kadıköy, İstanbul");
+      expect(toLast(root).placeName).toBe("Kadıköy, İstanbul");
+    });
+
+    it("kullanıcı adı değiştirirse poster onu yazar; yazarken boşluk girilebilir", async () => {
+      const root = await atPlaceStep();
+      pickOnMap({ ...SYDNEY, locationName: "Kadıköy, İstanbul" });
+      TestRenderer.act(() => root.findAllByType(TextInput)[0].props.onChangeText("İlk Buluşma "));
+      expect(root.findAllByType(TextInput)[0].props.value).toBe("İlk Buluşma ");
+      expect(toLast(root).placeName).toBe("İlk Buluşma");
+    });
+
+    it("alan boşaltılırsa poster yer satırını almaz", async () => {
+      const root = await atPlaceStep();
+      pickOnMap({ ...SYDNEY, locationName: "Kadıköy, İstanbul" });
+      TestRenderer.act(() => root.findAllByType(TextInput)[0].props.onChangeText("   "));
+      expect(texts(root)).toContain("sky.flow.place.unnamedHint");
+      expect(toLast(root).placeName).toBeNull();
+    });
+
+    it.each(["map.picker.selected", "map.picker.markedPoint", "map.customLocation"])("adres çözülemeyince gelen %s postere gitmez", async (locationName) => {
+      const root = await atPlaceStep();
+      pickOnMap({ ...SYDNEY, locationName });
+      expect(root.findAllByType(TextInput)[0].props.value).toBe("");
+      expect(toLast(root).placeName).toBeNull();
+    });
+
+    it("cihaza yazılan kayıtta koordinat yoktur", async () => {
+      const root = await atPlaceStep();
+      pickOnMap({ ...SYDNEY, locationName: "Sydney, Australia" });
+      toLast(root);
+      await TestRenderer.act(async () => {});
+      const written = mockSetItem.mock.calls.at(-1)?.[1] as string;
+      expect(written).toContain("Sydney, Australia");
+      expect(written).not.toMatch(/latitude|longitude|33\.8688|151\.2093/);
+    });
+  });
+
   describe("önizleme adımı, cihazdaki tercihle (gerçek kullanıcı)", () => {
-    const PREFS = JSON.stringify({ place: { latitude: -33.8688, longitude: 151.2093, name: null }, time: "21:00", timeKnown: false, title: "Bizim Özel Gece" });
+    const PREFS = JSON.stringify({ placeName: null, time: "21:00", timeKnown: false, title: "Bizim Özel Gece" });
 
     async function toPreview(isPremium: boolean) {
       mockStoredPrefs = PREFS;
       mockAuth = { profile: { ...PROFILE, isPremium }, isDemoMode: false };
       mockPaywall.mockClear();
       const { root } = await mount();
-      for (let i = 0; i < 3; i++) press(buttonByLabel(root, "sky.flow.next"));
+      press(buttonByLabel(root, "sky.flow.next"));
+      pickOnMap({ latitude: -33.8688, longitude: 151.2093 });
+      for (let i = 0; i < 2; i++) press(buttonByLabel(root, "sky.flow.next"));
       return root;
     }
 
@@ -147,7 +226,7 @@ describe("akış duman testi", () => {
       mockStoredPrefs = null;
     });
 
-    it("kayıtlı yer yüklenir; yer adı yoksa kart yer satırı almaz, saat bilinmiyorsa tarih satırında saat yoktur", async () => {
+    it("yer adı yoksa kart yer satırı almaz, saat bilinmiyorsa tarih satırında saat yoktur", async () => {
       const root = await toPreview(false);
       const card = root.findAllByType(NightSkyStoryCard)[0].props;
       expect(card.placeName).toBeNull();
@@ -157,7 +236,7 @@ describe("akış duman testi", () => {
 
     it("ücretsiz: özel başlık kilitli, kart varsayılan başlıkla çizilir, dokununca paywall açılır", async () => {
       const root = await toPreview(false);
-      expect(root.findAllByType(TextInput)).toHaveLength(0);
+      expect(root.findAllByType(TextInput)).toHaveLength(0); // 4. adımda yer alanı da yok
       expect(root.findAllByType(NightSkyStoryCard)[0].props.title).toBeNull();
       expect(mockPaywall.mock.calls.at(-1)?.[0]).toMatchObject({ visible: false, featureSource: "night_sky" });
       press(buttonByLabel(root, "sky.flow.preview.titleLabel"));

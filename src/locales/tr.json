@@ -3978,11 +3978,15 @@
       },
       "place": {
         "question": "Neredeydiniz?",
-        "hint": "Şehir yeterli, adres gerekmez. Yer yalnızca bu telefonda saklanır; kaydedilmez, kimseyle paylaşılmaz.",
+        "hint": "Şehir yeterli, adres gerekmez. Seçtiğin yer sunucumuza gönderilmez; posterde yalnızca aşağıdaki yer adı görünür.",
         "pick": "Haritadan yer seç",
         "change": "Yeri değiştirmek için dokun",
         "unnamed": "Konum seçildi",
         "unnamedHint": "Yer adı yok: posterde yer satırı görünmez",
+        "nameLabel": "Posterde yazacak yer adı",
+        "namePlaceholder": "Örn. Kadıköy, İstanbul",
+        "nameHint": "Bu ad paylaştığın görselde görünür. Boş bırakırsan yer satırı çıkmaz.",
+        "lastPlace": "Son seçimin: {{name}}",
         "mapTitle": "Neredeydiniz?"
       },
       "time": {

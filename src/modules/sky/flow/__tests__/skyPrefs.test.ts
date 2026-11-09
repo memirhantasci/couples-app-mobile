@@ -13,7 +13,7 @@ jest.mock("@/lib/safeStorage", () => {
   };
 });
 
-const prefs: SkyPrefs = { place: { latitude: 41.0082, longitude: 28.9784, name: "İstanbul" }, time: "23:15", timeKnown: false, title: "Bizim Gece" };
+const prefs: SkyPrefs = { placeName: "Kadıköy, İstanbul", time: "23:15", timeKnown: false, title: "Bizim Gece" };
 
 describe("gökyüzü tercihleri", () => {
   it("yazılanı geri okur", async () => {
@@ -38,20 +38,33 @@ describe("gökyüzü tercihleri", () => {
   });
 
   it("geçersiz alanlar tek tek atılır, geçerliler korunur", () => {
-    const parsed = parseSkyPrefs(JSON.stringify({ place: { latitude: 999, longitude: 0, name: "x" }, time: "25:00", timeKnown: "evet", title: 5 }));
+    const parsed = parseSkyPrefs(JSON.stringify({ placeName: 7, time: "25:00", timeKnown: "evet", title: 5 }));
     expect(parsed).toEqual(EMPTY_SKY_PREFS);
-    const partial = parseSkyPrefs(JSON.stringify({ place: { latitude: 10, longitude: 20 }, time: "bozuk", title: "Merhaba" }));
-    expect(partial.place).toEqual({ latitude: 10, longitude: 20, name: null });
+    const partial = parseSkyPrefs(JSON.stringify({ placeName: "  Moda  ", time: "bozuk", title: "Merhaba" }));
+    expect(partial.placeName).toBe("Moda");
     expect(partial.time).toBe("22:00");
     expect(partial.title).toBe("Merhaba");
   });
 
   it("uzun başlık ve yer adı sınırlanır, yabancı alanlar yok sayılır", () => {
-    const parsed = parseSkyPrefs(JSON.stringify({ title: "x".repeat(500), place: { latitude: 1, longitude: 2, name: "y".repeat(500), evil: "<script>" }, extra: true }));
+    const parsed = parseSkyPrefs(JSON.stringify({ title: "x".repeat(500), placeName: "y".repeat(500), extra: true }));
     expect(parsed.title).toHaveLength(40);
-    expect(parsed.place?.name).toHaveLength(80);
-    expect(parsed.place).not.toHaveProperty("evil");
+    expect(parsed.placeName).toHaveLength(80);
     expect(parsed).not.toHaveProperty("extra");
+  });
+
+  it("koordinat saklanmaz: yazılan kayıtta enlem/boylam yoktur", async () => {
+    await saveSkyPrefs({ ...prefs, latitude: 41.0082, longitude: 28.9784, place: { latitude: 41.0082, longitude: 28.9784 } } as SkyPrefs);
+    const written = (safeStorage.setItem as jest.Mock).mock.calls.at(-1)?.[1] as string;
+    expect(written).not.toMatch(/latitude|longitude|41\.0082|28\.9784/);
+    expect(Object.keys(JSON.parse(written)).sort()).toEqual(["placeName", "time", "timeKnown", "title"]);
+  });
+
+  it("koordinatlı eski kayıt okunurken koordinat atılır, yeniden yazılınca iz kalmaz", () => {
+    const old = JSON.stringify({ place: { latitude: 41.0082, longitude: 28.9784, name: "Moda Cd. No:12" }, time: "21:00", timeKnown: true, title: "Eski" });
+    const parsed = parseSkyPrefs(old);
+    expect(parsed).toEqual({ placeName: null, time: "21:00", timeKnown: true, title: "Eski" });
+    expect(serializeSkyPrefs(parsed)).not.toMatch(/latitude|longitude|Moda/);
   });
 
   it("depolama patlarsa akış bozulmaz", async () => {
@@ -62,7 +75,7 @@ describe("gökyüzü tercihleri", () => {
   });
 
   it("serileştirme yalnızca bilinen alanları yazar", () => {
-    expect(Object.keys(JSON.parse(serializeSkyPrefs(prefs))).sort()).toEqual(["place", "time", "timeKnown", "title"]);
+    expect(Object.keys(JSON.parse(serializeSkyPrefs(prefs))).sort()).toEqual(["placeName", "time", "timeKnown", "title"]);
   });
 
   it("çıkışta silinen anahtar AuthContext ile aynıdır", () => {

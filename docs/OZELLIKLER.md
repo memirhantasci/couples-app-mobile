@@ -100,7 +100,7 @@ Döngü takibi (`periodCycle.ts`, `toggle_period_log`), regl hatırlatıcıları
 Yıldönümüne kala altın ışıltı, 14 Şubat selamı, "Birlikte N. gün" (100'ün katları, `milestoneDays.ts`), gün sayacı ana sayfa ve widget'ta aynı kuralla (başlangıç günü 0) ✅. Dönüm noktası paylaşım kartı (`MilestoneStoryCard`) ✅. Menüdeki "Özel Günler & Yıldönümleri" öğesi ayrı bir ekran değil, `memories` ekranına gider (`menu.tsx`) ✅. 🔎 Kullanıcının kendi özel gününü ekleyebildiği bir yer görmedim; `memories.tsx` içinde kontrol et.
 
 ### 4.13b Bizim Gecemiz: gece gökyüzü posteri (`src/modules/sky`)
-Menü > Gökyüzümüz ve yıldönümü kutlamasından açılan 4 adımlı akış (tarih, yer, saat, önizleme). Seçilen gece ve yerin **gerçek** gökyüzü (HYG + Stellarium, Gökkubbe konumlarından bağımsız), Ay evresi, doğruluk uyarıları. 9:16 hikâye kartı ücretsiz; özel başlık ve 3:4 baskı dosyası Premium (`night_sky`). Çiftin yıldızı gerçek HIP koduysa altın halka ve "yıldızımız" cümlesi. Yer/saat/başlık yalnızca cihazda; sunucu yok. Tema/renk seçimi yok (ertelendi).
+Menü > Gökyüzümüz ve yıldönümü kutlamasından açılan 4 adımlı akış (tarih, yer, saat, önizleme). Seçilen gece ve yerin **gerçek** gökyüzü (HYG + Stellarium, Gökkubbe konumlarından bağımsız), Ay evresi, doğruluk uyarıları. 9:16 hikâye kartı ücretsiz; özel başlık ve 3:4 baskı dosyası Premium (`night_sky`). Çiftin yıldızı gerçek HIP koduysa altın halka ve "yıldızımız" cümlesi. Yer sunucuya gitmez, koordinat saklanmaz (her açılışta yeniden seçilir); saat, başlık ve ilçe/şehir düzeyindeki yer adı cihazda tutulur. Posterdeki yer adı 2. adımda düzenlenebilir, boşsa satır çıkmaz. Tema/renk seçimi yok (ertelendi).
 
 ### 4.14 Bizim Yıldızımız (`our-star.tsx`, `src/modules/stars`)
 En büyük modül; Skia ile çizilir. ✅ olanlar:
