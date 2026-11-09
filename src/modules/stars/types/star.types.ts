@@ -534,6 +534,17 @@ export interface SparkBroadcastPayload {
 }
 
 /**
+ * Senkron dokunuş: bir eş yıldıza basılı tutarken `star-resonance:{starId}` kanalına yarım saniyede bir
+ * `hold` olayı yayar (`holding: true`), bırakınca `holding: false` yayar. Hiçbir şey kaydedilmez.
+ */
+export interface HoldBroadcastPayload {
+  readonly starId: string;
+  readonly senderId: string;
+  readonly holding: boolean;
+  readonly timestamp: string;        // ISO 8601 UTC
+}
+
+/**
  * Eşlerin aynı anda yıldıza girmesiyle oluşan Rezonans Etkinliği.
  */
 export interface ResonanceEvent {
