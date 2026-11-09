@@ -29,7 +29,7 @@ jest.mock("@/context/ThemeContext", () => ({
 }));
 jest.mock("@tanstack/react-query", () => ({ useQuery: () => ({ data: mockStar }) }));
 jest.mock("@/modules/stars/api/starService", () => ({ getMyStarDetails: jest.fn() }));
-jest.mock("@/constants/demoData", () => ({ DEMO_STAR_DETAILS: { catalog_code: "HIP-32349", custom_name: "Demo Yıldızı" } }));
+jest.mock("@/constants/demoData", () => ({ DEMO_STAR_DETAILS: { catalog_code: "HIP-32349", custom_name: "Demo Yıldızı", magnitude: -1.46 } }));
 jest.mock("../PrintSharePreview", () => ({ PrintSharePreview: (props: Record<string, unknown>) => mockPrint(props) }));
 jest.mock("@/hooks/useStoryCouple", () => ({ useStoryCouple: () => ({ names: "Ada & Can", initials: "A & C", cover: null, myName: "Ada", partnerName: "Can" }) }));
 jest.mock("react-native-safe-area-context", () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
@@ -191,9 +191,11 @@ describe("akış duman testi", () => {
       expect(root.findAllByType(NightSkyStoryCard)[0].props.highlight).toBeUndefined();
       mockStar = { catalog_code: "VIRT-ORI-1-ABC", custom_name: "Sanal" };
       expect((await toPreview(false)).findAllByType(NightSkyStoryCard)[0].props.starLine).toBeNull();
-      mockStar = { catalog_code: "HIP-11767", custom_name: "Bizim" };
+      mockStar = { catalog_code: "HIP-11767", custom_name: "Bizim", magnitude: 1.97 };
       const withStar = (await toPreview(false)).findAllByType(NightSkyStoryCard)[0].props;
       expect(withStar.starLine).toMatch(/^sky\.poster\.star\./);
+      mockStar = { catalog_code: "HIP-11767", custom_name: "Bizim", magnitude: 4 };
+      expect((await toPreview(false)).findAllByType(NightSkyStoryCard)[0].props.starLine).toBeNull();
       mockStar = undefined;
     });
 

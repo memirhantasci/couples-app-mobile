@@ -1,6 +1,6 @@
 /// <reference types="jest" />
 import { computeSky, findStarPosition, type SkyRequest } from "../../astronomy";
-import { cleanStarLabel, describeOurStar, MAX_STAR_LABEL, parseHipCode } from "../ourStar";
+import { cleanStarLabel, describeOurStar, MAX_MAGNITUDE_DIFFERENCE, MAX_STAR_LABEL, magnitudesAgree, parseHipCode } from "../ourStar";
 import { captureWithFallback, parseAttemptWidth, PRINT_SIZES, sizesAfterCrash } from "../printExport";
 
 const REQUEST: SkyRequest = { latitude: 41.0082, longitude: 28.9784, date: "2025-02-14", time: "22:00" };
@@ -39,7 +39,7 @@ describe("etiket kısaltma", () => {
 });
 
 describe("cümle mantığı", () => {
-  const star = { catalog_code: "HIP-32349", custom_name: "Bizim" };
+  const star = { catalog_code: "HIP-32349", custom_name: "Bizim", magnitude: -1.44 };
   const at = (altitude: number, azimuth = 180) => () => ({ altitude, azimuth, aboveHorizon: altitude > 0 });
 
   it("gece, üstte: halka ve yön", () => {
@@ -65,7 +65,7 @@ describe("cümle mantığı", () => {
   });
 
   it("özel ad yoksa katalog adı", () => {
-    expect(describeOurStar({ catalog_code: "HIP-32349", custom_name: "  " }, REQUEST, "night", at(30))?.highlight?.label).toBe("Sirius");
+    expect(describeOurStar({ catalog_code: "HIP-32349", custom_name: "  ", magnitude: -1.44 }, REQUEST, "night", at(30))?.highlight?.label).toBe("Sirius");
   });
 
   it("yıldız yok, sanal, Güneş sistemi: cümle yok ve konum aranmaz", () => {
@@ -79,7 +79,7 @@ describe("cümle mantığı", () => {
   it("katalogda olmayan HIP: cümle yok (gerçek motor)", () => {
     // HIP 1 kadir 9,1: 5,5 sınırının altında ve çizgi ucu değil
     expect(findStarPosition(1, REQUEST)).toBeNull();
-    expect(describeOurStar({ catalog_code: "HIP-1" }, REQUEST, "night")).toBeNull();
+    expect(describeOurStar({ catalog_code: "HIP-1", magnitude: 9.1 }, REQUEST, "night")).toBeNull();
   });
 
   it("uçtan uca: İstanbul 2025-02-14 22:00'de Sirius üstte ve güneye yakın", () => {
@@ -90,6 +90,54 @@ describe("cümle mantığı", () => {
     expect(result.sentence.degrees).toBeLessThan(35);
     expect(["SE", "S", "SW"]).toContain(result.sentence.direction);
     expect(sky.stars.some((item) => item.hip === 32349)).toBe(true);
+  });
+});
+
+describe("kadir kimlik denetimi", () => {
+  const at = () => ({ altitude: 30, azimuth: 180, aboveHorizon: true });
+  const sirius = (magnitude: unknown) => describeOurStar({ catalog_code: "HIP-32349", custom_name: "Bizim", magnitude }, REQUEST, "night", at);
+
+  it("eşik 0,15'tir", () => {
+    expect(MAX_MAGNITUDE_DIFFERENCE).toBe(0.15);
+  });
+
+  it.each([
+    ["fark 0 (HYG genişlemesi)", 3.21, 3.21, true],
+    ["sınır +0,15", 3.36, 3.21, true],
+    ["sınır −0,15", 3.06, 3.21, true],
+    ["negatif kadirde sınır", -1.29, -1.44, true],
+    ["0,16", 3.37, 3.21, false],
+    ["HIP-25930: 4,09 ile 2,25", 4.09, 2.25, false],
+    ["NaN", NaN, 3.21, false],
+    ["sonsuz", Infinity, 3.21, false],
+    ["eksik", undefined, 3.21, false],
+    ["null (0 sayılmaz)", null, 0, false],
+    ["boş metin (0 sayılmaz)", "", 0, false],
+    ["geçersiz metin", "abc", 3.21, false],
+    ["sayısal metin", "3.21", 3.21, true],
+    ["katalogda yok", 3.21, undefined, false],
+  ])("%s", (_name, app, real, expected) => {
+    expect(magnitudesAgree(app, real as number | undefined)).toBe(expected);
+  });
+
+  it("gerçek katalogla Sirius: -1,44 çıkar, 0,5 çıkmaz", () => {
+    expect(sirius(-1.44)?.highlight?.hip).toBe(32349);
+    expect(sirius(0.5)).toBeNull();
+  });
+
+  it("kadir eksik ya da NaN ise cümle ve halka yok, konum aranmaz", () => {
+    const find = jest.fn(at);
+    expect(describeOurStar({ catalog_code: "HIP-32349" }, REQUEST, "night", find)).toBeNull();
+    expect(describeOurStar({ catalog_code: "HIP-32349", magnitude: NaN }, REQUEST, "night", find)).toBeNull();
+    expect(find).not.toHaveBeenCalled();
+  });
+
+  it("demo yıldızının kadiri (-1,46) eşik içindedir", () => {
+    expect(sirius(-1.46)).not.toBeNull();
+  });
+
+  it("uyuşmazlık aydınlık saatte de cümleyi kaldırır", () => {
+    expect(describeOurStar({ catalog_code: "HIP-32349", magnitude: 0.5 }, REQUEST, "day", at)).toBeNull();
   });
 });
 
