@@ -3942,5 +3942,30 @@
     },
     "loveMeterSubtitle": "Yeni bir eşleşmeyle sıfırdan başlar",
     "wishPartnerRequired": "Dilek tutmak için bir partnerle eşleşmen gerekiyor 💫"
+  },
+  "sky": {
+    "poster": {
+      "kicker": "O gecenin gökyüzü",
+      "defaultTitle": "Bizim Gecemiz",
+      "realSkyNote": "Poster gerçek gökyüzü konumlarını kullanır",
+      "attribution": "Yıldız verisi: HYG v4.2 (CC BY-SA 4.0) · Takımyıldızı çizgileri: Stellarium (CC BY-SA)",
+      "moonLine": "{{phase}} · %{{percent}} aydınlık",
+      "direction": {
+        "N": "K",
+        "E": "D",
+        "S": "G",
+        "W": "B"
+      },
+      "moonPhase": {
+        "new": "Yeni Ay",
+        "waxingCrescent": "Büyüyen Hilal",
+        "firstQuarter": "İlk Dördün",
+        "waxingGibbous": "Büyüyen Şişkin Ay",
+        "full": "Dolunay",
+        "waningGibbous": "Küçülen Şişkin Ay",
+        "lastQuarter": "Son Dördün",
+        "waningCrescent": "Küçülen Hilal"
+      }
+    }
   }
 }

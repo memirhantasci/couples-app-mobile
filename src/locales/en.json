@@ -3942,5 +3942,30 @@
     },
     "loveMeterSubtitle": "Starts fresh with a new pairing",
     "wishPartnerRequired": "You need to pair with a partner to make a wish 💫"
+  },
+  "sky": {
+    "poster": {
+      "kicker": "The sky that night",
+      "defaultTitle": "Our Night",
+      "realSkyNote": "This poster uses real sky positions",
+      "attribution": "Star data: HYG v4.2 (CC BY-SA 4.0) · Constellation lines: Stellarium (CC BY-SA)",
+      "moonLine": "{{phase}} · {{percent}}% illuminated",
+      "direction": {
+        "N": "N",
+        "E": "E",
+        "S": "S",
+        "W": "W"
+      },
+      "moonPhase": {
+        "new": "New Moon",
+        "waxingCrescent": "Waxing Crescent",
+        "firstQuarter": "First Quarter",
+        "waxingGibbous": "Waxing Gibbous",
+        "full": "Full Moon",
+        "waningGibbous": "Waning Gibbous",
+        "lastQuarter": "Last Quarter",
+        "waningCrescent": "Waning Crescent"
+      }
+    }
   }
 }
