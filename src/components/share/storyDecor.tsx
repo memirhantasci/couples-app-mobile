@@ -38,11 +38,7 @@ export function sparklePath(x: number, y: number, r: number): string {
   );
 }
 
-/** Sabit tohumlu sözde rastgele sayı (0..1): süsler her çizimde aynı yere düşer. */
-export function seeded(index: number, salt: number): number {
-  const x = Math.sin(index * 127.1 + salt * 311.7) * 43758.5453;
-  return x - Math.floor(x);
-}
+export { seeded } from "@/lib/seededRandom";
 
 /** Küçük altın CoupleSky işareti: kalp çizgisi ve sağ üstünde parıltı (açılış logosunun yalın hali). */
 export function GoldMark({ size }: { size: number }) {

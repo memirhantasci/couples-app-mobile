@@ -21,6 +21,7 @@ import { useTranslation } from "react-i18next";
 import { UserAvatar } from "@/components/avatar/UserAvatar";
 import { useTheme } from "@/context/ThemeContext";
 import { smoothstep } from "@/lib/bezier";
+import { seeded } from "@/lib/seededRandom";
 import { hapticHeartbeat, playCelebration } from "@/lib/soundEffects";
 
 // Skia yalnızca native modül mevcutsa yüklenir (Expo Go vb. ortamlarda çökmesin);
@@ -79,12 +80,6 @@ const DUST_COUNT = 30;
 
 const GOLD = "#F5C563";
 const PINK = "#FF85A1";
-
-/** Parçacıklar her gösterimde aynı dağılsın diye sabit tohumlu sözde rastgele sayı (0..1). */
-function seeded(index: number, salt: number): number {
-  const x = Math.sin(index * 127.1 + salt * 311.7) * 43758.5453;
-  return x - Math.floor(x);
-}
 
 export function PairingCelebrationModal({ visible, ...rest }: PairingCelebrationModalProps) {
   // İçerik yalnızca görünürken mount edilir: her gösterim sıfırdan, temiz durumla başlar
