@@ -3,6 +3,7 @@ import { dayjs, daysSince } from "@/lib/date";
 import { DEMO_MAP_LOCATIONS, DEMO_PHOTOS } from "@/constants/demoData";
 import i18n from "@/lib/i18n";
 import type { ParseKeys } from "i18next";
+import { computeCoupleArchetype, type CoupleArchetype } from "@/utils/coupleArchetype";
 
 export interface CoupleWrappedData {
   periodTitle: string; // örn. "Ekim 2024 Özeti" veya "2024 Yılı Özeti"
@@ -20,6 +21,19 @@ export interface CoupleWrappedData {
   totalLocationsCount: number;
   romanticStatement: string;
   highlightStat: string;
+  /** "Siz nasıl bir çiftsiniz?": dönemin verilerinden çıkan çift tipi (bkz. coupleArchetype.ts). */
+  archetype: CoupleArchetype;
+}
+
+/** Kayıt zamanlarının yerel saati (0-23); geçersiz tarihler atlanır. */
+function entryHoursOf(rows: readonly { created_at?: string | null }[] | null): number[] {
+  const hours: number[] = [];
+  for (const row of rows ?? []) {
+    if (!row.created_at) continue;
+    const moment = dayjs(row.created_at);
+    if (moment.isValid()) hours.push(moment.hour());
+  }
+  return hours;
 }
 
 /** Aylık özet, hesap en az bu kadar günlükse hazırlanır: yeni bir hesabın "ayı" yoktur. */
@@ -91,6 +105,7 @@ export async function computeCoupleWrapped(
       totalLocationsCount: DEMO_MAP_LOCATIONS.length || 6,
       romanticStatement: i18n.t("wrapped.demoStatement"),
       highlightStat: i18n.t("wrapped.demoHighlight"),
+      archetype: { id: "letterPoets", evidence: { key: "letters", value: 12 } },
     };
   }
 
@@ -103,13 +118,13 @@ export async function computeCoupleWrapped(
   ] = await Promise.all([
     supabase
       .from("letters")
-      .select("id")
+      .select("id, created_at")
       .eq("couple_id", coupleId)
       .gte("created_at", periodStart)
       .lte("created_at", periodEnd),
     supabase
       .from("daily_notes")
-      .select("id")
+      .select("id, created_at")
       .eq("couple_id", coupleId)
       .gte("created_at", periodStart)
       .lte("created_at", periodEnd),
@@ -127,7 +142,7 @@ export async function computeCoupleWrapped(
       .lte("created_at", periodEnd),
     supabase
       .from("moods")
-      .select("mood_type")
+      .select("mood_type, created_at")
       .eq("couple_id", coupleId)
       .gte("created_at", periodStart)
       .lte("created_at", periodEnd),
@@ -191,5 +206,18 @@ export async function computeCoupleWrapped(
     totalLocationsCount,
     romanticStatement: i18n.t("wrapped.statement", { count: daysCountInPeriod }),
     highlightStat: i18n.t("wrapped.highlight", { count: lettersCount + photosCount }),
+    // Yalnızca sayılar ve kayıt saatleri okunur; mektup/not içeriğine bakılmaz
+    archetype: computeCoupleArchetype({
+      lettersCount,
+      dailyNotesCount,
+      photosCount,
+      meetingsCount,
+      moodEntriesCount: moodsRes.data?.length ?? 0,
+      entryHours: [
+        ...entryHoursOf(lettersRes.data),
+        ...entryHoursOf(notesRes.data),
+        ...entryHoursOf(moodsRes.data),
+      ],
+    }),
   };
 }

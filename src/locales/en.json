@@ -1360,7 +1360,73 @@
       "moodDays_other": "{{mood}} · {{count}} Days"
     },
     "shareInstagram": "Share on Instagram Story",
-    "shareError": "An error occurred while sharing the story image. Please try again."
+    "shareError": "An error occurred while sharing the story image. Please try again.",
+    "archetype": {
+      "title": "WHAT KIND OF COUPLE ARE YOU?",
+      "cardKicker": "YOUR COUPLE TYPE",
+      "evidence": {
+        "night": "{{percent}}% of your entries came after 10 PM",
+        "morning": "{{percent}}% of your entries came between 5 and 10 AM",
+        "letters_one": "You wrote {{count}} letter this period",
+        "letters_other": "You wrote {{count}} letters this period",
+        "photos_one": "You shared {{count}} photo this period",
+        "photos_other": "You shared {{count}} photos this period",
+        "meetings_one": "You met up {{count}} time this period",
+        "meetings_other": "You met up {{count}} times this period",
+        "notes_one": "You wrote {{count}} journal note this period",
+        "notes_other": "You wrote {{count}} journal notes this period",
+        "none": "The first pages of your story are being written"
+      },
+      "nightOwls": {
+        "name": "Night Owls",
+        "line": "While the world sleeps, you two are wide awake for each other.",
+        "trait1": "Late-night talks",
+        "trait2": "Quiet hours",
+        "trait3": "Sleepless love"
+      },
+      "earlyBirds": {
+        "name": "Early Birds",
+        "line": "You start every day by saying hello to each other.",
+        "trait1": "Morning notes",
+        "trait2": "Fresh starts",
+        "trait3": "Sunny energy"
+      },
+      "letterPoets": {
+        "name": "Letter Poets",
+        "line": "Words are your shared language.",
+        "trait1": "Sealed words",
+        "trait2": "Pen power",
+        "trait3": "Full of feeling"
+      },
+      "memoryHunters": {
+        "name": "Memory Hunters",
+        "line": "No moment slips by; you keep every frame together.",
+        "trait1": "Frame by frame",
+        "trait2": "Memory keepers",
+        "trait3": "Every shot counts"
+      },
+      "explorers": {
+        "name": "Explorers",
+        "line": "You grow your love in new places and shared adventures.",
+        "trait1": "Meet-up magic",
+        "trait2": "New places",
+        "trait3": "Side by side"
+      },
+      "journalists": {
+        "name": "Diarists",
+        "line": "You write every day together and remember it together.",
+        "trait1": "Daily ritual",
+        "trait2": "Little notes",
+        "trait3": "A bit every day"
+      },
+      "starlight": {
+        "name": "Starlight",
+        "line": "Your story is just beginning; the sky is open to you both.",
+        "trait1": "Fresh start",
+        "trait2": "Curiosity",
+        "trait3": "Endless sky"
+      }
+    }
   },
   "map": {
     "customLocation": "Custom Location",
