@@ -185,6 +185,26 @@ describe("akış duman testi", () => {
       expect(onClose).not.toHaveBeenCalled();
     });
 
+    it("demo açıkken ve demo kapandığı anda cihaz tercihlerine hiçbir şey yazılmaz", async () => {
+      mockAuth = { profile: PROFILE, isDemoMode: true };
+      mockSetItem.mockClear();
+      const onLeaveForUpgrade = jest.fn();
+      const tree = await mount({ onLeaveForUpgrade });
+      for (let i = 0; i < 3; i++) press(buttonByLabel(tree.root, "sky.flow.next"));
+      expect(tree.root.findAllByType(NightSkyStoryCard)[0].props.placeName).toBe("İstanbul"); // demo yeri önizlemede
+      await TestRenderer.act(async () => {});
+      expect(mockSetItem).not.toHaveBeenCalled();
+
+      // Kayıt isteğinden giriş yapılınca demo biter; üstteki modal kapanmasa bile demo yeri kalıcıya sızmamalı
+      mockAuth = { profile: PROFILE, isDemoMode: false };
+      await TestRenderer.act(async () => {
+        (tree as unknown as { update: (element: React.ReactElement) => void }).update(<NightSkyFlowModal visible onClose={() => {}} onLeaveForUpgrade={onLeaveForUpgrade} />);
+      });
+      await TestRenderer.act(async () => {});
+      expect(onLeaveForUpgrade).toHaveBeenCalledTimes(1);
+      expect(mockSetItem).not.toHaveBeenCalled();
+    });
+
     it("önizleme ve hikâye paylaşımı açık kalır, kayıt isteği açılmaz", async () => {
       const root = await demoPreview();
       expect(root.findAllByType(NightSkyStoryCard)).toHaveLength(1);
@@ -213,12 +233,34 @@ describe("akış duman testi", () => {
       mockSetItem.mockClear();
     });
 
-    it("kayıtlı eski koordinat yüklenmez, yer yeniden seçilmeden ilerlenmez; önceki ad hatırlatılır", async () => {
-      mockStoredPrefs = JSON.stringify({ place: { ...SYDNEY, name: "Sidney" }, placeName: "Kadıköy, İstanbul", time: "21:00", timeKnown: true, title: "" });
+    it("kayıtlı yer adı hatırlatılır; koordinat yoktur, yer yeniden seçilmeden ilerlenmez", async () => {
+      mockStoredPrefs = JSON.stringify({ placeName: "Kadıköy, İstanbul", time: "21:00", timeKnown: true, title: "" });
       const root = await atPlaceStep();
       expect(buttonByLabel(root, "sky.flow.next").props.disabled).toBe(true);
       expect(root.findAllByType(TextInput)).toHaveLength(0);
       expect(texts(root)).toContain("sky.flow.place.lastPlace");
+    });
+
+    it("eski koordinatlı kayıt yüklenmez, hemen koordinatsız yeniden yazılır ve eski ad hatırlatılmaz", async () => {
+      mockStoredPrefs = JSON.stringify({ place: { ...SYDNEY, name: "Moda Cd. No:12, Kadıköy, İstanbul" }, time: "21:00", timeKnown: true, title: "" });
+      const root = await atPlaceStep();
+      expect(buttonByLabel(root, "sky.flow.next").props.disabled).toBe(true);
+      expect(texts(root)).not.toContain("sky.flow.place.lastPlace");
+      // 4. adıma varılmadan, açılışta yazıldı
+      const written = mockSetItem.mock.calls.at(-1)?.[1] as string;
+      expect(written).toBeDefined();
+      expect(written).not.toMatch(/latitude|longitude|33\.8688|151\.2093|Moda/);
+    });
+
+    it("düzenlenen ad haritadan onaylanınca (pin aynı) bozulmaz", async () => {
+      const root = await atPlaceStep();
+      pickOnMap({ ...SYDNEY, locationName: "Kadıköy, İstanbul" });
+      TestRenderer.act(() => root.findAllByType(TextInput)[0].props.onChangeText("İlk Buluşma 2019"));
+      // seçici verdiğimiz adı aynen geri verir
+      expect((mockMap.mock.calls.at(-1)?.[0].initialLocation as { locationName?: string }).locationName).toBe("İlk Buluşma 2019");
+      pickOnMap({ ...SYDNEY, locationName: "İlk Buluşma 2019" });
+      expect(root.findAllByType(TextInput)[0].props.value).toBe("İlk Buluşma 2019");
+      expect(toLast(root).placeName).toBe("İlk Buluşma 2019");
     });
 
     it("tam adres posterde ilçe/şehir olur ve alanda düzenlenebilir", async () => {

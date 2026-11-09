@@ -102,8 +102,15 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
   const [showShare, setShowShare] = useState(false);
   const [showPrint, setShowPrint] = useState(false);
 
-  // Son seçimler cihazdan okunur. Demo modu gerçek tercihleri ne okur ne yazar.
-  const prefsLoaded = useRef(isDemoMode);
+  // Son seçimler cihazdan okunur. Demo modu gerçek tercihleri ne okur ne yazar. Yazma, gerçek tercihler okunana
+  // kadar da kapalıdır; demo hiç yüklemediği için yazmaya hiçbir zaman başlamaz.
+  const prefsLoaded = useRef(false);
+  // Bu oturum bir an bile demo olduysa durumdaki yer/saat demodan kalmış olabilir (demo yeri "İstanbul" hazır gelir):
+  // demo biter bitmez kayıt etkisi çalışsa demo seçimi gerçek tercihe sızardı. Akış zaten kapanır; yazma da kapalı kalır.
+  const demoTainted = useRef(isDemoMode);
+  useEffect(() => {
+    if (isDemoMode) demoTainted.current = true;
+  }, [isDemoMode]);
   useEffect(() => {
     if (isDemoMode) return;
     let cancelled = false;
@@ -144,7 +151,7 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
   }, [step, chosenDate, time, place]);
 
   useEffect(() => {
-    if (isDemoMode || step !== STEP_COUNT - 1 || !prefsLoaded.current) return;
+    if (isDemoMode || demoTainted.current || step !== STEP_COUNT - 1 || !prefsLoaded.current) return;
     saveSkyPrefs({ placeName: posterPlaceName, time, timeKnown, title });
   }, [isDemoMode, step, posterPlaceName, time, timeKnown, title]);
 
@@ -446,7 +453,9 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
         initialLocation={place ? { latitude: place.latitude, longitude: place.longitude, locationName: posterPlaceName ?? undefined } : undefined}
         onSelectLocation={(location) => {
           // Harita seçici bu metinleri "adres çözülemedi" anlamında koyar; ekranda kalır, postere gitmez
-          const next = placeFromLocation(location, [t("map.picker.selected"), t("map.picker.markedPoint"), t("map.customLocation")]);
+          // Pime dokunulmadan onaylanırsa seçici bizim verdiğimiz adı aynen geri verir: o, kullanıcının düzenlediği
+          // ad olabilir ve kısaltmadan geçmemelidir
+          const next = placeFromLocation(location, [t("map.picker.selected"), t("map.picker.markedPoint"), t("map.customLocation")], posterPlaceName);
           if (next) setPlace(next);
           setShowMap(false);
         }}

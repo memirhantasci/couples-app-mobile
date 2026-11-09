@@ -15,6 +15,8 @@ const STREET_WORDS = new Set([
   "sokak", "sokagi", "sok", "sk", "cadde", "caddesi", "cad", "cd", "bulvar", "bulvari", "bulv", "blv",
   "mahalle", "mahallesi", "mah", "mh", "mevki", "mevkii", "apartman", "apartmani", "apt", "daire", "blok",
   "sitesi", "konutlari", "evleri", "rezidans",
+  // Yol türleri: "Kennedy Yolu", "Piyale Paşa Yolu", "Gül Çıkmazı"
+  "yol", "yolu", "yanyol", "yanyolu", "otoyol", "otoyolu", "cikmaz", "cikmazi",
   // İngilizce
   "street", "road", "avenue", "boulevard", "blvd", "lane", "drive", "highway", "hwy", "parkway", "pkwy",
   "terrace", "crescent", "alley", "residence",
@@ -53,7 +55,8 @@ function plainWord(word: string): string {
 }
 
 function isStreetLevel(part: string): boolean {
-  if (/\d/.test(part)) return true;
+  // \p{Nd}: Arapça-Hint (٥), Devanagari (५) gibi ASCII dışı rakamlar da kapı numarasıdır
+  if (/\p{Nd}/u.test(part)) return true;
   const words = part.split(/\s+/).map(plainWord);
   if (words.some((word) => STREET_WORDS.has(word) || COMPOUND_STREET_SUFFIX.test(word))) return true;
   return words.length > 1 && TRAILING_STREET_WORDS.has(words[words.length - 1]);

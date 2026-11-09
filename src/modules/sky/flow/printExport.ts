@@ -177,6 +177,83 @@ function isActiveFailure(entry: PrintTrailEntry, context: PrintTrailContext): bo
   return entry.version === context.version && age >= 0 && age < PRINT_RETRY_AFTER_MS;
 }
 
+// ─── Dışa aktarma oturumu ─────────────────────────────────────────────────────
+
+export interface PrintExportDeps {
+  /** Diskteki iz metni (yoksa null) */
+  readTrail: () => Promise<string | null>;
+  /** Okuma/yazma hataları burada yutulur */
+  writeTrail: (raw: string) => Promise<void>;
+  context: PrintTrailContext;
+  sizes: readonly PrintSize[];
+  /**
+   * Bu oturumda (ör. açık baskı ekranı) süreç ölümü OLMAYAN nedenle başarısız sayılan genişlikler: yalnızca bellekte
+   * tutulur, çağıran saklar. "Tekrar dene" bu boyutları atlar; yeni oturum boş kümeyle, tam sırayla başlar.
+   */
+  sessionFailed: Set<number>;
+  capture: (size: PrintSize) => Promise<string | null | undefined>;
+  validate?: (uri: string, size: PrintSize) => boolean;
+  onFailure?: (size: PrintSize, error: unknown) => void;
+}
+
+export interface PrintExportOutcome {
+  result: CaptureSuccess | null;
+  /** Başarısızlıklardan biri düzen zaman aşımıysa */
+  timedOut: boolean;
+}
+
+/**
+ * Kalıcı iz YALNIZCA gerçek süreç ölümünü kaydeder: yakalamadan önce diske "deneme" yazılır, süreç yakalamada ölürse
+ * sonraki oturumda `settleCrash` onu başarısızlığa çevirir. JS'te yakalanan hatalar (düzen zaman aşımı, boş çıktı,
+ * yakalama istisnası) geçici olabilir; tek seferlik bir aksaklık Premium kullanıcıyı günlerce düşük çözünürlüğe
+ * düşürmesin diye diske yazılmaz, yalnızca bu oturumun geri düşmesini tetikler (`sessionFailed`).
+ */
+export async function runPrintExport(deps: PrintExportDeps): Promise<PrintExportOutcome> {
+  const { context, sessionFailed } = deps;
+  let stored: string | null = null;
+  try {
+    stored = await deps.readTrail();
+  } catch {
+    // okunamayan iz yok sayılır
+  }
+  let trail = settleCrash(parsePrintTrail(stored));
+  const save = async () => {
+    try {
+      await deps.writeTrail(serializePrintTrail(trail));
+    } catch {
+      // iz yazılamazsa yalnızca bir sonraki oturumdaki öngörü kaybolur; dışa aktarma sürer
+    }
+  };
+
+  // Başlangıç boyutu: kalıcı çökme izi + bu oturumun geçici başarısızlıkları
+  const effective = [...sessionFailed].reduce((acc, width) => markFailed(acc, width, context), trail);
+  const outcome: PrintExportOutcome = { result: null, timedOut: false };
+
+  outcome.result = await captureWithFallback(
+    startingSizes(effective, context, deps.sizes),
+    async (size) => {
+      // İz yakalamadan önce diske yazılır: süreç yakalama sırasında ölürse sonraki oturum bu boyutu bilir
+      trail = beginAttempt(trail, size.width, context);
+      await save();
+      return deps.capture(size);
+    },
+    (size, error) => {
+      // JS'e geri dönüldü: süreç yaşıyor, deneme izi çökme sayılmasın. Yalnızca bu oturum için başarısız.
+      trail = { ...trail, attempt: null };
+      sessionFailed.add(size.width);
+      if (error instanceof PrintLayoutTimeoutError) outcome.timedOut = true;
+      deps.onFailure?.(size, error);
+    },
+    deps.validate
+  );
+  if (outcome.result) {
+    trail = markSuccess(trail, outcome.result.size.width);
+    sessionFailed.delete(outcome.result.size.width);
+  }
+  await save();
+  return outcome;
+}
+
 /**
  * Denenecek boyutlar, en büyük başarılı/denenmemiş olandan başlayarak. Geçerliliğini koruyan en küçük başarısız
  * boyuttan büyük olanlar da atlanır (o sığmadıysa büyüğü de sığmaz). Hepsi başarısızsa en küçüğü: başka seçenek yok.

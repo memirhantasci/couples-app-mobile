@@ -120,6 +120,19 @@ describe("yer ve saat", () => {
     expect(placeFromLocation({ latitude: 41, longitude: 29, locationName: "Moda Caddesi No:12, Caferağa Mah., Kadıköy, İstanbul" })?.name).toBe("Kadıköy, İstanbul");
   });
 
+  it("seçiciye verdiğimiz ad (kullanıcının düzenlediği) aynen geri gelirse kısaltılmaz; yeni adres kısaltılır", () => {
+    const at = (locationName: string, known: string | null) => placeFromLocation({ latitude: 41, longitude: 29, locationName }, [], known)?.name;
+    expect(at("İlk Buluşma 2019", "İlk Buluşma 2019")).toBe("İlk Buluşma 2019");
+    expect(at("  İlk Buluşma 2019 ", "İlk Buluşma 2019")).toBe("İlk Buluşma 2019");
+    expect(at("x".repeat(90), "x".repeat(90))).toHaveLength(80);
+    // pin taşındı: gelen metin bilinen addan farklı, coğrafi kodlayıcı çıktısıdır
+    expect(at("Moda Caddesi No:12, Kadıköy, İstanbul", "İlk Buluşma 2019")).toBe("Kadıköy, İstanbul");
+    // bilinen ad yoksa her zaman kısaltılır (ilk seçim)
+    expect(at("İlk Buluşma 2019", null)).toBe("İlk Buluşma");
+    // yer tutucu bilinen adla aynı olsa da posterde görünmez
+    expect(placeFromLocation({ latitude: 41, longitude: 29, locationName: "Seçilen Konum" }, ["Seçilen Konum"], "Seçilen Konum")?.name).toBeNull();
+  });
+
   it("saat biçimi ve gidiş-dönüş", () => {
     expect(isValidTime("22:00")).toBe(true);
     for (const bad of ["24:00", "9:00", "22:60", "", null, 2200]) expect(isValidTime(bad)).toBe(false);
@@ -152,6 +165,17 @@ describe("adres kısaltma", () => {
     ["10 Rue de Rivoli, Rue de Rivoli No:10, 4e Arrondissement Mah., Paris, France", "Paris, France"],
     ["Rua Augusta, São Paulo, SP, Brazil", "São Paulo, Brazil"],
     ["Keizersgracht 1, 1015 CJ Amsterdam, Netherlands", "Amsterdam, Netherlands"],
+    // ASCII dışı rakamlı kapı numarası (Arapça-Hint, Devanagari) ve "yol" türü sokaklar
+    ["Kennedy Yolu No:٥, İstanbul", "İstanbul"],
+    ["شارع التحرير No:٥, مصر", "مصر"],
+    ["Kennedy Yolu, İstanbul", "İstanbul"],
+    ["Piyale Paşa Yolu, İstanbul", "İstanbul"],
+    ["KENNEDY YOLU, KADIKÖY, İSTANBUL", "KADIKÖY, İSTANBUL"],
+    ["Gül Çıkmazı No:3, Moda, Kadıköy", "Moda, Kadıköy"],
+    ["Güllü Çıkmaz Sk., Kadıköy, İstanbul", "Kadıköy, İstanbul"],
+    ["Karayolu Mah., Beşiktaş, İstanbul", "Beşiktaş, İstanbul"],
+    ["Sector ५, Delhi, India", "Delhi, India"],
+    ["Moda No:5, Kadıköy, İstanbul", "Kadıköy, İstanbul"], // ASCII rakam
     // "St." şehir adının başındaysa sokak değildir
     ["St. Louis, MO 63101, USA", "St. Louis, USA"],
   ])("%s", (raw, expected) => {
@@ -163,8 +187,8 @@ describe("adres kısaltma", () => {
   });
 
   it("kapı numarası, posta kodu hiçbir biçimde kalmaz", () => {
-    for (const raw of ["Moda Caddesi No:12, Kadıköy, İstanbul", "34710 Kadıköy, İstanbul", "Hauptstraße 5, 10115 Berlin", "221B Baker St, London NW1 6XE"]) {
-      expect(shortenPlaceName(raw)).not.toMatch(/\d/);
+    for (const raw of ["Moda Caddesi No:12, Kadıköy, İstanbul", "34710 Kadıköy, İstanbul", "Hauptstraße 5, 10115 Berlin", "221B Baker St, London NW1 6XE", "Kennedy Yolu No:٥, İstanbul", "شارع التحرير No:٥, مصر"]) {
+      expect(shortenPlaceName(raw)).not.toMatch(/\p{Nd}/u);
     }
   });
 

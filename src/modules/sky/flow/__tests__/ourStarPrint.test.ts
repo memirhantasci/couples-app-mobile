@@ -15,6 +15,8 @@ import {
   PRINT_RETRY_AFTER_MS,
   PRINT_SIZES,
   printSizesFor,
+  PrintLayoutTimeoutError,
+  runPrintExport,
   serializePrintTrail,
   settleCrash,
   startingSizes,
@@ -414,6 +416,132 @@ describe("baskı çökme izi (sahte depolama, sahte saat)", () => {
   it("serileştirme gidiş-dönüş", () => {
     const trail = beginAttempt(markFailed(EMPTY_PRINT_TRAIL, 2400, { now: T0, version: "1" }), 1800, { now: T0 + 5, version: "1" });
     expect(parsePrintTrail(serializePrintTrail(trail))).toEqual(trail);
+  });
+});
+
+describe("baskı dışa aktarma: kalıcı iz yalnızca süreç ölümü için", () => {
+  const T0 = 1_800_000_000_000;
+  const context = { now: T0, version: "1.0.0" };
+
+  /** Tek paylaşımlık disk; her "oturum" yeni bir `sessionFailed` kümesiyle başlar. */
+  function phone() {
+    const store = { disk: null as string | null, writes: [] as string[] };
+    const run = (capture: (size: { width: number; height: number }) => Promise<string | null | undefined>, sessionFailed = new Set<number>(), validate?: (uri: string) => boolean) =>
+      runPrintExport({
+        readTrail: async () => store.disk,
+        writeTrail: async (raw) => {
+          store.disk = raw;
+          store.writes.push(raw);
+        },
+        context,
+        sizes: PRINT_SIZES,
+        sessionFailed,
+        capture,
+        validate,
+      });
+    return { store, run };
+  }
+  const ok = (uri: string) => async () => uri;
+  const startedWidths = (capture: jest.Mock) => capture.mock.calls.map((call) => call[0].width);
+
+  it("tek seferlik düzen zaman aşımı: o oturumda geri düşer, diske yazılmaz, yeni oturum yine 2400'den başlar", async () => {
+    const { store, run } = phone();
+    const capture = jest.fn().mockRejectedValueOnce(new PrintLayoutTimeoutError()).mockResolvedValueOnce("file://b.png");
+    const first = await run(capture);
+    expect(first.result?.size.width).toBe(1800);
+    expect(first.timedOut).toBe(true);
+    expect(startedWidths(capture)).toEqual([2400, 1800]);
+    // Diskte başarısızlık ve bekleyen deneme izi yok
+    expect(parsePrintTrail(store.disk)).toEqual({ failed: {}, attempt: null });
+
+    const next = jest.fn(ok("file://c.png"));
+    await run(next); // yeni oturum: boş küme
+    expect(startedWidths(next)).toEqual([2400]);
+  });
+
+  it("üç boyutta da zaman aşımı: hiçbiri diske yazılmaz, yeni oturum tam sırayla başlar", async () => {
+    const { store, run } = phone();
+    const failing = jest.fn().mockRejectedValue(new PrintLayoutTimeoutError());
+    expect((await run(failing)).result).toBeNull();
+    expect(startedWidths(failing)).toEqual([2400, 1800, 1200]);
+    expect(parsePrintTrail(store.disk).failed).toEqual({});
+    const next = jest.fn(ok("file://a.png"));
+    await run(next);
+    expect(startedWidths(next)).toEqual([2400]);
+  });
+
+  it("boş çıktı da yalnızca o oturumda geri düşürür", async () => {
+    const { store, run } = phone();
+    const capture = jest.fn().mockResolvedValueOnce("file://blank.png").mockResolvedValueOnce("file://ok.png");
+    const first = await run(capture, new Set(), (uri) => uri === "file://ok.png");
+    expect(first.result?.size.width).toBe(1800);
+    expect(first.timedOut).toBe(false);
+    expect(parsePrintTrail(store.disk)).toEqual({ failed: {}, attempt: null });
+    const next = jest.fn(ok("file://a.png"));
+    await run(next);
+    expect(startedWidths(next)).toEqual([2400]);
+  });
+
+  it("aynı oturumda 'tekrar dene': oturumda başarısız sayılan boyut atlanır", async () => {
+    const { run } = phone();
+    const session = new Set<number>();
+    await run(jest.fn().mockRejectedValueOnce(new PrintLayoutTimeoutError()).mockResolvedValueOnce("file://b.png"), session);
+    expect([...session]).toEqual([2400]);
+    const retry = jest.fn(ok("file://c.png"));
+    const second = await run(retry, session);
+    expect(startedWidths(retry)).toEqual([1800]);
+    expect(second.result?.size.width).toBe(1800);
+  });
+
+  it("oturumda hepsi başarısızsa en küçük yine denenir; başarırsa kümeden çıkar, büyükler atlanmayı sürdürür", async () => {
+    const { run } = phone();
+    const session = new Set<number>([2400, 1800, 1200]);
+    const retry = jest.fn(ok("file://c.png"));
+    expect((await run(retry, session)).result?.size.width).toBe(1200); // hepsi başarısızsa en küçük denenir
+    expect([...session].sort()).toEqual([1800, 2400]);
+  });
+
+  it("gerçek süreç ölümü: deneme izi yakalamadan ÖNCE diske yazılır, sonraki oturum bir alt boyuttan başlar", async () => {
+    const { store, run } = phone();
+    void run(() => new Promise<string>(() => {})); // yakalamada süreç ölür: sonuç hiç gelmez
+    await new Promise<void>((resolve) => setImmediate(() => resolve()));
+    expect(parsePrintTrail(store.disk).attempt?.width).toBe(2400);
+    const next = jest.fn(ok("file://b.png"));
+    await run(next);
+    expect(startedWidths(next)).toEqual([1800]);
+    // 1800 başarılı: kendi izi yok, 2400'ün çökme izi kalır
+    expect(Object.keys(parsePrintTrail(store.disk).failed)).toEqual(["2400"]);
+    expect(parsePrintTrail(store.disk).attempt).toBeNull();
+  });
+
+  it("çökme izi kalıcıdır: sonraki oturumda zaman aşımı yaşanması iz eklemez", async () => {
+    const { store, run } = phone();
+    void run(() => new Promise<string>(() => {}));
+    await new Promise<void>((resolve) => setImmediate(() => resolve()));
+    await run(jest.fn().mockRejectedValueOnce(new PrintLayoutTimeoutError()).mockResolvedValueOnce("file://c.png"));
+    expect(Object.keys(parsePrintTrail(store.disk).failed)).toEqual(["2400"]); // yalnızca çökme; 1800'ün zaman aşımı yok
+  });
+
+  it("deneme sırasında hata yakalanırsa bekleyen deneme izi silinir (çökme sanılmaz)", async () => {
+    const { store, run } = phone();
+    await run(jest.fn().mockRejectedValue(new Error("oom")));
+    expect(parsePrintTrail(store.disk).attempt).toBeNull();
+    const next = jest.fn(ok("file://a.png"));
+    await run(next);
+    expect(startedWidths(next)).toEqual([2400]);
+  });
+
+  it("depolama okunamaz ya da yazılamazsa dışa aktarma sürer", async () => {
+    const capture = jest.fn(ok("file://a.png"));
+    const result = await runPrintExport({
+      readTrail: async () => Promise.reject(new Error("disk")),
+      writeTrail: async () => Promise.reject(new Error("disk")),
+      context,
+      sizes: PRINT_SIZES,
+      sessionFailed: new Set(),
+      capture,
+    });
+    expect(result.result?.size.width).toBe(2400);
   });
 });
 

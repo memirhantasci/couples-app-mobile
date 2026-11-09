@@ -15,7 +15,7 @@ Altına tarih, saat, yer, çift isimleri ve o gecenin Ay evresi yazılır. Hikâ
 3. **"Yıldızımız" cümlesi** dahil, yalnızca gerçek (HIP kodlu) yıldızda ve konum eşleşirse; sanal yıldızda hiç gösterilmez.
 4. **Ücretsiz:** 9:16 hikâye kartı (indirme çağrısı altbilgide, `StoryCard`). **Premium:** baskı dosyası (3:4, yüksek çözünürlük), tema/renk, özel başlık; baskı sürümünde indirme çağrısı yok, yalnızca küçük veri atfı satırı.
 
-Sunucu/veritabanı değişikliği YOK. Seçilen konum ve saat telefonda kalır, kaydedilmez, hiçbir yere gönderilmez.
+Sunucu/veritabanı değişikliği YOK. Seçilen konumun koordinatı hiçbir yere kaydedilmez ve sunucumuza gönderilmez. Telefonda yalnızca son yer adı (ilçe/şehir düzeyinde ya da kullanıcının yazdığı), saat, "saat biliniyor mu" ve başlık saklanır (`safeStorage`, çıkışta silinir). Harita seçimi ve adres arama, cihazın işletim sistemi ya da Nominatim servisine gider (sunucumuza değil).
 
 ## 3. Lisans bulgusu (2026-11-09, depo dosyalarından okundu)
 
@@ -65,9 +65,9 @@ Bölüm 1 ve 2 birbirinden bağımsız (veri sözleşmesi §4'te). 3, ikisine ba
 
 ### Bölüm 4: Akış ve giriş noktaları
 - 4 adım: tarih (3 seçenek) → yer (`MapPickerModal`, `LocationData`) → saat (varsayılan 22:00) → önizleme/paylaş.
-- Giriş: Menü > Aşk & Ortak Anılar'a "Gökyüzümüz" satırı ve `AnniversaryMilestoneModal`'a buton. Tercihler yalnızca cihazda (`safeStorage`).
+- Giriş: Menü > Aşk & Ortak Anılar'a "Gökyüzümüz" satırı ve `AnniversaryMilestoneModal`'a buton. Tercihler yalnızca cihazda (`safeStorage`): yer adı, saat, saat bilgisi, başlık; koordinat yok (bu yüzden yer her açılışta yeniden seçilir).
 - Premium: önizleme ve hikâye kartı ücretsiz; baskı dosyası/tema/başlık Premium (`PremiumPaywall featureSource` kuralına uy).
-- Demo modu: sahte tarih ve yer ile çalışsın, kayıt isteme.
+- Demo modu: hazır tarih ve yer (İstanbul) ile çalışır; önizleme ve hikâye paylaşımı açıktır. Baskı dosyası ve özel başlık (demo profili Premium göründüğünden) KAYIT İSTEĞİNE gider (ürün kararı, 2026-11-09). Demo hiçbir tercihi cihaza yazmaz.
 
 ### Bölüm 5: "Yıldızımız" cümlesi ve baskı dosyası
 - Çiftin yıldızı `catalog_code = HIP-xxxx` ise gerçek katalogda ara. Bulunursa o geceki yükseklik ve yön hesaplanır: ufkun üstünde → altın halka + cümle; altında → "O gece ufkun altındaydı" ya da cümle yok; bulunamazsa/sanal (SOL-*, sanal kod) → hiç gösterme.

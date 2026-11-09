@@ -10,23 +10,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import { captureImage, shareCapturedImage } from "@/lib/storyShare";
 import { logger } from "@/utils/logger";
 import { NightSkyPrintLayout } from "../render";
-import {
-  beginAttempt,
-  captureWithFallback,
-  isPlausibleCapture,
-  markFailed,
-  markSuccess,
-  parsePrintTrail,
-  printSizesFor,
-  PRINT_SIZES,
-  PrintLayoutTimeoutError,
-  serializePrintTrail,
-  settleCrash,
-  startingSizes,
-  waitForLayout,
-  type PrintSize,
-  type PrintTrail,
-} from "./printExport";
+import { isPlausibleCapture, printSizesFor, PRINT_SIZES, PrintLayoutTimeoutError, runPrintExport, waitForLayout, type PrintSize } from "./printExport";
 
 const TRAIL_KEY = "@night_sky_print_attempt";
 const LAYOUT_TIMEOUT_MS = 1500;
@@ -63,6 +47,8 @@ function PreviewSheet({ onClose, layout }: Omit<PrintSharePreviewProps, "visible
   const [message, setMessage] = useState<string | null>(null);
   const layoutDone = useRef<(() => void) | null>(null);
   const renderedWidth = useRef(PREVIEW_SIZE.width);
+  // Bu ekranda geçici nedenle (zaman aşımı, boş çıktı) başarısız sayılan genişlikler; ekran kapanınca unutulur
+  const sessionFailed = useRef(new Set<number>());
 
   const ratio = PixelRatio.get();
   const displayWidth = Math.floor(Math.min(windowWidth - 48, ((windowHeight - insets.top - insets.bottom - CHROME_HEIGHT) * 3) / 4));
@@ -95,43 +81,28 @@ function PreviewSheet({ onClose, layout }: Omit<PrintSharePreviewProps, "visible
     }
   };
 
-  const saveTrail = async (trail: PrintTrail) => {
-    try {
-      await safeStorage.setItem(TRAIL_KEY, serializePrintTrail(trail));
-    } catch {
-      // iz yazılamazsa yalnızca bir sonraki oturumdaki öngörü kaybolur; dışa aktarma sürer
-    }
-  };
-
   const handleShare = async () => {
     if (busy) return;
     setBusy(true);
     setMessage(null);
     try {
-      const context = { now: Date.now(), version: Constants.expoConfig?.version ?? "unknown" };
-      let trail = settleCrash(parsePrintTrail(await safeStorage.getItem(TRAIL_KEY)));
-      const outcome = { timedOut: false };
-      const result = await captureWithFallback(
-        startingSizes(trail, context, printSizesFor(Platform.OS)),
-        async (size) => {
-          // İz yakalamadan önce diske yazılır: süreç yakalama sırasında ölürse sonraki oturum bu boyutu bilir
-          trail = beginAttempt(trail, size.width, context);
-          await saveTrail(trail);
+      // Kalıcı iz yalnızca süreç ölümünü kaydeder; zaman aşımı ve boş çıktı bu ekranın bellekteki kümesine girer
+      const { result, timedOut } = await runPrintExport({
+        readTrail: () => safeStorage.getItem(TRAIL_KEY),
+        writeTrail: (raw) => safeStorage.setItem(TRAIL_KEY, raw),
+        context: { now: Date.now(), version: Constants.expoConfig?.version ?? "unknown" },
+        sizes: printSizesFor(Platform.OS),
+        sessionFailed: sessionFailed.current,
+        capture: async (size) => {
           await renderAt(size);
           return captureImage(cardRef, { widthPx: size.width, heightPx: size.height });
         },
-        (size, error) => {
-          trail = markFailed(trail, size.width, context);
-          if (error instanceof PrintLayoutTimeoutError) outcome.timedOut = true;
-          logger.warn(`Print export failed at ${size.width}x${size.height}`);
-        },
-        (uri, size) => isPlausibleCapture(new File(uri).size, size)
-      );
-      if (result) trail = markSuccess(trail, result.size.width);
-      await saveTrail(trail);
+        validate: (uri, size) => isPlausibleCapture(new File(uri).size, size),
+        onFailure: (size) => logger.warn(`Print export failed at ${size.width}x${size.height}`),
+      });
       await restorePreview();
       if (!result) {
-        setMessage(t(outcome.timedOut ? "sky.flow.print.layoutTimeout" : "sky.flow.print.failed"));
+        setMessage(t(timedOut ? "sky.flow.print.layoutTimeout" : "sky.flow.print.failed"));
         return;
       }
       setMessage(t("sky.flow.print.result", { width: result.size.width, height: result.size.height }));

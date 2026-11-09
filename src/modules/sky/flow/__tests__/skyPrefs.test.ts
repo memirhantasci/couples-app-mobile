@@ -67,6 +67,46 @@ describe("gökyüzü tercihleri", () => {
     expect(serializeSkyPrefs(parsed)).not.toMatch(/latitude|longitude|Moda/);
   });
 
+  describe("eski biçimli kayıt (koordinatlı)", () => {
+    const old = JSON.stringify({ place: { latitude: 41.0082, longitude: 28.9784, name: "Moda Cd. No:12, Kadıköy, İstanbul" }, time: "21:00", timeKnown: true, title: "Eski" });
+    const hybrid = JSON.stringify({ placeName: "Moda Cd. No:12, Kadıköy, İstanbul", latitude: 41.0082, longitude: 28.9784, time: "21:00", timeKnown: true, title: "" });
+
+    it("okununca temizlenmiş döner ve HEMEN koordinatsız yeniden yazılır", async () => {
+      await safeStorage.setItem(SKY_PREFS_KEY, old);
+      (safeStorage.setItem as jest.Mock).mockClear();
+      expect(await loadSkyPrefs()).toEqual({ placeName: null, time: "21:00", timeKnown: true, title: "Eski" });
+      expect(safeStorage.setItem).toHaveBeenCalledTimes(1);
+      const stored = await safeStorage.getItem(SKY_PREFS_KEY);
+      expect(stored).not.toMatch(/latitude|longitude|41\.0082|28\.9784|Moda|Kadıköy/);
+      expect(Object.keys(JSON.parse(stored as string)).sort()).toEqual(["placeName", "time", "timeKnown", "title"]);
+    });
+
+    it("eski biçimde adın kaynağı bilinmez: 'Son seçimin' adı da gösterilmez", async () => {
+      await safeStorage.setItem(SKY_PREFS_KEY, hybrid);
+      expect((await loadSkyPrefs()).placeName).toBeNull();
+      expect(await safeStorage.getItem(SKY_PREFS_KEY)).not.toMatch(/latitude|longitude|Moda/);
+    });
+
+    it("yeni biçimli kayıt yeniden yazılmaz ve adı korunur", async () => {
+      await safeStorage.setItem(SKY_PREFS_KEY, serializeSkyPrefs(prefs));
+      (safeStorage.setItem as jest.Mock).mockClear();
+      expect(await loadSkyPrefs()).toEqual(prefs);
+      expect(safeStorage.setItem).not.toHaveBeenCalled();
+    });
+
+    it("yeniden yazma başarısızsa kayıt silinir; o da olmazsa akış yine sürer", async () => {
+      await safeStorage.setItem(SKY_PREFS_KEY, old);
+      (safeStorage.setItem as jest.Mock).mockRejectedValueOnce(new Error("disk"));
+      expect((await loadSkyPrefs()).title).toBe("Eski");
+      expect(await safeStorage.getItem(SKY_PREFS_KEY)).toBeNull();
+
+      await safeStorage.setItem(SKY_PREFS_KEY, old);
+      (safeStorage.setItem as jest.Mock).mockRejectedValueOnce(new Error("disk"));
+      (safeStorage.removeItem as jest.Mock).mockRejectedValueOnce(new Error("disk"));
+      expect((await loadSkyPrefs()).title).toBe("Eski");
+    });
+  });
+
   it("depolama patlarsa akış bozulmaz", async () => {
     (safeStorage.getItem as jest.Mock).mockRejectedValueOnce(new Error("disk"));
     expect(await loadSkyPrefs()).toEqual(EMPTY_SKY_PREFS);
