@@ -18,6 +18,7 @@ export const STORY_ROWS = {
   place: { marginTop: 1, height: 15 },
   names: { marginTop: 2, height: 22 },
   moon: { marginTop: 2, height: 14 },
+  star: { marginTop: 1, height: 14 },
   note: { marginTop: 3, height: 10 },
 } as const;
 
@@ -31,6 +32,7 @@ export const PRINT_ROWS = {
   place: { marginTop: 1, height: 14 },
   names: { marginTop: 1, height: 20 },
   moon: { marginTop: 1, height: 12 },
+  star: { marginTop: 1, height: 12 },
   attribution: { marginTop: 4, height: 8 },
 } as const;
 
@@ -53,7 +55,7 @@ function fit(available: number, fixedHeight: number, contentWidth: number): Post
 }
 
 /** 9:16 kart. Boş satırlar (yer, isim) bütçeden düşer, kalan alan grafiğe gider. */
-export function storyPosterLayout(options: { hasPlace: boolean; hasNames: boolean }): PosterLayout {
+export function storyPosterLayout(options: { hasPlace: boolean; hasNames: boolean; hasStarLine?: boolean }): PosterLayout {
   const r = STORY_ROWS;
   const available = STORY_CANVAS.height - STORY_CANVAS.safeTop - STORY_CANVAS.safeBottom - STORY_FOOTER_HEIGHT;
   const fixed =
@@ -64,12 +66,13 @@ export function storyPosterLayout(options: { hasPlace: boolean; hasNames: boolea
     (options.hasPlace ? rowHeight(r.place) : 0) +
     (options.hasNames ? rowHeight(r.names) : 0) +
     rowHeight(r.moon) +
+    (options.hasStarLine ? rowHeight(r.star) : 0) +
     rowHeight(r.note);
   return fit(available, fixed, STORY_CANVAS.width - 2 * STORY_CANVAS.sidePadding);
 }
 
 /** 3:4 baskı. */
-export function printPosterLayout(options: { hasSubtitle: boolean; hasPlace: boolean; hasNames: boolean }): PosterLayout {
+export function printPosterLayout(options: { hasSubtitle: boolean; hasPlace: boolean; hasNames: boolean; hasStarLine?: boolean }): PosterLayout {
   const r = PRINT_ROWS;
   const available = PRINT_CANVAS.height - PRINT_CANVAS.paddingTop - PRINT_CANVAS.paddingBottom;
   const fixed =
@@ -80,6 +83,7 @@ export function printPosterLayout(options: { hasSubtitle: boolean; hasPlace: boo
     (options.hasPlace ? rowHeight(r.place) : 0) +
     (options.hasNames ? rowHeight(r.names) : 0) +
     rowHeight(r.moon) +
+    (options.hasStarLine ? rowHeight(r.star) : 0) +
     rowHeight(r.attribution);
   return fit(available, fixed, PRINT_CANVAS.width - 2 * PRINT_CANVAS.sidePadding);
 }

@@ -229,10 +229,10 @@ describe("Premium kapısı", () => {
     expect(gateFor("customTitle", demo)).toBe("allow");
   });
 
-  it("baskı dosyası: ücretsize paywall, Premium ve demoya geçici 'comingSoon'", () => {
+  it("baskı dosyası: ücretsize paywall, Premium ve demoya açık", () => {
     expect(gateFor("printExport", free)).toBe("paywall");
-    expect(gateFor("printExport", premium)).toBe("comingSoon");
-    expect(gateFor("printExport", demo)).toBe("comingSoon");
+    expect(gateFor("printExport", premium)).toBe("allow");
+    expect(gateFor("printExport", demo)).toBe("allow");
   });
 
   it("özel başlık: Premium değilse hiç uygulanmaz, kırpılır, boşsa varsayılan", () => {

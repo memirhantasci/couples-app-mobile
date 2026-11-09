@@ -31,6 +31,20 @@ describe("sky.flow metinleri (TR/EN)", () => {
     expect(flow.stepOf).toContain("{{current}}");
     expect(flow.stepOf).toContain("{{total}}");
     expect(flow.time.unknownNote).toContain("{{time}}");
+    expect(flow.print.result).toContain("{{width}}");
+    expect(flow.print.result).toContain("{{height}}");
+    expect(flow.preview.printSoon).toBeUndefined();
+    expect(flow.preview.dataSources).toContain("HYG");
+    expect(flow.preview.dataSources).toContain("Stellarium");
+    const poster = strings.sky.poster;
+    for (const key of ["above", "aboveDaylight"]) {
+      expect(poster.star[key]).toContain("{{degrees}}");
+      expect(poster.star[key]).toContain("{{direction}}");
+    }
+    expect(poster.star.belowDaylight).toBeTruthy();
+    expect(poster.star.below).toBeTruthy();
+    for (const direction of ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]) expect(poster.starDirection[direction]).toBeTruthy();
+    for (const text of Object.values(poster.star) as string[]) expect(text).not.toMatch(/görünür|visible/i);
   });
 
   it("flowLogic'in hata anahtarları çeviride karşılığını bulur", () => {

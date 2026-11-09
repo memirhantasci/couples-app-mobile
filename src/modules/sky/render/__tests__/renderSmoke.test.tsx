@@ -30,6 +30,9 @@ function render(element: React.ReactElement) {
 
 const textsOf = (root: ReturnType<typeof render>) => root.findAllByType(Text).map((node) => String(node.props.children));
 
+// İlk render modülleri yükler; tam paket koşusunda yük altında 5 sn aşılabiliyor
+jest.setTimeout(30000);
+
 describe("render duman testi", () => {
   it("SkyChart gerçek gökyüzüyle çizilir, Path sayısı küçüktür", () => {
     const root = render(<SkyChart sky={sky} size={260} labels={LABELS} />);

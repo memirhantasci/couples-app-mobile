@@ -6,6 +6,8 @@ import { NightSkyStoryCard } from "../../render";
 
 let mockAuth: { profile: Record<string, unknown> | null; isDemoMode: boolean };
 let mockStoredPrefs: string | null = null;
+let mockStar: Record<string, unknown> | undefined;
+const mockPrint = jest.fn((props: Record<string, unknown>) => (void props, null));
 const mockPaywall = jest.fn((props: Record<string, unknown>) => (void props, null));
 
 jest.mock("@/context/AuthContext", () => ({ useAuth: () => mockAuth }));
@@ -25,6 +27,10 @@ jest.mock("@/context/ThemeContext", () => ({
     },
   }),
 }));
+jest.mock("@tanstack/react-query", () => ({ useQuery: () => ({ data: mockStar }) }));
+jest.mock("@/modules/stars/api/starService", () => ({ getMyStarDetails: jest.fn() }));
+jest.mock("@/constants/demoData", () => ({ DEMO_STAR_DETAILS: { catalog_code: "HIP-32349", custom_name: "Demo Yıldızı" } }));
+jest.mock("../PrintSharePreview", () => ({ PrintSharePreview: (props: Record<string, unknown>) => mockPrint(props) }));
 jest.mock("@/hooks/useStoryCouple", () => ({ useStoryCouple: () => ({ names: "Ada & Can", initials: "A & C", cover: null, myName: "Ada", partnerName: "Can" }) }));
 jest.mock("react-native-safe-area-context", () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 jest.mock("lucide-react-native", () => new Proxy({}, { get: (_target, name) => (name === "__esModule" ? false : () => null) }));
@@ -67,6 +73,9 @@ const press = (node: { props: Record<string, any> }) =>
   });
 
 const PROFILE = { meetDate: "2023-05-20", relationshipStartDate: "2023-06-01", isPremium: false };
+
+// İlk render modülleri yükler; tam paket koşusunda yük altında 5 sn aşılabiliyor
+jest.setTimeout(30000);
 
 describe("akış duman testi", () => {
   it("kapalıyken hiçbir şey çizmez", async () => {
@@ -161,18 +170,31 @@ describe("akış duman testi", () => {
       expect(mockPaywall.mock.calls.at(-1)?.[0]).toMatchObject({ visible: true });
     });
 
-    it("Premium: başlık alanı var, kayıtlı başlık karta işlenir, baskı satırı geçici bilgi verir", async () => {
+    it("Premium: başlık alanı var, kayıtlı başlık karta işlenir, baskı satırı baskı önizlemesini açar", async () => {
       const root = await toPreview(true);
       expect(root.findAllByType(TextInput)).toHaveLength(1);
       expect(root.findAllByType(NightSkyStoryCard)[0].props.title).toBe("Bizim Özel Gece");
       press(buttonByLabel(root, "sky.flow.preview.print"));
-      expect(texts(root)).toContain("sky.flow.preview.printSoon");
+      expect(mockPrint.mock.calls.at(-1)?.[0]).toMatchObject({ visible: true });
       expect(mockPaywall.mock.calls.at(-1)?.[0]).toMatchObject({ visible: false });
     });
 
     it("Premium bitmiş kullanıcının kayıtlı özel başlığı uygulanmaz", async () => {
       const root = await toPreview(false);
       expect(root.findAllByType(NightSkyStoryCard)[0].props.title).toBeNull();
+    });
+
+    it("yıldız yokken cümlesiz çizilir; veri gelince HIP yıldızının cümlesi eklenir", async () => {
+      mockStar = undefined;
+      const root = await toPreview(false);
+      expect(root.findAllByType(NightSkyStoryCard)[0].props.starLine).toBeNull();
+      expect(root.findAllByType(NightSkyStoryCard)[0].props.highlight).toBeUndefined();
+      mockStar = { catalog_code: "VIRT-ORI-1-ABC", custom_name: "Sanal" };
+      expect((await toPreview(false)).findAllByType(NightSkyStoryCard)[0].props.starLine).toBeNull();
+      mockStar = { catalog_code: "HIP-11767", custom_name: "Bizim" };
+      const withStar = (await toPreview(false)).findAllByType(NightSkyStoryCard)[0].props;
+      expect(withStar.starLine).toMatch(/^sky\.poster\.star\./);
+      mockStar = undefined;
     });
 
     it("bozuk kayıt akışı çökertmez", async () => {

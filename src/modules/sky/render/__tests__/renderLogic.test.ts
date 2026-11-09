@@ -228,12 +228,20 @@ describe("dikey bütçe", () => {
     expect(STORY_FOOTER_HEIGHT).toBe(57);
     for (const hasPlace of flags) {
       for (const hasNames of flags) {
-        const layout = storyPosterLayout({ hasPlace, hasNames });
-        expect(layout.total).toBeLessThanOrEqual(layout.available);
-        expect(layout.chartSize).toBeLessThanOrEqual(layout.contentWidth);
-        expect(layout.chartSize).toBeGreaterThanOrEqual(250);
+        for (const hasStarLine of flags) {
+          const layout = storyPosterLayout({ hasPlace, hasNames, hasStarLine });
+          expect(layout.total).toBeLessThanOrEqual(layout.available);
+          expect(layout.chartSize).toBeLessThanOrEqual(layout.contentWidth);
+          expect(layout.chartSize).toBeGreaterThanOrEqual(245);
+        }
       }
     }
+  });
+
+  it("yıldız satırı bütçeden düşer, grafik küçülür", () => {
+    const base = { hasPlace: true, hasNames: true };
+    expect(storyPosterLayout({ ...base, hasStarLine: true }).chartSize).toBe(storyPosterLayout(base).chartSize - 15);
+    expect(printPosterLayout({ ...base, hasSubtitle: true, hasStarLine: true }).chartSize).toBe(printPosterLayout({ ...base, hasSubtitle: true }).chartSize - 13);
   });
 
   it("boş satırlar grafiği büyütür", () => {
@@ -246,10 +254,12 @@ describe("dikey bütçe", () => {
     for (const hasSubtitle of flags) {
       for (const hasPlace of flags) {
         for (const hasNames of flags) {
-          const layout = printPosterLayout({ hasSubtitle, hasPlace, hasNames });
-          expect(layout.total).toBeLessThanOrEqual(layout.available);
-          expect(layout.chartSize).toBeLessThanOrEqual(layout.contentWidth);
-          expect(layout.chartSize).toBeGreaterThan(story.chartSize);
+          for (const hasStarLine of flags) {
+            const layout = printPosterLayout({ hasSubtitle, hasPlace, hasNames, hasStarLine });
+            expect(layout.total).toBeLessThanOrEqual(layout.available);
+            expect(layout.chartSize).toBeLessThanOrEqual(layout.contentWidth);
+            expect(layout.chartSize).toBeGreaterThan(story.chartSize);
+          }
         }
       }
     }

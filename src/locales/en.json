@@ -3994,13 +3994,20 @@
         "pickerTitle": "What time was it?"
       },
       "preview": {
-        "info": "The poster is drawn with the real star positions for the night and place you chose. The moon phase is calculated; values are approximate.",
+        "info": "The poster is drawn with the real star positions for the night and place you chose. The moon phase is calculated; values are approximate. In the app's sky map, stars are shifted so they are easy to pick out, so your star's place on the poster may differ from where it is there.",
+        "dataSources": "Data sources: stars from HYG Database v4.2 (CC BY-SA 4.0), constellation lines from Stellarium (CC BY-SA). The data has been filtered and rounded.",
         "titleLabel": "Custom title",
         "premiumOnly": "Write your own title with Premium",
-        "print": "Print file (3:4)",
+        "print": "Share the print file (3:4)",
         "printSub": "High resolution · Premium",
-        "printSoon": "The print file is coming here very soon.",
         "share": "Share as a story"
+      },
+      "print": {
+        "hint": "High-resolution PNG. If your device runs short of memory, it's prepared at a smaller size.",
+        "preparing": "Preparing…",
+        "result": "File prepared at {{width}}×{{height}} pixels.",
+        "failed": "The print file couldn't be prepared on this device. You can try sharing it as a story.",
+        "shareFailed": "The file couldn't be shared. Please try again."
       },
       "warnings": {
         "daylight": "The sky was still bright at that hour: stars wouldn't have been visible to the naked eye. The poster is drawn anyway.",
@@ -4020,6 +4027,22 @@
       }
     },
     "poster": {
+      "star": {
+        "above": "That night your star was {{degrees}}° above the horizon, toward the {{direction}}.",
+        "aboveDaylight": "At that hour your star was in the sky, {{degrees}}° above the horizon, toward the {{direction}}.",
+        "below": "That night your star was below the horizon.",
+        "belowDaylight": "At that hour your star was below the horizon."
+      },
+      "starDirection": {
+        "N": "north",
+        "NE": "northeast",
+        "E": "east",
+        "SE": "southeast",
+        "S": "south",
+        "SW": "southwest",
+        "W": "west",
+        "NW": "northwest"
+      },
       "kicker": "The sky that night",
       "defaultTitle": "Our Night",
       "realSkyNote": "This poster uses real sky positions",

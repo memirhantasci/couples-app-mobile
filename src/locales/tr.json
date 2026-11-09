@@ -3994,13 +3994,20 @@
         "pickerTitle": "Saat kaçtı?"
       },
       "preview": {
-        "info": "Poster, seçtiğin gece ve yerde gökyüzünün gerçek yıldız konumlarıyla çizilir. Ay evresi hesaplanır, değerler yaklaşıktır.",
+        "info": "Poster, seçtiğin gece ve yerde gökyüzünün gerçek yıldız konumlarıyla çizilir. Ay evresi hesaplanır, değerler yaklaşıktır. Uygulamadaki Gökkubbe'de yıldızlar rahat seçilsin diye kaydırılmıştır; yıldızınızın posterdeki yeri oradakinden farklı olabilir.",
+        "dataSources": "Veri kaynakları: yıldızlar HYG Database v4.2 (CC BY-SA 4.0), takımyıldızı çizgileri Stellarium (CC BY-SA). Veriler süzülüp yuvarlanmıştır.",
         "titleLabel": "Özel başlık",
         "premiumOnly": "Premium ile kendi başlığını yaz",
-        "print": "Baskı dosyası (3:4)",
+        "print": "Baskı dosyasını paylaş (3:4)",
         "printSub": "Yüksek çözünürlük · Premium",
-        "printSoon": "Baskı dosyası çok yakında burada olacak.",
         "share": "Hikâye olarak paylaş"
+      },
+      "print": {
+        "hint": "Yüksek çözünürlüklü PNG. Cihazın belleği yetmezse daha küçük boyutta hazırlanır.",
+        "preparing": "Hazırlanıyor…",
+        "result": "Dosya {{width}}×{{height}} piksel olarak hazırlandı.",
+        "failed": "Baskı dosyası bu cihazda hazırlanamadı. Hikâye olarak paylaşmayı deneyebilirsin.",
+        "shareFailed": "Dosya paylaşılamadı. Lütfen tekrar dene."
       },
       "warnings": {
         "daylight": "Bu saatte gökyüzü aydınlıktı: yıldızlar çıplak gözle görünmezdi, poster yine de çizildi.",
@@ -4020,6 +4027,22 @@
       }
     },
     "poster": {
+      "star": {
+        "above": "O gece yıldızınız ufkun {{degrees}}° üstündeydi, {{direction}} yönünde.",
+        "aboveDaylight": "O saatte yıldızınız gökyüzünde, ufkun {{degrees}}° üstündeydi, {{direction}} yönünde.",
+        "below": "O gece yıldızınız ufkun altındaydı.",
+        "belowDaylight": "O saatte yıldızınız ufkun altındaydı."
+      },
+      "starDirection": {
+        "N": "kuzey",
+        "NE": "kuzeydoğu",
+        "E": "doğu",
+        "SE": "güneydoğu",
+        "S": "güney",
+        "SW": "güneybatı",
+        "W": "batı",
+        "NW": "kuzeybatı"
+      },
       "kicker": "O gecenin gökyüzü",
       "defaultTitle": "Bizim Gecemiz",
       "realSkyNote": "Poster gerçek gökyüzü konumlarını kullanır",

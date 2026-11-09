@@ -24,17 +24,20 @@ export interface NightSkyStoryCardProps {
   title?: string | null;
   kicker?: string | null;
   highlight?: SkyChartHighlight;
+  /** "Yıldızımız" cümlesi; boşsa satır kalkar */
+  starLine?: string | null;
   southern?: boolean;
   tone?: StoryTone;
 }
 
 /** 9:16 gece gökyüzü kartı. Altbilgi ve indirme çağrısı StoryCard'dandır. */
-export function NightSkyStoryCard({ width, cardRef, sky, dateLine, placeName, names, title, kicker, highlight, southern, tone = "azure" }: NightSkyStoryCardProps) {
+export function NightSkyStoryCard({ width, cardRef, sky, dateLine, placeName, names, title, kicker, highlight, starLine, southern, tone = "azure" }: NightSkyStoryCardProps) {
   const { t } = useTranslation();
   const { chartLabels, moonLine } = usePosterTexts(sky.moon);
   const place = cleanLine(placeName);
   const coupleNames = cleanLine(names);
-  const layout = storyPosterLayout({ hasPlace: Boolean(place), hasNames: Boolean(coupleNames) });
+  const star = cleanLine(starLine);
+  const layout = storyPosterLayout({ hasPlace: Boolean(place), hasNames: Boolean(coupleNames), hasStarLine: Boolean(star) });
   const rows = STORY_ROWS;
 
   return (
@@ -77,6 +80,11 @@ export function NightSkyStoryCard({ width, cardRef, sky, dateLine, placeName, na
             <PosterLine width={lineWidth} height={s(rows.moon.height)} marginTop={s(rows.moon.marginTop)} fontSize={s(10)} fontFamily="Inter_500Medium" color={GOLD.soft}>
               {moonLine}
             </PosterLine>
+            {star ? (
+              <PosterLine width={lineWidth} height={s(rows.star.height)} marginTop={s(rows.star.marginTop)} fontSize={s(9.5)} fontFamily="Inter_500Medium" color={GOLD.ink}>
+                {star}
+              </PosterLine>
+            ) : null}
             <PosterLine width={lineWidth} height={s(rows.note.height)} marginTop={s(rows.note.marginTop)} fontSize={s(7.4)} fontFamily="Inter_500Medium" color="rgba(255, 255, 255, 0.5)">
               {t("sky.poster.realSkyNote")}
             </PosterLine>

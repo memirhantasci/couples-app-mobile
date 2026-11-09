@@ -2,17 +2,20 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AlertTriangle, Calendar, Check, ChevronLeft, Clock, Crown, Info, MapPin, Printer, Share2, X } from "lucide-react-native";
+import { AlertTriangle, Calendar, Check, ChevronLeft, Clock, Crown, Database, Info, MapPin, Printer, Share2, X } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 import { MapPickerModal } from "@/components/MapPickerModal";
 import { StorySharePreview } from "@/components/share/StorySharePreview";
 import { LazyDateTimePickerSheet, LazyPremiumPaywall } from "@/components/ui/lazyMount";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useStoryCouple } from "@/hooks/useStoryCouple";
+import { DEMO_STAR_DETAILS } from "@/constants/demoData";
 import { dayjs } from "@/lib/date";
+import { getMyStarDetails } from "@/modules/stars/api/starService";
 import { computeSky, type SkyResult } from "../astronomy";
-import { NightSkyStoryCard } from "../render";
+import { NightSkyStoryCard, type SkyChartHighlight } from "../render";
 import {
   buildDateOptions,
   buildSkyRequest,
@@ -36,6 +39,8 @@ import {
   type SkyDateChoice,
   type SkyPlace,
 } from "./flowLogic";
+import { describeOurStar } from "./ourStar";
+import { PrintSharePreview } from "./PrintSharePreview";
 import { EMPTY_SKY_PREFS, loadSkyPrefs, saveSkyPrefs } from "./skyPrefs";
 
 const STEP_COUNT = 4;
@@ -89,7 +94,7 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [showShare, setShowShare] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [showPrint, setShowPrint] = useState(false);
 
   // Son seçimler cihazdan okunur. Demo modu gerçek tercihleri ne okur ne yazar.
   const prefsLoaded = useRef(isDemoMode);
@@ -128,6 +133,32 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
     saveSkyPrefs({ place, time, timeKnown, title });
   }, [isDemoMode, step, place, time, timeKnown, title]);
 
+  // Yıldız verisi akışı bekletmez: gelene kadar cümlesiz çizilir. Yıldızı olmayan çift ya da hata: cümle yok.
+  const coupleId = profile?.coupleId ?? null;
+  const { data: remoteStar } = useQuery({
+    queryKey: ["night_sky_star", coupleId],
+    enabled: !isDemoMode && !!coupleId,
+    staleTime: 1000 * 60 * 5,
+    retry: false,
+    queryFn: () => getMyStarDetails(coupleId as number),
+  });
+  const coupleStar = isDemoMode ? DEMO_STAR_DETAILS : remoteStar;
+  const ourStar = useMemo(() => {
+    if (!computed.sky || !chosenDate || !place) return null;
+    try {
+      return describeOurStar(coupleStar, buildSkyRequest({ date: chosenDate, time, place }), computed.sky.sun.twilight);
+    } catch {
+      return null;
+    }
+  }, [computed.sky, chosenDate, time, place, coupleStar]);
+  const starLine = ourStar
+    ? t(`sky.poster.star.${ourStar.sentence.key}`, {
+        degrees: ourStar.sentence.degrees,
+        direction: t(`sky.poster.starDirection.${ourStar.sentence.direction}`),
+      })
+    : null;
+  const highlight = ourStar?.highlight ?? undefined;
+
   const dateLine =
     chosenDate && formatDateLine(chosenDate, time, timeKnown, (day) => dayjs(day).locale(i18n.language).format("D MMMM YYYY"));
   const warnings = computed.sky ? selectWarnings(computed.sky) : [];
@@ -135,7 +166,7 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
   const openPaywallOrRun = (action: "customTitle" | "printExport") => {
     const gate = gateFor(action, user);
     if (gate === "paywall") setShowPaywall(true);
-    else if (gate === "comingSoon") setNotice(t("sky.flow.preview.printSoon"));
+    else if (action === "printExport") setShowPrint(true);
   };
 
   const muted = theme.textMuted;
@@ -289,6 +320,8 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
                       place={place}
                       names={couple.names}
                       title={premiumTitle}
+                      highlight={highlight}
+                      starLine={starLine}
                     />
                   </View>
 
@@ -302,6 +335,10 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
                   <View style={styles.infoRow}>
                     <Info size={14} color={muted} style={{ marginTop: 2 }} />
                     <Text style={[styles.infoText, { color: muted }]}>{t("sky.flow.preview.info")}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Database size={14} color={muted} style={{ marginTop: 2 }} />
+                    <Text style={[styles.infoText, { color: muted }]}>{t("sky.flow.preview.dataSources")}</Text>
                   </View>
 
                   {gateFor("customTitle", user) === "allow" ? (
@@ -334,7 +371,6 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
                     onPress={() => openPaywallOrRun("printExport")}
                     theme={theme}
                   />
-                  {notice ? <Text style={[styles.note, { color: theme.accent }]}>{notice}</Text> : null}
                 </>
               ) : null}
             </>
@@ -431,9 +467,19 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
               placeName={place.name}
               names={couple.names}
               title={premiumTitle}
+              highlight={highlight}
+              starLine={starLine}
               southern={place.latitude < 0}
             />
           )}
+        />
+      ) : null}
+
+      {computed.sky && dateLine && place ? (
+        <PrintSharePreview
+          visible={showPrint}
+          onClose={() => setShowPrint(false)}
+          layout={{ sky: computed.sky, dateLine, placeName: place.name, names: couple.names, title: premiumTitle, highlight, starLine, southern: place.latitude < 0 }}
         />
       ) : null}
     </Modal>
@@ -441,9 +487,9 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
 }
 
 /** Önizleme adımındaki küçük kart (paylaşılan görsel StorySharePreview'dakidir). */
-function NightSkyCard({ width, sky, dateLine, place, names, title }: { width: number; sky: SkyResult; dateLine: string; place: SkyPlace; names: string | null; title: string | null }) {
+function NightSkyCard({ width, sky, dateLine, place, names, title, highlight, starLine }: { width: number; sky: SkyResult; dateLine: string; place: SkyPlace; names: string | null; title: string | null; highlight?: SkyChartHighlight; starLine: string | null }) {
   const cardRef = useRef<View>(null);
-  return <NightSkyStoryCard width={width} cardRef={cardRef} sky={sky} dateLine={dateLine} placeName={place.name} names={names} title={title} southern={place.latitude < 0} />;
+  return <NightSkyStoryCard width={width} cardRef={cardRef} sky={sky} dateLine={dateLine} placeName={place.name} names={names} title={title} highlight={highlight} starLine={starLine} southern={place.latitude < 0} />;
 }
 
 function Heading({ title, hint, color, muted }: { title: string; hint: string; color: string; muted: string }) {

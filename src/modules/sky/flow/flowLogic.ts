@@ -194,19 +194,16 @@ export function skyErrorKey(error: unknown): string {
 // ─── Premium kapısı ───────────────────────────────────────────────────────────
 
 export type SkyAction = "preview" | "storyShare" | "customTitle" | "printExport";
-export type SkyGate = "allow" | "paywall" | "comingSoon";
+export type SkyGate = "allow" | "paywall";
 
 /**
  * Hangi eylem kime açık. Demo profili Premium'dur (projedeki `isPremium || isDemoMode` kalıbı):
- * demo kullanıcısı özel başlığı dener, baskı yerinde aynı geçici bilgiyi görür. Sunucuya yazılan bir eylem
- * olmadığından demo müdahale penceresi (kayıt isteme) gerekmez.
- * Baskı dosyası Bölüm 5'te gelecek: şimdilik Premium'a "comingSoon" döner, ücretsize paywall açılır.
+ * demo kullanıcısı özel başlığı ve baskı dosyasını dener. Sunucuya yazılan bir eylem olmadığından demo
+ * müdahale penceresi (kayıt isteme) gerekmez.
  */
 export function gateFor(action: SkyAction, user: { isPremium: boolean; isDemoMode: boolean }): SkyGate {
   if (action === "preview" || action === "storyShare") return "allow";
-  const premium = user.isPremium || user.isDemoMode;
-  if (!premium) return "paywall";
-  return action === "customTitle" ? "allow" : "comingSoon";
+  return user.isPremium || user.isDemoMode ? "allow" : "paywall";
 }
 
 // ─── Başlık ───────────────────────────────────────────────────────────────────
