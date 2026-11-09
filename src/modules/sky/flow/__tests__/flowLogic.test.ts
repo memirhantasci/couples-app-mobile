@@ -306,16 +306,24 @@ describe("Premium kapısı", () => {
     }
   });
 
-  it("özel başlık: ücretsize paywall, Premium ve demoya serbest", () => {
+  it("özel başlık: ücretsize paywall, Premium'a serbest, demoya kayıt isteği", () => {
     expect(gateFor("customTitle", free)).toBe("paywall");
     expect(gateFor("customTitle", premium)).toBe("allow");
-    expect(gateFor("customTitle", demo)).toBe("allow");
+    expect(gateFor("customTitle", demo)).toBe("signup");
   });
 
-  it("baskı dosyası: ücretsize paywall, Premium ve demoya açık", () => {
+  it("baskı dosyası: ücretsize paywall, Premium'a açık, demoya kayıt isteği", () => {
     expect(gateFor("printExport", free)).toBe("paywall");
     expect(gateFor("printExport", premium)).toBe("allow");
-    expect(gateFor("printExport", demo)).toBe("allow");
+    expect(gateFor("printExport", demo)).toBe("signup");
+  });
+
+  it("demo profili Premium görünse de kayıt isteğine gider, önizleme ve hikâye açık kalır", () => {
+    const demoPremium = { isPremium: true, isDemoMode: true };
+    expect(gateFor("printExport", demoPremium)).toBe("signup");
+    expect(gateFor("customTitle", demoPremium)).toBe("signup");
+    expect(gateFor("preview", demoPremium)).toBe("allow");
+    expect(gateFor("storyShare", demoPremium)).toBe("allow");
   });
 
   it("özel başlık: Premium değilse hiç uygulanmaz, kırpılır, boşsa varsayılan", () => {

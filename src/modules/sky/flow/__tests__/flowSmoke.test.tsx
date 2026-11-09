@@ -10,6 +10,7 @@ let mockStar: Record<string, unknown> | undefined;
 const mockPrint = jest.fn((props: Record<string, unknown>) => (void props, null));
 const mockPaywall = jest.fn((props: Record<string, unknown>) => (void props, null));
 const mockMap = jest.fn((props: Record<string, unknown>) => (void props, null));
+const mockDemoModal = jest.fn((props: Record<string, unknown>) => (void props, null));
 const mockSetItem = jest.fn(async (key: string, value: string) => void [key, value]);
 
 jest.mock("@/context/AuthContext", () => ({ useAuth: () => mockAuth }));
@@ -41,7 +42,11 @@ jest.mock("@/lib/textCase", () => ({ caseLocale: () => "tr" }));
 jest.mock("@/components/memories/WashiTape", () => ({ WashiTape: () => null, WASHI_COLORS: {} }));
 jest.mock("@/components/MapPickerModal", () => ({ MapPickerModal: (props: Record<string, unknown>) => mockMap(props) }));
 jest.mock("@/components/share/StorySharePreview", () => ({ StorySharePreview: () => null }));
-jest.mock("@/components/ui/lazyMount", () => ({ LazyDateTimePickerSheet: () => null, LazyPremiumPaywall: (props: Record<string, unknown>) => mockPaywall(props) }));
+jest.mock("@/components/ui/lazyMount", () => ({
+  LazyDateTimePickerSheet: () => null,
+  LazyPremiumPaywall: (props: Record<string, unknown>) => mockPaywall(props),
+  LazyDemoActionModal: (props: Record<string, unknown>) => mockDemoModal(props),
+}));
 jest.mock("@/lib/date", () => {
   jest.requireActual("dayjs/locale/tr");
   return { dayjs: jest.requireActual("dayjs") };
@@ -137,6 +142,55 @@ describe("akış duman testi", () => {
     expect(card.placeName).toBe("İstanbul");
     expect(card.sky.stars.length).toBeGreaterThan(0);
     expect(buttonByLabel(root, "sky.flow.preview.share").props.disabled).toBe(false);
+  });
+
+  describe("demo kapısı", () => {
+    async function demoPreview() {
+      mockAuth = { profile: { ...PROFILE, isPremium: true }, isDemoMode: true };
+      mockDemoModal.mockClear();
+      mockPrint.mockClear();
+      mockPaywall.mockClear();
+      const { root } = await mount();
+      for (let i = 0; i < 3; i++) press(buttonByLabel(root, "sky.flow.next"));
+      return root;
+    }
+
+    it("baskı satırı kayıt isteği açar, baskı önizlemesi ve paywall açılmaz", async () => {
+      const root = await demoPreview();
+      press(buttonByLabel(root, "sky.flow.preview.print"));
+      expect(mockDemoModal.mock.calls.at(-1)?.[0]).toMatchObject({ visible: true, title: "sky.flow.demoPrompt.title", description: "sky.flow.demoPrompt.description" });
+      expect(mockPrint.mock.calls.every(([props]) => props.visible === false)).toBe(true);
+      expect(mockPaywall.mock.calls.every(([props]) => props.visible === false)).toBe(true);
+    });
+
+    it("özel başlık alanı yoktur; satır kayıt isteği açar ve kart varsayılan başlıkla çizilir", async () => {
+      const root = await demoPreview();
+      expect(root.findAllByType(TextInput)).toHaveLength(0);
+      expect(root.findAllByType(NightSkyStoryCard)[0].props.title).toBeNull();
+      press(buttonByLabel(root, "sky.flow.preview.titleLabel"));
+      expect(mockDemoModal.mock.calls.at(-1)?.[0]).toMatchObject({ visible: true });
+    });
+
+    it("kayıt için demo bitince akış kendini kapatır; üstteki modal varsa o da kapanır", async () => {
+      mockAuth = { profile: PROFILE, isDemoMode: true };
+      const onClose = jest.fn();
+      const onLeaveForUpgrade = jest.fn();
+      const tree = await mount({ onClose, onLeaveForUpgrade });
+      expect(onLeaveForUpgrade).not.toHaveBeenCalled();
+      mockAuth = { profile: PROFILE, isDemoMode: false };
+      await TestRenderer.act(async () => {
+        (tree as unknown as { update: (element: React.ReactElement) => void }).update(<NightSkyFlowModal visible onClose={onClose} onLeaveForUpgrade={onLeaveForUpgrade} />);
+      });
+      expect(onLeaveForUpgrade).toHaveBeenCalledTimes(1);
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it("önizleme ve hikâye paylaşımı açık kalır, kayıt isteği açılmaz", async () => {
+      const root = await demoPreview();
+      expect(root.findAllByType(NightSkyStoryCard)).toHaveLength(1);
+      expect(buttonByLabel(root, "sky.flow.preview.share").props.disabled).toBe(false);
+      expect(mockDemoModal).not.toHaveBeenCalled();
+    });
   });
 
   describe("yer adı ve gizlilik (2. adım)", () => {

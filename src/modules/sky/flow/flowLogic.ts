@@ -211,16 +211,16 @@ export function skyErrorKey(error: unknown): string {
 // ─── Premium kapısı ───────────────────────────────────────────────────────────
 
 export type SkyAction = "preview" | "storyShare" | "customTitle" | "printExport";
-export type SkyGate = "allow" | "paywall";
+export type SkyGate = "allow" | "paywall" | "signup";
 
 /**
- * Hangi eylem kime açık. Demo profili Premium'dur (projedeki `isPremium || isDemoMode` kalıbı):
- * demo kullanıcısı özel başlığı ve baskı dosyasını dener. Sunucuya yazılan bir eylem olmadığından demo
- * müdahale penceresi (kayıt isteme) gerekmez.
+ * Hangi eylem kime açık. Önizleme ve hikâye paylaşımı herkese. Baskı dosyası ve özel başlık Premium'dur; demo profili
+ * Premium göründüğünden demo önce denetlenir ve kayıt isteğine gider (ürün kararı, 2026-11-09).
  */
 export function gateFor(action: SkyAction, user: { isPremium: boolean; isDemoMode: boolean }): SkyGate {
   if (action === "preview" || action === "storyShare") return "allow";
-  return user.isPremium || user.isDemoMode ? "allow" : "paywall";
+  if (user.isDemoMode) return "signup";
+  return user.isPremium ? "allow" : "paywall";
 }
 
 // ─── Başlık ───────────────────────────────────────────────────────────────────

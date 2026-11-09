@@ -2,7 +2,24 @@
 import { computeSky, findStarPosition, type SkyRequest } from "../../astronomy";
 import { SKY_STARS } from "../../data/skyStars.data";
 import { angularSeparationDeg, cleanStarLabel, describeOurStar, MAX_ANGULAR_SEPARATION_DEG, MAX_MAGNITUDE_DIFFERENCE, MAX_STAR_LABEL, magnitudesAgree, parseHipCode, positionsAgree } from "../ourStar";
-import { captureWithFallback, parseAttemptWidth, PRINT_SIZES, sizesAfterCrash } from "../printExport";
+import {
+  beginAttempt,
+  captureWithFallback,
+  EMPTY_PRINT_TRAIL,
+  IOS_MAX_PRINT_WIDTH,
+  isPlausibleCapture,
+  markFailed,
+  markSuccess,
+  MIN_PRINT_BYTES_PER_PIXEL,
+  parsePrintTrail,
+  PRINT_RETRY_AFTER_MS,
+  PRINT_SIZES,
+  printSizesFor,
+  serializePrintTrail,
+  settleCrash,
+  startingSizes,
+  waitForLayout,
+} from "../printExport";
 
 const REQUEST: SkyRequest = { latitude: 41.0082, longitude: 28.9784, date: "2025-02-14", time: "22:00" };
 /** Sirius'un uygulamadaki konumu (demo yıldızıyla aynı) */
@@ -267,17 +284,215 @@ describe("baskı boyutu geri düşme", () => {
     await expect(captureWithFallback(PRINT_SIZES, async () => Promise.reject(new Error("oom")))).resolves.toBeNull();
   });
 
-  it("önceki deneme iz bıraktıysa o boyut atlanır", () => {
-    expect(sizesAfterCrash(null).map((size) => size.width)).toEqual([2400, 1800, 1200]);
-    expect(sizesAfterCrash(2400).map((size) => size.width)).toEqual([1800, 1200]);
-    expect(sizesAfterCrash(1800).map((size) => size.width)).toEqual([1200]);
-    expect(sizesAfterCrash(1200).map((size) => size.width)).toEqual([1200]);
+  it("hata nedeni bildirilir; doğrulamadan geçemeyen dosya başarısızdır ve alt boyuta düşülür", async () => {
+    const failures: unknown[] = [];
+    const boom = new Error("oom");
+    const capture = jest.fn().mockRejectedValueOnce(boom).mockResolvedValueOnce("file://blank.png").mockResolvedValueOnce("file://ok.png");
+    const validate = jest.fn((uri: string) => uri === "file://ok.png");
+    const result = await captureWithFallback(PRINT_SIZES, capture, (_size, error) => failures.push(error), validate);
+    expect(result).toEqual({ uri: "file://ok.png", size: PRINT_SIZES[2] });
+    expect(failures).toEqual([boom, null]);
+  });
+});
+
+describe("baskı çökme izi (sahte depolama, sahte saat)", () => {
+  const widths = (sizes: readonly { width: number }[]) => sizes.map((size) => size.width);
+  const DAY = 24 * 60 * 60 * 1000;
+  const T0 = 1_800_000_000_000;
+
+  /** Diskteki metin ve saat: her oturum diskten okur, gerçek akışla aynı sırada çalışır */
+  function device(start = T0, version = "1.0.0") {
+    let disk: string | null = null;
+    const state = { now: start, version };
+    const open = () => {
+      const context = { now: state.now, version: state.version };
+      let trail = settleCrash(parsePrintTrail(disk));
+      const sizes = startingSizes(trail, context);
+      return {
+        sizes,
+        crashAt(width: number) {
+          trail = beginAttempt(trail, width, context);
+          disk = serializePrintTrail(trail);
+        },
+        succeedAt(width: number) {
+          trail = markSuccess(beginAttempt(trail, width, context), width);
+          disk = serializePrintTrail(trail);
+        },
+        failAt(width: number) {
+          trail = markFailed(beginAttempt(trail, width, context), width, context);
+          disk = serializePrintTrail(trail);
+        },
+      };
+    };
+    return { open, state };
+  }
+
+  it("iz yoksa en büyükten başlar", () => {
+    expect(widths(device().open().sizes)).toEqual([2400, 1800, 1200]);
   });
 
-  it("bozuk iz yok sayılır", () => {
-    expect(parseAttemptWidth(null)).toBeNull();
-    expect(parseAttemptWidth("abc")).toBeNull();
-    expect(parseAttemptWidth("2400")).toBe(2400);
+  it("çökme → sonraki oturum bir alt boyuttan başlar", () => {
+    const phone = device();
+    phone.open().crashAt(2400);
+    expect(widths(phone.open().sizes)).toEqual([1800, 1200]);
+  });
+
+  it("küçük başarı büyük izi silmez: her iki denemede bir çökme biter", () => {
+    const phone = device();
+    phone.open().crashAt(2400);
+    for (let session = 0; session < 5; session++) {
+      const run = phone.open();
+      expect(widths(run.sizes)[0]).toBe(1800);
+      run.succeedAt(1800);
+    }
+  });
+
+  it("başarı kendi boyutunun izini siler", () => {
+    const failed = markFailed(markFailed(EMPTY_PRINT_TRAIL, 2400, { now: T0, version: "1" }), 1800, { now: T0, version: "1" });
+    expect(Object.keys(markSuccess(failed, 1800).failed)).toEqual(["2400"]);
+    expect(Object.keys(markSuccess(failed, 2400).failed)).toEqual(["1800"]);
+  });
+
+  it("süre dolunca büyük boyut yeniden denenir, dolmadan denenmez", () => {
+    const phone = device();
+    phone.open().crashAt(2400);
+    phone.state.now = T0 + PRINT_RETRY_AFTER_MS - 1;
+    expect(widths(phone.open().sizes)[0]).toBe(1800);
+    phone.state.now = T0 + PRINT_RETRY_AFTER_MS;
+    expect(widths(phone.open().sizes)[0]).toBe(2400);
+    expect(PRINT_RETRY_AFTER_MS).toBe(14 * DAY);
+  });
+
+  it("uygulama sürümü değişince büyük boyut hemen yeniden denenir", () => {
+    const phone = device();
+    phone.open().crashAt(2400);
+    phone.state.version = "1.1.0";
+    expect(widths(phone.open().sizes)[0]).toBe(2400);
+  });
+
+  it("yeniden deneme başarılıysa iz tamamen kalkar", () => {
+    const phone = device();
+    phone.open().crashAt(2400);
+    phone.state.now = T0 + PRINT_RETRY_AFTER_MS;
+    phone.open().succeedAt(2400);
+    expect(widths(phone.open().sizes)[0]).toBe(2400);
+  });
+
+  it("yeniden denemede tekrar çökerse süre baştan başlar", () => {
+    const phone = device();
+    phone.open().crashAt(2400);
+    phone.state.now = T0 + PRINT_RETRY_AFTER_MS;
+    phone.open().crashAt(2400);
+    phone.state.now = T0 + PRINT_RETRY_AFTER_MS + DAY;
+    expect(widths(phone.open().sizes)[0]).toBe(1800);
+  });
+
+  it("orta boy da başarısızsa en küçükten başlar; hepsi başarısızsa yine en küçük", () => {
+    const phone = device();
+    phone.open().crashAt(2400);
+    phone.open().crashAt(1800);
+    expect(widths(phone.open().sizes)).toEqual([1200]);
+    phone.open().crashAt(1200);
+    expect(widths(phone.open().sizes)).toEqual([1200]);
+  });
+
+  it("küçük boy başarısızsa büyüğü de denenmez (büyüğün izi dolmuş olsa bile)", () => {
+    const trail = markFailed(EMPTY_PRINT_TRAIL, 1800, { now: T0, version: "1" });
+    expect(widths(startingSizes(trail, { now: T0 + DAY, version: "1" }))).toEqual([1200]);
+  });
+
+  it("JS'te yakalanan başarısızlık da hatırlanır", () => {
+    const phone = device();
+    phone.open().failAt(2400);
+    expect(widths(phone.open().sizes)[0]).toBe(1800);
+  });
+
+  it.each(["{bozuk", "2400", "null", "[1]", '{"failed":{"abc":{"at":1,"version":"x"}}}', '{"failed":{"2400":{"at":"dün"}}}', '{"attempt":{"at":1,"version":"x"}}'])("bozuk iz yok sayılır: %s", (raw) => {
+    expect(startingSizes(settleCrash(parsePrintTrail(raw)), { now: T0, version: "1" })).toEqual(PRINT_SIZES);
+  });
+
+  it("serileştirme gidiş-dönüş", () => {
+    const trail = beginAttempt(markFailed(EMPTY_PRINT_TRAIL, 2400, { now: T0, version: "1" }), 1800, { now: T0 + 5, version: "1" });
+    expect(parsePrintTrail(serializePrintTrail(trail))).toEqual(trail);
+  });
+});
+
+describe("boş görsel denetimi", () => {
+  const big = PRINT_SIZES[0];
+  const small = PRINT_SIZES[2];
+
+  it("eşik sabittir", () => {
+    expect(MIN_PRINT_BYTES_PER_PIXEL).toBe(0.015);
+  });
+
+  it("tek renkli büyüklükteki dosya reddedilir, poster büyüklüğündeki kabul edilir", () => {
+    expect(isPlausibleCapture(36 * 1024, big)).toBe(false);
+    expect(isPlausibleCapture(435 * 1024, big)).toBe(true);
+  });
+
+  it("eşik piksele orantılıdır", () => {
+    const threshold = small.width * small.height * MIN_PRINT_BYTES_PER_PIXEL;
+    expect(isPlausibleCapture(threshold, small)).toBe(true);
+    expect(isPlausibleCapture(threshold - 1, small)).toBe(false);
+    expect(isPlausibleCapture(threshold, big)).toBe(false);
+  });
+
+  it.each([0, NaN, Infinity, -5])("geçersiz boyut (%p): reddedilir", (bytes) => {
+    expect(isPlausibleCapture(bytes, big)).toBe(false);
+  });
+});
+
+describe("iOS başlangıç boyutu", () => {
+  const widths = (sizes: readonly { width: number }[]) => sizes.map((size) => size.width);
+
+  it("varsayılan sınırsızdır (cihaz doğrulamasına kadar)", () => {
+    expect(IOS_MAX_PRINT_WIDTH).toBeNull();
+    expect(widths(printSizesFor("ios"))).toEqual([2400, 1800, 1200]);
+    expect(widths(printSizesFor("android"))).toEqual([2400, 1800, 1200]);
+  });
+
+  it("sabit açıldığında yalnızca iOS etkilenir", () => {
+    expect(widths(printSizesFor("ios", 1800))).toEqual([1800, 1200]);
+    expect(widths(printSizesFor("android", 1800))).toEqual([2400, 1800, 1200]);
+  });
+});
+
+describe("düzen zaman aşımı", () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  it("onLayout gelirse true, zamanlayıcı temizlenir", async () => {
+    let done = () => {};
+    const promise = waitForLayout((onLaidOut) => {
+      done = onLaidOut;
+    }, 1500);
+    done();
+    await expect(promise).resolves.toBe(true);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("süre dolarsa false", async () => {
+    const promise = waitForLayout(() => {}, 1500);
+    jest.advanceTimersByTime(1499);
+    let settled = false;
+    void promise.then(() => {
+      settled = true;
+    });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    jest.advanceTimersByTime(1);
+    await expect(promise).resolves.toBe(false);
+  });
+
+  it("zaman aşımı istisnası deneme başarısızlığı sayılır, alt boyuta düşülür ve neden bildirilir", async () => {
+    const { PrintLayoutTimeoutError } = jest.requireActual<typeof import("../printExport")>("../printExport");
+    jest.useRealTimers();
+    const timeout = new PrintLayoutTimeoutError();
+    const failures: unknown[] = [];
+    const capture = jest.fn().mockRejectedValueOnce(timeout).mockResolvedValueOnce("file://b.png");
+    const result = await captureWithFallback(PRINT_SIZES, capture, (_size, error) => failures.push(error));
+    expect(result?.size.width).toBe(1800);
+    expect(failures[0]).toBeInstanceOf(PrintLayoutTimeoutError);
   });
 });
 

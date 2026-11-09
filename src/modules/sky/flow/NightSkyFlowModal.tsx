@@ -7,9 +7,10 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { MapPickerModal } from "@/components/MapPickerModal";
 import { StorySharePreview } from "@/components/share/StorySharePreview";
-import { LazyDateTimePickerSheet, LazyPremiumPaywall } from "@/components/ui/lazyMount";
+import { LazyDateTimePickerSheet, LazyDemoActionModal, LazyPremiumPaywall } from "@/components/ui/lazyMount";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
+import { useDemoAction } from "@/hooks/useDemoAction";
 import { useStoryCouple } from "@/hooks/useStoryCouple";
 import { DEMO_STAR_DETAILS } from "@/constants/demoData";
 import { dayjs } from "@/lib/date";
@@ -77,6 +78,7 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
   const { profile, isDemoMode } = useAuth();
   const couple = useStoryCouple();
   const user = { isPremium: !!profile?.isPremium, isDemoMode };
+  const { executeOrIntercept, isDemoModalOpen, setIsDemoModalOpen, modalConfig } = useDemoAction();
 
   const today = useMemo(() => todayString(), []);
   const [step, setStep] = useState(0);
@@ -117,6 +119,13 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
       cancelled = true;
     };
   }, [isDemoMode]);
+
+  // Kayıt isteğinden giriş ekranına geçilirken demo biter: akış (ve üstünde açıldığı modal) girişin üstünde kalmasın
+  const wasDemo = useRef(isDemoMode);
+  useEffect(() => {
+    if (wasDemo.current && !isDemoMode) (onLeaveForUpgrade ?? onClose)();
+    wasDemo.current = isDemoMode;
+  }, [isDemoMode, onLeaveForUpgrade, onClose]);
 
   const chosenDate = resolveChosenDate(options, choice);
   const canAdvance = step === 0 ? chosenDate !== null : step === 1 ? place !== null : true;
@@ -172,6 +181,7 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
   const openPaywallOrRun = (action: "customTitle" | "printExport") => {
     const gate = gateFor(action, user);
     if (gate === "paywall") setShowPaywall(true);
+    else if (gate === "signup") executeOrIntercept(() => {}, t("sky.flow.demoPrompt.title"), t("sky.flow.demoPrompt.description"));
     else if (action === "printExport") setShowPrint(true);
   };
 
@@ -477,6 +487,15 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
         onUpgrade={onLeaveForUpgrade ?? onClose}
         featureSource="night_sky"
       />
+
+      {isDemoModalOpen && (
+        <LazyDemoActionModal
+          visible={isDemoModalOpen}
+          onClose={() => setIsDemoModalOpen(false)}
+          title={modalConfig.title}
+          description={modalConfig.description}
+        />
+      )}
 
       {computed.sky && dateLine && place ? (
         <StorySharePreview

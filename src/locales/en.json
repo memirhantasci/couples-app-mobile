@@ -4011,7 +4011,12 @@
         "preparing": "Preparing…",
         "result": "File prepared at {{width}}×{{height}} pixels.",
         "failed": "The print file couldn't be prepared on this device. You can try sharing it as a story.",
-        "shareFailed": "The file couldn't be shared. Please try again."
+        "shareFailed": "The file couldn't be shared. Please try again.",
+        "layoutTimeout": "The poster couldn't be prepared in time. Please try again, or share it as a story instead."
+      },
+      "demoPrompt": {
+        "title": "Sign Up for the Print File ✨",
+        "description": "You can preview the poster and share it as a story. The print file and custom title are Premium features; create your free account first."
       },
       "warnings": {
         "daylight": "The sky was still bright at that hour: stars wouldn't have been visible to the naked eye. The poster is drawn anyway.",

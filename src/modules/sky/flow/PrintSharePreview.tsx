@@ -1,16 +1,34 @@
 import { useRef, useState, type ComponentProps } from "react";
-import { ActivityIndicator, Modal, PixelRatio, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, Modal, PixelRatio, Platform, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Share2, X } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
+import Constants from "expo-constants";
+import { File } from "expo-file-system";
 import { GOLD } from "@/components/share/storyDecor";
 import { safeStorage } from "@/lib/safeStorage";
 import { captureImage, shareCapturedImage } from "@/lib/storyShare";
 import { logger } from "@/utils/logger";
 import { NightSkyPrintLayout } from "../render";
-import { captureWithFallback, parseAttemptWidth, PRINT_SIZES, sizesAfterCrash, type PrintSize } from "./printExport";
+import {
+  beginAttempt,
+  captureWithFallback,
+  isPlausibleCapture,
+  markFailed,
+  markSuccess,
+  parsePrintTrail,
+  printSizesFor,
+  PRINT_SIZES,
+  PrintLayoutTimeoutError,
+  serializePrintTrail,
+  settleCrash,
+  startingSizes,
+  waitForLayout,
+  type PrintSize,
+  type PrintTrail,
+} from "./printExport";
 
-const ATTEMPT_KEY = "@night_sky_print_attempt";
+const TRAIL_KEY = "@night_sky_print_attempt";
 const LAYOUT_TIMEOUT_MS = 1500;
 const CHROME_HEIGHT = 190;
 const PREVIEW_SIZE = PRINT_SIZES[PRINT_SIZES.length - 1];
@@ -51,21 +69,38 @@ function PreviewSheet({ onClose, layout }: Omit<PrintSharePreviewProps, "visible
   const renderWidth = renderSize.width / ratio;
   const renderHeight = renderSize.height / ratio;
 
-  /** Düzen istenen boya gelene kadar bekler; onLayout gelmezse zaman aşımıyla devam eder, yakalama karar verir. */
+  /** Düzen istenen boya gelene kadar bekler; onLayout süresinde gelmezse deneme başarısızdır, yarım düzen yakalanmaz. */
   const renderAt = async (size: PrintSize) => {
     if (renderedWidth.current !== size.width) {
-      await new Promise<void>((resolve) => {
-        const timer = setTimeout(resolve, LAYOUT_TIMEOUT_MS);
-        layoutDone.current = () => {
-          clearTimeout(timer);
-          resolve();
-        };
+      const laidOut = await waitForLayout((onLaidOut) => {
+        layoutDone.current = onLaidOut;
         renderedWidth.current = size.width;
         setRenderSize(size);
-      });
+      }, LAYOUT_TIMEOUT_MS);
+      if (!laidOut) {
+        layoutDone.current = null;
+        throw new PrintLayoutTimeoutError();
+      }
     }
     await nextFrame();
     await nextFrame();
+  };
+
+  /** Yakalama bittikten sonra önizlemeye dönüş: başarılı sonucu bu adımın zaman aşımı boşa çıkarmamalı. */
+  const restorePreview = async () => {
+    try {
+      await renderAt(PREVIEW_SIZE);
+    } catch {
+      // önizleme büyük boyutta kalsa da akış sürer
+    }
+  };
+
+  const saveTrail = async (trail: PrintTrail) => {
+    try {
+      await safeStorage.setItem(TRAIL_KEY, serializePrintTrail(trail));
+    } catch {
+      // iz yazılamazsa yalnızca bir sonraki oturumdaki öngörü kaybolur; dışa aktarma sürer
+    }
   };
 
   const handleShare = async () => {
@@ -73,20 +108,30 @@ function PreviewSheet({ onClose, layout }: Omit<PrintSharePreviewProps, "visible
     setBusy(true);
     setMessage(null);
     try {
-      const sizes = sizesAfterCrash(parseAttemptWidth(await safeStorage.getItem(ATTEMPT_KEY)));
+      const context = { now: Date.now(), version: Constants.expoConfig?.version ?? "unknown" };
+      let trail = settleCrash(parsePrintTrail(await safeStorage.getItem(TRAIL_KEY)));
+      const outcome = { timedOut: false };
       const result = await captureWithFallback(
-        sizes,
+        startingSizes(trail, context, printSizesFor(Platform.OS)),
         async (size) => {
-          await safeStorage.setItem(ATTEMPT_KEY, String(size.width));
+          // İz yakalamadan önce diske yazılır: süreç yakalama sırasında ölürse sonraki oturum bu boyutu bilir
+          trail = beginAttempt(trail, size.width, context);
+          await saveTrail(trail);
           await renderAt(size);
           return captureImage(cardRef, { widthPx: size.width, heightPx: size.height });
         },
-        (size) => logger.warn(`Print export failed at ${size.width}x${size.height}`)
+        (size, error) => {
+          trail = markFailed(trail, size.width, context);
+          if (error instanceof PrintLayoutTimeoutError) outcome.timedOut = true;
+          logger.warn(`Print export failed at ${size.width}x${size.height}`);
+        },
+        (uri, size) => isPlausibleCapture(new File(uri).size, size)
       );
-      await safeStorage.removeItem(ATTEMPT_KEY);
-      await renderAt(PREVIEW_SIZE);
+      if (result) trail = markSuccess(trail, result.size.width);
+      await saveTrail(trail);
+      await restorePreview();
       if (!result) {
-        setMessage(t("sky.flow.print.failed"));
+        setMessage(t(outcome.timedOut ? "sky.flow.print.layoutTimeout" : "sky.flow.print.failed"));
         return;
       }
       setMessage(t("sky.flow.print.result", { width: result.size.width, height: result.size.height }));

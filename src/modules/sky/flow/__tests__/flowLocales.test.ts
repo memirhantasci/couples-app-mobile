@@ -37,6 +37,9 @@ describe("sky.flow metinleri (TR/EN)", () => {
     expect(flow.time.unknownNote).toContain("{{time}}");
     expect(flow.print.result).toContain("{{width}}");
     expect(flow.print.result).toContain("{{height}}");
+    expect(flow.print.layoutTimeout).toBeTruthy();
+    expect(flow.demoPrompt.title).toBeTruthy();
+    expect(flow.demoPrompt.description).toBeTruthy();
     expect(flow.preview.printSoon).toBeUndefined();
     expect(flow.preview.dataSources).toContain("HYG");
     expect(flow.preview.dataSources).toContain("Stellarium");

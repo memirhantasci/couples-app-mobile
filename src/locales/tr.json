@@ -4011,7 +4011,12 @@
         "preparing": "Hazırlanıyor…",
         "result": "Dosya {{width}}×{{height}} piksel olarak hazırlandı.",
         "failed": "Baskı dosyası bu cihazda hazırlanamadı. Hikâye olarak paylaşmayı deneyebilirsin.",
-        "shareFailed": "Dosya paylaşılamadı. Lütfen tekrar dene."
+        "shareFailed": "Dosya paylaşılamadı. Lütfen tekrar dene.",
+        "layoutTimeout": "Poster zamanında hazırlanamadı. Lütfen tekrar dene; sorun sürerse hikâye olarak paylaşabilirsin."
+      },
+      "demoPrompt": {
+        "title": "Baskı Dosyası İçin Kayıt Olun ✨",
+        "description": "Posteri önizleyip hikâye olarak paylaşabilirsin. Baskı dosyası ve özel başlık Premium özellikleridir; önce ücretsiz hesabını oluştur."
       },
       "warnings": {
         "daylight": "Bu saatte gökyüzü aydınlıktı: yıldızlar çıplak gözle görünmezdi, poster yine de çizildi.",

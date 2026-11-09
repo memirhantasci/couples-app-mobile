@@ -10,41 +10,183 @@ export const PRINT_SIZES: readonly PrintSize[] = [
   { width: 1200, height: 1600 },
 ];
 
+/**
+ * iOS'ta başlangıç boyutunu sınırlamak için hazır ayar. 2400×3200 yakalamanın iOS'ta boş ya da eksik çıkıp çıkmadığı
+ * cihazda doğrulanamadı; sorun görülürse 1800 yapılır. Doğrulama olana kadar varsayılan sınırsızdır.
+ */
+export const IOS_MAX_PRINT_WIDTH: number | null = null;
+
+/** Platforma göre denenecek boyutlar. */
+export function printSizesFor(platform: string, iosMaxWidth: number | null = IOS_MAX_PRINT_WIDTH, sizes: readonly PrintSize[] = PRINT_SIZES): readonly PrintSize[] {
+  if (platform !== "ios" || iosMaxWidth === null) return sizes;
+  const allowed = sizes.filter((size) => size.width <= iosMaxWidth);
+  return allowed.length > 0 ? allowed : sizes.slice(-1);
+}
+
+/**
+ * Piksel başına en az bayt. Tek renkli ya da yalnızca gradyanlı (içeriği çizilmemiş) 2400×3200 PNG yaklaşık 36 KB
+ * (0,005 B/piksel), diskli ve 1500 yıldızlı benzer bir görüntü yaklaşık 435-530 KB (0,06-0,07) sıkışıyor; ölçüm
+ * zlib ile benzetimdir, cihaz çıktısı değil. Eşik ikisinin arasındadır: boşun 3 katı, gerçeğin ~4'te 1'i
+ * (2400×3200 için ~115 KB). Piksele bağlıdır: küçük boyutların dosyası da küçüktür.
+ */
+export const MIN_PRINT_BYTES_PER_PIXEL = 0.015;
+
+/** Dosya boyutu sıfır (yok ya da okunamıyor) veya boş görsel kadar küçükse false. */
+export function isPlausibleCapture(bytes: number, size: PrintSize): boolean {
+  return Number.isFinite(bytes) && bytes >= size.width * size.height * MIN_PRINT_BYTES_PER_PIXEL;
+}
+
 export interface CaptureSuccess {
   uri: string;
   size: PrintSize;
 }
 
-/** Sırayla dener, ilk başarıda durur. Hiçbiri olmazsa null: arayüz hata gösterir, istisna yukarı çıkmaz. */
+/**
+ * Sırayla dener, ilk başarıda durur. Hiçbiri olmazsa null: arayüz hata gösterir, istisna yukarı çıkmaz.
+ * `validate` false dönerse (boş görünen dosya) deneme başarısız sayılır, bir alt boyuta geçilir.
+ */
 export async function captureWithFallback(
   sizes: readonly PrintSize[],
   capture: (size: PrintSize) => Promise<string | null | undefined>,
-  onFailure?: (size: PrintSize) => void
+  onFailure?: (size: PrintSize, error: unknown) => void,
+  validate?: (uri: string, size: PrintSize) => boolean
 ): Promise<CaptureSuccess | null> {
   for (const size of sizes) {
+    let failure: unknown = null;
     try {
       const uri = await capture(size);
-      if (uri) return { uri, size };
-    } catch {
-      // bir alt boyuta geç
+      if (uri && (!validate || validate(uri, size))) return { uri, size };
+    } catch (error) {
+      failure = error;
     }
-    onFailure?.(size);
+    onFailure?.(size, failure);
   }
   return null;
 }
 
-/**
- * Yerel bellek taşması JS'te yakalanamaz, süreci öldürür. Denemeden önce yazılan iz, tamamlanınca silinir:
- * iz duruyorsa önceki deneme uygulamayla birlikte düşmüştür ve o boyut tekrar denenmez.
- * En küçük boyutta bile iz kaldıysa yine en küçüğü denenir: başka seçenek yok.
- */
-export function sizesAfterCrash(lastAttemptWidth: number | null, sizes: readonly PrintSize[] = PRINT_SIZES): readonly PrintSize[] {
-  if (lastAttemptWidth === null) return sizes;
-  const safer = sizes.filter((size) => size.width < lastAttemptWidth);
-  return safer.length > 0 ? safer : sizes.slice(-1);
+// ─── Düzen beklemesi ──────────────────────────────────────────────────────────
+
+export class PrintLayoutTimeoutError extends Error {
+  constructor() {
+    super("Print layout did not complete in time");
+    this.name = "PrintLayoutTimeoutError";
+  }
 }
 
-export function parseAttemptWidth(raw: string | null): number | null {
-  if (raw === null || !/^\d{3,5}$/.test(raw)) return null;
-  return Number(raw);
+/**
+ * `arm` düzen tamamlanınca çağrılacak işlevi alır. Süre dolarsa false: çağıran o denemeyi başarısız saymalıdır,
+ * yarım kalmış düzen sessizce yakalanmamalıdır.
+ */
+export function waitForLayout(arm: (onLaidOut: () => void) => void, timeoutMs: number): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    const timer = setTimeout(() => resolve(false), timeoutMs);
+    arm(() => {
+      clearTimeout(timer);
+      resolve(true);
+    });
+  });
+}
+
+// ─── Çökme izi ────────────────────────────────────────────────────────────────
+
+/** Başarısız boyut bu süre ya da uygulama sürümü değişince yeniden denenir: cihaz kalıcı olarak küçük boyutta kalmasın. */
+export const PRINT_RETRY_AFTER_MS = 14 * 24 * 60 * 60 * 1000;
+
+export interface PrintTrailEntry {
+  at: number;
+  version: string;
+}
+
+export interface PrintTrail {
+  /** Genişlik → en son başarısızlık */
+  failed: Record<string, PrintTrailEntry>;
+  /** Yakalamadan önce yazılır, sonuç gelince silinir */
+  attempt: (PrintTrailEntry & { width: number }) | null;
+}
+
+export interface PrintTrailContext {
+  now: number;
+  version: string;
+}
+
+export const EMPTY_PRINT_TRAIL: PrintTrail = { failed: {}, attempt: null };
+
+function parseEntry(value: unknown): PrintTrailEntry | null {
+  if (typeof value !== "object" || value === null) return null;
+  const { at, version } = value as Record<string, unknown>;
+  return typeof at === "number" && Number.isFinite(at) && typeof version === "string" ? { at, version } : null;
+}
+
+/** Bozuk ya da yabancı biçimli iz yok sayılır. */
+export function parsePrintTrail(raw: string | null): PrintTrail {
+  if (!raw) return EMPTY_PRINT_TRAIL;
+  let data: unknown;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    return EMPTY_PRINT_TRAIL;
+  }
+  if (typeof data !== "object" || data === null || Array.isArray(data)) return EMPTY_PRINT_TRAIL;
+  const record = data as Record<string, unknown>;
+
+  const failed: Record<string, PrintTrailEntry> = {};
+  if (typeof record.failed === "object" && record.failed !== null) {
+    for (const [width, value] of Object.entries(record.failed)) {
+      const entry = parseEntry(value);
+      if (entry && /^\d{3,5}$/.test(width)) failed[width] = entry;
+    }
+  }
+  const attemptEntry = parseEntry(record.attempt);
+  const attemptWidth = (record.attempt as { width?: unknown } | null | undefined)?.width;
+  const attempt = attemptEntry && typeof attemptWidth === "number" && Number.isInteger(attemptWidth) ? { ...attemptEntry, width: attemptWidth } : null;
+  return { failed, attempt };
+}
+
+export function serializePrintTrail(trail: PrintTrail): string {
+  return JSON.stringify(trail);
+}
+
+/** Yakalamadan hemen önce: süreç bu sırada ölürse iz diskte kalır. */
+export function beginAttempt(trail: PrintTrail, width: number, context: PrintTrailContext): PrintTrail {
+  return { ...trail, attempt: { width, at: context.now, version: context.version } };
+}
+
+/**
+ * Yerel bellek taşması JS'te yakalanamaz, süreci öldürür. Oturum başında hâlâ duran deneme izi, önceki denemenin
+ * uygulamayla birlikte düştüğünü gösterir: o boyut başarısız sayılır.
+ */
+export function settleCrash(trail: PrintTrail): PrintTrail {
+  if (!trail.attempt) return trail;
+  const { width, at, version } = trail.attempt;
+  return { failed: { ...trail.failed, [width]: { at, version } }, attempt: null };
+}
+
+export function markFailed(trail: PrintTrail, width: number, context: PrintTrailContext): PrintTrail {
+  return { failed: { ...trail.failed, [width]: { at: context.now, version: context.version } }, attempt: null };
+}
+
+/** Başarı yalnızca KENDİ boyutunun izini siler: küçük boyutun başarısı büyüğün belleğe sığdığını göstermez. */
+export function markSuccess(trail: PrintTrail, width: number): PrintTrail {
+  const failed = { ...trail.failed };
+  delete failed[String(width)];
+  return { failed, attempt: null };
+}
+
+function isActiveFailure(entry: PrintTrailEntry, context: PrintTrailContext): boolean {
+  const age = context.now - entry.at;
+  return entry.version === context.version && age >= 0 && age < PRINT_RETRY_AFTER_MS;
+}
+
+/**
+ * Denenecek boyutlar, en büyük başarılı/denenmemiş olandan başlayarak. Geçerliliğini koruyan en küçük başarısız
+ * boyuttan büyük olanlar da atlanır (o sığmadıysa büyüğü de sığmaz). Hepsi başarısızsa en küçüğü: başka seçenek yok.
+ */
+export function startingSizes(trail: PrintTrail, context: PrintTrailContext, sizes: readonly PrintSize[] = PRINT_SIZES): readonly PrintSize[] {
+  const activeWidths = Object.entries(trail.failed)
+    .filter(([, entry]) => isActiveFailure(entry, context))
+    .map(([width]) => Number(width));
+  if (activeWidths.length === 0) return sizes;
+  const limit = Math.min(...activeWidths);
+  const safer = sizes.filter((size) => size.width < limit);
+  return safer.length > 0 ? safer : sizes.slice(-1);
 }
