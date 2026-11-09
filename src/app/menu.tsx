@@ -4,7 +4,7 @@ import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { X, Heart, Settings, Home, Pill, CalendarHeart, Droplet, MapPin, LogOut, ChevronRight, BookOpen, Mail, Images, Sparkles, Clock, ImagePlus, HelpCircle, Orbit, Crown } from "lucide-react-native";
+import { X, Heart, Settings, Home, Pill, CalendarHeart, Droplet, MapPin, LogOut, ChevronRight, BookOpen, Mail, Images, Sparkles, Clock, ImagePlus, HelpCircle, Orbit, Crown, MoonStar } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 
 import { dayjs, daysSince } from "@/lib/date";
@@ -20,6 +20,7 @@ import { EditableAvatar } from "@/components/avatar/EditableAvatar";
 import { LazyPageTourModal, LazyDemoActionModal } from "@/components/ui/lazyMount";
 import { useTranslation } from "react-i18next";
 import { useSoloGate } from "@/lib/soloGate";
+import { NightSkyFlowModal } from "@/modules/sky/flow";
 
 export default function MenuScreen() {
   const { t } = useTranslation();
@@ -33,6 +34,7 @@ export default function MenuScreen() {
   const guides = React.useMemo(() => getAllPageGuides(t), [t]);
   const [selectedTourPage, setSelectedTourPage] = useState<string | null>(null);
   const [showGuideCatalog, setShowGuideCatalog] = useState(false);
+  const [showNightSky, setShowNightSky] = useState(false);
   // Menü her açılışta baştan kurulur: ilk karede ilk kategori çizilir, ekran dışındaki sağlık ve hesap
   // kategorileri hemen ardından eklenir (açılış animasyonu JS iş parçacığı kilitli kalmadan başlar)
   const showLowerSections = useDeferredReady();
@@ -218,8 +220,24 @@ export default function MenuScreen() {
               <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.menuItem, { backgroundColor: theme.cardBg }]} 
+            <TouchableOpacity
+              style={[styles.menuItem, { backgroundColor: theme.cardBg }]}
+              onPress={() => setShowNightSky(true)}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+            >
+              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <MoonStar color={theme.accent} size={18} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>{t("sky.flow.entry.menuTitle")}</Text>
+                <Text style={styles.menuSub}>{t("sky.flow.entry.menuSubtitle")}</Text>
+              </View>
+              <ChevronRight color={theme.textMuted} size={18} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.menuItem, { backgroundColor: theme.cardBg }]}
               onPress={() => handleRoute("/(tabs)/home")}
               activeOpacity={0.8}
             >
@@ -545,6 +563,13 @@ export default function MenuScreen() {
           onClose={() => setSelectedTourPage(null)}
         />
       )}
+
+      <NightSkyFlowModal
+        visible={showNightSky}
+        onClose={() => setShowNightSky(false)}
+        // Paywall /paywall'a giderken menüdeki akış açık kalmasın
+        onLeaveForUpgrade={() => setShowNightSky(false)}
+      />
 
       {isDemoModalOpen && (
         <LazyDemoActionModal

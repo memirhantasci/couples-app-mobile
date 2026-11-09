@@ -1166,6 +1166,11 @@
         "name": "Custom Profile Photo",
         "description": "👑 Go Premium to see each other's sweetest photos on your profiles.",
         "cta": "Unlock Profile Photo"
+      },
+      "nightSky": {
+        "name": "Custom Sky Poster",
+        "description": "👑 Go Premium to write your own title on the Our Night poster and get the print file.",
+        "cta": "Unlock Poster Perks"
       }
     },
     "perks": {
@@ -3944,6 +3949,76 @@
     "wishPartnerRequired": "You need to pair with a partner to make a wish 💫"
   },
   "sky": {
+    "flow": {
+      "title": "Our Night",
+      "close": "Close",
+      "back": "Back",
+      "next": "Continue",
+      "stepOf": "Step {{current}} of {{total}}",
+      "entry": {
+        "menuTitle": "Our Sky",
+        "menuSubtitle": "Turn that night's sky into a poster",
+        "milestoneButton": "The sky that night"
+      },
+      "date": {
+        "question": "Which night?",
+        "hint": "We draw the sky for that night. A future date can't be picked.",
+        "option": {
+          "meet": "The day we met",
+          "relationship": "The day we got together",
+          "custom": "Another date"
+        },
+        "reason": {
+          "missing": "You haven't added this date yet",
+          "future": "This date hasn't come yet",
+          "outOfRange": "This date is outside the supported range (after 1900)"
+        },
+        "pick": "Pick a date",
+        "pickerTitle": "Which night?"
+      },
+      "place": {
+        "question": "Where were you?",
+        "hint": "A city is enough, no address needed. The place stays on this phone only; it isn't saved online or shared.",
+        "pick": "Pick a place on the map",
+        "change": "Tap to change the place",
+        "unnamed": "Place selected",
+        "unnamedHint": "No place name: the poster won't show a place line",
+        "mapTitle": "Where were you?"
+      },
+      "time": {
+        "question": "What time was it?",
+        "hint": "The sky turns through the night; even a few hours change where the stars are.",
+        "change": "Change",
+        "unknown": "I don't remember",
+        "unknownNote": "If you don't remember, we'll use {{time}}. The poster won't show a time.",
+        "pickerTitle": "What time was it?"
+      },
+      "preview": {
+        "info": "The poster is drawn with the real star positions for the night and place you chose. The moon phase is calculated; values are approximate.",
+        "titleLabel": "Custom title",
+        "premiumOnly": "Write your own title with Premium",
+        "print": "Print file (3:4)",
+        "printSub": "High resolution · Premium",
+        "printSoon": "The print file is coming here very soon.",
+        "share": "Share as a story"
+      },
+      "warnings": {
+        "daylight": "The sky was still bright at that hour: stars wouldn't have been visible to the naked eye. The poster is drawn anyway.",
+        "gap": "The time you chose falls in that day's daylight-saving jump and never happened; the time after the jump was used.",
+        "overlap": "The time you chose happened twice during that day's daylight-saving change; the first one was used.",
+        "deviceTimeZone": "We couldn't find this place's time zone and used your phone's, so the sky may be off."
+      },
+      "errors": {
+        "invalidDate": "The date you chose isn't valid.",
+        "invalidTime": "The time you chose isn't valid.",
+        "invalidLocation": "The place you chose isn't valid. Please pick it on the map again.",
+        "outOfRange": "The poster can only be drawn for nights between 1900 and 2100.",
+        "generic": "We couldn't calculate the sky. Please try again."
+      },
+      "share": {
+        "dialogTitle": "Our Night"
+      }
+    },
     "poster": {
       "kicker": "The sky that night",
       "defaultTitle": "Our Night",

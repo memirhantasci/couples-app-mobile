@@ -6,7 +6,8 @@ export type PremiumFeatureSource =
   | 'exoplanet_create'
   | 'exoplanet_view'
   | 'exoplanet_auto'
-  | 'avatar';
+  | 'avatar'
+  | 'night_sky';
 
 export interface PremiumPaywallProps {
   readonly visible: boolean;

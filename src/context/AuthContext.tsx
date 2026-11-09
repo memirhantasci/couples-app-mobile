@@ -763,6 +763,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       "last_user_id",
       "@pending_invite_code",
       "@notification_priming_dismissed_at",
+      // "Bizim Gecemiz" son yer/saat/başlık: konum içerir, bu cihazda başka hesaba kalmasın (sky/flow/skyPrefs.ts)
+      "@night_sky_prefs",
       ...(currentUserId
         ? [
             `couples_app_profile_cache_${currentUserId}`,

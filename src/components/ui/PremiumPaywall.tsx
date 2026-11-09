@@ -84,6 +84,11 @@ export function PremiumPaywall({
       description: t("paywall.copy.avatar.description"),
       cta: t("paywall.copy.avatar.cta"),
     },
+    night_sky: {
+      name: t("paywall.copy.nightSky.name"),
+      description: t("paywall.copy.nightSky.description"),
+      cta: t("paywall.copy.nightSky.cta"),
+    },
   };
   const resolvedFeature = featureCopy[featureSource];
   const resolvedFeatureName = featureName ?? resolvedFeature.name;

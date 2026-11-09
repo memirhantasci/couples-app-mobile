@@ -1166,6 +1166,11 @@
         "name": "Özel Profil Fotoğrafı",
         "description": "👑 Sevgilinizle birbirinizin en tatlı fotoğraflarını profilinizde görmek için Premium'a geçin.",
         "cta": "Profil Fotoğrafını Aç"
+      },
+      "nightSky": {
+        "name": "Özel Gökyüzü Posteri",
+        "description": "👑 Bizim Gecemiz posterine kendi başlığını yazmak ve baskı dosyasını almak için Premium'a geç.",
+        "cta": "Poster Ayrıcalıklarını Aç"
       }
     },
     "perks": {
@@ -3944,6 +3949,76 @@
     "wishPartnerRequired": "Dilek tutmak için bir partnerle eşleşmen gerekiyor 💫"
   },
   "sky": {
+    "flow": {
+      "title": "Bizim Gecemiz",
+      "close": "Kapat",
+      "back": "Geri",
+      "next": "Devam",
+      "stepOf": "Adım {{current}} / {{total}}",
+      "entry": {
+        "menuTitle": "Gökyüzümüz",
+        "menuSubtitle": "O gecenin gökyüzünü poster yap",
+        "milestoneButton": "O gecenin gökyüzü"
+      },
+      "date": {
+        "question": "Hangi gece?",
+        "hint": "Gökyüzünü o geceye göre çizeriz. Gelecekteki bir tarih seçilemez.",
+        "option": {
+          "meet": "Tanıştığımız gün",
+          "relationship": "Sevgili olduğumuz gün",
+          "custom": "Başka bir tarih"
+        },
+        "reason": {
+          "missing": "Bu tarihi henüz eklememişsiniz",
+          "future": "Bu tarih henüz gelmedi",
+          "outOfRange": "Bu tarih desteklenen aralığın (1900 sonrası) dışında"
+        },
+        "pick": "Tarih seç",
+        "pickerTitle": "Hangi gece?"
+      },
+      "place": {
+        "question": "Neredeydiniz?",
+        "hint": "Şehir yeterli, adres gerekmez. Yer yalnızca bu telefonda saklanır; kaydedilmez, kimseyle paylaşılmaz.",
+        "pick": "Haritadan yer seç",
+        "change": "Yeri değiştirmek için dokun",
+        "unnamed": "Konum seçildi",
+        "unnamedHint": "Yer adı yok: posterde yer satırı görünmez",
+        "mapTitle": "Neredeydiniz?"
+      },
+      "time": {
+        "question": "Saat kaçtı?",
+        "hint": "Gökyüzü saat başına döner; birkaç saatlik fark bile yıldızların yerini değiştirir.",
+        "change": "Değiştir",
+        "unknown": "Hatırlamıyorum",
+        "unknownNote": "Saati hatırlamıyorsan {{time}} kullanırız. Posterde saat yazmaz.",
+        "pickerTitle": "Saat kaçtı?"
+      },
+      "preview": {
+        "info": "Poster, seçtiğin gece ve yerde gökyüzünün gerçek yıldız konumlarıyla çizilir. Ay evresi hesaplanır, değerler yaklaşıktır.",
+        "titleLabel": "Özel başlık",
+        "premiumOnly": "Premium ile kendi başlığını yaz",
+        "print": "Baskı dosyası (3:4)",
+        "printSub": "Yüksek çözünürlük · Premium",
+        "printSoon": "Baskı dosyası çok yakında burada olacak.",
+        "share": "Hikâye olarak paylaş"
+      },
+      "warnings": {
+        "daylight": "Bu saatte gökyüzü aydınlıktı: yıldızlar çıplak gözle görünmezdi, poster yine de çizildi.",
+        "gap": "Seçtiğin saat o gün yaz saati geçişine denk geliyor ve o gün hiç yaşanmadı; geçişten sonraki saat kullanıldı.",
+        "overlap": "Seçtiğin saat o gün yaz saati geçişinde iki kez yaşandı; ilk geçiş kullanıldı.",
+        "deviceTimeZone": "Bu yerin saat dilimi bulunamadı, telefonunun saat dilimi kullanıldı; gökyüzü kayabilir."
+      },
+      "errors": {
+        "invalidDate": "Seçtiğin tarih geçerli değil.",
+        "invalidTime": "Seçtiğin saat geçerli değil.",
+        "invalidLocation": "Seçtiğin yer geçerli değil. Lütfen haritadan yeniden seç.",
+        "outOfRange": "Poster yalnızca 1900 ile 2100 yılları arasındaki geceler için çizilebilir.",
+        "generic": "Gökyüzü hesaplanamadı. Lütfen tekrar dene."
+      },
+      "share": {
+        "dialogTitle": "Bizim Gecemiz"
+      }
+    },
     "poster": {
       "kicker": "O gecenin gökyüzü",
       "defaultTitle": "Bizim Gecemiz",

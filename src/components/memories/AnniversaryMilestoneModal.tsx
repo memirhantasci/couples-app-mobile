@@ -14,13 +14,14 @@ import Animated, {
 import { scheduleOnRN } from "react-native-worklets";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Circle, Path } from "react-native-svg";
-import { Share2 } from "lucide-react-native";
+import { MoonStar, Share2 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { AnniversaryGlow } from "@/components/home/AnniversaryGlow";
 import { MilestoneStoryCard } from "@/components/share/MilestoneStoryCard";
 import { StorySharePreview } from "@/components/share/StorySharePreview";
 import { useAuth } from "@/context/AuthContext";
 import { useStoryCouple } from "@/hooks/useStoryCouple";
+import { NightSkyFlowModal } from "@/modules/sky/flow";
 import { dayjs } from "@/lib/date";
 import { playCelebration } from "@/lib/soundEffects";
 import type { AppTheme } from "@/lib/theme";
@@ -75,6 +76,7 @@ function MilestoneScene({ years, days, title, message, variant, theme, onClose }
   const { profile } = useAuth();
   const couple = useStoryCouple();
   const [isStoryOpen, setIsStoryOpen] = useState(false);
+  const [isSkyOpen, setIsSkyOpen] = useState(false);
   const storyHeadline =
     years > 0
       ? t("memories.milestone.story.years", { years })
@@ -178,6 +180,17 @@ function MilestoneScene({ years, days, title, message, variant, theme, onClose }
                   <Text style={[styles.shareStoryText, { color: isLight ? GOLD_DEEP : GOLD }]}>{t("memories.milestone.shareStory")}</Text>
                 </TouchableOpacity>
 
+                {/* O gecenin gökyüzünü poster yap (akışta sevgili olduğumuz gün ön seçili gelir) */}
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => setIsSkyOpen(true)}
+                  style={[styles.shareStory, styles.skyStory, { borderColor: isLight ? GOLD_DEEP : GOLD }]}
+                  accessibilityRole="button"
+                >
+                  <MoonStar size={16} color={isLight ? GOLD_DEEP : GOLD} />
+                  <Text style={[styles.shareStoryText, { color: isLight ? GOLD_DEEP : GOLD }]}>{t("sky.flow.entry.milestoneButton")}</Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity
                   activeOpacity={0.85}
                   onPress={handleClose}
@@ -198,6 +211,16 @@ function MilestoneScene({ years, days, title, message, variant, theme, onClose }
           </View>
         </Animated.View>
       </View>
+      <NightSkyFlowModal
+        visible={isSkyOpen}
+        onClose={() => setIsSkyOpen(false)}
+        initialDateChoice="relationship"
+        // Paywall'daki yükseltme /paywall'a giderken bu tören penceresi de açık kalmasın
+        onLeaveForUpgrade={() => {
+          setIsSkyOpen(false);
+          handleClose();
+        }}
+      />
       <StorySharePreview
         visible={isStoryOpen}
         onClose={() => setIsStoryOpen(false)}
@@ -343,6 +366,9 @@ const styles = StyleSheet.create({
   shareStoryText: {
     fontSize: 14,
     fontFamily: "Inter_700Bold",
+  },
+  skyStory: {
+    marginTop: 10,
   },
   cta: {
     marginTop: 12,
