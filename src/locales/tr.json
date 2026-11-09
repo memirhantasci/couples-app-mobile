@@ -1360,7 +1360,73 @@
       "moodDays_other": "{{count}} Gün {{mood}}"
     },
     "shareInstagram": "Instagram Story’de Paylaş",
-    "shareError": "Hikaye görseli paylaşılırken bir sorun oluştu. Lütfen tekrar deneyin."
+    "shareError": "Hikaye görseli paylaşılırken bir sorun oluştu. Lütfen tekrar deneyin.",
+    "archetype": {
+      "title": "SİZ NASIL BİR ÇİFTSİNİZ?",
+      "cardKicker": "ÇİFT TİPİNİZ",
+      "evidence": {
+        "night": "Paylaşımlarınızın %{{percent}}’i gece 22:00’den sonra",
+        "morning": "Paylaşımlarınızın %{{percent}}’i sabah 05:00–10:00 arasında",
+        "letters_one": "Bu dönem {{count}} mektup yazdınız",
+        "letters_other": "Bu dönem {{count}} mektup yazdınız",
+        "photos_one": "Bu dönem {{count}} fotoğraf paylaştınız",
+        "photos_other": "Bu dönem {{count}} fotoğraf paylaştınız",
+        "meetings_one": "Bu dönem {{count}} kez buluştunuz",
+        "meetings_other": "Bu dönem {{count}} kez buluştunuz",
+        "notes_one": "Bu dönem {{count}} günlük notu yazdınız",
+        "notes_other": "Bu dönem {{count}} günlük notu yazdınız",
+        "none": "Hikâyenizin ilk sayfaları yazılıyor"
+      },
+      "nightOwls": {
+        "name": "Gece Kuşları",
+        "line": "Dünya uyurken birbirinize en çok siz yazarsınız.",
+        "trait1": "Gece sohbetleri",
+        "trait2": "Sessiz saatler",
+        "trait3": "Uykusuz aşk"
+      },
+      "earlyBirds": {
+        "name": "Gün Doğumu",
+        "line": "Güne birbirinize merhaba diyerek başlarsınız.",
+        "trait1": "Sabah mesajları",
+        "trait2": "Taze başlangıç",
+        "trait3": "Güneşli enerji"
+      },
+      "letterPoets": {
+        "name": "Mektup Şairleri",
+        "line": "Kelimeler sizin ortak dilinizdir.",
+        "trait1": "Mühürlü sözler",
+        "trait2": "Kalemin gücü",
+        "trait3": "Duygu dolu"
+      },
+      "memoryHunters": {
+        "name": "Anı Avcıları",
+        "line": "Hiçbir an kaçmaz; her kareyi birlikte saklarsınız.",
+        "trait1": "Kare kare aşk",
+        "trait2": "Hatıra koleksiyonu",
+        "trait3": "Her kare özel"
+      },
+      "explorers": {
+        "name": "Kaşifler",
+        "line": "Aşkınızı yeni yerlerde ve buluşmalarda büyütürsünüz.",
+        "trait1": "Buluşma heyecanı",
+        "trait2": "Yeni yerler",
+        "trait3": "Birlikte yol"
+      },
+      "journalists": {
+        "name": "Günlükçüler",
+        "line": "Her günü birlikte yazar, birlikte hatırlarsınız.",
+        "trait1": "Günlük ritüeli",
+        "trait2": "Küçük notlar",
+        "trait3": "Her gün biraz"
+      },
+      "starlight": {
+        "name": "Yıldız Işığı",
+        "line": "Hikâyeniz yeni başlıyor; gökyüzü ikinize de açık.",
+        "trait1": "Taze başlangıç",
+        "trait2": "Merak",
+        "trait3": "Sınırsız gökyüzü"
+      }
+    }
   },
   "map": {
     "customLocation": "Özel Konum",
