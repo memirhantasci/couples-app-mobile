@@ -22,6 +22,7 @@ import { PlayfairDisplay_400Regular_Italic } from "@expo-google-fonts/playfair-d
 import { useAuth } from "@/context/AuthContext";
 import { useLanguageReady } from "@/hooks/useLanguageReady";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
+import { seeded } from "@/lib/seededRandom";
 import { getHapticFeedbackEnabled, hapticStamp, hapticTap } from "@/lib/soundEffects";
 
 // ─── Açılış Animasyonu: "İki ruh, tek gökyüzü" ─────────────────────────────────
@@ -169,12 +170,6 @@ const TRAIL = [
 ] as const;
 
 const SKY_COUNT = 22;
-
-/** Yıldız tozu her açılışta aynı dağılsın diye sabit tohumlu sözde rastgele sayı (0..1). */
-function seeded(index: number, salt: number): number {
-  const x = Math.sin(index * 127.1 + salt * 311.7) * 43758.5453;
-  return x - Math.floor(x);
-}
 
 const SKY = Array.from({ length: SKY_COUNT }, (_, i) => ({
   left: `${(seeded(i, 1) * 100).toFixed(2)}%` as `${number}%`,

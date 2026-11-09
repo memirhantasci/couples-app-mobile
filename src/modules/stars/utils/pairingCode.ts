@@ -7,12 +7,11 @@
  * Kozmik Bağlar ekranındaki kod girişi bu biçimi istemci tarafında da uygular.
  */
 
-export const PAIRING_CODE_LENGTH = 6;
+import { PAIRING_CODE_LENGTH, normalizePairingCode } from '@/lib/pairingCode';
 
-/** Girilen metni kod biçimine çevirir: büyük harf, yalnızca A–Z / 0–9, en fazla 6 karakter. */
-export function normalizePairingCode(raw: string): string {
-  return raw.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, PAIRING_CODE_LENGTH);
-}
+// Tek kaynak: src/lib/pairingCode.ts. Türkçe klavyedeki i / ı / İ harflerini I'ya çeviren düzeltme orada;
+// buradaki ayrı kopya bunu yapmıyor, "İ" içeren kodu bozuyordu.
+export { PAIRING_CODE_LENGTH, normalizePairingCode };
 
 /** Kodun tam (6 karakterlik) ve geçerli biçimde olup olmadığını söyler. */
 export function isCompletePairingCode(code: string): boolean {
@@ -25,6 +24,7 @@ export function isCompletePairingCode(code: string): boolean {
  */
 export function extractPairingCode(text: string): string {
   const standalone = text
+    .replace(/[İıi]/g, 'I')
     .toUpperCase()
     .split(/[^A-Z0-9]+/)
     .find((part) => part.length === PAIRING_CODE_LENGTH);

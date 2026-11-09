@@ -20,11 +20,8 @@ const BASE_STAR_RADIUS_PX = 2.2;
 /** How much a fully lit star (brightness 1.0) grows over the baseline radius. */
 const FULL_LIGHT_GROWTH = 0.8;
 
-export function smoothstep(edge0: number, edge1: number, value: number): number {
-  'worklet';
-  const t = Math.max(0, Math.min(1, (value - edge0) / (edge1 - edge0)));
-  return t * t * (3 - 2 * t);
-}
+// Tek kaynak: src/lib/bezier.ts (aynı smoothstep, 'worklet' direktifiyle). Buradan dışa aktarım, mevcut import'lar bozulmasın diye.
+export { smoothstep } from '@/lib/bezier';
 
 /**
  * Light (0.20…1.00) a star is drawn with. Unclaimed stars always get the

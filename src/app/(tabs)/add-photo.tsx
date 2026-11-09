@@ -34,7 +34,7 @@ import { dayjs, todayString } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { logger } from "@/utils/logger";
-import { MapPickerModal } from "@/components/MapPickerModal";
+import { MapPickerModal, type LocationData } from "@/components/MapPickerModal";
 import { extractPhotoExif, isValidCoordinate, geocodeAddressString } from "@/utils/exifHelper";
 import { sanitize, sanitizeStrict } from "@/utils/sanitize";
 import { playCameraClick } from "@/lib/soundEffects";
@@ -42,12 +42,6 @@ import { toast } from "@/lib/toast";
 import { LazyPremiumPaywall, LazyDemoActionModal, LazyDateTimePickerSheet } from "@/components/ui/lazyMount";
 import { useTranslation } from "react-i18next";
 import { localizeServerError } from "@/lib/serverErrors";
-
-interface LocationData {
-  latitude: number;
-  longitude: number;
-  locationName?: string;
-}
 
 const INFO_REVEAL = FadeInDown.duration(280);
 
