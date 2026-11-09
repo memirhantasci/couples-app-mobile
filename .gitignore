@@ -64,3 +64,9 @@ couplesky-*.json
 
 # Gizli anahtarlar (asla commit'leme)
 .secrets/
+
+# graphify output
+graphify-out/
+graphify-ast/
+graphify-sem/
+graphify-semantic/
