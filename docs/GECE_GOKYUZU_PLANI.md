@@ -54,7 +54,7 @@ Bölüm 1 ve 2 birbirinden bağımsız (veri sözleşmesi §4'te). 3, ikisine ba
 - Kabul: tüm çizgi uçları katalogda bulunur; yıldız sayısı ve dosya boyutu (hedef ≤ ~150 KB) raporlanır; yinelenebilirlik; `docs/` altında kaynak ve lisans notu.
 
 ### Bölüm 2: Astronomi motoru
-- Saf TypeScript, UI yok. Saat dilimi: konumdan IANA bölgesi (`tz-lookup` önerilir, ~60 KB) + `Intl` ile **o tarihteki** UTC farkı (tarihî yaz saati dahil); bulunamazsa cihaz saat dilimi.
+- Saf TypeScript, UI yok. Saat dilimi: konumdan IANA bölgesi (`tz-lookup` 6.1.25: `tz.js` 73,4 KB, gzip 29,2 KB, ölçüldü) + `Intl` ile **o tarihteki** UTC farkı (tarihî yaz saati dahil); bulunamazsa cihaz saat dilimi.
 - Kabul (cihazsız, kesin testler): J2000 GMST = 18,697374558 saat; Kutup Yıldızı'nın yüksekliği ≈ enlem; bir yıldızın meridyen geçişindeki yüksekliği = 90° − |enlem − dec|; Sirius'un bilinen bir tarih/yer için yaklaşık alt/az'ı; Ay evresi bilinen yeni ay/dolunay tarihlerinde doğru.
 - Tarihî saat dilimi (ör. İstanbul 2016 öncesi EET/EEST) için Android ve iOS Hermes `Intl` davranışı **gerçek cihazda doğrulanmalı**; testte sahte `Intl` ile mantık, cihazda davranış denenir.
 
