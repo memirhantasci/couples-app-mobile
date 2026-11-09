@@ -56,6 +56,7 @@ import {
   hapticSelection,
   hapticSuccess,
   hapticError,
+  hapticHeartbeat,
 } from '@/lib/soundEffects';
 import { safeStorage as AsyncStorage } from '@/lib/safeStorage';
 import { useAuth } from '@/context/AuthContext';
@@ -148,6 +149,10 @@ const MICRO_HEADER_ESTIMATED_HEIGHT = 130;
 const MICRO_DOCK_ESTIMATED_HEIGHT = 190;
 /** Kapatılan anı gezegeninin hedef halkası bu kadar süre daha görünür kalır. */
 const PLANET_HIGHLIGHT_LINGER_MS = 2600;
+/** Senkron dokunuş: partner art arda basarsa "basılı tutuyor" daveti bu süreden sık gösterilmez. */
+const PARTNER_HOLD_TOAST_COOLDOWN_MS = 8000;
+/** Senkron dokunuş: birlikte basılı tutarken kalp atışı titreşiminin tekrar aralığı. */
+const TOGETHER_HEARTBEAT_INTERVAL_MS = 1300;
 
 /** Kış uykusunda gökyüzüne çizilen ışık bağı yok; kayıtlar silinmez, yenilenince aynen döner */
 const FROZEN_CONNECTIONS: ActiveStarConnection[] = [];
@@ -332,6 +337,10 @@ export const OurStarScreen: React.FC = () => {
   // Realtime & Rezonans State
   const [luminosityOverride, setLuminosityOverride] = useState<number | undefined>(undefined);
   const [isResonanceActive, setIsResonanceActive] = useState(false);
+  // Senkron dokunuş: iki eş aynı anda yıldıza basılı tutuyor (yalnızca bellekte; hiçbir şey kaydedilmez)
+  const [isTogether, setIsTogether] = useState(false);
+  const partnerHoldingRef = useRef(false);
+  const lastPartnerHoldToastAtRef = useRef(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Modallar
@@ -823,6 +832,25 @@ export const OurStarScreen: React.FC = () => {
           showToast(t('stars.screen.toasts.resonanceStarted'));
         }
       },
+      onPartnerHoldChange: (holding: boolean) => {
+        partnerHoldingRef.current = holding;
+        if (!holding) return;
+
+        // Partner yıldıza basılı tutmaya başladı: davet. Art arda basışlarda mesaj yığılmasın.
+        const now = Date.now();
+        if (now - lastPartnerHoldToastAtRef.current < PARTNER_HOLD_TOAST_COOLDOWN_MS) return;
+        lastPartnerHoldToastAtRef.current = now;
+        hapticSelection();
+        showToast(t('stars.screen.toasts.partnerHolding'));
+      },
+      onTogetherChange: (together: boolean) => {
+        setIsTogether(together);
+        if (together) {
+          triggerGlowWave();
+          hapticSuccess();
+          showToast(t('stars.screen.toasts.togetherStarted'));
+        }
+      },
     });
 
     return () => {
@@ -831,6 +859,36 @@ export const OurStarScreen: React.FC = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStarId, currentUserId, currentUserName, showToast]);
+
+  // ─── SENKRON DOKUNUŞ ────────────────────────────────────────────────
+  // Birlikte basılı tutarken iki telefon da aynı ritimde kalp atışı titreşimi verir. Her telefon kendi
+  // döngüsünü "birlikte" olduğu anda başlatır; aradaki fark yalnızca ağ gecikmesi kadardır (~0,1-0,3 sn).
+  useEffect(() => {
+    if (!isTogether) return;
+    hapticHeartbeat();
+    const timer = setInterval(() => hapticHeartbeat(), TOGETHER_HEARTBEAT_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [isTogether]);
+
+  // Yıldızdan makro gökyüzüne geçilirken parmak kaldırma olayı gelmeyebilir: basılı tutma bırakılır
+  useEffect(() => {
+    if (viewMode !== 'micro') sparkManagerRef.current?.setHolding(false);
+  }, [viewMode]);
+
+  // Parmak yıldızın üstünde basılı tutulmaya başladı / kalktı (MicroSystemCanvas)
+  const handleStarHoldChange = useCallback(
+    (holding: boolean) => {
+      const manager = sparkManagerRef.current;
+      if (!manager) return;
+      if (holding) {
+        hapticSelection();
+        // Partner zaten basılıysa "birlikte" mesajı hemen gelir; beklediğimizi söylemeye gerek yok
+        if (!partnerHoldingRef.current) showToast(t('stars.screen.toasts.holdWaiting'));
+      }
+      manager.setHolding(holding);
+    },
+    [showToast, t]
+  );
 
   // Canlı parlaklık değiştiğinde manager'ın iç değerini güncelle
   useEffect(() => {
@@ -1552,12 +1610,13 @@ export const OurStarScreen: React.FC = () => {
             viewportTop={microViewportTop}
             viewportBottom={microViewportBottom}
             luminosity={starLight}
-            resonanceActive={isResonanceActive}
+            resonanceActive={isResonanceActive || isTogether}
             highlightPlanetId={highlightPlanetId}
             sparkSignal={sparkSignal}
             myAvatarUrl={myAvatarUrl}
             partnerAvatarUrl={partnerAvatarUrl}
             onSelectCenterStar={handleMicroStarTouch}
+            onStarHoldChange={handleStarHoldChange}
             onSelectPlanet={handleOpenPlanet}
             paused={
               exoplanetModalMode !== null ||

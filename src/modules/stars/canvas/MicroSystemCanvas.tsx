@@ -84,6 +84,11 @@ export interface MicroSystemCanvasProps {
   readonly onSelectPlanet?: (planet: StarSystemMapPlanet) => void;
   readonly onSelectCenterStar?: (star: CoupleStarDetails) => void;
   readonly onSelectStar?: (star: CoupleStarDetails) => void;
+  /**
+   * Parmak yıldızın üstünde basılı tutulmaya başlayınca `true`, kalkınca (ya da hareket yıldızdan koparınca)
+   * `false` ile çağrılır. Tek dokunuşla (onSelectCenterStar) çakışmaz: basılı tutma ancak yarım saniyeden sonra başlar.
+   */
+  readonly onStarHoldChange?: (holding: boolean) => void;
   readonly width?: number;
   readonly height?: number;
   /** Üst başlığın alt kenarı (px): sistem bu çizginin altına yerleşir. */
@@ -121,6 +126,7 @@ function MicroSystemCanvasSkia({
   onSelectPlanet,
   onSelectCenterStar,
   onSelectStar,
+  onStarHoldChange,
   width,
   height,
   viewportTop,
@@ -315,6 +321,11 @@ function MicroSystemCanvasSkia({
     const planet = exoplanets[index];
     if (planet) onSelectPlanet?.(planet);
   };
+  const handleStarHold = (holding: boolean) => {
+    onStarHoldChange?.(holding);
+  };
+  // Bu dokunuşta basılı tutma yıldızın üstünde başladı mı? Kalkışta yalnızca o durumda "bıraktı" bildirilir.
+  const holdOnStar = useSharedValue(false);
 
   // Tek parmak: sistemi döndür (yatay) ve eğ (dikey). Hassasiyet yakınlaştırmaya bölünür;
   // böylece her ölçekte öndeki (alttaki) gövdeler parmağı aynı hızla takip eder, yakındayken savrulmaz.
@@ -440,7 +451,34 @@ function MicroSystemCanvasSkia({
 
   // Race olsaydı ikinci parmak inmeden önce kayan ilk parmak sürüklemeyi kazanır, pinch o dokunuşta
   // hiç başlamazdı; eşzamanlıyken ikinci parmak gelince pinch devralır.
-  const gesture = Gesture.Race(Gesture.Simultaneous(pinch, pan), tap);
+  const baseGesture = Gesture.Race(Gesture.Simultaneous(pinch, pan), tap);
+
+  // Basılı tutma (senkron dokunuş): yıldızın üstünde yarım saniye bekleyince başlar. Tek dokunuşun
+  // süre sınırıyla (450 ms) aynıdır, yani ikisi hiç üst üste binmez. Taban hareketlerle EŞZAMANLI kurulur
+  // (Race değil): parmağı yıldız dışında bekletip sonra sürüklemek sahneyi yine döndürür. Parmak ~16 px'ten
+  // fazla kayarsa basılı tutma kendiliğinden biter.
+  const hold = Gesture.LongPress()
+    .minDuration(450)
+    .maxDistance(16)
+    .onStart((event) => {
+      'worklet';
+      const sdx = event.x - (cx + panX.value);
+      const sdy = event.y - (cy + panY.value);
+      const starTouch = CENTER_TOUCH_RADIUS * clamp(zoom.value, 0.7, 2);
+      if (sdx * sdx + sdy * sdy <= starTouch * starTouch) {
+        holdOnStar.set(true);
+        runOnJS(handleStarHold)(true);
+      }
+    })
+    .onFinalize(() => {
+      'worklet';
+      if (holdOnStar.value) {
+        holdOnStar.set(false);
+        runOnJS(handleStarHold)(false);
+      }
+    });
+
+  const gesture = Gesture.Simultaneous(baseGesture, hold);
 
   // Yıldız tozu dünya koordinatında üretilir; kamerayla birlikte taşınır ve ölçeklenir.
   const particleTransform = useDerivedValue(() => [

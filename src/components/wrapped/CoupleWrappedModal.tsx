@@ -18,7 +18,9 @@ import Animated, {
 } from "react-native-reanimated";
 import { UICountUp } from "@/components/ui/CountUp";
 import { scheduleOnRN } from "react-native-worklets";
+import type { TFunction } from "i18next";
 import { CoupleWrappedData } from "@/utils/wrappedCalculator";
+import { ARCHETYPE_EMOJI, type CoupleArchetype } from "@/utils/coupleArchetype";
 import { AppTheme } from "@/lib/theme";
 import { appAlert } from "@/lib/dialog";
 import { shareStoryImage } from "@/lib/storyShare";
@@ -41,7 +43,9 @@ interface CoupleWrappedModalProps {
   theme: AppTheme;
 }
 
-const TOTAL_SLIDES = 4;
+const TOTAL_SLIDES = 5;
+/** Son slayt: paylaşılan hikâye kartı. */
+const FINAL_SLIDE = TOTAL_SLIDES - 1;
 const SLIDE_DURATION = 5500; // ms
 
 // ─── Sahne Girişleri (Instagram hikâyesi gibi) ────────────────────────────────
@@ -55,18 +59,40 @@ const BACKDROP_MORPH_MS = 1500;
 
 type GradientColors = readonly [string, string, ...string[]];
 
-// Slayt konuları: 0 Aşk (birlikte geçen günler) · 1 Ruh hali · 2 Mektuplar · 3 Final
+/** Çift tipini seçtiren verinin tek satırlık açıklaması ("Paylaşımlarınızın %80'i gece 22:00'den sonra"). */
+function archetypeEvidenceText(t: TFunction, { evidence }: CoupleArchetype): string {
+  switch (evidence.key) {
+    case "night":
+      return t("wrapped.archetype.evidence.night", { percent: evidence.value });
+    case "morning":
+      return t("wrapped.archetype.evidence.morning", { percent: evidence.value });
+    case "letters":
+      return t("wrapped.archetype.evidence.letters", { count: evidence.value });
+    case "photos":
+      return t("wrapped.archetype.evidence.photos", { count: evidence.value });
+    case "meetings":
+      return t("wrapped.archetype.evidence.meetings", { count: evidence.value });
+    case "notes":
+      return t("wrapped.archetype.evidence.notes", { count: evidence.value });
+    default:
+      return t("wrapped.archetype.evidence.none");
+  }
+}
+
+// Slayt konuları: 0 Aşk (birlikte geçen günler) · 1 Ruh hali · 2 Mektuplar · 3 Çift tipi · 4 Final
 const SLIDE_BACKDROPS: Record<"female" | "male", readonly GradientColors[]> = {
   female: [
     ["#0A0A0C", "#2A0A1C", "#4A0F2C", "#0A0A0C"],
     ["#0C0A10", "#2A1530", "#3D1F12", "#0C0A10"],
     ["#0A0A12", "#1A1240", "#2E0A3A", "#0A0A12"],
+    ["#0A0A10", "#2A1236", "#4A1A3C", "#0A0A10"],
     ["#0A0A0C", "#1F0C18", "#2E0A1F", "#0A0A0C"],
   ],
   male: [
     ["#0A0E17", "#0D1E3A", "#1A2F5A", "#0A0E17"],
     ["#0A0E14", "#14283A", "#2B2A4A", "#0A0E14"],
     ["#090C16", "#16173F", "#1D2E55", "#090C16"],
+    ["#090D18", "#121F48", "#2A2A5E", "#090D18"],
     ["#0A0E17", "#0D182A", "#13233D", "#0A0E17"],
   ],
 };
@@ -191,6 +217,15 @@ export function CoupleWrappedModal({
   };
 
   if (!visible || !data) return null;
+
+  const archetype = data.archetype;
+  const archetypeName = t(`wrapped.archetype.${archetype.id}.name`);
+  const archetypeLine = t(`wrapped.archetype.${archetype.id}.line`);
+  const archetypeTraits = [
+    t(`wrapped.archetype.${archetype.id}.trait1`),
+    t(`wrapped.archetype.${archetype.id}.trait2`),
+    t(`wrapped.archetype.${archetype.id}.trait3`),
+  ];
 
   return (
     <Modal visible={visible} animationType="fade" transparent statusBarTranslucent onRequestClose={onClose}>
@@ -319,9 +354,38 @@ export function CoupleWrappedModal({
               </View>
             )}
 
-            {/* SLIDE 3: Büyük Final & Instagram hikâyesi (9:16) önizlemesi.
-                Paylaşılan görsel bu kartın kendisi: içi sabit kalır, yalnızca bütünü sahneye süzülür */}
+            {/* SLIDE 3: Çift tipi ("Siz nasıl bir çiftsiniz?"): dönemin verilerinden çıkar */}
             {currentSlide === 3 && (
+              <View style={styles.slideContent}>
+                <Animated.Text entering={heroIn(0)} style={styles.emojiDisplay}>
+                  {ARCHETYPE_EMOJI[archetype.id]}
+                </Animated.Text>
+                <Animated.Text entering={heroIn(1)} style={styles.subHeading}>
+                  {t("wrapped.archetype.title")}
+                </Animated.Text>
+                <Animated.Text entering={heroIn(2)} style={styles.mainTitle}>
+                  {archetypeName}
+                </Animated.Text>
+                <Animated.Text entering={heroIn(3)} style={styles.statDescription}>
+                  {archetypeLine}
+                </Animated.Text>
+                <Animated.Text entering={itemIn(0)} style={styles.archetypeEvidence}>
+                  {archetypeEvidenceText(t, archetype)}
+                </Animated.Text>
+
+                <View style={styles.badgeRow}>
+                  {archetypeTraits.map((trait, index) => (
+                    <Animated.View key={index} entering={itemIn(index + 1)} style={styles.miniPill}>
+                      <Text style={styles.miniPillText}>{trait}</Text>
+                    </Animated.View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* SLIDE 4: Büyük Final & Instagram hikâyesi (9:16) önizlemesi.
+                Paylaşılan görsel bu kartın kendisi: içi sabit kalır, yalnızca bütünü sahneye süzülür */}
+            {currentSlide === FINAL_SLIDE && (
               <Animated.View entering={heroIn(0)} style={styles.finalSlideWrapper}>
                 {/* Paylaşılan görsel tam bu karttır: 1080×1920, kenar boşluksuz */}
                 <StoryCard width={storyWidth} cardRef={shareCardRef} tone={isMale ? "azure" : "rose"}>
@@ -344,7 +408,8 @@ export function CoupleWrappedModal({
                       </View>
 
                       {/* Çiftin son fotoğrafı: washi bantla iliştirilmiş, hafif eğik Polaroid */}
-                      <Polaroid s={s} width={s(158)} photo={couple.cover} rotate={-3.5} caption={couple.names} />
+                      {/* Çift tipi bloğu için yer açmak üzere Polaroid biraz küçüldü (158 → 124) */}
+                      <Polaroid s={s} width={s(124)} photo={couple.cover} rotate={-3.5} caption={couple.names} />
 
                       <View style={{ alignItems: "center" }}>
                         <Text
@@ -375,6 +440,29 @@ export function CoupleWrappedModal({
                           }}
                         >
                           {data.romanticStatement}
+                        </Text>
+                      </View>
+
+                      {/* Çift tipi: kartın paylaşılma sebebi ("biz hangi tipiz?") */}
+                      <View style={{ alignItems: "center" }}>
+                        <Text style={{ color: GOLD.soft, fontSize: s(8.4), fontFamily: "Inter_700Bold", letterSpacing: s(2.2) }}>
+                          {t("wrapped.archetype.cardKicker")}
+                        </Text>
+                        <Text
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.6}
+                          style={{
+                            marginTop: s(3),
+                            maxWidth: s(290),
+                            color: "#FFFFFF",
+                            fontSize: s(21),
+                            lineHeight: s(27),
+                            fontFamily: "PlayfairDisplay_700Bold",
+                            textAlign: "center",
+                          }}
+                        >
+                          {ARCHETYPE_EMOJI[archetype.id]} {archetypeName}
                         </Text>
                       </View>
 
@@ -594,8 +682,19 @@ const styles = StyleSheet.create({
   },
   badgeRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
     gap: 8,
     marginTop: 24,
+  },
+  archetypeEvidence: {
+    marginTop: 14,
+    maxWidth: 290,
+    color: "rgba(255, 255, 255, 0.55)",
+    fontSize: 12.5,
+    lineHeight: 18,
+    fontFamily: "Inter_500Medium",
+    textAlign: "center",
   },
   miniPill: {
     backgroundColor: "rgba(255, 255, 255, 0.08)",

@@ -19,6 +19,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { starService, SparkCooldownException } from '../api/starService';
 import type {
+  HoldBroadcastPayload,
   ResonanceEvent,
   SparkBroadcastPayload,
 } from '../types/star.types';
@@ -56,7 +57,24 @@ function recordLovePingTimestamp(starId: string, timestamp: number = Date.now())
 // 2. YÖNETİCİ ARAYÜZ VE TİP TANIMLARI
 // ============================================================================
 
+/** Basılı tutan eş "hâlâ basıyorum" sinyalini bu aralıkla yeniler. */
+export const HOLD_HEARTBEAT_MS = 500;
+/** Partnerden bu süre sinyal gelmezse (bağlantı koptu, uygulama kapandı) bıraktı sayılır. */
+export const PARTNER_HOLD_TTL_MS = 1200;
+/** Tek bir basılı tutuşun üst sınırı (pil ve titreşim motoru için); sonra yumuşakça durur. */
+export const MAX_HOLD_MS = 20_000;
+
 export interface ResonanceCallbacks {
+  /**
+   * Partner yıldıza basılı tutmaya başladığında / bıraktığında (ya da sinyali kesildiğinde) tetiklenir.
+   */
+  onPartnerHoldChange?: (holding: boolean) => void;
+
+  /**
+   * İki eş AYNI ANDA basılı tuttuğunda `true`, biri bıraktığında `false` ile tetiklenir (yalnızca değişimde).
+   */
+  onTogetherChange?: (together: boolean) => void;
+
   /**
    * Partner yıldıza bir kıvılcım (daily_spark veya love_ping) gönderdiğinde tetiklenir.
    */
@@ -88,6 +106,14 @@ export class StarSparkManager {
   private channel: RealtimeChannel | null = null;
   private lovePingDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   private callbacks: ResonanceCallbacks = {};
+
+  // Senkron dokunuş durumu (yalnızca bellekte; veritabanına hiçbir şey yazılmaz)
+  private selfHolding = false;
+  private partnerHolding = false;
+  private together = false;
+  private holdHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private holdLimitTimer: ReturnType<typeof setTimeout> | null = null;
+  private partnerHoldTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(options: StarSparkManagerOptions | string) {
     if (typeof options === 'string') {
@@ -165,6 +191,19 @@ export class StarSparkManager {
           }
 
           this.callbacks.onPartnerSpark?.(payload);
+        },
+      )
+      .on(
+        'broadcast',
+        { event: 'hold' },
+        (response: { payload: HoldBroadcastPayload }) => {
+          const payload = response.payload;
+          if (!payload || typeof payload.holding !== 'boolean') return;
+
+          // Kendi sinyalimizi filtrele (ağ seviyesinde self:false zaten engelliyor; ek güvence)
+          if (this.senderId && payload.senderId === this.senderId) return;
+
+          this.setPartnerHolding(payload.holding);
         },
       )
       .on(
@@ -302,6 +341,87 @@ export class StarSparkManager {
   }
 
   // ==========================================================================
+  // SENKRON DOKUNUŞ: İKİ EŞ AYNI ANDA BASILI TUTAR
+  // ==========================================================================
+
+  /**
+   * Bu eşin yıldıza basılı tutma durumunu bildirir. Basılı tutarken kanala `hold` olayı yarım saniyede bir
+   * yayılır; bırakınca (ya da {@link MAX_HOLD_MS} dolunca) `holding: false` yayılır. Partner da aynı anda
+   * basılı tutuyorsa `onTogetherChange(true)` tetiklenir. Veritabanına ve bildirime dokunmaz.
+   */
+  public setHolding(holding: boolean): void {
+    if (holding === this.selfHolding) return;
+    this.selfHolding = holding;
+
+    if (holding) {
+      this.sendHold(true);
+      this.holdHeartbeatTimer = setInterval(() => this.sendHold(true), HOLD_HEARTBEAT_MS);
+      this.holdLimitTimer = setTimeout(() => this.setHolding(false), MAX_HOLD_MS);
+    } else {
+      this.clearHoldTimers();
+      this.sendHold(false);
+    }
+
+    this.syncTogether();
+  }
+
+  private sendHold(holding: boolean): void {
+    if (!this.channel) return;
+
+    const payload: HoldBroadcastPayload = {
+      starId: this.starId,
+      senderId: this.senderId,
+      holding,
+      timestamp: new Date().toISOString(),
+    };
+
+    this.channel
+      .send({ type: 'broadcast', event: 'hold', payload })
+      .catch((sendErr) => {
+        if (__DEV__) {
+          logger.warn(`[StarSparkManager] sendHold: Broadcast iletilemedi (starId: ${this.starId}):`, sendErr);
+        }
+      });
+  }
+
+  private setPartnerHolding(holding: boolean): void {
+    if (this.partnerHoldTimer) {
+      clearTimeout(this.partnerHoldTimer);
+      this.partnerHoldTimer = null;
+    }
+
+    if (holding) {
+      // Sinyal gelmeyi keserse (bağlantı koptu, uygulama kapandı) partner takılı kalmasın
+      this.partnerHoldTimer = setTimeout(() => this.setPartnerHolding(false), PARTNER_HOLD_TTL_MS);
+    }
+
+    if (holding !== this.partnerHolding) {
+      this.partnerHolding = holding;
+      this.callbacks.onPartnerHoldChange?.(holding);
+    }
+
+    this.syncTogether();
+  }
+
+  private syncTogether(): void {
+    const next = this.selfHolding && this.partnerHolding;
+    if (next === this.together) return;
+    this.together = next;
+    this.callbacks.onTogetherChange?.(next);
+  }
+
+  private clearHoldTimers(): void {
+    if (this.holdHeartbeatTimer) {
+      clearInterval(this.holdHeartbeatTimer);
+      this.holdHeartbeatTimer = null;
+    }
+    if (this.holdLimitTimer) {
+      clearTimeout(this.holdLimitTimer);
+      this.holdLimitTimer = null;
+    }
+  }
+
+  // ==========================================================================
   // TEMİZ AYRILMA (TEAR DOWN)
   // ==========================================================================
 
@@ -309,6 +429,16 @@ export class StarSparkManager {
    * Kanal aboneliğini kapatır, zamanlayıcıları temizler ve kaynakları serbest bırakır.
    */
   public async unsubscribe(): Promise<void> {
+    // Basılı tutarken ekrandan çıkılırsa partnerin ekranında "basıyor" takılı kalmasın: bırakma sinyali
+    // kanal kapanmadan gönderilir ve kalan durum sıfırlanır.
+    this.setHolding(false);
+    if (this.partnerHoldTimer) {
+      clearTimeout(this.partnerHoldTimer);
+      this.partnerHoldTimer = null;
+    }
+    this.partnerHolding = false;
+    this.syncTogether();
+
     if (this.lovePingDebounceTimer) {
       clearTimeout(this.lovePingDebounceTimer);
       this.lovePingDebounceTimer = null;
