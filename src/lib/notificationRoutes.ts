@@ -3,6 +3,7 @@
  * eski ya da eksik yüklerde `data.type` kullanılır. Yalnızca bilinen uygulama içi ekranlara gidilir:
  * yükte ne yazarsa yazsın, listede olmayan bir yol açılmaz.
  */
+import { isWishlistReleased, WISHLIST_ROUTE } from "@/lib/wishlistAvailability";
 
 /** Bildirimle açılabilen ekranlar */
 const ALLOWED_ROUTES: ReadonlySet<string> = new Set([
@@ -14,6 +15,7 @@ const ALLOWED_ROUTES: ReadonlySet<string> = new Set([
   "/(tabs)/period-tracker",
   "/(tabs)/medicine",
   "/(tabs)/meetings",
+  WISHLIST_ROUTE,
   "/(tabs)/calendar",
   "/(tabs)/profile",
   "/premium",
@@ -47,7 +49,8 @@ export function resolveNotificationRoute(data: unknown): string | null {
 
   if (typeof route === "string") {
     const path = route.trim();
-    if (ALLOWED_ROUTES.has(path)) return path;
+    // Ortak liste yayına girene kadar (wishlistAvailability.ts) bildirimle de açılmaz
+    if (ALLOWED_ROUTES.has(path) && (path !== WISHLIST_ROUTE || isWishlistReleased())) return path;
   }
   if (typeof type === "string" && Object.hasOwn(TYPE_ROUTES, type)) return TYPE_ROUTES[type];
   return null;

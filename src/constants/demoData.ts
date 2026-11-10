@@ -2,6 +2,7 @@ import { Image } from "expo-image";
 import { dayjs } from "@/lib/date";
 import { CoupleProfile } from "@/context/AuthContext";
 import type { CoupleStarDetails, StarExoplanetRecord } from "@/modules/stars/types/star.types";
+import type { WishlistItem } from "@/lib/wishlist";
 import i18n from "@/lib/i18n";
 
 export const DEMO_USER_ID = "demo-guest-user-id";
@@ -678,6 +679,56 @@ const DEMO_MEETINGS_EN = [
 ];
 
 export const DEMO_MEETINGS = createLocalizedProxy(DEMO_MEETINGS_TR, DEMO_MEETINGS_EN);
+
+// ─── ORTAK LİSTE ────────────────────────────────────────────────────────────
+function demoWishlistItem(
+  id: number,
+  fields: Pick<WishlistItem, "title" | "category" | "created_by" | "wants"> & Partial<WishlistItem>
+): WishlistItem {
+  const createdAt = dayjs().subtract(id - 700, "day").toISOString();
+  return {
+    id,
+    couple_id: DEMO_COUPLE_ID,
+    note: null,
+    location_name: null,
+    latitude: null,
+    longitude: null,
+    status: "open",
+    done_at: null,
+    done_by: null,
+    created_at: createdAt,
+    updated_at: createdAt,
+    ...fields,
+  };
+}
+
+const BOTH_WANT = [DEMO_USER_ID, DEMO_PARTNER_ID];
+
+const DEMO_WISHLIST_TR: WishlistItem[] = [
+  demoWishlistItem(701, { title: "Kapadokya'da balon turu", note: "Gün doğumunda, mümkünse karlı bir sabah", category: "travel", location_name: "Göreme, Nevşehir", created_by: DEMO_USER_ID, wants: BOTH_WANT }),
+  demoWishlistItem(702, { title: "Birlikte seramik atölyesine gitmek", category: "experience", created_by: DEMO_PARTNER_ID, wants: BOTH_WANT }),
+  demoWishlistItem(703, { title: "Yüzüklerin Efendisi maratonu", note: "Uzatılmış sürümler, tek hafta sonu", category: "film", created_by: DEMO_PARTNER_ID, wants: [DEMO_PARTNER_ID] }),
+  demoWishlistItem(704, { title: "Karaköy'de balık ekmek turu", category: "food", location_name: "Karaköy, İstanbul", created_by: DEMO_USER_ID, wants: [DEMO_USER_ID] }),
+  demoWishlistItem(705, { title: "Sapanca'da bungalov hafta sonu", category: "place", created_by: DEMO_PARTNER_ID, wants: [DEMO_PARTNER_ID] }),
+  demoWishlistItem(706, { title: "Birbirimize mektup kutusu hazırlamak", category: "other", created_by: DEMO_USER_ID, wants: [DEMO_USER_ID] }),
+  demoWishlistItem(707, { title: "Boğaz'da gün batımı vapuru", category: "experience", created_by: DEMO_USER_ID, wants: BOTH_WANT, status: "done", done_at: dayjs().subtract(20, "day").toISOString(), done_by: DEMO_PARTNER_ID }),
+  demoWishlistItem(708, { title: "İlk kez birlikte makarna yapmak", category: "food", created_by: DEMO_PARTNER_ID, wants: BOTH_WANT, status: "done", done_at: dayjs().subtract(48, "day").toISOString(), done_by: DEMO_USER_ID }),
+];
+
+const EN_WISHLIST_TEXT: Record<number, Partial<WishlistItem>> = {
+  701: { title: "Hot air balloon in Cappadocia", note: "At sunrise, ideally on a snowy morning", location_name: "Göreme, Turkey" },
+  702: { title: "Take a pottery class together" },
+  703: { title: "Lord of the Rings marathon", note: "Extended editions, one weekend" },
+  704: { title: "Fish sandwich crawl in Karaköy", location_name: "Karaköy, Istanbul" },
+  705: { title: "Bungalow weekend in Sapanca" },
+  706: { title: "Make each other a letter box" },
+  707: { title: "Sunset ferry on the Bosphorus" },
+  708: { title: "Make pasta together for the first time" },
+};
+
+const DEMO_WISHLIST_EN = DEMO_WISHLIST_TR.map((item) => ({ ...item, ...EN_WISHLIST_TEXT[item.id] }));
+
+export const DEMO_WISHLIST = createLocalizedProxy(DEMO_WISHLIST_TR, DEMO_WISHLIST_EN);
 
 // ─── MEDICINES ──────────────────────────────────────────────────────────────
 const DEMO_MEDICINES_TR = [

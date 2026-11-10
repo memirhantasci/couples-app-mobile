@@ -4,7 +4,7 @@ import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { X, Heart, Settings, Home, Pill, CalendarHeart, Droplet, MapPin, LogOut, ChevronRight, BookOpen, Mail, Images, Sparkles, Clock, ImagePlus, HelpCircle, Orbit, Crown, MoonStar } from "lucide-react-native";
+import { X, Heart, Settings, Home, Pill, CalendarHeart, Droplet, MapPin, LogOut, ChevronRight, BookOpen, Mail, Images, Sparkles, Clock, ImagePlus, HelpCircle, Orbit, Crown, MoonStar, ListChecks } from "lucide-react-native";
 import { useAuth } from "@/context/AuthContext";
 
 import { dayjs, daysSince } from "@/lib/date";
@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getAllPageGuides, getPageGuide } from "@/constants/featureGuides";
+import { canOpenWishlist } from "@/lib/wishlistAvailability";
 import { resetAllPageTours } from "@/hooks/usePageTour";
 import { useDeferredReady } from "@/hooks/useDeferredReady";
 import { useDemoAction } from "@/hooks/useDemoAction";
@@ -31,7 +32,7 @@ export default function MenuScreen() {
   const { theme, isLight } = useTheme();
   const styles = React.useMemo(() => getMenuStyles(theme, isLight), [theme, isLight]);
   const insets = useSafeAreaInsets();
-  const guides = React.useMemo(() => getAllPageGuides(t), [t]);
+  const guides = React.useMemo(() => getAllPageGuides(t, { isDemoMode }), [t, isDemoMode]);
   const [selectedTourPage, setSelectedTourPage] = useState<string | null>(null);
   const [showGuideCatalog, setShowGuideCatalog] = useState(false);
   const [showNightSky, setShowNightSky] = useState(false);
@@ -386,6 +387,23 @@ export default function MenuScreen() {
               </View>
               <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>
+
+            {canOpenWishlist(isDemoMode) ? (
+            <TouchableOpacity 
+              style={[styles.menuItem, { backgroundColor: theme.cardBg }]} 
+              onPress={() => handleRoute("/(tabs)/wishlist")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <ListChecks color={theme.accent} size={18} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>{t("menu.wishlist.title")}</Text>
+                <Text style={styles.menuSub}>{t("menu.wishlist.subtitle")}</Text>
+              </View>
+              <ChevronRight color={theme.textMuted} size={18} />
+            </TouchableOpacity>
+            ) : null}
                       </View>
 </View>
 

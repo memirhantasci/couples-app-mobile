@@ -1,6 +1,6 @@
 # CoupleSky: Özellik Envanteri
 
-Son güncelleme: 2026-11-09 · Taslak v1 (kod, yerelleştirme dosyaları, migration'lar ve bilgi grafından çıkarıldı)
+Son güncelleme: 2026-11-10 · Taslak v1 (kod, yerelleştirme dosyaları, migration'lar ve bilgi grafından çıkarıldı)
 
 İşaretler: ✅ kodda okunup doğrulandı · 🔎 kontrol edilmeli (dosya adı verilmiştir) · ⚠️ bilinen sorun/sınır
 
@@ -41,8 +41,8 @@ Teknik: Expo SDK 57 · React Native 0.86 · Supabase (Postgres, RLS, RPC, Edge F
 
 ## 3. Navigasyon
 
-- **Alt sekmeler** (kullanıcı sırasını/gizlemeyi `TabBarCustomizer` ile değiştirebiliyor ✅): Ana Sayfa, Takvim, Mektuplar, Galeri, Harita, İlaçlar, Günlük, Buluşma. 🔎 Hangi sekmelerin varsayılan açık olduğu: `src/app/(tabs)/_layout.tsx`.
-- **Menü** (`menu.tsx`, üç bölüm ✅): *Aşk & Ortak Anılar* (Bizim Yıldızımız, Ana Sayfa özeti, Galeri, Fotoğraf Yükle, Günlüğüm, Mektuplar, Özel Günler & Yıldönümleri, Aşk Takvimi, Harita, Buluşmalar), *Sağlık & Takip* (İlaç, Regl), *Hesap & Ayarlar*.
+- **Alt sekmeler** (kullanıcı sırasını/gizlemeyi `TabBarCustomizer` ile değiştirebiliyor ✅): Ana Sayfa, Takvim, Mektuplar, Galeri, Harita, İlaçlar, Günlük, Buluşma, Özel Gün, Döngü ve **Yapacaklar** (ortak liste; varsayılan kapalı, `TabBarContext.tsx`). 🔎 Hangi sekmelerin varsayılan açık olduğu: `src/app/(tabs)/_layout.tsx`.
+- **Menü** (`menu.tsx`, üç bölüm ✅): *Aşk & Ortak Anılar* (Bizim Yıldızımız, Ana Sayfa özeti, Galeri, Fotoğraf Yükle, Günlüğüm, Mektuplar, Özel Günler & Yıldönümleri, Aşk Takvimi, Harita, Buluşmalar, Yapacaklarımız), *Sağlık & Takip* (İlaç, Regl), *Hesap & Ayarlar*.
 - Diğer ekranlar: `(auth)` 8 ekran, `(setup)` (tarihler, eşleşme), `our-star`, `premium`, `paywall`, `profile`, `memories`, `period-tracker`, `add-memory/add-photo/add-daily-note`.
 
 ---
@@ -89,6 +89,16 @@ Fotoğraflı anı pinleri (fotoğraf pini Premium; premium değilse yalnızca h�
 
 ### 4.10 Buluşmalar (`meetings.tsx`)
 Plan (başlık, zaman, konum), geri sayım, gerçekleşince 24 saat kutlama kartı (`activeMeeting.ts`, cihazda görüldü hafızası), güncellenince partnere push, **yalnızca planlayan düzenleyebilir**, geçmişe plan yapılamaz ✅. Gerçekleşen buluşma çifte **4 puan** (en yüksek) ✅ (`award_completed_meetings`).
+
+### 4.10b Yapacaklarımız: ortak liste (`wishlist.tsx`, `src/components/wishlist`, `wishlist.ts`)
+Çiftin birlikte yapmak istediklerini biriktirdiği ortak liste. Madde: başlık (≤80), not (≤300), kategori (Yer, Film & Dizi, Yemek, Deneyim, Seyahat, Diğer; renk değil ikonla ayrılır), isteğe bağlı konum. Hızlı ekleme çubuğu, boş listede 10 hazır fikir çipi (`wishlistIdeas.ts`, TR/EN), kategori filtresi, yaptıklarımız katlanır bölümü ("Yaptık ✓ · tarih", 30'ar sayfalı) ✅. Kategori filtresi her şeye uygulanır: "İkimiz de", 🎲, açıklar ve "Yaptıklarımız (n)" (`buildWishlistView`) ✅. Açık maddeler ve yapılanlar ayrı okunur (açıklar ≤300, yapılanlar kategoriye göre sayfalı ve toplam sayılı; `wishlistData.ts`) ✅.
+- **"İkimiz de istiyoruz":** her madde 💗 alır; ikisi de verdiyse madde ayrı, vurgulu bölümde toplanır ve açık listede tekrar etmez. Tek kalan kullanıcıda hiçbir madde "ikimiz de" sayılmaz (`isBothWant`) ✅.
+- **🎲 "Bana bir tane seç":** önce ikisinin de istediklerinden, hiç yoksa tüm açık maddelerden rastgele seçer; kategori filtresi seçiliyken seçim de o kategoriden yapılır; "Başka bir tane" aynı maddeyi yeniden vermez (`pickWishlistItem`, tohumlanabilir) ✅.
+- **Yetki:** ekleyen düzenler ve siler; iki kişi de 💗 verir ve "yaptık" işaretler. Eşleşme şart (tek kalan yazamaz, kendi maddesini silebilir) ✅.
+- **Sınır:** ücretsizde **15 açık madde** (yapılanlar sayılmaz); Premium'da 300 teknik üst sınır. "Yaptık"ı geri almak da sınıra bağlıdır. Sınırda ücretsiz çift paywall'a (`featureSource: "wishlist"`), Premium çift metne gider. Sayaç sınırı aşmaz ("15/15"). Premium biterse hiçbir şey silinmez, yalnızca yeni ekleme kilitlenir ✅. Hatalar türüne göre ayrı metinle gösterilir (sınır, eşleşme, yetki, geçersiz alan, ağ, zaman aşımı; `wishlistErrors.ts`) ✅.
+- **Puan yok** (`activity_point_rules`'a dokunulmaz). Sunucu: `couple_wishlist_items`, `couple_wishlist_wants`, RPC `set_wishlist_want`/`set_wishlist_done`, tetikleyici `P0022`; migration `20261109000000`, `...01` (hesap silme: silenin maddeleri silinir, partnerinkiler kalır), `...02` (sınır tetikleyicisinde kimlik kontrolü: başka çiftin doluluğu/Premium'u sızmaz), `...03` ("yaptık" zaten yapılmış maddeye dokunmaz) ✅ yazıldı ve geçici Postgres'te sınandı.
+- ⚠️ **Sunucu canlıya uygulanmadı; özellik üretim yapısında kapalı.** Tek bayrak `WISHLIST_SERVER_READY = false` (`src/lib/wishlistAvailability.ts`): kapalıyken menü satırı, sekme seçeneği, menüdeki rehber kaydı ve bildirim rotası görünmez/çalışmaz, ekran derin bağlantıyla da açılmaz. Demo modunda ve geliştirme yapısında ekran açılır ve "örnek/önizleme" uyarısı gösterir (geliştirmede veri `wishlistMock.ts`, bellek içi). Canlıya çıkınca bayrak açılır, mock silinir. Gerçek cihazda ve gerçek sunucuda denenmedi.
+- Henüz yok (Faz 2): buluşmaya/anıya çevirme, partnere push, "Yaptık mı?" önerisi. Haritada katman ve Wrapped satırı Faz 3. Planın tamamı: `docs/ORTAK_LISTE_PLANI.md`.
 
 ### 4.11 İlaç (`medicine.tsx`)
 Hatırlatıcılar (`reminderSync.ts`), doz kaydı (`log_medicine_dose`), seri kartı, iyileşen filiz animasyonu (`HealingSprout`), geçmiş listesi, yönetim modalı, "Benim / Sevgilimin" sekmeleri (partnerinki de görülür) ✅. Alan kişiye günde 1 puan.
@@ -163,6 +173,8 @@ RLS + SECURITY DEFINER RPC'ler, günlük ve mektup AES-256, silme kuyruğu (`sto
 | Davet → iki çifte Premium/token → davetle gelen yıldız bağı | `referral.ts`, `link_referral_stars` |
 | Yıldız kıvılcımı → partnere "titreşim" | `send_star_spark` |
 | Premium durumu → ana sayfa uyarıları, paywall bağlamı | `usePremiumDetails`, `PremiumPaywall featureSource` |
+| Ortak liste sınırı (15 açık madde) → paywall (`wishlist`); liste → menü, sekme seçeneği, sayfa rehberi, bildirim rota izin listesi (hepsi `wishlistAvailability.ts` bayrağına bağlı, şu an kapalı) | `serverErrors.ts`, `PremiumPaywall.tsx`, `menu.tsx`, `TabBarContext.tsx`, `notificationRoutes.ts`, `featureGuides.ts` |
+| Ortak liste → buluşma / anı / push | ⚠️ **bağlı değil** (Faz 2); `meeting_id`/`memory_id` sütunları hazır |
 
 ## 6. Ücretsiz / Premium sınırları (kodda okunan)
 
@@ -175,11 +187,13 @@ RLS + SECURITY DEFINER RPC'ler, günlük ve mektup AES-256, silme kuyruğu (`sto
 | Harita fotoğraf pinleri | Yalnızca var olanlar | Tam |
 | Yıldız sahiplenme / bağ / yeniden adlandırma / anı gezegeni | Yok | Var |
 | Anı düzenleme | Kısıtlı | Var |
+| Ortak liste (açık madde) | 15 (yapılanlar sayılmaz) | 300 teknik üst sınır; biterse silinmez, yalnızca yeni ekleme kilitlenir |
 | Partnerin "özel hisleri" (Nazik Bakım) | Göremez | Görür |
 | Silme hakkı (fotoğraf) | Var | Var |
 | Solo kullanıcı yazma | Eşleşme gerekenler yasak; ruh hali/günlük/takvim/harita/ilaç/regl için Premium | |
 
 ## 7. Açık işler ve bilinen sınırlar (özet; ayrıntı: `docs/BILINEN_SINIRLAR_VE_YAYIN_SONRASI_ISLER.md`)
+- ⚠️ **Ortak liste sunucusu canlıda değil** (`ortak-liste` dalı, `WISHLIST_SERVER_READY = false`; üretimde kapalı, demo/geliştirmede açık): migration'lar canlıya uygulanmadı; yayın öncesi işler bitmeden dal birleşmez. Canlıya uygulamadan önceki kontrol listesi: `docs/ORTAK_LISTE_PLANI.md` bölüm 0.
 - ⚠️ Mektup kilidi yalnızca istemcide; alıcı API ile erken okuyabilir (yayın sonrası, yeni build + sunucu politikası).
 - ⚠️ "Tekrar gönder" geri sayımı arka planda duruyor (`verify-device.tsx:52-57`, `verify.tsx:213`).
 - ⚠️ Widget'lar gerçek cihazda test edilmedi; silme/Premium akışı cihazda test bekliyor.

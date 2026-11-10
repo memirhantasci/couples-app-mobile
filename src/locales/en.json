@@ -1171,6 +1171,11 @@
         "name": "Custom Sky Poster",
         "description": "👑 Go Premium to write your own title on the Our Night poster and get the print file.",
         "cta": "Unlock Poster Perks"
+      },
+      "wishlist": {
+        "name": "Unlimited Shared List",
+        "description": "👑 Go Premium to remove the 15 open idea limit and collect as many plans as you like.",
+        "cta": "Make the List Unlimited"
       }
     },
     "perks": {
@@ -1269,6 +1274,10 @@
     "meetings": {
       "label": "Meetup",
       "description": "Meetup countdown and date planning"
+    },
+    "wishlist": {
+      "label": "Bucket List",
+      "description": "Your shared list of things to do together"
     },
     "memories": {
       "label": "Special Day",
@@ -1634,6 +1643,10 @@
     "meetups": {
       "title": "Meetups",
       "subtitle": "Countdowns and meetup plans"
+    },
+    "wishlist": {
+      "title": "Our Bucket List",
+      "subtitle": "Shared list and a random pick"
     },
     "medicine": {
       "subtitle": "Your and your love's daily doses"
@@ -3599,6 +3612,35 @@
           }
         }
       },
+      "wishlist": {
+        "title": "Our Bucket List",
+        "tagline": "Things We Want to Do Together",
+        "summary": "Collect places to go, films to watch and things to try in one shared list, then decide together what comes next.",
+        "features": {
+          "add_ideas": {
+            "title": "Collect Your Ideas",
+            "badge": "Shared List",
+            "description": "Type into the box at the top and add. On an empty list, tapping a ready-made idea works too. You can edit the note and location later.",
+            "tip": "The free list holds 15 open ideas; the ones you've done don't count."
+          },
+          "both_want": {
+            "title": "We Both Want This",
+            "badge": "Shared Excitement",
+            "description": "Give an idea a heart. When you both do, it stands out and the things you want most gather at the top."
+          },
+          "pick_one": {
+            "title": "Pick One for Us",
+            "badge": "No More Dithering",
+            "description": "Can't decide what to do? Roll the dice: it picks from what you both want first, or from your open ideas if there's nothing shared yet.",
+            "tip": "With a category selected, the pick comes from that category."
+          },
+          "mark_done": {
+            "title": "We Did It!",
+            "badge": "Completed",
+            "description": "Mark what you've done together. It's kept, with its date, under Done Together."
+          }
+        }
+      },
       "memories": {
         "title": "Special Days & Milestones",
         "tagline": "The Turning Points of Your Love",
@@ -3704,7 +3746,10 @@
     "starNameLength": "A star name must be between 2 and 40 characters.",
     "planetLimit": "You can create at most 10 manual planets.",
     "adLimit": "You've reached the daily ad limit. Please try again later.",
-    "partnerLimitFull": "One of the two sides has reached the maximum limit of 3 connections."
+    "partnerLimitFull": "One of the two sides has reached the maximum limit of 3 connections.",
+    "wishlistLimit": "You've reached the limit for open ideas on your list.",
+    "network": "Couldn't reach the server. Check your internet connection and try again.",
+    "timeout": "The server took too long to respond. Please try again in a moment."
   },
   "widget": {
     "title": "OUR LOVE JOURNEY",
@@ -4074,6 +4119,124 @@
         "lastQuarter": "Last Quarter",
         "waningCrescent": "Waning Crescent"
       }
+    }
+  },
+  "wishlist": {
+    "title": "Our Bucket List",
+    "subtitle": "Things we want to do together",
+    "categories": {
+      "all": "All",
+      "place": "Place",
+      "film": "Film & TV",
+      "food": "Food",
+      "experience": "Experience",
+      "travel": "Travel",
+      "other": "Other"
+    },
+    "quick": {
+      "placeholder": "What should we do?",
+      "sendA11y": "Add to list",
+      "counterA11y": "{{used}} of {{limit}} ideas used",
+      "limitA11y": "List is full, see Premium",
+      "limitHint": "The free list holds up to {{limit}} open ideas.",
+      "limitCta": "Unlimited with Premium",
+      "limitPerPerson": "The counter includes every open idea you can see. Ideas from a previous pairing are visible only to you, so your partner's counter may be lower."
+    },
+    "both": {
+      "title": "We both want this",
+      "subtitle_one": "{{count}} shared idea",
+      "subtitle_other": "{{count}} shared ideas"
+    },
+    "pick": {
+      "cta": "Pick one for us",
+      "subBoth": "From the ones you both want",
+      "subAll": "From your open ideas",
+      "sheetTitle": "TODAY'S IDEA",
+      "rolling": "Picking",
+      "again": "Pick another",
+      "sourceBoth": "You both want this",
+      "sourceAll": "From your list"
+    },
+    "sections": {
+      "open": "OPEN IDEAS",
+      "done": "DONE TOGETHER ({{total}})"
+    },
+    "card": {
+      "wantA11y": "I want this too",
+      "unwantA11y": "Remove my heart",
+      "partnerWantsA11y": "Your partner wants this too",
+      "markDoneA11y": "Mark as done",
+      "undoDoneA11y": "Mark as not done",
+      "moreA11y": "More options",
+      "addedByYouA11y": "Added by you",
+      "addedByPartnerA11y": "Added by your partner",
+      "doneOn": "Done ✓ · {{date}}"
+    },
+    "menu": {
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "delete": {
+      "title": "Delete this idea?",
+      "message": "It will be removed from both of your lists."
+    },
+    "edit": {
+      "title": "Edit idea",
+      "titleLabel": "Title",
+      "noteLabel": "Note",
+      "notePlaceholder": "A note to remember",
+      "categoryLabel": "Category",
+      "locationLabel": "Location",
+      "locationPlaceholder": "Where?",
+      "mapA11y": "Choose on map",
+      "mapTitle": "Choose a location"
+    },
+    "empty": {
+      "title": "Your list is empty",
+      "description": "Write the first thing you want to do together, or tap an idea below.",
+      "allDoneTitle": "You did them all",
+      "allDoneDescription": "What's next? Add a new idea.",
+      "ideasLabel": "READY-MADE IDEAS",
+      "addIdeaA11y": "Add to list: {{title}}",
+      "filtered": "No other ideas in this category."
+    },
+    "states": {
+      "errorTitle": "Couldn't load the list",
+      "errorDescription": "Check your connection and try again.",
+      "offlineTitle": "You're offline",
+      "offlineDescription": "Your list will appear here once you're back online."
+    },
+    "toasts": {
+      "updated": "Idea updated",
+      "deleted": "Idea deleted"
+    },
+    "errors": {
+      "add": "Couldn't add the idea. Please try again.",
+      "generic": "That didn't work. Please try again.",
+      "offline": "You need an internet connection for this.",
+      "premiumCap": "The list can hold up to {{limit}} open ideas.",
+      "denied": "This idea no longer exists or you can't change it. The list has been refreshed.",
+      "invalidTitle": "The title must be 1 to 80 characters.",
+      "invalidNote": "The note can be at most 300 characters.",
+      "invalidCategory": "That category isn't valid. Pick one from the list.",
+      "invalidLocation": "The location isn't valid. Pick it again or shorten its name.",
+      "invalid": "Some details aren't valid. Check them and try again.",
+      "network": "Couldn't reach the server. Check your connection and try again.",
+      "timeout": "The server took too long to respond. Please try again in a moment."
+    },
+    "demo": {
+      "title": "Sign Up to Build Your List 💞",
+      "description": "Create an account and pair with your partner to add and tick off the things you'll do together."
+    },
+    "doneSection": {
+      "loadError": "Couldn't load the things we've done right now.",
+      "loadingA11y": "Loading the things we've done"
+    },
+    "showMore_one": "Show {{count}} more idea",
+    "showMore_other": "Show {{count}} more ideas",
+    "preview": {
+      "demo": "Sample list: shown with demo data.",
+      "mock": "Preview: the list isn't connected to the server yet; anything you add is cleared when the app closes."
     }
   }
 }

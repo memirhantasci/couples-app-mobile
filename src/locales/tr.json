@@ -1171,6 +1171,11 @@
         "name": "Özel Gökyüzü Posteri",
         "description": "👑 Bizim Gecemiz posterine kendi başlığını yazmak ve baskı dosyasını almak için Premium'a geç.",
         "cta": "Poster Ayrıcalıklarını Aç"
+      },
+      "wishlist": {
+        "name": "Sınırsız Ortak Liste",
+        "description": "👑 15 açık fikir sınırını kaldırmak ve hayallerinizi sınırsız biriktirmek için Premium'a geçin.",
+        "cta": "Listeyi Sınırsız Yap"
       }
     },
     "perks": {
@@ -1269,6 +1274,10 @@
     "meetings": {
       "label": "Buluşma",
       "description": "Buluşma geri sayımı ve randevu planlama"
+    },
+    "wishlist": {
+      "label": "Yapacaklar",
+      "description": "Birlikte yapmak istediklerinizin ortak listesi"
     },
     "memories": {
       "label": "Özel Gün",
@@ -1634,6 +1643,10 @@
     "meetups": {
       "title": "Buluşmalar",
       "subtitle": "Geri sayım ve buluşma planları"
+    },
+    "wishlist": {
+      "title": "Yapacaklarımız",
+      "subtitle": "Ortak liste ve rastgele fikir seçici"
     },
     "medicine": {
       "subtitle": "Senin ve sevgilinin günlük dozları"
@@ -3599,6 +3612,35 @@
           }
         }
       },
+      "wishlist": {
+        "title": "Yapacaklarımız",
+        "tagline": "Birlikte Yapmak İstediklerimiz",
+        "summary": "Gidilecek yerleri, izlenecek filmleri ve denenecek şeyleri tek bir ortak listede biriktirin; sıra geldiğinde ne yapacağınıza birlikte karar verin.",
+        "features": {
+          "add_ideas": {
+            "title": "Fikirleri Biriktirin",
+            "badge": "Ortak Liste",
+            "description": "Üstteki kutuya yazıp ekleyin. Boş listede hazır fikirlere dokunmak da yeterli. Notu ve konumu sonradan düzenleyebilirsiniz.",
+            "tip": "Ücretsiz listede 15 açık fikir yer alır; yaptıklarınız bu sayıya girmez."
+          },
+          "both_want": {
+            "title": "İkimiz de İstiyoruz",
+            "badge": "Ortak Heves",
+            "description": "Bir fikre kalp verin. İkiniz de verdiğinizde fikir öne çıkar ve en çok istediğiniz şeyler en üstte toplanır."
+          },
+          "pick_one": {
+            "title": "Bana Bir Tane Seç",
+            "badge": "Karar Vermeyin",
+            "description": "Ne yapacağınıza karar veremediğinizde zar atın: önce ikinizin de istediklerinden, yoksa açık fikirlerinizden biri seçilir.",
+            "tip": "Kategori seçiliyken seçim de o kategoriden yapılır."
+          },
+          "mark_done": {
+            "title": "Yaptık!",
+            "badge": "Tamamlananlar",
+            "description": "Birlikte yaptığınız şeyi işaretleyin. Tarihiyle birlikte Yaptıklarımız bölümünde saklanır."
+          }
+        }
+      },
       "memories": {
         "title": "Özel Günler & Milatlar",
         "tagline": "Aşkınızın Dönüm Noktaları",
@@ -3704,7 +3746,10 @@
     "starNameLength": "Yıldız ismi 2 ile 40 karakter arasında olmalıdır.",
     "planetLimit": "Maksimum 10 manuel gezegen oluşturabilirsiniz.",
     "adLimit": "Günlük reklam izleme sınırına ulaştınız. Lütfen daha sonra tekrar deneyin.",
-    "partnerLimitFull": "Taraflardan birinin maksimum 3 bağlantı sınırı dolu."
+    "partnerLimitFull": "Taraflardan birinin maksimum 3 bağlantı sınırı dolu.",
+    "wishlistLimit": "Listenizdeki açık fikir sınırına ulaştınız.",
+    "network": "Sunucuya ulaşılamadı. İnternet bağlantını kontrol edip yeniden dene.",
+    "timeout": "Sunucu zamanında yanıt vermedi. Biraz sonra yeniden dene."
   },
   "widget": {
     "title": "AŞKIMIZIN YOLCULUĞU",
@@ -4074,6 +4119,124 @@
         "lastQuarter": "Son Dördün",
         "waningCrescent": "Küçülen Hilal"
       }
+    }
+  },
+  "wishlist": {
+    "title": "Yapacaklarımız",
+    "subtitle": "Birlikte yapmak istediklerimiz",
+    "categories": {
+      "all": "Tümü",
+      "place": "Yer",
+      "film": "Film & Dizi",
+      "food": "Yemek",
+      "experience": "Deneyim",
+      "travel": "Seyahat",
+      "other": "Diğer"
+    },
+    "quick": {
+      "placeholder": "Birlikte ne yapalım?",
+      "sendA11y": "Listeye ekle",
+      "counterA11y": "{{limit}} fikir hakkının {{used}} tanesi kullanıldı",
+      "limitA11y": "Liste dolu, Premium'u gör",
+      "limitHint": "Ücretsiz listede {{limit}} açık fikre kadar yer var.",
+      "limitCta": "Premium ile sınırsız",
+      "limitPerPerson": "Sayaç senin gördüğün açık fikirleri sayar. Önceki bir eşleşmeden kalan fikirler yalnızca sana göründüğü için partnerinin sayacı daha düşük olabilir."
+    },
+    "both": {
+      "title": "İkimiz de istiyoruz",
+      "subtitle_one": "{{count}} ortak fikir",
+      "subtitle_other": "{{count}} ortak fikir"
+    },
+    "pick": {
+      "cta": "Bana bir tane seç",
+      "subBoth": "İkinizin de istediklerinden",
+      "subAll": "Açık fikirlerinizden",
+      "sheetTitle": "BUGÜNÜN FİKRİ",
+      "rolling": "Seçiliyor",
+      "again": "Başka bir tane",
+      "sourceBoth": "İkiniz de istiyorsunuz",
+      "sourceAll": "Listenizden"
+    },
+    "sections": {
+      "open": "AÇIK FİKİRLER",
+      "done": "YAPTIKLARIMIZ ({{total}})"
+    },
+    "card": {
+      "wantA11y": "Ben de istiyorum",
+      "unwantA11y": "İsteğimi geri al",
+      "partnerWantsA11y": "Sevgilin de istiyor",
+      "markDoneA11y": "Yaptık olarak işaretle",
+      "undoDoneA11y": "Yapılmadı olarak geri al",
+      "moreA11y": "Daha fazla seçenek",
+      "addedByYouA11y": "Sen ekledin",
+      "addedByPartnerA11y": "Sevgilin ekledi",
+      "doneOn": "Yaptık ✓ · {{date}}"
+    },
+    "menu": {
+      "edit": "Düzenle",
+      "delete": "Sil"
+    },
+    "delete": {
+      "title": "Bu fikir silinsin mi?",
+      "message": "İkinizin listesinden de kalkar."
+    },
+    "edit": {
+      "title": "Fikri düzenle",
+      "titleLabel": "Başlık",
+      "noteLabel": "Not",
+      "notePlaceholder": "Aklınızda kalsın diye bir not",
+      "categoryLabel": "Kategori",
+      "locationLabel": "Konum",
+      "locationPlaceholder": "Neresi?",
+      "mapA11y": "Haritadan seç",
+      "mapTitle": "Konum seç"
+    },
+    "empty": {
+      "title": "Listeniz henüz boş",
+      "description": "Birlikte yapmak istediğiniz ilk şeyi yazın ya da aşağıdan bir fikir seçin.",
+      "allDoneTitle": "Hepsini yaptınız",
+      "allDoneDescription": "Sırada ne var? Yeni bir fikir ekleyin.",
+      "ideasLabel": "HAZIR FİKİRLER",
+      "addIdeaA11y": "Listeye ekle: {{title}}",
+      "filtered": "Bu kategoride başka fikir yok."
+    },
+    "states": {
+      "errorTitle": "Liste yüklenemedi",
+      "errorDescription": "Bağlantını kontrol edip yeniden dene.",
+      "offlineTitle": "Çevrimdışısın",
+      "offlineDescription": "Bağlantı gelince listeniz burada görünecek."
+    },
+    "toasts": {
+      "updated": "Fikir güncellendi",
+      "deleted": "Fikir silindi"
+    },
+    "errors": {
+      "add": "Fikir eklenemedi. Lütfen tekrar dene.",
+      "generic": "İşlem tamamlanamadı. Lütfen tekrar dene.",
+      "offline": "Bunun için internet bağlantısı gerekiyor.",
+      "premiumCap": "Listede en fazla {{limit}} açık fikir olabilir.",
+      "denied": "Bu fikir artık yok ya da bunu yapmaya yetkin yok. Liste yenilendi.",
+      "invalidTitle": "Başlık 1 ile 80 karakter arasında olmalı.",
+      "invalidNote": "Not en fazla 300 karakter olabilir.",
+      "invalidCategory": "Bu kategori geçerli değil. Listeden bir kategori seç.",
+      "invalidLocation": "Konum bilgisi geçersiz. Konumu yeniden seç ya da adını kısalt.",
+      "invalid": "Girilen bilgiler geçersiz. Kontrol edip yeniden dene.",
+      "network": "Sunucuya ulaşılamadı. Bağlantını kontrol edip yeniden dene.",
+      "timeout": "Sunucu zamanında yanıt vermedi. Biraz sonra yeniden dene."
+    },
+    "demo": {
+      "title": "Listenizi Kurmak İçin Kayıt Olun 💞",
+      "description": "Birlikte yapacaklarınızı eklemek ve işaretlemek için hesap oluşturup partnerinizle eşleşin."
+    },
+    "doneSection": {
+      "loadError": "Yaptıklarımız şu an yüklenemedi.",
+      "loadingA11y": "Yaptıklarımız yükleniyor"
+    },
+    "showMore_one": "{{count}} fikir daha göster",
+    "showMore_other": "{{count}} fikir daha göster",
+    "preview": {
+      "demo": "Örnek liste: demo verisiyle gösteriliyor.",
+      "mock": "Önizleme: liste henüz sunucuya bağlı değil; eklenenler uygulama kapanınca silinir."
     }
   }
 }

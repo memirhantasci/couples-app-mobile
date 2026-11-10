@@ -9,6 +9,10 @@ describe("resolveNotificationRoute", () => {
     expect(resolveNotificationRoute({ route: "/(tabs)/profile", type: "referral_reward" })).toBe("/(tabs)/profile");
   });
 
+  it("ortak liste ekranı yayındayken izin listesinde (jest geliştirme yapısıdır; üretim kapısı wishlistAvailability.test.ts)", () => {
+    expect(resolveNotificationRoute({ route: "/(tabs)/wishlist" })).toBe("/(tabs)/wishlist");
+  });
+
   it("route yoksa türden çözer", () => {
     expect(resolveNotificationRoute({ type: "letter" })).toBe("/(tabs)/letters");
     expect(resolveNotificationRoute({ type: "photo" })).toBe("/(tabs)/photos");

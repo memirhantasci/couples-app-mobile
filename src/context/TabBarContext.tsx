@@ -3,12 +3,13 @@ import { logger } from "@/utils/logger";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { 
   Home, CalendarHeart, Mail, Images, MapPin, 
-  Pill, BookOpen, Clock, Sparkles, Droplet, Settings,
+  Pill, BookOpen, Clock, Sparkles, Droplet, Settings, ListChecks,
   LucideIcon
 } from "lucide-react-native";
 import { toast } from "@/lib/toast";
 import type { ParseKeys } from "i18next";
 import { useTranslation } from "react-i18next";
+import { isTabReleased } from "@/lib/wishlistAvailability";
 
 export const TAB_STORAGE_KEY = "@couples_app_bottom_bar_tabs_v2";
 
@@ -23,7 +24,8 @@ export type TabKey =
   | "daily-notes"
   | "meetings"
   | "memories"
-  | "period-tracker";
+  | "period-tracker"
+  | "wishlist";
 
 export interface TabItemDefinition {
   key: TabKey;
@@ -35,7 +37,7 @@ export interface TabItemDefinition {
   isMandatory?: boolean;
 }
 
-export const ALL_TAB_DEFINITIONS: TabItemDefinition[] = [
+const TAB_DEFINITIONS: TabItemDefinition[] = [
   {
     key: "home",
     labelKey: "tabs.home.label",
@@ -98,12 +100,22 @@ export const ALL_TAB_DEFINITIONS: TabItemDefinition[] = [
     descriptionKey: "tabs.periodTracker.description",
   },
   {
+    key: "wishlist",
+    labelKey: "tabs.wishlist.label",
+    Icon: ListChecks,
+    descriptionKey: "tabs.wishlist.description",
+  },
+  {
     key: "profile",
     labelKey: "tabs.profile.label",
     Icon: Settings,
     descriptionKey: "tabs.profile.description",
   },
 ];
+
+/** Seçilebilir sekmeler. Ortak liste yayına girene kadar (wishlistAvailability.ts) listede yoktur; kayıtlı tercihte
+ * kalmış olsa bile yükleme sırasında ayıklanır. */
+export const ALL_TAB_DEFINITIONS: TabItemDefinition[] = TAB_DEFINITIONS.filter((def) => isTabReleased(def.key));
 
 export const DEFAULT_TABS: TabKey[] = [
   "home",

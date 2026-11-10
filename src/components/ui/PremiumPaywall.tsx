@@ -89,6 +89,11 @@ export function PremiumPaywall({
       description: t("paywall.copy.nightSky.description"),
       cta: t("paywall.copy.nightSky.cta"),
     },
+    wishlist: {
+      name: t("paywall.copy.wishlist.name"),
+      description: t("paywall.copy.wishlist.description"),
+      cta: t("paywall.copy.wishlist.cta"),
+    },
   };
   const resolvedFeature = featureCopy[featureSource];
   const resolvedFeatureName = featureName ?? resolvedFeature.name;

@@ -1,4 +1,5 @@
 import type { TFunction } from "i18next";
+import { isGuideListed } from "@/lib/wishlistAvailability";
 
 export interface FeatureItem {
   id: string;
@@ -129,6 +130,15 @@ const FEATURE_GUIDE_DEFS: Record<string, PageGuideDef> = {
       { id: "meeting-history", icon: "BookOpen", badge: true },
     ],
   },
+  wishlist: {
+    icon: "Lightbulb",
+    features: [
+      { id: "add-ideas", icon: "Lightbulb", badge: true, tip: true },
+      { id: "both-want", icon: "Heart", badge: true },
+      { id: "pick-one", icon: "Sparkles", badge: true, tip: true },
+      { id: "mark-done", icon: "CheckCircle", badge: true },
+    ],
+  },
   memories: {
     icon: "Sparkles",
     features: [
@@ -182,7 +192,9 @@ export function getPageGuide(pageKey: string, t: TFunction): PageTourGuide | nul
   };
 }
 
-/** Tüm sayfa rehberleri dizisi (	 dilinde). */
-export function getAllPageGuides(t: TFunction): PageTourGuide[] {
-  return FEATURE_GUIDE_PAGE_KEYS.map((k) => getPageGuide(k, t)!).filter(Boolean);
+/** Menüde listelenen sayfa rehberleri (`t` dilinde). Yayında olmayan ekranın (ortak liste) rehberi listelenmez. */
+export function getAllPageGuides(t: TFunction, options: { isDemoMode?: boolean } = {}): PageTourGuide[] {
+  return FEATURE_GUIDE_PAGE_KEYS.filter((k) => isGuideListed(k, !!options.isDemoMode))
+    .map((k) => getPageGuide(k, t)!)
+    .filter(Boolean);
 }

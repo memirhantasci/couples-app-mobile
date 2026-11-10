@@ -334,6 +334,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="meetings" />
       <Tabs.Screen name="memories" />
       <Tabs.Screen name="period-tracker" />
+      <Tabs.Screen name="wishlist" />
 
       {/* Modal / Alt Form Rotaları (Alt barda yer almaz) */}
       <Tabs.Screen name="add-memory" options={{ href: null }} />

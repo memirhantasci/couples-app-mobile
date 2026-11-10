@@ -10,6 +10,8 @@ const RULES: readonly (readonly [readonly string[], ParseKeys])[] = [
   // Tek kalan / eşleşmemiş kullanıcı (trg_solo_write_guard)
   [["PARTNER_REQUIRED"], "solo.partnerRequired.message"],
   [["SOLO_PREMIUM_REQUIRED"], "solo.premiumRequired.message"],
+  // Ortak liste madde sınırı (trg_wishlist_limit, set_wishlist_done)
+  [["WISHLIST_LIMIT"], "serverErrors.wishlistLimit"],
   // Premium / token
   [["Mektup mühürlemek için en az 100 Token"], "serverErrors.tokensOrPremium"],
   [["Yetersiz token bakiyesi"], "serverErrors.tokensInsufficient"],
@@ -82,6 +84,46 @@ function messageOf(error: unknown): string {
   return "";
 }
 
+/** Postgres / PostgREST hata kodu (SQLSTATE, ör. "42501"); yoksa "". */
+export function serverErrorCode(error: unknown): string {
+  if (error && typeof error === "object" && "code" in error) {
+    const code = (error as { code?: unknown }).code;
+    return typeof code === "string" ? code : "";
+  }
+  return "";
+}
+
+/** Ortak liste madde sınırı mı (P0022)? Ücretsiz çiftte paywall açmak için. */
+export function isWishlistLimitError(error: unknown): boolean {
+  if (serverErrorCode(error) === "P0022") return true;
+  return /\bWISHLIST_LIMIT\b/.test(messageOf(error));
+}
+
+/** İstek sunucuya hiç ulaşmadı ya da yanıt gelmedi (çevrimdışı, DNS, bağlantı koptu). */
+export function isNetworkError(error: unknown): boolean {
+  return /Network request failed|Failed to fetch|NetworkError|network error|fetch failed|Load failed|ERR_NETWORK|ENOTFOUND|ECONNREFUSED|ECONNRESET|ERR_INTERNET_DISCONNECTED/i.test(
+    messageOf(error)
+  );
+}
+
+/**
+ * İptal edilen istek mesajları. Tek başına "aborted" sözcüğü aranmaz: Postgres'in "current transaction is aborted"
+ * (25P02) hatası bir zaman aşımı değildir, sunucu tarafında başarısız bir işlemdir.
+ */
+const ABORT_MESSAGE = /^aborted\.?$|\boperation was aborted\b|\brequest (?:was )?aborted\b|\bAbortError\b/i;
+
+/** Sunucu zamanında yanıt vermedi (istemci zaman aşımı / iptal ya da Postgres statement_timeout, 57014). */
+export function isTimeoutError(error: unknown): boolean {
+  const code = serverErrorCode(error);
+  if (code === "57014") return true;
+  // SQLSTATE taşıyan diğer sunucu hataları (ör. 25P02) mesajında ne yazarsa yazsın zaman aşımı sayılmaz
+  if (/^[0-9A-Z]{5}$/.test(code)) return false;
+  const name = error && typeof error === "object" && "name" in error ? (error as { name?: unknown }).name : null;
+  if (name === "AbortError" || name === "TimeoutError") return true;
+  const message = messageOf(error).trim();
+  return /\btimed? ?out\b|statement timeout/i.test(message) || ABORT_MESSAGE.test(message);
+}
+
 /** Bilinen bir sunucu mesajının çevrilmiş metnini döndürür; tanınmıyorsa null. */
 export function mapServerMessage(message: string): string | null {
   for (const [phrases, key] of RULES) {
@@ -100,8 +142,12 @@ export function mapServerMessage(message: string): string | null {
 export function localizeServerError(error: unknown, fallback: string): string {
   const message = messageOf(error).trim();
   if (!message) return fallback;
-  // Kodlu tek kalan mesajları ("PARTNER_REQUIRED: ...") her dilde kodsuz, çevrilmiş metinle gösterilir
-  if (/\b(PARTNER_REQUIRED|SOLO_PREMIUM_REQUIRED)\b/.test(message)) return mapServerMessage(message) ?? fallback;
+  // Kodlu mesajlar ("PARTNER_REQUIRED: ...", "WISHLIST_LIMIT") her dilde kodsuz, çevrilmiş metinle gösterilir
+  if (/\b(PARTNER_REQUIRED|SOLO_PREMIUM_REQUIRED|WISHLIST_LIMIT)\b/.test(message)) return mapServerMessage(message) ?? fallback;
+  // Ağ / zaman aşımı ve Postgres'in İngilizce yetki metinleri hiçbir dilde ham gösterilmez
+  if (isTimeoutError(error)) return i18n.t("serverErrors.timeout");
+  if (isNetworkError(error)) return i18n.t("serverErrors.network");
+  if (/violates row-level security policy|permission denied for/.test(message)) return i18n.t("serverErrors.unauthorized");
   // Sunucu metni zaten Türkçe: Türkçe arayüzde olduğu gibi (ayrıntısıyla) gösterilir
   if (i18n.language === "tr") return message;
   const mapped = mapServerMessage(message);
