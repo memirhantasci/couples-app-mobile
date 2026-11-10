@@ -7,6 +7,7 @@ import { useRootNavigationState, useRouter } from "expo-router";
 import { InAppNotificationData, NotificationType } from "@/types/notification";
 import { resolveNotificationRoute } from "@/lib/notificationRoutes";
 import { logger } from "@/utils/logger";
+import { decodeLegacyEntities } from "@/utils/sanitize";
 import { clearNotificationBadge } from "@/lib/notifications";
 import { markLettersSeen, requestLetterArrivalCheck } from "@/lib/letterArrival";
 import { useAuth } from "@/context/AuthContext";
@@ -182,8 +183,15 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   useEffect(() => {
     const receivedSubscription = Notifications.addNotificationReceivedListener((notification) => {
       try {
-        const { title, body, data } = notification.request.content;
-        const payloadData = (data as any) || {};
+        // Sunucu (send-push) ve eski sürümdeki partner, eski kayıtlardaki HTML varlıklı ad/başlığı ("Ali&#x27;s")
+        // olduğu gibi gönderebilir. Telefonun bildirim çubuğundaki metne karışamayız; uygulama içi kart düz gösterir.
+        const content = notification.request.content;
+        const title = decodeLegacyEntities(content.title);
+        const body = decodeLegacyEntities(content.body);
+        const payloadData: Record<string, any> = {};
+        for (const [key, value] of Object.entries((content.data as Record<string, unknown>) || {})) {
+          payloadData[key] = decodeLegacyEntities(value);
+        }
 
         let deducedType: NotificationType = "general";
         if (payloadData.type) {

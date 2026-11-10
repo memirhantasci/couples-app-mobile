@@ -1,18 +1,21 @@
 /**
  * Giriş Temizleme (Input Sanitization) Utility
- * 
- * Kullanıcıdan gelen tüm metin girdilerini potansiyel saldırı
- * karakterlerinden arındırır. XSS, null-byte injection ve
- * control character enjeksiyonlarına karşı koruma sağlar.
- * 
+ *
+ * Kullanıcıdan gelen metin girdilerinden null bayt ve kontrol karakterlerini temizler.
+ *
  * Kullanım:
- *   import { sanitize, sanitizeHard } from "@/utils/sanitize";
+ *   import { sanitize } from "@/utils/sanitize";
  *   const clean = sanitize(userInput);
+ *
+ * HTML kaçışı burada YAPILMAZ. Uygulama metni yalnızca React Native <Text> / <TextInput> ile gösterir; bunlar
+ * metni HTML olarak işlemez. Metin bir gün HTML'e (e-posta, web sayfası) girecekse kaçış orada, HTML'i üreten
+ * yerde yapılmalı (örnek: supabase/functions/report-alert'teki escapeHtml). Veritabanına kaçışlı metin yazmak
+ * hem ekranda bozuk görünür hem de uzunluk sınırlarını şişirir.
  */
 
 /**
  * Standart temizleyici: Boşlukları düzenler, control karakterleri kaldırır.
- * Mektup içerikleri ve not alanları için uygundur.
+ * Başlık, ad, not ve mektup gibi bütün serbest metin alanları için kullanılır.
  */
 export function sanitize(input: string): string {
   if (!input || typeof input !== "string") return "";
@@ -25,24 +28,53 @@ export function sanitize(input: string): string {
     .trim();
 }
 
+// ─── Eski sürümlerin yazdığı HTML varlıkları ────────────────────────────────
+// Eski sürümlerdeki sanitizeStrict (kaldırıldı) şu alanları yazarken & < > " ' karakterlerini HTML varlığına
+// çeviriyordu: meetings.title / location_name, memories.title, photos.title, letters.title, medicines.name,
+// users.display_name. Mağazadaki eski sürümler aynı veritabanına bu biçimde yazmaya devam eder; bu yüzden
+// okunan metin çözülür (bkz. src/lib/legacyEntityFetch.ts). Yalnızca o fonksiyonun ürettiği beş varlık
+// tanınır; &#39;, &nbsp;, &apos; gibi diğerleri olduğu gibi kalır (genel HTML çözücü değildir).
+
+const LEGACY_ENTITY_VALUES: Record<string, string> = {
+  "&amp;": "&",
+  "&lt;": "<",
+  "&gt;": ">",
+  "&quot;": '"',
+  "&#x27;": "'",
+};
+
+const LEGACY_ENTITY_PATTERN = /&(?:amp|lt|gt|quot|#x27);/g;
+
+/** Metinde eski sanitizeStrict'in ürettiği bir varlık var mı (hızlı ön kontrol). */
+export function hasLegacyEntities(text: string): boolean {
+  LEGACY_ENTITY_PATTERN.lastIndex = 0;
+  const found = LEGACY_ENTITY_PATTERN.test(text);
+  LEGACY_ENTITY_PATTERN.lastIndex = 0;
+  return found;
+}
+
 /**
- * Sert temizleyici: HTML/script karakterlerini de engeller.
- * Kullanıcı adı, başlık gibi kısa alanlarda kullanılır.
+ * Bir değer kaç kez üst üste kodlanmış olabilir. Eski sürüm, kodlanmış kaydı düzenleme formuna olduğu gibi
+ * yükleyip yeniden kaydettiğinde her kayıtta bir seviye daha eklenir ("&#x27;" → "&amp;#x27;" → …).
  */
-export function sanitizeStrict(input: string): string {
-  if (!input || typeof input !== "string") return "";
-  return sanitize(input)
-    // HTML taglarını kaldır
-    .replace(/<[^>]*>/g, "")
-    // HTML özel karakterlerini kaçış karakterine çevir
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;")
-    // Script enjeksiyonunu engelle
-    .replace(/javascript:/gi, "")
-    .replace(/on\w+=/gi, "");
+const MAX_DECODE_PASSES = 8;
+
+/**
+ * Eski sanitizeStrict'in ürettiği HTML varlıklarını geri çözer; çok seviyeli (çift) kodlamayı da sonuna kadar açar.
+ * Dize olmayan değerleri (null, undefined) olduğu gibi döndürür.
+ *
+ * Bilinen ödünleşim: kullanıcı bir alana bilerek "&amp;" yazdıysa eski sürüm bunu "&amp;amp;" diye kaydetmiştir ve
+ * burada "&" olarak görünür. Çift kodlamanın asıl kaynağı eski formda düzenleyip yeniden kaydetmek olduğu için
+ * (çok daha olası durum) tam çözüm tercih edildi.
+ */
+export function decodeLegacyEntities<T>(value: T): T {
+  if (typeof value !== "string" || !value) return value;
+  let text: string = value;
+  for (let pass = 0; pass < MAX_DECODE_PASSES && hasLegacyEntities(text); pass += 1) {
+    // Tek geçişte her varlık bir kez çözülür: "&amp;lt;" bu geçişte "&lt;" olur, sonraki geçişte "<"
+    text = text.replace(LEGACY_ENTITY_PATTERN, (entity) => LEGACY_ENTITY_VALUES[entity]);
+  }
+  return text as T;
 }
 
 /**

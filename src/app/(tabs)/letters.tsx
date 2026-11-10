@@ -19,7 +19,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
 import { encrypt, decrypt } from "@/utils/crypto";
 import { ChevronRight, LockKeyhole, Calendar as CalendarIcon, X, PenLine, Send, Clock, Unlock, UserCheck, ChevronDown, Eye, EyeOff, MoreHorizontal, Hourglass, HeartHandshake } from "lucide-react-native";
-import { sanitize, sanitizeStrict } from "@/utils/sanitize";
+import { sanitize } from "@/utils/sanitize";
 import { logger } from "@/utils/logger";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
@@ -237,7 +237,7 @@ export default function LettersScreen() {
     setLoadingForm(true);
 
     try {
-      const cleanTitle = sanitizeStrict(title.trim());
+      const cleanTitle = sanitize(title.trim());
       const cleanContent = sanitize(content.trim());
 
       if (!cleanTitle || !cleanContent) {

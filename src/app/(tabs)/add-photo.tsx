@@ -36,7 +36,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { logger } from "@/utils/logger";
 import { MapPickerModal, type LocationData } from "@/components/MapPickerModal";
 import { extractPhotoExif, isValidCoordinate, geocodeAddressString } from "@/utils/exifHelper";
-import { sanitize, sanitizeStrict } from "@/utils/sanitize";
+import { sanitize } from "@/utils/sanitize";
 import { playCameraClick } from "@/lib/soundEffects";
 import { toast } from "@/lib/toast";
 import { LazyPremiumPaywall, LazyDemoActionModal, LazyDateTimePickerSheet } from "@/components/ui/lazyMount";
@@ -281,8 +281,8 @@ export default function AddPhotoScreen() {
     setUploading(true);
 
     try {
-      // Girdi sanitizasyonu — null-byte, kontrol karakterleri ve script taglerini filtrele
-      const cleanTitle = title.trim() ? sanitizeStrict(title.trim()) : null;
+      // Girdi temizliği — null bayt ve kontrol karakterleri (HTML kaçışı yapılmaz: RN metni HTML olarak işlemez)
+      const cleanTitle = title.trim() ? sanitize(title.trim()) : null;
       const cleanDescription = sanitize(description.trim());
 
       if (!cleanDescription) {

@@ -30,7 +30,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePageTour } from "@/hooks/usePageTour";
 import { DEMO_MEDICINES } from "@/constants/demoData";
 import { useDemoAction } from "@/hooks/useDemoAction";
-import { sanitizeStrict } from "@/utils/sanitize";
+import { sanitize } from "@/utils/sanitize";
 import { toast } from "@/lib/toast";
 import { MedicineStreakCard } from "@/components/medicine/MedicineStreakCard";
 import { MedicineDoseCard } from "@/components/medicine/MedicineDoseCard";
@@ -254,7 +254,7 @@ function MedicineScreenContent() {
     if (!values.name.trim()) return "name-error";
     if (!coupleId || !userId) return "error";
 
-    const cleanMedName = sanitizeStrict(values.name.trim());
+    const cleanMedName = sanitize(values.name.trim());
     if (!cleanMedName) return "name-error";
 
     const formattedTimes = values.times.map(t => dayjs(t).format("HH:mm"));

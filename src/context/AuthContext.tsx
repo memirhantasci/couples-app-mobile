@@ -22,6 +22,7 @@ import { toast } from "@/lib/toast";
 import { Platform, AppState } from "react-native"; // 24 hours
 import { DEMO_PROFILE, DEMO_SESSION, prefetchDemoImages } from "@/constants/demoData";
 import i18n from "@/lib/i18n";
+import { decodeLegacyEntities } from "@/utils/sanitize";
 
 const CACHED_PROFILE_KEY = "@couples_app_cached_profile";
 export const DEVICE_AUTH_CACHE_KEY = "@device_auth_cache";
@@ -119,7 +120,9 @@ async function getCachedProfile(): Promise<CoupleProfile | null> {
   try {
     const raw = await AsyncStorage.getItem(CACHED_PROFILE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw);
+    const cached: CoupleProfile = JSON.parse(raw);
+    // Bu sürümden önce yazılmış önbellek, eski HTML varlıklı adı ("Ali&#x27;s") taşıyabilir
+    return cached ? { ...cached, displayName: decodeLegacyEntities(cached.displayName) } : cached;
   } catch {
     return null;
   }

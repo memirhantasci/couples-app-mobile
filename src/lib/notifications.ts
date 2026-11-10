@@ -6,6 +6,7 @@ import { Platform } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { logger } from "@/utils/logger";
 import { decrypt } from "@/utils/crypto";
+import { decodeLegacyEntities } from "@/utils/sanitize";
 import i18n, { getCurrentLanguage } from "@/lib/i18n";
 import { APP_NAME } from "@/constants/brand";
 
@@ -241,6 +242,9 @@ export function cleanNotificationText(text: string | null | undefined): string {
   // 2. Güvenlik ağı: yukarıdaki kalıba tam uymayan (örn. kesilmiş/bozuk IV-cipher çifti)
   // "enc:" ile başlayan artık parçalar da bildirime çıplak şifreli metin olarak sızmasın.
   result = result.replace(/\benc:\S*/g, "");
+
+  // 3. Eski sürümlerin HTML varlığıyla yazdığı ad/başlık ("Ali&#x27;s") bildirimde düz görünsün
+  result = decodeLegacyEntities(result);
 
   return result.replace(/\s+/g, " ").trim();
 }

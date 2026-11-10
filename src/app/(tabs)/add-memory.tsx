@@ -22,7 +22,7 @@ import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { sanitizeStrict, sanitize } from "@/utils/sanitize";
+import { sanitize } from "@/utils/sanitize";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { useNotificationPriming } from "@/hooks/useNotificationPriming";
 import { toast } from "@/lib/toast";
@@ -172,7 +172,7 @@ export default function AddMemoryScreen() {
       }
 
       // Save to database
-      const cleanTitle = sanitizeStrict(title.trim());
+      const cleanTitle = sanitize(title.trim());
       const cleanDescription = description.trim() ? sanitize(description.trim()) : null;
 
       let error;

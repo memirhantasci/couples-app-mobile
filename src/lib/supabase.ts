@@ -2,6 +2,7 @@ import "react-native-url-polyfill/auto";
 import { secureAuthStorage } from "./secureAuthStorage";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/utils/logger";
+import { withLegacyEntityDecoding } from "./legacyEntityFetch";
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -23,6 +24,11 @@ export const supabase = createClient(
       persistSession: true,
       // Mobilde false OLMALI — true bırakılırsa deep link akışı bozulur
       detectSessionInUrl: false,
+    },
+    global: {
+      // Eski sürümlerin HTML varlığıyla yazdığı metinler ("Ali&#x27;s") okunurken çözülür (bkz. legacyEntityFetch).
+      // Global fetch her çağrıda aranır (supabase-js'in varsayılanı da böyle).
+      fetch: withLegacyEntityDecoding((input, init) => fetch(input, init)),
     },
   }
 );

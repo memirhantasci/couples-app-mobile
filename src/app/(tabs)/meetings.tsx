@@ -39,7 +39,7 @@ import { MapPickerModal } from "@/components/MapPickerModal";
 import { usePageTour } from "@/hooks/usePageTour";
 import { useDeferredReady } from "@/hooks/useDeferredReady";
 import { useDemoAction } from "@/hooks/useDemoAction";
-import { sanitizeStrict } from "@/utils/sanitize";
+import { sanitize } from "@/utils/sanitize";
 import { toast } from "@/lib/toast";
 import { fetchMeetings, meetingsQueryKey } from "@/lib/screenQueries";
 import { LazyPageTourModal, LazyDemoActionModal, LazyDateTimePickerSheet } from "@/components/ui/lazyMount";
@@ -162,8 +162,8 @@ export default function MeetingsScreen() {
 
     try {
       const utcDateTime = dayjs(meetingDate).toISOString();
-      const cleanTitle = sanitizeStrict(title.trim() || t("tabs.meetings.label"));
-      const cleanLocation = locationName.trim() ? sanitizeStrict(locationName.trim()) : null;
+      const cleanTitle = sanitize(title.trim() || t("tabs.meetings.label"));
+      const cleanLocation = locationName.trim() ? sanitize(locationName.trim()) : null;
 
       let savedMeetingId: string | number | null = editingMeetingId;
       let successMessage = "";

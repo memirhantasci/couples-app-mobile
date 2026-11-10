@@ -1,6 +1,6 @@
 # Bilinen sınırlar ve yayın sonrası işler
 
-Son güncelleme: 2026-11-07
+Son güncelleme: 2026-11-11
 
 ## 0. Eski denetim raporlarından kalan açık işler (2026-11-07 kontrolü)
 
@@ -27,6 +27,15 @@ Bitmeyenler:
   yorumu (açık nokta 1) için ürün sahibi onayı.
 
 ### Yayından sonra (2-4 hafta)
+- **Eski HTML varlıklı metinler (`Ali&#x27;s`, `Kahve &amp; Kitap`), 2026-11-11:** eski sürümlerdeki `sanitizeStrict`
+  buluşma başlığı/yeri, anı/fotoğraf/mektup başlığı, ilaç adı ve görünen ismi HTML varlığıyla yazıyordu. Yeni istemci
+  kaçışsız yazıyor ve okurken çözüyor (`src/lib/legacyEntityFetch.ts`), ama mağazadaki eski sürümler kodlamaya devam eder.
+  Açık kalanlar: (1) **sunucu push'ları**: `send-push` adı/başlığı DB'den okuyup olduğu gibi gönderiyor, telefonun
+  bildirim çubuğunda varlıklı görünür (uygulama içi kart çözülüyor). Çözüm: send-push'ta göndermeden önce aynı beş
+  varlığı (`&amp; &lt; &gt; &quot; &#x27;`) çöz + deploy. (2) **Canlı veri temizliği**: sayım ve UPDATE taslağı hazırlandı
+  (repoda değil; tek transaction, yalnızca düz metin sütunları, şifreli sütun etkilenmedi). Yeni sürüm yayıldıktan sonra bir
+  kez çalıştır, birkaç hafta sonra sayımla tekrar bak. (3) Sunucu tarafı ad kullanımları (yıldız sahibi baş harfi
+  `owner_initials`, `contains_blocked_word`, arama normalizasyonu) kodlanmış adla çalışıyor; temizlik bunları da düzeltir.
 - **Tekrar gönder geri sayımı arka planda duruyor (TestFlight'ta görüldü, 2026-11-08):** `src/app/(auth)/verify-device.tsx:52-57` sayacı her saniye `setTimeout` ile bir azaltıyor; uygulama arka plana gidince iOS JS'i durdurduğundan geri dönünce sayaç kaldığı yerden (ör. 45) devam ediyor, oysa gerçekte süre geçmiş. Çözüm: sayacı azaltmak yerine bitiş zamanını (`Date.now()+60000`) saklayıp her tikte `bitiş - şimdi` hesapla. Ayrıca `verify.tsx:213` (e-posta kod ekranı) "tekrar gönder"de istemci tarafı bekleme sayacı yok, yalnızca Supabase'in kendi sınırı var; aynı bitiş-zamanı mantığıyla ekle. Yeni build ister.
 - **Maps anahtarını couplesapp94 hesabına taşı:** Maps Production Key şu an emirhanekin52 hesabındaki `project-a4ab81ef…` projesinde (fatura hesabı orada). Anahtar projeler arası taşınmaz: couplesky-c50c5'e fatura hesabı bağla, yeni anahtar oluştur (aynı paket+SHA-1 kısıtı), `app.json` anahtarını değiştir, yeni Android build al, eskiyi sil.
 - **Ödüllü reklam SSV (Y-3):** reklam token'ı istemci beyanına dayanıyor; günde 25 sınırı var. AdMob Server-Side Verification ekle.

@@ -23,7 +23,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { setGlobalActiveTheme, type AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
-import { sanitizeStrict } from "@/utils/sanitize";
+import { sanitize } from "@/utils/sanitize";
 import { toast } from "@/lib/toast";
 import { getCooldownStatus } from "@/lib/cooldown";
 import {
@@ -281,7 +281,7 @@ export default function ProfileScreen() {
   async function executeSaveProfile() {
     if (!session?.user?.id) return;
     setProfileLoading(true);
-    const cleanDisplayName = sanitizeStrict(displayName.trim());
+    const cleanDisplayName = sanitize(displayName.trim());
     const nowIso = new Date().toISOString();
     const updatePayload: Record<string, any> = {};
 
