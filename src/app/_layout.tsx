@@ -47,6 +47,7 @@ import { PartnerNoticeHost } from "@/components/common/PartnerNoticeHost";
 import { PremiumCelebrationHost } from "@/components/ui/PremiumCelebrationHost";
 import { StarPointsToastHost } from "@/modules/stars/components/StarPointsToastHost";
 import { LaunchAnimation, NATIVE_SPLASH_FADE_MS } from "@/components/splash/LaunchAnimation";
+import { AppVersionGate } from "@/components/common/AppVersionGate";
 
 import { useFonts } from 'expo-font';
 // Paket kökünden içe aktarmak tüm ağırlık/italik varyantları uygulamaya sokar (~10 MB); yalnızca kullanılanlar alınır
@@ -308,32 +309,37 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <ThemeProvider>
-            <TabBarProvider>
-              <NotificationProvider>
-                <RootLayoutNav />
-                {/* Partnerinden mektup gelmişse uygulamaya girince sol üstten uçup konan kuş */}
-                <LetterArrivalHost />
-                {/* Bildirim izni verilmediyse arada bir (bezdirmeden) nazik ön-onay kartı */}
-                <NotificationPermissionHost />
-                {/* Partner hesabını silmek istediğinde / vazgeçtiğinde / çift dağıldığında açıklama diyaloğu */}
-                <PartnerNoticeHost />
-                {/* Partner Premium aldığında (uygulama açıkken anında) "Tebrikler" ekranı */}
-                <PremiumCelebrationHost />
-                {/* Yıldızı parlatan aktivitelerde "+N puan 🌟" bildirimi */}
-                <StarPointsToastHost />
-                {/* Büyük anlarda (kavuşma günü) ekran boyunca yağan konfeti; dokunuşları engellemez */}
-                <ConfettiRainHost />
-                {/* Alert yerine süzülen hap bildirimleri; ağacın en üstünde çizilir */}
-                <ToastHost />
-                {/* İnternet kopunca üstte süzülen uyarı */}
-                <OfflineBanner />
-                {/* Alert.alert yerine cam efektli, pastel tonlu diyalog kartları (onay / uzun uyarılar) */}
-                <DialogHost />
-                {/* Soğuk açılışta native splash'ı devralan "iki yıldız birleşir" perdesi; oturum çözülene
-                    kadar (yanlış ekran bir an görünmesin) her şeyin üstünde kalır */}
-                <LaunchAnimation />
-              </NotificationProvider>
-            </TabBarProvider>
+            {/* Zorunlu güncelleme: cihazdaki sürüm sunucudaki asgari sürümün altındaysa uygulamanın yerine
+                "güncelle" ekranı çizilir. Her belirsizlikte (ağ hatası, bozuk yanıt, boş değer) açık kalır. */}
+            <AppVersionGate>
+              <TabBarProvider>
+                <NotificationProvider>
+                  <RootLayoutNav />
+                  {/* Partnerinden mektup gelmişse uygulamaya girince sol üstten uçup konan kuş */}
+                  <LetterArrivalHost />
+                  {/* Bildirim izni verilmediyse arada bir (bezdirmeden) nazik ön-onay kartı */}
+                  <NotificationPermissionHost />
+                  {/* Partner hesabını silmek istediğinde / vazgeçtiğinde / çift dağıldığında açıklama diyaloğu */}
+                  <PartnerNoticeHost />
+                  {/* Partner Premium aldığında (uygulama açıkken anında) "Tebrikler" ekranı */}
+                  <PremiumCelebrationHost />
+                  {/* Yıldızı parlatan aktivitelerde "+N puan 🌟" bildirimi */}
+                  <StarPointsToastHost />
+                  {/* Büyük anlarda (kavuşma günü) ekran boyunca yağan konfeti; dokunuşları engellemez */}
+                  <ConfettiRainHost />
+                  {/* Alert yerine süzülen hap bildirimleri; ağacın en üstünde çizilir */}
+                  <ToastHost />
+                  {/* İnternet kopunca üstte süzülen uyarı */}
+                  <OfflineBanner />
+                  {/* Alert.alert yerine cam efektli, pastel tonlu diyalog kartları (onay / uzun uyarılar) */}
+                  <DialogHost />
+                </NotificationProvider>
+              </TabBarProvider>
+            </AppVersionGate>
+            {/* Soğuk açılışta native splash'ı devralan "iki yıldız birleşir" perdesi; oturum çözülene
+                kadar (yanlış ekran bir an görünmesin) her şeyin üstünde kalır. Güncelleme kapısının dışındadır:
+                kapı kapanıp açılınca perde yeniden kurulup baştan oynamaz. */}
+            <LaunchAnimation />
           </ThemeProvider>
         </AuthProvider>
       </QueryClientProvider>

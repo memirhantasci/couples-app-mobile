@@ -1594,6 +1594,14 @@
     "adLimitReached": "Günlük reklam ödülü sınırına ulaştın. Daha sonra tekrar deneyebilirsin.",
     "actionFailed": "İşlem sırasında bir hata oluştu."
   },
+  "forceUpdate": {
+    "title": "Yeni sürüm seni bekliyor",
+    "message": "Devam etmek için {{app}} uygulamasını güncellemen gerekiyor. Anıların, mektupların ve yıldızınız olduğu yerde duruyor 💫",
+    "cta": "Güncelle",
+    "ctaA11y": "Güncellemeyi mağazada aç",
+    "installedVersion": "Yüklü sürüm {{version}}",
+    "storeError": "Mağaza açılamadı. {{app}} uygulamasını App Store ya da Google Play'de aratabilirsin."
+  },
   "menu": {
     "daysTogether_one": "{{count}} Gün",
     "daysTogether_other": "{{count}} Gün",

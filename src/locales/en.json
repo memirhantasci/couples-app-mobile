@@ -1594,6 +1594,14 @@
     "adLimitReached": "You've reached the daily ad reward limit. Please try again later.",
     "actionFailed": "An error occurred during the action."
   },
+  "forceUpdate": {
+    "title": "A new version is waiting for you",
+    "message": "To keep going, please update {{app}}. Your memories, letters and star are right where you left them 💫",
+    "cta": "Update",
+    "ctaA11y": "Open the update in the store",
+    "installedVersion": "Installed version {{version}}",
+    "storeError": "Couldn't open the store. You can search for {{app}} on the App Store or Google Play."
+  },
   "menu": {
     "daysTogether_one": "{{count}} Day",
     "daysTogether_other": "{{count}} Days",

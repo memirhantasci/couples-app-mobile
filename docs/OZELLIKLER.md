@@ -1,6 +1,6 @@
 # CoupleSky: Özellik Envanteri
 
-Son güncelleme: 2026-11-10 · Taslak v1 (kod, yerelleştirme dosyaları, migration'lar ve bilgi grafından çıkarıldı)
+Son güncelleme: 2026-11-11 · Taslak v1 (kod, yerelleştirme dosyaları, migration'lar ve bilgi grafından çıkarıldı)
 
 İşaretler: ✅ kodda okunup doğrulandı · 🔎 kontrol edilmeli (dosya adı verilmiştir) · ⚠️ bilinen sorun/sınır
 
@@ -156,6 +156,8 @@ Silme talebi 7 gün bekler, geri alınabilir; **A siler, B kalır** (B'nin içer
 ### 4.22 Güvenlik ve altyapı
 RLS + SECURITY DEFINER RPC'ler, günlük ve mektup AES-256, silme kuyruğu (`storage-purge`), hata raporlama (`client_errors`), yasal sayfalar (TR/EN) ✅.
 
+**Zorunlu güncelleme kapısı** (`src/lib/appVersionGate.ts`, `useAppVersionGate.ts`, `AppVersionGate.tsx`, `ForceUpdateScreen.tsx`; sunucu `app_version_requirements` + RPC `get_app_version_requirement`, migration `20261111000000`): cihazdaki görünen sürüm (iOS CFBundleShortVersionString / Android versionName; isteğe bağlı aynı sürümde build numarası) sunucudaki asgari sürümün KESİN olarak altındaysa uygulamanın yerine kapatılamayan "güncelle" ekranı çizilir. Her belirsizlikte (ağ hatası, zaman aşımı, bozuk yanıt, boş değer, okunamayan sürüm) açık; son başarılı yanıt 30 gün saklanır (çevrimdışıyken kilit sürer). Demo modunda uygulanmaz. Açılışta ve öne gelince sorar (en sık 15 dk, kilitliyken 1 dk). İşletim (yükseltme / geri alma / herkesi kilitlersek): `docs/ZORUNLU_GUNCELLEME.md`. ⚠️ Migration canlıya uygulanmadı; istemci 1.1.0 ile çıkacak. 1.0.0 ikililerine ancak OTA ile ulaşabilir (aynı belgede).
+
 ---
 
 ## 5. Zaten bağlı olan özellikler (bunları "yeni bağ" diye önermeyin)
@@ -195,6 +197,7 @@ RLS + SECURITY DEFINER RPC'ler, günlük ve mektup AES-256, silme kuyruğu (`sto
 
 ## 7. Açık işler ve bilinen sınırlar (özet; ayrıntı: `docs/BILINEN_SINIRLAR_VE_YAYIN_SONRASI_ISLER.md`)
 - ⚠️ **Ortak liste sunucusu canlıda değil** (`ortak-liste` dalı, `WISHLIST_SERVER_READY = false`; üretimde kapalı, demo/geliştirmede açık): migration'lar canlıya uygulanmadı; yayın öncesi işler bitmeden dal birleşmez. Canlıya uygulamadan önceki kontrol listesi: `docs/ORTAK_LISTE_PLANI.md` bölüm 0.
+- ⚠️ **Zorunlu güncelleme kapısı sunucusu canlıda değil** (migration `20261111000000` yazıldı, geçici PG 12'de sınandı; canlıya uygulanmadı). Uygulanmadan önce istemcideki kapı açık kalır (RPC yok → hata → açık).
 - ⚠️ Mektup kilidi yalnızca istemcide; alıcı API ile erken okuyabilir (yayın sonrası, yeni build + sunucu politikası).
 - ⚠️ "Tekrar gönder" geri sayımı arka planda duruyor (`verify-device.tsx:52-57`, `verify.tsx:213`).
 - ⚠️ Widget'lar gerçek cihazda test edilmedi; silme/Premium akışı cihazda test bekliyor.
