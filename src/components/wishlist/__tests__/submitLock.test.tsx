@@ -26,12 +26,37 @@ jest.mock("@/context/ThemeContext", () => ({
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key, i18n: { language: "tr" } }) }));
 jest.mock("lucide-react-native", () => new Proxy({}, { get: (_target, name) => (name === "__esModule" ? false : () => null) }));
 jest.mock("../CategoryChips", () => ({ CategoryChips: () => null }));
+// Reanimated jest'te yerel modül ister: açılır kapanır çubuk (Collapse) ve kart için en küçük taklit
+jest.mock("react-native-reanimated", () => {
+  const { View } = jest.requireActual("react-native");
+  const { useState } = jest.requireActual("react");
+  const shared = (initial: unknown) => {
+    let current = initial;
+    return { get: () => current, set: (next: unknown) => (current = next) };
+  };
+  return {
+    __esModule: true,
+    default: { View },
+    Easing: { out: () => (t: number) => t, cubic: (t: number) => t },
+    useReducedMotion: () => false,
+    useSharedValue: (initial: unknown) => useState(() => shared(initial))[0],
+    useAnimatedStyle: (factory: () => unknown) => factory(),
+    withTiming: (to: unknown) => to,
+    withSequence: (...steps: unknown[]) => steps[steps.length - 1],
+  };
+});
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const TestRenderer = require("react-test-renderer");
 const { act } = TestRenderer;
 
 type Node = { props: Record<string, any> };
+
+// Çizilenler her testten sonra kaldırılır: çubuğun kapanma zamanlayıcısı (Collapse) test bittikten sonra çalışmasın
+const mounted: { unmount: () => void }[] = [];
+afterEach(() => {
+  act(() => mounted.splice(0).forEach((renderer) => renderer.unmount()));
+});
 type Root = { findAllByType: (type: unknown) => Node[]; findByType: (type: unknown) => Node };
 
 function deferred<T>() {
@@ -72,12 +97,20 @@ describe("createSubmitLock", () => {
 
 describe("QuickAddBar çift gönderim", () => {
   const render = (onSubmit: jest.Mock) => {
-    let root!: { root: Root };
+    let root!: { root: Root; unmount: () => void };
     act(() => {
       root = TestRenderer.create(
-        <QuickAddBar quota={QUOTA} locked={false} onLockedPress={jest.fn()} onLimitPress={jest.fn()} onSubmit={onSubmit} />
+        <QuickAddBar
+          quota={QUOTA}
+          locked={false}
+          onLockedPress={jest.fn()}
+          onLimitPress={jest.fn()}
+          onSubmit={onSubmit}
+          onOpenDetails={jest.fn()}
+        />
       );
     });
+    mounted.push(root);
     return root.root;
   };
   const sendButton = (root: Root) =>
@@ -128,10 +161,11 @@ describe("Hazır fikir çipleri çift gönderim", () => {
   it("hızlı çift dokunma aynı fikri bir kez ekler, işlem sürerken çipler pasif", async () => {
     const gate = deferred<boolean>();
     const onPick = jest.fn(() => gate.promise);
-    let renderer!: { root: Root };
+    let renderer!: { root: Root; unmount: () => void };
     act(() => {
       renderer = TestRenderer.create(<WishlistIdeas onPick={onPick} />);
     });
+    mounted.push(renderer);
     const chips = () => renderer.root.findAllByType(TouchableOpacity);
     expect(chips().length).toBeGreaterThan(1);
 

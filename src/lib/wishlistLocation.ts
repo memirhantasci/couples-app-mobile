@@ -1,5 +1,5 @@
 /**
- * Ortak liste düzenleme penceresindeki konum taslağı (WishlistEditSheet). Ad ile koordinat birbirinden kopmasın:
+ * Ortak liste ekleme ve düzenleme penceresindeki konum taslağı (WishlistItemSheet). Ad ile koordinat birbirinden kopmasın:
  *   • Ad ve nokta YALNIZCA haritadan seçimde birlikte gelir; seçim adı her zaman günceller.
  *   • Ad elle değişirse (tek harf bile) koordinat silinir. "Aynı yer mi" diye tahmin yürütülmez: benzer görünen
  *     adlar ("Kapadokya" → "Kapalıçarşı") başka yerlerdir ve eski nokta yeni adla kaydedilirdi.

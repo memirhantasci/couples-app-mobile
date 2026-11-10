@@ -2,11 +2,10 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Redirect } from "expo-router";
-import { ChevronDown, ChevronUp, Dices } from "lucide-react-native";
+import { ChevronDown, ChevronUp } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import type { ParseKeys } from "i18next";
 
-import { ActionCard } from "@/components/ui/ActionCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Reveal } from "@/components/ui/Reveal";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
@@ -15,10 +14,12 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { LazyDemoActionModal, LazyPageTourModal, LazyPremiumPaywall } from "@/components/ui/lazyMount";
 import { SoloFeatureBanner } from "@/components/common/SoloFeatureBanner";
 import { BothWantSection } from "@/components/wishlist/BothWantSection";
-import { CategoryChips } from "@/components/wishlist/CategoryChips";
+import { CategoryFilter } from "@/components/wishlist/CategoryChips";
+import { PickButton } from "@/components/wishlist/PickButton";
 import { PickerSheet } from "@/components/wishlist/PickerSheet";
 import { QuickAddBar } from "@/components/wishlist/QuickAddBar";
-import { WishlistEditSheet } from "@/components/wishlist/WishlistEditSheet";
+import { WishlistDetailSheet } from "@/components/wishlist/WishlistDetailSheet";
+import { WishlistItemSheet, type WishlistSheetRequest } from "@/components/wishlist/WishlistItemSheet";
 import { WishlistIdeas } from "@/components/wishlist/WishlistIdeas";
 import {
   WishlistItemCard,
@@ -41,6 +42,7 @@ import {
   WISHLIST_DONE_PAGE_SIZE,
   buildWishlistView,
   getWishlistQuota,
+  isBothWant,
   pickWishlistItem,
   wishlistBodyState,
   type WishlistCategory,
@@ -54,7 +56,11 @@ import { WISHLIST_ERROR_KEYS } from "@/lib/wishlistErrors";
 import { sanitize } from "@/utils/sanitize";
 
 const OPEN_PAGE_SIZE = 30;
+/** Bir Modal kapanırken iOS ikincisini hemen açamaz: paywall pencerenin kapanışı bitince açılır (letters.tsx ile aynı) */
+const MODAL_SWAP_DELAY = 450;
 const EMPTY_ITEMS: WishlistItem[] = [];
+/** Ekranın yatay boşluğu (tasarım kuralı 16); filtre sırası bu boşluğu aşıp ekran kenarına kadar kayar */
+const CONTENT_INSET = 16;
 
 /** Yayında değilse (wishlistAvailability.ts) derin bağlantı ya da kalmış bir yol bile ekranı açmaz. */
 export default function WishlistScreen() {
@@ -83,7 +89,12 @@ function WishlistContent() {
   const [doneOpen, setDoneOpen] = useState(false);
   const [openVisible, setOpenVisible] = useState(OPEN_PAGE_SIZE);
   const [paywallOpen, setPaywallOpen] = useState(false);
-  const [editing, setEditing] = useState<WishlistItem | null>(null);
+  // Ekleme ve düzenleme aynı penceredir (WishlistItemSheet)
+  const [sheet, setSheet] = useState<WishlistSheetRequest | null>(null);
+  // Ayrıntılı ekleme çubuktan açıldı: pencere kapanınca çubuğa "eklendi mi" bildirilir (iptalde çubuk korunur)
+  const createDone = useRef<((added: boolean) => void) | null>(null);
+  // Karta dokununca açılan ayrıntı penceresi: kimlik tutulur, madde listeden güncel hâliyle okunur
+  const [detailId, setDetailId] = useState<number | null>(null);
   const [pick, setPick] = useState<WishlistPick | null>(null);
   const [pickOpen, setPickOpen] = useState(false);
   const [rollId, setRollId] = useState(0);
@@ -141,16 +152,29 @@ function WishlistContent() {
     present(t(result === "unknown" ? unknownKey : WISHLIST_ERROR_KEYS[result]));
   };
 
-  const addTitle = async (rawTitle: string, category: WishlistCategory): Promise<boolean> => {
+  /** Ekleme kapıları (demo, tek kalan, çevrimdışı, sınır): çubuk, fikir çipleri ve pencere için aynı. Sınırda sunucuya gidilmez. */
+  const canAdd = (): boolean => {
     if (!canWrite()) return false;
     if (quota.reached) {
       showLimit();
       return false;
     }
+    return true;
+  };
+
+  const addTitle = async (rawTitle: string, category: WishlistCategory): Promise<boolean> => {
+    if (!canAdd()) return false;
     const title = sanitize(rawTitle);
     if (!title) return false;
 
-    const result = await wishlist.addItem(title, category);
+    const result = await wishlist.addItem({
+      title,
+      category,
+      note: null,
+      location_name: null,
+      latitude: null,
+      longitude: null,
+    });
     if (result === "ok") {
       playBubblePop();
       return true;
@@ -200,23 +224,12 @@ function WishlistContent() {
       else hapticSelection();
       void wishlist.toggleDone(item).then((result) => reportWrite(result));
     },
-    onMore: (item: WishlistItem) => {
-      appAlert(
-        item.title,
-        undefined,
-        [
-          {
-            text: t("wishlist.menu.edit"),
-            onPress: () => {
-              if (canWrite()) setEditing(item);
-            },
-          },
-          { text: t("wishlist.menu.delete"), style: "destructive", onPress: () => confirmDelete(item) },
-          { text: t("common.cancel"), style: "cancel" },
-        ],
-        { forceDialog: true, tone: "question" }
-      );
+    onEdit: (item: WishlistItem) => {
+      if (canWrite()) setSheet({ mode: "edit", item });
     },
+    onDelete: (item: WishlistItem) => confirmDelete(item),
+    // Karta dokunma: ayrıntı penceresi (okumak için kapı yok: demo, tek kalan ve çevrimdışında da açılır)
+    onOpen: (item: WishlistItem) => setDetailId(item.id),
   };
   const handlersRef = useRef(handlers);
   useLayoutEffect(() => {
@@ -226,7 +239,9 @@ function WishlistContent() {
     () => ({
       onToggleWant: (item) => handlersRef.current.onToggleWant(item),
       onToggleDone: (item) => handlersRef.current.onToggleDone(item),
-      onMore: (item) => handlersRef.current.onMore(item),
+      onOpen: (item) => handlersRef.current.onOpen(item),
+      onEdit: (item) => handlersRef.current.onEdit(item),
+      onDelete: (item) => handlersRef.current.onDelete(item),
     }),
     []
   );
@@ -238,11 +253,50 @@ function WishlistContent() {
     [userId, myName, partnerName, getAvatarUrl]
   );
 
-  const saveEdit = async (id: number, patch: WishlistItemPatch): Promise<boolean> => {
-    const result = await wishlist.saveItem(id, patch);
-    if (result === "ok") toast.success(t("wishlist.toasts.updated"), { delay: 350 });
-    else reportWrite(result, "wishlist.errors.generic", (message) => appAlert(t("common.error"), message));
-    return result === "ok";
+  const closeSheet = useCallback((added = false) => {
+    createDone.current?.(added);
+    createDone.current = null;
+    setSheet(null);
+  }, []);
+
+  /** Çubuktaki "Ayrıntı ekle": kapılar pencere açılmadan denetlenir (sınır doluysa pencere hiç açılmaz). */
+  const openCreate = (draft: { title: string; category: WishlistCategory | null }) =>
+    new Promise<boolean>((resolve) => {
+      if (!canAdd()) return resolve(false);
+      createDone.current?.(false);
+      createDone.current = resolve;
+      setSheet({ mode: "create", ...draft });
+    });
+
+  const closeSheetThenLimit = () => {
+    closeSheet(false);
+    setTimeout(showLimit, MODAL_SWAP_DELAY);
+  };
+
+  // Pencerenin içindeki uyarılar pencerenin kendi DialogHost'unda görünür
+  const alertInSheet = (message: string) => appAlert(t("common.error"), message);
+
+  const submitSheet = async (fields: WishlistItemPatch): Promise<void> => {
+    if (!sheet) return;
+    if (isOffline) return alertInSheet(t("wishlist.errors.offline"));
+
+    if (sheet.mode === "edit") {
+      const result = await wishlist.saveItem(sheet.item.id, fields);
+      if (result !== "ok") return reportWrite(result, "wishlist.errors.generic", alertInSheet);
+      toast.success(t("wishlist.toasts.updated"), { delay: 350 });
+      return closeSheet();
+    }
+
+    // Pencere açıkken liste dolmuş olabilir (partner ekledi): sunucuya gitmeden pencere kapanır, paywall/uyarı açılır
+    if (quota.reached) return closeSheetThenLimit();
+    if (!fields.title) return;
+    const result = await wishlist.addItem(fields);
+    if (result === "ok") {
+      playBubblePop();
+      return closeSheet(true);
+    }
+    if (result === "limit") return closeSheetThenLimit();
+    reportWrite(result, "wishlist.errors.add", alertInSheet);
   };
 
   const rollPick = (excludeId: number | null) => {
@@ -253,7 +307,28 @@ function WishlistContent() {
     setPickOpen(true);
   };
 
-  const closeEditor = useCallback(() => setEditing(null), []);
+  const cancelSheet = useCallback(() => closeSheet(false), [closeSheet]);
+
+  // Madde silinir ya da başka filtreye düşerse (yapılanlar süzülür) pencere kendiliğinden kapanır
+  const detailItem = useMemo(
+    () =>
+      detailId === null
+        ? null
+        : (openItems.find((item) => item.id === detailId) ??
+          wishlist.doneItems.find((item) => item.id === detailId) ??
+          null),
+    [detailId, openItems, wishlist.doneItems]
+  );
+  const closeDetail = useCallback(() => setDetailId(null), []);
+  /** Ayrıntıdan düzenle / sil: önce pencere kapanır (iOS iki Modal'ı aynı anda sunamaz), kapılar sonra denetlenir */
+  const editFromDetail = useCallback((item: WishlistItem) => {
+    setDetailId(null);
+    setTimeout(() => handlersRef.current.onEdit(item), MODAL_SWAP_DELAY);
+  }, []);
+  const deleteFromDetail = useCallback((item: WishlistItem) => {
+    setDetailId(null);
+    setTimeout(() => handlersRef.current.onDelete(item), MODAL_SWAP_DELAY);
+  }, []);
 
   // wishlistBodyState: açık madde varken yapılanlar sorgusu açık listeyi gizlemez; açık madde yokken yapılanlar
   // bilinmeden "boş" denmez (iskelet / çevrimdışı / hata)
@@ -290,9 +365,10 @@ function WishlistContent() {
     if (showLoading) {
       return (
         <View style={styles.list}>
-          <Skeleton height={104} borderRadius={20} />
-          <Skeleton height={104} borderRadius={20} />
-          <Skeleton height={104} borderRadius={20} />
+          <Skeleton height={60} borderRadius={20} />
+          <Skeleton height={60} borderRadius={20} />
+          <Skeleton height={60} borderRadius={20} />
+          <Skeleton height={60} borderRadius={20} />
         </View>
       );
     }
@@ -301,45 +377,45 @@ function WishlistContent() {
     const done = wishlist.done;
     // Yapılanlar bölümü kendi hatasını gösterir; açık liste etkilenmez
     const showDoneError = done.isError && view.doneCount === 0;
+    // 🎲 açık fikirler başlığının sağında; o bölüm yoksa (bütün açıklar "ikimiz de") "İkimiz de" başlığında
+    const pickInBoth = view.canPick && !view.showOpenSection;
+    const pickButton = (onAccent: boolean) => (
+      <PickButton source={view.pickSource} onPress={() => rollPick(null)} onAccent={onAccent} />
+    );
 
     return (
       <>
+        {/* Filtre her şeye uygulanır ("İkimiz de", 🎲, açıklar, yapılanlar): etkilediği her şeyin üstünde durur */}
+        {view.showFilterChips ? (
+          <Reveal scope="wishlist" index={1} style={styles.filter}>
+            <CategoryFilter value={filter} onChange={setFilter} inset={CONTENT_INSET} />
+          </Reveal>
+        ) : null}
+
         {view.bothWant.length > 0 ? (
-          <Reveal scope="wishlist" index={1}>
+          <Reveal scope="wishlist" index={2}>
             <BothWantSection
               items={view.bothWant}
               people={people}
               partnerAvatarUrl={partnerAvatarUrl}
               actions={actions}
-            />
-          </Reveal>
-        ) : null}
-
-        {view.showFilterChips ? (
-          <Reveal scope="wishlist" index={2}>
-            <CategoryChips value={filter} onChange={setFilter} includeAll />
-          </Reveal>
-        ) : null}
-
-        {view.canPick ? (
-          <Reveal scope="wishlist" index={3}>
-            <ActionCard
-              icon={Dices}
-              title={t("wishlist.pick.cta")}
-              subtitle={view.pickSource === "both" ? t("wishlist.pick.subBoth") : t("wishlist.pick.subAll")}
-              onPress={() => rollPick(null)}
-              theme={theme}
+              accessory={pickInBoth ? pickButton(theme.isLight) : null}
             />
           </Reveal>
         ) : null}
 
         {view.showOpenSection ? (
           <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>{t("wishlist.sections.open")}</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionLabel, styles.sectionLabelFlex, { color: theme.textMuted }]}>
+                {t("wishlist.sections.open", { total: view.open.length })}
+              </Text>
+              {view.canPick && !pickInBoth ? pickButton(false) : null}
+            </View>
             {view.open.length > 0 ? (
               <View style={styles.list}>
                 {view.open.slice(0, openVisible).map((item, index) => (
-                  <Reveal scope="wishlist" index={index + 4} key={item.id}>
+                  <Reveal scope="wishlist" index={index + 3} key={item.id}>
                     <WishlistItemCard item={item} people={people} actions={actions} />
                   </Reveal>
                 ))}
@@ -481,6 +557,7 @@ function WishlistContent() {
               onLockedPress={() => soloGate.blockPartnerFeature()}
               onLimitPress={handleLimitPress}
               onSubmit={addTitle}
+              onOpenDetails={openCreate}
             />
           </Reveal>
           {renderBody()}
@@ -494,7 +571,16 @@ function WishlistContent() {
         onAgain={() => rollPick(pick?.item.id ?? null)}
         onClose={() => setPickOpen(false)}
       />
-      <WishlistEditSheet item={editing} onClose={closeEditor} onSave={saveEdit} />
+      <WishlistDetailSheet
+        item={detailItem}
+        people={people}
+        partnerAvatarUrl={partnerAvatarUrl}
+        bothWant={detailItem ? isBothWant(detailItem, userId, isPaired) : false}
+        onClose={closeDetail}
+        onEdit={editFromDetail}
+        onDelete={deleteFromDetail}
+      />
+      <WishlistItemSheet request={sheet} onClose={cancelSheet} onSubmit={submitSheet} />
       <LazyPremiumPaywall visible={paywallOpen} onClose={() => setPaywallOpen(false)} featureSource="wishlist" />
       <LazyPageTourModal visible={isTourVisible} guide={guide} onClose={closeTour} />
       <LazyDemoActionModal
@@ -521,12 +607,24 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   content: {
-    paddingHorizontal: 16,
+    paddingHorizontal: CONTENT_INSET,
     paddingTop: 8,
     gap: 18,
   },
   section: {
     gap: 10,
+  },
+  // Filtre çiplerinin dokunma alanı (44) görünen hapından yüksek: çubuğa ve alttaki bölüme görünür boşluk 18 kalsın
+  filter: {
+    marginVertical: -8,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    columnGap: 8,
+    minHeight: 32,
   },
   sectionLabel: {
     fontSize: 11,
@@ -534,8 +632,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     marginLeft: 4,
   },
+  sectionLabelFlex: {
+    flexShrink: 1,
+  },
   list: {
-    gap: 10,
+    gap: 8,
   },
   filteredEmpty: {
     fontSize: 13,

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Heart } from "lucide-react-native";
@@ -14,13 +15,15 @@ interface BothWantSectionProps {
   people: WishlistCardPeople;
   partnerAvatarUrl: string | null;
   actions: WishlistCardActions;
+  /** Başlığın sağında (🎲 düğmesi, açık fikirler bölümü görünmediğinde burada durur) */
+  accessory?: ReactNode;
 }
 
 /**
  * Ekranın imza bölümü. Açık temada ActionCard gibi dolu vurgu + üst parlama; koyu temada dolgu yerine
  * yumuşak vurgu zemini (parlak dolu zemin koyu temada neon gibi parlıyordu).
  */
-export function BothWantSection({ items, people, partnerAvatarUrl, actions }: BothWantSectionProps) {
+export function BothWantSection({ items, people, partnerAvatarUrl, actions, accessory }: BothWantSectionProps) {
   const { t } = useTranslation();
   const { theme } = useTheme();
   if (items.length === 0) return null;
@@ -71,13 +74,14 @@ export function BothWantSection({ items, people, partnerAvatarUrl, actions }: Bo
         </View>
 
         <View style={styles.headerText}>
-          <Text numberOfLines={1} style={[styles.title, { color: titleColor }]}>
+          <Text numberOfLines={2} style={[styles.title, { color: titleColor }]}>
             {t("wishlist.both.title")}
           </Text>
           <Text numberOfLines={1} style={[styles.subtitle, { color: subtitleColor }]}>
             {t("wishlist.both.subtitle", { count: items.length })}
           </Text>
         </View>
+        {accessory}
       </View>
 
       <View style={styles.list}>
@@ -109,6 +113,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    minHeight: 44,
   },
   avatars: {
     flexDirection: "row",

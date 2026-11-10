@@ -4140,7 +4140,9 @@
       "limitA11y": "Liste dolu, Premium'u gör",
       "limitHint": "Ücretsiz listede {{limit}} açık fikre kadar yer var.",
       "limitCta": "Premium ile sınırsız",
-      "limitPerPerson": "Sayaç senin gördüğün açık fikirleri sayar. Önceki bir eşleşmeden kalan fikirler yalnızca sana göründüğü için partnerinin sayacı daha düşük olabilir."
+      "limitPerPerson": "Sayaç senin gördüğün açık fikirleri sayar. Önceki bir eşleşmeden kalan fikirler yalnızca sana göründüğü için partnerinin sayacı daha düşük olabilir.",
+      "details": "Ayrıntı ekle",
+      "detailsHint": "not, konum"
     },
     "both": {
       "title": "İkimiz de istiyoruz",
@@ -4149,6 +4151,7 @@
     },
     "pick": {
       "cta": "Bana bir tane seç",
+      "button": "Bir tane seç",
       "subBoth": "İkinizin de istediklerinden",
       "subAll": "Açık fikirlerinizden",
       "sheetTitle": "BUGÜNÜN FİKRİ",
@@ -4158,7 +4161,7 @@
       "sourceAll": "Listenizden"
     },
     "sections": {
-      "open": "AÇIK FİKİRLER",
+      "open": "AÇIK FİKİRLER ({{total}})",
       "done": "YAPTIKLARIMIZ ({{total}})"
     },
     "card": {
@@ -4167,10 +4170,18 @@
       "partnerWantsA11y": "Sevgilin de istiyor",
       "markDoneA11y": "Yaptık olarak işaretle",
       "undoDoneA11y": "Yapılmadı olarak geri al",
-      "moreA11y": "Daha fazla seçenek",
+      "detailsA11y": "Ayrıntıları gör",
       "addedByYouA11y": "Sen ekledin",
       "addedByPartnerA11y": "Sevgilin ekledi",
       "doneOn": "Yaptık ✓ · {{date}}"
+    },
+    "detail": {
+      "addedByYou": "Sen ekledin · {{date}}",
+      "addedByPartner": "Sevgilin ekledi · {{date}}",
+      "wantsBoth": "İkiniz de istiyorsunuz",
+      "wantsMe": "Sen istiyorsun",
+      "wantsPartner": "Sevgilin istiyor",
+      "wantsNone": "Henüz kimse 💗 vermedi"
     },
     "menu": {
       "edit": "Düzenle",
@@ -4190,6 +4201,10 @@
       "locationPlaceholder": "Neresi?",
       "mapA11y": "Haritadan seç",
       "mapTitle": "Konum seç"
+    },
+    "create": {
+      "title": "Yeni fikir",
+      "cta": "Listeye ekle"
     },
     "empty": {
       "title": "Listeniz henüz boş",

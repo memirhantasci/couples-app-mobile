@@ -4140,7 +4140,9 @@
       "limitA11y": "List is full, see Premium",
       "limitHint": "The free list holds up to {{limit}} open ideas.",
       "limitCta": "Unlimited with Premium",
-      "limitPerPerson": "The counter includes every open idea you can see. Ideas from a previous pairing are visible only to you, so your partner's counter may be lower."
+      "limitPerPerson": "The counter includes every open idea you can see. Ideas from a previous pairing are visible only to you, so your partner's counter may be lower.",
+      "details": "Add details",
+      "detailsHint": "note, location"
     },
     "both": {
       "title": "We both want this",
@@ -4149,6 +4151,7 @@
     },
     "pick": {
       "cta": "Pick one for us",
+      "button": "Pick one",
       "subBoth": "From the ones you both want",
       "subAll": "From your open ideas",
       "sheetTitle": "TODAY'S IDEA",
@@ -4158,7 +4161,7 @@
       "sourceAll": "From your list"
     },
     "sections": {
-      "open": "OPEN IDEAS",
+      "open": "OPEN IDEAS ({{total}})",
       "done": "DONE TOGETHER ({{total}})"
     },
     "card": {
@@ -4167,10 +4170,18 @@
       "partnerWantsA11y": "Your partner wants this too",
       "markDoneA11y": "Mark as done",
       "undoDoneA11y": "Mark as not done",
-      "moreA11y": "More options",
+      "detailsA11y": "Show details",
       "addedByYouA11y": "Added by you",
       "addedByPartnerA11y": "Added by your partner",
       "doneOn": "Done ✓ · {{date}}"
+    },
+    "detail": {
+      "addedByYou": "Added by you · {{date}}",
+      "addedByPartner": "Added by your partner · {{date}}",
+      "wantsBoth": "You both want this",
+      "wantsMe": "You want this",
+      "wantsPartner": "Your partner wants this",
+      "wantsNone": "No hearts yet"
     },
     "menu": {
       "edit": "Edit",
@@ -4190,6 +4201,10 @@
       "locationPlaceholder": "Where?",
       "mapA11y": "Choose on map",
       "mapTitle": "Choose a location"
+    },
+    "create": {
+      "title": "New idea",
+      "cta": "Add to list"
     },
     "empty": {
       "title": "Your list is empty",

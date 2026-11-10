@@ -138,20 +138,22 @@ export async function fetchWishlistDonePage(params: {
   return { items, total: count ?? offset + items.length, offset };
 }
 
-export async function addWishlistItem(input: {
-  coupleId: number;
-  userId: string;
-  title: string;
-  category: WishlistCategory;
-}): Promise<void> {
+/** Yeni maddenin kullanıcının girdiği alanları: düzenlenebilir alanlarla aynı (başlık, not, kategori, konum). */
+export type WishlistNewItem = WishlistItemPatch;
+
+export async function addWishlistItem(input: { coupleId: number; userId: string; item: WishlistNewItem }): Promise<void> {
   if (!SERVER_READY) return wishlistMock.add(input);
 
   // "İstiyorum" satırı ekleyen için sunucudaki tetikleyiciyle yazılır
   const row: Partial<Record<InsertColumn, unknown>> = {
     couple_id: input.coupleId,
     created_by: input.userId,
-    title: input.title,
-    category: input.category,
+    title: input.item.title,
+    note: input.item.note,
+    category: input.item.category,
+    location_name: input.item.location_name,
+    latitude: input.item.latitude,
+    longitude: input.item.longitude,
   };
   const { error } = await supabase.from("couple_wishlist_items").insert(onlyColumns(row, WISHLIST_INSERT_COLUMNS));
   if (error) throw error;

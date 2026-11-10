@@ -71,7 +71,11 @@ export const wishlistMock = {
     return { ...page, items: page.items.map(copy) };
   },
 
-  async add(input: { coupleId: number; userId: string; title: string; category: WishlistCategory }): Promise<void> {
+  async add(input: {
+    coupleId: number;
+    userId: string;
+    item: Pick<WishlistItem, "title" | "note" | "category" | "location_name" | "latitude" | "longitude">;
+  }): Promise<void> {
     await wait();
     assertCapacity(input.coupleId);
     const now = new Date().toISOString();
@@ -79,12 +83,12 @@ export const wishlistMock = {
       id: nextId++,
       couple_id: input.coupleId,
       created_by: input.userId,
-      title: input.title,
-      note: null,
-      category: input.category,
-      location_name: null,
-      latitude: null,
-      longitude: null,
+      title: input.item.title,
+      note: input.item.note,
+      category: input.item.category,
+      location_name: input.item.location_name,
+      latitude: input.item.latitude,
+      longitude: input.item.longitude,
       status: "open",
       done_at: null,
       done_by: null,

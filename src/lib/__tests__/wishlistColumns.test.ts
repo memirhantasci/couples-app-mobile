@@ -116,8 +116,23 @@ describe("istek gövdesi yalnızca izinli sütunları taşır (sunucu açıkken)
 
   it("ekleme yalnızca INSERT sütunlarını gönderir", async () => {
     const { data, calls } = load();
-    await data.addWishlistItem({ coupleId: 3, userId: "u", title: "Kapadokya", category: "travel" });
+    await data.addWishlistItem({
+      coupleId: 3,
+      userId: "u",
+      item: { title: "Kapadokya", note: "n", category: "travel", location_name: "Göreme", latitude: 38.6, longitude: 34.8 },
+    });
     expect(Object.keys(calls.insert!).every((key) => (data.WISHLIST_INSERT_COLUMNS as readonly string[]).includes(key))).toBe(true);
+    // Ayrıntılı ekleme: not ve konum da aynı INSERT'te gider (düzenlemeyle ayrıca yazılmaz)
+    expect(calls.insert).toEqual({
+      couple_id: 3,
+      created_by: "u",
+      title: "Kapadokya",
+      note: "n",
+      category: "travel",
+      location_name: "Göreme",
+      latitude: 38.6,
+      longitude: 34.8,
+    });
   });
 
   it("düzenlemeye tip dışından status/done_by sızsa bile gövdeye girmez", async () => {
@@ -164,15 +179,16 @@ describe("wishlistMock sunucu kurallarını taklit eder", () => {
     return require("../wishlistMock").wishlistMock as typeof import("../wishlistMock").wishlistMock;
   };
   const errorOf = async (promise: Promise<unknown>) => promise.then(() => null, (error) => error);
+  const NEW_ITEM = { title: "16", note: null, category: "other", location_name: null, latitude: null, longitude: null } as const;
 
   it("ücretsizde 15 açık maddede ekleme P0022 (WISHLIST_LIMIT) verir; Premium'da geçer", async () => {
     const mock = loadMock();
     mock.seed(Array.from({ length: 15 }, (_, i) => base(i + 1)));
-    const error = await errorOf(mock.add({ coupleId: 1, userId: ME, title: "16", category: "other" }));
+    const error = await errorOf(mock.add({ coupleId: 1, userId: ME, item: NEW_ITEM }));
     expect(error).toMatchObject({ code: "P0022", message: "WISHLIST_LIMIT" });
 
     mock.seed(Array.from({ length: 15 }, (_, i) => base(i + 1)), { premium: true });
-    expect(await errorOf(mock.add({ coupleId: 1, userId: ME, title: "16", category: "other" }))).toBeNull();
+    expect(await errorOf(mock.add({ coupleId: 1, userId: ME, item: NEW_ITEM }))).toBeNull();
   });
 
   it("sınır doluyken 'yaptık'ı geri almak P0022 verir, madde yapılanlarda kalır", async () => {

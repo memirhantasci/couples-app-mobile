@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "@/context/ThemeContext";
 import { DialogHost } from "@/components/ui/DialogHost";
 import { MapPickerModal } from "@/components/MapPickerModal";
+import { useSubmitLock } from "@/hooks/useSubmitLock";
 import { TEXT_WHITE } from "@/lib/theme";
 import { sanitize } from "@/utils/sanitize";
 import { WISHLIST_NOTE_MAX, WISHLIST_TITLE_MAX, type WishlistCategory, type WishlistItem } from "@/lib/wishlist";
@@ -21,61 +22,121 @@ import {
 import { CategoryChips } from "./CategoryChips";
 import { scrimColor, weakFill } from "./wishlistTheme";
 
-interface WishlistEditSheetProps {
-  item: WishlistItem | null;
-  onClose: () => void;
-  onSave: (id: number, patch: WishlistItemPatch) => Promise<boolean>;
+/**
+ * Pencerenin açılış isteği. Ekleme ve düzenleme AYNI penceredir; yalnızca başlık ve kaydet düğmesinin metni değişir.
+ *   • create: hızlı ekleme çubuğundaki başlık ve kategori taşınır (kategori seçilmediyse "Diğer" seçili gelir:
+ *     hızlı eklemede de öyle kaydedilir). Not ve konum boş başlar.
+ *   • edit: maddenin kayıtlı alanları.
+ */
+export type WishlistSheetRequest =
+  | { mode: "create"; title: string; category: WishlistCategory | null }
+  | { mode: "edit"; item: WishlistItem };
+
+interface WishlistSheetDraft {
+  title: string;
+  note: string;
+  category: WishlistCategory;
+  location: WishlistLocationDraft;
 }
 
-/** Yalnızca ekleyene açılır: başlık, not, kategori ve konum burada düzenlenir. */
-export function WishlistEditSheet({ item, onClose, onSave }: WishlistEditSheetProps) {
+function initialDraft(request: WishlistSheetRequest): WishlistSheetDraft {
+  if (request.mode === "create") {
+    return {
+      title: request.title,
+      note: "",
+      category: request.category ?? "other",
+      location: { name: "", latitude: null, longitude: null },
+    };
+  }
+  const { item } = request;
+  return {
+    title: item.title,
+    note: item.note ?? "",
+    category: item.category,
+    location: { name: item.location_name ?? "", latitude: item.latitude, longitude: item.longitude },
+  };
+}
+
+/**
+ * Sunucuya gidecek alanlar. Metinler `sanitize` ile temizlenir (sanitizeStrict değil: başlıkta noktalama kalır).
+ * Konum kuralları wishlistLocation.ts'te: ad boşsa koordinat da kaydedilmez.
+ */
+function sheetFields(draft: WishlistSheetDraft): WishlistItemPatch {
+  return {
+    title: sanitize(draft.title),
+    note: sanitize(draft.note) || null,
+    category: draft.category,
+    ...locationPatch(draft.location, sanitize),
+  };
+}
+
+interface WishlistItemSheetProps {
+  request: WishlistSheetRequest | null;
+  onClose: () => void;
+  /**
+   * Kayıt. Kapılar (sınır, eşleşme, çevrimdışı), hata gösterimi ve başarıda pencereyi kapatmak ekranın işidir;
+   * pencere yalnızca alanları toplar ve aynı anda tek kayıt gönderir.
+   */
+  onSubmit: (fields: WishlistItemPatch) => Promise<unknown>;
+}
+
+/** Ortak listede fikir ekleme (create) ve düzenleme (edit, yalnızca ekleyene) penceresi. */
+export function WishlistItemSheet({ request, onClose, onSubmit }: WishlistItemSheetProps) {
+  // Kilit pencere ömrü boyunca tek: klavyedeki "bitti" ile düğme aynı karede gelse de tek kayıt gider
+  const submit = useSubmitLock();
+  // Kayıt sürerken kapatılmaz: sonuç (hata uyarısı ya da kapanış) bu pencerede gösterilir
+  const close = () => {
+    if (!submit.pending) onClose();
+  };
+  // Kapanırken (request null) son form çizilmeye devam eder: Modal aşağı kayarak kapanır, içi boşalıp bir anda
+  // kaybolmaz. Her yeni açılış (yeni istek nesnesi) yeni bir kimlik alır ve form baştan kurulur.
+  const [shown, setShown] = useState<{ request: WishlistSheetRequest; id: number } | null>(() =>
+    request ? { request, id: 1 } : null
+  );
+  if (request && request !== shown?.request) setShown({ request, id: (shown?.id ?? 0) + 1 });
+
   return (
-    <Modal visible={!!item} transparent animationType="slide" onRequestClose={onClose}>
-      {/* Madde değişince form yeni değerlerle baştan kurulur */}
-      {item ? <EditForm key={item.id} item={item} onClose={onClose} onSave={onSave} /> : null}
-      <DialogHost embedded visible={!!item} />
+    <Modal visible={!!request} transparent animationType="slide" onRequestClose={close}>
+      {shown ? (
+        <SheetForm
+          key={shown.id}
+          request={shown.request}
+          onClose={close}
+          onSubmit={(fields) => void submit.run(() => onSubmit(fields))}
+          saving={submit.pending}
+        />
+      ) : null}
+      <DialogHost embedded visible={!!request} />
     </Modal>
   );
 }
 
-function EditForm({
-  item,
+function SheetForm({
+  request,
   onClose,
-  onSave,
+  onSubmit,
+  saving,
 }: {
-  item: WishlistItem;
+  request: WishlistSheetRequest;
   onClose: () => void;
-  onSave: (id: number, patch: WishlistItemPatch) => Promise<boolean>;
+  onSubmit: (fields: WishlistItemPatch) => void;
+  saving: boolean;
 }) {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const [title, setTitle] = useState(item.title);
-  const [note, setNote] = useState(item.note ?? "");
-  const [category, setCategory] = useState<WishlistCategory>(item.category);
-  const [location, setLocation] = useState<WishlistLocationDraft>({
-    name: item.location_name ?? "",
-    latitude: item.latitude,
-    longitude: item.longitude,
-  });
+  const [draft, setDraft] = useState(() => initialDraft(request));
   const [showMap, setShowMap] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const isCreate = request.mode === "create";
 
-  const canSave = title.trim().length > 0 && !saving;
+  const update = (patch: Partial<WishlistSheetDraft>) => setDraft((current) => ({ ...current, ...patch }));
+  const canSave = draft.title.trim().length > 0 && !saving;
   const inputColors = { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.text };
+  const submitLabel = isCreate ? t("wishlist.create.cta") : t("common.save");
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!canSave) return;
-    setSaving(true);
-    const ok = await onSave(item.id, {
-      title: sanitize(title),
-      note: sanitize(note) || null,
-      category,
-      // Konum adı silindiyse koordinat da kalkar (wishlistLocation.ts)
-      ...locationPatch(location, sanitize),
-    });
-    setSaving(false);
-    if (ok) onClose();
+    onSubmit(sheetFields(draft));
   };
 
   return (
@@ -87,12 +148,14 @@ function EditForm({
         ]}
       >
         <View style={styles.headerRow}>
-          <Text numberOfLines={1} style={[styles.heading, { color: theme.text }]}>
-            {t("wishlist.edit.title")}
+          <Text numberOfLines={1} accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>
+            {isCreate ? t("wishlist.create.title") : t("wishlist.edit.title")}
           </Text>
           <TouchableOpacity
             accessibilityRole="button"
             accessibilityLabel={t("a11y.close")}
+            accessibilityState={{ disabled: saving }}
+            disabled={saving}
             onPress={onClose}
             style={styles.closeTouch}
             activeOpacity={0.7}
@@ -113,8 +176,8 @@ function EditForm({
           <View style={styles.field}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>{t("wishlist.edit.titleLabel")}</Text>
             <TextInput
-              value={title}
-              onChangeText={setTitle}
+              value={draft.title}
+              onChangeText={(title) => update({ title })}
               maxLength={WISHLIST_TITLE_MAX}
               placeholder={t("wishlist.quick.placeholder")}
               placeholderTextColor={theme.textMuted}
@@ -126,8 +189,8 @@ function EditForm({
           <View style={styles.field}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>{t("wishlist.edit.noteLabel")}</Text>
             <TextInput
-              value={note}
-              onChangeText={setNote}
+              value={draft.note}
+              onChangeText={(note) => update({ note })}
               maxLength={WISHLIST_NOTE_MAX}
               multiline
               placeholder={t("wishlist.edit.notePlaceholder")}
@@ -139,16 +202,18 @@ function EditForm({
 
           <View style={styles.field}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>{t("wishlist.edit.categoryLabel")}</Text>
-            <CategoryChips value={category} onChange={(next) => next && setCategory(next)} />
+            <CategoryChips value={draft.category} onChange={(next) => next && update({ category: next })} />
           </View>
 
           <View style={styles.field}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>{t("wishlist.edit.locationLabel")}</Text>
             <View style={styles.locationRow}>
               <TextInput
-                value={location.name}
+                value={draft.location.name}
                 // Elle değişen ad eski noktayı göstermesin: koordinat temizlenir
-                onChangeText={(name) => setLocation((draft) => locationAfterNameEdit(draft, name))}
+                onChangeText={(name) =>
+                  setDraft((current) => ({ ...current, location: locationAfterNameEdit(current.location, name) }))
+                }
                 maxLength={WISHLIST_LOCATION_NAME_MAX}
                 placeholder={t("wishlist.edit.locationPlaceholder")}
                 placeholderTextColor={theme.textMuted}
@@ -169,8 +234,8 @@ function EditForm({
 
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel={t("common.save")}
-            accessibilityState={{ disabled: !canSave }}
+            accessibilityLabel={submitLabel}
+            accessibilityState={{ disabled: !canSave, busy: saving }}
             onPress={handleSave}
             disabled={!canSave}
             activeOpacity={0.88}
@@ -181,7 +246,7 @@ function EditForm({
             ) : (
               <>
                 <Check size={18} color={TEXT_WHITE} />
-                <Text style={[styles.saveText, { color: TEXT_WHITE }]}>{t("common.save")}</Text>
+                <Text style={[styles.saveText, { color: TEXT_WHITE }]}>{submitLabel}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -194,12 +259,12 @@ function EditForm({
         onClose={() => setShowMap(false)}
         title={t("wishlist.edit.mapTitle")}
         initialLocation={
-          location.latitude !== null && location.longitude !== null
-            ? { latitude: location.latitude, longitude: location.longitude, locationName: location.name }
+          draft.location.latitude !== null && draft.location.longitude !== null
+            ? { latitude: draft.location.latitude, longitude: draft.location.longitude, locationName: draft.location.name }
             : undefined
         }
         // Haritadan seçilen nokta adı her zaman günceller
-        onSelectLocation={(picked) => setLocation(locationFromMap(picked))}
+        onSelectLocation={(picked) => update({ location: locationFromMap(picked) })}
       />
     </View>
   );

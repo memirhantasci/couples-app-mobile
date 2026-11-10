@@ -124,6 +124,15 @@ function screenOf(hook: { current: Hook }, filter: WishlistCategory | null) {
 
 const openOf = (client: QueryClient) => client.getQueryData<WishlistItem[]>(data.wishlistOpenKey(COUPLE, false))!;
 const byId = (items: WishlistItem[], id: number) => items.find((row) => row.id === id);
+/** Hızlı eklemenin gönderdiği alanlar: yalnızca başlık ve kategori */
+const quick = (title: string, category: WishlistCategory) => ({
+  title,
+  category,
+  note: null,
+  location_name: null,
+  latitude: null,
+  longitude: null,
+});
 
 beforeEach(() => jest.clearAllMocks());
 
@@ -213,8 +222,8 @@ describe("useWishlist iyimser güncelleme", () => {
     let first!: string;
     let second!: string;
     await act(async () => {
-      first = await hook.current.addItem("x", "other");
-      second = await hook.current.addItem("y", "other");
+      first = await hook.current.addItem(quick("x", "other"));
+      second = await hook.current.addItem(quick("y", "other"));
     });
     expect(first).toBe("limit");
     expect(second).toBe("invalidTitle");
@@ -317,13 +326,14 @@ describe("yenileme beklemesi ve iptal", () => {
     let addPromise!: Promise<string>;
     await act(async () => {
       void hook.current.toggleWant(item(1));
-      addPromise = hook.current.addItem("Kapadokya", "travel").then((result) => {
+      addPromise = hook.current.addItem(quick("Kapadokya", "travel")).then((result) => {
         added = true;
         return result;
       });
     });
     // Ekleme yazıldı ama 💗 hâlâ yolda: yenileme yapılmadı, ekleme de bitmiş sayılmadı
     expect(mocked.addWishlistItem).toHaveBeenCalledTimes(1);
+    expect(mocked.addWishlistItem).toHaveBeenCalledWith({ coupleId: COUPLE, userId: ME, item: quick("Kapadokya", "travel") });
     expect(invalidate).not.toHaveBeenCalled();
     expect(added).toBe(false);
 

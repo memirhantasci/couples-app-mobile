@@ -19,6 +19,7 @@ import {
   wishlistOpenKey,
   wishlistRootKey,
   type WishlistItemPatch,
+  type WishlistNewItem,
 } from "@/lib/wishlistData";
 import { classifyWishlistError, type WishlistErrorKind } from "@/lib/wishlistErrors";
 import {
@@ -226,12 +227,13 @@ export function useWishlist(params: {
     [optimistic, userId]
   );
 
+  /** Hızlı ekleme yalnızca başlık ve kategori, ayrıntılı ekleme not ve konumu da verir (boş alanlar null). */
   const addItem = useCallback(
-    (title: string, category: WishlistCategory): Promise<WishlistWriteResult> => {
+    (item: WishlistNewItem): Promise<WishlistWriteResult> => {
       if (!coupleId || !userId) return Promise.resolve("denied");
       return tracked(async () => {
         try {
-          await addWishlistItem({ coupleId, userId, title, category });
+          await addWishlistItem({ coupleId, userId, item });
           return "ok";
         } catch (error) {
           return classifyWishlistError(error);
