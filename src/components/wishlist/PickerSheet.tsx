@@ -32,18 +32,20 @@ export function PickerSheet({ visible, pick, rollId, onAgain, onClose }: PickerS
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const rotation = useSharedValue(0);
-  const [rolling, setRolling] = useState(false);
+  // Dönme "bitti" bayrağından türetilir: efektin gövdesinde durum yazılmaz. Bayrak yalnızca zamanlayıcıda
+  // kurulur; her yeni dönüş (pencere açılışı, "Başka bir tane") ya da kapanışta temizlik işlevi sıfırlar.
+  const [rollDone, setRollDone] = useState(false);
+  const rolling = visible && !reduceMotion && !rollDone;
 
   useEffect(() => {
-    if (!visible || reduceMotion) {
-      setRolling(false);
-      return;
-    }
-    setRolling(true);
+    if (!visible || reduceMotion) return;
     rotation.set(0);
     rotation.set(withTiming(540, { duration: ROLL_MS, easing: Easing.out(Easing.cubic) }));
-    const timer = setTimeout(() => setRolling(false), ROLL_MS);
-    return () => clearTimeout(timer);
+    const timer = setTimeout(() => setRollDone(true), ROLL_MS);
+    return () => {
+      clearTimeout(timer);
+      setRollDone(false);
+    };
   }, [visible, rollId, reduceMotion, rotation]);
 
   const diceStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotation.get()}deg` }] }));
