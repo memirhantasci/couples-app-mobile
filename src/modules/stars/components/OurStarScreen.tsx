@@ -1448,7 +1448,7 @@ export const OurStarScreen: React.FC = () => {
             // Yıldızın içinde başlığı örtmemesi için cam panelin hemen üstünde belirir.
             isMicroScene
               ? { bottom: SCREEN_HEIGHT - microViewportBottom + 12 }
-              : { top: insets.top + (viewMode === 'macro' && starDetails !== null ? 98 : 64) },
+              : { top: insets.top + 64 },
             { zIndex: 999 },
           ]}
           pointerEvents="none"
@@ -1457,16 +1457,16 @@ export const OurStarScreen: React.FC = () => {
             style={[
               styles.toastInner,
               {
-                backgroundColor: hudLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 12, 30, 0.92)',
-                borderColor: hudLight ? 'rgba(245, 158, 11, 0.5)' : 'rgba(245, 158, 11, 0.4)',
+                backgroundColor: hudLight ? 'rgba(255, 255, 255, 0.96)' : 'rgba(15, 12, 30, 0.92)',
+                borderColor: hudLight ? 'rgba(15, 23, 42, 0.12)' : 'rgba(245, 158, 11, 0.4)',
               },
             ]}
           >
-            <Sparkles size={14} color="#F59E0B" />
+            <Sparkles size={14} color={hudLight ? '#475569' : '#F59E0B'} />
             <Text
               style={[
                 styles.toastText,
-                { color: hudLight ? '#92400E' : '#FCD34D' },
+                { color: hudLight ? '#1E293B' : '#FCD34D' },
               ]}
               numberOfLines={2}
             >
@@ -1735,16 +1735,6 @@ export const OurStarScreen: React.FC = () => {
         />
       )}
 
-      {/* ─── MAKRO MOD: SEKTÖR HUD (Yalnızca tescilli yıldızı olan kullanıcı makro moddayken standalone gösterilir) ─── */}
-      {viewMode === 'macro' && starDetails !== null && (
-        <SectorHUD
-          centerRa={cameraRa}
-          centerDec={cameraDec}
-          topInset={insets.top + 50}
-          onPress={() => setIsAtlasModalOpen(true)}
-        />
-      )}
-
       {/* ─── MAKRO MOD: SEÇİLEN YILDIZ BİLGİ VE SAHİPLENME KARTI ──────── */}
       {viewMode === 'macro' && selectedMacroStar && (
         <View
@@ -1752,14 +1742,19 @@ export const OurStarScreen: React.FC = () => {
             styles.macroStarCard,
             {
               bottom: insets.bottom + 16,
-              backgroundColor: isLight ? 'rgba(255, 255, 255, 0.96)' : 'rgba(10, 8, 24, 0.94)',
+              backgroundColor: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(10, 8, 24, 0.94)',
               borderColor: selectedMacroStar.is_mine
-                ? 'rgba(245, 158, 11, 0.6)'
+                ? isLight
+                  ? 'rgba(15, 23, 42, 0.14)'
+                  : 'rgba(245, 158, 11, 0.6)'
                 : isLight
                 ? 'rgba(0, 0, 0, 0.1)'
                 : 'rgba(74, 140, 179, 0.35)',
             },
-            selectedMacroStar.is_mine && (isLight ? { backgroundColor: '#FFFDF7' } : styles.macroStarCardMine),
+            selectedMacroStar.is_mine &&
+              (isLight
+                ? { backgroundColor: '#FFFFFF', shadowColor: '#0F172A', shadowOpacity: 0.15 }
+                : styles.macroStarCardMine),
           ]}
         >
           <View style={styles.macroStarHeader}>
@@ -1769,7 +1764,7 @@ export const OurStarScreen: React.FC = () => {
                   styles.macroStarColorDot,
                   {
                     backgroundColor:
-                      selectedMacroStar.base_color || starDetails?.base_color || '#F59E0B',
+                      selectedMacroStar.base_color || starDetails?.base_color || (isLight ? '#4A8CB3' : '#F59E0B'),
                   },
                 ]}
               />
@@ -1780,19 +1775,45 @@ export const OurStarScreen: React.FC = () => {
                     style={[
                       styles.macroStarTitle,
                       { color: theme.text },
-                      selectedMacroStar.is_mine && [styles.macroStarTitleMine, isLight && { color: '#B45309' }],
+                      selectedMacroStar.is_mine && [styles.macroStarTitleMine, isLight && { color: '#0F172A' }],
                     ]}
                     numberOfLines={2}
                   >
                     {selectedStarTitle}
                   </Text>
                   {selectedMacroStar.is_mine ? (
-                    <View style={styles.myStarBadge}>
-                      <Text style={styles.myStarBadgeText}>{t('stars.card.ourStar')}</Text>
+                    <View
+                      style={[
+                        styles.myStarBadge,
+                        isLight && {
+                          backgroundColor: '#F1F5F9',
+                          borderColor: '#E2E8F0',
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.myStarBadgeText, isLight && { color: '#334155' }]}>
+                        {t('stars.card.ourStar')}
+                      </Text>
                     </View>
                   ) : selectedMacroStar.is_claimed ? (
-                    <View style={[styles.claimedBadge, isSelectedStarBonded && styles.bondedBadge]}>
-                      <Text style={[styles.claimedBadgeText, isSelectedStarBonded && styles.bondedBadgeText]}>
+                    <View
+                      style={[
+                        styles.claimedBadge,
+                        isLight &&
+                          !isSelectedStarBonded && {
+                            backgroundColor: '#F1F5F9',
+                            borderColor: '#E2E8F0',
+                          },
+                        isSelectedStarBonded && styles.bondedBadge,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.claimedBadgeText,
+                          isLight && !isSelectedStarBonded && { color: '#475569' },
+                          isSelectedStarBonded && styles.bondedBadgeText,
+                        ]}
+                      >
                         {isSelectedStarBonded ? t('stars.connect.connected') : t('stars.card.registered')}
                       </Text>
                     </View>
@@ -1903,11 +1924,12 @@ export const OurStarScreen: React.FC = () => {
             <View
               style={[
                 styles.macroStarLightRow,
-                { backgroundColor: isLight ? 'rgba(245, 158, 11, 0.08)' : 'rgba(251, 191, 36, 0.08)' },
+                { backgroundColor: isLight ? '#F8FAFC' : 'rgba(251, 191, 36, 0.08)' },
+                isLight && { borderWidth: 1, borderColor: '#E2E8F0' },
               ]}
             >
-              <Sparkles size={12} color={isLight ? '#B45309' : '#FBBF24'} />
-              <Text style={[styles.macroStarLightText, { color: isLight ? '#92400E' : '#FDE68A' }]}>
+              <Sparkles size={12} color={isLight ? '#4A8CB3' : '#FBBF24'} />
+              <Text style={[styles.macroStarLightText, { color: isLight ? '#334155' : '#FDE68A' }]}>
                 {selectedStarLightText}
               </Text>
             </View>
@@ -1919,10 +1941,12 @@ export const OurStarScreen: React.FC = () => {
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={enterMicro}
-                style={styles.enterMicroBtn}
+                style={[styles.enterMicroBtn, isLight && { backgroundColor: '#1E293B' }]}
               >
-                <Orbit size={15} color="#030207" />
-                <Text style={styles.enterMicroBtnText}>{t('stars.card.enterStar')}</Text>
+                <Orbit size={15} color={isLight ? '#FFFFFF' : '#030207'} />
+                <Text style={[styles.enterMicroBtnText, isLight && { color: '#FFFFFF' }]}>
+                  {t('stars.card.enterStar')}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 activeOpacity={0.85}
@@ -1932,13 +1956,13 @@ export const OurStarScreen: React.FC = () => {
                 style={[
                   styles.viewCertBtn,
                   isLight && {
-                    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-                    borderColor: 'rgba(217, 119, 6, 0.35)',
+                    backgroundColor: '#F8FAFC',
+                    borderColor: '#CBD5E1',
                   },
                 ]}
               >
-                <Award size={15} color={isLight ? '#B45309' : '#FBBF24'} />
-                <Text style={[styles.viewCertBtnText, isLight && { color: '#B45309' }]}>{t('stars.card.certificate')}</Text>
+                <Award size={15} color={isLight ? '#334155' : '#FBBF24'} />
+                <Text style={[styles.viewCertBtnText, isLight && { color: '#334155' }]}>{t('stars.card.certificate')}</Text>
               </TouchableOpacity>
             </View>
           ) : !selectedMacroStar.is_claimed && isDemoMode ? (
@@ -1949,16 +1973,18 @@ export const OurStarScreen: React.FC = () => {
                 setDemoTargetStar(selectedMacroStar);
                 setIsDemoAuthModalOpen(true);
               }}
-              style={styles.claimThisStarBtn}
+              style={[styles.claimThisStarBtn, isLight && { backgroundColor: '#1E293B' }]}
             >
-              <Sparkles size={14} color="#030207" />
-              <Text style={styles.claimThisStarBtnText}>{t('stars.card.chooseStar')}</Text>
+              <Sparkles size={14} color={isLight ? '#FFFFFF' : '#030207'} />
+              <Text style={[styles.claimThisStarBtnText, isLight && { color: '#FFFFFF' }]}>
+                {t('stars.card.chooseStar')}
+              </Text>
             </TouchableOpacity>
           ) : !selectedMacroStar.is_claimed && starDetails === null ? (
             // Kullanıcının yıldızı yok ve yıldız boşta: sahiplenme butonu (+ öneri bağlantısı)
             <View style={styles.claimActionBlock}>
               {selectedMacroStar.catalog_id === suggestedStarId ? (
-                <Text style={[styles.suggestedCaption, { color: isLight ? '#92400E' : '#FDE68A' }]}>
+                <Text style={[styles.suggestedCaption, { color: isLight ? '#475569' : '#FDE68A' }]}>
                   {t('stars.suggest.badge')}
                 </Text>
               ) : null}
@@ -1970,10 +1996,12 @@ export const OurStarScreen: React.FC = () => {
                   setSelectedMacroStar(null);
                   setIsClaimModalOpen(true);
                 }}
-                style={styles.claimThisStarBtn}
+                style={[styles.claimThisStarBtn, isLight && { backgroundColor: '#1E293B' }]}
               >
-                <Sparkles size={14} color="#030207" />
-                <Text style={styles.claimThisStarBtnText}>{t('stars.card.chooseStar')}</Text>
+                <Sparkles size={14} color={isLight ? '#FFFFFF' : '#030207'} />
+                <Text style={[styles.claimThisStarBtnText, isLight && { color: '#FFFFFF' }]}>
+                  {t('stars.card.chooseStar')}
+                </Text>
               </TouchableOpacity>
               {coupleId && !isDemoMode ? (
                 <TouchableOpacity
@@ -2000,13 +2028,13 @@ export const OurStarScreen: React.FC = () => {
               style={[
                 styles.alreadyOwnedBanner,
                 isLight && {
-                  backgroundColor: 'rgba(245, 158, 11, 0.12)',
-                  borderColor: 'rgba(217, 119, 6, 0.35)',
+                  backgroundColor: '#F8FAFC',
+                  borderColor: '#E2E8F0',
                 },
               ]}
             >
-              <Sparkles size={13} color={isLight ? '#B45309' : '#FBBF24'} />
-              <Text style={[styles.alreadyOwnedText, isLight && { color: '#92400E' }]}>
+              <Sparkles size={13} color={isLight ? '#475569' : '#FBBF24'} />
+              <Text style={[styles.alreadyOwnedText, isLight && { color: '#334155' }]}>
                 {t('stars.card.alreadyHasStar')}
               </Text>
             </View>
@@ -2022,13 +2050,13 @@ export const OurStarScreen: React.FC = () => {
               style={[
                 styles.alreadyOwnedBanner,
                 isLight && {
-                  backgroundColor: 'rgba(245, 158, 11, 0.12)',
-                  borderColor: 'rgba(217, 119, 6, 0.35)',
+                  backgroundColor: '#F8FAFC',
+                  borderColor: '#E2E8F0',
                 },
               ]}
             >
-              <Sparkles size={13} color={isLight ? '#B45309' : '#FBBF24'} />
-              <Text style={[styles.alreadyOwnedText, isLight && { color: '#92400E' }]}>
+              <Sparkles size={13} color={isLight ? '#475569' : '#FBBF24'} />
+              <Text style={[styles.alreadyOwnedText, isLight && { color: '#334155' }]}>
                 {t('stars.card.needStarFirst')}
               </Text>
             </View>
@@ -2061,13 +2089,13 @@ export const OurStarScreen: React.FC = () => {
               style={[
                 styles.alreadyConnectedBanner,
                 isLight && {
-                  backgroundColor: 'rgba(245, 158, 11, 0.12)',
-                  borderColor: 'rgba(217, 119, 6, 0.35)',
+                  backgroundColor: '#F8FAFC',
+                  borderColor: '#E2E8F0',
                 },
               ]}
             >
-              <Clock size={13} color={isLight ? '#B45309' : '#FBBF24'} />
-              <Text style={[styles.alreadyConnectedText, isLight && { color: '#92400E' }]}>
+              <Clock size={13} color={isLight ? '#475569' : '#FBBF24'} />
+              <Text style={[styles.alreadyConnectedText, isLight && { color: '#334155' }]}>
                 {t('stars.card.requestPending')}
               </Text>
             </View>
@@ -2077,16 +2105,16 @@ export const OurStarScreen: React.FC = () => {
               style={[
                 styles.solarObjectBanner,
                 isLight && {
-                  backgroundColor: 'rgba(245, 158, 11, 0.12)',
-                  borderColor: 'rgba(217, 119, 6, 0.35)',
+                  backgroundColor: '#F8FAFC',
+                  borderColor: '#E2E8F0',
                 },
               ]}
             >
-              <Sun size={14} color={isLight ? '#B45309' : '#FBBF24'} />
+              <Sun size={14} color={isLight ? '#475569' : '#FBBF24'} />
               <Text
                 style={[
                   styles.solarObjectText,
-                  isLight && { color: '#92400E' },
+                  isLight && { color: '#334155' },
                 ]}
               >
                 {t(SOLAR_DESCRIPTION_KEYS[selectedMacroStar.catalog_code] ?? 'stars.solarDescriptions.fallback')}
@@ -2098,13 +2126,13 @@ export const OurStarScreen: React.FC = () => {
               style={[
                 styles.limitReachedBanner,
                 isLight && {
-                  backgroundColor: 'rgba(245, 158, 11, 0.12)',
-                  borderColor: 'rgba(217, 119, 6, 0.35)',
+                  backgroundColor: '#F8FAFC',
+                  borderColor: '#E2E8F0',
                 },
               ]}
             >
-              <AlertCircle size={13} color={isLight ? '#B45309' : '#FBBF24'} />
-              <Text style={[styles.limitReachedText, isLight && { color: '#92400E' }]}>
+              <AlertCircle size={13} color={isLight ? '#475569' : '#FBBF24'} />
+              <Text style={[styles.limitReachedText, isLight && { color: '#334155' }]}>
                 {t('stars.screen.toasts.limitReached')}
               </Text>
             </View>
@@ -2168,14 +2196,22 @@ export const OurStarScreen: React.FC = () => {
               style={[
                 styles.onboardingGuideCard,
                 {
-                  backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 12, 30, 0.92)',
-                  borderColor: isLight ? 'rgba(245, 158, 11, 0.35)' : 'rgba(251, 191, 36, 0.3)',
+                  backgroundColor: isLight ? 'rgba(255, 255, 255, 0.96)' : 'rgba(15, 12, 30, 0.92)',
+                  borderColor: isLight ? 'rgba(15, 23, 42, 0.12)' : 'rgba(251, 191, 36, 0.3)',
                 },
               ]}
             >
               <View style={styles.onboardingGuideHeader}>
-                <View style={styles.onboardingGuideIconWrap}>
-                  <Sparkles size={16} color="#FBBF24" />
+                <View
+                  style={[
+                    styles.onboardingGuideIconWrap,
+                    isLight && {
+                      backgroundColor: '#F1F5F9',
+                      borderColor: '#E2E8F0',
+                    },
+                  ]}
+                >
+                  <Sparkles size={16} color={isLight ? '#334155' : '#FBBF24'} />
                 </View>
                 <Text style={[styles.onboardingGuideTitle, { color: theme.text }]}>
                   {t('stars.card.pickTitle')}
@@ -2245,7 +2281,7 @@ export const OurStarScreen: React.FC = () => {
                 styles.modeSwitchFab,
                 {
                   backgroundColor: isLight ? 'rgba(255, 255, 255, 0.94)' : 'rgba(15, 12, 30, 0.88)',
-                  borderColor: isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(251, 191, 36, 0.35)',
+                  borderColor: isLight ? 'rgba(15, 23, 42, 0.14)' : 'rgba(251, 191, 36, 0.35)',
                 },
               ]}
               accessibilityLabel={viewMode === 'micro' ? t('stars.card.ascendA11y') : t('stars.card.enterStarA11y')}
@@ -2253,7 +2289,7 @@ export const OurStarScreen: React.FC = () => {
               {viewMode === 'micro' ? (
                 <Globe size={20} color="#4A8CB3" />
               ) : (
-                <Orbit size={20} color="#FBBF24" />
+                <Orbit size={20} color={isLight ? '#1E293B' : '#FBBF24'} />
               )}
             </TouchableOpacity>
           )}

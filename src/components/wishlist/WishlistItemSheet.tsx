@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ActivityIndicator, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { KeyboardAwareScrollView } from "@/components/ui/KeyboardAwareScrollView";
+import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Check, MapPin, X } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
@@ -125,6 +126,7 @@ function SheetForm({
   const { t } = useTranslation();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const keyboardHeight = useKeyboardHeight();
   const [draft, setDraft] = useState(() => initialDraft(request));
   const [showMap, setShowMap] = useState(false);
   const isCreate = request.mode === "create";
@@ -140,11 +142,20 @@ function SheetForm({
   };
 
   return (
-    <View style={[styles.backdrop, { backgroundColor: scrimColor(theme) }]}>
+    <View
+      style={[
+        styles.backdrop,
+        { backgroundColor: scrimColor(theme), paddingBottom: keyboardHeight },
+      ]}
+    >
       <View
         style={[
           styles.sheet,
-          { backgroundColor: theme.cardBg, paddingBottom: insets.bottom + 16, ...theme.cardShadow },
+          {
+            backgroundColor: theme.cardBg,
+            paddingBottom: (keyboardHeight > 0 ? 14 : insets.bottom + 16),
+            ...theme.cardShadow,
+          },
         ]}
       >
         <View style={styles.headerRow}>
@@ -170,7 +181,7 @@ function SheetForm({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.form}
           enableOnAndroid
-          extraScrollHeight={130}
+          extraScrollHeight={96}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.field}>

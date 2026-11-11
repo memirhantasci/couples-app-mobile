@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AlertTriangle, Calendar, Check, ChevronLeft, Clock, Crown, Database, Info, MapPin, Printer, Share2, X } from "lucide-react-native";
+import { AlertTriangle, Calendar, Check, ChevronLeft, Clock, Crown, Database, Info, MapPin, Printer, Share2, Sparkles, X } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { MapPickerModal } from "@/components/MapPickerModal";
@@ -20,6 +21,7 @@ import { NightSkyStoryCard, type SkyChartHighlight } from "../render";
 import {
   buildDateOptions,
   buildSkyRequest,
+  clampTimeIfToday,
   cleanPlaceName,
   dateFromTime,
   DEFAULT_SKY_TIME,
@@ -44,6 +46,7 @@ import {
 } from "./flowLogic";
 import { describeOurStar } from "./ourStar";
 import { PrintSharePreview } from "./PrintSharePreview";
+import { SkyCeremonyOverlay } from "./SkyCeremonyOverlay";
 import { EMPTY_SKY_PREFS, loadSkyPrefs, saveSkyPrefs } from "./skyPrefs";
 
 const STEP_COUNT = 4;
@@ -101,6 +104,7 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
   const [showPaywall, setShowPaywall] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showPrint, setShowPrint] = useState(false);
+  const [showCeremony, setShowCeremony] = useState(false);
 
   // Son seçimler cihazdan okunur. Demo modu gerçek tercihleri ne okur ne yazar. Yazma, gerçek tercihler okunana
   // kadar da kapalıdır; demo hiç yüklemediği için yazmaya hiçbir zaman başlamaz.
@@ -135,6 +139,15 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
   }, [isDemoMode, onLeaveForUpgrade, onClose]);
 
   const chosenDate = resolveChosenDate(options, choice);
+  const isChosenDateToday = chosenDate === today;
+  // Bugün seçiliyse gelecekteki bir saat (ör. öğlen 14:00'teyken 22:00) kullanılamaz; şimdiki saate çekilir
+  const effectiveTime = useMemo(() => clampTimeIfToday(chosenDate, time), [chosenDate, time]);
+  useEffect(() => {
+    if (isChosenDateToday && effectiveTime !== time) {
+      setTime(effectiveTime);
+    }
+  }, [isChosenDateToday, effectiveTime, time]);
+
   const canAdvance = step === 0 ? chosenDate !== null : step === 1 ? place !== null : true;
   const premiumTitle = effectiveTitle(title, gateFor("customTitle", user) === "allow");
   // Kullanıcı alanı yazarken boşluk girebilsin diye durumda ham tutulur; posterin gördüğü temizlenmişidir
@@ -144,16 +157,16 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
   const computed = useMemo<{ sky: SkyResult | null; errorKey: string | null }>(() => {
     if (step !== STEP_COUNT - 1 || !chosenDate || !place) return { sky: null, errorKey: null };
     try {
-      return { sky: computeSky(buildSkyRequest({ date: chosenDate, time, place })), errorKey: null };
+      return { sky: computeSky(buildSkyRequest({ date: chosenDate, time: effectiveTime, place })), errorKey: null };
     } catch (error) {
       return { sky: null, errorKey: skyErrorKey(error) };
     }
-  }, [step, chosenDate, time, place]);
+  }, [step, chosenDate, effectiveTime, place]);
 
   useEffect(() => {
     if (isDemoMode || demoTainted.current || step !== STEP_COUNT - 1 || !prefsLoaded.current) return;
-    saveSkyPrefs({ placeName: posterPlaceName, time, timeKnown, title });
-  }, [isDemoMode, step, posterPlaceName, time, timeKnown, title]);
+    saveSkyPrefs({ placeName: posterPlaceName, time: effectiveTime, timeKnown, title });
+  }, [isDemoMode, step, posterPlaceName, effectiveTime, timeKnown, title]);
 
   // Yıldız verisi akışı bekletmez: gelene kadar cümlesiz çizilir. Yıldızı olmayan çift ya da hata: cümle yok.
   const coupleId = profile?.coupleId ?? null;
@@ -168,11 +181,11 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
   const ourStar = useMemo(() => {
     if (!computed.sky || !chosenDate || !place) return null;
     try {
-      return describeOurStar(coupleStar, buildSkyRequest({ date: chosenDate, time, place }), computed.sky.sun.twilight);
+      return describeOurStar(coupleStar, buildSkyRequest({ date: chosenDate, time: effectiveTime, place }), computed.sky.sun.twilight);
     } catch {
       return null;
     }
-  }, [computed.sky, chosenDate, time, place, coupleStar]);
+  }, [computed.sky, chosenDate, effectiveTime, place, coupleStar]);
   const starLine = ourStar
     ? t(`sky.poster.star.${ourStar.sentence.key}`, {
         degrees: ourStar.sentence.degrees,
@@ -182,7 +195,7 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
   const highlight = ourStar?.highlight ?? undefined;
 
   const dateLine =
-    chosenDate && formatDateLine(chosenDate, time, timeKnown, (day) => dayjs(day).locale(i18n.language).format("D MMMM YYYY"));
+    chosenDate && formatDateLine(chosenDate, effectiveTime, timeKnown, (day) => dayjs(day).locale(i18n.language).format("D MMMM YYYY"));
   const warnings = computed.sky ? selectWarnings(computed.sky) : [];
 
   const openPaywallOrRun = (action: "customTitle" | "printExport") => {
@@ -216,7 +229,19 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
           ))}
         </View>
       </View>
-      <View style={styles.headerButton} />
+      {step > 0 ? (
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={t("sky.flow.close")}
+          onPress={onClose}
+          hitSlop={10}
+          style={styles.headerButton}
+        >
+          <X size={22} color={theme.text} />
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.headerButton} />
+      )}
     </View>
   );
 
@@ -323,7 +348,7 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
                 accessibilityRole="button"
               >
                 <Clock size={22} color={theme.accent} />
-                <Text style={[styles.timeValue, { color: theme.text }]}>{time}</Text>
+                <Text style={[styles.timeValue, { color: theme.text }]}>{effectiveTime}</Text>
                 <Text style={[styles.optionSub, { color: theme.textSecondary, flex: 1, textAlign: "right" }]}>{t("sky.flow.time.change")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -333,7 +358,7 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
                 onPress={() => {
                   const next = !timeKnown;
                   setTimeKnown(next);
-                  if (!next) setTime(DEFAULT_SKY_TIME);
+                  if (!next) setTime(clampTimeIfToday(chosenDate, DEFAULT_SKY_TIME));
                 }}
                 style={[styles.option, card, !timeKnown && { borderColor: theme.accent, backgroundColor: theme.pillAccentBg }]}
               >
@@ -342,7 +367,7 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
                 </View>
                 <Text style={[styles.optionTitle, { color: theme.text, flex: 1 }]}>{t("sky.flow.time.unknown")}</Text>
               </TouchableOpacity>
-              {!timeKnown ? <Text style={[styles.note, { color: theme.textSecondary }]}>{t("sky.flow.time.unknownNote", { time: DEFAULT_SKY_TIME })}</Text> : null}
+              {!timeKnown ? <Text style={[styles.note, { color: theme.textSecondary }]}>{t("sky.flow.time.unknownNote", { time: effectiveTime })}</Text> : null}
             </>
           )}
 
@@ -354,8 +379,8 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
                   <Text style={[styles.optionSub, { color: theme.text, flex: 1 }]}>{t(computed.errorKey as never)}</Text>
                 </View>
               ) : computed.sky && chosenDate && place && dateLine ? (
-                <>
-                  <View style={styles.cardWrap}>
+                <PosterRevealStage
+                  cardNode={
                     <NightSkyCard
                       width={Math.min(windowWidth - 64, 250)}
                       sky={computed.sky}
@@ -366,55 +391,61 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
                       highlight={highlight}
                       starLine={starLine}
                     />
-                  </View>
+                  }
+                  detailsNode={
+                    <>
+                      {warnings.map((warning) => (
+                        <View key={warning} style={[styles.warning, { backgroundColor: theme.pillAccentBg, borderColor: theme.pillAccentBorder }]}>
+                          <AlertTriangle size={16} color={theme.accent} style={{ marginTop: 2 }} />
+                          <Text style={[styles.warningText, { color: theme.text }]}>{t(`sky.flow.warnings.${warning}`)}</Text>
+                        </View>
+                      ))}
 
-                  {warnings.map((warning) => (
-                    <View key={warning} style={[styles.warning, { backgroundColor: theme.pillAccentBg, borderColor: theme.pillAccentBorder }]}>
-                      <AlertTriangle size={16} color={theme.accent} style={{ marginTop: 2 }} />
-                      <Text style={[styles.warningText, { color: theme.text }]}>{t(`sky.flow.warnings.${warning}`)}</Text>
-                    </View>
-                  ))}
+                      <View style={styles.infoRow}>
+                        <Info size={14} color={muted} style={{ marginTop: 2 }} />
+                        <Text style={[styles.infoText, { color: theme.textSecondary }]}>{t("sky.flow.preview.info")}</Text>
+                      </View>
+                      <View style={styles.infoRow}>
+                        <Database size={14} color={muted} style={{ marginTop: 2 }} />
+                        <Text style={[styles.infoText, { color: muted }]}>{t("sky.flow.preview.dataSources")}</Text>
+                      </View>
+                    </>
+                  }
+                  actionsNode={
+                    <>
+                      {gateFor("customTitle", user) === "allow" ? (
+                        <View style={[styles.option, card]}>
+                          <TextInput
+                            value={title}
+                            onChangeText={(text) => setTitle(text.slice(0, MAX_TITLE_LENGTH))}
+                            maxLength={MAX_TITLE_LENGTH}
+                            placeholder={t("sky.poster.defaultTitle")}
+                            placeholderTextColor={muted}
+                            accessibilityLabel={t("sky.flow.preview.titleLabel")}
+                            style={[styles.input, { color: theme.text }]}
+                          />
+                          <Crown size={16} color={theme.accent} />
+                        </View>
+                      ) : (
+                        <LockedRow
+                          icon={<Crown size={20} color={theme.accent} />}
+                          title={t("sky.flow.preview.titleLabel")}
+                          sub={t("sky.flow.preview.premiumOnly")}
+                          onPress={() => openPaywallOrRun("customTitle")}
+                          theme={theme}
+                        />
+                      )}
 
-                  <View style={styles.infoRow}>
-                    <Info size={14} color={muted} style={{ marginTop: 2 }} />
-                    <Text style={[styles.infoText, { color: muted }]}>{t("sky.flow.preview.info")}</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Database size={14} color={muted} style={{ marginTop: 2 }} />
-                    <Text style={[styles.infoText, { color: muted }]}>{t("sky.flow.preview.dataSources")}</Text>
-                  </View>
-
-                  {gateFor("customTitle", user) === "allow" ? (
-                    <View style={[styles.option, card]}>
-                      <TextInput
-                        value={title}
-                        onChangeText={(text) => setTitle(text.slice(0, MAX_TITLE_LENGTH))}
-                        maxLength={MAX_TITLE_LENGTH}
-                        placeholder={t("sky.poster.defaultTitle")}
-                        placeholderTextColor={muted}
-                        accessibilityLabel={t("sky.flow.preview.titleLabel")}
-                        style={[styles.input, { color: theme.text }]}
+                      <LockedRow
+                        icon={<Printer size={20} color={theme.accent} />}
+                        title={t("sky.flow.preview.print")}
+                        sub={t("sky.flow.preview.printSub")}
+                        onPress={() => openPaywallOrRun("printExport")}
+                        theme={theme}
                       />
-                      <Crown size={16} color={theme.accent} />
-                    </View>
-                  ) : (
-                    <LockedRow
-                      icon={<Crown size={20} color={theme.accent} />}
-                      title={t("sky.flow.preview.titleLabel")}
-                      sub={t("sky.flow.preview.premiumOnly")}
-                      onPress={() => openPaywallOrRun("customTitle")}
-                      theme={theme}
-                    />
-                  )}
-
-                  <LockedRow
-                    icon={<Printer size={20} color={theme.accent} />}
-                    title={t("sky.flow.preview.print")}
-                    sub={t("sky.flow.preview.printSub")}
-                    onPress={() => openPaywallOrRun("printExport")}
-                    theme={theme}
-                  />
-                </>
+                    </>
+                  }
+                />
               ) : null}
             </>
           )}
@@ -425,23 +456,38 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
             <TouchableOpacity
               activeOpacity={0.85}
               disabled={!canAdvance}
-              onPress={() => setStep(step + 1)}
+              onPress={() => {
+                if (step === STEP_COUNT - 2) setShowCeremony(true);
+                setStep(step + 1);
+              }}
               style={[styles.primary, { backgroundColor: theme.accent, opacity: canAdvance ? 1 : 0.4 }]}
               accessibilityRole="button"
             >
               <Text style={styles.primaryText}>{t("sky.flow.next")}</Text>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity
-              activeOpacity={0.85}
-              disabled={!computed.sky}
-              onPress={() => setShowShare(true)}
-              style={[styles.primary, { backgroundColor: theme.accent, opacity: computed.sky ? 1 : 0.4 }]}
-              accessibilityRole="button"
-            >
-              <Share2 size={18} color="#FFFFFF" />
-              <Text style={styles.primaryText}>{t("sky.flow.preview.share")}</Text>
-            </TouchableOpacity>
+            <View style={styles.previewFooterRow}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={onClose}
+                style={[styles.secondaryFooterBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+                accessibilityRole="button"
+                accessibilityLabel={t("sky.flow.close")}
+              >
+                <X size={18} color={theme.textSecondary} />
+                <Text style={[styles.secondaryFooterText, { color: theme.text }]}>{t("sky.flow.close")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                disabled={!computed.sky}
+                onPress={() => setShowShare(true)}
+                style={[styles.primary, styles.primaryFlex, { backgroundColor: theme.accent, opacity: computed.sky ? 1 : 0.4 }]}
+                accessibilityRole="button"
+              >
+                <Share2 size={18} color="#FFFFFF" />
+                <Text style={styles.primaryText}>{t("sky.flow.preview.share")}</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
       </KeyboardAvoidingView>
@@ -482,10 +528,11 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
         visible={showTimePicker}
         mode="time"
         title={t("sky.flow.time.pickerTitle")}
-        value={dateFromTime(time)}
+        value={dateFromTime(effectiveTime)}
+        maximumDate={isChosenDateToday ? new Date() : undefined}
         onCancel={() => setShowTimePicker(false)}
         onConfirm={(date) => {
-          setTime(timeFromDate(date));
+          setTime(clampTimeIfToday(chosenDate, timeFromDate(date)));
           setShowTimePicker(false);
         }}
       />
@@ -536,7 +583,134 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
           layout={{ sky: computed.sky, dateLine, placeName: posterPlaceName, names: couple.names, title: premiumTitle, highlight, starLine }}
         />
       ) : null}
+
+      <SkyCeremonyOverlay
+        visible={showCeremony && step === STEP_COUNT - 1 && !computed.errorKey}
+        dateLine={dateLine}
+        placeName={posterPlaceName}
+        coupleNames={couple.names}
+        onComplete={() => setShowCeremony(false)}
+      />
     </Modal>
+  );
+}
+
+/**
+ * 3. adımdan 4. adıma (Poster Önizleme) geçildiğinde posteri kozmik bir aura,
+ * parlayan yıldız halkaları ve kademeli (staggered) giriş animasyonuyla sahneye çıkarır.
+ */
+function PosterRevealStage({
+  cardNode,
+  detailsNode,
+  actionsNode,
+}: {
+  cardNode: ReactNode;
+  detailsNode: ReactNode;
+  actionsNode: ReactNode;
+}) {
+  const cardProgress = useSharedValue(0);
+  const auraPulse = useSharedValue(0);
+  const shimmerSweep = useSharedValue(0);
+  const detailsProgress = useSharedValue(0);
+  const actionsProgress = useSharedValue(0);
+
+  useEffect(() => {
+    cardProgress.value = withTiming(1, {
+      duration: 720,
+      easing: Easing.out(Easing.cubic),
+    });
+
+    shimmerSweep.value = withSequence(
+      withTiming(1, { duration: 680, easing: Easing.out(Easing.quad) }),
+      withTiming(0, { duration: 620, easing: Easing.inOut(Easing.quad) })
+    );
+
+    auraPulse.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 2400, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0, { duration: 2400, easing: Easing.inOut(Easing.sin) })
+      ),
+      -1,
+      true
+    );
+
+    detailsProgress.value = withDelay(
+      240,
+      withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) })
+    );
+
+    actionsProgress.value = withDelay(
+      400,
+      withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) })
+    );
+  }, [actionsProgress, auraPulse, cardProgress, detailsProgress, shimmerSweep]);
+
+  const cardAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: cardProgress.value,
+    transform: [
+      { translateY: (1 - cardProgress.value) * 32 },
+      { scale: 0.86 + cardProgress.value * 0.14 },
+    ],
+  }));
+
+  const outerHaloStyle = useAnimatedStyle(() => ({
+    opacity: cardProgress.value * (0.35 + auraPulse.value * 0.35),
+    transform: [{ scale: 0.92 + auraPulse.value * 0.08 }],
+  }));
+
+  const shimmerBorderStyle = useAnimatedStyle(() => ({
+    opacity: shimmerSweep.value * 0.85,
+    transform: [{ scale: 0.98 + shimmerSweep.value * 0.03 }],
+  }));
+
+  const sparkleLeftStyle = useAnimatedStyle(() => ({
+    opacity: cardProgress.value * (0.45 + auraPulse.value * 0.55),
+    transform: [
+      { translateY: -auraPulse.value * 6 },
+      { scale: 0.85 + auraPulse.value * 0.25 },
+    ],
+  }));
+
+  const sparkleRightStyle = useAnimatedStyle(() => ({
+    opacity: cardProgress.value * (1 - auraPulse.value * 0.45),
+    transform: [
+      { translateY: (1 - auraPulse.value) * -5 },
+      { scale: 1.05 - auraPulse.value * 0.2 },
+    ],
+  }));
+
+  const detailsAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: detailsProgress.value,
+    transform: [{ translateY: (1 - detailsProgress.value) * 18 }],
+  }));
+
+  const actionsAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: actionsProgress.value,
+    transform: [{ translateY: (1 - actionsProgress.value) * 22 }],
+  }));
+
+  return (
+    <View style={styles.revealContainer}>
+      <Animated.View style={[styles.cardWrap, cardAnimatedStyle]}>
+        <Animated.View pointerEvents="none" style={[styles.cosmicHalo, outerHaloStyle]} />
+        <Animated.View pointerEvents="none" style={[styles.shimmerRing, shimmerBorderStyle]} />
+        <Animated.View pointerEvents="none" style={[styles.sparkleBadgeLeft, sparkleLeftStyle]}>
+          <Sparkles size={16} color="#E8C77B" />
+        </Animated.View>
+        <Animated.View pointerEvents="none" style={[styles.sparkleBadgeRight, sparkleRightStyle]}>
+          <Sparkles size={14} color="#E8C77B" />
+        </Animated.View>
+        {cardNode}
+      </Animated.View>
+
+      <Animated.View style={[styles.staggerGroup, detailsAnimatedStyle]}>
+        {detailsNode}
+      </Animated.View>
+
+      <Animated.View style={[styles.staggerGroup, actionsAnimatedStyle]}>
+        {actionsNode}
+      </Animated.View>
+    </View>
   );
 }
 
@@ -586,13 +760,57 @@ const styles = StyleSheet.create({
   checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, alignItems: "center", justifyContent: "center" },
   timeValue: { fontSize: 28, fontFamily: "Inter_700Bold", letterSpacing: 1 },
   note: { fontSize: 13, lineHeight: 19, fontFamily: "Inter_500Medium" },
-  cardWrap: { alignItems: "center", marginBottom: 4 },
+  revealContainer: { gap: 12 },
+  staggerGroup: { gap: 12 },
+  cardWrap: { alignItems: "center", justifyContent: "center", marginBottom: 6, paddingVertical: 6 },
+  cosmicHalo: {
+    position: "absolute",
+    width: 268,
+    height: 350,
+    borderRadius: 28,
+    backgroundColor: "rgba(232, 199, 123, 0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(232, 199, 123, 0.28)",
+  },
+  shimmerRing: {
+    position: "absolute",
+    width: 260,
+    height: 448,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: "rgba(232, 199, 123, 0.65)",
+  },
+  sparkleBadgeLeft: {
+    position: "absolute",
+    top: 8,
+    left: 16,
+    zIndex: 10,
+  },
+  sparkleBadgeRight: {
+    position: "absolute",
+    bottom: 14,
+    right: 18,
+    zIndex: 10,
+  },
   warning: { flexDirection: "row", gap: 10, padding: 12, borderRadius: 14, borderWidth: 1 },
   warningText: { flex: 1, fontSize: 13, lineHeight: 19, fontFamily: "Inter_500Medium" },
   infoRow: { flexDirection: "row", gap: 8 },
   infoText: { flex: 1, fontSize: 12.5, lineHeight: 18, fontFamily: "Inter_400Regular" },
   input: { flex: 1, fontSize: 15.5, fontFamily: "Inter_600SemiBold", paddingVertical: 0 },
   footer: { paddingHorizontal: 20, paddingTop: 10 },
+  previewFooterRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  secondaryFooterBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    borderRadius: 18,
+    borderWidth: 1.2,
+  },
+  secondaryFooterText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
   primary: { flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center", paddingVertical: 16, borderRadius: 18 },
+  primaryFlex: { flex: 1 },
   primaryText: { color: "#FFFFFF", fontSize: 16, fontFamily: "Inter_700Bold" },
 });

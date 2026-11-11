@@ -197,9 +197,19 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
                 </Text>
               ) : null}
               {effectiveResonance && (
-                <View style={styles.resonancePill}>
-                  <Flame size={10} color="#F59E0B" />
-                  <Text style={styles.resonancePillText}>{t('stars.info.resonance')}</Text>
+                <View
+                  style={[
+                    styles.resonancePill,
+                    isLight && {
+                      backgroundColor: 'rgba(15, 23, 42, 0.06)',
+                      borderColor: 'rgba(15, 23, 42, 0.14)',
+                    },
+                  ]}
+                >
+                  <Flame size={10} color={isLight ? '#475569' : '#F59E0B'} />
+                  <Text style={[styles.resonancePillText, isLight && { color: '#334155' }]}>
+                    {t('stars.info.resonance')}
+                  </Text>
                 </View>
               )}
             </View>
@@ -222,12 +232,12 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
                 style={[
                   styles.certIconBtn,
                   {
-                    backgroundColor: isLight ? 'rgba(245, 158, 11, 0.12)' : 'rgba(251, 191, 36, 0.12)',
-                    borderColor: isLight ? 'rgba(245, 158, 11, 0.35)' : 'rgba(251, 191, 36, 0.3)',
+                    backgroundColor: isLight ? 'rgba(15, 23, 42, 0.06)' : 'rgba(251, 191, 36, 0.12)',
+                    borderColor: isLight ? 'rgba(15, 23, 42, 0.14)' : 'rgba(251, 191, 36, 0.3)',
                   },
                 ]}
               >
-                <Award size={14} color="#F59E0B" />
+                <Award size={14} color={isLight ? '#334155' : '#F59E0B'} />
               </View>
             )}
           </View>

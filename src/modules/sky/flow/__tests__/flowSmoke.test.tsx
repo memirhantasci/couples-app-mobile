@@ -53,6 +53,41 @@ jest.mock("@/lib/date", () => {
 });
 jest.mock("@/lib/safeStorage", () => ({ safeStorage: { getItem: async () => mockStoredPrefs, setItem: (key: string, value: string) => mockSetItem(key, value), removeItem: async () => {} } }));
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key, i18n: { language: "tr" } }) }));
+jest.mock("../SkyCeremonyOverlay", () => ({ SkyCeremonyOverlay: () => null }));
+jest.mock("react-native-reanimated", () => {
+  const { View } = jest.requireActual("react-native");
+  const { useState } = jest.requireActual("react");
+  const shared = (initial: unknown) => {
+    let current = initial;
+    return {
+      get value() {
+        return current;
+      },
+      set value(next: unknown) {
+        current = next;
+      },
+      get: () => current,
+      set: (next: unknown) => (current = next),
+    };
+  };
+  return {
+    __esModule: true,
+    default: { View },
+    Easing: {
+      out: () => (t: number) => t,
+      inOut: () => (t: number) => t,
+      cubic: (t: number) => t,
+      quad: (t: number) => t,
+      sin: (t: number) => t,
+    },
+    useSharedValue: (initial: unknown) => useState(() => shared(initial))[0],
+    useAnimatedStyle: (factory: () => unknown) => factory(),
+    withTiming: (to: unknown) => to,
+    withDelay: (_delay: number, to: unknown) => to,
+    withSequence: (...steps: unknown[]) => steps[steps.length - 1],
+    withRepeat: (step: unknown) => step,
+  };
+});
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const TestRenderer = require("react-test-renderer");

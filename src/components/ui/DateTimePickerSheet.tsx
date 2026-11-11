@@ -147,7 +147,12 @@ function SheetBody({
             maximumDate={maximumDate}
           />
         ) : (
-          <TimePane value={draft} onChange={setDraft} />
+          <TimePane
+            value={draft}
+            onChange={setDraft}
+            minimumDate={minimumDate}
+            maximumDate={maximumDate}
+          />
         )}
       </View>
     </View>
@@ -357,13 +362,48 @@ const WHEEL_WIDTH = 96;
 /** Çarkın üstünde/altında bırakılan boşluk: ilk ve son öğe de seçim bandının ortasına gelebilsin. */
 const WHEEL_PAD = WHEEL_ITEM * Math.floor(WHEEL_VISIBLE / 2);
 
-function TimePane({ value, onChange }: { value: Date; onChange: (date: Date) => void }) {
+function TimePane({
+  value,
+  onChange,
+  minimumDate,
+  maximumDate,
+}: {
+  value: Date;
+  onChange: (date: Date) => void;
+  minimumDate?: Date;
+  maximumDate?: Date;
+}) {
   const { theme } = useTheme();
+
+  const maxHour =
+    maximumDate && startOfDay(value) === startOfDay(maximumDate) ? maximumDate.getHours() : 23;
+  const minHour =
+    minimumDate && startOfDay(value) === startOfDay(minimumDate) ? minimumDate.getHours() : 0;
+
+  const maxMinute =
+    maximumDate && startOfDay(value) === startOfDay(maximumDate) && value.getHours() >= maxHour
+      ? maximumDate.getMinutes()
+      : 59;
+  const minMinute =
+    minimumDate && startOfDay(value) === startOfDay(minimumDate) && value.getHours() <= minHour
+      ? minimumDate.getMinutes()
+      : 0;
 
   const setPart = (part: "h" | "m", n: number) => {
     const next = new Date(value);
-    if (part === "h") next.setHours(n);
-    else next.setMinutes(n);
+    if (part === "h") {
+      const h = Math.min(maxHour, Math.max(minHour, n));
+      next.setHours(h);
+      if (maximumDate && startOfDay(next) === startOfDay(maximumDate) && h === maxHour && next.getMinutes() > maximumDate.getMinutes()) {
+        next.setMinutes(maximumDate.getMinutes());
+      }
+      if (minimumDate && startOfDay(next) === startOfDay(minimumDate) && h === minHour && next.getMinutes() < minimumDate.getMinutes()) {
+        next.setMinutes(minimumDate.getMinutes());
+      }
+    } else {
+      const m = Math.min(maxMinute, Math.max(minMinute, n));
+      next.setMinutes(m);
+    }
     onChange(next);
   };
 
@@ -377,16 +417,27 @@ function TimePane({ value, onChange }: { value: Date; onChange: (date: Date) => 
           ]}
         />
       </View>
-      <Wheel count={24} value={value.getHours()} onChange={(n) => setPart("h", n)} />
+      <Wheel count={maxHour + 1} min={minHour} value={Math.min(maxHour, Math.max(minHour, value.getHours()))} onChange={(n) => setPart("h", n)} />
       <Text style={[styles.timeColon, { color: theme.text }]}>:</Text>
-      <Wheel count={60} value={value.getMinutes()} onChange={(n) => setPart("m", n)} />
+      <Wheel count={maxMinute + 1} min={minMinute} value={Math.min(maxMinute, Math.max(minMinute, value.getMinutes()))} onChange={(n) => setPart("m", n)} />
     </View>
   );
 }
 
-function Wheel({ count, value, onChange }: { count: number; value: number; onChange: (n: number) => void }) {
+function Wheel({
+  count,
+  min = 0,
+  value,
+  onChange,
+}: {
+  count: number;
+  min?: number;
+  value: number;
+  onChange: (n: number) => void;
+}) {
   const { theme } = useTheme();
   const ref = useRef<ScrollView>(null);
+  const items = Math.max(1, count - min);
 
   // Çark ilk açılışta mevcut değere, içerik ölçüldükten SONRA (animasyonsuz) kaydırılır.
   // Sabit gecikmeli scrollTo, 60 satırlık dakika çarkında içerik henüz yerleşmeden çalışıp
@@ -395,12 +446,13 @@ function Wheel({ count, value, onChange }: { count: number; value: number; onCha
   const positionToValue = () => {
     if (positioned.current) return;
     positioned.current = true;
-    ref.current?.scrollTo({ y: value * WHEEL_ITEM, animated: false });
+    ref.current?.scrollTo({ y: Math.max(0, value - min) * WHEEL_ITEM, animated: false });
   };
 
   const settle = (y: number) => {
-    const index = Math.min(count - 1, Math.max(0, Math.round(y / WHEEL_ITEM)));
-    if (index !== value) onChange(index);
+    const offset = Math.min(items - 1, Math.max(0, Math.round(y / WHEEL_ITEM)));
+    const next = min + offset;
+    if (next !== value) onChange(next);
   };
 
   return (
@@ -422,7 +474,8 @@ function Wheel({ count, value, onChange }: { count: number; value: number; onCha
         onMomentumScrollEnd={(e) => settle(e.nativeEvent.contentOffset.y)}
         onScrollEndDrag={(e) => settle(e.nativeEvent.contentOffset.y)}
       >
-        {Array.from({ length: count }, (_, i) => {
+        {Array.from({ length: items }, (_, idx) => {
+          const i = min + idx;
           const isActive = i === value;
           return (
             <TouchableOpacity
@@ -430,7 +483,7 @@ function Wheel({ count, value, onChange }: { count: number; value: number; onCha
               activeOpacity={0.7}
               style={styles.wheelItem}
               onPress={() => {
-                ref.current?.scrollTo({ y: i * WHEEL_ITEM, animated: true });
+                ref.current?.scrollTo({ y: idx * WHEEL_ITEM, animated: true });
                 onChange(i);
               }}
             >

@@ -206,6 +206,21 @@ export default function MenuScreen() {
             <Text style={styles.sectionHeaderLabel}>{t("menu.sections.love")}</Text>
             <View style={[styles.sectionGroup, { backgroundColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]}>
 
+            <TouchableOpacity
+              style={[styles.menuItem, { backgroundColor: theme.cardBg }]}
+              onPress={() => handleRoute("/(tabs)/home")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                <Home color={theme.accent} size={18} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>{t("tabs.home.label")}</Text>
+                <Text style={styles.menuSub}>{t("menu.home.subtitle")}</Text>
+              </View>
+              <ChevronRight color={theme.textMuted} size={18} />
+            </TouchableOpacity>
+
             <TouchableOpacity 
               style={[styles.menuItem, { backgroundColor: theme.cardBg }]} 
               onPress={() => handleRoute("/our-star")}
@@ -233,21 +248,6 @@ export default function MenuScreen() {
               <View style={styles.menuTextContainer}>
                 <Text style={styles.menuTitle}>{t("sky.flow.entry.menuTitle")}</Text>
                 <Text style={styles.menuSub}>{t("sky.flow.entry.menuSubtitle")}</Text>
-              </View>
-              <ChevronRight color={theme.textMuted} size={18} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.menuItem, { backgroundColor: theme.cardBg }]}
-              onPress={() => handleRoute("/(tabs)/home")}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
-                <Home color={theme.accent} size={18} />
-              </View>
-              <View style={styles.menuTextContainer}>
-                <Text style={styles.menuTitle}>{t("tabs.home.label")}</Text>
-                <Text style={styles.menuSub}>{t("menu.home.subtitle")}</Text>
               </View>
               <ChevronRight color={theme.textMuted} size={18} />
             </TouchableOpacity>

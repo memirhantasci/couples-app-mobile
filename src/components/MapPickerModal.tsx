@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, StatusBar, TextInput } from "react-native";
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, StatusBar, TextInput, Keyboard } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { showPermissionDeniedDialog } from "@/lib/permissions";
 import { DialogHost } from "@/components/ui/DialogHost";
@@ -165,6 +165,8 @@ export function MapPickerModal({
   const handleSearchAddress = async () => {
     const query = searchQuery.trim();
     if (!query) return;
+    // Klavye kapanır: aksi halde alttaki "Bu konumu onayla" kartı klavyenin arkasında kalır
+    Keyboard.dismiss();
     setIsSearching(true);
     try {
       const res = await geocodeAddressString(query);
@@ -290,6 +292,7 @@ export function MapPickerModal({
 
   // Haritaya Tıklama
   const handleMapPress = async (e: any) => {
+    Keyboard.dismiss();
     setShowThemePicker(false);
     const coord = e.nativeEvent?.coordinate;
     if (coord && coord.latitude && coord.longitude) {

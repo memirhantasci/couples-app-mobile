@@ -16,12 +16,12 @@ import { StorageImage } from "@/components/common/StorageImage";
 import { useQueryClient } from "@tanstack/react-query";
 import { logger } from "@/utils/logger";
 import { decode } from "base64-arraybuffer";
-import { Save, ImagePlus } from "lucide-react-native";
+import { Save, ImagePlus, Calendar as CalendarIcon, RefreshCw, Sparkles } from "lucide-react-native";
 import { dayjs, todayString, formatLongDate } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { KeyboardAwareScrollView } from "@/components/ui/KeyboardAwareScrollView";
 import { sanitize } from "@/utils/sanitize";
 import { useDemoAction } from "@/hooks/useDemoAction";
 import { useNotificationPriming } from "@/hooks/useNotificationPriming";
@@ -234,85 +234,64 @@ export default function AddMemoryScreen() {
     <ScreenBackground>
 
       <View style={{ flex: 1 }}>
-        <ScreenHeader title={isEditing ? t("memories.add.editTitle") : t("memories.add.newTitle")} fallbackRoute="/(tabs)/memories" />
+        <ScreenHeader
+          title={isEditing ? t("memories.add.editTitle") : t("memories.add.newTitle")}
+          subtitle={t("memories.subtitle")}
+          fallbackRoute="/(tabs)/memories"
+        />
 
         {/* Klavye açılınca odaktaki alan (Açıklama) ve Kaydet butonu klavyenin üstüne kayar (iOS + Android) */}
         <KeyboardAwareScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={StyleSheet.flatten([styles.content, { paddingBottom: insets.bottom + 100 }])}
+          contentContainerStyle={StyleSheet.flatten([styles.content, { paddingBottom: insets.bottom + 120 }])}
           showsVerticalScrollIndicator={false}
           enableOnAndroid
-          extraScrollHeight={24}
+          extraScrollHeight={90}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.textSecondary }, errors.title && { color: "red" }]}>{t("home.meeting.titleLabel")}</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.unitBg, color: theme.text, borderColor: theme.cardBorder, borderWidth: 1 }, errors.title && { borderColor: "red" }]}
-              value={title}
-              onChangeText={(text) => {
-                setTitle(text);
-                setErrors(prev => ({ ...prev, title: false }));
-              }}
-              placeholder={t("memories.add.titlePlaceholder")}
-              placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.4)"}
-              maxLength={100}
-            />
-          </View>
+          {/* FOTOĞRAF KARTI */}
+          <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
+            <View style={styles.cardHeaderRow}>
+              <Text style={styles.cardHeaderTitle}>{t("memories.add.photoLabel")}</Text>
+            </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.textSecondary }, errors.date && { color: "red" }]}>{t("common.date")}</Text>
-            <TouchableOpacity
-              style={[styles.input, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder, borderWidth: 1 }, errors.date && { borderColor: "red" }]}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Text style={{ color: date ? theme.text : (isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.4)") }}>
-                {date ? formatLongDate(date, i18n.language) : t("memories.add.selectDate")}
-              </Text>
-            </TouchableOpacity>
-
-            <LazyDateTimePickerSheet
-              visible={showDatePicker}
-              mode="date"
-              title={t("memories.add.dateTitle")}
-              value={date ? dayjs(date).toDate() : new Date()}
-              onCancel={() => setShowDatePicker(false)}
-              onConfirm={(selectedDate) => {
-                setShowDatePicker(false);
-                setDate(dayjs(selectedDate).format("YYYY-MM-DD"));
-                setErrors(prev => ({ ...prev, date: false }));
-              }}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>{t("memories.add.descriptionLabel")}</Text>
-            <TextInput
-              style={[styles.input, styles.textArea, { backgroundColor: theme.unitBg, color: theme.text, borderColor: theme.cardBorder, borderWidth: 1 }]}
-              value={description}
-              onChangeText={setDescription}
-              placeholder={t("memories.add.descriptionPlaceholder")}
-              placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.4)"}
-              multiline
-              maxLength={1000}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>{t("memories.add.photoLabel")}</Text>
             <View style={styles.imageFrame}>
-              <TouchableOpacity style={[styles.imagePicker, { backgroundColor: theme.unitBg, borderColor: theme.cardBorder, borderWidth: 1 }]} onPress={pickImage}>
+              <TouchableOpacity
+                style={
+                  localImage || imagePath
+                    ? styles.photoPreviewFrame
+                    : [styles.imagePickerBox, { backgroundColor: theme.unitBg, borderColor: theme.inputBorder }]
+                }
+                onPress={pickImage}
+                activeOpacity={0.88}
+              >
                 {localImage ? (
-                  <Image source={{ uri: localImage.uri }} style={styles.previewImg} contentFit="cover" />
+                  <View style={styles.previewWrapper}>
+                    <Image source={{ uri: localImage.uri }} style={styles.previewImg} contentFit="cover" />
+                    <View style={styles.changeImageBadge}>
+                      <RefreshCw size={13} color="#ffffff" />
+                      <Text style={styles.changeImageText}>{t("photos.add.change")}</Text>
+                    </View>
+                  </View>
                 ) : imagePath ? (
-                  <StorageImage bucket="memories" path={imagePath} style={styles.previewImg} contentFit="cover" />
+                  <View style={styles.previewWrapper}>
+                    <StorageImage bucket="memories" path={imagePath} style={styles.previewImg} contentFit="cover" />
+                    <View style={styles.changeImageBadge}>
+                      <RefreshCw size={13} color="#ffffff" />
+                      <Text style={styles.changeImageText}>{t("photos.add.change")}</Text>
+                    </View>
+                  </View>
                 ) : (
-                  <View style={styles.imagePlaceholder}>
-                    <ImagePlus color={theme.textMuted} size={32} />
-                    <Text style={[styles.imagePlaceholderText, { color: theme.textMuted }]}>{t("memories.add.chooseFromGallery")}</Text>
+                  <View style={styles.pickerPlaceholder}>
+                    <View style={[styles.iconCircle, { backgroundColor: theme.pillAccentBg }]}>
+                      <ImagePlus color={theme.accent} size={26} />
+                    </View>
+                    <Text style={styles.placeholderTitle}>{t("memories.add.chooseFromGallery")}</Text>
+                    <Text style={styles.placeholderSubtitle}>{t("photos.add.selectHint")}</Text>
                   </View>
                 )}
               </TouchableOpacity>
+
               {/* Fotoğraf anı defterine tutturulur: düzenlemede tamamen sabittir, yalnızca yeni fotoğraf seçildiğinde elle yapıştırma efekti oynar */}
               {localImage || imagePath ? (
                 <WashiCornerPair animate={isNewlyPicked} />
@@ -320,10 +299,105 @@ export default function AddMemoryScreen() {
             </View>
           </View>
 
-          <TouchableOpacity 
-            style={[styles.saveBtn, { backgroundColor: theme.accent }, loading && { opacity: 0.7 }]} 
+          {/* TARİH KARTI */}
+          <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
+            <Text style={styles.cardHeaderTitle}>{t("photos.add.timeInfo")}</Text>
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.label, { color: theme.textSecondary }, errors.date && { color: "#D85F78" }]}>
+                {t("common.date")}
+              </Text>
+              <TouchableOpacity
+                style={[
+                  styles.dateRowBtn,
+                  { backgroundColor: theme.unitBg, borderColor: theme.inputBorder },
+                  errors.date && styles.boxError,
+                ]}
+                onPress={() => setShowDatePicker(true)}
+                activeOpacity={0.75}
+              >
+                <View style={[styles.dateIconBadge, { backgroundColor: theme.pillAccentBg }]}>
+                  <CalendarIcon size={16} color={theme.accent} />
+                </View>
+                <Text
+                  style={[
+                    styles.dateBtnText,
+                    { color: date ? theme.text : isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.4)" },
+                  ]}
+                >
+                  {date ? formatLongDate(date, i18n.language) : t("memories.add.selectDate")}
+                </Text>
+              </TouchableOpacity>
+
+              <LazyDateTimePickerSheet
+                visible={showDatePicker}
+                mode="date"
+                title={t("memories.add.dateTitle")}
+                value={date ? dayjs(date).toDate() : new Date()}
+                onCancel={() => setShowDatePicker(false)}
+                onConfirm={(selectedDate) => {
+                  setShowDatePicker(false);
+                  setDate(dayjs(selectedDate).format("YYYY-MM-DD"));
+                  setErrors((prev) => ({ ...prev, date: false }));
+                }}
+              />
+            </View>
+          </View>
+
+          {/* BAŞLIK VE AÇIKLAMA KARTI */}
+          <View style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
+            <View style={styles.cardHeaderRow}>
+              <Sparkles size={15} color={theme.accent} />
+              <Text style={styles.cardHeaderTitle}>{t("photos.add.details")}</Text>
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.label, { color: theme.textSecondary }, errors.title && { color: "#D85F78" }]}>
+                {t("home.meeting.titleLabel")}
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  { backgroundColor: theme.unitBg, color: theme.text, borderColor: theme.inputBorder, borderWidth: 1 },
+                  errors.title && styles.boxError,
+                ]}
+                value={title}
+                onChangeText={(text) => {
+                  setTitle(text);
+                  setErrors((prev) => ({ ...prev, title: false }));
+                }}
+                placeholder={t("memories.add.titlePlaceholder")}
+                placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.4)"}
+                maxLength={100}
+              />
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>{t("memories.add.descriptionLabel")}</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  styles.textArea,
+                  { backgroundColor: theme.unitBg, color: theme.text, borderColor: theme.inputBorder, borderWidth: 1 },
+                ]}
+                value={description}
+                onChangeText={setDescription}
+                placeholder={t("memories.add.descriptionPlaceholder")}
+                placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.4)"}
+                multiline
+                maxLength={1000}
+              />
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.saveBtn,
+              { backgroundColor: theme.accent, shadowColor: theme.accent },
+              loading && { opacity: 0.7 },
+            ]}
             onPress={handleSave}
             disabled={loading}
+            activeOpacity={0.85}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
@@ -371,82 +445,165 @@ const createStyles = (theme: AppTheme) => {
   const isLight = theme.isLight;
 
   return StyleSheet.create({
-    header: {
+    content: {
+      paddingHorizontal: 16,
+      paddingTop: 4,
+      paddingBottom: 120,
+      gap: 14,
+    },
+    card: {
+      borderRadius: 22,
+      borderWidth: 1,
+      padding: 16,
+      gap: 12,
+    },
+    cardHeaderRow: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: 20,
-      paddingBottom: 20,
+      gap: 7,
     },
-    headerTitle: {
-      fontSize: 28,
-      fontFamily: "Inter_700Bold",
+    cardHeaderTitle: {
+      fontSize: 14,
+      fontFamily: "Inter_600SemiBold",
       color: theme.text,
-      letterSpacing: -0.5,
+      letterSpacing: -0.2,
     },
-    content: {
-      padding: 20,
-      paddingBottom: 100,
-    },
-    inputGroup: {
-      marginBottom: 20,
+    fieldGroup: {
+      gap: 6,
     },
     label: {
-      fontSize: 13,
+      fontSize: 12.5,
       color: isLight ? theme.textSecondary : "rgba(255,255,255,0.7)",
-      marginBottom: 8,
       fontFamily: "Inter_500Medium",
     },
     input: {
-      borderRadius: 16,
+      borderRadius: 14,
       color: theme.text,
-      fontSize: 15,
-      paddingHorizontal: 16,
-      paddingVertical: 14,
+      fontSize: 14.5,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
       fontFamily: "Inter_400Regular",
     },
-    textArea: {
-      minHeight: 100,
-      textAlignVertical: "top",
+    boxError: {
+      borderColor: "#D85F78",
+      borderWidth: 1.5,
     },
-    imageFrame: {
-      position: "relative",
-      marginTop: 6,
+    dateRowBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 11,
+      borderRadius: 14,
+      borderWidth: 1,
     },
-    imagePicker: {
-      borderRadius: 16,
-      overflow: "hidden",
-      height: 180,
-    },
-    imagePlaceholder: {
-      flex: 1,
+    dateIconBadge: {
+      width: 32,
+      height: 32,
+      borderRadius: 10,
       alignItems: "center",
       justifyContent: "center",
     },
-    imagePlaceholderText: {
-      color: isLight ? theme.textMuted : "rgba(255,255,255,0.4)",
-      marginTop: 8,
-      fontSize: 13,
+    dateBtnText: {
+      fontSize: 14.5,
+      fontFamily: "Inter_500Medium",
+      flex: 1,
+    },
+    textArea: {
+      minHeight: 108,
+      textAlignVertical: "top",
+      lineHeight: 20,
+    },
+    imageFrame: {
+      position: "relative",
+    },
+    imagePickerBox: {
+      borderRadius: 16,
+      borderWidth: 1,
+      minHeight: 180,
+      overflow: "hidden",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    photoPreviewFrame: {
+      width: "100%",
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+      backgroundColor: theme.unitBg,
+      overflow: "hidden",
+    },
+    previewWrapper: {
+      width: "100%",
+      height: 200,
+    },
+    pickerPlaceholder: {
+      alignItems: "center",
+      padding: 22,
+      gap: 6,
+    },
+    iconCircle: {
+      width: 54,
+      height: 54,
+      borderRadius: 27,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 4,
+    },
+    placeholderTitle: {
+      fontSize: 14.5,
+      fontFamily: "Inter_600SemiBold",
+      color: theme.text,
+    },
+    placeholderSubtitle: {
+      fontSize: 12,
       fontFamily: "Inter_400Regular",
+      color: theme.textSecondary,
+      textAlign: "center",
+      lineHeight: 17,
+      paddingHorizontal: 12,
     },
     previewImg: {
       width: "100%",
       height: "100%",
-      resizeMode: "cover",
+    },
+    changeImageBadge: {
+      position: "absolute",
+      top: 12,
+      right: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: "rgba(0,0,0,0.65)",
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.2)",
+    },
+    changeImageText: {
+      color: "#ffffff",
+      fontSize: 12,
+      fontFamily: "Inter_500Medium",
     },
     saveBtn: {
+      height: 52,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
       gap: 8,
-      paddingVertical: 18,
-      borderRadius: 20,
-      marginTop: 10,
+      borderRadius: 16,
+      marginTop: 4,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 10,
+      elevation: 4,
     },
     saveBtnText: {
       color: "#fff",
-      fontSize: 16,
+      fontSize: 15.5,
       fontFamily: "Inter_700Bold",
-    }
+      letterSpacing: -0.2,
+    },
   });
 };

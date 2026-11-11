@@ -23,7 +23,8 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { UserAvatar } from "@/components/avatar/UserAvatar";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { KeyboardAwareScrollView } from "@/components/ui/KeyboardAwareScrollView";
+import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2, MapPin, Pencil, Plus, Calendar, Clock, Navigation, Check, X, Heart } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -59,6 +60,7 @@ export default function MeetingsScreen() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
+  const keyboardHeight = useKeyboardHeight();
 
   const coupleId = profile?.coupleId;
   const userId = session?.user?.id ? session.user.id : null;
@@ -533,7 +535,7 @@ export default function MeetingsScreen() {
 
       {/* ─── YENİ BULUŞMA EKLEME / DÜZENLEME MODALI ─── */}
       <Modal visible={showFormModal} animationType="slide" transparent onRequestClose={handleCancelEdit}>
-        <View style={styles.modalBackdrop}>
+        <View style={[styles.modalBackdrop, { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 12 : 18 }]}>
           <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
             {/* Header */}
             <View style={[styles.modalHeader, { borderBottomColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
@@ -557,7 +559,7 @@ export default function MeetingsScreen() {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: 16, gap: 14 }}
               enableOnAndroid={true}
-              extraScrollHeight={130}
+              extraScrollHeight={96}
               keyboardShouldPersistTaps="handled"
             >
               {/* Buluşma Başlığı */}
@@ -569,6 +571,7 @@ export default function MeetingsScreen() {
                     { 
                       backgroundColor: theme.unitBg,
                       color: theme.text,
+                      borderWidth: 1,
                       borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.08)"
                     }
                   ]}
@@ -589,6 +592,7 @@ export default function MeetingsScreen() {
                       styles.pickerBtn, 
                       { 
                         backgroundColor: theme.unitBg,
+                        borderWidth: 1,
                         borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.08)"
                       }
                     ]} 
@@ -606,6 +610,7 @@ export default function MeetingsScreen() {
                       styles.pickerBtn, 
                       { 
                         backgroundColor: theme.unitBg,
+                        borderWidth: 1,
                         borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.08)"
                       }
                     ]} 
@@ -620,14 +625,27 @@ export default function MeetingsScreen() {
               {/* Konum Belirleme */}
               <View style={{ gap: 6 }}>
                 <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{t("meetings.form.locationLabel")}</Text>
-                <View style={[styles.locationInputBox, { backgroundColor: theme.unitBg, borderColor: isLight ? theme.inputBorder : "rgba(255,255,255,0.08)" }]}>
+                <View
+                  style={[
+                    styles.locationInputBox,
+                    {
+                      backgroundColor: theme.unitBg,
+                      borderColor:
+                        latitude !== null && longitude !== null
+                          ? `${theme.accent}55`
+                          : isLight
+                          ? theme.inputBorder
+                          : "rgba(255,255,255,0.08)",
+                    },
+                  ]}
+                >
+                  <MapPin size={16} color={theme.textMuted} style={{ marginLeft: 12 }} />
                   <TextInput
                     style={[
-                      styles.locationTextInput, 
-                      { 
-                        backgroundColor: theme.unitBg,
+                      styles.locationTextInput,
+                      {
                         color: theme.text,
-                      }
+                      },
                     ]}
                     placeholder={t("meetings.form.locationPlaceholder")}
                     placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
@@ -635,13 +653,32 @@ export default function MeetingsScreen() {
                     onChangeText={setLocationName}
                     maxLength={100}
                   />
-                  <TouchableOpacity 
-                    style={[styles.mapOpenBtn, { backgroundColor: theme.pillAccentBg }]} 
+                  <TouchableOpacity
+                    style={[
+                      styles.mapOpenBtn,
+                      {
+                        backgroundColor:
+                          latitude !== null && longitude !== null ? theme.accent : theme.pillAccentBg,
+                        borderColor:
+                          latitude !== null && longitude !== null ? theme.accent : `${theme.accent}35`,
+                      },
+                    ]}
                     onPress={() => setShowMapModal(true)}
-                    activeOpacity={0.8}
+                    activeOpacity={0.82}
                   >
-                    <MapPin size={15} color={theme.accent} />
-                    <Text style={[styles.mapOpenBtnText, { color: theme.accent }]}>{t("tabs.map.label")}</Text>
+                    {latitude !== null && longitude !== null ? (
+                      <Check size={14} color="#FFFFFF" strokeWidth={2.5} />
+                    ) : (
+                      <MapPin size={14} color={theme.accent} />
+                    )}
+                    <Text
+                      style={[
+                        styles.mapOpenBtnText,
+                        { color: latitude !== null && longitude !== null ? "#FFFFFF" : theme.accent },
+                      ]}
+                    >
+                      {t("tabs.map.label")}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1044,14 +1081,16 @@ const createStyles = (theme: AppTheme) => {
     },
     locationInputBox: {
       flexDirection: "row",
-      gap: 8,
       alignItems: "center",
+      borderRadius: 14,
+      borderWidth: 1,
+      paddingRight: 5,
+      minHeight: 48,
     },
     locationTextInput: {
       flex: 1,
-      borderRadius: 14,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
+      paddingHorizontal: 10,
+      paddingVertical: 11,
       color: theme.text,
       fontSize: 14.5,
       fontFamily: "Inter_400Regular",
@@ -1060,12 +1099,13 @@ const createStyles = (theme: AppTheme) => {
       flexDirection: "row",
       alignItems: "center",
       gap: 5,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      borderRadius: 14,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 10,
+      borderWidth: 1,
     },
     mapOpenBtnText: {
-      fontSize: 13,
+      fontSize: 12.5,
       fontFamily: "Inter_700Bold",
     },
     saveBtn: {

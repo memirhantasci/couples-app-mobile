@@ -23,7 +23,7 @@ const SOUND_ASSETS: Record<SoundEffectType, any> = {
   celestial_chime: require('../../assets/sounds/celestial_chime.wav'),
 };
 
-const COSMIC_AMBIENT_ASSET = require('../../assets/sounds/cosmic_ambient.wav');
+const COSMIC_AMBIENT_ASSET = require('../../assets/sounds/cosmic_ambient.m4a');
 
 const STORAGE_KEY_SOUND = '@app_sound_effects_enabled';
 const STORAGE_KEY_HAPTIC = '@app_haptic_feedback_enabled';
@@ -120,6 +120,10 @@ export function warmUpSoundEffects(): void {
   try {
     for (const key of Object.keys(SOUND_ASSETS) as SoundEffectType[]) {
       getOrCreateSlot(key);
+    }
+    if (!ambientPlayer) {
+      ambientPlayer = createAudioPlayer(COSMIC_AMBIENT_ASSET);
+      ambientPlayer.loop = true;
     }
   } catch (err) {
     logger.log('[SoundEffects] Warm-up notice:', err);
@@ -506,9 +510,9 @@ if (Platform.OS !== 'web') {
         return;
       }
       try {
-        ambientPlayer.volume = 0;
+        ambientPlayer.volume = 0.08;
         ambientPlayer.play();
-        fadeAmbient(0.32, 1400);
+        fadeAmbient(0.35, 450);
       } catch {}
     }
   });
@@ -568,12 +572,12 @@ export async function startCosmicAmbient(): Promise<void> {
       ambientPlayer = createAudioPlayer(COSMIC_AMBIENT_ASSET);
       ambientPlayer.loop = true;
     }
-    ambientPlayer.volume = 0;
+    ambientPlayer.volume = 0.08;
     try {
       ambientPlayer.seekTo(0);
     } catch {}
     ambientPlayer.play();
-    fadeAmbient(0.32, 1400);
+    fadeAmbient(0.35, 450);
   } catch (err) {
     logger.log('[SoundEffects] Cosmic ambient start notice:', err);
   }

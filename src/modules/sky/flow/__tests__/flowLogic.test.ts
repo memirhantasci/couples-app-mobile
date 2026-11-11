@@ -3,6 +3,7 @@ import { computeSky, SkyInputError, type SkyResult } from "../../astronomy";
 import {
   buildDateOptions,
   buildSkyRequest,
+  clampTimeIfToday,
   cleanPlaceName,
   dateFromTime,
   dateRejection,
@@ -138,6 +139,14 @@ describe("yer ve saat", () => {
     for (const bad of ["24:00", "9:00", "22:60", "", null, 2200]) expect(isValidTime(bad)).toBe(false);
     expect(timeFromDate(dateFromTime("07:05"))).toBe("07:05");
     expect(timeFromDate(dateFromTime("bozuk"))).toBe(DEFAULT_SKY_TIME);
+  });
+
+  it("bugün seçiliyse gelecekteki saati şu anki saate çeker, geçmiş günde dokunmaz", () => {
+    const fakeNow = new Date(2026, 10, 9, 14, 30); // 2026-11-09 14:30
+    expect(clampTimeIfToday("2026-11-09", "22:00", fakeNow)).toBe("14:30");
+    expect(clampTimeIfToday("2026-11-09", "12:15", fakeNow)).toBe("12:15");
+    expect(clampTimeIfToday("2026-11-08", "22:00", fakeNow)).toBe("22:00");
+    expect(clampTimeIfToday(null, "22:00", fakeNow)).toBe("22:00");
   });
 });
 

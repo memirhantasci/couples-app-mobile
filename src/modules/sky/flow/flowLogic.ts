@@ -147,6 +147,17 @@ export function timeFromDate(date: Date): string {
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
+/**
+ * Seçilen gün bugünse ve verilen saat henüz gelmediyse şu anki saate ("HH:mm") çeker.
+ * Geçmiş günlerde saat olduğu gibi korunur.
+ */
+export function clampTimeIfToday(date: string | null, time: string, now: Date = new Date()): string {
+  const safe = isValidTime(time) ? time : DEFAULT_SKY_TIME;
+  if (!date || date !== formatYmd(now)) return safe;
+  const nowHm = timeFromDate(now);
+  return safe > nowHm ? nowHm : safe;
+}
+
 /** 'HH:mm' → seçicinin başlangıç değeri (bugünün tarihinde o saat). */
 export function dateFromTime(time: string): Date {
   const match = TIME_PATTERN.exec(time) ?? TIME_PATTERN.exec(DEFAULT_SKY_TIME)!;

@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
+  Keyboard,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
@@ -14,7 +15,7 @@ import Animated, { Easing, FadeIn, FadeInDown, useAnimatedStyle, useSharedValue,
 import { appAlert } from "@/lib/dialog";
 import { Image } from "expo-image";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { KeyboardAwareScrollView } from "@/components/ui/KeyboardAwareScrollView";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import { File } from "expo-file-system";
@@ -134,6 +135,7 @@ export default function AddPhotoScreen() {
   const handleQuickGeocode = async () => {
     const query = manualAddressInput.trim();
     if (!query) return;
+    Keyboard.dismiss();
     setIsSearchingAddress(true);
     try {
       const res = await geocodeAddressString(query);
