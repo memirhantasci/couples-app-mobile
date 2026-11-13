@@ -72,7 +72,7 @@ import { CoupleAvatarRing } from "@/components/home/CoupleAvatarRing";
 import { useCoupleAvatars } from "@/hooks/useCoupleAvatars";
 import { LazySpotlightTour, LazyCoupleWrappedModal, LazyPremiumPaywall, LazyStellarHibernationModal } from "@/components/ui/lazyMount";
 import { useTranslation } from "react-i18next";
-import { istanbulToday } from "@/lib/letterPolicy";
+import { istanbulToday, LETTERS_READ_SOURCE } from "@/lib/letterPolicy";
 
 export default function HomeScreen() {
   const { t, i18n } = useTranslation();
@@ -257,7 +257,7 @@ export default function HomeScreen() {
           : Promise.resolve({ data: [] }),
         coupleId
           ? supabase
-            .from("letters")
+            .from(LETTERS_READ_SOURCE)
             .select("id, unlock_date, sender_id")
             .eq("couple_id", coupleId)
             .eq("receiver_id", userId)

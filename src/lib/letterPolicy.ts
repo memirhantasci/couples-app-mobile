@@ -11,6 +11,14 @@
 const HOUR_MS = 60 * 60 * 1000;
 
 /**
+ * Mektup OKUMALARININ kaynağı: public.my_letters görünümü (migration 20261113000001). letters tablosuyla aynı
+ * sütunlar + is_locked; alıcı için kilidi açılmamış mektupta title ve content sunucuda boşaltılır, kilit
+ * yalnızca istemcide kalmaz. Yazma işlemleri RPC ile yapılır (save_letter, set_letter_hidden, ...), tabloya
+ * doğrudan gidilmez. Yeni bir okuma eklerken tabloyu değil bunu kullan (bkz. letterReadSource.test.ts).
+ */
+export const LETTERS_READ_SOURCE = "my_letters";
+
+/**
  * Mektuplar unlock_date gününün 00:00'ında, Türkiye saatiyle (Europe/Istanbul, UTC+3) açılır; sunucudaki
  * public.app_today() / letter_unlock_at ile aynı kural (bkz. migration 20261030000003). Türkiye'de yaz saati yoktur.
  */

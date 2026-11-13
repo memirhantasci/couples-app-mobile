@@ -4,6 +4,7 @@ import { DEMO_MAP_LOCATIONS, DEMO_PHOTOS } from "@/constants/demoData";
 import i18n from "@/lib/i18n";
 import type { ParseKeys } from "i18next";
 import { computeCoupleArchetype, type CoupleArchetype } from "@/utils/coupleArchetype";
+import { LETTERS_READ_SOURCE } from "@/lib/letterPolicy";
 
 export interface CoupleWrappedData {
   periodTitle: string; // örn. "Ekim 2024 Özeti" veya "2024 Yılı Özeti"
@@ -117,7 +118,7 @@ export async function computeCoupleWrapped(
     moodsRes,
   ] = await Promise.all([
     supabase
-      .from("letters")
+      .from(LETTERS_READ_SOURCE)
       .select("id, created_at")
       .eq("couple_id", coupleId)
       .gte("created_at", periodStart)

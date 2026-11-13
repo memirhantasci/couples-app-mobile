@@ -1,6 +1,6 @@
 import { safeStorage } from "@/lib/safeStorage";
 import { supabase } from "@/lib/supabase";
-import { letterUnlockAt } from "@/lib/letterPolicy";
+import { letterUnlockAt, LETTERS_READ_SOURCE } from "@/lib/letterPolicy";
 import { dayjs } from "@/lib/date";
 import { logger } from "@/utils/logger";
 
@@ -54,7 +54,7 @@ export async function fetchWidgetUnread(userId: string, coupleId: number): Promi
 
     const [recentRes, pendingRes, unlocksRes] = await Promise.all([
       supabase
-        .from("letters")
+        .from(LETTERS_READ_SOURCE)
         .select("unlock_date, created_at")
         .eq("couple_id", coupleId)
         .eq("receiver_id", userId)
@@ -62,7 +62,7 @@ export async function fetchWidgetUnread(userId: string, coupleId: number): Promi
         .order("created_at", { ascending: false })
         .limit(MAX_RECENT_LETTERS),
       supabase
-        .from("letters")
+        .from(LETTERS_READ_SOURCE)
         .select("id", { count: "exact", head: true })
         .eq("couple_id", coupleId)
         .eq("receiver_id", userId)

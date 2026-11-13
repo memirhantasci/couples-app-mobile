@@ -201,7 +201,8 @@ RLS + SECURITY DEFINER RPC'ler, günlük ve mektup AES-256, silme kuyruğu (`sto
 - ⚠️ Mektup kilidi yalnızca istemcide; alıcı API ile erken okuyabilir (yayın sonrası, yeni build + sunucu politikası).
 - ⚠️ "Tekrar gönder" geri sayımı arka planda duruyor (`verify-device.tsx:52-57`, `verify.tsx:213`).
 - ⚠️ Widget'lar gerçek cihazda test edilmedi; silme/Premium akışı cihazda test bekliyor.
-- ⚠️ Ödüllü reklam SSV yok; iOS SKAdNetwork eksik; mektup açılış bildirimi 09:00/00:00 uyumsuz.
+- ⚠️ Ödüllü reklam SSV yok. (2026-11-13: iOS SKAdNetwork kimlikleri eklendi, mektup açılış bildirimi açılış anına çekildi; ikisi de sonraki build ile çıkar.)
+- ⚠️ Mektup zaman kilidi: okumalar `my_letters` görünümünde (kilitli mektupta başlık/içerik sunucuda boş), ama tablo politikası henüz sıkılaştırılmadı; 2. adım `docs/BILINEN_SINIRLAR_VE_YAYIN_SONRASI_ISLER.md` bölüm 1.
 - ⚠️ Apple token iptali anahtarı bekliyor; cihaz doğrulama sunucuda zorlanmıyor.
 - ⚠️ Promosyon kodu kalıntısı; `report-alert` repoda var ama kurulu değil; GitHub deposu gizliliği; Maps anahtarı taşıması.
 

@@ -39,11 +39,11 @@ Bitmeyenler:
 - ~~Tekrar gönder geri sayımı arka planda duruyor~~ **düzeltildi (2026-11-13, yeni build/OTA ister):** `verify-device.tsx` sayacı artık bitiş anına (saat) bağlı; kalan süre her saniye ve uygulama öne gelince `remainingCooldownSeconds` (`src/lib/otp.ts`, testli) ile hesaplanır. Cihazda doğrulanmadı.
 - **Maps anahtarını couplesapp94 hesabına taşı:** Maps Production Key şu an emirhanekin52 hesabındaki `project-a4ab81ef…` projesinde (fatura hesabı orada). Anahtar projeler arası taşınmaz: couplesky-c50c5'e fatura hesabı bağla, yeni anahtar oluştur (aynı paket+SHA-1 kısıtı), `app.json` anahtarını değiştir, yeni Android build al, eskiyi sil.
 - **Ödüllü reklam SSV (Y-3):** reklam token'ı istemci beyanına dayanıyor; günde 25 sınırı var. AdMob Server-Side Verification ekle.
-- **iOS ATT / SKAdNetwork (G-19):** `app.json` AdMob eklentisinde `skAdNetworkItems` yok (reklam gelirini ve atfı etkiler).
+- **iOS ATT / SKAdNetwork (G-19):** `skAdNetworkItems` eklendi (2026-11-13, Google'ın AdMob sayfasındaki 50 kimlik; bir sonraki iOS build'iyle Info.plist'e girer). Aracılık (mediation) ağı eklenirse o ağın kimlikleri ayrıca eklenmeli. ATT izni ayrı konu, hâlâ yok.
 - **Promosyon kodu kalıntısı:** Uygulamadan kaldırıldı ve `promo_codes` boş, ama `redeem_promo_code` RPC'si ve tablolar duruyor;
   istemci yetkisini kaldır ya da sil. (`max_uses` kontrolü kilitsiz, ama aktif kod yok.)
   **2026-11-13:** yetkiyi alan migration yazıldı: `20261113000000_revoke_promo_code_rpc.sql` (**2026-11-13'te canlıya uygulandı**; istemci rolleri artık 42501 alıyor). Mağazaya çıkan build'lerin hiçbiri RPC'yi çağırmıyor.
-- **Mektup açılış bildirimi (G-30, G-15):** yerel bildirim 09:00, mektup Türkiye 00:00'da açılıyor; sunucu bildirimi kapalı,
+- **Mektup açılış bildirimi (G-30, G-15):** yerel bildirim artık açılış anında (açılış günü 00:00 Türkiye saati) geliyor (2026-11-13, `reminderSync.ts`; eskiden yerel 09:00). Sunucu bildirimi kapalı,
   bildirim yalnızca cihaz senkronuna bağlı.
 - **Cihaz doğrulama yalnızca istemci kapısı (G-17):** sunucuda zorlanmıyor; "güvenlik" diye sunma ya da gateway'de zorunlu kıl.
 - ~~Ölü bağlantı (G-27)~~ **kapatıldı (2026-11-13, yeni build/OTA ister):** `couplesapp://reset-password` artık tanınıp yok sayılıyor (`legacy-reset-password`, `src/lib/deepLinks.ts`); sıfırlama ekranını e-postasız açmıyor.
@@ -57,6 +57,19 @@ Bitmeyenler:
   `report-alert` Edge Function'ı repoda duruyor ama kurulmadı (vazgeçilmişti): sil ya da kur.
 
 ## 1. Zaman kilitli mektup: kilit yalnızca istemci tarafında (öncelikli)
+
+> **Güncelleme 2026-11-13: 1. adım canlıda, 2. adım bekliyor.**
+> - **Yapıldı:** `public.my_letters` görünümü (migration `20261113000001`, canlıya uygulandı). Alıcı için kilitli mektupta `title` ve `content` boş gelir, diğer sütunlar aynen; gönderen tam görür. İstemcideki 9 okumanın hepsi görünüme taşındı (`LETTERS_READ_SOURCE`, `src/lib/letterPolicy.ts`; koruma testi `letterReadSource.test.ts`). Aşağıdaki plandaki iki RPC yerine tek görünüm seçildi: istemci sorguları (filtre, sıralama, sayım) değişmeden çalışıyor.
+> - **Açık hâlâ açık:** `letters_select` alıcıya tabloyu doğrudan okutmaya devam ediyor (eski sürümler buna bağlı). Kilit ancak 2. adımla sunucuda zorlanır.
+> - **2. adım (yeni istemci mağazalarda yayıldıktan sonra; erken uygulanırsa eski sürümlerde gelen mektuplar kaybolur):**
+>   ```sql
+>   BEGIN;
+>   DROP POLICY letters_select ON public.letters;
+>   CREATE POLICY letters_select ON public.letters FOR SELECT USING (sender_id = (SELECT auth.uid()));
+>   COMMIT;
+>   ```
+>   Canlıda ROLLBACK'li provası 2026-11-13'te yapıldı: alıcı tablodan 0 satır, görünümden maskeli satırları aldı. Önce görünümü kullanmayan sürümler (iOS ≤ 20, Android ≤ 12) zorunlu güncellemeyle (`docs/ZORUNLU_GUNCELLEME.md`) kapatılmalı ya da kullanım dışı kalmalı.
+
 
 **Durum:** Alıcı, kilidi henüz açılmamış (`unlock_date` gelecekte) bir mektubun satırını, şifreli içerik dahil,
 Supabase'ten doğrudan okuyabiliyor. Mektubu "açılmış" göstermemek ve içeriği çözmemek uygulamanın kendi kodunda;

@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { dayjs } from "@/lib/date";
-import { isAwaitingPurge } from "@/lib/letterPolicy";
+import { isAwaitingPurge, LETTERS_READ_SOURCE } from "@/lib/letterPolicy";
 import { DEMO_LETTERS, DEMO_MEETINGS, DEMO_PHOTOS, DEMO_PROFILE } from "@/constants/demoData";
 import type { PhotoItem } from "@/components/photos/photoTypes";
 import i18n from "@/lib/i18n";
@@ -37,14 +37,14 @@ export async function fetchLetters(params: {
   }
   const [receivedRes, sentRes, usersRes] = await Promise.all([
     supabase
-      .from("letters")
+      .from(LETTERS_READ_SOURCE)
       .select("*")
       .eq("couple_id", coupleId)
       .eq("receiver_id", userId)
       .order("created_at", { ascending: false })
       .limit(pageLimit),
     supabase
-      .from("letters")
+      .from(LETTERS_READ_SOURCE)
       .select("*")
       .eq("couple_id", coupleId)
       .eq("sender_id", userId)

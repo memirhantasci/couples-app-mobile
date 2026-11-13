@@ -1,7 +1,7 @@
 import { safeStorage } from "@/lib/safeStorage";
 import { supabase } from "@/lib/supabase";
 import { logger } from "@/utils/logger";
-import { LETTER_TZ_OFFSET } from "@/lib/letterPolicy";
+import { LETTER_TZ_OFFSET, LETTERS_READ_SOURCE } from "@/lib/letterPolicy";
 
 // ─── Yeni Gelen Mektup Algılama ──────────────────────────────────────────────
 // Kullanıcı uygulamaya girdiğinde, partnerinden kendisi görmeden gelmiş mektup varsa
@@ -104,7 +104,7 @@ export async function fetchArrivedLetters(
       // gönderilmiş olabilir; hepsini "görülmüş" saymak ilk girişteki karşılamayı yutuyordu.
       const cutoff = new Date(Date.now() - FIRST_RUN_WINDOW_MS).toISOString();
       const { data, error } = await supabase
-        .from("letters")
+        .from(LETTERS_READ_SOURCE)
         .select("created_at")
         .eq("couple_id", coupleId)
         .eq("receiver_id", userId)
@@ -121,7 +121,7 @@ export async function fetchArrivedLetters(
     const seenAt: string = storedSeenAt;
 
     const { data, error } = await supabase
-      .from("letters")
+      .from(LETTERS_READ_SOURCE)
       .select("id, created_at, unlock_date, sender_id")
       .eq("couple_id", coupleId)
       .eq("receiver_id", userId)

@@ -10,6 +10,7 @@ import {
 } from "@/lib/notifications";
 import i18n from "@/lib/i18n";
 import { nextDayMilestone } from "@/lib/milestoneDays";
+import { letterUnlockAt } from "@/lib/letterPolicy";
 
 /**
  * Yerel (cihazda zamanlanan) hatırlatıcıların tek doğruluk kaynağı.
@@ -30,8 +31,6 @@ const DAY_MILESTONE_PREFIX = "day_milestone_";
 /** "Birlikte 100. gün" bildirimi, dönüm noktası gününün bu saatinde (yerel saat) gösterilir. */
 const DAY_MILESTONE_HOUR = 9;
 
-/** Mektup kilidi bildirimi, açılış gününün bu saatinde (yerel saat) gösterilir. */
-const LETTER_UNLOCK_HOUR = 9;
 /** Buluşmadan kaç saat önce hatırlatılır. */
 const MEETING_REMINDER_HOURS = 2;
 /** iOS en fazla 64 bekleyen yerel bildirim tutar: ilaç (günlük) bildirimlerine yer kalsın diye en yakınlar zamanlanır. */
@@ -215,7 +214,11 @@ async function syncLetterUnlocks(scheduled: ScheduledMap) {
   const keep = new Set<string>();
   const nearestDates = [...countByDate].sort(([a], [b]) => a.localeCompare(b)).slice(0, MAX_LETTER_REMINDERS);
   for (const [date, count] of nearestDates) {
-    const when = dayjs(`${date}T${String(LETTER_UNLOCK_HOUR).padStart(2, "0")}:00:00`).toDate();
+    // Bildirim mektubun açıldığı anda gelir: açılış günü 00:00 Türkiye saati (letterUnlockAt, sunucudaki
+    // letter_unlock_at ile aynı). Eskiden cihazın yerel saatiyle 09:00'du; mektup 9 saat önce açılmış oluyordu.
+    const unlockAt = letterUnlockAt({ unlock_date: date });
+    if (!Number.isFinite(unlockAt)) continue;
+    const when = new Date(unlockAt);
     if (when.getTime() <= Date.now()) continue;
 
     const id = `${LETTER_PREFIX}${date}`;

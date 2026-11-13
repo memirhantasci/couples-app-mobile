@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { todayString, dayjs } from "@/lib/date";
 import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import type { TFunction } from "i18next";
+import { LETTERS_READ_SOURCE } from "@/lib/letterPolicy";
 
 /** Aşk Skoru: 15 (min) – 100 (max) arasında sınırlandırılmış sonuç */
 export interface LoveScoreResult {
@@ -85,7 +86,7 @@ async function fetchActivityFromLiveRows(
       .eq("is_active", true)
       .lte("meeting_datetime", new Date().toISOString())
       .gte("meeting_datetime", thirtyDaysAgo),
-    supabase.from("letters").select("id, sender_id").eq("couple_id", coupleId).gte("created_at", thirtyDaysAgo),
+    supabase.from(LETTERS_READ_SOURCE).select("id, sender_id").eq("couple_id", coupleId).gte("created_at", thirtyDaysAgo),
     supabase.rpc("get_couple_note_activity", { p_today: today, p_since: sevenDaysAgo }),
     userIds.length > 0
       ? supabase.from("moods").select("id, user_id").in("user_id", userIds).eq("date", today)
