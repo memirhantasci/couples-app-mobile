@@ -1,7 +1,7 @@
 -- ============================================================================
 -- Ödüllü reklam sunucu tarafı doğrulaması (AdMob SSV): kayıt tablosu ve ödül fonksiyonu
 -- ----------------------------------------------------------------------------
--- DURUM (2026-11-13): YAZILDI, CANLIYA UYGULANMADI. Etkinleştirme: supabase/functions/admob-ssv/README.md
+-- DURUM: 2026-11-13'te canlıya uygulandı. Kalan adımlar: supabase/functions/admob-ssv/README.md
 --
 -- Bugün reklam ödülünü istemci earn_tokens('ad_reward') ile kendisi ister; sunucu reklamın izlendiğini
 -- doğrulayamaz (tek önlem 24 saatte 25 ödül). SSV'de AdMob, reklam bitince admob-ssv Edge Function'ına imzalı

@@ -1,6 +1,7 @@
 // AdMob ödüllü reklam sunucu tarafı doğrulaması (SSV).
 //
-// DURUM (2026-11-13): YAZILDI, DEPLOY EDİLMEDİ, DEVREDE DEĞİL. Etkinleştirme adımları: README.md.
+// DURUM (2026-11-13): deploy edildi, migration canlıda. AdMob panelinde geri çağrı adresi tanımlanana ve istemci
+// kullanıcı kimliğini reklama iliştirene kadar hiçbir ödül yazmaz. Kalan adımlar: README.md.
 //
 // AdMob, ödüllü reklam tamamlanınca bu adrese imzalı bir GET isteği gönderir. İmza Google'ın açık
 // anahtarlarıyla doğrulanır; token'ı yalnızca bu doğrulanmış çağrı yazar (grant_ad_reward_ssv, migration
@@ -15,6 +16,12 @@ import { isUuid, parseSsvQuery, verifySsvSignature, type SsvKey } from "./verify
 const KEYS_URL = "https://gstatic.com/admob/reward/verifier-keys.json";
 /** Anahtarlar döner; Google 24 saatten uzun önbelleğe almamayı ister. */
 const KEYS_TTL_MS = 12 * 60 * 60 * 1000;
+
+/**
+ * Ödüllü reklam birimlerimizin sayısal kimlikleri (ca-app-pub-3252755330955913/<kimlik>): Android, iOS.
+ * EXPO_PUBLIC_ADMOB_REWARDED_ID_* ile aynı olmalı. ADMOB_SSV_AD_UNITS sırrı tanımlıysa o kullanılır.
+ */
+const DEFAULT_REWARDED_AD_UNITS = ["1652675123", "2834341963"];
 
 let cachedKeys: { keys: SsvKey[]; fetchedAt: number } | null = null;
 
@@ -62,9 +69,12 @@ Deno.serve(async (req) => {
   // AdMob panelindeki "URL'yi doğrula" testi ve kullanıcı kimliği iliştirmeyen eski istemciler
   if (!isUuid(userId) || !transactionId) return json(200, { ok: true, result: "no_user" });
 
-  // İsteğe bağlı: yalnızca bizim ödüllü reklam birimlerimiz (virgülle ayrılmış sayısal birim kimlikleri)
-  const allowedUnits = (Deno.env.get("ADMOB_SSV_AD_UNITS") ?? "").split(",").map((unit) => unit.trim()).filter(Boolean);
-  if (allowedUnits.length > 0 && (!adUnit || !allowedUnits.includes(adUnit))) {
+  // ZORUNLU: yalnızca bizim ödüllü reklam birimlerimiz. Google'ın imza anahtarı bütün AdMob yayıncıları için
+  // ortaktır: bu denetim olmasa başka bir yayıncı kendi reklam biriminin SSV adresine bu fonksiyonu yazıp,
+  // kendi reklamını izleyerek buradaki bir hesaba geçerli imzalı ödül yazdırabilirdi.
+  const configuredUnits = (Deno.env.get("ADMOB_SSV_AD_UNITS") ?? "").split(",").map((unit) => unit.trim()).filter(Boolean);
+  const allowedUnits = configuredUnits.length > 0 ? configuredUnits : DEFAULT_REWARDED_AD_UNITS;
+  if (!adUnit || !allowedUnits.includes(adUnit)) {
     console.warn("admob-ssv: beklenmeyen reklam birimi:", adUnit);
     return json(200, { ok: true, result: "unknown_ad_unit" });
   }

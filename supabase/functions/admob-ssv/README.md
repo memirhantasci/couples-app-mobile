@@ -1,7 +1,6 @@
 # admob-ssv: ödüllü reklam sunucu tarafı doğrulaması
 
-**Durum (2026-11-13): yazıldı, devrede değil.** Edge Function deploy edilmedi, migration
-`20261113000002_ad_reward_ssv.sql` canlıya uygulanmadı (canlıda ROLLBACK'li denendi), istemci değişmedi.
+**Durum (2026-11-13): sunucu tarafı canlıda (1. ve 2. adım yapıldı), ödül yazmıyor.** Migration uygulandı, fonksiyon deploy edildi (sahte imzaya 403, sorgusuz isteğe 400 döndüğü doğrulandı). Kalan: 3. adım (AdMob paneli, elle) ve 4. adım (istemci).
 
 ## Neden
 
@@ -29,7 +28,10 @@ Sıra önemli: 3. adımdan önce 4. adım yapılırsa yeni istemcide hiç ödül
 1. Migration'ı uygula: `supabase db query --linked -f supabase/migrations/20261113000002_ad_reward_ssv.sql`
    (yalnızca ekler; `earn_tokens`'a dokunmaz).
 2. Deploy: `supabase functions deploy admob-ssv --no-verify-jwt --use-api`.
-   İsteğe bağlı sır: `ADMOB_SSV_AD_UNITS` (ödüllü reklam birimlerinin sayısal kimlikleri, virgülle).
+   Reklam birimi denetimi ZORUNLU: yalnızca `1652675123` (Android) ve `2834341963` (iOS) birimlerinden gelen
+   geri çağrılar ödül yazar (Google'ın imza anahtarı bütün yayıncılar için ortak; denetim olmasa başka bir
+   yayıncı kendi reklamıyla buraya ödül yazdırabilirdi). Birim değişirse `index.ts` içindeki listeyi ya da
+   `ADMOB_SSV_AD_UNITS` sırrını güncelle.
 3. **AdMob paneli (elle):** Uygulamalar > reklam birimi (iOS ve Android ödüllü birimleri ayrı ayrı) >
    Gelişmiş ayarlar > Sunucu tarafı doğrulama > geri çağrı URL'si
    `https://<proje>.supabase.co/functions/v1/admob-ssv` > "URL'yi doğrula". Test isteği kullanıcı kimliği
