@@ -5,10 +5,13 @@
  * Handles environments gracefully where RNSkiaModule is not available (e.g. Expo Go).
  */
 
+import { useState, useEffect } from 'react';
+import { Image } from 'react-native';
+import { Asset } from 'expo-asset';
 import type {
   Skia as SkiaType,
   useFont as useFontType,
-  useFonts as useFontsType,
+  SkTypefaceFontProvider,
 } from '@shopify/react-native-skia';
 
 let skiaInstance: typeof SkiaType | null = null;
@@ -16,7 +19,6 @@ let canvasComponent: any = null;
 let groupComponent: any = null;
 let pictureComponent: any = null;
 let useFontHook: typeof useFontType | null = null;
-let useFontsHook: typeof useFontsType | null = null;
 
 // New exports for MicroSystemCanvas
 let circleComponent: any = null;
@@ -42,7 +44,6 @@ try {
     groupComponent = skiaModule.Group;
     pictureComponent = skiaModule.Picture;
     useFontHook = skiaModule.useFont;
-    useFontsHook = skiaModule.useFonts;
     
     circleComponent = skiaModule.Circle;
     pathComponent = skiaModule.Path;
@@ -69,8 +70,90 @@ export const Canvas = canvasComponent;
 export const Group = groupComponent;
 export const Picture = pictureComponent;
 export const useFont = useFontHook!;
-/** Typeface provider for the Paragraph API (falls back to system fonts, e.g. emoji). */
-export const useFonts = useFontsHook!;
+
+/** Typeface provider for the Paragraph API (falls back gracefully to system fonts, e.g. emoji or on asset load failure). */
+export function useFonts(sources: Record<string, (number | string | any)[]>): SkTypefaceFontProvider | null {
+  const [fontMgr, setFontMgr] = useState<SkTypefaceFontProvider | null>(() => {
+    if (skiaInstance?.TypefaceFontProvider) {
+      try {
+        return skiaInstance.TypefaceFontProvider.Make();
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (!skiaInstance?.TypefaceFontProvider) return;
+    let cancelled = false;
+
+    const loadTypefaces = async () => {
+      try {
+        const provider = skiaInstance.TypefaceFontProvider.Make();
+        let loadedCount = 0;
+
+        for (const [familyName, typefaces] of Object.entries(sources)) {
+          for (const source of typefaces) {
+            try {
+              let uri: string | null = null;
+
+              if (typeof source === 'number') {
+                try {
+                  const asset = Asset.fromModule(source);
+                  if (!asset.downloaded) {
+                    await asset.downloadAsync();
+                  }
+                  uri = asset.localUri || asset.uri;
+                } catch {
+                  const resolved = Image.resolveAssetSource(source);
+                  uri = resolved?.uri ?? null;
+                }
+              } else if (typeof source === 'string') {
+                uri = source;
+              } else if (source && typeof source === 'object' && 'uri' in source) {
+                uri = (source as any).uri;
+              }
+
+              if (uri && skiaInstance.Data?.fromURI && skiaInstance.Typeface?.MakeFreeTypeFaceFromData) {
+                const data = await skiaInstance.Data.fromURI(uri);
+                if (data) {
+                  const tf = skiaInstance.Typeface.MakeFreeTypeFaceFromData(data);
+                  if (tf) {
+                    provider.registerFont(tf, familyName);
+                    loadedCount++;
+                  }
+                }
+              }
+            } catch (singleFontErr) {
+              // Dev warning: individual font could not be parsed; Paragraph shaper will gracefully use system fonts
+              if (__DEV__) {
+                console.warn(`[skiaBridge] Couldn't create typeface for ${familyName}, falling back to system font:`, singleFontErr);
+              }
+            }
+          }
+        }
+
+        if (!cancelled && loadedCount > 0) {
+          setFontMgr(provider);
+        }
+      } catch (err) {
+        if (__DEV__) {
+          console.warn('[skiaBridge] TypefaceFontProvider loading error:', err);
+        }
+      }
+    };
+
+    loadTypefaces();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return fontMgr;
+}
 
 export const Circle = circleComponent;
 export const Path = pathComponent;

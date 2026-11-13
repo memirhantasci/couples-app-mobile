@@ -53,7 +53,8 @@ export interface MeteorFrame {
  */
 
 /** Sector names show below this zoom and fade out towards it. */
-const SECTOR_LABEL_FADE = [1.7, 2.0] as const;
+// Sector labels fade out on deep zoom so they do not crowd close-up star views
+const SECTOR_LABEL_FADE = [5.5, 7.0] as const;
 /** Sector name text spans this far above / below the sector centre (px; it is drawn 12 px lower). */
 const SECTOR_LABEL_TOP = -2;
 const SECTOR_LABEL_BOTTOM = 16;

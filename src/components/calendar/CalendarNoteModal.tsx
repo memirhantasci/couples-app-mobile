@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Modal, StyleSheet } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { KeyboardAwareScrollView } from "@/components/ui/KeyboardAwareScrollView";
+import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 import { FileText, X, Check, Trash2 } from "lucide-react-native";
 import { dayjs } from "@/lib/date";
 import type { AppTheme } from "@/lib/theme";
@@ -37,9 +38,10 @@ export function CalendarNoteModal({
   onDelete,
 }: CalendarNoteModalProps) {
   const { t, i18n } = useTranslation();
+  const keyboardHeight = useKeyboardHeight();
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.modalBackdrop}>
+      <View style={[styles.modalBackdrop, { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 12 : 18 }]}>
         <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
           <View style={[styles.modalHeader, { borderBottomColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -62,7 +64,7 @@ export function CalendarNoteModal({
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 16, gap: 14 }}
             enableOnAndroid={true}
-            extraScrollHeight={130}
+            extraScrollHeight={96}
             keyboardShouldPersistTaps="handled"
           >
             <Text style={[styles.modalDateText, { color: theme.textMuted }]}>
@@ -177,6 +179,7 @@ const styles = StyleSheet.create({
   },
   modalTextInput: {
     borderRadius: 16,
+    borderWidth: 1,
     padding: 16,
     fontSize: 15,
     fontFamily: "Inter_400Regular",

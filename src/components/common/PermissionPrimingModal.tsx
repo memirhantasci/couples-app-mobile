@@ -43,7 +43,7 @@ export function PermissionPrimingModal({
       <View style={styles.overlay}>
         <BlurView
           intensity={Platform.OS === "ios" ? 70 : 100}
-          tint="dark"
+          tint={isLight ? "light" : "dark"}
           style={StyleSheet.absoluteFill}
         />
 
@@ -87,7 +87,7 @@ export function PermissionPrimingModal({
               >
                 <Icon size={14} color="#DC4466" />
                 <Text
-                  style={[styles.perkText, { color: isLight ? "#333" : "#EEE" }]}
+                  style={[styles.perkText, { color: theme.text }]}
                 >
                   {t(textKey)}
                 </Text>

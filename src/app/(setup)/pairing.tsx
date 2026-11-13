@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
+import { KeyboardAwareScrollView } from "@/components/ui/KeyboardAwareScrollView";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -372,10 +373,12 @@ export default function PairingScreen() {
     <>
     <ScreenBackground colors={["#0A0A10", "#0D0D14", "#0A0A10"]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        <ScrollView
+        <KeyboardAwareScrollView
           contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 40 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          enableOnAndroid
+          extraScrollHeight={84}
         >
           {/* Header */}
           <View style={{ marginBottom: 28 }}>
@@ -802,7 +805,7 @@ export default function PairingScreen() {
               {isSolo ? t("solo.pairing.backToApp") : t("auth.reset.backToSignIn")}
             </Text>
           </TouchableOpacity>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </KeyboardAvoidingView>
 
       <PermissionPrimingModal

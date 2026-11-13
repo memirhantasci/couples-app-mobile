@@ -36,6 +36,8 @@ böylece geri alma çabuk yansır. Mağazadan güncelleme yapılınca uygulama z
 
 ## Önkoşul: migration canlıda olmalı
 
+> **2026-11-13:** migration canlıya uygulandı. İki satır da (`ios`, `android`) `min_version = NULL`, yani kapı açık.
+
 Uygulanmadan önce RPC olmadığı için istemci hata alır ve kapı açık kalır (zararsız). Uygulamak ayrı bir adımdır:
 
 ```bash

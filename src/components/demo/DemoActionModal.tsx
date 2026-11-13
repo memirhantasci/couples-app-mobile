@@ -63,7 +63,7 @@ export function DemoActionModal({
       <View style={styles.overlay}>
         <BlurView
           intensity={Platform.OS === "ios" ? 70 : 100}
-          tint="dark"
+          tint={isLight ? "light" : "dark"}
           style={StyleSheet.absoluteFill}
         />
 
@@ -112,11 +112,11 @@ export function DemoActionModal({
           <View style={styles.perksContainer}>
             <View style={[styles.perkItem, { backgroundColor: isLight ? "rgba(255,46,99,0.06)" : "rgba(255,46,99,0.12)" }]}>
               <Heart size={14} color="#DC4466" />
-              <Text style={[styles.perkText, { color: isLight ? "#333" : "#EEE" }]}>{t("demo.modal.album")}</Text>
+              <Text style={[styles.perkText, { color: theme.text }]}>{t("demo.modal.album")}</Text>
             </View>
             <View style={[styles.perkItem, { backgroundColor: isLight ? "rgba(255,46,99,0.06)" : "rgba(255,46,99,0.12)" }]}>
               <Sparkles size={14} color="#DC4466" />
-              <Text style={[styles.perkText, { color: isLight ? "#333" : "#EEE" }]}>{t("demo.modal.letters")}</Text>
+              <Text style={[styles.perkText, { color: theme.text }]}>{t("demo.modal.letters")}</Text>
             </View>
           </View>
 

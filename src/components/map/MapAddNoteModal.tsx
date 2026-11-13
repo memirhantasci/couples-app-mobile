@@ -44,11 +44,11 @@ function MapAddNoteForm({ accent, isSaving, onSave, onClose }: NoteFormProps) {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.modalBackdrop}
     >
       <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose}>
-        <BlurView tint="dark" intensity={70} style={StyleSheet.absoluteFill} />
+        <BlurView tint={isLight ? "light" : "dark"} intensity={70} style={StyleSheet.absoluteFill} />
       </TouchableOpacity>
 
       <View

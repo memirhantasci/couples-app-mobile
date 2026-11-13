@@ -37,7 +37,7 @@ import {
 } from 'react-native';
 import { appAlert } from '@/lib/dialog';
 import { DialogHost } from '@/components/ui/DialogHost';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { KeyboardAwareScrollView } from '@/components/ui/KeyboardAwareScrollView';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';

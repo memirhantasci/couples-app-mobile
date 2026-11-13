@@ -1,6 +1,8 @@
 # Ortak Liste: "Birlikte Yapacaklarımız" (uygulama planı)
 
 Dal: `ortak-liste` · Hazırlanma: 2026-11-09 · Durum: **Faz 1A, 1B, 1C ve gözden geçirme düzeltmeleri bitti ve `eff0781`'de commitlendi (2026-11-10); ayrıntılı ekleme ve yerleşim yenilemesi çalışma ağacında, commitlenmedi; `main`'e birleştirilmedi, sunucu canlıya uygulanmadı, üretimde kapalı** (bkz. bölüm 0)
+
+> **Güncelleme 2026-11-13:** kullanıcı kararıyla Faz 1 canlıya alındı. Migration `20261109000000`-`03` canlıya uygulandı (canlıdaki `dissolve_couple_for_leaving_member` ve `move_member_content` gövdeleri repodakiyle satır satır karşılaştırıldı: tek fark ortak liste satırları), `WISHLIST_SERVER_READY = true`, dal `main`'e birleştirildi. Aşağıdaki "canlıya uygulanmadı / üretimde kapalı" ifadeleri bu tarihten öncesini anlatır.
 Yayın öncesi işler (cihaz testi, Apple anahtarı, mektup kilidi) bitmeden bu dal `main`'e girmez; migration ve `send-push` değişikliği yeni build ister.
 
 Bu belge başka oturumların (Faz 1A/1B/1C, Faz 2, Faz 3) bağımsız çalışabilmesi için yazıldı. Önce `docs/OZELLIKLER.md` §2, §4.10, §6'yı oku.

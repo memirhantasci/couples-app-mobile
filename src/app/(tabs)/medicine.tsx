@@ -641,7 +641,7 @@ function MedicineScreenContent() {
                 <Skeleton height={110} borderRadius={20} />
               </View>
             ) : filteredMedicines.length === 0 ? (
-              <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}>
+              <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
                 <Pill size={36} color={theme.textMuted} />
                 <Text style={[styles.emptyCardTitle, { color: theme.text }]}>{t("medicine.today.emptyTitle")}</Text>
                 <Text style={[styles.emptyCardSub, { color: theme.textSecondary }]}>

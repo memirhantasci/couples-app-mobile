@@ -20,9 +20,9 @@ const PROD_ON = { serverReady: true, isDev: false };
 const DEV_OFF = { serverReady: false, isDev: true };
 
 describe("ortak liste açılış kapısı", () => {
-  it("sunucu henüz canlıda değil: bayrak kapalı", () => {
-    // Bu test bilerek kırılır: bayrağı açan kişi migration'ın canlıda olduğunu doğrulamış olmalı
-    expect(WISHLIST_SERVER_READY).toBe(false);
+  it("sunucu canlıda (migration 20261109000000-03, 2026-11-13): bayrak açık", () => {
+    // Bayrağı kapatan kişi bu testi de bilerek güncellemeli
+    expect(WISHLIST_SERVER_READY).toBe(true);
   });
 
   it("üretimde bayrak kapalıyken hiçbir yüzey açılmaz (demo hariç)", () => {

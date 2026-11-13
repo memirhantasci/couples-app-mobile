@@ -11,7 +11,8 @@ import { appAlert, type DialogButton } from "@/lib/dialog";
 import { DialogHost } from "@/components/ui/DialogHost";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { KeyboardAwareScrollView } from "@/components/ui/KeyboardAwareScrollView";
+import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { notifyPartner } from "@/lib/notifications";
@@ -73,6 +74,7 @@ export default function LettersScreen() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
+  const keyboardHeight = useKeyboardHeight();
 
   const coupleId = profile?.coupleId || null;
   const userId = session?.user?.id ? session.user.id : null;
@@ -982,8 +984,8 @@ export default function LettersScreen() {
         transparent={true}
         onRequestClose={() => setShowWriteModal(false)}
       >
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow, paddingBottom: insets.bottom + 20 }]}>
+        <View style={[styles.modalBackdrop, { paddingBottom: keyboardHeight }]}>
+          <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow, paddingBottom: keyboardHeight > 0 ? 14 : insets.bottom + 20 }]}>
             {/* Modal Başlık Çubuğu */}
             <View style={[styles.modalHeader, { borderBottomColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -1002,12 +1004,10 @@ export default function LettersScreen() {
 
             <KeyboardAwareScrollView 
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 60, gap: 16 }}
+              contentContainerStyle={{ paddingBottom: 32, gap: 16 }}
               enableOnAndroid={true}
               enableAutomaticScroll={true}
-              extraScrollHeight={160}
-              extraHeight={160}
-              keyboardOpeningTime={250}
+              extraScrollHeight={96}
               keyboardShouldPersistTaps="handled"
             >
                 {/* KİME ALANI */}
@@ -1593,7 +1593,7 @@ const createStyles = (theme: AppTheme) => {
       borderTopRightRadius: 28,
       borderWidth: 1,
       padding: 20,
-      height: "92%",
+      maxHeight: "92%",
     },
     modalHeader: {
       flexDirection: "row",

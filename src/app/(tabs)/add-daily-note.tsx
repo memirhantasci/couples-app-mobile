@@ -20,7 +20,7 @@ import { DAILY_NOTE_MAX_CHARS } from "@/lib/dailyNote";
 import dayjs from "dayjs";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { KeyboardAwareScrollView } from "@/components/ui/KeyboardAwareScrollView";
 import { LazyDemoActionModal } from "@/components/ui/lazyMount";
 import { JournalLockSuccessOverlay } from "@/components/daily-notes/JournalLockSuccessOverlay";
 import { useTranslation } from "react-i18next";
@@ -278,7 +278,7 @@ export default function AddDailyNoteScreen() {
           contentContainerStyle={StyleSheet.flatten([styles.scrollContent, { paddingBottom: insets.bottom + 40 }])}
           keyboardShouldPersistTaps="handled"
           enableOnAndroid={true}
-          extraScrollHeight={140}
+          extraScrollHeight={96}
           showsVerticalScrollIndicator={false}
         >
           {/* TARİH & ZAMAN KARTI */}

@@ -234,11 +234,14 @@ const CONNECTION_PILL: PillStyle = {
   radius: 8,
 };
 
-function layoutParagraph(text: string, provider: SkTypefaceFontProvider, spec: TextSpec) {
-  const builder = Skia.ParagraphBuilder.Make({ maxLines: 1 }, provider);
+function layoutParagraph(text: string, provider: SkTypefaceFontProvider | null | undefined, spec: TextSpec) {
+  const hasCustomFont = Boolean(provider && typeof provider.countFamilies === 'function' && provider.countFamilies() > 0);
+  const builder = hasCustomFont
+    ? Skia.ParagraphBuilder.Make({ maxLines: 1 }, provider!)
+    : Skia.ParagraphBuilder.Make({ maxLines: 1 });
   builder.pushStyle({
     color: Skia.Color(spec.color),
-    fontFamilies: [LABEL_FONT_FAMILY],
+    fontFamilies: hasCustomFont ? [LABEL_FONT_FAMILY, 'System', 'sans-serif'] : ['System', 'sans-serif'],
     fontSize: spec.size,
     fontStyle: { weight: (spec.weight === 'semibold' ? 600 : 400) as FontWeight },
   });
@@ -249,7 +252,7 @@ function layoutParagraph(text: string, provider: SkTypefaceFontProvider, spec: T
 }
 
 /** Pill centred on x = 0 spanning `top`…`top + height`, text vertically centred. */
-function recordPill(text: string, provider: SkTypefaceFontProvider, style: PillStyle) {
+function recordPill(text: string, provider: SkTypefaceFontProvider | null | undefined, style: PillStyle) {
   return record((canvas) => {
     const paragraph = layoutParagraph(text, provider, style.text);
     const textWidth = paragraph.getLongestLine();
@@ -265,7 +268,7 @@ function recordPill(text: string, provider: SkTypefaceFontProvider, style: PillS
 }
 
 /** Bare text centred on x = 0 with its baseline on y = 0. */
-function recordText(text: string, provider: SkTypefaceFontProvider, spec: TextSpec) {
+function recordText(text: string, provider: SkTypefaceFontProvider | null | undefined, spec: TextSpec) {
   return record((canvas) => {
     const paragraph = layoutParagraph(text, provider, spec);
     const baseline = paragraph.getLineMetrics()[0]?.baseline ?? spec.size;
@@ -534,16 +537,12 @@ export function buildSkyOverlay({
   solarObjects,
 }: SkyOverlayInput): SkyOverlay {
   const pill = (text: string, style: PillStyle, kind: string) =>
-    fontProvider ? labels.get(`${kind}|${text}`, () => recordPill(text, fontProvider, style)) : null;
+    labels.get(`${kind}|${text}`, () => recordPill(text, fontProvider, style));
   const plain = (text: string, spec: TextSpec) =>
-    fontProvider
-      ? labels.get(`text|${spec.size}|${spec.weight}|${spec.color}|${text}`, () => recordText(text, fontProvider, spec))
-      : null;
+    labels.get(`text|${spec.size}|${spec.weight}|${spec.color}|${text}`, () => recordText(text, fontProvider, spec));
 
   const textWidth = (text: string, spec: TextSpec) =>
-    fontProvider
-      ? labels.width(`${spec.size}|${spec.weight}|${text}`, () => layoutParagraph(text, fontProvider, spec).getLongestLine())
-      : 0;
+    labels.width(`${spec.size}|${spec.weight}|${text}`, () => layoutParagraph(text, fontProvider, spec).getLongestLine());
 
   const sectorLabels: SectorLabelItem[] = [];
   for (const sector of SKY_SECTORS_LIST) {

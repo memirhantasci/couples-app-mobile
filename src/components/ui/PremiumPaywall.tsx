@@ -1,7 +1,8 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Modal, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, Modal, StyleSheet, ScrollView } from "react-native";
 import { Crown, Sparkles, X, Zap } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { DialogHost } from "@/components/ui/DialogHost";
 import { PREMIUM_GOLD } from "@/components/premium/PaywallHero";
 import { useTheme } from "@/context/ThemeContext";
 import { useRouter } from "expo-router";
@@ -136,119 +137,127 @@ export function PremiumPaywall({
             </View>
           </TouchableOpacity>
 
-          {/* Crown Icon */}
-          <LinearGradient colors={PREMIUM_GOLD} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.crownCircle}>
-            <Crown color="#3A2A06" size={32} strokeWidth={2.2} />
-          </LinearGradient>
-
-          {/* Title */}
-          <Text style={[styles.title, { color: theme.text }]}>{t("paywall.required")}</Text>
-          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-            <Trans
-              i18nKey="paywall.featureGate"
-              values={{ feature: resolvedFeatureName }}
-              components={{ feature: <Text style={{ fontFamily: "Inter_700Bold", color: gold }} /> }}
-            />
-          </Text>
-
-          <Text style={[styles.description, { color: theme.textMuted }]}>{resolvedFeatureDescription}</Text>
-
-          {/* Premium Features List */}
-          <View style={styles.featuresList}>
-            {features.map((f, i) => (
-              <View key={i} style={styles.featureRow}>
-                <Sparkles color={gold} size={14} />
-                <Text style={[styles.featureText, { color: theme.text }]}>{f}</Text>
-              </View>
-            ))}
-          </View>
-
-          {/* CTA Button */}
-          <TouchableOpacity
-            style={styles.ctaWrap}
-            onPress={goUpgrade}
-            activeOpacity={0.88}
-            accessibilityRole="button"
+          <ScrollView
+            style={{ width: "100%" }}
+            contentContainerStyle={{ alignItems: "center", paddingTop: 8, paddingBottom: 4 }}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
           >
-            <LinearGradient colors={PREMIUM_GOLD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ctaBtn}>
-              <Crown color="#3A2A06" size={20} strokeWidth={2.4} />
-              <Text style={styles.ctaBtnText}>{resolvedFeature.cta}</Text>
+            {/* Crown Icon */}
+            <LinearGradient colors={PREMIUM_GOLD} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.crownCircle}>
+              <Crown color="#3A2A06" size={32} strokeWidth={2.2} />
             </LinearGradient>
-          </TouchableOpacity>
 
-          <Text style={[styles.trialText, { color: theme.textMuted }]}>
-            {t("paywall.cancelAnytime")}
-          </Text>
-          <TouchableOpacity 
-            onPress={goUpgrade}
-            style={{ marginTop: 6 }}
-          >
-            <Text style={[styles.eulaLink, { color: gold }]}>
-              {t("paywall.eulaLink")}
+            {/* Title */}
+            <Text style={[styles.title, { color: theme.text }]}>{t("paywall.required")}</Text>
+            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+              <Trans
+                i18nKey="paywall.featureGate"
+                values={{ feature: resolvedFeatureName }}
+                components={{ feature: <Text style={{ fontFamily: "Inter_700Bold", color: gold }} /> }}
+              />
             </Text>
-          </TouchableOpacity>
 
-          {/* Token Option */}
-          {tokenOption && (
-            <View style={styles.tokenSection}>
-              <View style={styles.dividerRow}>
-                <View style={[styles.dividerLine, { backgroundColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]} />
-                <Text style={[styles.dividerText, { color: theme.textMuted }]}>{t("common.or")}</Text>
-                <View style={[styles.dividerLine, { backgroundColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]} />
-              </View>
+            <Text style={[styles.description, { color: theme.textMuted }]}>{resolvedFeatureDescription}</Text>
 
-              <TouchableOpacity
-                style={[
-                  styles.tokenBtn,
-                  {
-                    backgroundColor: isLight ? "rgba(234, 179, 8, 0.12)" : "rgba(230, 192, 85,0.08)",
-                    borderColor: isLight ? "rgba(234, 179, 8, 0.3)" : "rgba(230, 192, 85,0.18)",
-                  },
-                  tokenOption.currentBalance < tokenOption.cost && { opacity: 0.4 },
-                ]}
-                disabled={tokenOption.currentBalance < tokenOption.cost}
-                onPress={tokenOption.onUseTokens}
-                activeOpacity={0.7}
-              >
-                <Zap color={isLight ? "#B45309" : "#E6C055"} size={18} />
-                <Text style={[styles.tokenBtnText, { color: isLight ? "#B45309" : "#E6C055" }]}>
-                  {t("paywall.useTokens", { cost: tokenOption.cost })}
-                </Text>
-                <Text style={[styles.tokenBalance, { color: isLight ? "rgba(180, 83, 9, 0.7)" : "rgba(230, 192, 85,0.6)" }]}>
-                  {t("paywall.tokenBalance", { currentBalance: tokenOption.currentBalance })}
-                </Text>
-              </TouchableOpacity>
+            {/* Premium Features List */}
+            <View style={styles.featuresList}>
+              {features.map((f, i) => (
+                <View key={i} style={styles.featureRow}>
+                  <Sparkles color={gold} size={14} />
+                  <Text style={[styles.featureText, { color: theme.text }]}>{f}</Text>
+                </View>
+              ))}
             </View>
-          )}
 
-          {/* Reklam İzle Seçeneği */}
-          {onWatchAd && (
-            <View style={[styles.adSection, !tokenOption && styles.tokenSection]}>
-              {!tokenOption && (
+            {/* CTA Button */}
+            <TouchableOpacity
+              style={styles.ctaWrap}
+              onPress={goUpgrade}
+              activeOpacity={0.88}
+              accessibilityRole="button"
+            >
+              <LinearGradient colors={PREMIUM_GOLD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ctaBtn}>
+                <Crown color="#3A2A06" size={20} strokeWidth={2.4} />
+                <Text style={styles.ctaBtnText}>{resolvedFeature.cta}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <Text style={[styles.trialText, { color: theme.textMuted }]}>
+              {t("paywall.cancelAnytime")}
+            </Text>
+            <TouchableOpacity 
+              onPress={goUpgrade}
+              style={{ marginTop: 6 }}
+            >
+              <Text style={[styles.eulaLink, { color: gold }]}>
+                {t("paywall.eulaLink")}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Token Option */}
+            {tokenOption && (
+              <View style={styles.tokenSection}>
                 <View style={styles.dividerRow}>
                   <View style={[styles.dividerLine, { backgroundColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]} />
                   <Text style={[styles.dividerText, { color: theme.textMuted }]}>{t("common.or")}</Text>
                   <View style={[styles.dividerLine, { backgroundColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]} />
                 </View>
-              )}
-              <TouchableOpacity
-                style={[
-                  styles.adBtn,
-                  {
-                    backgroundColor: isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.04)",
-                    borderColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)",
-                    marginTop: tokenOption ? 10 : 0,
-                  },
-                ]}
-                onPress={onWatchAd}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.adBtnText, { color: theme.textSecondary }]}>{t("paywall.watchAd")}</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+
+                <TouchableOpacity
+                  style={[
+                    styles.tokenBtn,
+                    {
+                      backgroundColor: isLight ? "rgba(234, 179, 8, 0.12)" : "rgba(230, 192, 85,0.08)",
+                      borderColor: isLight ? "rgba(234, 179, 8, 0.3)" : "rgba(230, 192, 85,0.18)",
+                    },
+                    tokenOption.currentBalance < tokenOption.cost && { opacity: 0.4 },
+                  ]}
+                  disabled={tokenOption.currentBalance < tokenOption.cost}
+                  onPress={tokenOption.onUseTokens}
+                  activeOpacity={0.7}
+                >
+                  <Zap color={isLight ? "#B45309" : "#E6C055"} size={18} />
+                  <Text style={[styles.tokenBtnText, { color: isLight ? "#B45309" : "#E6C055" }]}>
+                    {t("paywall.useTokens", { cost: tokenOption.cost })}
+                  </Text>
+                  <Text style={[styles.tokenBalance, { color: isLight ? "rgba(180, 83, 9, 0.7)" : "rgba(230, 192, 85,0.6)" }]}>
+                    {t("paywall.tokenBalance", { currentBalance: tokenOption.currentBalance })}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Reklam İzle Seçeneği */}
+            {onWatchAd && (
+              <View style={[styles.adSection, !tokenOption && styles.tokenSection]}>
+                {!tokenOption && (
+                  <View style={styles.dividerRow}>
+                    <View style={[styles.dividerLine, { backgroundColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]} />
+                    <Text style={[styles.dividerText, { color: theme.textMuted }]}>{t("common.or")}</Text>
+                    <View style={[styles.dividerLine, { backgroundColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)" }]} />
+                  </View>
+                )}
+                <TouchableOpacity
+                  style={[
+                    styles.adBtn,
+                    {
+                      backgroundColor: isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.04)",
+                      borderColor: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)",
+                      marginTop: tokenOption ? 10 : 0,
+                    },
+                  ]}
+                  onPress={onWatchAd}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.adBtnText, { color: theme.textSecondary }]}>{t("paywall.watchAd")}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </ScrollView>
         </View>
       </View>
+      <DialogHost embedded visible={visible} />
     </Modal>
   );
 }
@@ -263,6 +272,7 @@ const styles = StyleSheet.create({
   container: {
     width: "100%",
     maxWidth: 380,
+    maxHeight: "90%",
     borderRadius: 28,
     padding: 26,
     alignItems: "center",

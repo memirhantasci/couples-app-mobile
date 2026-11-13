@@ -1,30 +1,30 @@
-import { useState, useRef, useEffect } from "react";
-import { logger } from "@/utils/logger";
+import { KeyboardAwareScrollView } from "@/components/ui/KeyboardAwareScrollView";
+import { ScreenBackground } from "@/components/ui/ScreenBackground";
+import { DEVICE_AUTH_CACHE_KEY, useAuth } from "@/context/AuthContext";
+import { isVerifyLinkType, type VerifyLinkType } from "@/lib/deepLinks";
+import { appAlert } from "@/lib/dialog";
 import { joinCoupleByCode } from "@/lib/joinCouple";
+import { navigateAfterAuth, releaseAuthFlow, setAuthFlowActive } from "@/lib/navigate";
+import { registerForPushNotifications } from "@/lib/notifications";
+import { normalizePairingCode } from "@/lib/pairingCode";
+import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
+import { supabase } from "@/lib/supabase";
+import { toast } from "@/lib/toast";
+import { getOrCreateDeviceId } from "@/utils/device";
+import { logger } from "@/utils/logger";
+import { LinearGradient } from "expo-linear-gradient";
+import { router, useLocalSearchParams } from "expo-router";
+import { ArrowLeft, Mail } from "lucide-react-native";
+import { useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { appAlert } from "@/lib/dialog";
-import { ScreenBackground } from "@/components/ui/ScreenBackground";
-import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams, router } from "expo-router";
-import { supabase } from "@/lib/supabase";
-import { toast } from "@/lib/toast";
-import { navigateAfterAuth, setAuthFlowActive, releaseAuthFlow } from "@/lib/navigate";
-import { registerForPushNotifications } from "@/lib/notifications";
-import { ArrowLeft, Mail } from "lucide-react-native";
-import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
-import { getOrCreateDeviceId } from "@/utils/device";
-import { normalizePairingCode } from "@/lib/pairingCode";
-import { isVerifyLinkType, type VerifyLinkType } from "@/lib/deepLinks";
-import { useAuth, DEVICE_AUTH_CACHE_KEY } from "@/context/AuthContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { applyOtpInput } from "@/lib/otp";
@@ -101,7 +101,7 @@ export default function VerifyScreen() {
           logger.warn("[verify] device auth error:", devErr);
         }
 
-        await registerForPushNotifications(data.user.id).catch(() => {});
+        await registerForPushNotifications(data.user.id).catch(() => { });
         await routeUser(data.user.id);
       }
     } finally {
@@ -181,7 +181,7 @@ export default function VerifyScreen() {
           logger.warn("[verify] device auth error:", devErr);
         }
 
-        await registerForPushNotifications(data.user.id).catch(() => {});
+        await registerForPushNotifications(data.user.id).catch(() => { });
         await routeUser(data.user.id);
       }
     } finally {
@@ -247,8 +247,14 @@ export default function VerifyScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 40 }} keyboardShouldPersistTaps="handled">
-          
+        <KeyboardAwareScrollView
+          contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 40 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          enableOnAndroid
+          extraScrollHeight={72}
+        >
+
           <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.back")}
             onPress={() => {
               if (router.canGoBack()) {
@@ -301,7 +307,7 @@ export default function VerifyScreen() {
             >
               {t("auth.verify.title")}
             </Text>
-            
+
             <Text
               style={{
                 color: "rgba(255,255,255,0.65)",
@@ -413,7 +419,7 @@ export default function VerifyScreen() {
             </TouchableOpacity>
           </View>
 
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </KeyboardAvoidingView>
     </ScreenBackground>
   );

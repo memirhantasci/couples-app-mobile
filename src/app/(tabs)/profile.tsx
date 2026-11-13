@@ -13,7 +13,7 @@ import { ANDROID_PACKAGE } from "@/constants/brand";
 import { NewPairingCard } from "@/components/profile/NewPairingCard";
 import { appAlert } from "@/lib/dialog";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { KeyboardAwareScrollView } from "@/components/ui/KeyboardAwareScrollView";
 import { PremiumSuccessModal } from "@/components/ui/PremiumSuccessModal";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

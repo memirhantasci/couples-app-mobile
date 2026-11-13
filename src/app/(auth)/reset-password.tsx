@@ -7,8 +7,8 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
 } from "react-native";
+import { KeyboardAwareScrollView } from "@/components/ui/KeyboardAwareScrollView";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useLocalSearchParams, router } from "expo-router";
 import { resetPasswordWithCode } from "@/lib/authGateway";
@@ -137,7 +137,7 @@ export default function ResetPasswordScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView
+        <KeyboardAwareScrollView
           contentContainerStyle={{
             flexGrow: 1,
             padding: 24,
@@ -146,6 +146,8 @@ export default function ResetPasswordScreen() {
           }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          enableOnAndroid
+          extraScrollHeight={72}
         >
           <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.back")}
             onPress={() => {
@@ -237,7 +239,7 @@ export default function ResetPasswordScreen() {
               </Text>
             )}
           </TouchableOpacity>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </KeyboardAvoidingView>
     </ScreenBackground>
   );

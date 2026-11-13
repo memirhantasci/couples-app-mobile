@@ -34,6 +34,7 @@ import {
 } from "@/lib/referral";
 import { ReferralCodeEntry } from "./ReferralCodeEntry";
 import { fieldSurface, hairlineColor } from "./profileTokens";
+import { KeyboardAwareScrollView } from "@/components/ui/KeyboardAwareScrollView";
 
 const ROSE = "#EC4899";
 const GOLD = "#F59E0B";
@@ -135,10 +136,12 @@ export function ReferralModal({ visible, onClose }: ReferralModalProps) {
             <X size={18} color={theme.textMuted} />
           </TouchableOpacity>
 
-          <ScrollView
+          <KeyboardAwareScrollView
             contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            enableOnAndroid
+            extraScrollHeight={72}
           >
             <LinearGradient colors={[ROSE, GOLD]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.giftCircle}>
               <Gift size={28} color="#FFFFFF" />
@@ -267,7 +270,7 @@ export function ReferralModal({ visible, onClose }: ReferralModalProps) {
                 )}
               </>
             )}
-          </ScrollView>
+          </KeyboardAwareScrollView>
         </View>
       </KeyboardAvoidingView>
     </Modal>

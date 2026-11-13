@@ -1,13 +1,13 @@
 /**
  * Ortak listenin ("Birlikte Yapacaklarımız") açılış kapısı: tek kaynak.
  *
- * Sunucu (migration 20261109000000+) canlıya çıkınca YALNIZCA `WISHLIST_SERVER_READY` true yapılır; menü satırı,
- * isteğe bağlı sekme, menüdeki rehber kaydı, bildirim rotası ve veri katmanı (wishlistData.ts) aynı anda açılır.
+ * Sunucu (migration 20261109000000+) 2026-11-13'te canlıya uygulandı ve `WISHLIST_SERVER_READY` açıldı; menü satırı,
+ * isteğe bağlı sekme, menüdeki rehber kaydı, bildirim rotası ve veri katmanı (wishlistData.ts) bu tek bayrağa bağlıdır.
  * React, ağ ve Supabase bağımlılığı yoktur: testler bayrakları doğrudan verir.
  */
 
 /** Sunucu canlıda mı. Kapalıyken veri wishlistMock.ts'ten (bellek içi) gelir. */
-export const WISHLIST_SERVER_READY = false;
+export const WISHLIST_SERVER_READY = true;
 
 export const WISHLIST_ROUTE = "/(tabs)/wishlist";
 

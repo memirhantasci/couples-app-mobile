@@ -19,7 +19,7 @@ export function PremiumSuccessModal({ visible, onClose, subtitle }: PremiumSucce
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <BlurView intensity={80} tint="dark" style={styles.overlay}>
+      <BlurView intensity={80} tint={isLight ? "light" : "dark"} style={styles.overlay}>
         <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
           
           <View style={styles.iconContainer}>
@@ -27,7 +27,7 @@ export function PremiumSuccessModal({ visible, onClose, subtitle }: PremiumSucce
               <Crown color={isLight ? "#B7791F" : "#E6C055"} size={48} />
             </View>
             <View style={styles.checkBadge}>
-              <CheckCircle color="#4ade80" size={24} fill="#111" />
+              <CheckCircle color="#4ade80" size={24} fill={isLight ? "#FFFFFF" : "#111"} />
             </View>
           </View>
           

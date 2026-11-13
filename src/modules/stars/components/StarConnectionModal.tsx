@@ -37,7 +37,7 @@ import {
 } from 'react-native';
 import { appAlert } from '@/lib/dialog';
 import { DialogHost } from '@/components/ui/DialogHost';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { KeyboardAwareScrollView } from '@/components/ui/KeyboardAwareScrollView';
 import { hapticSuccess, hapticError, hapticSelection } from '@/lib/soundEffects';
 import * as Clipboard from 'expo-clipboard';
 import {

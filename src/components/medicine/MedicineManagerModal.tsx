@@ -11,7 +11,8 @@ import {
 } from "react-native";
 import { appAlert } from "@/lib/dialog";
 import { DialogHost } from "@/components/ui/DialogHost";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { KeyboardAwareScrollView } from "@/components/ui/KeyboardAwareScrollView";
+import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 import { DateTimePickerSheet } from "@/components/ui/DateTimePickerSheet";
 import { Settings, X, Edit2, Trash2, Clock, Calendar, Check } from "lucide-react-native";
 import { dayjs } from "@/lib/date";
@@ -108,6 +109,7 @@ function MedicineManagerForm({
   onBeforeEdit,
 }: FormProps) {
   const { t } = useTranslation();
+  const keyboardHeight = useKeyboardHeight();
   const [medName, setMedName] = useState(initialData?.name ?? "");
   const [medError, setMedError] = useState(false);
   const [medStartDate, setMedStartDate] = useState(initialData?.startDate ?? new Date());
@@ -229,7 +231,7 @@ function MedicineManagerForm({
   };
 
   return (
-    <View style={styles.modalBackdrop}>
+    <View style={[styles.modalBackdrop, { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 12 : 18 }]}>
       <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
         {/* Modal Header */}
         <View style={[styles.modalHeader, { borderBottomColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
@@ -253,7 +255,7 @@ function MedicineManagerForm({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 20, gap: 16 }}
           enableOnAndroid={true}
-          extraScrollHeight={130}
+          extraScrollHeight={96}
           keyboardShouldPersistTaps="handled"
         >
           {/* Mevcut İlaçlar Listesi */}
@@ -473,6 +475,7 @@ const styles = StyleSheet.create({
   },
   modalBox: {
     borderRadius: 24,
+    borderWidth: 1,
     padding: 20,
     maxHeight: "88%",
   },
@@ -554,6 +557,7 @@ const styles = StyleSheet.create({
   },
   textInput: {
     borderRadius: 14,
+    borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 12,
     color: "#ffffff",
@@ -568,6 +572,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 14,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -584,6 +589,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 12,
     borderRadius: 14,
+    borderWidth: 1,
   },
   timePickerText: {
     fontSize: 13.5,
@@ -597,6 +603,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 12,
     borderRadius: 14,
+    borderWidth: 1,
   },
   datePickerText: {
     fontSize: 13,

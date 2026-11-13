@@ -1495,20 +1495,13 @@ export const OurStarScreen: React.FC = () => {
 
         <View style={styles.badgeWrapper}>
           {/* Yıldızın içinde yıldız bilgisi aşağıdaki büyük başlıkta (MicroStarHeader) yer alır */}
-          {isMicroScene ? null : starDetails ? (
+          {!isMicroScene && starDetails ? (
             <StarInfoBadge
               starDetails={starDetails}
               luminosityOverride={starLight}
               isResonanceActive={isResonanceActive}
               viewMode={viewMode}
               onPressCertificate={() => setIsCertificateModalOpen(true)}
-            />
-          ) : viewMode === 'macro' ? (
-            <SectorHUD
-              centerRa={cameraRa}
-              centerDec={cameraDec}
-              onPress={() => setIsAtlasModalOpen(true)}
-              embedded
             />
           ) : null}
         </View>

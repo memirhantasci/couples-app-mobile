@@ -695,8 +695,12 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                     maxLength={40}
                     autoCapitalize="words"
                     autoCorrect={false}
-                    blurOnSubmit={false}
+                    blurOnSubmit={true}
                     returnKeyType="done"
+                    onSubmitEditing={() => {
+                      Keyboard.dismiss();
+                      handleStartClaim();
+                    }}
                   />
                   <Text style={[styles.charCount, { color: theme.textMuted }]}>{customName.trim().length} / 40</Text>
                 </View>

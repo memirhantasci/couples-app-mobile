@@ -105,9 +105,24 @@ export function KeyboardAwareScrollView({
       const kbY = event.endCoordinates.screenY;
       const kbH = event.endCoordinates.height;
       keyboardEndYRef.current = kbY;
-      setKbInset(kbH);
       requestAnimationFrame(() => {
-        scrollFocusedIntoView(kbY);
+        const scrollNode = scrollRef.current as unknown as {
+          measureInWindow?: (cb: (x: number, y: number, w: number, h: number) => void) => void;
+        } | null;
+        if (scrollNode?.measureInWindow) {
+          scrollNode.measureInWindow((_x, scrollY, _w, scrollH) => {
+            if (scrollH > 0) {
+              const overlap = Math.max(0, scrollY + scrollH - kbY);
+              setKbInset(overlap > 16 ? overlap : Math.min(kbH, effectiveExtra));
+            } else {
+              setKbInset(kbH);
+            }
+            scrollFocusedIntoView(kbY);
+          });
+        } else {
+          setKbInset(kbH);
+          scrollFocusedIntoView(kbY);
+        }
       });
     };
 

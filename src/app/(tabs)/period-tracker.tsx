@@ -330,7 +330,7 @@ function PeriodTrackerScreenContent() {
                   <View style={styles.perkBullet}>
                     <Check size={13} color="#22c55e" strokeWidth={3} />
                   </View>
-                  <Text style={styles.perkText}>{t("period.lock.bullet1")}</Text>
+                  <Text style={[styles.perkText, { color: theme.text }]}>{t("period.lock.bullet1")}</Text>
                 </View>
 
                 <View style={styles.perkItem}>
@@ -485,7 +485,7 @@ function PeriodTrackerScreenContent() {
                 <Text style={[styles.pastSectionTitle, { color: theme.textMuted }]}>{t("period.history.title")}</Text>
 
                 {!showPastRecords ? null : !logs || logs.length === 0 ? (
-                  <View style={[styles.emptyBox, { backgroundColor: theme.cardBg, ...theme.cardShadow }]}>
+                  <View style={[styles.emptyBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
                     <Text style={{ fontSize: 32, marginBottom: 8 }}>🌸</Text>
                     <Text style={[styles.emptyText, { color: theme.textSecondary }]}>{t("period.history.empty")}</Text>
                   </View>

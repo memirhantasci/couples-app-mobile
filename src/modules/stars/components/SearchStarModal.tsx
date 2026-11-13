@@ -18,10 +18,12 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Search, X, Star, Sun, Globe } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
+import { DialogHost } from '@/components/ui/DialogHost';
 import { starService } from '../api/starService';
 import { CelestialSearchResult } from '../types/star.types';
 import { SOLAR_SYSTEM_OBJECTS } from '../canvas/macro/solarSystem';
@@ -272,7 +274,7 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
         style={StyleSheet.absoluteFill}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.container}
         >
           <View
@@ -317,6 +319,7 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
                 onChangeText={setQuery}
                 autoFocus
                 returnKeyType="search"
+                onSubmitEditing={() => Keyboard.dismiss()}
               />
             </View>
 
@@ -394,6 +397,8 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
           </View>
         </KeyboardAvoidingView>
       </BlurView>
+      {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
+      <DialogHost embedded visible={visible} />
     </Modal>
   );
 };

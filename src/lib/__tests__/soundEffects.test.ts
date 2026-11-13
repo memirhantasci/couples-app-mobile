@@ -106,12 +106,12 @@ describe("soundEffects: soğuma kalkanı", () => {
 });
 
 describe("soundEffects: sabit havuz", () => {
-  it("bubble_pop 3, celestial_chime 2, stamp_drop 2, diğerleri 1; toplam 11 oynatıcı", () => {
+  it("bubble_pop 3, celestial_chime 2, stamp_drop 2, diğerleri 1 + ortam müziği; toplam 12 oynatıcı", () => {
     sound.warmUpSoundEffects();
-    expect(mockPlayers).toHaveLength(11);
+    expect(mockPlayers).toHaveLength(12);
     // Tekrarlayan ısındırma yeni oynatıcı üretmez
     sound.warmUpSoundEffects();
-    expect(mockPlayers).toHaveLength(11);
+    expect(mockPlayers).toHaveLength(12);
   });
 
   it("art arda çalma havuzu round-robin gezer ve büyütmez", async () => {
