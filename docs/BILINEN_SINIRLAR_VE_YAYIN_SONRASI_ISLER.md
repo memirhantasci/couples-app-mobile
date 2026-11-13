@@ -42,7 +42,7 @@ Bitmeyenler:
 - **iOS ATT / SKAdNetwork (G-19):** `app.json` AdMob eklentisinde `skAdNetworkItems` yok (reklam gelirini ve atfı etkiler).
 - **Promosyon kodu kalıntısı:** Uygulamadan kaldırıldı ve `promo_codes` boş, ama `redeem_promo_code` RPC'si ve tablolar duruyor;
   istemci yetkisini kaldır ya da sil. (`max_uses` kontrolü kilitsiz, ama aktif kod yok.)
-  **2026-11-13:** yetkiyi alan migration yazıldı: `20261113000000_revoke_promo_code_rpc.sql` (canlıda ROLLBACK'li denendi, **uygulanmadı**). Mağazaya çıkan build'lerin hiçbiri RPC'yi çağırmıyor.
+  **2026-11-13:** yetkiyi alan migration yazıldı: `20261113000000_revoke_promo_code_rpc.sql` (**2026-11-13'te canlıya uygulandı**; istemci rolleri artık 42501 alıyor). Mağazaya çıkan build'lerin hiçbiri RPC'yi çağırmıyor.
 - **Mektup açılış bildirimi (G-30, G-15):** yerel bildirim 09:00, mektup Türkiye 00:00'da açılıyor; sunucu bildirimi kapalı,
   bildirim yalnızca cihaz senkronuna bağlı.
 - **Cihaz doğrulama yalnızca istemci kapısı (G-17):** sunucuda zorlanmıyor; "güvenlik" diye sunma ya da gateway'de zorunlu kıl.
