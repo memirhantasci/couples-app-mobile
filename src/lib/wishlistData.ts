@@ -10,8 +10,6 @@ import {
   type WishlistDonePage,
   type WishlistItem,
 } from "@/lib/wishlist";
-import { wishlistMock } from "@/lib/wishlistMock";
-import { WISHLIST_SERVER_READY as SERVER_READY } from "@/lib/wishlistAvailability";
 import { WISHLIST_WRITE_DENIED } from "@/lib/wishlistErrors";
 
 export { WISHLIST_WRITE_DENIED };
@@ -20,7 +18,8 @@ export { WISHLIST_WRITE_DENIED };
  * Ortak listenin veri katmanı: ekran yalnızca buradaki işlevleri bilir.
  * Sözleşme: docs/ORTAK_LISTE_PLANI.md bölüm 4.
  *
- * Bayrak wishlistAvailability.ts'te: Faz 1A (migration) canlıya çıkınca orada true yapılır; wishlistMock.ts silinir.
+ * Sunucu 2026-11-13'ten beri canlıda: veri her zaman Supabase'ten gelir. Bellek içi wishlistMock.ts artık yalnızca
+ * testlerde kullanılır ve buradan içe aktarılmaz (uygulama paketine girmez).
  *
  * Okuma iki ayrı sorgudur (yapılanlar biriktikçe açık maddeler okuma sınırının dışına düşmesin):
  *   • açık maddeler: tamamı, en çok WISHLIST_OPEN_FETCH_LIMIT (300 = Premium üst sınırı). Sunucu sınırı KİŞİ
@@ -29,7 +28,7 @@ export { WISHLIST_WRITE_DENIED };
  *     Sayaç, sınır, 🎲 ve "ikimiz de" buradan beslenir.
  *   • yapılanlar: seçili kategoriye göre sunucuda süzülür, WISHLIST_DONE_PAGE_SIZE'lık sayfalarla ve toplam sayıyla
  *     ("Yaptıklarımız (n)") gelir.
- * Demo verisi ve wishlistMock aynı arayüzü sürdürür.
+ * Demo verisi aynı arayüzü sürdürür.
  */
 
 const ITEM_SELECT = "*, couple_wishlist_wants(user_id)";
@@ -96,7 +95,6 @@ export async function fetchWishlistOpen(params: {
   const { coupleId, isDemoMode } = params;
   if (isDemoMode) return openWishlistItems(demoItems());
   if (!coupleId) return [];
-  if (!SERVER_READY) return wishlistMock.listOpen(coupleId);
 
   const { data, error } = await supabase
     .from("couple_wishlist_items")
@@ -121,7 +119,6 @@ export async function fetchWishlistDonePage(params: {
   const { coupleId, isDemoMode, category, offset, limit = WISHLIST_DONE_PAGE_SIZE } = params;
   if (isDemoMode) return pageDoneItems(demoItems(), category, offset, limit);
   if (!coupleId) return { items: [], total: 0, offset };
-  if (!SERVER_READY) return wishlistMock.listDone(coupleId, { category, offset, limit });
 
   let query = supabase
     .from("couple_wishlist_items")
@@ -142,7 +139,6 @@ export async function fetchWishlistDonePage(params: {
 export type WishlistNewItem = WishlistItemPatch;
 
 export async function addWishlistItem(input: { coupleId: number; userId: string; item: WishlistNewItem }): Promise<void> {
-  if (!SERVER_READY) return wishlistMock.add(input);
 
   // "İstiyorum" satırı ekleyen için sunucudaki tetikleyiciyle yazılır
   const row: Partial<Record<InsertColumn, unknown>> = {
@@ -164,7 +160,6 @@ export type WishlistItemPatch = Pick<WishlistItem, UpdateColumn>;
 
 /** Yalnızca ekleyen düzenler; RLS aynı kuralı uygular, 0 satır sessiz başarı sayılmasın diye doğrulanır. */
 export async function updateWishlistItem(id: number, userId: string, patch: WishlistItemPatch): Promise<void> {
-  if (!SERVER_READY) return wishlistMock.update(id, userId, patch);
 
   const { data, error } = await supabase
     .from("couple_wishlist_items")
@@ -177,7 +172,6 @@ export async function updateWishlistItem(id: number, userId: string, patch: Wish
 }
 
 export async function deleteWishlistItem(id: number, userId: string): Promise<void> {
-  if (!SERVER_READY) return wishlistMock.remove(id, userId);
 
   const { data, error } = await supabase
     .from("couple_wishlist_items")
@@ -190,14 +184,12 @@ export async function deleteWishlistItem(id: number, userId: string): Promise<vo
 }
 
 export async function setWishlistWant(id: number, userId: string, want: boolean): Promise<void> {
-  if (!SERVER_READY) return wishlistMock.setWant(id, userId, want);
 
   const { error } = await supabase.rpc("set_wishlist_want", { p_item_id: id, p_want: want });
   if (error) throw error;
 }
 
 export async function setWishlistDone(id: number, userId: string, done: boolean): Promise<void> {
-  if (!SERVER_READY) return wishlistMock.setDone(id, userId, done);
 
   const { error } = await supabase.rpc("set_wishlist_done", { p_item_id: id, p_done: done });
   if (error) throw error;

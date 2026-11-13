@@ -6,7 +6,7 @@
  * React, ağ ve Supabase bağımlılığı yoktur: testler bayrakları doğrudan verir.
  */
 
-/** Sunucu canlıda mı. Kapalıyken veri wishlistMock.ts'ten (bellek içi) gelir. */
+/** Sunucu canlıda mı. Kapalıyken yüzeyler gizlenir; veri katmanı her zaman Supabase'e gider. */
 export const WISHLIST_SERVER_READY = true;
 
 export const WISHLIST_ROUTE = "/(tabs)/wishlist";

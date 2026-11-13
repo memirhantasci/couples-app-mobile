@@ -320,6 +320,8 @@ export const InAppNotificationBanner: React.FC<InAppNotificationBannerProps> = (
             {/* Close button */}
             <TouchableOpacity
               onPress={handleDismiss}
+              accessibilityRole="button"
+              accessibilityLabel={t("common.close")}
               style={styles.closeButton}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >

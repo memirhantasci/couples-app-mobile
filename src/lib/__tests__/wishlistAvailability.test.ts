@@ -61,10 +61,11 @@ describe("ortak liste açılış kapısı", () => {
 });
 
 describe("kapı tek kaynaktan bağlı", () => {
-  it("veri katmanı kendi bayrağını tanımlamaz, ortak bayrağı kullanır", () => {
+  it("veri katmanı kendi bayrağını tanımlamaz ve bellek içi sahte veriyi pakete almaz", () => {
     const data = read("lib/wishlistData.ts");
-    expect(data).toMatch(/import \{ WISHLIST_SERVER_READY as SERVER_READY \} from "@\/lib\/wishlistAvailability"/);
     expect(data).not.toMatch(/const SERVER_READY\s*=/);
+    // Sunucu canlıda: wishlistMock yalnızca testlerde kullanılır, veri katmanı onu içe aktarmaz
+    expect(data).not.toMatch(/wishlistMock["']/);
   });
 
   it("menü satırı, sekme listesi, rehber listesi, bildirim rotası ve ekran kapıyı kullanır", () => {

@@ -2,6 +2,17 @@
 
 Son güncelleme: 2026-11-11
 
+## ⏳ UYGULANMAYI BEKLEYEN ADIMLAR (unutma)
+
+Kodu ve provası hazır, ama bilerek canlıya uygulanmadı. Sırası geldiğinde yapılacak.
+
+| # | Ne | Ne zaman | Nasıl |
+| :-- | :-- | :-- | :-- |
+| 1 | **Mektup zaman kilidi, 2. adım:** `letters_select` politikasını yalnızca gönderene indir. Bu yapılmadan alıcı kilitli mektubu tablodan doğrudan okuyabilir. | `my_letters` görünümünü kullanan sürüm (commit `534a310` ve sonrası; iOS build 20 / Android build 12 **değil**) mağazalarda yayıldıktan ve eski sürümler zorunlu güncellemeyle kapatıldıktan sonra. Erken uygulanırsa eski sürümlerde gelen mektuplar kaybolur. | SQL ve prova: bölüm 1'deki "Güncelleme 2026-11-13" kutusu. Önce `app_version_requirements.min_version` (bkz. `docs/ZORUNLU_GUNCELLEME.md`), sonra politika. |
+| 2 | **Yeni build:** 2026-11-13'te build 20 / 12'den sonra yapılan düzeltmeler mağazada yok (tekrar gönder sayacı, eski şifre sıfırlama bağlantısı, gece gökyüzü saat düzeltmesi, mektup okumalarının görünüme taşınması, mektup bildirimi saati, SKAdNetwork). | Apple incelemesi bittikten sonra. SKAdNetwork yerel ayar: OTA ile gitmez, iOS build ister. | `eas build --profile production`; sürüm numarasını yükselt. |
+| 3 | **Eski HTML varlıklı verinin temizliği** (`Ali&#x27;s`). | Yeni sürüm yayıldıktan sonra (eski sürümler kodlamaya devam ediyor). | Bölüm 0, "Yayından sonra" altındaki madde. |
+| 4 | **Ödüllü reklam sunucu doğrulaması (SSV):** kod hazır (`supabase/functions/admob-ssv`, migration `20261113000002`), devrede değil. | İstenince; AdMob panelinde elle ayar gerekir. | Sıra: `supabase/functions/admob-ssv/README.md`. Migration ve deploy → panelde geri çağrı URL'si → istemci değişikliği → eski sürümler kapanınca `earn_tokens` yetkisini al. |
+
 ## 0. Eski denetim raporlarından kalan açık işler (2026-11-07 kontrolü)
 
 `DENETIM_GECE_TARAMASI.md` ve `KAPSAMLI_SATIS_ONCESI_DENETIM_RAPORU.md` (30 Ekim) ile `WEB_SITESI_YASAL_METIN_GUNCELLEMELERI.md`
@@ -38,7 +49,7 @@ Bitmeyenler:
   `owner_initials`, `contains_blocked_word`, arama normalizasyonu) kodlanmış adla çalışıyor; temizlik bunları da düzeltir.
 - ~~Tekrar gönder geri sayımı arka planda duruyor~~ **düzeltildi (2026-11-13, yeni build/OTA ister):** `verify-device.tsx` sayacı artık bitiş anına (saat) bağlı; kalan süre her saniye ve uygulama öne gelince `remainingCooldownSeconds` (`src/lib/otp.ts`, testli) ile hesaplanır. Cihazda doğrulanmadı.
 - **Maps anahtarını couplesapp94 hesabına taşı:** Maps Production Key şu an emirhanekin52 hesabındaki `project-a4ab81ef…` projesinde (fatura hesabı orada). Anahtar projeler arası taşınmaz: couplesky-c50c5'e fatura hesabı bağla, yeni anahtar oluştur (aynı paket+SHA-1 kısıtı), `app.json` anahtarını değiştir, yeni Android build al, eskiyi sil.
-- **Ödüllü reklam SSV (Y-3):** reklam token'ı istemci beyanına dayanıyor; günde 25 sınırı var. AdMob Server-Side Verification ekle.
+- **Ödüllü reklam SSV (Y-3):** reklam token'ı istemci beyanına dayanıyor; günde 25 sınırı var. Sunucu kodu 2026-11-13'te yazıldı ve denendi, devrede değil (yukarıdaki bekleyen adımlar tablosu, madde 4).
 - **iOS ATT / SKAdNetwork (G-19):** `skAdNetworkItems` eklendi (2026-11-13, Google'ın AdMob sayfasındaki 50 kimlik; bir sonraki iOS build'iyle Info.plist'e girer). Aracılık (mediation) ağı eklenirse o ağın kimlikleri ayrıca eklenmeli. ATT izni ayrı konu, hâlâ yok.
 - **Promosyon kodu kalıntısı:** Uygulamadan kaldırıldı ve `promo_codes` boş, ama `redeem_promo_code` RPC'si ve tablolar duruyor;
   istemci yetkisini kaldır ya da sil. (`max_uses` kontrolü kilitsiz, ama aktif kod yok.)
@@ -51,7 +62,7 @@ Bitmeyenler:
   RevenueCat); ayrı bir test projesi gerekirse ayır.
 - **Doğrulanmadı:** `auth-gateway` kova tüketme/kilitleme (G-24), `send-push` küçük sorunları (G-25), test kapsamı (G-32),
   `MaterialSymbols` fontu 973 KB (G-33).
-- **Diğer:** Sentry/çökme izleme hesabı; `icon.png` sol üst silik çerçeve; ~22 ikon düğmesinde belirsiz erişilebilirlik etiketi;
+- **Diğer:** Sentry/çökme izleme hesabı; `icon.png` sol üst silik çerçeve; erişilebilirlik: 2026-11-13 taramasında etiketsiz 2 ikon düğmesi bulundu ve etiketlendi (ana sayfa Wrapped kartı kapatma, uygulama içi bildirim kapatma); "belirsiz etiket" denen ~22 düğme ayrıca elle gözden geçirilmedi;
   taban şema dökümü (`supabase db dump`; repoda taban migration yok, `20260907_*` dosyaları önek çakışmalı); büyük dosyalar
   (`OurStarScreen.tsx` vb.); Unsplash demo görselleri çevrimiçi; Nominatim yedeği (kullanıcı artınca ücretli geocoding);
   `report-alert` Edge Function'ı repoda duruyor ama kurulmadı (vazgeçilmişti): sil ya da kur.
