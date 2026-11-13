@@ -37,3 +37,12 @@ export function applyOtpInput(
   const focusIndex = Math.min(start + chars.length, length - 1);
   return { digits: next, focusIndex, complete: next.every(Boolean) };
 }
+
+/**
+ * Yeniden gönderim sayacında kalan saniye. Bitiş anı (ms) ve şimdiki an verilir; sonuç saatten hesaplanır,
+ * böylece uygulama arka plandayken geçen süre de sayılır. Bitiş yoksa (0) ya da geçmişse 0.
+ */
+export function remainingCooldownSeconds(cooldownUntil: number, now: number): number {
+  if (!Number.isFinite(cooldownUntil) || !Number.isFinite(now)) return 0;
+  return Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
+}

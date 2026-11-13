@@ -177,14 +177,8 @@ function RootLayoutNav() {
       return;
     }
 
-    if (link.kind === "reset-password") {
-      leaveDemo();
-      router.push({
-        pathname: "/(auth)/reset-password",
-        params: { token_hash: link.tokenHash },
-      });
-      return;
-    }
+    // Eski şifre sıfırlama bağlantısı: sıfırlama artık uygulama içinde e-posta koduyla yapılır, bağlantı yok sayılır
+    if (link.kind === "legacy-reset-password") return;
 
     // Arkadaş çift daveti: kod saklanır; hesabı olmayan kullanıcıda eşleşme ekranı kayıttan sonra girer.
     // Ödül yalnızca kodu giren kişi sevgilisiyle eşleşince verilir (sunucu).

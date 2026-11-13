@@ -1,5 +1,5 @@
 /// <reference types="jest" />
-import { applyOtpInput } from "../otp";
+import { applyOtpInput, remainingCooldownSeconds } from "../otp";
 
 const empty = ["", "", "", "", "", ""];
 
@@ -22,5 +22,26 @@ describe("applyOtpInput", () => {
     const result = applyOtpInput(empty, 0, "a", 6);
     expect(result.digits[0]).toBe("");
     expect(result.focusIndex).toBe(0);
+  });
+});
+
+describe("remainingCooldownSeconds", () => {
+  const start = 1_000_000;
+
+  it("bitiş anına kalan saniyeyi yukarı yuvarlar", () => {
+    expect(remainingCooldownSeconds(start + 60_000, start)).toBe(60);
+    expect(remainingCooldownSeconds(start + 60_000, start + 1)).toBe(60);
+    expect(remainingCooldownSeconds(start + 60_000, start + 59_001)).toBe(1);
+  });
+
+  it("arka planda geçen süre sayılır: 45 sn sonra dönünce 15 kalır, 2 dk sonra 0", () => {
+    expect(remainingCooldownSeconds(start + 60_000, start + 45_000)).toBe(15);
+    expect(remainingCooldownSeconds(start + 60_000, start + 120_000)).toBe(0);
+  });
+
+  it("sayaç başlamadıysa ya da değer bozuksa 0", () => {
+    expect(remainingCooldownSeconds(0, start)).toBe(0);
+    expect(remainingCooldownSeconds(start + 60_000, start + 60_000)).toBe(0);
+    expect(remainingCooldownSeconds(Number.NaN, start)).toBe(0);
   });
 });

@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   BackHandler,
+  AppState,
 } from "react-native";
 import { KeyboardAwareScrollView } from "@/components/ui/KeyboardAwareScrollView";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
@@ -21,10 +22,11 @@ import { safeStorage as AsyncStorage } from "@/lib/safeStorage";
 import { navigateAfterAuth, setAuthFlowActive, releaseAuthFlow } from "@/lib/navigate";
 import { toast } from "@/lib/toast";
 
-import { applyOtpInput } from "@/lib/otp";
+import { applyOtpInput, remainingCooldownSeconds } from "@/lib/otp";
 import { Trans, useTranslation } from "react-i18next";
 
 const OTP_LENGTH = 6;
+const RESEND_COOLDOWN_MS = 60_000;
 
 export default function VerifyDeviceScreen() {
   const { t } = useTranslation();
@@ -45,16 +47,27 @@ export default function VerifyDeviceScreen() {
   const [errorMsg, setErrorMsg] = useState("");
   const [focusedIndex, setFocusedIndex] = useState<number>(0);
   // Bekleme süresi yalnızca bir kod gerçekten gönderildiyse işler; aksi halde kullanıcı kodsuz 60 sn kilitleniyordu
-  const [resendCooldown, setResendCooldown] = useState(codeSent === "1" ? 60 : 0);
+  // Sayaç bitiş anına (saat) bağlıdır: uygulama arka plandayken JS durur, saniye saniye azaltılan sayaç
+  // geri dönünce kaldığı yerden devam ediyordu. Kalan süre her tikte ve öne gelişte saatten hesaplanır.
+  const [cooldownUntil, setCooldownUntil] = useState(() => (codeSent === "1" ? Date.now() + RESEND_COOLDOWN_MS : 0));
+  const [now, setNow] = useState(() => Date.now());
+  const resendCooldown = remainingCooldownSeconds(cooldownUntil, now);
+  const isCoolingDown = resendCooldown > 0;
   const [isResending, setIsResending] = useState(false);
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
   useEffect(() => {
-    if (resendCooldown > 0) {
-      const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [resendCooldown]);
+    if (!isCoolingDown) return;
+    const tick = () => setNow(Date.now());
+    const timer = setInterval(tick, 1000);
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") tick();
+    });
+    return () => {
+      clearInterval(timer);
+      subscription.remove();
+    };
+  }, [isCoolingDown]);
 
   useEffect(() => {
     const handleBackAction = () => {
@@ -174,7 +187,9 @@ export default function VerifyDeviceScreen() {
       if (error) {
         setErrorMsg(t("auth.verifyDevice.sendFailedWithMessage", { message: error.message }));
       } else {
-        setResendCooldown(60);
+        const sentAt = Date.now();
+        setNow(sentAt);
+        setCooldownUntil(sentAt + RESEND_COOLDOWN_MS);
         toast.success(t("auth.verifyDevice.resent"), { title: t("auth.verifyDevice.resentTitle"), emoji: "📧" });
       }
     } catch {

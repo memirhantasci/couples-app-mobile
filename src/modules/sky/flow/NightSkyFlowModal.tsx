@@ -140,13 +140,10 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
 
   const chosenDate = resolveChosenDate(options, choice);
   const isChosenDateToday = chosenDate === today;
-  // Bugün seçiliyse gelecekteki bir saat (ör. öğlen 14:00'teyken 22:00) kullanılamaz; şimdiki saate çekilir
+  // Bugün seçiliyse gelecekteki bir saat (ör. öğlen 14:00'teyken 22:00) kullanılamaz; şimdiki saate çekilir.
+  // `time` kullanıcının seçtiği ham saattir, her okuyan `effectiveTime`'ı kullanır: başka bir güne geçilince
+  // seçilen saat geri gelir (durumu effect ile ezmeye gerek yok).
   const effectiveTime = useMemo(() => clampTimeIfToday(chosenDate, time), [chosenDate, time]);
-  useEffect(() => {
-    if (isChosenDateToday && effectiveTime !== time) {
-      setTime(effectiveTime);
-    }
-  }, [isChosenDateToday, effectiveTime, time]);
 
   const canAdvance = step === 0 ? chosenDate !== null : step === 1 ? place !== null : true;
   const premiumTitle = effectiveTitle(title, gateFor("customTitle", user) === "allow");

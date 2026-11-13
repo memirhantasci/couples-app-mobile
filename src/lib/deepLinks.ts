@@ -5,7 +5,7 @@ import * as Linking from "expo-linking";
  * - couplesapp://verify?token_hash=...&type=...   (e-posta doğrulama)
  * - couplesapp://invite?code=... / pair?code=...  (eşleşme daveti)
  * - couplesapp://refer?code=...                    (arkadaş çift daveti, bkz. lib/referral)
- * - couplesapp://reset-password?token_hash=...     (şifre sıfırlama)
+ * - couplesapp://reset-password?...                (eski şifre sıfırlama bağlantısı: tanınır ve yok sayılır)
  *
  * +native-intent aynı ayrıştırıcıyla bu bağlantıları router'dan alır; aksi halde router `/verify`'ı
  * ikinci kez açıyor (tek kullanımlık belirteç ikinci ekranda "geçersiz" çıkıyordu), `/invite` için
@@ -27,7 +27,7 @@ export type AppLink =
   | { readonly kind: "verify"; readonly tokenHash: string; readonly type: VerifyLinkType }
   | { readonly kind: "invite"; readonly code: string }
   | { readonly kind: "refer"; readonly code: string }
-  | { readonly kind: "reset-password"; readonly tokenHash: string };
+  | { readonly kind: "legacy-reset-password" };
 
 export function parseAppLink(url: string): AppLink | null {
   const { hostname, queryParams } = Linking.parse(url);
@@ -49,9 +49,8 @@ export function parseAppLink(url: string): AppLink | null {
     const code = param("code");
     return code ? { kind: "refer", code } : null;
   }
-  if (hostname === "reset-password") {
-    const tokenHash = param("token_hash");
-    return tokenHash ? { kind: "reset-password", tokenHash } : null;
-  }
+  // Şifre sıfırlama uygulama içinde e-posta koduyla yapılır; bu bağlantıyı hiçbir e-posta üretmiyor. Tanınmasa
+  // router bağlantıyı kendisi çözüp sıfırlama ekranını e-postasız açardı; tanınınca +native-intent yutar.
+  if (hostname === "reset-password") return { kind: "legacy-reset-password" };
   return null;
 }

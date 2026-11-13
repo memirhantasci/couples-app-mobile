@@ -253,13 +253,31 @@ function S(lang: Lang) {
   };
 }
 
+// Eski uygulama sürümleri ad ve başlıkları HTML varlığıyla yazdı (Ali&#x27;s, Kahve &amp; Kitap). Bildirim düz
+// metindir: göndermeden önce çözülür. İstemcideki decodeLegacyEntities (src/utils/sanitize.ts) ile aynı beş varlık,
+// çift kodlama (&amp;amp;) için en çok 5 geçiş.
+const LEGACY_ENTITY_VALUES: Record<string, string> = { "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#x27;": "'" };
+function decodeLegacyEntities(value: string): string {
+  let text = value;
+  for (let pass = 0; pass < 5 && /&(?:amp|lt|gt|quot|#x27);/.test(text); pass += 1) {
+    text = text.replace(/&(?:amp|lt|gt|quot|#x27);/g, (entity) => LEGACY_ENTITY_VALUES[entity]);
+  }
+  return text;
+}
+
+/** Görünen ad: metin değilse (null vb.) olduğu gibi kalır, metinse varlıkları çözülür. */
+// deno-lint-ignore no-explicit-any
+function plainName(value: any): any {
+  return typeof value === "string" ? decodeLegacyEntities(value) : value;
+}
+
 // Bildirime dokununca uygulamanın hangi ekranı açacağı (route), uygulama içi kartın türü ve
 // Android bildirim kanalı da mesajla birlikte gider; istemci bunları data üzerinden okur.
 function safePlaintextLabel(value: string | null | undefined, fallback: string): string {
   if (!value || typeof value !== "string") return fallback;
   const trimmed = value.trim();
   if (!trimmed || trimmed.startsWith("enc:")) return fallback;
-  return trimmed;
+  return decodeLegacyEntities(trimmed);
 }
 
 interface PushMessage {
@@ -379,7 +397,7 @@ serve(async (req) => {
                 to: r.partner_push_token,
                 sound: "default",
                 title: s.periodReminderTitle,
-                body: s.periodReminderPartnerBody(r.display_name),
+                body: s.periodReminderPartnerBody(plainName(r.display_name)),
                 data: { type: "period_reminder", route: "/(tabs)/period-tracker" }
               });
             }
@@ -396,7 +414,7 @@ serve(async (req) => {
               to: r.push_token,
               sound: "default",
               title: s.letterUnlockTitle,
-              body: s.letterUnlockBody(r.sender_display_name, safePlaintextLabel(r.letter_title, "")),
+              body: s.letterUnlockBody(plainName(r.sender_display_name), safePlaintextLabel(r.letter_title, "")),
               data: { type: "letter_unlock", letterId: r.letter_id, route: "/(tabs)/letters" }
             });
           }
@@ -577,7 +595,7 @@ serve(async (req) => {
         const medicineName = safePlaintextLabel(medicine.name, "");
         message = (lang) => {
           const s = S(lang);
-          return { title: s.medicineTakenTitle, body: s.medicineTakenBody(sender.display_name, medicineName), type: "medicine", route: "/(tabs)/medicine", actionLabel: s.medicineTakenAction, channelId: "medicine_channel" };
+          return { title: s.medicineTakenTitle, body: s.medicineTakenBody(plainName(sender.display_name), medicineName), type: "medicine", route: "/(tabs)/medicine", actionLabel: s.medicineTakenAction, channelId: "medicine_channel" };
         };
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;
@@ -598,7 +616,7 @@ serve(async (req) => {
             : null;
           return {
             title: s.letterNewTitle,
-            body: s.letterNewBody(sender.display_name, unlockDate),
+            body: s.letterNewBody(plainName(sender.display_name), unlockDate),
             type: "letter",
             route: "/(tabs)/letters",
             actionLabel: s.letterNewAction,
@@ -613,7 +631,7 @@ serve(async (req) => {
       if (sender) {
         message = (lang) => {
           const s = S(lang);
-          return { title: s.periodStartedTitle, body: s.periodStartedBody(sender.display_name), type: "period", route: "/(tabs)/period-tracker", actionLabel: s.periodStartedAction };
+          return { title: s.periodStartedTitle, body: s.periodStartedBody(plainName(sender.display_name)), type: "period", route: "/(tabs)/period-tracker", actionLabel: s.periodStartedAction };
         };
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;
@@ -625,7 +643,7 @@ serve(async (req) => {
       if (sender) {
         message = (lang) => {
           const s = S(lang);
-          return { title: s.moodTitle, body: s.moodBody(sender.display_name, record.mood_type), type: "mood", route: "/(tabs)/home", actionLabel: s.moodAction, extra: { moodEmoji: record.mood_type } };
+          return { title: s.moodTitle, body: s.moodBody(plainName(sender.display_name), record.mood_type), type: "mood", route: "/(tabs)/home", actionLabel: s.moodAction, extra: { moodEmoji: record.mood_type } };
         };
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;
@@ -642,7 +660,7 @@ serve(async (req) => {
             : null;
           return {
             title: s.meetingNewTitle,
-            body: s.meetingNewBody(sender.display_name, meetingDate),
+            body: s.meetingNewBody(plainName(sender.display_name), meetingDate),
             type: "meeting",
             route: "/(tabs)/meetings",
             actionLabel: s.meetingNewAction,
@@ -658,7 +676,7 @@ serve(async (req) => {
       if (sender) {
         message = (lang) => {
           const s = S(lang);
-          return { title: s.memoryNewTitle, body: s.memoryNewBody(sender.display_name), type: "photo", route: "/(tabs)/memories", actionLabel: s.memoryNewAction };
+          return { title: s.memoryNewTitle, body: s.memoryNewBody(plainName(sender.display_name)), type: "photo", route: "/(tabs)/memories", actionLabel: s.memoryNewAction };
         };
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;
@@ -670,7 +688,7 @@ serve(async (req) => {
       if (sender) {
         message = (lang) => {
           const s = S(lang);
-          return { title: s.calendarNoteTitle, body: s.calendarNoteBody(sender.display_name), route: "/(tabs)/calendar", actionLabel: s.calendarNoteAction };
+          return { title: s.calendarNoteTitle, body: s.calendarNoteBody(plainName(sender.display_name)), route: "/(tabs)/calendar", actionLabel: s.calendarNoteAction };
         };
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;

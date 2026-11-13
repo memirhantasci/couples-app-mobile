@@ -30,22 +30,23 @@ Bitmeyenler:
 - **Eski HTML varlıklı metinler (`Ali&#x27;s`, `Kahve &amp; Kitap`), 2026-11-11:** eski sürümlerdeki `sanitizeStrict`
   buluşma başlığı/yeri, anı/fotoğraf/mektup başlığı, ilaç adı ve görünen ismi HTML varlığıyla yazıyordu. Yeni istemci
   kaçışsız yazıyor ve okurken çözüyor (`src/lib/legacyEntityFetch.ts`), ama mağazadaki eski sürümler kodlamaya devam eder.
-  Açık kalanlar: (1) **sunucu push'ları**: `send-push` adı/başlığı DB'den okuyup olduğu gibi gönderiyor, telefonun
+  Açık kalanlar: (1) ~~sunucu push'ları~~ **yapıldı (2026-11-13, send-push v26 canlıda: ad, ilaç adı, mektup ve buluşma başlığı göndermeden önce çözülüyor; gerçek bildirimle cihazda doğrulanmadı)**. Eski not: `send-push` adı/başlığı DB'den okuyup olduğu gibi gönderiyor, telefonun
   bildirim çubuğunda varlıklı görünür (uygulama içi kart çözülüyor). Çözüm: send-push'ta göndermeden önce aynı beş
   varlığı (`&amp; &lt; &gt; &quot; &#x27;`) çöz + deploy. (2) **Canlı veri temizliği**: sayım ve UPDATE taslağı hazırlandı
   (repoda değil; tek transaction, yalnızca düz metin sütunları, şifreli sütun etkilenmedi). Yeni sürüm yayıldıktan sonra bir
   kez çalıştır, birkaç hafta sonra sayımla tekrar bak. (3) Sunucu tarafı ad kullanımları (yıldız sahibi baş harfi
   `owner_initials`, `contains_blocked_word`, arama normalizasyonu) kodlanmış adla çalışıyor; temizlik bunları da düzeltir.
-- **Tekrar gönder geri sayımı arka planda duruyor (TestFlight'ta görüldü, 2026-11-08):** `src/app/(auth)/verify-device.tsx:52-57` sayacı her saniye `setTimeout` ile bir azaltıyor; uygulama arka plana gidince iOS JS'i durdurduğundan geri dönünce sayaç kaldığı yerden (ör. 45) devam ediyor, oysa gerçekte süre geçmiş. Çözüm: sayacı azaltmak yerine bitiş zamanını (`Date.now()+60000`) saklayıp her tikte `bitiş - şimdi` hesapla. Ayrıca `verify.tsx:213` (e-posta kod ekranı) "tekrar gönder"de istemci tarafı bekleme sayacı yok, yalnızca Supabase'in kendi sınırı var; aynı bitiş-zamanı mantığıyla ekle. Yeni build ister.
+- ~~Tekrar gönder geri sayımı arka planda duruyor~~ **düzeltildi (2026-11-13, yeni build/OTA ister):** `verify-device.tsx` sayacı artık bitiş anına (saat) bağlı; kalan süre her saniye ve uygulama öne gelince `remainingCooldownSeconds` (`src/lib/otp.ts`, testli) ile hesaplanır. Cihazda doğrulanmadı.
 - **Maps anahtarını couplesapp94 hesabına taşı:** Maps Production Key şu an emirhanekin52 hesabındaki `project-a4ab81ef…` projesinde (fatura hesabı orada). Anahtar projeler arası taşınmaz: couplesky-c50c5'e fatura hesabı bağla, yeni anahtar oluştur (aynı paket+SHA-1 kısıtı), `app.json` anahtarını değiştir, yeni Android build al, eskiyi sil.
 - **Ödüllü reklam SSV (Y-3):** reklam token'ı istemci beyanına dayanıyor; günde 25 sınırı var. AdMob Server-Side Verification ekle.
 - **iOS ATT / SKAdNetwork (G-19):** `app.json` AdMob eklentisinde `skAdNetworkItems` yok (reklam gelirini ve atfı etkiler).
 - **Promosyon kodu kalıntısı:** Uygulamadan kaldırıldı ve `promo_codes` boş, ama `redeem_promo_code` RPC'si ve tablolar duruyor;
   istemci yetkisini kaldır ya da sil. (`max_uses` kontrolü kilitsiz, ama aktif kod yok.)
+  **2026-11-13:** yetkiyi alan migration yazıldı: `20261113000000_revoke_promo_code_rpc.sql` (canlıda ROLLBACK'li denendi, **uygulanmadı**). Mağazaya çıkan build'lerin hiçbiri RPC'yi çağırmıyor.
 - **Mektup açılış bildirimi (G-30, G-15):** yerel bildirim 09:00, mektup Türkiye 00:00'da açılıyor; sunucu bildirimi kapalı,
   bildirim yalnızca cihaz senkronuna bağlı.
 - **Cihaz doğrulama yalnızca istemci kapısı (G-17):** sunucuda zorlanmıyor; "güvenlik" diye sunma ya da gateway'de zorunlu kıl.
-- **Ölü bağlantı (G-27):** `couplesapp://reset-password?token_hash=...` kullanılmıyor, kaldırılabilir.
+- ~~Ölü bağlantı (G-27)~~ **kapatıldı (2026-11-13, yeni build/OTA ister):** `couplesapp://reset-password` artık tanınıp yok sayılıyor (`legacy-reset-password`, `src/lib/deepLinks.ts`); sıfırlama ekranını e-postasız açmıyor.
 - **Derleme ortamları (G-28):** `eas.json` development ve preview profilleri de `production` ortamını kullanıyor (canlı Supabase ve
   RevenueCat); ayrı bir test projesi gerekirse ayır.
 - **Doğrulanmadı:** `auth-gateway` kova tüketme/kilitleme (G-24), `send-push` küçük sorunları (G-25), test kapsamı (G-32),
