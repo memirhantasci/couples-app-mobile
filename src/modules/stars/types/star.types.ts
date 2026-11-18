@@ -246,6 +246,23 @@ export interface CoupleStarDetails {
 }
 
 /**
+ * `get_solar_system_claims` RPC çıktı tipi.
+ * Güneş Sistemi cisimlerinin sahiplik ve sosyal görünürlük durumu.
+ */
+export interface SolarSystemClaimItem {
+  readonly catalog_id: number;
+  readonly catalog_code: string;
+  readonly couple_id: number | null;
+  readonly custom_name: string | null;
+  readonly is_claimed: boolean;
+  readonly is_mine: boolean;
+  readonly owner_label: string | null;
+  readonly is_connected: boolean;
+  readonly luminosity_level: number;
+  readonly resonance_active: boolean;
+}
+
+/**
  * `get_stars_in_viewport` RPC parametreleri.
  */
 export interface GetStarsViewportParams {

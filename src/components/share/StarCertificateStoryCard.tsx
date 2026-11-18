@@ -169,7 +169,7 @@ export function StarCertificateStoryCard({ width, cardRef, star, names }: StarCe
             >
               {star.custom_name}
             </Text>
-            {star.common_name ? (
+            {star.common_name && star.common_name !== star.custom_name ? (
               <Text style={{ color: "rgba(255, 255, 255, 0.55)", fontSize: s(11), fontFamily: "Inter_500Medium", marginTop: s(2) }}>
                 ({star.common_name})
               </Text>

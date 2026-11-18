@@ -77,7 +77,7 @@ export const MicroStarHeader = memo(function MicroStarHeader({
   const daysInSky = daysSince(dayjs(starDetails.created_at));
   const meta = [
     starDetails.catalog_code,
-    starDetails.common_name || null,
+    starDetails.common_name && starDetails.common_name !== starDetails.custom_name ? starDetails.common_name : null,
     starDetails.spectral_type ? t('stars.micro.spectralClass', { spectral_type: starDetails.spectral_type }) : null,
   ]
     .filter(Boolean)

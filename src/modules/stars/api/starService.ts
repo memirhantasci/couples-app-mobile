@@ -29,6 +29,7 @@ import type {
   PendingConnectionDetail,
   SectorDynamicOverview,
   SendStarSparkParams,
+  SolarSystemClaimItem,
   SparkCooldownError,
   StarBrightnessInfo,
   StarConnectionRecord,
@@ -1043,6 +1044,20 @@ export async function makeWish(): Promise<MakeWishResult> {
   return result;
 }
 
+/**
+ * Güneş Sistemi cisimlerinin sahiplik, tescil ve sosyal etiket durumunu çeker.
+ * 11 gezegen için tek seferlik hafif bir RPC çağrısıdır.
+ */
+export async function getSolarSystemClaims(): Promise<SolarSystemClaimItem[]> {
+  return withSmartRetry(async () => {
+    const { data, error } = await supabase.rpc('get_solar_system_claims');
+    if (error) {
+      handleSupabaseError(error);
+    }
+    return (data ?? []) as SolarSystemClaimItem[];
+  });
+}
+
 // ============================================================================
 // 8. GÖKYÜZÜ SEKTÖRLERİ API (STAGE 6)
 // ============================================================================
@@ -1177,6 +1192,7 @@ export const starService = {
   getStarBrightness,
   getMyWishStatus,
   makeWish,
+  getSolarSystemClaims,
   getSectorsOverview,
   claimStarInSector,
   suggestAvailableStars,

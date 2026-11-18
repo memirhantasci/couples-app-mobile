@@ -34,14 +34,20 @@ import {
   skyBoundsForCamera,
   skyBoundsForMotion,
 } from './macro/skyProjection';
-import { SOLAR_SYSTEM_OBJECTS, isInsideSolarSystem, solarSystemObjectsAt } from './macro/solarSystem';
+import {
+  SOLAR_SYSTEM_OBJECTS,
+  isInsideSolarSystem,
+  solarSystemObjectsAt,
+  getSolarBodyPosition,
+  updateSolarClaims,
+} from './macro/solarSystem';
 import { EMPTY_STAR_FIELD, StarFieldBuilder, type StarField } from './macro/starField';
 import { starVisibility, UNCLAIMED_STAR_BRIGHTNESS } from './macro/starStyle';
 import { useSkyCamera } from './macro/useSkyCamera';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/lib/i18n';
 
-export { SOLAR_SYSTEM_OBJECTS, solarSystemObjectsAt };
+export { SOLAR_SYSTEM_OBJECTS, solarSystemObjectsAt, getSolarBodyPosition, updateSolarClaims };
 
 export interface MacroSkyBounds {
   readonly minRa: number;
@@ -373,16 +379,18 @@ function MacroSkyCanvasSkia({
       if (!props.onSelectStar) return;
       // Streamed data may hold stars too faint to be drawn at this zoom.
       // Gezegenler döner: dokunulduğu andaki konumları (çizimle aynı saat) kullanılır
+      const myCatalogCode = props.myStarCoords?.catalog_code;
       const candidates: ViewportStarItem[] = [
-        ...solarSystemObjectsAt(now),
-        ...props.stars.filter((star) => star.is_claimed || starVisibility(star.magnitude, star.is_claimed, zoom) > 0.05),
+        ...solarSystemObjectsAt(now, myCatalogCode),
+        ...props.stars.filter((star) => star.is_mine || star.is_claimed || starVisibility(star.magnitude, star.is_claimed, zoom) > 0.05),
       ];
       if (props.myStarRa !== undefined && props.myStarDec !== undefined) {
-        const existingMine = props.stars.find((s) => s.is_mine);
-        candidates.unshift(
-          existingMine ??
+        const existingMine = candidates.find((s) => s.is_mine) ?? props.stars.find((s) => s.is_mine);
+        if (!existingMine) {
+          candidates.unshift(
             heroTapTarget(props.myStarRa, props.myStarDec, props.myStarName, props.myStarCoords),
-        );
+          );
+        }
       }
       const hit = hitTestSky(x, y, { ra, dec, zoom }, width, height, candidates);
       // Yıldız seçimi yalnızca dokunsal geri bildirim verir (ses yok).

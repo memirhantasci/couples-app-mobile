@@ -520,8 +520,66 @@ const SOLAR_BODIES: readonly SolarBody[] = [
   },
 ];
 
-function makeSolarObject(body: SolarBody, position: { ra: number; dec: number }): ViewportStarItem {
-  const item = { ...body, ...position } as ViewportStarItem;
+export interface SolarClaimInfo {
+  readonly catalog_id?: number | bigint;
+  readonly catalog_code: string;
+  readonly couple_id?: number | null;
+  readonly custom_name?: string | null;
+  readonly is_claimed?: boolean;
+  readonly is_mine?: boolean;
+  readonly owner_label?: string | null;
+  readonly is_connected?: boolean;
+  readonly luminosity_level?: number;
+  readonly resonance_active?: boolean;
+}
+
+let solarClaimsStore: Record<string, SolarClaimInfo> = {};
+
+/** Sunucudan gelen canlı Güneş Sistemi sahiplik durumunu önbelleğe yansıtır. */
+export function updateSolarClaims(claims: readonly SolarClaimInfo[]): void {
+  const next: Record<string, SolarClaimInfo> = {};
+  for (const c of claims) {
+    if (c.catalog_code) {
+      next[c.catalog_code] = c;
+    }
+  }
+  solarClaimsStore = next;
+}
+
+/** Belirtilen Güneş Sistemi cisminin verilen andaki (varsayılan: şimdi) harita koordinatı */
+export function getSolarBodyPosition(catalogCode: string, nowMs: number = Date.now()): { ra: number; dec: number } | null {
+  if (catalogCode === 'SOL-SUN') {
+    return { ra: ORRERY_CENTER_RA, dec: ORRERY_CENTER_DEC };
+  }
+  const index = orreryIndexOf(catalogCode);
+  if (index >= 0) {
+    const pos = orreryBodyPosition(index, nowMs);
+    return { ra: round4(pos.ra), dec: round4(pos.dec) };
+  }
+  return null;
+}
+
+function makeSolarObject(
+  body: SolarBody,
+  position: { ra: number; dec: number },
+  myCatalogCode?: string | null
+): ViewportStarItem {
+  const claim = solarClaimsStore[body.catalog_code];
+  const isMine = myCatalogCode ? body.catalog_code === myCatalogCode : (claim?.is_mine ?? false);
+  const isClaimed = isMine || (claim ? (claim.is_claimed ?? false) : true);
+
+  const item = {
+    ...body,
+    ...position,
+    catalog_id: claim?.catalog_id ? Number(claim.catalog_id) : body.catalog_id,
+    is_claimed: isClaimed,
+    is_mine: isMine,
+    owner_label: isMine ? null : (claim?.owner_label ?? null),
+    is_connected: isMine ? false : (claim?.is_connected ?? false),
+    luminosity_level: claim?.luminosity_level ?? (isMine ? 1.0 : body.luminosity_level),
+    resonance_active: claim?.resonance_active ?? (isMine ? false : body.resonance_active),
+  } as ViewportStarItem;
+
   // Adlar her okunduğunda geçerli dilde çözülür (kopyalama anında geçerli dil kullanılır)
   Object.defineProperties(item, {
     common_name: { get: () => solarBodyName(body.catalog_code), enumerable: true, configurable: true },
@@ -531,9 +589,12 @@ function makeSolarObject(body: SolarBody, position: { ra: number; dec: number })
 }
 
 /** Verilen andaki konumlarıyla Güneş Sistemi cisimleri (dokunma ve aramadan uçuş için). */
-export function solarSystemObjectsAt(nowMs: number = Date.now()): ViewportStarItem[] {
+export function solarSystemObjectsAt(
+  nowMs: number = Date.now(),
+  myCatalogCode?: string | null
+): ViewportStarItem[] {
   const layout = computeSolarSystemLayout(nowMs);
-  return SOLAR_BODIES.map((body) => makeSolarObject(body, layout[body.catalog_code]));
+  return SOLAR_BODIES.map((body) => makeSolarObject(body, layout[body.catalog_code], myCatalogCode));
 }
 
 /**

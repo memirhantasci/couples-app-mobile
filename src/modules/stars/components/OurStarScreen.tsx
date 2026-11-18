@@ -66,7 +66,13 @@ import { DEMO_STAR_DETAILS, DEMO_STAR_EXOPLANETS, getDemoStarOwnerLabel } from '
 import { starService, PremiumRequiredError } from '../api/starService';
 import { StarSparkManager } from '../services/StarSparkManager';
 import { MicroSystemCanvas } from '../canvas/MicroSystemCanvas';
-import { MacroSkyCanvas, computeBounds, solarSystemObjectsAt } from '../canvas/MacroSkyCanvas';
+import {
+  MacroSkyCanvas,
+  computeBounds,
+  solarSystemObjectsAt,
+  getSolarBodyPosition,
+  updateSolarClaims,
+} from '../canvas/MacroSkyCanvas';
 import { UNCLAIMED_STAR_BRIGHTNESS } from '../canvas/macro/starStyle';
 import { suggestedStarZoom } from '../utils/starSuggestion';
 import { StarInfoBadge } from './StarInfoBadge';
@@ -220,9 +226,9 @@ function describeStarLightValue(
   friendLight: StarBrightnessInfo | null,
   t: TFunction
 ): string {
-  if (star.catalog_code?.startsWith('SOL-')) return `${star.magnitude} mag`;
-  if (!star.is_claimed) return formatLightPercent(UNCLAIMED_STAR_BRIGHTNESS);
   if (star.is_mine) return formatLightPercent(myLight ?? star.luminosity_level);
+  if (star.catalog_code?.startsWith('SOL-') && !star.owner_label) return `${star.magnitude} mag`;
+  if (!star.is_claimed) return formatLightPercent(UNCLAIMED_STAR_BRIGHTNESS);
   if (friendLight?.visibility === 'friend') return formatLightPercent(friendLight.brightness);
   if (star.is_connected === true) return formatLightPercent(star.luminosity_level);
   return t('stars.card.mysterious');
@@ -239,7 +245,7 @@ function describeStarLight(
   friendLight: StarBrightnessInfo | null,
   t: TFunction
 ): string | null {
-  if (star.catalog_code?.startsWith('SOL-')) return null;
+  if (star.catalog_code?.startsWith('SOL-') && !star.is_mine && !star.owner_label) return null;
 
   if (star.is_mine) {
     if (!myBrightness) return null;
@@ -377,8 +383,17 @@ export const OurStarScreen: React.FC = () => {
   const suggestedIdsRef = useRef<number[]>([]);
 
   // Eve Dönüş Radarı Hesaplaması
-  const myStarRa = starDetails ? Number(starDetails.ra) : 0;
-  const myStarDec = starDetails ? Number(starDetails.dec) : 0;
+  const effectiveMyStarCoords = useMemo(() => {
+    if (!starDetails) return { ra: 0, dec: 0 };
+    if (starDetails.catalog_code?.startsWith('SOL-')) {
+      const solarPos = getSolarBodyPosition(starDetails.catalog_code);
+      if (solarPos) return solarPos;
+    }
+    return { ra: Number(starDetails.ra), dec: Number(starDetails.dec) };
+  }, [starDetails]);
+
+  const myStarRa = effectiveMyStarCoords.ra;
+  const myStarDec = effectiveMyStarCoords.dec;
   const deltaRa = ((myStarRa - cameraRa + 540) % 360) - 180;
   const deltaDec = myStarDec - cameraDec;
   const angularDistance = Math.sqrt(deltaRa * deltaRa + deltaDec * deltaDec);
@@ -482,6 +497,23 @@ export const OurStarScreen: React.FC = () => {
     setIsHibernationOpen(false);
     setPremiumPaywallSource('exoplanet_view');
   }, []);
+
+  // ─── GÜNEŞ SİSTEMİ CANLI SAHİPLİK DURUMU ───────────────────────────
+  // 11 gök cisminin tescil, sahip ve sosyal görünürlük durumunu sunucudan çeker
+  useEffect(() => {
+    let alive = true;
+    starService
+      .getSolarSystemClaims()
+      .then((claims) => {
+        if (alive && Array.isArray(claims)) {
+          updateSolarClaims(claims);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [coupleId]);
 
   // ─── ARKADAŞ ÇİFT DAVETİ ───────────────────────────────────────────
   // Yıldızımız yokken davetle bağlı arkadaş çiftin yıldızı varsa onu gösteren kart. Yıldız seçilince
@@ -640,7 +672,13 @@ export const OurStarScreen: React.FC = () => {
           setExoplanets(cached.planets);
           setLuminosityOverride(cached.details.luminosity_level);
           setIsResonanceActive(cached.details.resonance_active);
-          queueStarIntro(Number(cached.details.ra), Number(cached.details.dec));
+          const cachedSolarPos = cached.details.catalog_code?.startsWith('SOL-')
+            ? getSolarBodyPosition(cached.details.catalog_code)
+            : null;
+          queueStarIntro(
+            cachedSolarPos ? cachedSolarPos.ra : Number(cached.details.ra),
+            cachedSolarPos ? cachedSolarPos.dec : Number(cached.details.dec)
+          );
           setIsLoading(false);
           silent = true;
         } else {
@@ -685,7 +723,13 @@ export const OurStarScreen: React.FC = () => {
           setLuminosityOverride(details.luminosity_level);
           setIsResonanceActive(details.resonance_active);
         }
-        queueStarIntro(Number(details.ra), Number(details.dec));
+        const liveSolarPos = details.catalog_code?.startsWith('SOL-')
+          ? getSolarBodyPosition(details.catalog_code)
+          : null;
+        queueStarIntro(
+          liveSolarPos ? liveSolarPos.ra : Number(details.ra),
+          liveSolarPos ? liveSolarPos.dec : Number(details.dec)
+        );
         refreshMyBrightness();
 
         // Gökyüzü için gereken her şey hazır: yükleme ekranı kalkar, gezegenler ve bağlantılar arkadan gelir
@@ -1024,8 +1068,8 @@ export const OurStarScreen: React.FC = () => {
         catalog_id: starDetails.catalog_id,
         catalog_code: starDetails.catalog_code,
         common_name: starDetails.common_name ?? null,
-        ra: Number(starDetails.ra),
-        dec: Number(starDetails.dec),
+        ra: myStarRa,
+        dec: myStarDec,
         magnitude: starDetails.magnitude,
         spectral_type: starDetails.spectral_type,
         base_color: starDetails.base_color,
@@ -1247,7 +1291,7 @@ export const OurStarScreen: React.FC = () => {
     !!selectedMacroStar &&
     selectedMacroStar.is_claimed &&
     !selectedMacroStar.is_mine &&
-    !selectedMacroStar.catalog_code?.startsWith('SOL-');
+    (!selectedMacroStar.catalog_code?.startsWith('SOL-') || !!selectedMacroStar.owner_label);
   useEffect(() => {
     if (!selectedIsOthersStar || selectedCatalogId == null) return;
     let cancelled = false;
@@ -1379,7 +1423,7 @@ export const OurStarScreen: React.FC = () => {
     !!selectedMacroStar &&
     selectedMacroStar.is_claimed &&
     !selectedMacroStar.is_mine &&
-    !selectedMacroStar.catalog_code?.startsWith('SOL-');
+    (!selectedMacroStar.catalog_code?.startsWith('SOL-') || !!selectedMacroStar.owner_label);
   const isSelectedStarBonded =
     !!selectedMacroStar &&
     (selectedMacroStar.is_connected === true ||
@@ -2092,8 +2136,8 @@ export const OurStarScreen: React.FC = () => {
                 {t('stars.card.requestPending')}
               </Text>
             </View>
-          ) : selectedMacroStar.catalog_code?.startsWith('SOL-') ? (
-            // Güneş Sistemi Referans Cismi
+          ) : selectedMacroStar.catalog_code?.startsWith('SOL-') && !selectedMacroStar.owner_label ? (
+            // Güneş Sistemi Referans Cismi (henüz kimseye hediye edilmemiş)
             <View
               style={[
                 styles.solarObjectBanner,
@@ -2344,7 +2388,7 @@ export const OurStarScreen: React.FC = () => {
           visible={isCertificateModalOpen}
           coupleId={coupleId || 999999}
           initialStar={starDetails}
-          canRename={!isDemoMode}
+          canRename={!isDemoMode && !starDetails?.catalog_code?.startsWith('SOL-')}
           isPremium={isPremium}
           onRenamed={handleStarRenamed}
           onClose={() => setIsCertificateModalOpen(false)}
@@ -2414,7 +2458,7 @@ export const OurStarScreen: React.FC = () => {
 
           // 1. Check if it matches a solar system body (Güneş, gezegenler, Ay)
           // Gezegenler döner: seçildiği andaki konumları alınır
-          const solarObj = solarSystemObjectsAt(Date.now()).find(
+          const solarObj = solarSystemObjectsAt(Date.now(), starDetails?.catalog_code).find(
             (s) => s.catalog_code === item.catalog_code
           );
           // 2. Check if already loaded in the streamed sky tiles

@@ -936,8 +936,8 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                     </TouchableOpacity>
                   )
                 ) : null}
-                {/* Gerçek astronomi adı — yalnızca doluysa göster */}
-                {claimedStar.common_name ? (
+                {/* Gerçek astronomi adı — yalnızca farklıysa ve doluysa göster */}
+                {claimedStar.common_name && claimedStar.common_name !== claimedStar.custom_name ? (
                   <Text style={[styles.certCommonName, { color: certInkSoft }]}>({claimedStar.common_name})</Text>
                 ) : null}
                 <Text style={[styles.certSubText, { color: certInkSoft }]}>
@@ -945,7 +945,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
                 </Text>
 
                 {/* İSİMLERİMİZ: yalnızca kendi tescilli yıldızımızın sertifikasında (demo hariç) */}
-                {canRename && initialStar ? <StarNameVisibilityCard /> : null}
+                {initialStar && coupleId !== 999999 ? <StarNameVisibilityCard /> : null}
 
                 {/* ASTRONOMİK KÜNYE TABLOSU: altın varaklı kutucuklar */}
                 <View style={styles.certInfoGrid}>
