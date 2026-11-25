@@ -700,7 +700,9 @@ export type StarActivityType =
   | 'profile_pic'
   | 'meeting'
   | 'memory'
-  | 'wish';
+  | 'wish'
+  | 'wishlist_add'
+  | 'wishlist_done';
 
 /** `get_my_star_brightness` RPC dönüşü. */
 export interface MyStarBrightness {

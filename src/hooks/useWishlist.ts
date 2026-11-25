@@ -110,6 +110,8 @@ export function useWishlist(params: {
   const inFlight = useRef(new Set<number>());
   // Süren tüm yazımlar (ekleme, düzenleme, silme dahil): yenileme yalnızca sayaç sıfırlanınca
   const pendingWrites = useRef(0);
+  // Aşk skorunu etkileyen bir yazım (ekleme, yaptık, silme) başarıyla bittiğinde true olur
+  const scoreDirty = useRef(false);
   // Yenilemeyi bekleyen yazımlar (ör. ekleme): o an başka yazım sürüyorsa, sürenler bitip yenileme yapılınca uyanır
   const refreshWaiters = useRef<(() => void)[]>([]);
 
@@ -148,24 +150,30 @@ export function useWishlist(params: {
         pendingWrites.current -= 1;
         if (pendingWrites.current === 0) {
           const waiters = refreshWaiters.current.splice(0);
+          const invalidateLoveScore = scoreDirty.current && !isDemoMode && !!coupleId;
+          scoreDirty.current = false;
           const refresh = queryClient
             .invalidateQueries({ queryKey: wishlistRootKey(coupleId) })
             .catch(() => {})
             .finally(() => waiters.forEach((wake) => wake()));
+          if (invalidateLoveScore) {
+            void queryClient.invalidateQueries({ queryKey: ["love_score", coupleId] }).catch(() => {});
+          }
           if (awaitRefresh) await refresh;
         } else if (awaitRefresh) {
           await new Promise<void>((wake) => refreshWaiters.current.push(wake));
         }
       }
     },
-    [queryClient, coupleId]
+    [queryClient, coupleId, isDemoMode]
   );
 
   const optimistic = useCallback(
     (
       itemId: number,
       patch: (item: WishlistItem) => WishlistItem,
-      write: () => Promise<void>
+      write: () => Promise<void>,
+      affectsLoveScore = false
     ): Promise<WishlistWriteResult> => {
       if (inFlight.current.has(itemId)) return Promise.resolve("ok");
       inFlight.current.add(itemId);
@@ -178,6 +186,7 @@ export function useWishlist(params: {
           if (before) placeWishlistItem(queryClient, keys, itemId, patch(before));
           try {
             await write();
+            if (affectsLoveScore) scoreDirty.current = true;
             return "ok";
           } catch (error) {
             // Yalnızca bu madde eski hâline döner
@@ -221,7 +230,8 @@ export function useWishlist(params: {
           done_at: done ? new Date().toISOString() : null,
           done_by: done ? userId : null,
         }),
-        () => setWishlistDone(item.id, userId, done)
+        () => setWishlistDone(item.id, userId, done),
+        true
       );
     },
     [optimistic, userId]
@@ -234,6 +244,7 @@ export function useWishlist(params: {
       return tracked(async () => {
         try {
           await addWishlistItem({ coupleId, userId, item });
+          scoreDirty.current = true;
           return "ok";
         } catch (error) {
           return classifyWishlistError(error);
@@ -265,6 +276,7 @@ export function useWishlist(params: {
       return tracked(async () => {
         try {
           await deleteWishlistItem(id, userId);
+          scoreDirty.current = true;
           return "ok";
         } catch (error) {
           return classifyWishlistError(error);

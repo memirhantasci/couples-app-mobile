@@ -342,7 +342,38 @@ describe("yenileme beklemesi ve iptal", () => {
       expect(await addPromise).toBe("ok");
     });
     expect(added).toBe(true);
-    expect(invalidate).toHaveBeenCalledTimes(1);
+    const invalidatedKeys = invalidate.mock.calls.map(([arg]) => arg?.queryKey);
+    expect(invalidatedKeys).toEqual([data.wishlistRootKey(COUPLE), ["love_score", COUPLE]]);
+  });
+
+  it("yaptık ve silme aşk skoru önbelleğini yeniler; sadece istiyorum yenilemez", async () => {
+    const { hook, invalidate } = await mount([item(1), item(2)]);
+    mocked.setWishlistWant.mockResolvedValue(undefined);
+    mocked.setWishlistDone.mockResolvedValue(undefined);
+    mocked.deleteWishlistItem.mockResolvedValue(undefined);
+
+    await act(async () => {
+      expect(await hook.current.toggleWant(item(1))).toBe("ok");
+    });
+    expect(invalidate.mock.calls.map(([arg]) => arg?.queryKey)).toEqual([data.wishlistRootKey(COUPLE)]);
+
+    invalidate.mockClear();
+    await act(async () => {
+      expect(await hook.current.toggleDone(item(1))).toBe("ok");
+    });
+    expect(invalidate.mock.calls.map(([arg]) => arg?.queryKey)).toEqual([
+      data.wishlistRootKey(COUPLE),
+      ["love_score", COUPLE],
+    ]);
+
+    invalidate.mockClear();
+    await act(async () => {
+      expect(await hook.current.removeItem(2)).toBe("ok");
+    });
+    expect(invalidate.mock.calls.map(([arg]) => arg?.queryKey)).toEqual([
+      data.wishlistRootKey(COUPLE),
+      ["love_score", COUPLE],
+    ]);
   });
 
   it("iyimser yazım 'daha fazla göster' yüklemesini iptal etmez, sıradan okumaları eder", () => {

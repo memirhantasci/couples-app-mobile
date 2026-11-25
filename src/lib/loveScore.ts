@@ -48,6 +48,8 @@ interface CoupleActivity {
   letterSenders: number;
   photoRecent7d: boolean;
   photoAny30d: boolean;
+  wishlistAddAuthorsRecent: number;
+  wishlistDoneRecent: number;
 }
 
 /**
@@ -67,6 +69,8 @@ async function fetchActivityFromServerLog(): Promise<CoupleActivity | null> {
     letterSenders: Number(row?.letter_senders_recent ?? 0),
     photoRecent7d: Number(row?.photo_recent_7d ?? 0) > 0,
     photoAny30d: Number(row?.photo_recent_30d ?? 0) > 0,
+    wishlistAddAuthorsRecent: Number(row?.wishlist_add_authors_recent ?? 0),
+    wishlistDoneRecent: Number(row?.wishlist_done_recent ?? 0),
   };
 }
 
@@ -78,7 +82,8 @@ async function fetchActivityFromLiveRows(
   sevenDaysAgo: string,
   thirtyDaysAgo: string
 ): Promise<CoupleActivity> {
-  const [meetingsRes, lettersRes, noteActivityRes, moodLogsRes, recentPhotosRes] = await Promise.all([
+  const fourteenDaysAgoIso = dayjs().subtract(14, "day").toISOString();
+  const [meetingsRes, lettersRes, noteActivityRes, moodLogsRes, recentPhotosRes, wishlistRes] = await Promise.all([
     supabase
       .from("meetings")
       .select("id")
@@ -98,6 +103,11 @@ async function fetchActivityFromLiveRows(
       .gte("created_at", thirtyDaysAgo)
       .order("created_at", { ascending: false })
       .limit(10),
+    supabase
+      .from("couple_wishlist_items")
+      .select("created_by, created_at, status, done_at")
+      .eq("couple_id", coupleId)
+      .or(`created_at.gte.${fourteenDaysAgoIso},and(status.eq.done,done_at.gte.${thirtyDaysAgo})`),
   ]);
   const queryError =
     meetingsRes.error || lettersRes.error || noteActivityRes.error || moodLogsRes.error || recentPhotosRes.error;
@@ -105,6 +115,7 @@ async function fetchActivityFromLiveRows(
 
   const noteActivity = Array.isArray(noteActivityRes.data) ? noteActivityRes.data[0] : noteActivityRes.data;
   const photos = recentPhotosRes.data ?? [];
+  const wishlistRows = wishlistRes.error ? [] : (wishlistRes.data ?? []);
   const sevenDaysAgoIso = dayjs().subtract(7, "day").toISOString();
   return {
     moodAuthors: new Set((moodLogsRes.data ?? []).map((m: any) => m.user_id)).size,
@@ -114,6 +125,12 @@ async function fetchActivityFromLiveRows(
     letterSenders: new Set((lettersRes.data ?? []).map((l: any) => l.sender_id)).size,
     photoRecent7d: photos.some((p: any) => p.created_at >= sevenDaysAgoIso),
     photoAny30d: photos.length > 0,
+    wishlistAddAuthorsRecent: new Set(
+      wishlistRows.filter((w: any) => w.created_at && w.created_at >= fourteenDaysAgoIso).map((w: any) => w.created_by)
+    ).size,
+    wishlistDoneRecent: wishlistRows.filter(
+      (w: any) => w.status === "done" && w.done_at && w.done_at >= thirtyDaysAgo
+    ).length,
   };
 }
 
@@ -136,6 +153,7 @@ async function fetchActivityFromLiveRows(
  *  - Takvim Notu (Calendar):      Maks 15 (Her iki taraf: 15 / Tek taraf: 8)
  *  - Buluşmalar (Meetings):       Maks 25 (Aktif/gerçekleşen buluşma: 25)
  *  - Aşk Mektupları (Letters):    Maks 25 (Her iki taraf: 25 / Tek taraf: 15)
+ *  - Yapacaklarımız (Wishlist):   Maks 15 (Son 30 günde tamamlanan: 15 / Son 14 günde iki taraf fikir: 12 / Tek taraf: 8)
  *  - Fotoğraf Arşivi (Photos):    Maks 15 (Sadece Premium çiftlerde paydaya eklenir)
  *  - İlaç Takibi (Medicine):      Maks 15 (Sadece ilaç kullanan çiftlerde paydaya eklenir)
  *  - Regl Takibi (Period):        Maks 10 (Sadece regl takibi kullanan çiftlerde paydaya eklenir)
@@ -278,7 +296,23 @@ export async function computeLoveScore(
       breakdown["letters"] = 0;
     }
 
-    // ── 6. Fotoğraf Arşivi (Sadece Premium Çiftlerde Paydaya Eklenir) ─── Maks: 15
+    // ── 6. Yapacaklarımız / Ortak Liste (Herkeste aktif) ─── Maks: 15
+    // Son 30 günde birlikte tamamlanan madde: 15 · Son 14 günde iki taraf fikir eklediyse: 12 · Tek taraf: 8
+    maxEarnablePoints += 15;
+    if (activity.wishlistDoneRecent > 0) {
+      earnedPoints += 15;
+      breakdown["wishlist"] = 15;
+    } else if (activity.wishlistAddAuthorsRecent >= 2) {
+      earnedPoints += 12;
+      breakdown["wishlist"] = 12;
+    } else if (activity.wishlistAddAuthorsRecent === 1) {
+      earnedPoints += 8;
+      breakdown["wishlist"] = 8;
+    } else {
+      breakdown["wishlist"] = 0;
+    }
+
+    // ── 7. Fotoğraf Arşivi (Sadece Premium Çiftlerde Paydaya Eklenir) ─── Maks: 15
     // Ücretsiz kullanıcıların puanını ASLA düşürmez!
     if (isCouplePremium) {
       maxEarnablePoints += 15;
@@ -293,7 +327,7 @@ export async function computeLoveScore(
       }
     }
 
-    // ── 7. İlaç Takibi (Sadece aktif ilacı olan çiftlerde paydaya eklenir) ─── Maks: 15
+    // ── 8. İlaç Takibi (Sadece aktif ilacı olan çiftlerde paydaya eklenir) ─── Maks: 15
     // İlaç kullanmayan çiftler dezavantaj yaşamaz!
     const coupleMedicines = medicinesRes.data ?? [];
     if (coupleMedicines.length > 0) {
@@ -325,7 +359,7 @@ export async function computeLoveScore(
       }
     }
 
-    // ── 8. Regl Takibi (Sadece bu özelliği kullanan çiftlerde paydaya eklenir) ─── Maks: 10
+    // ── 9. Regl Takibi (Sadece bu özelliği kullanan çiftlerde paydaya eklenir) ─── Maks: 10
     const periodActivity = Array.isArray(periodLogsRes.data) ? periodLogsRes.data[0] : periodLogsRes.data;
     if (periodActivity?.has_recent) {
       maxEarnablePoints += 10;

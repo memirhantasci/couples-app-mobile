@@ -2508,7 +2508,9 @@
       "profile_pic": "Profile photo",
       "meeting": "Meetup",
       "memory": "Memory",
-      "wish": "Wish"
+      "wish": "Wish",
+      "wishlist_add": "New idea",
+      "wishlist_done": "Done together"
     },
     "pointsToast_one": "+{{count}} point, your star glowed brighter 🌟",
     "pointsToast_other": "+{{count}} points, your star glowed brighter 🌟",

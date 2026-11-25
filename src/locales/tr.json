@@ -2508,7 +2508,9 @@
       "profile_pic": "Profil fotoğrafı",
       "meeting": "Buluşma",
       "memory": "Anı",
-      "wish": "Dilek"
+      "wish": "Dilek",
+      "wishlist_add": "Yeni fikir",
+      "wishlist_done": "Birlikte yaptık"
     },
     "pointsToast_one": "+{{count}} puan, yıldızınız parladı 🌟",
     "pointsToast_other": "+{{count}} puan, yıldızınız parladı 🌟",

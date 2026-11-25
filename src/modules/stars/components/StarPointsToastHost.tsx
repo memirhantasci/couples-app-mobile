@@ -30,6 +30,8 @@ const ACTIVITY_LABEL_KEYS: Record<StarActivityType, ParseKeys> = {
   meeting: 'stars.activity.meeting',
   memory: 'stars.activity.memory',
   wish: 'stars.activity.wish',
+  wishlist_add: 'stars.activity.wishlist_add',
+  wishlist_done: 'stars.activity.wishlist_done',
 };
 
 /** Bu aktivitelerin ekranı ışık katkısını zaten kendisi gösterir (ör. dilek ekranı); bildirim tekrarlanmaz. */

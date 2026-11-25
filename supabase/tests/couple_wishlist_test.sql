@@ -823,6 +823,100 @@ BEGIN
 END;
 $$;
 
+-- ────────────────────────────────────────────────────────────────────────────
+-- 9. Yıldız parlaklığı puanları, günlük limitler & aşk skoru özeti (20261126000001)
+-- ────────────────────────────────────────────────────────────────────────────
+DO $$
+DECLARE
+  v_couple INTEGER := wishlist_test.c('bora');
+  v_bora   UUID    := wishlist_test.u('bora');
+  v_beste  UUID    := wishlist_test.u('beste');
+  v_id1    BIGINT;
+  v_id2    BIGINT;
+  v_id3    BIGINT;
+  v_score  INTEGER;
+  v_today  DATE    := public.activity_local_date(NOW());
+  v_love   JSONB;
+BEGIN
+  DELETE FROM public.couple_wishlist_items WHERE couple_id = v_couple;
+  DELETE FROM public.couple_activity_log WHERE couple_id = v_couple AND activity_type IN ('wishlist_add', 'wishlist_done');
+  DELETE FROM public.couple_daily_activity WHERE couple_id = v_couple AND activity_date = v_today;
+  DELETE FROM public.couple_activity_score WHERE couple_id = v_couple;
+
+  -- Bora 2 fikir ekler: ilki +1 (awarded), ikincisi 0 (capped, kişi/gün limiti)
+  PERFORM wishlist_test.login('bora');
+  INSERT INTO public.couple_wishlist_items (couple_id, created_by, title)
+  VALUES (v_couple, v_bora, 'Puan Fikir 1') RETURNING id INTO v_id1;
+  INSERT INTO public.couple_wishlist_items (couple_id, created_by, title)
+  VALUES (v_couple, v_bora, 'Puan Fikir 2') RETURNING id INTO v_id2;
+
+  SELECT COALESCE(cumulative_score, 0) INTO v_score FROM public.couple_activity_score WHERE couple_id = v_couple;
+  PERFORM wishlist_test.ok(v_score = 1, 'wishlist_add: aynı gün 2 fikir ekleyen kişi en fazla +1 puan alır');
+
+  v_love := public.get_couple_love_activity();
+  PERFORM wishlist_test.ok(
+    (v_love->>'wishlist_add_authors_recent')::integer = 1 AND (v_love->>'wishlist_done_recent')::integer = 0,
+    'get_couple_love_activity: tek taraf fikir eklemesi (1, 0)');
+
+  -- Beste 1 fikir ekler: +1 (user_day diğer partnere izin verir), toplam 2
+  PERFORM wishlist_test.login('beste');
+  INSERT INTO public.couple_wishlist_items (couple_id, created_by, title)
+  VALUES (v_couple, v_beste, 'Puan Fikir 3') RETURNING id INTO v_id3;
+
+  SELECT cumulative_score INTO v_score FROM public.couple_activity_score WHERE couple_id = v_couple;
+  PERFORM wishlist_test.ok(v_score = 2, 'wishlist_add: partnerin kendi eklemesi +1 puan verir');
+
+  -- 💗 İstiyorum puan vermez
+  PERFORM public.set_wishlist_want(v_id1, TRUE);
+  SELECT cumulative_score INTO v_score FROM public.couple_activity_score WHERE couple_id = v_couple;
+  PERFORM wishlist_test.ok(v_score = 2, 'wishlist wants (istiyorum) puan vermez');
+
+  -- Beste 2 maddeyi "yaptık" işaretler: ilki +2 (awarded), ikincisi 0 (capped, couple_day)
+  PERFORM public.set_wishlist_done(v_id1, TRUE);
+  PERFORM public.set_wishlist_done(v_id3, TRUE);
+  SELECT cumulative_score INTO v_score FROM public.couple_activity_score WHERE couple_id = v_couple;
+  PERFORM wishlist_test.ok(v_score = 4, 'wishlist_done: çift başı günde en fazla +2 puan');
+
+  v_love := public.get_couple_love_activity();
+  PERFORM wishlist_test.ok(
+    (v_love->>'wishlist_add_authors_recent')::integer = 2 AND (v_love->>'wishlist_done_recent')::integer = 1,
+    'get_couple_love_activity: iki taraf fikir (2) ve tamamlanan (1)');
+
+  -- İlkini geri alınca ikincisi (capped) puanı devralır → toplam hâlâ 4; ikincisi de geri alınınca 2'ye düşer
+  PERFORM public.set_wishlist_done(v_id1, FALSE);
+  SELECT cumulative_score INTO v_score FROM public.couple_activity_score WHERE couple_id = v_couple;
+  PERFORM wishlist_test.ok(v_score = 4, 'wishlist_done: ilki geri alınınca sıradaki capped madde puanı devralır');
+
+  PERFORM public.set_wishlist_done(v_id3, FALSE);
+  SELECT cumulative_score INTO v_score FROM public.couple_activity_score WHERE couple_id = v_couple;
+  PERFORM wishlist_test.ok(v_score = 2, 'wishlist_done: tüm tamamlananlar aynı gün geri alınınca +2 geri çekilir');
+
+  -- Ertesi gün geri açıp tekrar "yaptık" işaretleme puan kasmaz (dünkü source_key canlı kalır)
+  PERFORM public.set_wishlist_done(v_id1, TRUE);
+  PERFORM wishlist_test.logout();
+  UPDATE public.couple_activity_log
+     SET activity_date = v_today - 1
+   WHERE source_key = 'couple_wishlist_items:' || v_id1::text || ':done'
+     AND status = 'awarded';
+  PERFORM wishlist_test.login('beste');
+  PERFORM public.set_wishlist_done(v_id1, FALSE);
+  PERFORM public.set_wishlist_done(v_id1, TRUE);
+  SELECT cumulative_score INTO v_score FROM public.couple_activity_score WHERE couple_id = v_couple;
+  PERFORM wishlist_test.ok(v_score = 4, 'wishlist_done: dünkü tamamlanan maddeyi geri aç-kapa yeni puan vermez');
+
+  -- Aynı gün silinen fikir +1 puanı geri alır (capped olan v_id2 devralır, ikisi de silinince -1)
+  PERFORM wishlist_test.login('bora');
+  DELETE FROM public.couple_wishlist_items WHERE id = v_id1;
+  SELECT cumulative_score INTO v_score FROM public.couple_activity_score WHERE couple_id = v_couple;
+  PERFORM wishlist_test.ok(v_score = 4, 'wishlist_add: ilki silinince aynı gün eklenen 2. fikir +1 puanı devralır');
+  DELETE FROM public.couple_wishlist_items WHERE id = v_id2;
+  SELECT cumulative_score INTO v_score FROM public.couple_activity_score WHERE couple_id = v_couple;
+  PERFORM wishlist_test.ok(v_score = 3, 'wishlist_add: aynı gün eklenen tüm fikirler silinince +1 geri alınır');
+
+  PERFORM wishlist_test.logout();
+END;
+$$;
+
 SELECT 'couple_wishlist_test: tüm kontroller geçti' AS sonuc;
 
 ROLLBACK;
