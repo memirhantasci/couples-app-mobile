@@ -193,9 +193,13 @@ function MacroSkyCanvasSkia({
   const myStarColor = myStarCoords?.base_color;
 
   // Güneş sisteminin içinde gezegenlerden başka yıldız bulunmaz (kullanıcının kendi yıldızı hariç).
+  // SOL-% cisimleri canlı orrery'de çizildiği için statik yıldız alanından her zaman süzülür.
   // Çizim, dokunma ve etiketler aynı süzülmüş listeyi kullanır.
+  const myStarCatalogCode = myStarCoords?.catalog_code;
   const stars = useMemo(() => {
-    const filtered = allStars.filter((star) => star.is_mine || !isInsideSolarSystem(star.ra, star.dec));
+    const filtered = allStars.filter(
+      (star) => !star.catalog_code?.startsWith('SOL-') && (star.is_mine || !isInsideSolarSystem(star.ra, star.dec))
+    );
     const myIndex = filtered.findIndex((star) => star.is_mine);
     if (myIndex >= 0) {
       if (
@@ -214,7 +218,8 @@ function MacroSkyCanvasSkia({
       return filtered;
     }
     // Eşleşen karo henüz yüklenmediyse bile kullanıcının kendi yıldızı makro haritada eksiksiz yer alır
-    if (myStarRa !== undefined && myStarDec !== undefined) {
+    // (Güneş Sistemi cisimleri orrery'de zaten çizilir, statik nokta eklenmez)
+    if (myStarRa !== undefined && myStarDec !== undefined && !myStarCatalogCode?.startsWith('SOL-')) {
       filtered.push({
         catalog_id: myStarCoords?.catalog_id ?? 999999,
         catalog_code: myStarCoords?.catalog_code ?? 'OUR-STAR',
@@ -232,7 +237,7 @@ function MacroSkyCanvasSkia({
       });
     }
     return filtered;
-  }, [allStars, myStarRa, myStarDec, myStarName, myStarCoords, t]);
+  }, [allStars, myStarRa, myStarDec, myStarName, myStarCatalogCode, myStarCoords, t]);
 
   const fontProvider = useFonts(LABEL_FONTS);
 
@@ -429,6 +434,7 @@ function MacroSkyCanvasSkia({
                 name: myStarName,
                 luminosity: myStarLuminosity,
                 color: myStarColor,
+                catalogCode: myStarCatalogCode,
               }
             : null,
         connections,
@@ -437,7 +443,7 @@ function MacroSkyCanvasSkia({
       }),
     );
     // `t` dil değişince yenilenir; Güneş Sistemi etiketleri geçerli dilde yeniden çizilsin.
-  }, [overlay, staticAssets, labelCache, fontProvider, myStarRa, myStarDec, myStarName, myStarLuminosity, myStarColor, connections, stars, t]);
+  }, [overlay, staticAssets, labelCache, fontProvider, myStarRa, myStarDec, myStarName, myStarLuminosity, myStarColor, myStarCatalogCode, connections, stars, t]);
 
   // First viewport report, so the parent loads stars for the initial view.
   useEffect(() => {

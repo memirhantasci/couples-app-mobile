@@ -1683,8 +1683,8 @@ export const OurStarScreen: React.FC = () => {
             myStarCoords={
               starDetails
                 ? {
-                    ra: Number(starDetails.ra),
-                    dec: Number(starDetails.dec),
+                    ra: myStarRa,
+                    dec: myStarDec,
                     name: starDetails.custom_name || t('stars.defaultName'),
                     // Kış uykusundaki yıldız sahipsiz bir yıldız kadar sönük parlar
                     luminosity: isHibernating
@@ -1699,8 +1699,8 @@ export const OurStarScreen: React.FC = () => {
                 : undefined
             }
             initialCamera={{
-              centerRa: starDetails ? Number(starDetails.ra) : 180,
-              centerDec: starDetails ? Number(starDetails.dec) : 0,
+              centerRa: starDetails ? myStarRa : 180,
+              centerDec: starDetails ? myStarDec : 0,
               zoom: SKY_OVERVIEW_ZOOM,
             }}
             targetCamera={flyToTarget}

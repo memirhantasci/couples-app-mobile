@@ -23,7 +23,7 @@ import {
   STRAND_TINT,
   type StrandResources,
 } from './connectionStrands';
-import type { SkyOverlay } from './skyOverlay';
+import type { HeroItem, SkyOverlay } from './skyOverlay';
 import { pxPerDegree, pxPerRaDegree, shortestRaDelta, type SkyCamera } from './skyProjection';
 import { orreryBodyPosition, orreryMarkerScale, orrerySunRadiusPx } from './solarSystem';
 import { placeSolarLabels, type LabelBody } from './solarLabels';
@@ -437,14 +437,23 @@ function drawNebulae(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay) {
   }
 }
 
-function drawSectorLabels(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, paints: StarPaints) {
+function resolveHeroPosition(hero: HeroItem, nowMs: number): { ra: number; dec: number } {
+  'worklet';
+  if (hero.orreryIndex >= 0 && nowMs > 0) {
+    return orreryBodyPosition(hero.orreryIndex, nowMs);
+  }
+  return { ra: hero.ra, dec: hero.dec };
+}
+
+function drawSectorLabels(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, paints: StarPaints, nowMs: number) {
   'worklet';
   const alpha = 1 - smoothstep(SECTOR_LABEL_FADE[0], SECTOR_LABEL_FADE[1], view.camera.zoom);
   if (alpha <= 0.002 || overlay.sectorLabels.length === 0) return;
   if (alpha < 0.998) beginAlphaLayer(canvas, paints, alpha);
   const hero = overlay.hero;
-  const heroX = hero ? screenX(view, hero.ra) : 0;
-  const heroY = hero ? screenY(view, hero.dec) : 0;
+  const heroPos = hero ? resolveHeroPosition(hero, nowMs) : null;
+  const heroX = heroPos ? screenX(view, heroPos.ra) : 0;
+  const heroY = heroPos ? screenY(view, heroPos.dec) : 0;
   for (const label of overlay.sectorLabels) {
     const x = screenX(view, label.ra);
     const y = screenY(view, label.dec);
@@ -495,17 +504,19 @@ function drawConnectionLines(
   overlay: SkyOverlay,
   paints: StarPaints,
   animSeconds: number,
+  nowMs: number,
 ) {
   'worklet';
   const hero = overlay.hero;
   if (!hero || overlay.connections.length === 0) return;
   const { width, height, scale, scaleX } = view;
-  const x1 = screenX(view, hero.ra);
-  const y1 = screenY(view, hero.dec);
+  const heroPos = resolveHeroPosition(hero, nowMs);
+  const x1 = screenX(view, heroPos.ra);
+  const y1 = screenY(view, heroPos.dec);
 
   for (const connection of overlay.connections) {
-    const x2 = x1 + shortestRaDelta(hero.ra, connection.ra) * scaleX;
-    const y2 = y1 - (connection.dec - hero.dec) * scale;
+    const x2 = x1 + shortestRaDelta(heroPos.ra, connection.ra) * scaleX;
+    const y2 = y1 - (connection.dec - heroPos.dec) * scale;
     if ((x1 < 0 && x2 < 0) || (x1 > width && x2 > width) || (y1 < 0 && y2 < 0) || (y1 > height && y2 > height)) continue;
     drawConnectionStrands(
       canvas,
@@ -751,12 +762,13 @@ function drawOrbits(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, pain
   }
 }
 
-function drawHero(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, animSeconds: number) {
+function drawHero(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, animSeconds: number, nowMs: number) {
   'worklet';
   const hero = overlay.hero;
   if (!hero) return;
-  const x = screenX(view, hero.ra);
-  const y = screenY(view, hero.dec);
+  const heroPos = resolveHeroPosition(hero, nowMs);
+  const x = screenX(view, heroPos.ra);
+  const y = screenY(view, heroPos.dec);
   if (!isOnScreen(view, x, y, 60)) return;
 
   // Çift yörünge halkalarının nefes alan canlı hissi vermesi için çok hafif harmonik nabız
@@ -769,7 +781,7 @@ function drawHero(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, animSe
   canvas.restore();
 }
 
-function drawLabels(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, paints: StarPaints, solar: readonly SolarPoint[]) {
+function drawLabels(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, paints: StarPaints, solar: readonly SolarPoint[], nowMs: number) {
   'worklet';
   const zoom = view.camera.zoom;
   const { scale, scaleX } = view;
@@ -787,22 +799,23 @@ function drawLabels(canvas: SkCanvas, view: FrameView, overlay: SkyOverlay, pain
   }
 
   const hero = overlay.hero;
-  if (hero) {
-    const heroX = screenX(view, hero.ra);
-    const heroY = screenY(view, hero.dec);
+  const heroPos = hero ? resolveHeroPosition(hero, nowMs) : null;
+  if (hero && heroPos) {
+    const heroX = screenX(view, heroPos.ra);
+    const heroY = screenY(view, heroPos.dec);
     for (const connection of overlay.connections) {
       if (!connection.label) continue;
-      const x = heroX + shortestRaDelta(hero.ra, connection.ra) * scaleX;
-      const y = heroY - (connection.dec - hero.dec) * scale;
+      const x = heroX + shortestRaDelta(heroPos.ra, connection.ra) * scaleX;
+      const y = heroY - (connection.dec - heroPos.dec) * scale;
       if (isOnScreen(view, x, y, 120)) drawAt(canvas, connection.label, x, y + 22);
     }
   }
 
   drawSolarLabels(canvas, view, overlay, paints, solar);
 
-  if (hero?.label) {
-    const x = screenX(view, hero.ra);
-    const y = screenY(view, hero.dec);
+  if (hero?.label && heroPos) {
+    const x = screenX(view, heroPos.ra);
+    const y = screenY(view, heroPos.dec);
     if (isOnScreen(view, x, y, 120)) drawAt(canvas, hero.label, x, y + 24);
   }
 }
@@ -832,17 +845,17 @@ export function drawSkyFrame(
     canvas.drawPicture(overlay.background);
     drawMilkyWay(canvas, view, overlay);
     drawNebulae(canvas, view, overlay);
-    drawSectorLabels(canvas, view, overlay, paints);
+    drawSectorLabels(canvas, view, overlay, paints, meteors.nowMs);
     drawConstellations(canvas, view, overlay);
-    drawConnectionLines(canvas, view, overlay, paints, animSeconds);
+    drawConnectionLines(canvas, view, overlay, paints, animSeconds, meteors.nowMs);
     drawOrbits(canvas, view, overlay, paints);
   }
   drawStars(canvas, view, field, clock, animSeconds, paints);
   if (overlay) {
     const solar = solarPoints(view, overlay, meteors.nowMs);
     drawSolarSystem(canvas, view, overlay, solar);
-    drawHero(canvas, view, overlay, animSeconds);
-    drawLabels(canvas, view, overlay, paints, solar);
+    drawHero(canvas, view, overlay, animSeconds, meteors.nowMs);
+    drawLabels(canvas, view, overlay, paints, solar, meteors.nowMs);
   }
   drawMeteors(canvas, view, paints, meteors);
 }

@@ -73,6 +73,8 @@ export interface HeroItem extends PositionedPicture {
   readonly label: SkPicture | null;
   /** Half the width of the label pill in px (0 without a label). */
   readonly labelHalfWidth: number;
+  /** ORRERY_BODIES index if our star is an orbiting solar body; -1 otherwise. */
+  readonly orreryIndex: number;
 }
 
 export interface SkyOverlay {
@@ -500,6 +502,7 @@ export interface SkyOverlayInput {
     /** Yıldızın parlaklığı (0.2…1): etrafındaki yumuşak ışıma buna göre büyür */
     readonly luminosity?: number;
     readonly color?: string;
+    readonly catalogCode?: string;
   } | null;
   readonly connections: readonly ActiveStarConnection[];
   readonly stars: readonly ViewportStarItem[];
@@ -566,6 +569,7 @@ export function buildSkyOverlay({
         picture: recordHeroGlow(labels, myStar.luminosity, myStar.color) ?? assets.heroMarker,
         label: pill(heroText, HERO_PILL, 'hero'),
         labelHalfWidth: textWidth(heroText, HERO_PILL.text) / 2 + HERO_PILL.paddingX,
+        orreryIndex: myStar.catalogCode?.startsWith('SOL-') ? orreryIndexOf(myStar.catalogCode) : -1,
       }
     : null;
 
