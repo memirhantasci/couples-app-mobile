@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   Platform,
 } from "react-native";
-import { BlurView } from "expo-blur";
+import { PlatformBlurView } from "@/components/ui/PlatformBlurView";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Sparkles, Heart, ArrowRight, X, UserPlus, LogIn } from "lucide-react-native";
@@ -58,12 +58,16 @@ export function DemoActionModal({
       visible={visible}
       transparent
       animationType="fade"
+      statusBarTranslucent
+      navigationBarTranslucent
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <BlurView
-          intensity={Platform.OS === "ios" ? 70 : 100}
+        <PlatformBlurView
+          intensity={70}
           tint={isLight ? "light" : "dark"}
+          variant="backdrop"
+          androidBackgroundColor="transparent"
           style={StyleSheet.absoluteFill}
         />
 

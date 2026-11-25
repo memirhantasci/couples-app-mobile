@@ -525,6 +525,8 @@ export default function MenuScreen() {
           visible={showGuideCatalog}
           transparent
           animationType="slide"
+          statusBarTranslucent
+          navigationBarTranslucent
           onRequestClose={() => setShowGuideCatalog(false)}
         >
           <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.6)" }}>

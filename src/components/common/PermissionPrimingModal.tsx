@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   Platform,
 } from "react-native";
-import { BlurView } from "expo-blur";
+import { PlatformBlurView } from "@/components/ui/PlatformBlurView";
 import { LinearGradient } from "expo-linear-gradient";
 import { BellRing, Mail, Camera, Heart } from "lucide-react-native";
 import { useTheme } from "@/context/ThemeContext";
@@ -38,12 +38,16 @@ export function PermissionPrimingModal({
       visible={visible}
       transparent
       animationType="fade"
+      statusBarTranslucent
+      navigationBarTranslucent
       onRequestClose={onDismiss}
     >
       <View style={styles.overlay}>
-        <BlurView
-          intensity={Platform.OS === "ios" ? 70 : 100}
+        <PlatformBlurView
+          intensity={70}
           tint={isLight ? "light" : "dark"}
+          variant="backdrop"
+          androidBackgroundColor="transparent"
           style={StyleSheet.absoluteFill}
         />
 

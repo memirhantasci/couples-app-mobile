@@ -38,6 +38,7 @@ import {
 import { appAlert } from '@/lib/dialog';
 import { DialogHost } from '@/components/ui/DialogHost';
 import { KeyboardAwareScrollView } from '@/components/ui/KeyboardAwareScrollView';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { hapticSuccess, hapticError, hapticSelection } from '@/lib/soundEffects';
 import * as Clipboard from 'expo-clipboard';
 import {
@@ -106,6 +107,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const { theme, isLight } = useTheme();
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabType>('code');
   const [isLoading, setIsLoading] = useState(false);
   /** İlk yükleme bitince true olur; sonraki yenilemeler (istek sonrası) içeriği yükleme ekranına çevirmez. */
@@ -548,7 +550,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       {/* iOS: klavye açılınca sayfa yukarı itilir; Android: içerikteki KeyboardAwareScrollView odaktaki alanı görünür tutar */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -561,6 +563,7 @@ export const StarConnectionModal: React.FC<StarConnectionModalProps> = ({
               backgroundColor: theme.cardBg,
               borderColor: theme.cardBorder,
               shadowColor: theme.accent,
+              paddingBottom: Math.max(insets.bottom, 16),
             },
           ]}
         >

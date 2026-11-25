@@ -54,7 +54,7 @@ export function PickerSheet({ visible, pick, rollId, onAgain, onClose }: PickerS
   const Icon = item ? CATEGORY_ICONS[item.category] : Dices;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       <View style={[styles.backdrop, { backgroundColor: scrimColor(theme) }]}>
         {/* Örtü sayfanın kardeşi: sayfadaki düğmeler örtünün dokunmasının içinde kalmasın */}
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessible={false} />

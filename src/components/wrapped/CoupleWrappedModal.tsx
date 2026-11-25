@@ -228,7 +228,7 @@ export function CoupleWrappedModal({
   ];
 
   return (
-    <Modal visible={visible} animationType="fade" transparent statusBarTranslucent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="fade" transparent statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       <View style={styles.backdrop}>
         {/* Arka Plan Gradient: slayt konusuna göre çapraz geçişle renk değiştirir */}
         {slideBackdrops.map((colors, index) => (

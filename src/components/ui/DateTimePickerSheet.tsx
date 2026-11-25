@@ -53,6 +53,7 @@ export function DateTimePickerSheet({ visible, onCancel, ...body }: DateTimePick
       transparent
       animationType="fade"
       statusBarTranslucent
+      navigationBarTranslucent
       onRequestClose={onCancel}
     >
       {/* Modal kapalıyken içerik monte edilmez; her açılışta taslak güncel değerle başlar */}

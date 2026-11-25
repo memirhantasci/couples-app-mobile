@@ -9,7 +9,7 @@ import {
   type StyleProp,
   type TextStyle,
 } from "react-native";
-import { BlurView } from "expo-blur";
+import { PlatformBlurView } from "@/components/ui/PlatformBlurView";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Animated, {
   useAnimatedStyle,
@@ -218,9 +218,11 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
         }
       ]}
     >
-      <BlurView
+      <PlatformBlurView
         tint={theme.blurTint}
-        intensity={Platform.OS === "ios" ? 80 : 100}
+        intensity={80}
+        variant="surface"
+        androidBackgroundColor={isLight ? "rgba(255, 255, 255, 0.96)" : theme.cardBg}
         style={StyleSheet.absoluteFill}
       />
 
@@ -361,6 +363,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.45,
     shadowRadius: 20,
+    elevation: 10,
     overflow: "hidden",
   },
   tabBarInner: {
@@ -400,6 +403,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     letterSpacing: -0.2,
     marginTop: 2,
+    includeFontPadding: false,
   },
 });
 

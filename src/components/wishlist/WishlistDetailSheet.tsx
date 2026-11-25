@@ -192,7 +192,7 @@ export function WishlistDetailSheet({
   };
 
   return (
-    <Modal visible={!!item} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={!!item} transparent animationType="slide" statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       <View style={[styles.backdrop, { backgroundColor: scrimColor(theme) }]}>
         {/* Örtü sayfanın kardeşi: sayfadaki düğmeler örtünün dokunmasının içinde kalmasın */}
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessible={false} />

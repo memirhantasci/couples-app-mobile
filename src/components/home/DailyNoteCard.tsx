@@ -171,6 +171,7 @@ export const DailyNoteCard = memo(function DailyNoteCard({ existingNote, theme }
             placeholder={t("home.dailyNote.placeholder")}
             placeholderTextColor={theme.textMuted}
             multiline
+            textAlignVertical="top"
             numberOfLines={4}
             maxLength={DAILY_NOTE_MAX_CHARS}
             style={[

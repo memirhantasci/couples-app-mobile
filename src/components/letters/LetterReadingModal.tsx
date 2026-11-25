@@ -25,7 +25,7 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
-import { BlurView } from "expo-blur";
+import { PlatformBlurView } from "@/components/ui/PlatformBlurView";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Defs, LinearGradient as SvgGradient, Line, Path, Stop } from "react-native-svg";
@@ -444,9 +444,10 @@ function ReadingScene({
     >
       <Animated.View style={[styles.root, rootStyle]}>
         <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, scrimStyle]}>
-          <BlurView
-            intensity={Platform.OS === "ios" ? 45 : 90}
+          <PlatformBlurView
+            intensity={45}
             tint={theme.blurTint}
+            variant="backdrop"
             style={StyleSheet.absoluteFill}
           />
           <View

@@ -24,6 +24,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Rocket, Sparkles, Users, Zap } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SKY_SECTORS_LIST, type SectorConfig } from '../config/skySectors.data';
 import { starService } from '../api/starService';
 import type { SectorDynamicOverview, FlyToTarget } from '../types/star.types';
@@ -49,6 +50,7 @@ export const SectorAtlasModal: React.FC<SectorAtlasModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const { theme, isLight } = useTheme();
+  const insets = useSafeAreaInsets();
   const [dynamicData, setDynamicData] = useState<SectorDynamicOverview[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -112,6 +114,7 @@ export const SectorAtlasModal: React.FC<SectorAtlasModalProps> = ({
       transparent
       animationType="slide"
       statusBarTranslucent
+      navigationBarTranslucent
       onRequestClose={onClose}
     >
       <View
@@ -126,6 +129,7 @@ export const SectorAtlasModal: React.FC<SectorAtlasModalProps> = ({
             {
               backgroundColor: theme.cardBg,
               borderColor: theme.cardBorder,
+              paddingBottom: Math.max(insets.bottom, 16),
             },
           ]}
         >

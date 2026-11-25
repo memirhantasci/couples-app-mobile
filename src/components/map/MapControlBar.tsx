@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { BlurView } from "expo-blur";
+import { PlatformBlurView } from "@/components/ui/PlatformBlurView";
 import { BookHeart, Layers, Maximize2, Navigation, Route } from "lucide-react-native";
 
 import { TourGuideButton } from "@/components/tour/TourGuideButton";
@@ -74,9 +74,10 @@ export function MapControlBar({
 
   return (
     <View style={[styles.topBar, { paddingTop: topInset + 8 }]}>
-      <BlurView
+      <PlatformBlurView
         tint={isLight ? "light" : "dark"}
         intensity={80}
+        variant="surface"
         style={StyleSheet.absoluteFill}
       />
 

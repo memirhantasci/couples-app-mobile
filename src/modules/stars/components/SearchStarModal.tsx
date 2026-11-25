@@ -20,7 +20,7 @@ import {
   Platform,
   Keyboard,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { PlatformBlurView } from '@/components/ui/PlatformBlurView';
 import { Search, X, Star, Sun, Globe } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { DialogHost } from '@/components/ui/DialogHost';
@@ -267,10 +267,11 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
   }, [trimmed]);
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <BlurView
-        intensity={Platform.OS === 'ios' ? 45 : 85}
+    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
+      <PlatformBlurView
+        intensity={45}
         tint={isLight ? 'light' : 'dark'}
+        variant="backdrop"
         style={StyleSheet.absoluteFill}
       >
         <KeyboardAvoidingView
@@ -396,7 +397,7 @@ export const SearchStarModal: React.FC<SearchStarModalProps> = ({
             )}
           </View>
         </KeyboardAvoidingView>
-      </BlurView>
+      </PlatformBlurView>
       {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
       <DialogHost embedded visible={visible} />
     </Modal>

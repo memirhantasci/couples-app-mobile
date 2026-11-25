@@ -4,7 +4,7 @@ import { appAlert } from "@/lib/dialog";
 import { showPermissionDeniedDialog } from "@/lib/permissions";
 import { DialogHost } from "@/components/ui/DialogHost";
 import MapView, { Marker, Region, UserLocationChangeEvent } from "react-native-maps";
-import { BlurView } from "expo-blur";
+import { PlatformBlurView } from "@/components/ui/PlatformBlurView";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRealTopInset } from "@/hooks/useRealTopInset";
@@ -329,6 +329,8 @@ export function MapPickerModal({
       visible={visible}
       animationType="fade"
       transparent={false}
+      statusBarTranslucent
+      navigationBarTranslucent
       onRequestClose={onClose}
     >
       <View style={[styles.root, { backgroundColor: isLight ? "#F7F4EF" : "#0F131D" }]}>
@@ -393,7 +395,7 @@ export function MapPickerModal({
             },
           ]}
         >
-          <BlurView tint={isLight ? "light" : "dark"} intensity={80} style={StyleSheet.absoluteFill} />
+          <PlatformBlurView tint={isLight ? "light" : "dark"} intensity={80} variant="surface" androidBackgroundColor="transparent" style={StyleSheet.absoluteFill} />
 
           <View style={styles.topBarMainRow}>
             {/* Kapat Butonu */}
@@ -571,7 +573,7 @@ export function MapPickerModal({
               },
             ]}
           >
-            <BlurView tint={isLight ? "light" : "dark"} intensity={85} style={StyleSheet.absoluteFill} />
+            <PlatformBlurView tint={isLight ? "light" : "dark"} intensity={85} variant="surface" androidBackgroundColor="transparent" style={StyleSheet.absoluteFill} />
             <Heart size={14} color={theme.accent} fill={theme.accent} />
             <Text style={[styles.hintPillText, { color: isLight ? "#222" : "#fff" }]}>
               {t("map.picker.tapToSet")}
@@ -591,7 +593,7 @@ export function MapPickerModal({
               },
             ]}
           >
-            <BlurView tint={isLight ? "light" : "dark"} intensity={95} style={StyleSheet.absoluteFill} />
+            <PlatformBlurView tint={isLight ? "light" : "dark"} intensity={95} variant="surface" androidBackgroundColor="transparent" style={StyleSheet.absoluteFill} />
 
             <View style={styles.detailCardBody}>
               {/* Kart Üst Rozet & Kapat */}

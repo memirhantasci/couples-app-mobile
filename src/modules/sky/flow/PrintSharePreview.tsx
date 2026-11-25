@@ -118,7 +118,7 @@ function PreviewSheet({ onClose, layout }: Omit<PrintSharePreviewProps, "visible
   };
 
   return (
-    <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={busy ? undefined : onClose}>
+    <Modal visible transparent animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={busy ? undefined : onClose}>
       <View style={[styles.root, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 12 }]}>
         <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("sky.flow.close")} disabled={busy} onPress={onClose} hitSlop={10} style={styles.close}>
           <X size={24} color="#FFFFFF" />

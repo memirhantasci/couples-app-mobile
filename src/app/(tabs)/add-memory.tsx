@@ -384,6 +384,7 @@ export default function AddMemoryScreen() {
                 placeholder={t("memories.add.descriptionPlaceholder")}
                 placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.4)"}
                 multiline
+                textAlignVertical="top"
                 maxLength={1000}
               />
             </View>

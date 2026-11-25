@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { StyleSheet, Text, TouchableOpacity } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-import { BlurView } from "expo-blur";
+import { PlatformBlurView } from "@/components/ui/PlatformBlurView";
 import { Route, X } from "lucide-react-native";
 import MapView, { Polyline } from "react-native-maps";
 import { useTranslation } from "react-i18next";
@@ -177,7 +177,7 @@ export function JourneyStatusPill({
 
   return (
     <Animated.View entering={FadeIn.duration(220)} exiting={FadeOut.duration(160)} style={[styles.statusPill, { bottom }]}>
-      <BlurView tint={isLight ? "light" : "dark"} intensity={85} style={StyleSheet.absoluteFill} />
+      <PlatformBlurView tint={isLight ? "light" : "dark"} intensity={85} variant="surface" style={StyleSheet.absoluteFill} />
       <Route size={15} color={accent} />
       <Text style={[styles.statusText, { color: isLight ? "#222" : "#fff" }]} numberOfLines={1}>
         {text}

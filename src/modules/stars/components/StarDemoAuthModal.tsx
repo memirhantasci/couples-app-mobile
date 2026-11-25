@@ -15,7 +15,7 @@ import {
   Platform,
   Dimensions,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { PlatformBlurView } from '@/components/ui/PlatformBlurView';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Sparkles, UserPlus, LogIn, X } from 'lucide-react-native';
@@ -66,12 +66,16 @@ export const StarDemoAuthModal: React.FC<StarDemoAuthModalProps> = ({
       visible={visible}
       transparent
       animationType="fade"
+      statusBarTranslucent
+      navigationBarTranslucent
       onRequestClose={onClose}
     >
       <View style={[styles.overlay, { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.5)' : 'rgba(3, 2, 7, 0.75)' }]}>
-        <BlurView
-          intensity={Platform.OS === 'ios' ? 70 : 100}
+        <PlatformBlurView
+          intensity={70}
           tint={isLight ? 'light' : 'dark'}
+          variant="backdrop"
+          androidBackgroundColor="transparent"
           style={StyleSheet.absoluteFill}
         />
 

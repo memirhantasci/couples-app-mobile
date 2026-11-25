@@ -160,6 +160,7 @@ export const HomeRadarOverlay: React.FC<HomeRadarOverlayProps> = ({
       transparent
       animationType="fade"
       statusBarTranslucent
+      navigationBarTranslucent
       onRequestClose={onClose || onComplete}
     >
       <View

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { BlurView } from "expo-blur";
+import { PlatformBlurView } from "@/components/ui/PlatformBlurView";
 import * as Location from "expo-location";
 import { useFocusEffect, useIsFocused, useRouter } from "expo-router";
 import { Heart } from "lucide-react-native";
@@ -627,9 +627,10 @@ export default function MapScreen() {
           accessibilityRole="button"
           accessibilityLabel={t("map.pick.cancelA11y")}
         >
-          <BlurView
+          <PlatformBlurView
             tint={isLight ? "light" : "dark"}
             intensity={85}
+            variant="surface"
             style={StyleSheet.absoluteFill}
           />
           <Heart size={14} color={theme.accent} fill={theme.accent} />
@@ -653,9 +654,10 @@ export default function MapScreen() {
       {/* ─── HIZLI NOT EKLEME REHBERİ (Floating Pill) ──────────────────── */}
       {!isLoading && !isMapEmpty && !selectedItem && !isAddingNote && !journey && (
         <View style={[styles.hintPill, { bottom: insets.bottom + 90 }]}>
-          <BlurView
+          <PlatformBlurView
             tint={isLight ? "light" : "dark"}
             intensity={85}
+            variant="surface"
             style={StyleSheet.absoluteFill}
           />
           <Heart size={14} color={theme.accent} fill={theme.accent} />

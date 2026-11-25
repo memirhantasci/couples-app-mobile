@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { DialogHost } from "@/components/ui/DialogHost";
-import { BlurView } from "expo-blur";
+import { PlatformBlurView } from "@/components/ui/PlatformBlurView";
 import { Check, StickyNote, X } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/context/ThemeContext";
@@ -48,7 +48,7 @@ function MapAddNoteForm({ accent, isSaving, onSave, onClose }: NoteFormProps) {
       style={styles.modalBackdrop}
     >
       <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose}>
-        <BlurView tint={isLight ? "light" : "dark"} intensity={70} style={StyleSheet.absoluteFill} />
+        <PlatformBlurView tint={isLight ? "light" : "dark"} intensity={70} variant="backdrop" style={StyleSheet.absoluteFill} />
       </TouchableOpacity>
 
       <View
@@ -88,6 +88,7 @@ function MapAddNoteForm({ accent, isSaving, onSave, onClose }: NoteFormProps) {
           placeholder={t("map.addNote.placeholder")}
           placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.4)"}
           multiline
+          textAlignVertical="top"
           numberOfLines={4}
           maxLength={300}
           autoFocus
@@ -132,7 +133,7 @@ function MapAddNoteForm({ accent, isSaving, onSave, onClose }: NoteFormProps) {
 // ─── YENİ NOT EKLEME MODALI (Haritada uzun basılan konuma) ────────────────────
 export function MapAddNoteModal({ visible, accent, isSaving, onSave, onClose }: MapAddNoteModalProps) {
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       <MapAddNoteForm accent={accent} isSaving={isSaving} onSave={onSave} onClose={onClose} />
       {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
       <DialogHost embedded visible={visible} />

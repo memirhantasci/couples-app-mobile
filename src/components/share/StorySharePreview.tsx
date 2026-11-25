@@ -64,7 +64,7 @@ function PreviewSheet({ onClose, dialogTitle, fallbackMessage, shareLabel, rende
   };
 
   return (
-    <Modal visible transparent statusBarTranslucent animationType="fade" onRequestClose={onClose}>
+    <Modal visible transparent statusBarTranslucent navigationBarTranslucent animationType="fade" onRequestClose={onClose}>
       <View style={[styles.backdrop, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <View style={[styles.topBar, { width: cardWidth }]}>
           <TouchableOpacity

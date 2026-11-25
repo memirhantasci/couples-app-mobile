@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { BlurView } from "expo-blur";
+import { PlatformBlurView } from "@/components/ui/PlatformBlurView";
 import { StorageImage } from "@/components/common/StorageImage";
 import { Navigation, X } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -35,13 +35,13 @@ export function MapPhotoLightbox({ photo, accent, onClose }: MapPhotoLightboxPro
   const topInset = useRealTopInset();
 
   return (
-    <Modal visible={!!photo} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={!!photo} transparent animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       {photo && (
         // Aşağı kaydırarak kapat: zemin (karartma + bulanıklık) sürükledikçe saydamlaşır
         <SwipeDismissView
           onDismiss={onClose}
           backdropColor="rgba(0,0,0,0.95)"
-          backdrop={<BlurView tint="dark" intensity={95} style={StyleSheet.absoluteFill} />}
+          backdrop={<PlatformBlurView tint="dark" intensity={95} variant="backdrop" androidBackgroundColor="transparent" style={StyleSheet.absoluteFill} />}
         >
         <View style={styles.lightboxContainer}>
           <View style={[styles.lightboxHeader, { paddingTop: topInset + 10 }]}>

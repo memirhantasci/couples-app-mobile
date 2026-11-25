@@ -67,6 +67,8 @@ export function LegalModal({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
+      statusBarTranslucent
+      navigationBarTranslucent
       onRequestClose={onClose}
     >
       <View style={[styles.container, { paddingTop: topInset + (Platform.OS === "android" ? 16 : 8) }]}>

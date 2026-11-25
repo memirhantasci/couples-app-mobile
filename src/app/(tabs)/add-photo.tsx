@@ -689,6 +689,7 @@ export default function AddPhotoScreen() {
                 placeholder={t("photos.add.storyPlaceholder")}
                 placeholderTextColor={theme.textMuted}
                 multiline
+                textAlignVertical="top"
                 numberOfLines={4}
                 maxLength={500}
               />

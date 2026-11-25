@@ -340,7 +340,7 @@ export function MapStoryModal({ visible, onClose, pins, theme }: MapStoryModalPr
   if (!visible) return null;
 
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="fade" transparent statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <View style={styles.container}>
           {/* Kapat Butonu */}

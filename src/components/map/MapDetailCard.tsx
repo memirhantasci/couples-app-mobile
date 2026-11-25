@@ -1,6 +1,6 @@
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { BlurView } from "expo-blur";
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { PlatformBlurView } from "@/components/ui/PlatformBlurView";
 import { StorageImage } from "@/components/common/StorageImage";
 import {
   Calendar,
@@ -335,6 +335,11 @@ export function MapDetailCard({
     <View
       style={[
         styles.detailCardOverlay,
+        Platform.OS === "android" && {
+          backgroundColor: isLight ? "#FFFFFF" : "#161224",
+          borderWidth: 1,
+          borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.12)",
+        },
         isLight && {
           borderWidth: 1,
           borderColor: theme.cardBorder,
@@ -348,7 +353,13 @@ export function MapDetailCard({
         { bottom: bottomInset + 85 },
       ]}
     >
-      <BlurView tint={isLight ? "light" : "dark"} intensity={95} style={StyleSheet.absoluteFill} />
+      <PlatformBlurView
+        tint={isLight ? "light" : "dark"}
+        intensity={95}
+        variant="surface"
+        androidBackgroundColor="transparent"
+        style={StyleSheet.absoluteFill}
+      />
 
       {item.type === "photo" && (
         <PhotoDetail

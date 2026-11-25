@@ -46,6 +46,7 @@ import { decode } from 'base64-arraybuffer';
 import { hapticStamp, hapticSuccess } from '@/lib/soundEffects';
 import { showPermissionDeniedDialog } from '@/lib/permissions';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import dayjs from 'dayjs';
 import {
   X,
@@ -164,6 +165,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
 }: ExoplanetModalProps) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { session } = useAuth();
   const currentUserId = session?.user?.id ?? '';
 
@@ -624,11 +626,11 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
   const formDateLabel = dayjs(milestoneDate).isValid() ? dayjs(milestoneDate).locale(i18n.language).format('D MMMM YYYY') : t('stars.exoplanet.selectDate');
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       {/* iOS: klavye açılınca sayfa yukarı itilir; Android: KeyboardAwareScrollView odaktaki alanı görünür tutar */}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalBackdrop}>
 
-        <View style={styles.sheetContainer}>
+        <View style={[styles.sheetContainer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
           <LinearGradient
             colors={[rgba(tint, 0.28), rgba(tint, 0.07), 'rgba(11, 8, 32, 0)']}
             locations={[0, 0.45, 1]}
@@ -1004,6 +1006,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
                     value={description}
                     onChangeText={setDescription}
                     multiline
+                    textAlignVertical="top"
                     numberOfLines={3}
                     maxLength={500}
                     editable={!isSubmitting}
@@ -1167,7 +1170,7 @@ export const ExoplanetModal = React.memo(function ExoplanetModal({
 
         {/* TAM EKRAN GÖRSEL ÖNİZLEME MODALI */}
         {fullscreenImage && (
-          <Modal visible transparent animationType="fade" onRequestClose={() => setFullscreenImage(null)}>
+          <Modal visible transparent animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={() => setFullscreenImage(null)}>
             <View style={styles.fullscreenBackdrop}>
               <TouchableOpacity onPress={() => setFullscreenImage(null)} style={styles.fullscreenCloseBtn} accessibilityLabel={t('common.close')}>
                 <X size={20} color="#FFFFFF" />

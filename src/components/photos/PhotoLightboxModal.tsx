@@ -45,6 +45,8 @@ export function PhotoLightboxModal({
       visible={selectedIndex !== null}
       transparent={true}
       animationType="fade"
+      statusBarTranslucent
+      navigationBarTranslucent
       onRequestClose={onClose}
     >
       {/* Aşağı kaydırarak kapat: içerik parmağı izleyip küçülür, zemin saydamlaşır */}

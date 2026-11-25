@@ -149,6 +149,8 @@ export const ConnectionRequestBadge: React.FC<ConnectionRequestBadgeProps> = ({
         visible={modalVisible}
         transparent
         animationType="fade"
+        statusBarTranslucent
+        navigationBarTranslucent
         onRequestClose={handleClose}
       >
         <View

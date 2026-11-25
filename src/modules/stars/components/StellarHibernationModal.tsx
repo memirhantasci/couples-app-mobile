@@ -8,7 +8,7 @@
 
 import React, { useEffect } from 'react';
 import { Dimensions, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { PlatformBlurView } from '@/components/ui/PlatformBlurView';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MoonStar, ShieldCheck, Sparkles, X } from 'lucide-react-native';
 import Animated, {
@@ -83,9 +83,9 @@ export const StellarHibernationModal: React.FC<StellarHibernationModalProps> = (
   const accent = isLight ? '#4F46E5' : '#A5B4FC';
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       <View style={[styles.overlay, { backgroundColor: isLight ? 'rgba(15, 23, 42, 0.35)' : 'rgba(3, 2, 7, 0.72)' }]}>
-        <BlurView intensity={Platform.OS === 'ios' ? 60 : 90} tint={isLight ? 'light' : 'dark'} style={StyleSheet.absoluteFill} />
+        <PlatformBlurView intensity={60} tint={isLight ? 'light' : 'dark'} variant="backdrop" androidBackgroundColor="transparent" style={StyleSheet.absoluteFill} />
 
         <View
           style={[

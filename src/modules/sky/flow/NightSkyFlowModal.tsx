@@ -243,7 +243,7 @@ function FlowScene({ onClose, initialDateChoice, onLeaveForUpgrade }: Omit<Night
   );
 
   return (
-    <Modal visible animationType="slide" statusBarTranslucent onRequestClose={step === 0 ? onClose : () => setStep(step - 1)}>
+    <Modal visible animationType="slide" statusBarTranslucent navigationBarTranslucent onRequestClose={step === 0 ? onClose : () => setStep(step - 1)}>
       <LinearGradient colors={theme.bgGradient} style={StyleSheet.absoluteFill} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         {header}

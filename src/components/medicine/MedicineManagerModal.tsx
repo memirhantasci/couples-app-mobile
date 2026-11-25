@@ -86,7 +86,7 @@ interface MedicineManagerModalProps {
  */
 export function MedicineManagerModal({ visible, onClose, ...formProps }: MedicineManagerModalProps) {
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       <MedicineManagerForm onClose={onClose} {...formProps} />
       {/* Bu modal açıkken uyarılar/diyaloglar (kök katman modalın arkasında kalır) burada çizilir */}
       <DialogHost embedded visible={visible} />

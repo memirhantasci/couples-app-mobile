@@ -9,7 +9,6 @@ import {
   type NativeSyntheticEvent,
   type ScrollViewProps,
 } from "react-native";
-import { KeyboardAwareScrollView as RNKeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 export interface KeyboardAwareScrollViewProps extends ScrollViewProps {
   enableOnAndroid?: boolean;
@@ -21,21 +20,24 @@ export interface KeyboardAwareScrollViewProps extends ScrollViewProps {
 }
 
 /**
- * iOS'ta Fabric / Yeni Mimari ile tam uyumlu, zıplama yapmayan akıllı ScrollView.
+ * iOS ve Android (Fabric / Yeni Mimari) ile tam uyumlu, çift zıplama yapmayan akıllı ScrollView.
  *
  * Neden özel bileşen?
- * - `react-native-keyboard-aware-scroll-view` (2021) iOS'ta 250ms gecikmeyle kaydırma yapar ve
- *   iOS'un kendi yerel kaydırmasıyla çakışarak ekranın "aşağı inip geri yukarı zıplamasına" yol açar.
+ * - Eski `react-native-keyboard-aware-scroll-view` (2021) iOS'ta 250ms gecikmeyle zıplama,
+ *   Android'de ise `adjustResize` ile çakışma ve Fabric altında `viewIsDescendantOf() noop` sorunları
+ *   üretiyordu.
  * - Yerel `automaticallyAdjustKeyboardInsets` ise çok satırlı (multiline) TextInput'larda yalnız imleç
  *   satırını korur; metin kutusunun alt kısmını ve altındaki kaydet butonlarını klavyenin arkasında bırakır.
  *
- * Bu bileşen iOS'ta:
- * 1. `automaticallyAdjustKeyboardInsets={false}` ile yerel çakışmayı kapatır.
- * 2. Klavye açılırken (`keyboardWillShow`) odaklanan TextInput'un tam kutu yüksekliğini ölçer.
- * 3. Kutu klavyenin altında kalıyorsa `extraScrollHeight` kadar ek pay bırakarak tek ve pürüzsüz bir
- *    hareketle alanı klavyenin üstüne taşır.
- *
- * Android'de mevcut davranışın korunması için `RNKeyboardAwareScrollView` kullanılır.
+ * Bu bileşen:
+ * 1. iOS'ta `keyboardWillShow/Hide`, Android'de `keyboardDidShow/Hide` dinler.
+ * 2. ScrollView'un ekrandaki gerçek alt kenarını `measureInWindow` ile ölçer:
+ *    - Android'de `adjustResize` pencereyi zaten küçülttüyse örtüşme (`overlap`) 0 çıkar → gereksiz boşluk
+ *      eklenmez, çift zıplama olmaz.
+ *    - Android edge-to-edge / yarı saydam `<Modal>` içinde pencere küçülmediyse gerçek örtüşme kadar
+ *      alt pay (`kbInset`) eklenir.
+ * 3. Odaklanan `TextInput` klavyenin altında kalıyorsa `extraScrollHeight` kadar payla pürüzsüzce
+ *    görünür alana kaydırır.
  */
 export function KeyboardAwareScrollView({
   children,
@@ -43,7 +45,7 @@ export function KeyboardAwareScrollView({
   extraHeight,
   enableOnAndroid = true,
   enableAutomaticScroll = true,
-  keyboardOpeningTime,
+  keyboardOpeningTime: _keyboardOpeningTime,
   innerRef,
   onScroll,
   contentContainerStyle,
@@ -57,6 +59,7 @@ export function KeyboardAwareScrollView({
   const [kbInset, setKbInset] = React.useState(0);
 
   const effectiveExtra = extraScrollHeight ?? extraHeight ?? 72;
+  const isNativeEnabled = Platform.OS === "ios" || (Platform.OS === "android" && enableOnAndroid);
 
   const setRef = useCallback(
     (node: ScrollView | null) => {
@@ -99,9 +102,9 @@ export function KeyboardAwareScrollView({
   );
 
   useEffect(() => {
-    if (Platform.OS !== "ios") return;
+    if (!isNativeEnabled) return;
 
-    const handleWillShow = (event: KeyboardEvent) => {
+    const handleShow = (event: KeyboardEvent) => {
       const kbY = event.endCoordinates.screenY;
       const kbH = event.endCoordinates.height;
       keyboardEndYRef.current = kbY;
@@ -113,32 +116,40 @@ export function KeyboardAwareScrollView({
           scrollNode.measureInWindow((_x, scrollY, _w, scrollH) => {
             if (scrollH > 0) {
               const overlap = Math.max(0, scrollY + scrollH - kbY);
-              setKbInset(overlap > 16 ? overlap : Math.min(kbH, effectiveExtra));
+              if (Platform.OS === "android") {
+                // adjustResize pencereyi zaten küçülttüyse overlap <= 16 olur → çift boşluk eklenmez;
+                // edge-to-edge Modal içinde küçülmediyse gerçek klavye örtüşmesi kadar boşluk bırakılır.
+                setKbInset(overlap > 16 ? overlap : 0);
+              } else {
+                setKbInset(overlap > 16 ? overlap : Math.min(kbH, effectiveExtra));
+              }
             } else {
-              setKbInset(kbH);
+              setKbInset(Platform.OS === "android" ? 0 : kbH);
             }
             scrollFocusedIntoView(kbY);
           });
         } else {
-          setKbInset(kbH);
+          setKbInset(Platform.OS === "android" ? 0 : kbH);
           scrollFocusedIntoView(kbY);
         }
       });
     };
 
-    const handleWillHide = () => {
+    const handleHide = () => {
       keyboardEndYRef.current = null;
       isFocusInsideRef.current = false;
       setKbInset(0);
     };
 
-    const subShow = Keyboard.addListener("keyboardWillShow", handleWillShow);
-    const subHide = Keyboard.addListener("keyboardWillHide", handleWillHide);
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const subShow = Keyboard.addListener(showEvent, handleShow);
+    const subHide = Keyboard.addListener(hideEvent, handleHide);
     return () => {
       subShow.remove();
       subHide.remove();
     };
-  }, [scrollFocusedIntoView]);
+  }, [isNativeEnabled, effectiveExtra, scrollFocusedIntoView]);
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -155,33 +166,12 @@ export function KeyboardAwareScrollView({
   // Klavye zaten açıkken kullanıcı başka bir TextInput'a dokunursa onu da görünür alana getir
   const handleTouchEnd = useCallback(() => {
     isFocusInsideRef.current = true;
-    if (Platform.OS !== "ios" || keyboardEndYRef.current === null) return;
+    if (!isNativeEnabled || keyboardEndYRef.current === null) return;
     const kbY = keyboardEndYRef.current;
     setTimeout(() => {
       scrollFocusedIntoView(kbY);
     }, 30);
-  }, [scrollFocusedIntoView]);
-
-  if (Platform.OS !== "ios") {
-    return (
-      <RNKeyboardAwareScrollView
-        innerRef={(ref) => {
-          scrollRef.current = ref as unknown as ScrollView | null;
-          innerRef?.(ref as unknown as ScrollView | null);
-        }}
-        enableOnAndroid={enableOnAndroid}
-        extraScrollHeight={extraScrollHeight}
-        extraHeight={extraHeight}
-        enableAutomaticScroll={enableAutomaticScroll}
-        keyboardOpeningTime={keyboardOpeningTime}
-        onScroll={onScroll}
-        contentContainerStyle={contentContainerStyle}
-        {...rest}
-      >
-        {children}
-      </RNKeyboardAwareScrollView>
-    );
-  }
+  }, [isNativeEnabled, scrollFocusedIntoView]);
 
   return (
     <ScrollView
@@ -213,4 +203,3 @@ function extractPaddingBottom(style: ScrollViewProps["contentContainerStyle"]): 
   const pb = (flat as Record<string, unknown>).paddingBottom ?? (flat as Record<string, unknown>).padding ?? 24;
   return typeof pb === "number" ? pb : 24;
 }
-

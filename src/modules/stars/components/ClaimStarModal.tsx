@@ -24,7 +24,8 @@ import {
   KeyboardAvoidingView,
   ScrollView,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { PlatformBlurView } from '@/components/ui/PlatformBlurView';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue,
@@ -264,6 +265,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const { theme, isLight } = useTheme();
+  const insets = useSafeAreaInsets();
   const [modalState, setModalState] = useState<ClaimModalState>(
     initialStar ? 'certificate' : 'input'
   );
@@ -538,6 +540,7 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
       visible={visible}
       transparent
       statusBarTranslucent
+      navigationBarTranslucent
       animationType="fade"
       onRequestClose={modalState === 'scanning' ? undefined : onClose}
     >
@@ -547,9 +550,11 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
         onLayout={Platform.OS === 'android' ? updateKeyboardInset : undefined}
         style={[styles.modalBackdrop, { backgroundColor: isLight ? 'rgba(0, 0, 0, 0.55)' : 'rgba(3, 2, 7, 0.88)' }]}
       >
-        <BlurView
-          intensity={Platform.OS === 'ios' ? 70 : 100}
+        <PlatformBlurView
+          intensity={70}
           tint={isLight ? 'light' : 'dark'}
+          variant="backdrop"
+          androidBackgroundColor="transparent"
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
@@ -564,6 +569,10 @@ export const ClaimStarModal: React.FC<ClaimStarModalProps> = ({
             contentContainerStyle={[
               styles.scrollContent,
               modalState === 'input' && styles.scrollContentInput,
+              {
+                paddingTop: Math.max(insets.top + 12, 24),
+                paddingBottom: Math.max(insets.bottom + 16, 24),
+              },
             ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="always"

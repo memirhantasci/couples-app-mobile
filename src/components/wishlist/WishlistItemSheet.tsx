@@ -97,7 +97,7 @@ export function WishlistItemSheet({ request, onClose, onSubmit }: WishlistItemSh
   if (request && request !== shown?.request) setShown({ request, id: (shown?.id ?? 0) + 1 });
 
   return (
-    <Modal visible={!!request} transparent animationType="slide" onRequestClose={close}>
+    <Modal visible={!!request} transparent animationType="slide" statusBarTranslucent navigationBarTranslucent onRequestClose={close}>
       {shown ? (
         <SheetForm
           key={shown.id}
@@ -204,6 +204,7 @@ function SheetForm({
               onChangeText={(note) => update({ note })}
               maxLength={WISHLIST_NOTE_MAX}
               multiline
+              textAlignVertical="top"
               placeholder={t("wishlist.edit.notePlaceholder")}
               placeholderTextColor={theme.textMuted}
               accessibilityLabel={t("wishlist.edit.noteLabel")}

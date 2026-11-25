@@ -1030,6 +1030,8 @@ export default function LettersScreen() {
         visible={showWriteModal}
         animationType="slide"
         transparent={true}
+        statusBarTranslucent
+        navigationBarTranslucent
         onRequestClose={() => setShowWriteModal(false)}
       >
         <View style={[styles.modalBackdrop, { paddingBottom: keyboardHeight }]}>
@@ -1203,6 +1205,7 @@ export default function LettersScreen() {
                     placeholder={t("letters.compose.contentPlaceholder")}
                     placeholderTextColor={isLight ? theme.textMuted : "rgba(255,255,255,0.3)"}
                     multiline
+                    textAlignVertical="top"
                     numberOfLines={6}
                     maxLength={4000}
                   />

@@ -40,7 +40,7 @@ export function CalendarNoteModal({
   const { t, i18n } = useTranslation();
   const keyboardHeight = useKeyboardHeight();
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       <View style={[styles.modalBackdrop, { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 12 : 18 }]}>
         <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
           <View style={[styles.modalHeader, { borderBottomColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
@@ -81,6 +81,7 @@ export function CalendarNoteModal({
                 },
               ]}
               multiline
+              textAlignVertical="top"
               maxLength={1000}
               value={noteText}
               onChangeText={onChangeNoteText}

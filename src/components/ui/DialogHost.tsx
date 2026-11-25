@@ -17,7 +17,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
-import { BlurView } from "expo-blur";
+import { PlatformBlurView } from "@/components/ui/PlatformBlurView";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CircleCheck, CircleX, HeartHandshake, Info, TriangleAlert, Trash2 } from "lucide-react-native";
@@ -219,9 +219,11 @@ function DialogCard({ item }: { item: DialogItem }) {
           onPress={() => item.cancelable && close(null)}
           accessibilityLabel={t("common.close")}
         >
-          <BlurView
+          <PlatformBlurView
             tint={isLight ? "light" : "dark"}
             intensity={isLight ? 28 : 42}
+            variant="backdrop"
+            androidBackgroundColor="transparent"
             style={StyleSheet.absoluteFill}
           />
           <View
@@ -244,9 +246,11 @@ function DialogCard({ item }: { item: DialogItem }) {
         >
           <View style={styles.card}>
             {/* Cam: bulanıklık + yarı saydam dolgu (Android'de bulanıklık olmasa da okunur kalır) */}
-            <BlurView
+            <PlatformBlurView
               tint={isLight ? "light" : "dark"}
               intensity={isLight ? 70 : 60}
+              variant="surface"
+              androidBackgroundColor="transparent"
               style={StyleSheet.absoluteFill}
             />
             <View

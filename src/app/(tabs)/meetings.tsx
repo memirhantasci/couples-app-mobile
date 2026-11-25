@@ -534,8 +534,16 @@ export default function MeetingsScreen() {
       </View>
 
       {/* ─── YENİ BULUŞMA EKLEME / DÜZENLEME MODALI ─── */}
-      <Modal visible={showFormModal} animationType="slide" transparent onRequestClose={handleCancelEdit}>
-        <View style={[styles.modalBackdrop, { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 12 : 18 }]}>
+      <Modal visible={showFormModal} animationType="slide" transparent statusBarTranslucent navigationBarTranslucent onRequestClose={handleCancelEdit}>
+        <View
+          style={[
+            styles.modalBackdrop,
+            {
+              paddingTop: Math.max(insets.top, 18),
+              paddingBottom: keyboardHeight > 0 ? keyboardHeight + 12 : Math.max(insets.bottom, 18),
+            },
+          ]}
+        >
           <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
             {/* Header */}
             <View style={[styles.modalHeader, { borderBottomColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>

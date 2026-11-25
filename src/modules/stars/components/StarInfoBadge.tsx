@@ -22,7 +22,7 @@ import {
   StyleProp,
   ViewStyle,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { PlatformBlurView } from '@/components/ui/PlatformBlurView';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -173,9 +173,11 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
         style,
       ]}
     >
-      <BlurView
-        intensity={Platform.OS === 'ios' ? 45 : 90}
+      <PlatformBlurView
+        intensity={45}
         tint={isLight ? 'light' : 'dark'}
+        variant="surface"
+        androidBackgroundColor={isLight ? 'rgba(255, 255, 255, 0.94)' : 'rgba(12, 10, 26, 0.86)'}
         style={[styles.blurWrapper, viewMode === 'macro' && { paddingVertical: 7 }]}
       >
         <TouchableOpacity
@@ -289,7 +291,7 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
             </View>
           )}
         </TouchableOpacity>
-      </BlurView>
+      </PlatformBlurView>
     </Animated.View>
   );
 };

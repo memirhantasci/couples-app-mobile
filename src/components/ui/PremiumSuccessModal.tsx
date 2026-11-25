@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, Modal, StyleSheet, TouchableOpacity } from "react-native";
 import { CheckCircle, Crown, Image as ImageIcon, Mail, Infinity } from "lucide-react-native";
-import { BlurView } from "expo-blur";
+import { PlatformBlurView } from "@/components/ui/PlatformBlurView";
 import { useTheme } from "@/context/ThemeContext";
 import { useTranslation } from "react-i18next";
 
@@ -18,8 +18,8 @@ export function PremiumSuccessModal({ visible, onClose, subtitle }: PremiumSucce
   const { theme, isLight } = useTheme();
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <BlurView intensity={80} tint={isLight ? "light" : "dark"} style={styles.overlay}>
+    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
+      <PlatformBlurView intensity={80} tint={isLight ? "light" : "dark"} variant="backdrop" style={styles.overlay}>
         <View style={[styles.modalBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
           
           <View style={styles.iconContainer}>
@@ -76,7 +76,7 @@ export function PremiumSuccessModal({ visible, onClose, subtitle }: PremiumSucce
           </TouchableOpacity>
 
         </View>
-      </BlurView>
+      </PlatformBlurView>
     </Modal>
   );
 }

@@ -29,6 +29,8 @@ export function CalendarPhotoLightbox({ photo, theme, getAuthorName, onClose }: 
       visible={!!photo}
       transparent={true}
       animationType="fade"
+      statusBarTranslucent
+      navigationBarTranslucent
       onRequestClose={onClose}
     >
       {/* Aşağı kaydırarak kapat: içerik parmağı izleyip küçülür, zemin saydamlaşır */}

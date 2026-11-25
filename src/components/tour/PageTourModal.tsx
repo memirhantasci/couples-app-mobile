@@ -8,7 +8,7 @@ import {
   ScrollView,
   Platform,
 } from "react-native";
-import { BlurView } from "expo-blur";
+import { PlatformBlurView } from "@/components/ui/PlatformBlurView";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/context/ThemeContext";
 import { PageTourGuide, FeatureItem } from "@/constants/featureGuides";
@@ -122,13 +122,15 @@ export function PageTourModal({ visible, guide, onClose }: PageTourModalProps) {
       transparent
       animationType="fade"
       statusBarTranslucent
+      navigationBarTranslucent
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
         {/* Backdrop blur */}
-        <BlurView
-          intensity={Platform.OS === "ios" ? 40 : 80}
+        <PlatformBlurView
+          intensity={40}
           tint={isLight ? "light" : "dark"}
+          variant="backdrop"
           style={StyleSheet.absoluteFill}
         />
 

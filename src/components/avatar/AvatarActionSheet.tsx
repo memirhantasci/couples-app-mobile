@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Modal, StyleSheet, Pressable, Platform } from "react-native";
-import { BlurView } from "expo-blur";
+import { PlatformBlurView } from "@/components/ui/PlatformBlurView";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Camera, ImageIcon, Trash2, X } from "lucide-react-native";
 import { useTheme } from "@/context/ThemeContext";
@@ -30,12 +30,14 @@ export function AvatarActionSheet({ visible, onClose, onPick, onRemove, canRemov
   ];
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel={t("common.close")} />
-      <View style={[styles.sheetWrap, { paddingBottom: insets.bottom + 16 }]}>
-        <BlurView
-          intensity={Platform.OS === "ios" ? 60 : 90}
+      <View style={[styles.sheetWrap, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <PlatformBlurView
+          intensity={60}
           tint={isLight ? "light" : "dark"}
+          variant="surface"
+          androidBackgroundColor={isLight ? "rgba(255,255,255,0.96)" : "rgba(26,22,36,0.96)"}
           style={[StyleSheet.absoluteFill, styles.blur]}
         />
         <View
