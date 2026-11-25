@@ -200,7 +200,6 @@ function S(lang: Lang) {
     periodStartedAction: en ? "Go to Cycle Tracking 🌸" : "Döngü Takibine Git 🌸",
     moodTitle: en ? "💭 Mood Update" : "💭 Mod Güncellemesi",
     moodBody: (sender: string, mood: string) => (en ? `${sender} is feeling ${mood} today` : `${sender} bugün kendini ${mood} hissediyor`),
-    moodAction: en ? "Reply with a Hug 🫂" : "Sarılarak Yanıtla 🫂",
     meetingNewTitle: en ? "🍽️ New Meetup" : "🍽️ Yeni Buluşma",
     meetingNewBody: (sender: string, date: string | null) =>
       en
@@ -643,7 +642,7 @@ serve(async (req) => {
       if (sender) {
         message = (lang) => {
           const s = S(lang);
-          return { title: s.moodTitle, body: s.moodBody(plainName(sender.display_name), record.mood_type), type: "mood", route: "/(tabs)/home", actionLabel: s.moodAction, extra: { moodEmoji: record.mood_type } };
+          return { title: s.moodTitle, body: s.moodBody(plainName(sender.display_name), record.mood_type), type: "mood", route: "/(tabs)/home", extra: { moodEmoji: record.mood_type } };
         };
         const { data: partner } = await supabase.from("users").select("id").eq("couple_id", sender.couple_id).neq("id", senderIntId).single();
         partnerIntId = partner?.id ?? null;
