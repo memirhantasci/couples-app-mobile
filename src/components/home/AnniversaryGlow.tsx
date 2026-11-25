@@ -45,7 +45,7 @@ export function AnniversaryGlow({ active, radius, isLight, children }: Anniversa
         {active ? <GlowHalo radius={radius} gold={gold} isLight={isLight} /> : null}
       </View>
       {children}
-      <View collapsable={false} pointerEvents="none" style={[styles.layer, styles.front]}>
+      <View collapsable={false} pointerEvents="none" style={[styles.layer, active && styles.front]}>
         {active ? <GlowSheen radius={radius} gold={gold} isLight={isLight} /> : null}
       </View>
     </View>
@@ -227,9 +227,11 @@ const styles = StyleSheet.create({
   ring: {
     position: "absolute",
   },
-  // Android'de elevation z-sırasını belirler: kart (elevation 3) üzerinde kalsınlar
+  // Android'de elevation z-sırasını belirler: kart (elevation 3) üzerinde kalsınlar.
+  // shadowColor: "transparent" şeffaf katmanda gri Android gölge kutusu oluşmasını engeller.
   front: {
     elevation: 5,
+    shadowColor: "transparent",
     zIndex: 5,
   },
   sheen: {

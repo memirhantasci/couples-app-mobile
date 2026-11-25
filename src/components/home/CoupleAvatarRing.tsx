@@ -206,7 +206,7 @@ export const CoupleAvatarRing = memo(function CoupleAvatarRing({
                   },
                 ]}
               >
-                <Text style={{ fontSize: Math.round(moodSize * 0.62) }}>{partnerMoodEmoji}</Text>
+                <Text style={{ fontSize: Math.round(moodSize * 0.62), includeFontPadding: false, textAlignVertical: "center" }}>{partnerMoodEmoji}</Text>
               </View>
             ) : undefined
           }
@@ -298,6 +298,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
+    flexShrink: 0,
   },
   pressed: {
     opacity: 0.9,

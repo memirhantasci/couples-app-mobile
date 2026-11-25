@@ -676,7 +676,7 @@ export default function HomeScreen() {
           {/* ─── 2. HERO İLİŞKİ SAYACI KARTI ─── */}
           {/* Yıldönümüne ≤3 gün kala ve 14 Şubat'ta kartın etrafında altın ışıltı; kart (counterRef) aynı kalır */}
           <Reveal scope="home" index={1}>
-          <AnniversaryGlow active={specialDay.glow} radius={24} isLight={isLight}>
+          <AnniversaryGlow active={specialDay.glow} radius={28} isLight={isLight}>
           <View
             ref={counterRef}
             collapsable={false}
@@ -694,7 +694,7 @@ export default function HomeScreen() {
                 <Pulse>
                   <Heart size={13} color={theme.accent} fill={theme.accent} />
                 </Pulse>
-                <Text style={[styles.heroTopBadgeText, { color: theme.accent }]}>
+                <Text style={[styles.heroTopBadgeText, { color: theme.accent }]} numberOfLines={1} ellipsizeMode="tail">
                   {t("home.journeyTitle")}
                 </Text>
               </View>
@@ -715,11 +715,19 @@ export default function HomeScreen() {
                   <Heart size={16} color={theme.accent} fill={theme.accent} />
                 </View>
                 {relDate || isDemoMode ? (
-                  <CountUp value={daysSinceTogether} style={[styles.counterNumber, { color: theme.text }]} />
+                  <CountUp
+                    value={daysSinceTogether}
+                    style={[styles.counterNumber, { color: theme.text }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                  />
                 ) : (
-                  <Text style={[styles.counterNumber, { color: theme.text }]}>—</Text>
+                  <Text style={[styles.counterNumber, { color: theme.text }]} numberOfLines={1}>—</Text>
                 )}
-                <Text style={[styles.counterDesc, { color: theme.textSecondary }]}>{t("home.counters.together")}</Text>
+                <Text style={[styles.counterDesc, { color: theme.textSecondary }]} numberOfLines={2}>
+                  {t("home.counters.together")}
+                </Text>
               </View>
 
               {/* Tanışma Sayacı */}
@@ -728,11 +736,19 @@ export default function HomeScreen() {
                   <Sparkles size={16} color={isLight ? "#B7791F" : "#E6C055"} />
                 </View>
                 {meetDate || isDemoMode ? (
-                  <CountUp value={daysSinceMeeting} style={[styles.counterNumber, { color: theme.text }]} />
+                  <CountUp
+                    value={daysSinceMeeting}
+                    style={[styles.counterNumber, { color: theme.text }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                  />
                 ) : (
-                  <Text style={[styles.counterNumber, { color: theme.text }]}>—</Text>
+                  <Text style={[styles.counterNumber, { color: theme.text }]} numberOfLines={1}>—</Text>
                 )}
-                <Text style={[styles.counterDesc, { color: theme.textSecondary }]}>{t("home.counters.inMyLife")}</Text>
+                <Text style={[styles.counterDesc, { color: theme.textSecondary }]} numberOfLines={2}>
+                  {t("home.counters.inMyLife")}
+                </Text>
               </View>
             </View>
           </View>
@@ -750,7 +766,7 @@ export default function HomeScreen() {
               <View style={[styles.actionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
                 <Images size={17} color={theme.accent} />
               </View>
-              <Text style={[styles.actionPillText, { color: theme.textSecondary }]}>{t("tabs.photos.label")}</Text>
+              <Text style={[styles.actionPillText, { color: theme.textSecondary }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{t("tabs.photos.label")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -761,7 +777,7 @@ export default function HomeScreen() {
               <View style={[styles.actionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
                 <BookOpen size={17} color={theme.accent} />
               </View>
-              <Text style={[styles.actionPillText, { color: theme.textSecondary }]}>{t("menu.journal.title")}</Text>
+              <Text style={[styles.actionPillText, { color: theme.textSecondary }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{t("menu.journal.title")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -772,7 +788,7 @@ export default function HomeScreen() {
               <View style={[styles.actionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
                 <Mail size={17} color={theme.accent} />
               </View>
-              <Text style={[styles.actionPillText, { color: theme.textSecondary }]}>{t("tabs.letters.label")}</Text>
+              <Text style={[styles.actionPillText, { color: theme.textSecondary }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{t("tabs.letters.label")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -783,7 +799,7 @@ export default function HomeScreen() {
               <View style={[styles.actionIconCircle, { backgroundColor: theme.pillAccentBg }]}>
                 <MapPin size={17} color={theme.accent} />
               </View>
-              <Text style={[styles.actionPillText, { color: theme.textSecondary }]}>{t("tabs.meetings.label")}</Text>
+              <Text style={[styles.actionPillText, { color: theme.textSecondary }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{t("tabs.meetings.label")}</Text>
             </TouchableOpacity>
           </View>
           </Reveal>
@@ -1039,14 +1055,17 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     backgroundColor: "rgba(255,255,255,0.06)",
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 10,
     flexShrink: 1,
+    minWidth: 0,
   },
   heroTopBadgeText: {
     fontSize: 11,
     fontFamily: "Inter_700Bold",
     letterSpacing: 0.6,
+    flexShrink: 1,
+    includeFontPadding: false,
   },
   countersRow: {
     flexDirection: "row",
@@ -1054,9 +1073,10 @@ const styles = StyleSheet.create({
   },
   counterBox: {
     flex: 1,
+    minWidth: 0,
     borderRadius: 22,
     paddingVertical: 18,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1070,16 +1090,23 @@ const styles = StyleSheet.create({
   },
   counterNumber: {
     fontSize: 34,
+    lineHeight: 40,
     fontFamily: "Inter_700Bold",
     color: "#ffffff",
     letterSpacing: -1,
+    fontVariant: ["tabular-nums"],
+    includeFontPadding: false,
+    textAlignVertical: "center",
+    textAlign: "center",
   },
   counterDesc: {
     fontSize: 11.5,
+    lineHeight: 16,
     fontFamily: "Inter_500Medium",
     color: "rgba(255,255,255,0.65)",
-    marginTop: 2,
+    marginTop: 4,
     textAlign: "center",
+    includeFontPadding: false,
   },
 
   // ─── Hızlı Erişim Kısayolları ──────────────────────────────────────────
@@ -1090,10 +1117,12 @@ const styles = StyleSheet.create({
   },
   actionPill: {
     flex: 1,
+    minWidth: 0,
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 14,
+    paddingHorizontal: 4,
     borderRadius: 22,
     gap: 8,
   },
@@ -1108,6 +1137,8 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     fontFamily: "Inter_600SemiBold",
     color: "rgba(255,255,255,0.85)",
+    includeFontPadding: false,
+    textAlign: "center",
   },
 
   // ─── Günün Sözü ────────────────────────────────────────────────────────

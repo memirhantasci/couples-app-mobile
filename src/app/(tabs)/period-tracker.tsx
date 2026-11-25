@@ -383,7 +383,9 @@ function PeriodTrackerScreenContent() {
                     }
                   </Text>
                   {cycleInfo && (
-                    <Text style={styles.statusHeroCountdown}>{cycleInfo.countdownText}</Text>
+                    <View style={styles.statusHeroCountdownPill}>
+                      <Text style={styles.statusHeroCountdown}>{cycleInfo.countdownText}</Text>
+                    </View>
                   )}
                 </View>
               </View>
@@ -680,6 +682,7 @@ const createStyles = (theme: AppTheme) => {
       fontSize: 11,
       fontFamily: "Inter_700Bold",
       letterSpacing: 0.8,
+      includeFontPadding: false,
     },
     luxuryLockTitle: {
       fontSize: 18,
@@ -772,17 +775,20 @@ const createStyles = (theme: AppTheme) => {
       marginTop: 2,
     },
 
-    statusHeroCountdown: {
+    statusHeroCountdownPill: {
       alignSelf: "flex-start",
-      fontSize: 12.5,
-      fontFamily: "Inter_700Bold",
-      color: isLight ? "#E11D48" : "#D85870",
       backgroundColor: "rgba(216, 88, 112,0.14)",
       paddingHorizontal: 12,
       paddingVertical: 5,
       borderRadius: 12,
-      overflow: "hidden",
       marginTop: 10,
+    },
+    statusHeroCountdown: {
+      fontSize: 12.5,
+      lineHeight: 17,
+      fontFamily: "Inter_700Bold",
+      color: isLight ? "#E11D48" : "#D85870",
+      includeFontPadding: false,
     },
     quickStartBtn: {
       flexDirection: "row",

@@ -503,7 +503,7 @@ export default function MeetingsScreen() {
                 const formattedDate = dayjs(m.meeting_datetime).locale(i18n.language).format("D MMMM YYYY");
 
                 return (
-                  <View key={m.id} style={[styles.pastMeetingCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, ...theme.cardShadow }]}>
+                  <View key={m.id} style={[styles.pastMeetingCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.pastCardTitle, { color: theme.text }]}>{m.title}</Text>
                       <Text style={[styles.pastCardDate, { color: theme.textMuted }]}>{formattedDate}</Text>
@@ -906,6 +906,7 @@ const createStyles = (theme: AppTheme) => {
     },
     timeBadgeRow: {
       flexDirection: "row",
+      flexWrap: "wrap",
       alignItems: "center",
       gap: 8,
     },
@@ -922,6 +923,7 @@ const createStyles = (theme: AppTheme) => {
     reunionPillText: {
       fontSize: 12,
       fontFamily: "Inter_700Bold",
+      includeFontPadding: false,
     },
     timePill: {
       flexDirection: "row",
@@ -936,6 +938,7 @@ const createStyles = (theme: AppTheme) => {
       fontSize: 12.5,
       fontFamily: "Inter_500Medium",
       color: isLight ? theme.text : "rgba(255,255,255,0.85)",
+      includeFontPadding: false,
     },
     plannerRow: {
       flexDirection: "row",
@@ -992,8 +995,8 @@ const createStyles = (theme: AppTheme) => {
       justifyContent: "space-between",
       padding: 14,
       borderRadius: 22,
-      opacity: 0.65,
-      ...theme.cardShadow,
+      borderWidth: 1,
+      opacity: 0.72,
     },
     pastCardTitle: {
       fontSize: 14.5,

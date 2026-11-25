@@ -1390,8 +1390,10 @@ const styles = StyleSheet.create({
   telemetryText: {
     color: '#4A8CB3',
     fontSize: 11,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    fontWeight: '600',
+    includeFontPadding: false,
+    ...(Platform.OS === 'ios'
+      ? { fontFamily: 'Menlo', fontWeight: '600' as const }
+      : { fontFamily: 'Inter_600SemiBold', fontVariant: ['tabular-nums' as const] }),
   },
   scanningSubText: {
     color: 'rgba(255, 255, 255, 0.55)',
@@ -1508,8 +1510,10 @@ const styles = StyleSheet.create({
   gridValue: {
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '600',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    includeFontPadding: false,
+    ...(Platform.OS === 'ios'
+      ? { fontFamily: 'Menlo', fontWeight: '600' as const }
+      : { fontFamily: 'Inter_600SemiBold', fontVariant: ['tabular-nums' as const] }),
   },
   firstSparkNote: {
     flexDirection: 'row',
@@ -1566,9 +1570,11 @@ const styles = StyleSheet.create({
   preSelectedStarCode: {
     color: '#4A8CB3',
     fontSize: 11,
-    fontWeight: '700',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     letterSpacing: 0.3,
+    includeFontPadding: false,
+    ...(Platform.OS === 'ios'
+      ? { fontFamily: 'Menlo', fontWeight: '700' as const }
+      : { fontFamily: 'Inter_700Bold', fontVariant: ['tabular-nums' as const] }),
   },
   preSelectedStarCommon: {
     color: '#FFFFFF',

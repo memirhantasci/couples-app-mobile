@@ -14,10 +14,20 @@ interface CountUpProps {
   style?: StyleProp<TextStyle>;
   /** Sayma süresi (ms). */
   duration?: number;
+  numberOfLines?: number;
+  adjustsFontSizeToFit?: boolean;
+  minimumFontScale?: number;
 }
 
 /** Sayıyı 0'dan (ya da önceki değerden) hedefe yumuşakça sayarak gösterir: günlerimiz sayacı gibi. */
-export function CountUp({ value, style, duration = 1100 }: CountUpProps) {
+export function CountUp({
+  value,
+  style,
+  duration = 1100,
+  numberOfLines,
+  adjustsFontSizeToFit,
+  minimumFontScale,
+}: CountUpProps) {
   const reduceMotion = useReducedMotion();
   const [display, setDisplay] = useState(reduceMotion ? value : 0);
   const fromRef = useRef(reduceMotion ? value : 0);
@@ -39,7 +49,16 @@ export function CountUp({ value, style, duration = 1100 }: CountUpProps) {
     return () => cancelAnimationFrame(frame);
   }, [value, duration, reduceMotion]);
 
-  return <Text style={style}>{reduceMotion ? value : display}</Text>;
+  return (
+    <Text
+      style={[uiCountUpStyles.text, style]}
+      numberOfLines={numberOfLines}
+      adjustsFontSizeToFit={adjustsFontSizeToFit}
+      minimumFontScale={minimumFontScale}
+    >
+      {reduceMotion ? value : display}
+    </Text>
+  );
 }
 
 // Yazı UI iş parçacığında güncellenir (TextInput'a animatedProps ile "text" yazılır): sayarken bileşen
@@ -90,9 +109,14 @@ export function UICountUp({ value, style, duration = 1100, delay = 0 }: UICountU
 }
 
 const uiCountUpStyles = StyleSheet.create({
+  text: {
+    includeFontPadding: false,
+    textAlignVertical: "center",
+  },
   input: {
     alignSelf: "stretch",
     textAlign: "center",
+    textAlignVertical: "center",
     padding: 0,
     margin: 0,
     includeFontPadding: false,

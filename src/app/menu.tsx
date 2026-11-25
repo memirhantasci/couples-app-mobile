@@ -194,7 +194,7 @@ export default function MenuScreen() {
               <Text style={[styles.profileName, { color: theme.text }]} numberOfLines={1}>{displayName}</Text>
               <View style={styles.profileSubtitleRow}>
                 <Heart size={11} color={theme.accent} fill={theme.accent} />
-                <Text style={[styles.profileSubtitle, { color: theme.textSecondary }]}>
+                <Text style={[styles.profileSubtitle, { color: theme.textSecondary }]} numberOfLines={2}>
                   {displayName} & {partnerName || t("common.partnerFallback")}{relDate ? ` • ${t("menu.daysTogether", { count: daysSinceTogether })}` : ""}
                 </Text>
               </View>
@@ -531,8 +531,8 @@ export default function MenuScreen() {
             <View style={{ backgroundColor: isLight ? "#fff" : "#1A1624", borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "80%", padding: 20, paddingBottom: insets.bottom + 20 }}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <View>
-                  <Text style={{ fontSize: 18, fontWeight: "700", color: theme.text }}>{t("menu.guides.title")}</Text>
-                  <Text style={{ fontSize: 12, color: theme.textMuted }}>{t("menu.guides.subtitle")}</Text>
+                  <Text style={{ fontSize: 18, fontFamily: "Inter_700Bold", color: theme.text }}>{t("menu.guides.title")}</Text>
+                  <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: theme.textMuted }}>{t("menu.guides.subtitle")}</Text>
                 </View>
                 <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("a11y.close")} onPress={() => setShowGuideCatalog(false)} style={{ padding: 6 }}>
                   <X color={theme.text} size={20} />
@@ -550,8 +550,8 @@ export default function MenuScreen() {
                     style={{ flexDirection: "row", alignItems: "center", padding: 12, borderRadius: 14, backgroundColor: isLight ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.05)", borderWidth: 1, borderColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)" }}
                   >
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 15, fontWeight: "700", color: theme.text }}>{g.title}</Text>
-                      <Text style={{ fontSize: 12, color: theme.textMuted }}>{g.tagline}</Text>
+                      <Text style={{ fontSize: 15, fontFamily: "Inter_700Bold", color: theme.text }}>{g.title}</Text>
+                      <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: theme.textMuted }}>{g.tagline}</Text>
                     </View>
                     <ChevronRight size={16} color={theme.textMuted} />
                   </TouchableOpacity>
@@ -565,7 +565,7 @@ export default function MenuScreen() {
                   }}
                   style={{ marginTop: 12, padding: 14, borderRadius: 14, backgroundColor: theme.pillAccentBg, borderWidth: 1, borderColor: theme.pillAccentBorder, alignItems: "center" }}
                 >
-                  <Text style={{ color: theme.accent, fontWeight: "700", fontSize: 14 }}>{t("menu.guides.restartTour")}</Text>
+                  <Text style={{ color: theme.accent, fontFamily: "Inter_700Bold", fontSize: 14 }}>{t("menu.guides.restartTour")}</Text>
                 </TouchableOpacity>
               </ScrollView>
             </View>
@@ -652,9 +652,12 @@ const getMenuStyles = (theme: any, isLight: boolean) => StyleSheet.create({
     gap: 5,
   },
   profileSubtitle: {
+    flex: 1,
     fontSize: 12,
+    lineHeight: 16,
     fontFamily: "Inter_400Regular",
     color: theme.textSecondary,
+    includeFontPadding: false,
   },
 
   /* BÖLÜM KAPLARI */

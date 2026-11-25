@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
   },
   starName: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: 'Inter_700Bold',
     letterSpacing: -0.3,
     flexShrink: 1,
   },
@@ -362,8 +362,9 @@ const styles = StyleSheet.create({
   resonancePillText: {
     color: '#F59E0B',
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: 'Inter_700Bold',
     letterSpacing: -0.2,
+    includeFontPadding: false,
   },
   coupleAvatars: {
     marginRight: 8,
@@ -391,9 +392,11 @@ const styles = StyleSheet.create({
   },
   catalogCode: {
     fontSize: 11,
-    fontWeight: '600',
     letterSpacing: 0.3,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    includeFontPadding: false,
+    ...(Platform.OS === 'ios'
+      ? { fontFamily: 'Menlo', fontWeight: '600' as const }
+      : { fontFamily: 'Inter_600SemiBold', fontVariant: ['tabular-nums' as const] }),
   },
   coordDivider: {
     width: 1,
@@ -404,6 +407,7 @@ const styles = StyleSheet.create({
   },
   coordsText: {
     fontSize: 11,
+    includeFontPadding: false,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   luminosityBlock: {
@@ -413,8 +417,10 @@ const styles = StyleSheet.create({
   },
   luminosityText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
+    fontVariant: ['tabular-nums'],
     letterSpacing: -0.2,
+    includeFontPadding: false,
   },
   progressBarBg: {
     width: 38,

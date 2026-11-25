@@ -129,6 +129,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
+    fontFamily: "Inter_400Regular",
     color: "rgba(255,255,255,0.7)",
     textAlign: "center",
     marginBottom: 32,
@@ -155,12 +156,13 @@ const styles = StyleSheet.create({
   featureTitle: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "700",
+    fontFamily: "Inter_700Bold",
     marginBottom: 2,
   },
   featureDesc: {
     color: "rgba(255,255,255,0.5)",
     fontSize: 13,
+    fontFamily: "Inter_400Regular",
   },
   actionBtn: {
     width: "100%",
@@ -172,7 +174,7 @@ const styles = StyleSheet.create({
   actionBtnText: {
     color: "#111",
     fontSize: 16,
-    fontWeight: "bold",
+    fontFamily: "Inter_700Bold",
     letterSpacing: 0.5,
   },
 });

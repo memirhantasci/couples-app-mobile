@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import { Platform, View, StyleSheet, Text } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import { useDerivedValue, useFrameCallback, useSharedValue } from 'react-native-reanimated';
 import { useFocusEffect } from 'expo-router';
@@ -585,14 +585,14 @@ const styles = StyleSheet.create({
   },
   fallbackTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: 'Inter_700Bold',
     color: '#FFFFFF',
     marginBottom: 4,
     textAlign: 'center',
   },
   fallbackSubtitle: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
     color: '#FBBF24',
     textTransform: 'uppercase',
     letterSpacing: 1.2,
@@ -600,6 +600,7 @@ const styles = StyleSheet.create({
   },
   fallbackDescription: {
     fontSize: 13,
+    fontFamily: 'Inter_400Regular',
     color: '#94A3B8',
     textAlign: 'center',
     lineHeight: 18,
@@ -617,12 +618,13 @@ const styles = StyleSheet.create({
   },
   fallbackNoticeTitle: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
     color: '#F87171',
     marginBottom: 6,
   },
   fallbackNoticeText: {
     fontSize: 12,
+    fontFamily: 'Inter_400Regular',
     color: '#CBD5E1',
     textAlign: 'center',
     lineHeight: 16,
@@ -638,9 +640,10 @@ const styles = StyleSheet.create({
   },
   fallbackCodeText: {
     color: '#FBBF24',
-    fontFamily: 'monospace',
     fontSize: 12,
-    fontWeight: '600',
+    ...(Platform.OS === 'ios'
+      ? { fontFamily: 'Menlo', fontWeight: '600' as const }
+      : { fontFamily: 'Inter_600SemiBold', fontVariant: ['tabular-nums' as const] }),
   },
   fallbackMetaText: {
     fontSize: 11,

@@ -233,12 +233,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    fontWeight: "700",
+    fontFamily: "Inter_700Bold",
     color: "#fff",
     marginBottom: 8,
   },
   desc: {
     fontSize: 14,
+    fontFamily: "Inter_400Regular",
     color: "rgba(255,255,255,0.6)",
     textAlign: "center",
     marginBottom: 24,
@@ -255,7 +256,7 @@ const styles = StyleSheet.create({
   },
   actionBtnText: {
     color: "#fff",
-    fontWeight: "700",
+    fontFamily: "Inter_700Bold",
     fontSize: 16,
   },
 });

@@ -1279,9 +1279,11 @@ const styles = StyleSheet.create({
   },
   pairingCodeValue: {
     fontSize: 16,
-    fontWeight: '800',
     letterSpacing: 2,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    includeFontPadding: false,
+    ...(Platform.OS === 'ios'
+      ? { fontFamily: 'Menlo', fontWeight: '800' as const }
+      : { fontFamily: 'Inter_700Bold', fontVariant: ['tabular-nums' as const] }),
   },
   codeSection: {
     gap: 12,
@@ -1333,8 +1335,11 @@ const styles = StyleSheet.create({
   },
   codeCellText: {
     fontSize: 22,
-    fontWeight: '800',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    ...(Platform.OS === 'ios'
+      ? { fontFamily: 'Menlo', fontWeight: '800' as const }
+      : { fontFamily: 'Inter_700Bold', fontVariant: ['tabular-nums' as const] }),
   },
   // Hücrelerin üstünü kaplayan şeffaf gerçek giriş: dokunuş, yapıştırma ve klavye ona gider
   codeHiddenInput: {
@@ -1367,8 +1372,10 @@ const styles = StyleSheet.create({
   },
   codeCounter: {
     fontSize: 12,
-    fontWeight: '600',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    includeFontPadding: false,
+    ...(Platform.OS === 'ios'
+      ? { fontFamily: 'Menlo', fontWeight: '600' as const }
+      : { fontFamily: 'Inter_600SemiBold', fontVariant: ['tabular-nums' as const] }),
   },
   connectBtn: {
     borderRadius: 14,

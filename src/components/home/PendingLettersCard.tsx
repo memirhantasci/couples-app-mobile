@@ -218,11 +218,20 @@ export const PendingLettersCard = memo(function PendingLettersCard({
               {/* Geri sayım */}
               <View style={[styles.daysBox, { backgroundColor: theme.pillAccentBg, borderColor: theme.pillAccentBorder }]}>
                 {daysLeft <= 0 ? (
-                  <Text style={[styles.daysToday, { color: theme.accent }]}>{t("common.today")}</Text>
+                  <Text style={[styles.daysToday, { color: theme.accent }]} numberOfLines={1}>{t("common.today")}</Text>
                 ) : (
                   <>
-                    <Text style={[styles.daysNumber, { color: theme.accent }]}>{daysLeft}</Text>
-                    <Text style={[styles.daysUnit, { color: theme.accent }]}>{t("home.pending.daysUnit", { count: daysLeft })}</Text>
+                    <Text
+                      style={[styles.daysNumber, { color: theme.accent }]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.75}
+                    >
+                      {daysLeft}
+                    </Text>
+                    <Text style={[styles.daysUnit, { color: theme.accent }]} numberOfLines={1}>
+                      {t("home.pending.daysUnit", { count: daysLeft })}
+                    </Text>
                   </>
                 )}
               </View>
@@ -325,6 +334,8 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 12,
     fontFamily: "Inter_700Bold",
+    includeFontPadding: false,
+    textAlignVertical: "center",
   },
   viewAll: {
     fontSize: 12.5,
@@ -381,8 +392,9 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
   },
   daysBox: {
-    minWidth: 50,
-    paddingVertical: 6,
+    minWidth: 54,
+    maxWidth: 76,
+    paddingVertical: 7,
     paddingHorizontal: 8,
     borderRadius: 14,
     borderWidth: 1,
@@ -391,18 +403,23 @@ const styles = StyleSheet.create({
   },
   daysNumber: {
     fontSize: 18,
-    lineHeight: 21,
+    lineHeight: 22,
     fontFamily: "Inter_700Bold",
+    fontVariant: ["tabular-nums"],
+    includeFontPadding: false,
+    textAlignVertical: "center",
   },
   daysUnit: {
     fontSize: 10,
-    lineHeight: 12,
+    lineHeight: 13,
     fontFamily: "Inter_600SemiBold",
     textTransform: "uppercase",
     letterSpacing: 0.4,
+    includeFontPadding: false,
   },
   daysToday: {
     fontSize: 12,
     fontFamily: "Inter_700Bold",
+    includeFontPadding: false,
   },
 });

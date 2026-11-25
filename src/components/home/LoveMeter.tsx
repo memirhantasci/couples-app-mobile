@@ -132,7 +132,7 @@ export const LoveMeter = memo(function LoveMeter({ value, theme, subtitle, isLoa
     >
       {/* Başlık + yüzde */}
       <View style={styles.headerRow}>
-        <Text style={[styles.title, { color: theme.text }]}>{t("home.loveMeter.title")}</Text>
+        <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>{t("home.loveMeter.title")}</Text>
         <Animated.View style={[styles.percentBox, percentPopStyle]}>
           {isLoading && !hasValue ? (
             <Text style={[styles.percentLabel, { color: theme.accent, opacity: 0.5 }]}>--%</Text>
@@ -389,20 +389,27 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   title: {
+    flex: 1,
     fontSize: 16,
     fontFamily: "Inter_700Bold",
+    marginRight: 8,
   },
   percentBox: {
+    flexShrink: 0,
     transformOrigin: "right",
   },
   percentLabel: {
     fontSize: 32,
+    lineHeight: 38,
     fontFamily: "Inter_700Bold",
+    fontVariant: ["tabular-nums"],
+    includeFontPadding: false,
   },
   percentInput: {
     padding: 0,
     margin: 0,
     textAlign: "right",
+    textAlignVertical: "center",
     minWidth: 90,
     includeFontPadding: false,
   },

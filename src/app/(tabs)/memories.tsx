@@ -649,6 +649,7 @@ const createStyles = (theme: AppTheme) => {
       color: isLight ? theme.textSecondary : "rgba(255,255,255,0.8)",
       fontSize: 14,
       fontFamily: "Inter_600SemiBold",
+      includeFontPadding: false,
     },
     emptyState: {
       marginHorizontal: 20,
@@ -694,6 +695,7 @@ const createStyles = (theme: AppTheme) => {
       alignItems: "center",
     },
     anniversaryBadge: {
+      alignSelf: "flex-start",
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 12,
@@ -701,9 +703,13 @@ const createStyles = (theme: AppTheme) => {
     },
     anniversaryBadgeText: {
       fontSize: 11,
+      lineHeight: 15,
       fontFamily: "Inter_600SemiBold",
+      includeFontPadding: false,
+      textAlignVertical: "center",
     },
     milestoneBadge: {
+      alignSelf: "flex-start",
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 12,
@@ -711,7 +717,11 @@ const createStyles = (theme: AppTheme) => {
     },
     milestoneBadgeText: {
       fontSize: 11,
+      lineHeight: 15,
       fontFamily: "Inter_500Medium",
+      fontVariant: ["tabular-nums"],
+      includeFontPadding: false,
+      textAlignVertical: "center",
     },
     cardDesc: {
       color: isLight ? theme.textMuted : "rgba(255,255,255,0.5)",

@@ -90,6 +90,9 @@ const styles = StyleSheet.create({
   number: {
     fontSize: 13,
     fontFamily: "Inter_600SemiBold",
+    fontVariant: ["tabular-nums"],
+    includeFontPadding: false,
+    textAlignVertical: "center",
   },
 });
 

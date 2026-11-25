@@ -209,7 +209,9 @@ export const MeetingCountdown = memo(function MeetingCountdown({ meeting, theme,
                 style={[styles.unitValue, { color: theme.text }]}
                 animate={!reduceMotion}
               />
-              <Text style={[styles.unitLabel, { color: theme.textMuted }]}>{unit.label}</Text>
+              <Text style={[styles.unitLabel, { color: theme.textMuted }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+                {unit.label}
+              </Text>
             </View>
           ))}
         </View>
@@ -239,6 +241,9 @@ function RollingValue({ value, style, animate }: { value: string; style: StylePr
         key={value}
         entering={animate ? FadeInUp.duration(200).springify() : undefined}
         exiting={animate ? FadeOutDown.duration(200) : undefined}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.72}
         style={style}
       >
         {value}
@@ -645,8 +650,10 @@ const styles = StyleSheet.create({
   },
   unitBox: {
     flex: 1,
+    minWidth: 0,
     alignItems: "center",
     paddingVertical: 14,
+    paddingHorizontal: 4,
     borderRadius: 14,
     borderWidth: 0,
   },
@@ -655,11 +662,15 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     color: "#fff",
     fontVariant: ["tabular-nums"],
-    lineHeight: 28,
+    lineHeight: 32,
+    includeFontPadding: false,
+    textAlignVertical: "center",
+    textAlign: "center",
   },
   // Kayan rakamın penceresi: giren ve çıkan rakam bu kutunun dışında görünmez
   rollingWindow: {
-    height: 30,
+    width: "100%",
+    height: 36,
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
@@ -677,6 +688,7 @@ const styles = StyleSheet.create({
   meetingDayText: {
     fontSize: 12,
     fontFamily: "Inter_700Bold",
+    includeFontPadding: false,
   },
   reunionWrap: {
     marginBottom: 18,
@@ -746,6 +758,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     color: "rgba(255,255,255,0.45)",
     marginTop: 6,
+    includeFontPadding: false,
   },
   modalOverlay: {
     flex: 1,
@@ -767,20 +780,20 @@ const styles = StyleSheet.create({
   modalTitle: {
     color: "#fff",
     fontSize: 18,
-    fontWeight: "700",
+    fontFamily: "Inter_700Bold",
   },
   detailLabel: {
     color: "rgba(255,255,255,0.45)",
     fontSize: 12,
     marginBottom: 4,
-    fontWeight: "500",
+    fontFamily: "Inter_500Medium",
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   detailValue: {
     color: "#fff",
     fontSize: 15,
-    fontWeight: "500",
+    fontFamily: "Inter_500Medium",
   },
   directionsBtn: {
     flexDirection: "row",
@@ -794,6 +807,6 @@ const styles = StyleSheet.create({
   directionsBtnText: {
     color: "#fff",
     fontSize: 15,
-    fontWeight: "700",
+    fontFamily: "Inter_700Bold",
   },
 });
