@@ -2,6 +2,7 @@ import type { ParseKeys } from "i18next";
 
 export type NotificationType = 
   | "letter"            // Mühürlü Aşk Mektubu 💌
+  | "letter_opened"     // Mektubun Partner Tarafından Açıldı 💌✨
   | "medicine"          // İlaç İçildi Kutlaması 💊
   | "medicine_reminder" // İlaç Alma Vakti 💧
   | "photo"             // Yeni Fotoğraf & Anı 📸
@@ -57,6 +58,17 @@ export const NOTIFICATION_THEMES: Record<NotificationType, NotificationThemeConf
     accentColor: "#F5C563", // Altın varak ışıltısı
     secondaryColor: "#D85F78",
     iconBg: "rgba(245, 197, 99, 0.15)",
+    defaultActionLabelKey: "notifications.actions.goToLetters",
+  },
+  letter_opened: {
+    type: "letter_opened",
+    badgeLabelKey: "notifications.types.letterOpened.badge",
+    badgeIcon: "Mail",
+    gradient: ["#4A1224", "#2B0B15", "#18060C"],
+    borderGlow: "rgba(255, 180, 80, 0.5)",
+    accentColor: "#F5C563",
+    secondaryColor: "#D85F78",
+    iconBg: "rgba(245, 197, 99, 0.18)",
     defaultActionLabelKey: "notifications.actions.goToLetters",
   },
   medicine: {

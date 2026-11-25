@@ -29,7 +29,7 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Defs, LinearGradient as SvgGradient, Line, Path, Stop } from "react-native-svg";
-import { Heart, Sparkles, X } from "lucide-react-native";
+import { CheckCheck, Heart, Sparkles, X } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { UserAvatar } from "@/components/avatar/UserAvatar";
 import { dayjs } from "@/lib/date";
@@ -38,18 +38,26 @@ import { isSealBroken, isSealBrokenCached, rememberBrokenSeal } from "@/lib/lett
 import { playStampDrop } from "@/lib/soundEffects";
 import type { AppTheme } from "@/lib/theme";
 
-/** Okunmaya hazır (çözülmüş) gelen mektup. */
+/** Okunmaya hazır (çözülmüş) mektup (gelen veya giden). */
 export interface ReadableLetter {
   id: number;
+  role: "received" | "sent";
   title: string;
   /** Çözülmüş düz metin */
   content: string;
-  senderName: string;
-  senderAvatarUrl?: string | null;
+  /** Gelen mektupta gönderenin adı; giden mektupta alıcının adı */
+  personName: string;
+  personAvatarUrl?: string | null;
+  /** İmza satırındaki yazar adı */
+  signatureName: string;
   /** Yazıldığı an (ISO) */
   createdAt: string;
   /** Açılış günü (YYYY-MM-DD) */
   unlockDate?: string | null;
+  /** Alıcının mektubu ilk kez açtığı an (ISO, sunucudan) */
+  openedByReceiverAt?: string | null;
+  /** Giden mektup için: açılış tarihi henüz gelmediyse true */
+  isLockedForPartner?: boolean;
 }
 
 export interface LetterReadingModalProps {
@@ -58,10 +66,15 @@ export interface LetterReadingModalProps {
   theme: AppTheme;
   onClose: () => void;
   /**
-   * Zamana kilitli bir mektubun mührü bu ziyarette ilk kez kırıldı ve pencere kapandı
+   * Zamana kilitli gelen bir mektubun mührü bu ziyarette ilk kez kırıldı ve pencere kapandı
    * (mektup, açılış günü yazıldığı günden sonra olacak şekilde mühürlenmişti).
    */
   onFirstOpened?: () => void;
+  /**
+   * Alıcı gelen bir mektubu açtığında sunucuya `mark_letter_opened` bildirmek için çağrılır.
+   * Gönderen kendi gönderdiği mektubu açarken ASLA çağrılmaz.
+   */
+  onMarkOpened?: (letterId: number) => void;
 }
 
 // ─── Zaman Çizelgesi (ms, mühre dokunulduğu andan itibaren) ─────────────────────
@@ -105,10 +118,19 @@ const PETAL_COUNT = 6;
 
 type Phase = "sealed" | "opening" | "open" | "resealing";
 
-export function LetterReadingModal({ visible, letter, theme, onClose, onFirstOpened }: LetterReadingModalProps) {
+export function LetterReadingModal({ visible, letter, theme, onClose, onFirstOpened, onMarkOpened }: LetterReadingModalProps) {
   // İçerik yalnızca görünürken mount edilir: her açılış temiz durumla başlar
   if (!visible || !letter) return null;
-  return <SealGate key={letter.id} letter={letter} theme={theme} onClose={onClose} onFirstOpened={onFirstOpened} />;
+  return (
+    <SealGate
+      key={`${letter.role}-${letter.id}`}
+      letter={letter}
+      theme={theme}
+      onClose={onClose}
+      onFirstOpened={onFirstOpened}
+      onMarkOpened={onMarkOpened}
+    />
+  );
 }
 
 /** Mektup yazıldığı günden sonraki bir güne mühürlenmiş miydi (zaman kapsülü)? */
@@ -125,11 +147,13 @@ function SealGate({
   theme,
   onClose,
   onFirstOpened,
+  onMarkOpened,
 }: {
   letter: ReadableLetter;
   theme: AppTheme;
   onClose: () => void;
   onFirstOpened?: () => void;
+  onMarkOpened?: (letterId: number) => void;
 }) {
   const [sealBroken, setSealBroken] = useState<boolean | null>(() => isSealBrokenCached(letter.id));
 
@@ -145,8 +169,18 @@ function SealGate({
   }, [sealBroken, letter.id]);
 
   if (sealBroken === null) return null;
+  // Gelen mektupta sunucu açılış damgası başka cihazdaki açılışı da hatırlatır;
+  // giden mektupta gönderen ilk açılışında kendi zarf animasyonunu her zaman görür.
+  const startOpen = letter.role === "received" ? sealBroken || !!letter.openedByReceiverAt : sealBroken;
   return (
-    <ReadingScene letter={letter} theme={theme} onClose={onClose} onFirstOpened={onFirstOpened} startOpen={sealBroken} />
+    <ReadingScene
+      letter={letter}
+      theme={theme}
+      onClose={onClose}
+      onFirstOpened={onFirstOpened}
+      onMarkOpened={onMarkOpened}
+      startOpen={startOpen}
+    />
   );
 }
 
@@ -155,12 +189,14 @@ function ReadingScene({
   theme,
   onClose,
   onFirstOpened,
+  onMarkOpened,
   startOpen,
 }: {
   letter: ReadableLetter;
   theme: AppTheme;
   onClose: () => void;
   onFirstOpened?: () => void;
+  onMarkOpened?: (letterId: number) => void;
   /** Mühür daha önce kırıldı: ritüel atlanır, mektup açık kâğıtla gelir. */
   startOpen: boolean;
 }) {
@@ -172,6 +208,18 @@ function ReadingScene({
   const [phase, setPhase] = useState<Phase>(opensDirectly ? "open" : "sealed");
   // Mühür bu ziyarette ilk kez kırıldı mı (daha önce kırılmış mektupta ritüel atlanır, sayılmaz)
   const brokeSealNowRef = useRef(false);
+  const markedOpenedRef = useRef(false);
+
+  const notifyOpenedToServer = useCallback(() => {
+    if (letter.role !== "received" || letter.openedByReceiverAt || markedOpenedRef.current) return;
+    markedOpenedRef.current = true;
+    onMarkOpened?.(letter.id);
+  }, [letter.role, letter.openedByReceiverAt, letter.id, onMarkOpened]);
+
+  // Doğrudan açılan (hareketi azalt açık veya eski cihaz hafızalı) gelen mektuplarda sunucu damgasını tamamla
+  useEffect(() => {
+    if (opensDirectly) notifyOpenedToServer();
+  }, [opensDirectly, notifyOpenedToServer]);
 
   // ─── Geometri ───
   const envW = Math.min(screenW - 64, 320);
@@ -242,6 +290,7 @@ function ReadingScene({
     setPhase("opening");
     if (!startOpen) brokeSealNowRef.current = true;
     rememberBrokenSeal(letter.id);
+    notifyOpenedToServer();
     // Tek, tok kırılma titreşimi: playStampDrop sesle birlikte hapticStamp'i kendisi verir;
     // burada ayrıca bir haptik çağrılmaz
     playStampDrop();
@@ -269,7 +318,7 @@ function ReadingScene({
     petals.set(
       withDelay(T.petalsDelay, withTiming(1, { duration: T.petalsDuration, easing: Easing.out(Easing.quad) }))
     );
-  }, [phase, startOpen, letter.id, hint, jolt, crack, flap, pull, unfold, contentIn, petals, markOpen]);
+  }, [phase, startOpen, letter.id, notifyOpenedToServer, hint, jolt, crack, flap, pull, unfold, contentIn, petals, markOpen]);
 
   // ─── Mührü tekrar kır: açılış tersine oynar, ardından mühür yeniden kırılmayı bekler ───
   const finishReseal = useCallback(() => {
@@ -306,7 +355,7 @@ function ReadingScene({
   // ─── Kapat: her şey yumuşakça söner, ardından onClose ───
   const handleClosed = useCallback(() => {
     onClose();
-    if (brokeSealNowRef.current && wasTimeLocked(letter)) onFirstOpened?.();
+    if (letter.role === "received" && brokeSealNowRef.current && wasTimeLocked(letter)) onFirstOpened?.();
   }, [onClose, onFirstOpened, letter]);
 
   const close = useCallback(() => {
@@ -508,15 +557,17 @@ function ReadingScene({
             <ScrollView contentContainerStyle={styles.sheetScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.senderRow}>
                 <UserAvatar
-                  uri={letter.senderAvatarUrl}
-                  name={letter.senderName}
+                  uri={letter.personAvatarUrl}
+                  name={letter.personName}
                   size={42}
                   borderColor={theme.accent}
                   borderWidth={1.5}
                 />
                 <View style={styles.senderText}>
                   <Text style={[styles.senderName, { color: paper.ink }]} numberOfLines={1}>
-                    {t("letters.card.from", { personName: letter.senderName })}
+                    {letter.role === "received"
+                      ? t("letters.card.from", { personName: letter.personName })
+                      : t("letters.card.to", { personName: letter.personName })}
                   </Text>
                   <Text style={[styles.senderDate, { color: paper.inkSoft }]}>
                     {t("letters.reading.writtenOn", { date: writtenOn })}
@@ -538,12 +589,32 @@ function ReadingScene({
               </Text>
 
               <Text style={[styles.signature, { color: theme.accent }]}>
-                {t("letters.reading.signature", { name: letter.senderName })}
+                {t("letters.reading.signature", { name: letter.signatureName })}
               </Text>
               {openedOn ? (
                 <Text style={[styles.footerNote, { color: paper.inkSoft }]}>
                   {t("letters.card.openingDate", { date: openedOn })}
                 </Text>
+              ) : null}
+              {letter.role === "sent" ? (
+                letter.openedByReceiverAt ? (
+                  <View style={styles.readReceiptRow}>
+                    <CheckCheck size={14} color="#15803D" />
+                    <Text style={styles.readReceiptText}>
+                      {t("letters.reading.openedByPartnerAt", {
+                        date: dayjs(letter.openedByReceiverAt).locale(i18n.language).format("D MMMM YYYY · HH:mm"),
+                      })}
+                    </Text>
+                  </View>
+                ) : letter.isLockedForPartner && openedOn ? (
+                  <Text style={[styles.footerNote, { color: paper.inkSoft }]}>
+                    {t("letters.reading.sealedUntil", { date: openedOn })}
+                  </Text>
+                ) : (
+                  <Text style={[styles.footerNote, { color: paper.inkSoft }]}>
+                    {t("letters.reading.notOpenedYet")}
+                  </Text>
+                )
               ) : null}
             </ScrollView>
           </Animated.View>
@@ -1030,6 +1101,18 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     textAlign: "right",
     marginTop: 10,
+  },
+  readReceiptRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 5,
+    marginTop: 8,
+  },
+  readReceiptText: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+    color: "#15803D",
   },
 
   /* YAPRAKLAR */

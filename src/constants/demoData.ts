@@ -208,6 +208,8 @@ const DEMO_LETTERS_TR = [
     title: "Seni Neden Bu Kadar Çok Seviyorum? 🕊️",
     content: "Gülüşünle en karanlık günümü bile aydınlattığın için, yanındayken kendimi evimde hissettirdiğin için ve hayallerime ortak olduğun için...",
     unlock_date: dayjs().subtract(2, "day").format("YYYY-MM-DD"),
+    created_at: dayjs().subtract(12, "day").toISOString(),
+    opened_by_receiver_at: dayjs().subtract(1, "day").toISOString(),
     _type: "sent" as const,
     receiver: {
       id: DEMO_PARTNER_ID,
@@ -258,6 +260,8 @@ const DEMO_LETTERS_EN = [
     title: "Why Do I Love You So Much? 🕊️",
     content: "Because your smile brightens even my darkest day, because I feel at home whenever I'm in your arms, and because you believe in every dream of mine...",
     unlock_date: dayjs().subtract(2, "day").format("YYYY-MM-DD"),
+    created_at: dayjs().subtract(12, "day").toISOString(),
+    opened_by_receiver_at: dayjs().subtract(1, "day").toISOString(),
     _type: "sent" as const,
     receiver: {
       id: DEMO_PARTNER_ID,

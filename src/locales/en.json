@@ -335,6 +335,9 @@
       },
       "gentleCare": {
         "badge": "A Special Feeling"
+      },
+      "letterOpened": {
+        "badge": "Your Letter Was Opened!"
       }
     },
     "demo": {
@@ -1792,7 +1795,9 @@
       "locked": "Locked • {{date}}",
       "sealed": "Sealed • {{date}}",
       "sentStatus": "Sent",
+      "sentUnread": "Sent • Not opened yet",
       "opened": "Opened",
+      "openedAt": "Opened on {{date}}",
       "optionsA11y": "Letter options",
       "lockedTitle": "🔒 A Letter Locked in the Future",
       "from": "From: {{personName}}",
@@ -1869,7 +1874,10 @@
       "breakSealA11y": "Break the seal and open the letter",
       "writtenOn": "Written on {{date}}",
       "signature": "With love, {{name}}",
-      "reseal": "Break the Seal Again 🕯️"
+      "reseal": "Break the Seal Again 🕯️",
+      "openedByPartnerAt": "Opened on {{date}}",
+      "notOpenedYet": "Your love hasn't opened this letter yet",
+      "sealedUntil": "Sealed until {{date}}"
     },
     "lockedPillTime_one": "Sealed with love... Opens in {{count}} day ⏳",
     "lockedPillTime_other": "Sealed with love... Opens in {{count}} days ⏳",

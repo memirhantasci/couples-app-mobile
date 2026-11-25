@@ -15,6 +15,7 @@ describe("resolveNotificationRoute", () => {
 
   it("route yoksa türden çözer", () => {
     expect(resolveNotificationRoute({ type: "letter" })).toBe("/(tabs)/letters");
+    expect(resolveNotificationRoute({ type: "letter_opened" })).toBe("/(tabs)/letters");
     expect(resolveNotificationRoute({ type: "photo" })).toBe("/(tabs)/photos");
     expect(resolveNotificationRoute({ type: "map" })).toBe("/(tabs)/map");
     expect(resolveNotificationRoute({ type: "period" })).toBe("/(tabs)/period-tracker");

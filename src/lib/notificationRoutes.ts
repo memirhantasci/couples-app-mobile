@@ -25,6 +25,7 @@ const ALLOWED_ROUTES: ReadonlySet<string> = new Set([
 /** `data.route` yoksa bildirim türünün açacağı ekran (sunucudaki türlerle aynı adlar) */
 const TYPE_ROUTES: Readonly<Record<string, string>> = {
   letter: "/(tabs)/letters",
+  letter_opened: "/(tabs)/letters",
   letter_unlock: "/(tabs)/letters",
   photo: "/(tabs)/photos",
   map: "/(tabs)/map",

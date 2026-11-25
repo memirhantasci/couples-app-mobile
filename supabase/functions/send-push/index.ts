@@ -194,6 +194,16 @@ function S(lang: Lang) {
           ? `${sender} sana geleceğe bir mektup yazdı! (${unlockDate} tarihinde açılacak)`
           : `${sender} sana bir mektup yazdı!`,
     letterNewAction: en ? "Go to Letters 💌" : "Mektuplara Git 💌",
+    letterOpenedTitle: en ? "💌 Your Letter Was Opened!" : "💌 Mektubun Açıldı!",
+    letterOpenedBody: (opener: string, title: string) =>
+      en
+        ? title
+          ? `${opener} opened and read your letter "${title}" ✨`
+          : `${opener} opened and read your letter ✨`
+        : title
+          ? `${opener} "${title}" mektubunu açtı ve okudu ✨`
+          : `${opener} mektubunu açtı ve okudu ✨`,
+    letterOpenedAction: en ? "Go to Letters 💌" : "Mektuplara Git 💌",
     periodStartedTitle: en ? "🩸 Period Calendar" : "🩸 Regl Takvimi",
     periodStartedBody: (sender: string) =>
       en ? `${sender}'s period has started. Don't forget to support her 💕` : `${trGenitive(sender)} regl dönemi başladı. Ona destek olmayı unutma 💕`,
@@ -620,6 +630,32 @@ serve(async (req) => {
             route: "/(tabs)/letters",
             actionLabel: s.letterNewAction,
             channelId: "letters_channel",
+          };
+        };
+      }
+    }
+    else if (
+      table === "letters" &&
+      type === "UPDATE" &&
+      !oldRecord?.opened_by_receiver_at &&
+      !!record.opened_by_receiver_at
+    ) {
+      // Alıcı mektubun mührünü ilk kez kırdı → gönderene bildirim gider
+      senderIntId = record.receiver_id;
+      partnerIntId = record.sender_id;
+      const { data: opener } = await supabase.from("users").select("display_name").eq("id", senderIntId).single();
+      if (opener && partnerIntId) {
+        const letterTitle = safePlaintextLabel(record.title, "");
+        message = (lang) => {
+          const s = S(lang);
+          return {
+            title: s.letterOpenedTitle,
+            body: s.letterOpenedBody(plainName(opener.display_name), letterTitle),
+            type: "letter_opened",
+            route: "/(tabs)/letters",
+            actionLabel: s.letterOpenedAction,
+            channelId: "letters_channel",
+            extra: { letterId: record.id },
           };
         };
       }

@@ -8,6 +8,7 @@ import type { QueryClient } from "@tanstack/react-query";
  */
 const KEYS_BY_TYPE: Record<string, readonly string[]> = {
   letter: ["letters_data", "home_dashboard", "love_score"],
+  letter_opened: ["letters_data", "home_dashboard"],
   letter_unlock: ["letters_data", "home_dashboard", "love_score"],
   letter_delete_request: ["letters_data", "home_dashboard"],
   letter_delete_response: ["letters_data", "home_dashboard"],

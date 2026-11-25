@@ -37,4 +37,14 @@ describe("mektup okuma kaynağı", () => {
     const readers = sourceFiles(SRC).filter((file) => /\.from\(LETTERS_READ_SOURCE\)/.test(readFileSync(file, "utf8")));
     expect(readers.length).toBeGreaterThanOrEqual(6);
   });
+
+  it("okundu bilgisi migration'ı my_letters görünümünü ve mark_letter_opened RPC'sini içerir", () => {
+    const migration = readFileSync(
+      join(SRC, "../supabase/migrations/20261126000000_letter_read_receipt.sql"),
+      "utf8"
+    );
+    expect(migration).toMatch(/CREATE OR REPLACE VIEW public\.my_letters/);
+    expect(migration).toMatch(/opened_by_receiver_at/);
+    expect(migration).toMatch(/CREATE OR REPLACE FUNCTION public\.mark_letter_opened/);
+  });
 });

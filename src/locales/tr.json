@@ -335,6 +335,9 @@
       },
       "gentleCare": {
         "badge": "Özel Bir His"
+      },
+      "letterOpened": {
+        "badge": "Mektubun Açıldı!"
       }
     },
     "demo": {
@@ -1792,7 +1795,9 @@
       "locked": "Kilitli • {{date}}",
       "sealed": "Mühürlü • {{date}}",
       "sentStatus": "Gönderildi",
+      "sentUnread": "Gönderildi • Henüz açılmadı",
       "opened": "Açıldı",
+      "openedAt": "{{date}} tarihinde açıldı",
       "optionsA11y": "Mektup seçenekleri",
       "lockedTitle": "🔒 Geleceğe Kilitli Mektup",
       "from": "Gönderen: {{personName}}",
@@ -1869,7 +1874,10 @@
       "breakSealA11y": "Mührü kır ve mektubu aç",
       "writtenOn": "{{date}} tarihinde yazıldı",
       "signature": "Sevgiyle, {{name}}",
-      "reseal": "Mührü Tekrar Kır 🕯️"
+      "reseal": "Mührü Tekrar Kır 🕯️",
+      "openedByPartnerAt": "{{date}} tarihinde açıldı",
+      "notOpenedYet": "Sevgilin henüz mektubu açmadı",
+      "sealedUntil": "{{date}} tarihine kadar mühürlü"
     },
     "lockedPillTime_one": "Bu mektup sevgiyle mühürlendi... Açılış: {{count}} gün sonra ⏳",
     "lockedPillTime_other": "Bu mektup sevgiyle mühürlendi... Açılış: {{count}} gün sonra ⏳",

@@ -19,7 +19,7 @@ import { notifyPartner } from "@/lib/notifications";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dayjs, todayString } from "@/lib/date";
 import { encrypt, decrypt } from "@/utils/crypto";
-import { ChevronRight, LockKeyhole, Calendar as CalendarIcon, X, PenLine, Send, Clock, Unlock, UserCheck, ChevronDown, Eye, EyeOff, MoreHorizontal, Hourglass, HeartHandshake } from "lucide-react-native";
+import { ChevronRight, LockKeyhole, Calendar as CalendarIcon, X, PenLine, Send, Clock, Unlock, UserCheck, Eye, EyeOff, MoreHorizontal, Hourglass, HeartHandshake, CheckCheck } from "lucide-react-native";
 import { sanitize } from "@/utils/sanitize";
 import { logger } from "@/utils/logger";
 import type { AppTheme } from "@/lib/theme";
@@ -118,8 +118,7 @@ export default function LettersScreen() {
     }
   });
 
-  const [openLetterId, setOpenLetterId] = useState<number | null>(null);
-  // Açılmış gelen mektup, mum mühür kırılarak okunan pencerede açılır (gönderilenler yerinde genişler)
+  // Gelen ve giden mektuplar mum mühür / zarf animasyonlu okuma penceresinde açılır
   const [readingLetter, setReadingLetter] = useState<ReadableLetter | null>(null);
   // Tarihi gelmemiş mektuba son dokunuş: kartın kilidi sallanır, altında kalan gün hapı belirir.
   // `nonce` her dokunuşta artar ki aynı karta tekrar dokunmak animasyonu yeniden oynatsın
@@ -128,6 +127,58 @@ export default function LettersScreen() {
   useEffect(() => {
     preloadBrokenSeals();
   }, []);
+
+  // Partner mektubu açtığında (opened_by_receiver_at güncellenince) gönderen anında "Açıldı" görsün
+  useEffect(() => {
+    if (isDemoMode || !coupleId || !userId) return;
+    const channel = supabase
+      .channel(`letters_updates_${coupleId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "letters", filter: `couple_id=eq.${coupleId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["letters_data"] }).catch(() => {});
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isDemoMode, coupleId, userId, queryClient]);
+
+  // Alıcı gelen mektubu ilk kez açtığında sunucuya açıldı damgası vurur (idempotent RPC)
+  const handleMarkLetterOpened = useCallback(
+    async (letterId: number) => {
+      if (isDemoMode) return;
+      try {
+        const { data: res, error } = await supabase.rpc("mark_letter_opened", { p_letter_id: letterId });
+        if (error) {
+          logger.error("mark_letter_opened failed:", error);
+          return;
+        }
+        const openedAt: string = (res as { opened_at?: string } | null)?.opened_at ?? new Date().toISOString();
+        const patchList = (list: any[] | undefined) =>
+          (list ?? []).map((l) => (l.id === letterId ? { ...l, opened_by_receiver_at: l.opened_by_receiver_at ?? openedAt } : l));
+        queryClient.setQueriesData({ queryKey: ["letters_data"] }, (prev: any) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            all: patchList(prev.all),
+            received: patchList(prev.received),
+            sent: patchList(prev.sent),
+          };
+        });
+        setReadingLetter((prev) =>
+          prev && prev.id === letterId && prev.role === "received"
+            ? { ...prev, openedByReceiverAt: prev.openedByReceiverAt ?? openedAt }
+            : prev
+        );
+      } catch (err) {
+        logger.error("mark_letter_opened error:", err);
+      }
+    },
+    [isDemoMode, queryClient]
+  );
 
   // --- Form State ---
   const [receiverId, setReceiverId] = useState("");
@@ -519,7 +570,7 @@ export default function LettersScreen() {
     const isLockedDate = unlockMoment.valueOf() > Date.now();
     const itemType = letter._type || (letter.sender_id === userId ? "sent" : "received");
     const canOpen = itemType === "sent" || !isLockedDate;
-    const isOpen = openLetterId === letter.id;
+    const isOpenedByPartner = itemType === "sent" && !!letter.opened_by_receiver_at;
     // Alıcının henüz açamadığı mektup: kum saati rozeti, sallanan kilit ve kalan gün hapı
     const isSealedForMe = itemType === "received" && isLockedDate;
     const lockedTapKey = isSealedForMe && lockedTap && lockedTap.id === letter.id ? lockedTap.nonce : 0;
@@ -589,19 +640,21 @@ export default function LettersScreen() {
               setLockedTap((prev) => ({ id: letter.id, nonce: (prev?.nonce ?? 0) + 1 }));
               return;
             }
-            if (itemType === "received") {
-              setReadingLetter({
-                id: letter.id,
-                title: letter.title,
-                content: letterContent,
-                senderName: personName,
-                senderAvatarUrl: personAvatarUrl,
-                createdAt: letter.created_at,
-                unlockDate: unlockDateStr || null,
-              });
-              return;
-            }
-            setOpenLetterId(isOpen ? null : letter.id);
+            const myOwnName =
+              readableName(profile?.displayName) || readableName(profile?.username) || t("letters.myLoveHeart");
+            setReadingLetter({
+              id: letter.id,
+              role: itemType,
+              title: letter.title,
+              content: letterContent,
+              personName,
+              personAvatarUrl,
+              signatureName: itemType === "received" ? personName : myOwnName,
+              createdAt: letter.created_at,
+              unlockDate: unlockDateStr || null,
+              openedByReceiverAt: letter.opened_by_receiver_at ?? null,
+              isLockedForPartner: itemType === "sent" && isLockedDate,
+            });
           }}
         >
           {/* Üst Durum Çubuğu */}
@@ -636,33 +689,33 @@ export default function LettersScreen() {
                   label={t("letters.card.locked", { date: dayjs(unlockDateStr).locale(i18n.language).format("DD MMM YYYY") })}
                   progress={sandProgress}
                 />
+              ) : itemType === "sent" && isLockedDate ? (
+                <View style={styles.unlockedBadge}>
+                  <LockKeyhole size={12} color={isLight ? "#15803D" : "#22c55e"} />
+                  <Text style={styles.unlockedBadgeText}>
+                    {t("letters.card.sealed", { date: dayjs(unlockDateStr).locale(i18n.language).format("DD MMM YYYY") })}
+                  </Text>
+                </View>
+              ) : itemType === "sent" && isOpenedByPartner ? (
+                <View style={styles.unlockedBadge}>
+                  <CheckCheck size={13} color={isLight ? "#15803D" : "#22c55e"} />
+                  <Text style={styles.unlockedBadgeText}>{t("letters.card.opened")}</Text>
+                </View>
+              ) : itemType === "sent" ? (
+                <View style={styles.sentUnreadBadge}>
+                  <Clock size={12} color={isLight ? theme.textSecondary : "rgba(255,255,255,0.68)"} />
+                  <Text style={styles.sentUnreadBadgeText}>{t("letters.card.sentUnread")}</Text>
+                </View>
               ) : (
                 <View style={styles.unlockedBadge}>
-                  {itemType === "sent" && isLockedDate ? (
-                    <LockKeyhole size={12} color={isLight ? "#15803D" : "#22c55e"} />
-                  ) : (
-                    <Unlock size={12} color={isLight ? "#15803D" : "#22c55e"} />
-                  )}
-                  <Text style={styles.unlockedBadgeText}>
-                    {itemType === "sent"
-                      ? isLockedDate
-                        ? t("letters.card.sealed", { date: dayjs(unlockDateStr).locale(i18n.language).format("DD MMM YYYY") })
-                        : t("letters.card.sentStatus")
-                      : t("letters.card.opened")}
-                  </Text>
+                  <Unlock size={12} color={isLight ? "#15803D" : "#22c55e"} />
+                  <Text style={styles.unlockedBadgeText}>{t("letters.card.opened")}</Text>
                 </View>
               )}
             </View>
 
             <View style={styles.cardActionsRow}>
-              {canOpen && itemType === "received" && <ChevronRight size={14} color={theme.textMuted} />}
-              {canOpen && itemType === "sent" && (
-                <ChevronDown
-                  size={14}
-                  color={theme.textMuted}
-                  style={{ transform: [{ rotate: isOpen ? "180deg" : "0deg" }] }}
-                />
-              )}
+              {canOpen && <ChevronRight size={14} color={theme.textMuted} />}
               {isSealedForMe && <LockedLetterPadlock shakeKey={lockedTapKey} />}
               {/* Alıcı kilitli bir mektubu göremez; gizleme/silme seçenekleri açılmış ya da gönderilmiş mektuplarda */}
               {!isSealedForMe && (
@@ -694,34 +747,29 @@ export default function LettersScreen() {
             <Text style={[styles.cardDate, { color: theme.textMuted }]}>{relativeDate}</Text>
           </View>
 
-          {/* Kapalı Durumdayken Kısa Önizleme */}
-          {!isOpen && (
-            <Text 
-              style={[
-                styles.previewText, 
-                { color: theme.textSecondary },
-                isLockedDate && itemType === "received" && styles.previewTextBlurred
-              ]} 
-              numberOfLines={2}
-            >
-              {canOpen
-                ? letterContent
-                : t("letters.card.lockedNote")}
-            </Text>
-          )}
+          {/* Kısa Önizleme */}
+          <Text
+            style={[
+              styles.previewText,
+              { color: theme.textSecondary },
+              isLockedDate && itemType === "received" && styles.previewTextBlurred
+            ]}
+            numberOfLines={2}
+          >
+            {canOpen
+              ? letterContent
+              : t("letters.card.lockedNote")}
+          </Text>
 
-          {/* Açık Durumdaki Tam Mektup İçeriği */}
-          {canOpen && isOpen && (
-            <View style={[styles.letterContentBox, { borderTopColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.08)" }]}>
-              <View style={styles.letterContentHeaderRow}>
-                <Text style={[styles.letterContentLabel, { color: theme.accent }]}>{t("letters.card.content")}</Text>
-              </View>
-              <Text style={[styles.letterContentText, { color: theme.text }]}>{letterContent}</Text>
-              {unlockDateStr ? (
-                <Text style={[styles.letterFooterNote, { color: theme.textMuted }]}>
-                  {t("letters.card.openingDate", { date: dayjs(unlockDateStr).locale(i18n.language).format("DD MMMM YYYY") })}
-                </Text>
-              ) : null}
+          {/* Gönderen için alıcının açtığı zaman damgası */}
+          {isOpenedByPartner && (
+            <View style={styles.openedReceiptRow}>
+              <CheckCheck size={13} color={isLight ? "#15803D" : "#22c55e"} />
+              <Text style={styles.openedReceiptText}>
+                {t("letters.card.openedAt", {
+                  date: dayjs(letter.opened_by_receiver_at).locale(i18n.language).format("D MMMM HH:mm"),
+                })}
+              </Text>
             </View>
           )}
 
@@ -796,7 +844,7 @@ export default function LettersScreen() {
     );
   }, [
     theme.cardBg, theme.cardBorder, theme.text, theme.textMuted, theme.textSecondary, theme.accent, theme.unitBg,
-    isLight, userId, openLetterId, activeTab, getAvatarUrl, busyLetterId, isHiddenView, lockedTap,
+    isLight, userId, profile?.displayName, profile?.username, activeTab, getAvatarUrl, busyLetterId, isHiddenView, lockedTap,
     openLetterMenu, handleSetHidden, handleCancelDeletion, respondToDeletion, handleApproveDeletion,
     t, i18n.language,
   ]);
@@ -1228,6 +1276,7 @@ export default function LettersScreen() {
         letter={readingLetter}
         theme={theme}
         onClose={() => setReadingLetter(null)}
+        onMarkOpened={handleMarkLetterOpened}
         onFirstOpened={() => {
           // Zamana kilitli mektubun mührü ilk kez kırıldı: duygusal an (demo hesapta istenmez)
           if (!isDemoMode) void requestReviewAtMoment("letter_first_open");
@@ -1396,6 +1445,34 @@ const createStyles = (theme: AppTheme) => {
       color: isLight ? "#15803D" : "#22c55e",
       fontSize: 11.5,
       fontFamily: "Inter_600SemiBold",
+    },
+    sentUnreadBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      backgroundColor: isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)",
+      paddingHorizontal: 9,
+      paddingVertical: 4,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: isLight ? theme.cardBorder : "rgba(255,255,255,0.14)",
+      maxWidth: "100%",
+    },
+    sentUnreadBadgeText: {
+      color: isLight ? theme.textSecondary : "rgba(255,255,255,0.72)",
+      fontSize: 11.5,
+      fontFamily: "Inter_600SemiBold",
+    },
+    openedReceiptRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      marginTop: 8,
+    },
+    openedReceiptText: {
+      color: isLight ? "#15803D" : "#4ade80",
+      fontSize: 11.5,
+      fontFamily: "Inter_500Medium",
     },
     cardDate: {
       fontSize: 11.5,
