@@ -190,7 +190,7 @@ const DEMO_LETTERS_TR = [
     sender_id: DEMO_PARTNER_ID,
     receiver_id: DEMO_USER_ID,
     title: "🔒 2. Yıldönümümüzde Açılacak Mühürlü Mektup",
-    content: "Bu mektup sevdiğin tarafından belirlenen yıldönümü gününüze kadar aşk mührüyle kilitlenmiştir...",
+    content: "Bu mektup sevgilin tarafından belirlenen yıldönümü gününüze kadar aşk mührüyle kilitlenmiştir...",
     unlock_date: dayjs().add(60, "day").format("YYYY-MM-DD"),
     created_at: dayjs().subtract(5, "day").toISOString(),
     _type: "received" as const,

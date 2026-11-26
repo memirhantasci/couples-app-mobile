@@ -1802,7 +1802,7 @@
       "lockedTitle": "🔒 Geleceğe Kilitli Mektup",
       "from": "Gönderen: {{personName}}",
       "to": "Alıcı: {{personName}}",
-      "lockedNote": "Bu mektup sevdiğin tarafından belirlenen tarihe kadar özel bir mühürle kilitlenmiştir...",
+      "lockedNote": "Bu mektup sevgilin tarafından belirlenen tarihe kadar özel bir mühürle kilitlenmiştir...",
       "content": "Mektup İçeriği",
       "openingDate": "Açılış Tarihi: {{date}}",
       "deletionAsk": "Partnerin bu mektubun silinmesini istiyor. Sen onay vermeden silinmez.",
@@ -1814,7 +1814,7 @@
     "subtitle": "Geleceğe Zaman Kapsülü 💌",
     "write": {
       "cta": "Yeni Bir Mektup Yaz",
-      "ctaSub": "Sevdiğine gelecekte açılacak bir mesaj bırak ✨"
+      "ctaSub": "Sevgiline gelecekte açılacak bir mesaj bırak ✨"
     },
     "filters": {
       "all": "Tümü ({{total}})",
@@ -1846,13 +1846,13 @@
       "titleLabel": "MEKTUP BAŞLIĞI *",
       "titlePlaceholder": "Örn: 1. Yılımızda Açılacak Özel Bir Not...",
       "contentLabel": "MEKTUP İÇERİĞİ *",
-      "contentPlaceholder": "Yüreğinden geçenleri dök... Gelecekte sevdiğinin okumasını istediğin en özel satırlar...",
+      "contentPlaceholder": "Yüreğinden geçenleri dök... Gelecekte sevgilinin okumasını istediğin en özel satırlar...",
       "submit": "Mektubu Mühürle 💌",
       "tokenNote": "* Premium olmayan üyeler için 100 Token karşılığında mühürlenir. (Mevcut bakiyeniz: {{balance}} Token)"
     },
     "premium": {
       "featureName": "Mektup Yaz",
-      "featureDescription": "Sevdiğine zamanda yolculuğa çıkan mektuplar yaz."
+      "featureDescription": "Sevgiline zamanda yolculuğa çıkan mektuplar yaz."
     },
     "bird": {
       "wroteToYou": "{{name}} sana yazdı",
