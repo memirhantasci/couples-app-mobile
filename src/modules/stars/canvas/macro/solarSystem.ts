@@ -566,15 +566,17 @@ function makeSolarObject(
 ): ViewportStarItem {
   const claim = solarClaimsStore[body.catalog_code];
   const isMine = myCatalogCode ? body.catalog_code === myCatalogCode : (claim?.is_mine ?? false);
-  const isClaimed = isMine || (claim ? (claim.is_claimed ?? false) : true);
+  // Güneş Sistemi cisimleri normal sahiplenme akışına her zaman kapalıdır (is_claimed: true);
+  // bir çifte hediye edilip edilmediği is_mine veya owner_label dolu olmasıyla ayırt edilir.
+  const hasOwner = isMine || Boolean(claim?.is_claimed);
 
   const item = {
     ...body,
     ...position,
     catalog_id: claim?.catalog_id ? Number(claim.catalog_id) : body.catalog_id,
-    is_claimed: isClaimed,
+    is_claimed: true,
     is_mine: isMine,
-    owner_label: isMine ? null : (claim?.owner_label ?? null),
+    owner_label: hasOwner ? (claim?.owner_label ?? null) : null,
     is_connected: isMine ? false : (claim?.is_connected ?? false),
     luminosity_level: claim?.luminosity_level ?? (isMine ? 1.0 : body.luminosity_level),
     resonance_active: claim?.resonance_active ?? (isMine ? false : body.resonance_active),

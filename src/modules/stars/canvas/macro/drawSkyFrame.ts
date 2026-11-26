@@ -719,28 +719,29 @@ function drawSolarLabels(
   const bodies: LabelBody[] = [];
   overlay.solar.forEach((body, index) => {
     const point = points[index];
+    const alwaysVisible = body.isSun || body.isHero;
     const labelled =
-      body.label !== null && (body.isSun || planetAlpha > 0.01) && isOnScreen(view, point.x, point.y, 120);
+      body.label !== null && (alwaysVisible || planetAlpha > 0.01) && isOnScreen(view, point.x, point.y, 120);
     bodies.push({
       x: point.x,
       y: point.y,
       radius: point.radius,
       label: labelled ? { width: body.labelWidth, top: body.labelTop, bottom: body.labelBottom } : null,
-      always: body.isSun,
+      always: alwaysVisible,
     });
   });
   const placements = placeSolarLabels(bodies);
 
-  // The sun's label first, at full opacity; planet labels together in one faded layer
+  // The sun and the couple's own solar hero first, at full opacity; other planet labels together in one faded layer
   overlay.solar.forEach((body, index) => {
     const placement = placements[index];
-    if (body.isSun && placement && body.label) drawAt(canvas, body.label, placement.x, placement.y);
+    if ((body.isSun || body.isHero) && placement && body.label) drawAt(canvas, body.label, placement.x, placement.y);
   });
   const fading = planetAlpha < 0.998;
   if (fading) beginAlphaLayer(canvas, paints, planetAlpha);
   overlay.solar.forEach((body, index) => {
     const placement = placements[index];
-    if (!body.isSun && placement && body.label) drawAt(canvas, body.label, placement.x, placement.y);
+    if (!body.isSun && !body.isHero && placement && body.label) drawAt(canvas, body.label, placement.x, placement.y);
   });
   if (fading) canvas.restore();
 }

@@ -500,20 +500,31 @@ export const OurStarScreen: React.FC = () => {
 
   // ─── GÜNEŞ SİSTEMİ CANLI SAHİPLİK DURUMU ───────────────────────────
   // 11 gök cisminin tescil, sahip ve sosyal görünürlük durumunu sunucudan çeker
-  useEffect(() => {
-    let alive = true;
+  const [solarClaimsVersion, setSolarClaimsVersion] = useState(0);
+  const myCatalogCodeRef = useRef<string | null>(null);
+  myCatalogCodeRef.current = starDetails?.catalog_code ?? null;
+
+  const refreshSolarClaims = useCallback(() => {
     starService
       .getSolarSystemClaims()
       .then((claims) => {
-        if (alive && Array.isArray(claims)) {
-          updateSolarClaims(claims);
-        }
+        if (!Array.isArray(claims)) return;
+        updateSolarClaims(claims);
+        setSolarClaimsVersion((v) => v + 1);
+        setSelectedMacroStar((current) => {
+          if (!current?.catalog_code?.startsWith('SOL-')) return current;
+          const fresh = solarSystemObjectsAt(Date.now(), myCatalogCodeRef.current).find(
+            (s) => s.catalog_code === current.catalog_code
+          );
+          return fresh ? { ...current, ...fresh } : current;
+        });
       })
       .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, [coupleId]);
+  }, []);
+
+  useEffect(() => {
+    refreshSolarClaims();
+  }, [coupleId, refreshSolarClaims]);
 
   // ─── ARKADAŞ ÇİFT DAVETİ ───────────────────────────────────────────
   // Yıldızımız yokken davetle bağlı arkadaş çiftin yıldızı varsa onu gösteren kart. Yıldız seçilince
@@ -790,7 +801,10 @@ export const OurStarScreen: React.FC = () => {
       const isInitial = isInitialMountRef.current;
       isInitialMountRef.current = false;
       loadStarData(!isInitial);
-    }, [loadStarData])
+      if (!isInitial) {
+        refreshSolarClaims();
+      }
+    }, [loadStarData, refreshSolarClaims])
   );
 
   // Kozmik Ambiyans: ekran odaktayken ve hem genel ayarlarda ses açık hem de bu ekranda sessize
@@ -1054,11 +1068,18 @@ export const OurStarScreen: React.FC = () => {
 
   const handleFocusMyStar = useCallback(() => {
     hapticStamp();
-    setFlyToTarget({ centerRa: myStarRa, centerDec: myStarDec, zoom: STAR_EXTERIOR_ZOOM, nonce: Date.now() });
+    const liveSolar = starDetails?.catalog_code?.startsWith('SOL-')
+      ? solarSystemObjectsAt(Date.now(), starDetails.catalog_code).find(
+          (s) => s.catalog_code === starDetails.catalog_code
+        )
+      : null;
+    const targetRa = liveSolar ? liveSolar.ra : myStarRa;
+    const targetDec = liveSolar ? liveSolar.dec : myStarDec;
+    setFlyToTarget({ centerRa: targetRa, centerDec: targetDec, zoom: STAR_EXTERIOR_ZOOM, nonce: Date.now() });
     // Warm the destination tiles so they arrive during the flight.
     prefetchSkyTiles(computeBounds({
-      centerRa: myStarRa,
-      centerDec: myStarDec,
+      centerRa: targetRa,
+      centerDec: targetDec,
       zoom: STAR_EXTERIOR_ZOOM,
       fovDec: 20,
       fovRa: 20 * (SCREEN_WIDTH / SCREEN_HEIGHT),
@@ -1068,13 +1089,14 @@ export const OurStarScreen: React.FC = () => {
         catalog_id: starDetails.catalog_id,
         catalog_code: starDetails.catalog_code,
         common_name: starDetails.common_name ?? null,
-        ra: myStarRa,
-        dec: myStarDec,
+        ra: targetRa,
+        dec: targetDec,
         magnitude: starDetails.magnitude,
         spectral_type: starDetails.spectral_type,
         base_color: starDetails.base_color,
         is_claimed: true,
         is_mine: true,
+        owner_label: liveSolar?.owner_label ?? null,
         custom_name: starDetails.custom_name,
         luminosity_level: starDetails.luminosity_level,
         resonance_active: starDetails.resonance_active,
@@ -1410,14 +1432,23 @@ export const OurStarScreen: React.FC = () => {
     return selectedMacroStar.is_claimed && commonName ? `${commonName} · ${code}` : code;
   })();
   // Kendi yıldızımızın kartı bazen sunucu etiketi olmayan bir kayıttan açılır (demo; "yıldızıma git" ile harita
-  // yüklenmeden açılan kart): isimler önce yüklü haritadaki kendi kaydından, demoda örnek çiftten alınır.
+  // yüklenmeden açılan kart): isimler önce yüklü güneş sistemi / haritadaki kendi kaydından, demoda örnek çiftten alınır.
+  const mySolarOwnerLabel = useMemo(() => {
+    if (!starDetails?.catalog_code?.startsWith('SOL-')) return null;
+    return (
+      solarSystemObjectsAt(Date.now(), starDetails.catalog_code).find(
+        (s) => s.catalog_code === starDetails.catalog_code
+      )?.owner_label ?? null
+    );
+    // solarClaimsVersion sunucudan güncel sahiplik gelince etiketi tazeler
+  }, [starDetails?.catalog_code, solarClaimsVersion]);
   const selectedStarOwnerLabel = !selectedMacroStar?.is_claimed
     ? null
     : selectedMacroStar.owner_label ??
       (selectedMacroStar.is_mine
         ? isDemoMode
           ? getDemoStarOwnerLabel()
-          : skyTiles.stars.find((s) => s.is_mine)?.owner_label ?? null
+          : mySolarOwnerLabel ?? skyTiles.stars.find((s) => s.is_mine)?.owner_label ?? null
         : null);
   const canReportSelectedStar =
     !!selectedMacroStar &&
@@ -1832,7 +1863,8 @@ export const OurStarScreen: React.FC = () => {
                         {t('stars.card.ourStar')}
                       </Text>
                     </View>
-                  ) : selectedMacroStar.is_claimed ? (
+                  ) : selectedMacroStar.is_claimed &&
+                    (!selectedMacroStar.catalog_code?.startsWith('SOL-') || !!selectedMacroStar.owner_label) ? (
                     <View
                       style={[
                         styles.claimedBadge,
@@ -1854,11 +1886,11 @@ export const OurStarScreen: React.FC = () => {
                         {isSelectedStarBonded ? t('stars.connect.connected') : t('stars.card.registered')}
                       </Text>
                     </View>
-                  ) : (
+                  ) : !selectedMacroStar.is_claimed ? (
                     <View style={styles.availableBadge}>
                       <Text style={styles.availableBadgeText}>{t('stars.card.available')}</Text>
                     </View>
-                  )}
+                  ) : null}
                 </View>
                 {/* 2. Sahip çift: kendi çiftimizde ve bağlı çiftlerde ilk adlar, diğerlerinde baş harfler
                     (izin veren üyenin ilk adı); izin verilmişse profil fotoğrafları */}
@@ -2075,6 +2107,27 @@ export const OurStarScreen: React.FC = () => {
                 {t('stars.card.alreadyHasStar')}
               </Text>
             </View>
+          ) : selectedMacroStar.catalog_code?.startsWith('SOL-') && !selectedMacroStar.owner_label ? (
+            // Güneş Sistemi Referans Cismi (henüz kimseye hediye edilmemiş — demo ve yıldızsız kullanıcılar dahil)
+            <View
+              style={[
+                styles.solarObjectBanner,
+                isLight && {
+                  backgroundColor: '#F8FAFC',
+                  borderColor: '#E2E8F0',
+                },
+              ]}
+            >
+              <Sun size={14} color={isLight ? '#475569' : '#FBBF24'} />
+              <Text
+                style={[
+                  styles.solarObjectText,
+                  isLight && { color: '#334155' },
+                ]}
+              >
+                {t(SOLAR_DESCRIPTION_KEYS[selectedMacroStar.catalog_code] ?? 'stars.solarDescriptions.fallback')}
+              </Text>
+            </View>
           ) : isDemoMode ? (
             // Başkasının tescilli yıldızı (Demo modu)
             <Text style={[styles.claimedInfoText, isLight && { color: theme.textSecondary }]}>
@@ -2134,27 +2187,6 @@ export const OurStarScreen: React.FC = () => {
               <Clock size={13} color={isLight ? '#475569' : '#FBBF24'} />
               <Text style={[styles.alreadyConnectedText, isLight && { color: '#334155' }]}>
                 {t('stars.card.requestPending')}
-              </Text>
-            </View>
-          ) : selectedMacroStar.catalog_code?.startsWith('SOL-') && !selectedMacroStar.owner_label ? (
-            // Güneş Sistemi Referans Cismi (henüz kimseye hediye edilmemiş)
-            <View
-              style={[
-                styles.solarObjectBanner,
-                isLight && {
-                  backgroundColor: '#F8FAFC',
-                  borderColor: '#E2E8F0',
-                },
-              ]}
-            >
-              <Sun size={14} color={isLight ? '#475569' : '#FBBF24'} />
-              <Text
-                style={[
-                  styles.solarObjectText,
-                  isLight && { color: '#334155' },
-                ]}
-              >
-                {t(SOLAR_DESCRIPTION_KEYS[selectedMacroStar.catalog_code] ?? 'stars.solarDescriptions.fallback')}
               </Text>
             </View>
           ) : starConnections.length >= 3 ? (
@@ -2391,8 +2423,16 @@ export const OurStarScreen: React.FC = () => {
           canRename={!isDemoMode && !starDetails?.catalog_code?.startsWith('SOL-')}
           isPremium={isPremium}
           onRenamed={handleStarRenamed}
-          onClose={() => setIsCertificateModalOpen(false)}
-          onSuccess={() => setIsCertificateModalOpen(false)}
+          onClose={() => {
+            setIsCertificateModalOpen(false);
+            refreshSolarClaims();
+            refreshSkyTiles();
+          }}
+          onSuccess={() => {
+            setIsCertificateModalOpen(false);
+            refreshSolarClaims();
+            refreshSkyTiles();
+          }}
         />
       )}
 

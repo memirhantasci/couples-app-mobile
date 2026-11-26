@@ -24,6 +24,7 @@ import {
   orreryMarkerScale,
   orrerySunRadiusPx,
   solarSystemObjectsAt,
+  updateSolarClaims,
 } from '../solarSystem';
 
 // Adlar i18n'e (ve onun depolamasına) bağlı; konum testleri için gerekmez (jest.mock en üste taşınır)
@@ -208,5 +209,79 @@ describe('güneş sistemi bölgesi', () => {
     expect(isInsideSolarSystem(250.8417, -18.4556)).toBe(false);
     expect(isInsideSolarSystem(286.4271, -21.1114)).toBe(false);
     expect(isInsideSolarSystem(ORRERY_CENTER_RA, ORRERY_CENTER_DEC)).toBe(true);
+  });
+});
+
+describe('güneş sistemi: sahiplik ve isim görünürlüğü', () => {
+  afterEach(() => {
+    updateSolarClaims([]);
+  });
+
+  it('kendi hediye edilen gök cisminde owner_label korunur; boş gezegenler sahiplenmeye kapalı kalır', () => {
+    updateSolarClaims([
+      {
+        catalog_id: 525,
+        catalog_code: 'SOL-SUN',
+        couple_id: 210,
+        custom_name: 'Güneş',
+        is_claimed: true,
+        is_mine: true,
+        owner_label: 'Emirhan 💕 Öykü',
+        is_connected: false,
+        luminosity_level: 0.84,
+        resonance_active: false,
+      },
+      {
+        catalog_id: 533,
+        catalog_code: 'SOL-MARS',
+        couple_id: null,
+        custom_name: null,
+        is_claimed: false,
+        is_mine: false,
+        owner_label: null,
+        is_connected: false,
+        luminosity_level: 1.0,
+        resonance_active: false,
+      },
+    ]);
+
+    const objects = solarSystemObjectsAt(ORRERY_EPOCH_MS, 'SOL-SUN');
+    const sun = objects.find((o) => o.catalog_code === 'SOL-SUN');
+    const mars = objects.find((o) => o.catalog_code === 'SOL-MARS');
+
+    expect(sun?.is_mine).toBe(true);
+    expect(sun?.is_claimed).toBe(true);
+    expect(sun?.catalog_id).toBe(525);
+    expect(sun?.owner_label).toBe('Emirhan 💕 Öykü');
+
+    // Boş gezegen normal akışla sahiplenilemez (is_claimed: true) ama owner_label null olur
+    expect(mars?.is_mine).toBe(false);
+    expect(mars?.is_claimed).toBe(true);
+    expect(mars?.owner_label).toBeNull();
+  });
+
+  it('başka çiftin gök cisminde gizlilik kuralına uygun owner_label ve gerçek catalog_id gelir', () => {
+    updateSolarClaims([
+      {
+        catalog_id: 525,
+        catalog_code: 'SOL-SUN',
+        couple_id: 210,
+        custom_name: 'Güneş',
+        is_claimed: true,
+        is_mine: false,
+        owner_label: 'Emirhan 💕 Ö',
+        is_connected: false,
+        luminosity_level: 0.45,
+        resonance_active: false,
+      },
+    ]);
+
+    const objects = solarSystemObjectsAt(ORRERY_EPOCH_MS, null);
+    const sun = objects.find((o) => o.catalog_code === 'SOL-SUN');
+
+    expect(sun?.is_mine).toBe(false);
+    expect(sun?.is_claimed).toBe(true);
+    expect(sun?.catalog_id).toBe(525);
+    expect(sun?.owner_label).toBe('Emirhan 💕 Ö');
   });
 });

@@ -155,6 +155,12 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
   const luminosity = luminosityOverride ?? starDetails.luminosity_level;
   const luminosityPercent = Math.round(luminosity * 100);
   const spectralColor = getSpectralColor(starDetails.spectral_type);
+  const displayStarName = starDetails.custom_name || t('stars.defaultName');
+  const trimmedCommonName = starDetails.common_name?.trim() ?? '';
+  const showCommonName =
+    trimmedCommonName.length > 0 &&
+    !starDetails.catalog_code?.startsWith('SOL-') &&
+    trimmedCommonName.toLocaleLowerCase('tr') !== displayStarName.trim().toLocaleLowerCase('tr');
 
   // RA ve DEC koordinatları formatı (Örn: 124.50° / +45.20°)
   const raFormatted = starDetails.ra != null ? `${Number(starDetails.ra).toFixed(2)}°` : '--';
@@ -191,11 +197,11 @@ export const StarInfoBadge: React.FC<StarInfoBadgeProps> = ({
             <View style={styles.nameBlock}>
               <View style={[styles.spectralDot, { backgroundColor: spectralColor }]} />
               <Text style={[styles.starName, { color: theme.text }]} numberOfLines={1}>
-                {starDetails.custom_name || t('stars.defaultName')}
+                {displayStarName}
               </Text>
-              {starDetails.common_name ? (
+              {showCommonName ? (
                 <Text style={[styles.starCommonName, { color: theme.textMuted }]} numberOfLines={1}>
-                  ({starDetails.common_name})
+                  ({trimmedCommonName})
                 </Text>
               ) : null}
               {effectiveResonance && (
