@@ -2,6 +2,8 @@
 
 Dal: `ortak-liste` · Hazırlanma: 2026-11-09 · Durum: **Faz 1A, 1B, 1C ve gözden geçirme düzeltmeleri bitti ve `eff0781`'de commitlendi (2026-11-10); ayrıntılı ekleme ve yerleşim yenilemesi çalışma ağacında, commitlenmedi; `main`'e birleştirilmedi, sunucu canlıya uygulanmadı, üretimde kapalı** (bkz. bölüm 0)
 
+> **Güncelleme 2026-11-26:** kullanıcı kararıyla Ortak Liste ("Yapacaklarımız"), hem **Yıldız Parlaklığı** hem de **Aşk Skoru** sistemine bağlandı ve canlı veritabanına uygulandı (`20261126000001_wishlist_points_and_love_score.sql`). Listeye yeni madde eklemek `wishlist_add` (+1 puan, `user_day`, günde maks 1), bir maddeyi birlikte gerçekleştirmek `wishlist_done` (+2 puan, `couple_day`, günde maks 2; geri alıp tekrar işaretleme ve ardışık gün suistimaline karşı korumalı) kazandırır. Aşk Skoru'na (`src/lib/loveScore.ts`, `get_couple_love_activity`) tüm çiftler için aktif maks 15 puanlık `wishlist` bileşeni eklendi (taban payda 100 → 115).
+
 > **Güncelleme 2026-11-13:** kullanıcı kararıyla Faz 1 canlıya alındı. Migration `20261109000000`-`03` canlıya uygulandı (canlıdaki `dissolve_couple_for_leaving_member` ve `move_member_content` gövdeleri repodakiyle satır satır karşılaştırıldı: tek fark ortak liste satırları), `WISHLIST_SERVER_READY = true`, dal `main`'e birleştirildi. Aşağıdaki "canlıya uygulanmadı / üretimde kapalı" ifadeleri bu tarihten öncesini anlatır.
 Yayın öncesi işler (cihaz testi, Apple anahtarı, mektup kilidi) bitmeden bu dal `main`'e girmez; migration ve `send-push` değişikliği yeni build ister.
 
@@ -76,7 +78,7 @@ Bu belge başka oturumların (Faz 1A/1B/1C, Faz 2, Faz 3) bağımsız çalışab
 | Ücretsiz sınır | **15 açık madde**. Yapılanlar (`done`) sayıya girmez. Premium: sınırsız (teknik üst sınır 300 açık madde) |
 | Premium biterse | Hiçbir şey silinmez; yalnızca yeni ekleme kilitlenir (mevcut kış uykusu ruhu) |
 | 🎲 "Bana bir tane seç" | **Faz 1'de** |
-| Puan | **Yok.** `activity_point_rules`'a dokunma. Puan zaten buluşma (4) ve anı (1) üzerinden gelir |
+| Puan ve Aşk Skoru | **Aktif (2026-11-26 güncellemesi):** `wishlist_add` (+1/gün/kişi), `wishlist_done` (+2/gün/çift) yıldız parlaklığı puanı (`20261126000001`) + Aşk Skoru'nda tüm çiftler için maks 15 puan (`loveScore.ts`) |
 | Hediye kategorisi | **Yok** (liste ortak; sürpriz fikri partnere görünür). İleride "sadece benim" gizli liste ayrı iş |
 | Eşleşme | Şart (solo kullanıcı yazamaz; `trg_solo_write_guard('partner')`) |
 | Şifreleme | Düz metin (takvim notu / harita notu / buluşma ile aynı). 🔎 Anıların şifreli olup olmadığına bak, tutarlı ol |

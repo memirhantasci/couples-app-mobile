@@ -1,6 +1,6 @@
 # Bilinen sınırlar ve yayın sonrası işler
 
-Son güncelleme: 2026-11-11
+Son güncelleme: 2026-11-26
 
 ## ⏳ UYGULANMAYI BEKLEYEN ADIMLAR (unutma)
 
@@ -9,7 +9,7 @@ Kodu ve provası hazır, ama bilerek canlıya uygulanmadı. Sırası geldiğinde
 | # | Ne | Ne zaman | Nasıl |
 | :-- | :-- | :-- | :-- |
 | 1 | **Mektup zaman kilidi, 2. adım:** `letters_select` politikasını yalnızca gönderene indir. Bu yapılmadan alıcı kilitli mektubu tablodan doğrudan okuyabilir. | `my_letters` görünümünü kullanan sürüm (commit `534a310` ve sonrası; iOS build 20 / Android build 12 **değil**) mağazalarda yayıldıktan ve eski sürümler zorunlu güncellemeyle kapatıldıktan sonra. Erken uygulanırsa eski sürümlerde gelen mektuplar kaybolur. | SQL ve prova: bölüm 1'deki "Güncelleme 2026-11-13" kutusu. Önce `app_version_requirements.min_version` (bkz. `docs/ZORUNLU_GUNCELLEME.md`), sonra politika. |
-| 2 | **Yeni build:** 2026-11-13'te build 20 / 12'den sonra yapılan düzeltmeler mağazada yok (tekrar gönder sayacı, eski şifre sıfırlama bağlantısı, gece gökyüzü saat düzeltmesi, mektup okumalarının görünüme taşınması, mektup bildirimi saati, SKAdNetwork). | Apple incelemesi bittikten sonra. SKAdNetwork yerel ayar: OTA ile gitmez, iOS build ister. | `eas build --profile production`; sürüm numarasını yükselt. |
+| 2 | **Yeni build:** Build 20 (iOS) / 12 (Android) sonrasında yapılan tüm istemci değişiklikleri mağaza ikilisini bekliyor: (a) 2026-11-13 düzeltmeleri (tekrar gönder sayacı, eski şifre sıfırlama bağlantısı, gece gökyüzü saat düzeltmesi, mektup okumalarının `my_letters` görünümüne taşınması, mektup bildirimi saati, SKAdNetwork); (b) **2026-11-25/26 özellikleri ve Android UI revizyonu** (Güneş Sistemi `SOL-*` gök cisimleri yönetici hediyesi + canlı Orrery takibi, mektup okundu rozeti + gönderene `letter_opened` push + gönderen zarf açılış animasyonu, Ortak Liste yıldız parlaklığı `+1/+2` tostları ve Aşk Skoru entegrasyonu, gün sayaçları kırpılma/gölge kutusu düzeltmesi, tüm `<Modal>` bileşenlerinde edge-to-edge `statusBarTranslucent` + `navigationBarTranslucent`, `PlatformBlurView` ve Fabric uyumlu `KeyboardAwareScrollView`). *(Not: İlgili DB migration'ları `20261119000000`, `20261126000000`, `20261126000001` ve `send-push` güncellemeleri canlıda devrede ve mağazadaki mevcut ikililerle geriye uyumludur.)* | Mağaza incelemesi uygun olduğunda. SKAdNetwork ve yerel/modal davranışları OTA ile gitmez, yeni mağaza build'i ister. | `eas build --profile production --platform all` (`eas.json` uzak build numarasını otomatik artırır; istenirse `app.json` `version` alanı yükseltilir). |
 | 3 | **Eski HTML varlıklı verinin temizliği** (`Ali&#x27;s`). | Yeni sürüm yayıldıktan sonra (eski sürümler kodlamaya devam ediyor). | Bölüm 0, "Yayından sonra" altındaki madde. |
 | 4 | **Ödüllü reklam sunucu doğrulaması (SSV):** sunucu tarafı canlıda (fonksiyon deploy edildi, migration `20261113000002` uygulandı), henüz ödül yazmıyor. | Sırada: AdMob panelinde geri çağrı URL'si (elle), sonra istemci değişikliği. | Sıra: `supabase/functions/admob-ssv/README.md`. Migration ve deploy → panelde geri çağrı URL'si → istemci değişikliği → eski sürümler kapanınca `earn_tokens` yetkisini al. |
 
@@ -114,10 +114,11 @@ boş kalır. Bu yüzden önce yeni istemci mağazalarda yayılmalı, sonra polit
 
 ## 2. Diğer açık uyarılar (bilerek bırakıldı)
 
+- `public.my_letters` `security_definer_view` uyarısı: bilerek `WITH (security_invoker = false, security_barrier = true)` ile tanımlıdır (`20261113000001`, `20261126000000`); `anon` yetkisi kapalıdır ve `WHERE sender_id = auth.uid() OR receiver_id = auth.uid()` koşulu `security_barrier` arkasında zorlanır (2. adımda `letters_select` kapatıldığında alıcının maskeli satırları okuyabilmesi için şarttır).
 - `pg_trgm` eklentisi `public` şemasında: taşımak GIN indekslerini ve arama fonksiyonlarını bozabilir; trafik gelince ele alınır.
-- `anon` / `authenticated` için SECURITY DEFINER RPC'ler: hepsinin gövdesinde `get_my_couple_id()` ile kimlik/çift kontrolü var.
-  İsteğe bağlı olarak giriş gerektiren fonksiyonlardan `anon` EXECUTE yetkisi kaldırılabilir (keşif modu için
-  `get_stars_in_viewport`, `search_celestial_universe`, `get_sectors_overview`, `is_username_available` hariç).
+- `anon` / `authenticated` için SECURITY DEFINER RPC'ler: hepsinin gövdesinde `get_my_couple_id()` / `auth.uid()` ile kimlik/çift kontrolü var (`admin_gift_solar_star` yalnızca `service_role`/SQL Editor'e açıktır; `mark_letter_opened` ve `get_couple_love_activity` `anon` rolüne kapalıdır).
+  İsteğe bağlı olarak eski giriş gerektiren fonksiyonlardan da `anon` EXECUTE yetkisi kaldırılabilir (keşif modu için
+  `get_stars_in_viewport`, `get_solar_system_claims`, `search_celestial_universe`, `get_sectors_overview`, `is_username_available` hariç).
 - Supabase Auth "sızdırılmış şifre koruması" kapalı: yalnızca ücretli planda; panelden açılır.
 - Performans: kullanıcı sayısı artınca `pg_stat_statements` ile yavaş sorgulara bak.
 

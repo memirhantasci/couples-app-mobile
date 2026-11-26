@@ -1,6 +1,6 @@
 # CoupleSky: Özellik Envanteri
 
-Son güncelleme: 2026-11-11 · Taslak v1 (kod, yerelleştirme dosyaları, migration'lar ve bilgi grafından çıkarıldı)
+Son güncelleme: 2026-11-26 · v1.1 (kod, yerelleştirme dosyaları, canlı migration'lar ve testlerle doğrulandı)
 
 İşaretler: ✅ kodda okunup doğrulandı · 🔎 kontrol edilmeli (dosya adı verilmiştir) · ⚠️ bilinen sorun/sınır
 
@@ -62,16 +62,16 @@ Bileşenler ✅: aşk sayacı + yıldönümü altın ışıltısı (`Anniversary
 Kurallar: kart giriş animasyonu ekran başına tek seferlik (`revealGate.ts`); mektup kuşu uçacaksa ana sayfa animasyon oynatmaz ✅.
 
 ### 4.3 Ruh hali
-10 durum ✅: Çok Mutlu, Mutlu, Normal, Üzgün, Kızgın, Yorgun, Aşık, Sevgi Dolu, Huzurlu, Heyecanlı. Gün içi değişiklik puana sayılmaz (günde 1 puan). Partnerin ruh hali widget'ta görünür (`widget.moodTitle`) ✅. Wrapped ruh hali istatistiği üretir ✅.
+10 durum ✅: Çok Mutlu, Mutlu, Normal, Üzgün, Kızgın, Yorgun, Aşık, Sevgi Dolu, Huzurlu, Heyecanlı. Gün içi değişiklik puana sayılmaz (günde 1 puan). Partnerin ruh hali widget'ta görünür (`widget.moodTitle`) ✅. Ruh hali push bildiriminde "Sarılarak Yanıtla" aksiyonu kaldırıldı; bildirim doğrudan ana sayfaya yönlendirir (`send-push` canlıda) ✅. Wrapped ruh hali istatistiği üretir ✅.
 
 ### 4.4 Mektuplar (`letters.tsx`)
 - Zaman kilitli: açılış günü 00:00 **Türkiye saati**; sunucu ve istemci aynı kuralı kullanır (`letter_unlock_at`, `app_today`) ✅.
 - Mum mührü ilk açılışta kırılır, kırık mühür hafızası cihazda (`letterSeals.ts`); origami kuş animasyonu mektup gelince (`IncomingLetterBird`, `LetterArrivalHost`); kilitli mektup kum saati rozeti ✅.
+- **Okundu / Açıldı bilgisi ve gönderen zarf animasyonu (2026-11-26 canlıda ✅):** Alıcı kilidi açılmış mektubu ilk kez açtığında `mark_letter_opened` RPC'si `letters.opened_by_receiver_at` sütununu tek seferlik damgalar (`my_letters` görünümünden okunur; doğrudan istemci `UPDATE`'i `guard_letter_opened_at` ile engellenir) ve `push_on_letter_opened` tetikleyicisi `send-push` üzerinden gönderene `letter_opened` bildirimi atar. Gönderilen mektup kartlarında 3 durum rozeti gösterilir (*Mühürlü · Kilitli* / *Gönderildi · Henüz açılmadı* / *✓✓ Açıldı · tarih*) ve gönderen de kendi mektuplarını alıcıdaki tam mum mührü kırma + zarf açılış animasyonuyla (`LetterReadingModal`, `role="sent"`) okuyabilir ✅.
 - Yazma maliyeti: **Premium değilse 100 token** (atomik düşer), Premium'da sınırsız ✅. Reklam izleyerek token kazanma kartı (`LetterAdCard`, `WatchAdModal`); günde 25 sınırı ve istemci beyanı ⚠️.
 - Gizleme: gönderilen mektup açılışa kadar silinemez, iki taraf kendi listesinden gizleyebilir; açılıştan 72 saat sonra gönderen silme isteyebilir, alıcı onaylamadan silinmez; reddedilirse 72 saat sonra yeniden istenebilir ✅ (`letterPolicy.ts`, `request_letter_deletion`, `respond_letter_deletion`).
 - Mektup içerik şifreli (AES-256) ✅. Alıcı, açılmamış mektubu API ile doğrudan okuyabilir ⚠️ (öncelikli açık iş, bkz. §7).
 - Mektup, anı gezegenine eklenebilir (`append_letter_to_exoplanet`) ✅. Mektup göndermek 2 puan ✅.
-- 📝 **PLANLANAN (kullanıcı istedi, 2026-11-14, henüz yapılmadı):** (a) Gönderen, partnerin mektubu açıp açmadığını görsün (okundu durumu). Bugün sunucuda gerçek "okundu" bilgisi YOK: "açıldı" yalnızca açılış tarihi gelince sayılıyor (`letter_opened_at`), mühür kırılması cihaz içinde (`letterSeals.ts`). Yani alıcının gerçekten açtığını kaydeden sütun/RPC eklenmeli (yalnızca ekleyen, eski sürümle uyumlu migration). Basit tutulacak. (b) Gönderen de kendi gönderdiği mektubu zarf şeklinde açsın; alıcıdakiyle aynı zarf açılış animasyonu gönderende de oynasın (kullanıcının cümlesi belirsizdi, bu okuma teyit edilecek). 🔎 Önce `letters.tsx` ve mühür/zarf bileşenlerine bak.
 
 ### 4.5 Galeri ve fotoğraf (`photos.tsx`, `add-photo.tsx`)
 Izgara düzenleri (tekli/2'li/3'lü hücre), lightbox, fotoğraf kilit kartı, `photo_archive` (tam boy + küçük resim) ✅. **Yükleme tamamen Premium'dur**: ücretsiz kullanıcı yüklemeye çalışınca doğrudan paywall açılır (`add-photo.tsx:172,258`) ✅. Galeri sekmesi ücretsizde yalnızca hâlihazırda var olan fotoğraflar varsa tam görünür (`photos.tsx:206`). Silme yalnızca yükleyene, Premium gerekmez ✅. Silinen fotoğraf depodan silme kuyruğuyla temizlenir (`storage_purge_queue`) ✅. Fotoğraf başına 1 puan (günde) ✅.
@@ -98,7 +98,7 @@ Plan (başlık, zaman, konum), geri sayım, gerçekleşince 24 saat kutlama kart
 - **🎲 "Bana bir tane seç":** "Açık fikirler (n)" başlığının sağında küçük düğme (`PickButton`; o bölüm yoksa "İkimiz de" başlığında); seçilecek madde yoksa gizli. Önce ikisinin de istediklerinden, hiç yoksa tüm açık maddelerden rastgele seçer; kategori filtresi seçiliyken seçim de o kategoriden yapılır; "Başka bir tane" aynı maddeyi yeniden vermez (`pickWishlistItem`, tohumlanabilir) ✅.
 - **Yetki:** ekleyen düzenler ve siler; iki kişi de 💗 verir ve "yaptık" işaretler. Eşleşme şart (tek kalan yazamaz, kendi maddesini silebilir) ✅.
 - **Sınır:** ücretsizde **15 açık madde** (yapılanlar sayılmaz); Premium'da 300 teknik üst sınır. "Yaptık"ı geri almak da sınıra bağlıdır. Sınırda ücretsiz çift paywall'a (`featureSource: "wishlist"`), Premium çift metne gider. Sayaç sınırı aşmaz ("15/15"). Premium biterse hiçbir şey silinmez, yalnızca yeni ekleme kilitlenir ✅. Hatalar türüne göre ayrı metinle gösterilir (sınır, eşleşme, yetki, geçersiz alan, ağ, zaman aşımı; `wishlistErrors.ts`) ✅.
-- **Puan yok** (`activity_point_rules`'a dokunulmaz). Sunucu: `couple_wishlist_items`, `couple_wishlist_wants`, RPC `set_wishlist_want`/`set_wishlist_done`, tetikleyici `P0022`; migration `20261109000000`, `...01` (hesap silme: silenin maddeleri silinir, partnerinkiler kalır), `...02` (sınır tetikleyicisinde kimlik kontrolü: başka çiftin doluluğu/Premium'u sızmaz), `...03` ("yaptık" zaten yapılmış maddeye dokunmaz) ✅ yazıldı ve geçici Postgres'te sınandı.
+- **Yıldız parlaklığı ve Aşk Skoru entegrasyonu (2026-11-26 canlıda ✅):** Migration `20261126000001` ile yeni madde eklemek **+1 puan** (`wishlist_add`, kişi başı günde 1), ortak bir hayali gerçekleştirmek **+2 puan** (`wishlist_done`, çift başı günde 1, `done → open → done` döngüsüne ve ardışık gün suistimaline karşı korumalı) yıldız parlaklığı kazandırır (`StarPointsToastHost` üzerinde bildirilir). Ayrıca tüm çiftler için Aşk Skoru'na maksimum **15 puanlık** bileşen eklenmiştir (bugün yapılan madde +15, açık madde ekleme +8, son 7 günde yapılan +10, listede ortak açık hedef bulunması +5; `loveScore.ts`, `get_couple_love_activity`). Sunucu altyapısı: `couple_wishlist_items`, `couple_wishlist_wants`, RPC `set_wishlist_want`/`set_wishlist_done`, tetikleyici `P0022`; migration `20261109000000`–`03` ve `20261126000001` canlıda ✅.
 - ✅ **Sunucu canlıda, özellik açık (2026-11-13).** Migration `20261109000000`-`03` canlıya uygulandı (önce ROLLBACK'li kuru çalıştırma; iki kullanıcılı ekle/gör/iste/yaptık/yetki senaryosu canlıda ROLLBACK'li geçti). Tek bayrak `WISHLIST_SERVER_READY = true` (`src/lib/wishlistAvailability.ts`): menü satırı, sekme seçeneği, rehber kaydı, bildirim rotası ve veri katmanı buna bağlı. `wishlistMock.ts` yalnızca testlerde kullanılıyor. 🔎 İstemci gerçek sunucuya karşı cihazda denenmedi (geliştirme yapısı mock veriyle çalışıyordu).
 - Henüz yok (Faz 2): buluşmaya/anıya çevirme, partnere push, "Yaptık mı?" önerisi. Haritada katman ve Wrapped satırı Faz 3. Planın tamamı: `docs/ORTAK_LISTE_PLANI.md`.
 
@@ -124,12 +124,13 @@ En büyük modül; Skia ile çizilir. ✅ olanlar:
 - **Kozmik Bağlar:** başka çiftlerin yıldızlarıyla en fazla 3 aktif bağ, takımyıldızı çizgisi; arkadaş çift koduyla veya gökyüzünden istek; istek kabul/ret; Premium (`star_connect`).
 - **Anı gezegenleri:** elle oluştur (2 puan, günlük sınır var) ya da otomatik (`exoplanet_auto`, `create_due_auto_exoplanet`); fotoğraf/mektup eklenebilir; yeni gezegende partnere push; fotoğraf limiti var. Oluşturma/görüntüleme Premium. 🔎 Otomatik gezegenin tetikleyicisi: `process_due_auto_exoplanets`.
 - **Işıltı skoru:** aktivite puanlarından hesaplanır, her gece azalır (`apply_activity_decay`, `run_star_brightness_nightly`) ✅.
-- **Kış uykusu ve kasa:** Premium biterse yıldız 14 gün kış uykusunda (hiçbir şey silinmez, içi ve ışık bağları kilitli); yenilenmezse koordinat serbest kalır, anı gezegenleri kasada bekler, kasa süresi de dolarsa tam boy fotoğraflar silinir (`premiumStatus.ts`, `star_lapse_releases`) ✅.
+- **Güneş Sistemi gök cisimleri yönetici hediyesi (`SOL-*`, 2026-11-25 canlıda ✅):** 11 ikonik gök cismi (Güneş, Dünya, Ay, Merkür, Venüs, Mars, Jüpiter, Satürn, Uranüs, Neptün, Plüton) normal kullanıcı akışıyla sahiplenilemez; yalnızca yıldızı olmayan (Premium) çiftlere yönetici tarafından `admin_gift_solar_star` ile hediye edilir (`20261119000000`). İsimleri kilitlidir (`guard_star_rename`, `rename_my_star`), abonelik bitişinde kasaya düşüp serbest kalmaz (`release_couple_star_to_vault` muafiyeti), statik yıldız sorgusundan (`get_stars_in_viewport`) hariç tutulup 60fps Skia Orrery yörüngesinde canlı konumlarıyla çizilir (`get_solar_system_claims`, `MacroSkyCanvas`, `SolarBodyDetailSheet`) ✅.
+- **Kış uykusu ve kasa:** Premium biterse yıldız 14 gün kış uykusunda (hiçbir şey silinmez, içi ve ışık bağları kilitli); yenilenmezse normal yıldızların koordinatı serbest kalır (`SOL-%` hariç), anı gezegenleri kasada bekler, kasa süresi de dolarsa tam boy fotoğraflar silinir (`premiumStatus.ts`, `star_lapse_releases`) ✅.
 
-**Aktivite puan kuralları** (`activity_point_rules`) ✅: ruh hali 1/gün/kişi · ilaç 1/gün/kişi · takvim notu 1/gün · haritaya not 1/gün · mektup 2/gün (gönderen) · fotoğraf 1/gün · günlük 1/gün · anı 1/gün · ilk profil fotoğrafı 1 (tek sefer) · regl başlangıcı 2/ay/çift · anı gezegeni 2/gün/çift · **gerçekleşen buluşma 4/gün/çift**.
+**Aktivite puan kuralları** (`activity_point_rules`, 15 kural) ✅: ruh hali 1/gün/kişi · ilaç 1/gün/kişi · takvim notu 1/gün · haritaya not 1/gün · mektup 2/gün (gönderen) · fotoğraf 1/gün · günlük 1/gün · anı 1/gün · ilk profil fotoğrafı 1 (tek sefer) · günlük dilek (`wish`) 1/gün/kişi · ortak listeye ekleme (`wishlist_add`) 1/gün/kişi · ortak listede gerçekleştirme (`wishlist_done`) 2/gün/çift · regl başlangıcı 2/ay/çift · anı gezegeni 2/gün/çift · **gerçekleşen buluşma 4/gün/çift**.
 
 ### 4.15 Aşk Skoru (`loveScore.ts`)
-15–100 arası, günlük, çift bazlı; döküm (`breakdown`) hesaplanır ama "analiz ve denetim için"; `LoveMeter.tsx` ve `home.tsx` bu dökümü kullanmıyor, yani **arayüzde skorun nedeni gösterilmiyor** ✅.
+15–100 arası, günlük, çift bazlı (`get_couple_love_activity` RPC). Tüm çiftlerde aktif 6 temel bileşen (toplam taban payda 115): ruh hali (15), günlük notlar (20), takvim notları (15), buluşmalar (25), mektuplar (25) ve ortak liste / yapacaklarımız (15). Koşullu ek bileşenler: fotoğraflar (15, Premium), ilaç takibi (15, aktif ilaç varsa), regl döngüsü (10, kayıt varsa). Döküm (`breakdown`) hesaplanır ama "analiz ve denetim için"; `LoveMeter.tsx` ve `home.tsx` bu dökümü kullanmıyor, yani **arayüzde skorun nedeni gösterilmiyor** ✅.
 
 ### 4.16 Couple Wrapped (`CoupleWrappedModal`)
 Ay/yıl özeti: baskın ruh hali, en çok gidilen konum, "Biz bu ay N kez birbirimizi seçtik" ifadesi ✅. **Paylaşılabilir**: modal `shareStoryImage` ve `StoryCard` ile hikâye görseli üretip paylaşır ✅ (`CoupleWrappedModal.tsx`).
@@ -143,13 +144,13 @@ Ay/yıl özeti: baskın ruh hali, en çok gidilen konum, "Biz bu ay N kez birbir
 - **Promosyon kodu:** uygulamadan kaldırıldı, RPC/tablolar duruyor ⚠️.
 
 ### 4.18 Bildirimler
-Push (`send-push`, `push_tokens`, `push_dedupe`) ve yerel hatırlatıcılar ✅. Sunucu hatırlatıcı RPC'leri: yıldönümü, aktif regl, hareketsizlik, kasa bitişi, hesap silme, hareketsiz hesap temizliği ✅. Diğer: buluşma güncellendi, yeni anı gezegeni, yıldız bağlantı isteği, partner bildirimleri (`partner_notices`), uygulama içi banner, bildirim izni ön hazırlığı (`PermissionPrimingModal`) ✅. Mektup açılış bildirimi: yerel 09:00, mektup 00:00'da açılıyor, sunucu bildirimi kapalı ⚠️.
+Push (`send-push`, `push_tokens`, `push_dedupe`) ve yerel hatırlatıcılar ✅. Sunucu hatırlatıcı RPC'leri: yıldönümü, aktif regl, hareketsizlik, kasa bitişi, hesap silme, hareketsiz hesap temizliği ✅. Diğer: partner mektubu ilk kez açtığında gönderene bildirim (`letter_opened`), buluşma güncellendi, yeni anı gezegeni, yıldız bağlantı isteği, partner bildirimleri (`partner_notices`), uygulama içi banner, bildirim izni ön hazırlığı (`PermissionPrimingModal`) ✅. Yerel mektup açılış bildirimi açılış anında (00:00 Türkiye saati, `reminderSync.ts`) tetiklenir ✅.
 
 ### 4.19 Widget'lar
 Android (Kotlin `CoupleWidgetProvider`, gece yarısı/Premium bitiş/mektup açılışı alarmları) ve iOS: birlikte gün sayısı, okunmamış mektup, partnerin ruh hali ✅. **Gerçek cihazda hiç denenmedi** ⚠️.
 
-### 4.20 Kişiselleştirme
-Tema: kadın/erkek × koyu/açık/mevcut (6 palet), dil (TR/EN), ses ve titreşim (8 ses: baloncuk, kamera, kutlama, mühür...), tab çubuğu düzeni, yazı boyutu sınırı, tur ve rehberler (`TourGuidesCard`, `usePageTour`) ✅.
+### 4.20 Kişiselleştirme ve Android UI uyumu
+Tema: kadın/erkek × koyu/açık/mevcut (6 palet), dil (TR/EN), ses ve titreşim (8 ses: baloncuk, kamera, kutlama, mühür...), tab çubuğu düzeni, yazı boyutu sınırı, tur ve rehberler (`TourGuidesCard`, `usePageTour`) ✅. Android edge-to-edge / New Architecture (Fabric) uyumu için tüm yerel `<Modal>` bileşenlerinde `statusBarTranslucent` + `navigationBarTranslucent`, Android bulanıklık düşüşü için ortak `PlatformBlurView`, klavye yönetimi için birleşik `KeyboardAwareScrollView` ve statik koruma testleri (`androidUiGuards.test.ts`) kullanılır ✅.
 
 ### 4.21 Hesap silme ve solo mod
 Silme talebi 7 gün bekler, geri alınabilir; **A siler, B kalır** (B'nin içeriği durur, Premium sürekliliği `premium_owner_id` ile korunur), kademeli silme (iki ayrı talep), 30/60 gün hareketsiz hesap temizliği ✅ (`docs/HESAP_SILME_VE_PREMIUM_TASARIMI.md`). Kalan kişi yeni eşleşebilir, çift birleştirme (`couple_merges`, `merge_premium_into_couple`) ✅. İstemci build'i bekliyor.
@@ -165,9 +166,10 @@ RLS + SECURITY DEFINER RPC'ler, günlük ve mektup AES-256, silme kuyruğu (`sto
 
 | Kaynak → Hedef | Nasıl bağlı |
 |---|---|
-| 12 farklı eylem → aktivite puanı → yıldız ışıltısı | `activity_point_rules`, tetikleyiciler |
+| 15 farklı eylem → aktivite puanı → yıldız ışıltısı | `activity_point_rules`, tetikleyiciler |
 | Premium bitişi → kış uykusu → kasa → fotoğraf silme | `premiumStatus.ts`, `subscription_lifecycle_events` |
 | Mektup → anı gezegeni | `append_letter_to_exoplanet` |
+| Mektup açılışı (alıcı) → okundu damgası → gönderene push | `mark_letter_opened`, `push_on_letter_opened`, `send-push` |
 | Fotoğraf → anı gezegeni | `append_media_to_exoplanet` |
 | Buluşma → 4 puan → yıldız; buluşma → ana sayfa kartı → push | `award_completed_meetings`, `activeMeeting.ts` |
 | Ruh hali → widget (partnerin ruh hali), Wrapped | `widgetBridge.ts`, wrapped hesaplayıcı |
@@ -177,7 +179,8 @@ RLS + SECURITY DEFINER RPC'ler, günlük ve mektup AES-256, silme kuyruğu (`sto
 | Davet → iki çifte Premium/token → davetle gelen yıldız bağı | `referral.ts`, `link_referral_stars` |
 | Yıldız kıvılcımı → partnere "titreşim" | `send_star_spark` |
 | Premium durumu → ana sayfa uyarıları, paywall bağlamı | `usePremiumDetails`, `PremiumPaywall featureSource` |
-| Ortak liste sınırı (15 açık madde) → paywall (`wishlist`); liste → menü, sekme seçeneği, sayfa rehberi, bildirim rota izin listesi (hepsi `wishlistAvailability.ts` bayrağına bağlı, şu an kapalı) | `serverErrors.ts`, `PremiumPaywall.tsx`, `menu.tsx`, `TabBarContext.tsx`, `notificationRoutes.ts`, `featureGuides.ts` |
+| Ortak liste → yıldız ışıltısı (`+1`/`+2` puan) & Aşk Skoru (maks 15 puan) | `20261126000001`, `loveScore.ts`, `get_couple_love_activity` |
+| Ortak liste sınırı (15 açık madde) → paywall (`wishlist`); liste → menü, sekme seçeneği, sayfa rehberi, bildirim rota izin listesi (`wishlistAvailability.ts` canlıda açık ✅) | `serverErrors.ts`, `PremiumPaywall.tsx`, `menu.tsx`, `TabBarContext.tsx`, `notificationRoutes.ts`, `featureGuides.ts` |
 | Ortak liste → buluşma / anı / push | ⚠️ **bağlı değil** (Faz 2); `meeting_id`/`memory_id` sütunları hazır |
 
 ## 6. Ücretsiz / Premium sınırları (kodda okunan)
